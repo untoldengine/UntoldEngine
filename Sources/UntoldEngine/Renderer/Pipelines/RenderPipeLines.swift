@@ -36,7 +36,6 @@ public enum PipelineBlendMode {
     case alphaStraight
     case alphaPremultiplied
     case additive
-    case gaussianFrontToBack
 }
 
 public func CreatePipeline(
@@ -114,15 +113,6 @@ public func CreatePipeline(
                 attachment?.sourceAlphaBlendFactor = .one
                 attachment?.destinationAlphaBlendFactor = .one
 
-            case .gaussianFrontToBack:
-                attachment?.isBlendingEnabled = true
-                attachment?.rgbBlendOperation = .add
-                attachment?.sourceRGBBlendFactor = .oneMinusDestinationAlpha
-                attachment?.destinationRGBBlendFactor = .one
-
-                attachment?.alphaBlendOperation = .add
-                attachment?.sourceAlphaBlendFactor = .oneMinusDestinationAlpha
-                attachment?.destinationAlphaBlendFactor = .one
             }
         }
 
@@ -622,19 +612,6 @@ public func InitSSAOUpsamplePipeline() -> RenderPipeline? {
 
 // MARK: Gaussian pipeline
 
-public func InitGaussianPipeline() -> RenderPipeline? {
-    CreatePipeline(
-        vertexShader: "vertexGaussianShader",
-        fragmentShader: "fragmentGaussianShader",
-        vertexDescriptor: createGaussianVertexDescriptor(),
-        colorFormats: [wf.gaussian],
-        depthFormat: renderInfo.depthPixelFormat,
-        depthEnabled: false,
-        blendMode: .gaussianFrontToBack,
-        name: "Gaussian Pipeline"
-    )
-}
-
 public func InitGaussianTBDRInitializePipeline() -> RenderPipeline? {
     CreateTilePipeline(
         tileShader: "initializeGaussianFragmentStore",
@@ -944,7 +921,6 @@ public func DefaultPipeLines() -> [(RenderPipelineType, RenderPipelineInitBlock)
         (.ssaoUpsample, InitSSAOUpsamplePipeline),
         (.environment, InitEnvironmentPipeline),
         (.iblPreFilter, InitIBLPreFilterPipeline),
-        (.gaussian, InitGaussianPipeline),
         (.gaussianTBDRInitialize, InitGaussianTBDRInitializePipeline),
         (.gaussianTBDRDraw, InitGaussianTBDRDrawPipeline),
         (.gaussianTBDRPostprocess, InitGaussianTBDRPostprocessPipeline),
@@ -965,7 +941,6 @@ public func DefaultPipeLines() -> [(RenderPipelineType, RenderPipelineInitBlock)
 
 public func GaussianSplatPipeLines() -> [(RenderPipelineType, RenderPipelineInitBlock)] {
     DefaultPipeLines() + [
-        (.gaussian, InitGaussianPipeline),
         (.gaussianTBDRInitialize, InitGaussianTBDRInitializePipeline),
         (.gaussianTBDRDraw, InitGaussianTBDRDrawPipeline),
         (.gaussianTBDRPostprocess, InitGaussianTBDRPostprocessPipeline),

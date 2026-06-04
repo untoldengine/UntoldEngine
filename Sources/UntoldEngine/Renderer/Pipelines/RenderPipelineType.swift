@@ -45,7 +45,6 @@ public extension RenderPipelineType {
     static let ssaoUpsample: RenderPipelineType = "ssaoUpsample"
     static let environment: RenderPipelineType = "environment"
     static let iblPreFilter: RenderPipelineType = "iblPreFilter"
-    static let gaussian: RenderPipelineType = "gaussian"
     static let gaussianTBDRInitialize: RenderPipelineType = "gaussianTBDRInitialize"
     static let gaussianTBDRDraw: RenderPipelineType = "gaussianTBDRDraw"
     static let gaussianTBDRPostprocess: RenderPipelineType = "gaussianTBDRPostprocess"

@@ -18,33 +18,6 @@ using namespace metal;
 inline uint unpackIndex(uint64_t packed)  { return (uint)(packed & 0xffffffffu); }
 inline uint unpackDepthKey(uint64_t packed) { return (uint)(packed >> 32); }
 
-// Build 3×3 covariance in local/model space from scale and quaternion
-float3x3 computeCov3D(float3 scale, float4 q)
-{
-    // Diagonal scale S
-    float3x3 S = float3x3(0.0f);
-    S[0][0] = scale.x;
-    S[1][1] = scale.y;
-    S[2][2] = scale.z;
-
-    // Quaternion q = (r, x, y, z)
-    float r = q.x;
-    float x = q.y;
-    float y = q.z;
-    float z = q.w;
-
-    float3x3 R = float3x3(
-        1.f - 2.f * (y*y + z*z),  2.f * (x*y - r*z),      2.f * (x*z + r*y),
-        2.f * (x*y + r*z),        1.f - 2.f * (x*x + z*z), 2.f * (y*z - r*x),
-        2.f * (x*z - r*y),        2.f * (y*z + r*x),      1.f - 2.f * (x*x + y*y)
-    );
-
-    // M encodes the ellipsoid axes; covariance = Mᵀ M
-    float3x3 M = S * R;
-    float3x3 covariance = transpose(M) * M;
-    return covariance;
-}
-
 // Project 3D covariance into 2D screen-pixel space
 float3 computeCov2D(float4      splatCenter,
                     float3x3    cov3D,
@@ -145,82 +118,6 @@ inline float2 getCurrentQuadVertex(uint vertexId)
     return float2(vertexId & 1, (vertexId >> 1) & 1); // (0,0), (1,0), (0,1), (1,1)
 }
 
-vertex GaussianOutData vertexGaussianShader(
-    const device uint64_t      *packedKeys [[buffer(gaussianRenderIndicesIndex)]],
-    const device GaussianSplat *splats     [[buffer(gaussianRenderSplatIndex)]],
-    constant Uniforms          &uniforms   [[buffer(gaussianRenderUniformIndex)]],
-    constant float2            &viewport   [[buffer(gaussianRenderViewPortIndex)]],
-    uint                        vid        [[vertex_id]],
-    uint                        iid        [[instance_id]])
-{
-    GaussianOutData out;
-    out.valid    = false;
-    out.position = float4(0.0, 0.0, 0.0, 1.0);
-
-    // Unpack index
-    uint64_t packed     = packedKeys[iid];
-    uint     splatIndex = unpackIndex(packed);
-
-    const GaussianSplat splat = splats[splatIndex];
-
-    // Quad vertex in [-1, 1]
-    float2 quad = getCurrentQuadVertex(vid);
-    quad = quad * 2.0f - 1.0f;
-
-    float3 centerLocal = splat.center.xyz;
-    float3 scale       = splat.scale.xyz;
-    float4 q           = splat.quat;
-    float3 color       = splat.color.rgb;
-    float  alpha       = splat.opacity;
-
-    // Clip-space center
-    float4 centerClip = uniforms.projectionMatrix *
-                        uniforms.modelViewMatrix *
-                        float4(centerLocal, 1.0);
-
-    if (centerClip.w <= 0.0f) {
-        return out;
-    }
-
-    // Center in screen pixels
-    const float projYSign = -1.0f; // Metal NDC Y flip
-    float2 centerNDC = centerClip.xy / centerClip.w;
-    float2 centerUV  = centerNDC * float2(0.5f, 0.5f * projYSign) + 0.5f;
-    out.coordxy      = centerUV * viewport;
-
-    // Covariance in local space
-    float3x3 cov3D = computeCov3D(scale, q);
-
-    // Covariance in screen-pixel space
-    float3 cov2D = computeCov2D(float4(centerLocal, 1.0),
-                                cov3D,
-                                uniforms.modelViewMatrix,
-                                uniforms.projectionMatrix,
-                                viewport);
-
-    // Inverse covariance and radius
-    float extent = 0.0f;
-    bool  valid  = true;
-    out.conic    = computeInverseCovarianceConic(cov2D, extent, valid);
-
-    if (!valid || extent <= 0.0f) {
-        return out;
-    }
-
-    // Build a square quad in NDC that covers the radius in pixels
-    float2 ndcOffset = quad * extent * 2.0f / viewport;
-    out.position     = centerClip;
-    out.position.xy += ndcOffset * centerClip.w;
-
-    out.color = color;
-    out.alpha = alpha;
-    out.valid = true;
-
-    return out;
-}
-
-// Fragment: evaluate Gaussian at the current pixel
-
 inline float calcPowerFromConic(float3 conic, float2 d)
 {
     return -0.5f * (conic.x * d.x * d.x +
@@ -235,29 +132,6 @@ inline float2 calcScreenSpaceDelta(float2 pixelPos,
     float2 d = pixelPos - centerPixel;
     d.y *= projYSign;
     return d;
-}
-
-fragment float4 fragmentGaussianShader(
-    GaussianOutData in [[stage_in]],
-    constant Uniforms &uniforms [[buffer(modelPassUniformIndex)]])
-{
-    if (!in.valid) {
-        discard_fragment();
-    }
-
-    const float projYSign = 1.0f; // match vertex-stage convention
-    float2 d = calcScreenSpaceDelta(in.position.xy, in.coordxy, projYSign);
-
-    float power = calcPowerFromConic(in.conic, d);
-
-    float alpha = saturate(in.alpha * exp(power));
-    if (alpha < 1.0f / 255.0f) {
-        discard_fragment();
-    }
-
-    float3 rgb = in.color * alpha; // pre-multiplied alpha
-
-    return float4(rgb, alpha);
 }
 
 typedef struct

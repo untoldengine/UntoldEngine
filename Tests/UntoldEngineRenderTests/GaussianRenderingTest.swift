@@ -126,20 +126,31 @@ final class GaussianRenderingTest: BaseRenderSetup {
 
     // MARK: - gaussianExecution Tests
 
-    func testGaussianExecution_RequiresGaussianPipeline() {
-        // Ensure pipeline exists
-        XCTAssertNotNil(PipelineManager.shared.renderPipelinesByType[.gaussian],
-                        "Gaussian pipeline should be initialized")
+    func testGaussianExecution_RequiresGaussianTBDRPipelines() {
+        XCTAssertNotNil(PipelineManager.shared.renderPipelinesByType[.gaussianTBDRInitialize],
+                        "Gaussian TBDR initialize pipeline should be initialized")
+        XCTAssertNotNil(PipelineManager.shared.renderPipelinesByType[.gaussianTBDRDraw],
+                        "Gaussian TBDR draw pipeline should be initialized")
+        XCTAssertNotNil(PipelineManager.shared.renderPipelinesByType[.gaussianTBDRPostprocess],
+                        "Gaussian TBDR postprocess pipeline should be initialized")
     }
 
-    func testGaussianExecution_GaussianPipelineSuccess() {
-        guard let gaussianPipeline = PipelineManager.shared.renderPipelinesByType[.gaussian] else {
-            XCTFail("Gaussian pipeline should exist")
-            return
-        }
+    func testGaussianExecution_GaussianTBDRPipelinesSuccess() {
+        let requiredPipelines: [(RenderPipelineType, String)] = [
+            (.gaussianTBDRInitialize, "Gaussian TBDR initialize pipeline"),
+            (.gaussianTBDRDraw, "Gaussian TBDR draw pipeline"),
+            (.gaussianTBDRPostprocess, "Gaussian TBDR postprocess pipeline"),
+        ]
 
-        XCTAssertTrue(gaussianPipeline.success,
-                      "Gaussian pipeline should be successfully compiled")
+        for (pipelineType, name) in requiredPipelines {
+            guard let pipeline = PipelineManager.shared.renderPipelinesByType[pipelineType] else {
+                XCTFail("\(name) should exist")
+                continue
+            }
+
+            XCTAssertTrue(pipeline.success,
+                          "\(name) should be successfully compiled")
+        }
     }
 
     func testGaussianExecution_RequiresActiveCamera() {
