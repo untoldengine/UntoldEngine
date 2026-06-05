@@ -6,6 +6,7 @@ from bpy.props import BoolProperty, EnumProperty, FloatProperty, IntProperty, St
 from bpy_extras.io_utils import ExportHelper
 
 from . import bridge
+from . import object_metadata
 from . import viewport_overlay
 
 
@@ -369,6 +370,9 @@ class UNTOLD_OT_export_tiled_scene(bpy.types.Operator):
             self.tile_size_z = preview.tile_size_z
             self.floor_count = preview.floor_count
             self.floor_band_height = preview.floor_band_height
+            self.scene_profile = preview.scene_profile
+            self.generate_hlod = preview.generate_hlod
+            self.generate_lod = preview.generate_lod
         if not self.directory:
             blend_path = getattr(bpy.data, "filepath", "") or ""
             if blend_path:
@@ -430,11 +434,13 @@ def register() -> None:
     for cls in classes:
         bpy.utils.register_class(cls)
     bpy.types.TOPBAR_MT_file_export.append(menu_func_export)
+    object_metadata.register()
     viewport_overlay.register()
 
 
 def unregister() -> None:
     viewport_overlay.unregister()
+    object_metadata.unregister()
     bpy.types.TOPBAR_MT_file_export.remove(menu_func_export)
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
