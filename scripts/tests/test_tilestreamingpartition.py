@@ -39,6 +39,12 @@ if str(SCRIPT_DIR) not in sys.path:
 import tilestreamingpartition as t  # noqa: E402
 
 
+class FakeObject(dict):
+    def __init__(self, name: str, **props) -> None:
+        super().__init__(props)
+        self.name = name
+
+
 class TileStreamingPartitionTests(unittest.TestCase):
 
     # ------------------------------------------------------------------
@@ -163,6 +169,62 @@ class TileStreamingPartitionTests(unittest.TestCase):
         self.assertAlmostEqual(usd["min"][2], -5.0)  # -Y → Z
 
     # ------------------------------------------------------------------
+    # Runtime representation helpers
+    # ------------------------------------------------------------------
+
+    def test_distance_to_aabb_is_zero_inside_large_bounds(self) -> None:
+        bounds = {"min": (-100.0, -10.0, -20.0), "max": (100.0, 10.0, 20.0)}
+
+        self.assertAlmostEqual(t.distance_to_aabb((50.0, 0.0, 0.0), bounds), 0.0)
+
+    def test_distance_to_aabb_uses_closest_point(self) -> None:
+        bounds = {"min": (0.0, 0.0, 0.0), "max": (10.0, 10.0, 10.0)}
+
+        self.assertAlmostEqual(t.distance_to_aabb((13.0, 14.0, 10.0), bounds), 5.0)
+
+    def test_object_union_aabb(self) -> None:
+        objs = [FakeObject("A"), FakeObject("B")]
+        bounds = {
+            "A": {"min": (0.0, 1.0, 2.0), "max": (3.0, 4.0, 5.0)},
+            "B": {"min": (-2.0, 3.0, 1.0), "max": (8.0, 9.0, 7.0)},
+        }
+
+        self.assertEqual(t.object_union_aabb(objs, bounds), {
+            "min": (-2.0, 1.0, 1.0),
+            "max": (8.0, 9.0, 7.0),
+        })
+
+    def test_runtime_representation_hlod_takes_far_field_precedence(self) -> None:
+        state = t.classify_runtime_representation(
+            distance=80.0,
+            unload_r=60.0,
+            hlod_levels=[{"switch_distance": 57.0}],
+            lod_levels=[{"switch_distance": 25.0}],
+        )
+
+        self.assertEqual(state, "hlod")
+
+    def test_runtime_representation_lod_precedes_unloaded_without_hlod(self) -> None:
+        state = t.classify_runtime_representation(
+            distance=80.0,
+            unload_r=60.0,
+            hlod_levels=[],
+            lod_levels=[{"switch_distance": 25.0}],
+        )
+
+        self.assertEqual(state, "lod")
+
+    def test_runtime_representation_unloaded_when_no_secondary_asset(self) -> None:
+        state = t.classify_runtime_representation(
+            distance=80.0,
+            unload_r=60.0,
+            hlod_levels=[],
+            lod_levels=[],
+        )
+
+        self.assertEqual(state, "unloaded")
+
+    # ------------------------------------------------------------------
     # Mesh classification
     # ------------------------------------------------------------------
 
@@ -218,6 +280,56 @@ class TileStreamingPartitionTests(unittest.TestCase):
 
     def test_sanitize_name_preserves_alphanumerics(self) -> None:
         self.assertEqual(t.sanitize_name("Tile_0_1"), "Tile_0_1")
+
+    # ------------------------------------------------------------------
+    # Untold object metadata
+    # ------------------------------------------------------------------
+
+    def test_semantic_override_wins_over_existing_metadata(self) -> None:
+        obj = FakeObject(
+            "Wall",
+            untold_quadtree_node_id="F01_Q_0",
+            untold_floor_id=1,
+            untold_quadtree_depth=1,
+            untold_spatial_class="local",
+            untold_semantic_guess="StructuralInterior",
+            untold_semantic_confidence=0.8,
+            untold_semantic_override="ExteriorShell",
+        )
+
+        metadata = t.read_untold_metadata(obj)
+
+        self.assertEqual(metadata["semantic"], "ExteriorShell")
+        self.assertEqual(metadata["confidence"], 1.0)
+        self.assertEqual(metadata["source"], "custom_property_override")
+
+    def test_auto_semantic_override_uses_existing_metadata(self) -> None:
+        obj = FakeObject(
+            "Chair",
+            untold_quadtree_node_id="F01_Q_1",
+            untold_semantic_guess="RoomContents",
+            untold_semantic_confidence=0.7,
+            untold_semantic_override="Auto",
+        )
+
+        metadata = t.read_untold_metadata(obj)
+
+        self.assertEqual(metadata["semantic"], "RoomContents")
+        self.assertEqual(metadata["source"], "custom_property")
+
+    def test_aggregate_priority_hint_uses_highest_hint(self) -> None:
+        objs = [
+            FakeObject("A", untold_streaming_priority_hint="Low"),
+            FakeObject("B", untold_streaming_priority_hint="Critical"),
+            FakeObject("C"),
+        ]
+
+        self.assertEqual(t.aggregate_priority_hint(objs, default_priority=8), 15)
+
+    def test_aggregate_priority_hint_keeps_default_when_higher(self) -> None:
+        objs = [FakeObject("A", untold_streaming_priority_hint="Low")]
+
+        self.assertEqual(t.aggregate_priority_hint(objs, default_priority=10), 10)
 
     def test_format_bytes_bytes(self) -> None:
         self.assertIn("B", t.format_bytes(500))

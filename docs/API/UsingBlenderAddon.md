@@ -94,6 +94,22 @@ CityBlender/
 The manifest lives beside `tile_exports`, and all paths in the manifest are
 relative to the manifest location.
 
+### Object Annotations
+
+Select a mesh object and open `Object Properties > Untold` to author
+mesh-level hints used by tiled scene export.
+
+- `Object Semantic`: choose `Auto`, `ExteriorShell`, `StructuralInterior`,
+  `RoomContents`, or `FineProps`. These are mesh semantics; the exporter groups
+  meshes by spatial node and semantic tier, then writes the generated tile's
+  `semantic_tier` in the manifest.
+- `Priority Hint`: choose `Auto`, `Low`, `Normal`, `High`, or `Critical`. This
+  is aggregated into the generated tile's manifest `priority`; when all objects
+  are `Auto`, the semantic tier default priority is used.
+
+Tiled scene export supports static mesh geometry only. Armatures and meshes
+bound to armatures should be exported through the animation workflow instead.
+
 ### Tiled Scene Options
 
 - `Visible Objects Only`: export only visible mesh objects.
@@ -107,6 +123,25 @@ relative to the manifest location.
 - `Compress Geometry`: LZ4-compress vertex and index chunks in tile payloads.
 - `Dry Run`: analyze the partition without writing tile payloads.
 - `Write Manifest In Dry Run`: write the manifest JSON even during a dry run.
+
+The `Tile Preview` panel in the 3D viewport also includes LOD planning controls.
+Use `Preview LOD Plan` to report how many HLOD/LOD payloads the current tiled
+export settings will generate before writing files. For quadtree and KD-tree
+exports, LOD/HLOD generation is limited to eligible semantic tiers such as
+`ExteriorShell` and `StructuralInterior`; `RoomContents` and `FineProps`
+normally stream at close range and are skipped.
+
+Use `Preview Runtime Bands` to color the current tile overlay by camera,
+3D cursor, or selected-object distance. Runtime colors show the representation
+that would be active inside each tile's distance band: full tile, LOD, HLOD,
+unloaded, or shared bucket.
+
+For very large scenes, use the Tile Preview panel's viewport utilities to reduce
+Blender viewport load while keeping mesh data available for export. `Set Meshes
+To Bounds` draws mesh objects as bounding boxes. `Hide Meshes` hides them in the
+viewport after a preview has been generated, and `Restore` returns the saved
+display state. Restore the meshes before rerunning preview/export when `Visible
+Objects Only` is enabled.
 
 ### Uniform Grid
 

@@ -267,6 +267,15 @@ TIER_SHORT_CODES = {
     "FineProps":          "FP",
 }
 
+VALID_SEMANTIC_TIERS = set(TIER_SHORT_CODES.keys())
+
+OBJECT_PRIORITY_HINTS = {
+    "Low":      3,
+    "Normal":   8,
+    "High":    12,
+    "Critical": 15,
+}
+
 # When semantic confidence (from the phase-1+2 script) is below this value,
 # the object's tier is overridden to DEFAULT_TIER instead of being trusted.
 TIER_CONFIDENCE_THRESHOLD = 0.50
@@ -716,6 +725,69 @@ def compute_lod_switch_distances(streaming_r, unload_r, hlod_levels, lod_levels)
     return resolved
 
 
+def distance_to_aabb(point, aabb):
+    """Return closest-point distance from point to an AABB.
+
+    The engine's GeometryStreamingSystem uses closest-point-on-AABB distance for
+    tile streaming decisions. Keep Python preview/export diagnostics on the same
+    contract so large tiles near the camera are not misclassified as far away
+    just because their centers are distant.
+    """
+    px, py, pz = point
+    mn = aabb["min"]
+    mx = aabb["max"]
+    closest_x = min(max(px, mn[0]), mx[0])
+    closest_y = min(max(py, mn[1]), mx[1])
+    closest_z = min(max(pz, mn[2]), mx[2])
+    return math.sqrt(
+        (px - closest_x) ** 2 +
+        (py - closest_y) ** 2 +
+        (pz - closest_z) ** 2
+    )
+
+
+def object_union_aabb(objects, object_bounds):
+    """Return the Blender-space union AABB for a group of objects."""
+    if not objects:
+        return None
+    return {
+        "min": (
+            min(object_bounds[o.name]["min"][0] for o in objects),
+            min(object_bounds[o.name]["min"][1] for o in objects),
+            min(object_bounds[o.name]["min"][2] for o in objects),
+        ),
+        "max": (
+            max(object_bounds[o.name]["max"][0] for o in objects),
+            max(object_bounds[o.name]["max"][1] for o in objects),
+            max(object_bounds[o.name]["max"][2] for o in objects),
+        ),
+    }
+
+
+def classify_runtime_representation(distance, unload_r, hlod_levels=None, lod_levels=None):
+    """Classify the active runtime representation for a tile distance.
+
+    This mirrors GeometryStreamingSystem's representation order:
+      HLOD covers far-field tiles after the HLOD switch distance.
+      LOD covers mid-field tiles after the first LOD switch distance.
+      Full geometry covers the near band.
+      Unloaded only applies when no secondary representation is active.
+    """
+    hlod_levels = hlod_levels or []
+    lod_levels = lod_levels or []
+
+    if hlod_levels and distance >= min(level["switch_distance"] for level in hlod_levels):
+        return "hlod"
+
+    if lod_levels and distance >= min(level["switch_distance"] for level in lod_levels):
+        return "lod"
+
+    if distance >= unload_r:
+        return "unloaded"
+
+    return "full"
+
+
 def get_candidate_objects():
     # Exclude objects in the "Tile Preview" collection — those are the wireframe
     # tile-bound boxes created by create_tile_preview() for visual debugging.
@@ -738,6 +810,46 @@ def get_candidate_objects():
                 continue
         objs.append(obj)
     return objs
+
+
+def _is_visible_for_tiled_export(obj, view_layer):
+    if not VISIBLE_ONLY:
+        return True
+    return not obj.hide_viewport and not obj.hide_get(view_layer=view_layer)
+
+
+def _mesh_uses_armature(obj):
+    if obj.type != "MESH":
+        return False
+    if getattr(obj, "parent", None) is not None and obj.parent.type == "ARMATURE":
+        return True
+    if hasattr(obj, "find_armature") and obj.find_armature() is not None:
+        return True
+    return any(getattr(mod, "type", None) == "ARMATURE" for mod in obj.modifiers)
+
+
+def validate_tiled_scene_static_only():
+    view_layer = bpy.context.view_layer
+    armatures = []
+    skinned_meshes = []
+    for obj in bpy.context.scene.objects:
+        if not _is_visible_for_tiled_export(obj, view_layer):
+            continue
+        if obj.type == "ARMATURE":
+            armatures.append(obj.name)
+        elif _mesh_uses_armature(obj):
+            skinned_meshes.append(obj.name)
+
+    if armatures or skinned_meshes:
+        details = []
+        if armatures:
+            details.append(f"armatures: {', '.join(sorted(armatures)[:8])}")
+        if skinned_meshes:
+            details.append(f"skinned meshes: {', '.join(sorted(skinned_meshes)[:8])}")
+        raise RuntimeError(
+            "Tiled scene export supports static mesh geometry only; "
+            + "; ".join(details)
+        )
 
 
 # ============================================================
@@ -1035,6 +1147,40 @@ def _obj_prop(obj, key, default=None):
     return default
 
 
+def _semantic_override(obj):
+    value = _obj_prop(obj, "untold_semantic_override")
+    if value is None:
+        return None
+    value = str(value)
+    if value in ("", "Auto"):
+        return None
+    if value not in VALID_SEMANTIC_TIERS:
+        print(f"  Warning: {obj.name} has unsupported untold_semantic_override={value!r}; using inferred tier.")
+        return None
+    return value
+
+
+def object_priority_hint(obj):
+    value = _obj_prop(obj, "untold_streaming_priority_hint")
+    if value is None:
+        return None
+    value = str(value)
+    if value in ("", "Auto"):
+        return None
+    priority = OBJECT_PRIORITY_HINTS.get(value)
+    if priority is None:
+        print(f"  Warning: {obj.name} has unsupported untold_streaming_priority_hint={value!r}; using tier default.")
+    return priority
+
+
+def aggregate_priority_hint(objects, default_priority):
+    priorities = [object_priority_hint(obj) for obj in objects]
+    priorities = [p for p in priorities if p is not None]
+    if not priorities:
+        return default_priority
+    return max(default_priority, max(priorities))
+
+
 def read_untold_metadata(obj):
     """Read quadtree/semantic metadata from a Blender object.
 
@@ -1045,25 +1191,36 @@ def read_untold_metadata(obj):
     Returns a dict or None if no source yields valid metadata.
     """
     # --- Primary: Blender custom properties (bare or USD-namespaced) ---
+    override = _semantic_override(obj)
     node_id = _obj_prop(obj, "untold_quadtree_node_id")
     if node_id is not None:
+        semantic = override or str(_obj_prop(obj, "untold_semantic_guess", DEFAULT_SEMANTIC_TIER))
         return {
             "floor_id":      int(_obj_prop(obj, "untold_floor_id", 0)),
             "node_id":       str(node_id),
             "depth":         int(_obj_prop(obj, "untold_quadtree_depth", 0)),
             "spatial_class": str(_obj_prop(obj, "untold_spatial_class", "local")),
-            "semantic":      str(_obj_prop(obj, "untold_semantic_guess", DEFAULT_SEMANTIC_TIER)),
-            "confidence":    float(_obj_prop(obj, "untold_semantic_confidence", 0.0)),
-            "source":        "custom_property",
+            "semantic":      semantic,
+            "confidence":    1.0 if override else float(_obj_prop(obj, "untold_semantic_confidence", 0.0)),
+            "source":        "custom_property_override" if override else "custom_property",
         }
     # --- Secondary: parse suffix from the Xform prim name stored by Blender's USD importer ---
     xform_name = _obj_prop(obj, "blender:object_name")
     if xform_name:
         meta = _parse_name_suffix(str(xform_name))
         if meta:
+            if override:
+                meta["semantic"] = override
+                meta["confidence"] = 1.0
+                meta["source"] = "name_suffix_override"
             return meta
     # --- Fallback: name suffix on the Blender object name itself ---
-    return _parse_name_suffix(obj.name)
+    meta = _parse_name_suffix(obj.name)
+    if meta and override:
+        meta["semantic"] = override
+        meta["confidence"] = 1.0
+        meta["source"] = "name_suffix_override"
+    return meta
 
 
 def _parse_name_suffix(name):
@@ -1494,6 +1651,9 @@ def compute_inline_kdtree_metadata(objects, object_bounds):
         volume    = max(dims[0], 0.0) * max(dims[1], 0.0) * max(dims[2], 0.0)
         materials = _inline_get_material_names(obj)
         semantic, confidence = _inline_semantic_guess(obj.name, materials, dims, volume)
+        override = _semantic_override(obj)
+        if override:
+            semantic, confidence = override, 1.0
 
         metadata_dict[obj.name] = {
             "floor_id":      fid + 1,
@@ -1502,7 +1662,7 @@ def compute_inline_kdtree_metadata(objects, object_bounds):
             "spatial_class": spatial_class,
             "semantic":      semantic,
             "confidence":    confidence,
-            "source":        "inline_kdtree",
+            "source":        "inline_kdtree_override" if override else "inline_kdtree",
         }
         leaf_object_counts[node.node_id] = leaf_object_counts.get(node.node_id, 0) + 1
 
@@ -1678,6 +1838,9 @@ def compute_inline_quadtree_metadata(objects, object_bounds):
 
         materials = _inline_get_material_names(obj)
         semantic, confidence = _inline_semantic_guess(obj.name, materials, dims, volume)
+        override = _semantic_override(obj)
+        if override:
+            semantic, confidence = override, 1.0
 
         metadata_dict[obj.name] = {
             "floor_id":      floor_id + 1,   # 1-based to match annotation script
@@ -1686,7 +1849,7 @@ def compute_inline_quadtree_metadata(objects, object_bounds):
             "spatial_class": spatial_class,
             "semantic":      semantic,
             "confidence":    confidence,
-            "source":        "inline",
+            "source":        "inline_override" if override else "inline",
         }
 
     annotated = len(metadata_dict)
@@ -3930,6 +4093,7 @@ def run():
     # Gather objects and compute world bounds
     # ------------------------------------------------------------------
     print_export_stage("Analyze scene")
+    validate_tiled_scene_static_only()
     objects = get_candidate_objects()
     if not objects:
         print("No mesh objects found.")
@@ -4267,6 +4431,10 @@ def run():
                 est_mem   = sum(estimate_object_memory_bytes(o, mesh_size_cache)
                                 for o in tile_objs)
                 tier_radii   = tier_streaming_radii(tier)
+                tile_priority = aggregate_priority_hint(
+                    tile_objs,
+                    tier_radii.get("priority", DEFAULT_STREAMING_PRIORITY),
+                )
                 floor_id = 0
                 for obj in tile_objs:
                     m = metadata_map.get(obj.name)
@@ -4281,7 +4449,7 @@ def run():
                     "path_relative_to_manifest": os.path.relpath(filepath, model_dir),
                     "streaming_radius": tier_radii.get("streaming", streaming_r),
                     "unload_radius":    tier_radii.get("unload", unload_r),
-                    "priority":         tier_radii.get("priority", DEFAULT_STREAMING_PRIORITY),
+                    "priority":         tile_priority,
                     "hlod_levels": [], "lod_levels": [],
                     "interior": tier != "ExteriorShell",
                     "file_size_bytes": 0,
@@ -4319,10 +4487,12 @@ def run():
             aabb_usd = tile_bounds_aabb_usd(tile_bounds)
             center   = aabb_center(aabb_usd)
             est_mem  = estimate_tile_memory(tile_objs, tile_coverage_counts, mesh_size_cache)
+            tile_priority = aggregate_priority_hint(tile_objs, DEFAULT_STREAMING_PRIORITY)
             tile_entry = {
                 "tile_id": tile_id,
                 "grid_coord": [tx, ty, tz],
                 "path_relative_to_manifest": os.path.relpath(filepath, model_dir),
+                "priority": tile_priority,
                 "hlod_levels": [
                     {
                         "path": os.path.relpath(
@@ -4359,13 +4529,14 @@ def run():
             shared_center   = aabb_center(shared_aabb_usd) if shared_aabb_usd else [0,0,0]
             shared_est_mem  = sum(estimate_object_memory_bytes(o, mesh_size_cache)
                                   for o in shared_objects)
+            shared_priority = aggregate_priority_hint(shared_objects, DEFAULT_STREAMING_PRIORITY)
             manifest["shared_bucket"] = {
                 "tile_id": "shared",
                 "path_relative_to_manifest": os.path.relpath(shared_filepath, model_dir),
                 "export_policy": "shared_bucket",
                 "streaming_radius": shared_r,
                 "unload_radius": shared_ur,
-                "priority": DEFAULT_STREAMING_PRIORITY,
+                "priority": shared_priority,
                 "file_size_bytes": 0,
                 "estimated_memory_bytes": shared_est_mem,
                 "bounds": ({"min": list(shared_aabb_usd["min"]),
@@ -4437,13 +4608,14 @@ def run():
             shared_file_sz  = os.path.getsize(shared_filepath) if os.path.isfile(shared_filepath) else 0
             shared_est_mem  = sum(estimate_object_memory_bytes(o, mesh_size_cache)
                                   for o in shared_objects)
+            shared_priority = aggregate_priority_hint(shared_objects, DEFAULT_STREAMING_PRIORITY)
             manifest["shared_bucket"] = {
                 "tile_id": "shared",
                 "path_relative_to_manifest": os.path.relpath(shared_filepath, model_dir),
                 "export_policy": "shared_bucket",
                 "streaming_radius": shared_r,
                 "unload_radius": shared_ur,
-                "priority": DEFAULT_STREAMING_PRIORITY,
+                "priority": shared_priority,
                 "file_size_bytes": shared_file_sz,
                 "estimated_memory_bytes": shared_est_mem,
                 "bounds": ({"min": list(shared_aabb_usd["min"]),
@@ -4502,7 +4674,10 @@ def run():
             tier_radii   = tier_streaming_radii(tier)
             tile_stream  = tier_radii.get("streaming", streaming_r)
             tile_unload  = tier_radii.get("unload",    unload_r)
-            tile_priority = tier_radii.get("priority", DEFAULT_STREAMING_PRIORITY)
+            tile_priority = aggregate_priority_hint(
+                tile_objs,
+                tier_radii.get("priority", DEFAULT_STREAMING_PRIORITY),
+            )
 
             # Derive a representative floor_id from the objects in this group.
             floor_id = 0
@@ -4724,6 +4899,7 @@ def run():
         aabb_usd  = tile_bounds_aabb_usd(tile_bounds)
         center    = aabb_center(aabb_usd)
         est_mem   = estimate_tile_memory(tile_objs, tile_coverage_counts, mesh_size_cache)
+        tile_priority = aggregate_priority_hint(tile_objs, DEFAULT_STREAMING_PRIORITY)
 
         if parallel_results is not None:
             # --- Parallel path: tile was exported by a worker subprocess ---
@@ -4838,6 +5014,7 @@ def run():
             "tile_id": tile_id,
             "grid_coord": [tx, ty, tz],
             "path_relative_to_manifest": os.path.relpath(filepath, model_dir),
+            "priority": tile_priority,
             "hlod_levels": hlod_entries,
             "file_size_bytes": file_sz,
             "estimated_memory_bytes": est_mem,
