@@ -227,8 +227,8 @@ TILE_LOD_LEVELS = [
 LOD_NEAR_BAND_START_FRACTION = 0.45
 LOD_SWITCH_CURVE_EXPONENT    = 1.25
 HLOD_SWITCH_CURVE_EXPONENT   = 2.0
-SWITCH_DISTANCE_MIN_GAP      = 2.0
-SWITCH_DISTANCE_OUTER_MARGIN = 0.75
+SWITCH_DISTANCE_MIN_GAP      = 4.0
+SWITCH_DISTANCE_OUTER_MARGIN = 4.0
 
 # --- Quadtree / semantic-tier streaming radii -----------------
 # Fractions of scene_half_diag — converted to world-space metres once at
@@ -699,11 +699,14 @@ def compute_lod_switch_distances(streaming_r, unload_r, hlod_levels, lod_levels)
     if hlod_levels:
         far_limit = min(level["switch_distance"] for level in hlod_levels) - SWITCH_DISTANCE_MIN_GAP
 
-    near_limit = streaming_r * LOD_NEAR_BAND_START_FRACTION
-    required_span = SWITCH_DISTANCE_MIN_GAP * len(lod_levels)
-    max_near_limit = far_limit - required_span
-    near_limit = min(near_limit, max_near_limit)
-    near_limit = max(SWITCH_DISTANCE_MIN_GAP, near_limit)
+    near_limit = max(
+        streaming_r + SWITCH_DISTANCE_MIN_GAP,
+        streaming_r * LOD_NEAR_BAND_START_FRACTION,
+        SWITCH_DISTANCE_MIN_GAP,
+    )
+    required_span = SWITCH_DISTANCE_MIN_GAP * max(0, len(lod_levels) - 1)
+    if far_limit < near_limit + required_span:
+        near_limit = max(SWITCH_DISTANCE_MIN_GAP, far_limit - required_span)
     far_limit = max(far_limit, near_limit + required_span)
 
     resolved = []
@@ -723,6 +726,30 @@ def compute_lod_switch_distances(streaming_r, unload_r, hlod_levels, lod_levels)
         prev = candidate
 
     return resolved
+
+
+def resolve_tile_representation_levels(streaming_r, unload_r, hlod_level_configs, lod_level_configs):
+    """Resolve normalized LOD/HLOD configs into world-space bands for one tile.
+
+    Tile streaming radii can vary by semantic tier, so a single global
+    representation ladder is not valid for all tiles.  Keep the invariant:
+
+        streaming_radius < LOD... < HLOD < unload_radius
+
+    with SWITCH_DISTANCE_MIN_GAP between adjacent representation bands.
+    """
+    tile_hlod_levels = compute_hlod_switch_distances(
+        streaming_r,
+        unload_r,
+        hlod_level_configs,
+    )
+    tile_lod_levels = compute_lod_switch_distances(
+        streaming_r,
+        unload_r,
+        tile_hlod_levels,
+        lod_level_configs,
+    )
+    return tile_hlod_levels, tile_lod_levels
 
 
 def distance_to_aabb(point, aabb):
@@ -4147,25 +4174,26 @@ def run():
     streaming_r, unload_r = compute_streaming_defaults(base_tile, scene_half_diag)
     shared_r, shared_ur   = compute_shared_streaming_radii(scene_half_diag)
 
-    # Resolve the representation ladder into world-space switch distances.
-    # HLOD sits near the unload edge; tile LODs are eased across the mid band.
-    active_hlod_levels = compute_hlod_switch_distances(
+    # Resolve a default representation ladder for progress accounting and logs.
+    # Manifest tile entries are resolved again using each tile's tier-specific
+    # streaming/unload radii.
+    default_hlod_levels = compute_hlod_switch_distances(
         streaming_r,
         unload_r,
         active_hlod_levels,
     )
-    active_lod_levels = compute_lod_switch_distances(
+    default_lod_levels = compute_lod_switch_distances(
         streaming_r,
         unload_r,
-        active_hlod_levels,
+        default_hlod_levels,
         active_lod_levels,
     )
-    if active_hlod_levels or active_lod_levels:
+    if default_hlod_levels or default_lod_levels:
         print(
-            "Resolved streaming ladder: "
+            "Resolved default streaming ladder: "
             f"stream={streaming_r:.2f}, unload={unload_r:.2f}, "
-            f"HLOD={[l['switch_distance'] for l in active_hlod_levels]}, "
-            f"LOD={[l['switch_distance'] for l in active_lod_levels]}"
+            f"HLOD={[l['switch_distance'] for l in default_hlod_levels]}, "
+            f"LOD={[l['switch_distance'] for l in default_lod_levels]}"
         )
 
     # ------------------------------------------------------------------
@@ -4349,12 +4377,17 @@ def run():
         "hlod_generation": {
             "enabled": bool(active_hlod_levels),
             "levels": active_hlod_levels,
+            "default_resolved_levels": default_hlod_levels,
         },
         "lod_generation": {
             "enabled": bool(active_lod_levels),
             "levels": [
                 {"decimate_ratio": l["ratio"], "switch_distance": l["switch_distance"]}
                 for l in active_lod_levels
+            ],
+            "default_resolved_levels": [
+                {"decimate_ratio": l["ratio"], "switch_distance": l["switch_distance"]}
+                for l in default_lod_levels
             ],
         },
         "object_classification": {
@@ -4431,9 +4464,18 @@ def run():
                 est_mem   = sum(estimate_object_memory_bytes(o, mesh_size_cache)
                                 for o in tile_objs)
                 tier_radii   = tier_streaming_radii(tier)
+                tile_stream  = tier_radii.get("streaming", streaming_r)
+                tile_unload  = tier_radii.get("unload",    unload_r)
                 tile_priority = aggregate_priority_hint(
                     tile_objs,
                     tier_radii.get("priority", DEFAULT_STREAMING_PRIORITY),
+                )
+                tier_wants_hlod_lod = tier in HLOD_LOD_TIERS
+                tile_hlod_levels, tile_lod_levels = resolve_tile_representation_levels(
+                    tile_stream,
+                    tile_unload,
+                    active_hlod_levels if tier_wants_hlod_lod else [],
+                    active_lod_levels if tier_wants_hlod_lod else [],
                 )
                 floor_id = 0
                 for obj in tile_objs:
@@ -4447,10 +4489,29 @@ def run():
                     "quadtree_node_id": node_id,
                     "semantic_tier":    tier,
                     "path_relative_to_manifest": os.path.relpath(filepath, model_dir),
-                    "streaming_radius": tier_radii.get("streaming", streaming_r),
-                    "unload_radius":    tier_radii.get("unload", unload_r),
+                    "streaming_radius": tile_stream,
+                    "unload_radius":    tile_unload,
                     "priority":         tile_priority,
-                    "hlod_levels": [], "lod_levels": [],
+                    "hlod_levels": [
+                        {
+                            "path": os.path.relpath(
+                                os.path.join(output_dir, f"{tile_id}{level['suffix']}.{ext}"),
+                                model_dir,
+                            ),
+                            "switch_distance": level["switch_distance"],
+                        }
+                        for level in tile_hlod_levels
+                    ],
+                    "lod_levels": [
+                        {
+                            "path": os.path.relpath(
+                                os.path.join(output_dir, f"{tile_id}_lod{lod_idx + 1}.{ext}"),
+                                model_dir,
+                            ),
+                            "switch_distance": lod["switch_distance"],
+                        }
+                        for lod_idx, lod in enumerate(tile_lod_levels)
+                    ],
                     "interior": tier != "ExteriorShell",
                     "file_size_bytes": 0,
                     "estimated_memory_bytes": est_mem,
@@ -4501,7 +4562,7 @@ def run():
                         ),
                         "switch_distance": level["switch_distance"],
                     }
-                    for level in active_hlod_levels
+                    for level in default_hlod_levels
                 ],
                 "file_size_bytes": 0,
                 "estimated_memory_bytes": est_mem,
@@ -4510,7 +4571,7 @@ def run():
                 "object_count": len(tile_objs),
                 "objects": [o.name for o in tile_objs],
             }
-            if active_lod_levels:
+            if default_lod_levels:
                 tile_entry["lod_levels"] = [
                     {
                         "path": os.path.relpath(
@@ -4519,7 +4580,7 @@ def run():
                         ),
                         "switch_distance": lod["switch_distance"],
                     }
-                    for lod_idx, lod in enumerate(active_lod_levels)
+                    for lod_idx, lod in enumerate(default_lod_levels)
                 ]
             manifest["tiles"].append(tile_entry)
 
@@ -4655,8 +4716,8 @@ def run():
             source_scene_path,
             output_dir,
             ext,
-            active_hlod_levels=active_hlod_levels,
-            active_lod_levels=active_lod_levels,
+            active_hlod_levels=default_hlod_levels,
+            active_lod_levels=default_lod_levels,
         )
 
         for (node_id, tier), tile_objs in sorted_groups:
@@ -4690,6 +4751,12 @@ def run():
             # HLOD/LOD is only useful for tiers with radii large enough to form a
             # meaningful switch band (ExteriorShell, StructuralInterior).
             tier_wants_hlod_lod = tier in HLOD_LOD_TIERS
+            tile_hlod_levels, tile_lod_levels = resolve_tile_representation_levels(
+                tile_stream,
+                tile_unload,
+                active_hlod_levels if tier_wants_hlod_lod else [],
+                active_lod_levels if tier_wants_hlod_lod else [],
+            )
 
             if qt_parallel_results is not None:
                 # --- Parallel path: tile was exported by a worker subprocess ---
@@ -4700,18 +4767,20 @@ def run():
                 hlod_entries = [
                     {
                         "path": os.path.relpath(r["filepath"], model_dir),
-                        "switch_distance": r["switch_distance"],
+                        "switch_distance": tile_hlod_levels[idx]["switch_distance"],
                     }
-                    for r in (result.get("hlod_results", []) if result else [])
+                    for idx, r in enumerate(result.get("hlod_results", []) if result else [])
                     if r.get("ok")
+                    and idx < len(tile_hlod_levels)
                 ]
                 lod_entries = [
                     {
                         "path": os.path.relpath(r["filepath"], model_dir),
-                        "switch_distance": r["switch_distance"],
+                        "switch_distance": tile_lod_levels[idx]["switch_distance"],
                     }
-                    for r in (result.get("lod_results", []) if result else [])
+                    for idx, r in enumerate(result.get("lod_results", []) if result else [])
                     if r.get("ok")
+                    and idx < len(tile_lod_levels)
                 ]
             else:
                 # --- Sequential path ---
@@ -4729,7 +4798,7 @@ def run():
                 hlod_entries = []
                 lod_entries  = []
                 if ok and tier_wants_hlod_lod:
-                    for level in active_hlod_levels:
+                    for level in tile_hlod_levels:
                         hlod_filename = f"{tile_id}{level['suffix']}.{ext}"
                         hlod_filepath = os.path.join(output_dir, hlod_filename)
                         print(
@@ -4751,7 +4820,7 @@ def run():
                             "switch_distance": level["switch_distance"],
                         })
 
-                    for lod_idx, lod in enumerate(active_lod_levels):
+                    for lod_idx, lod in enumerate(tile_lod_levels):
                         lod_n        = lod_idx + 1
                         lod_filename = f"{tile_id}_lod{lod_n}.{ext}"
                         lod_filepath = os.path.join(output_dir, lod_filename)
@@ -4880,8 +4949,8 @@ def run():
         sorted_tiles,
         source_scene_path,
         output_dir,
-        active_hlod_levels,
-        active_lod_levels,
+        default_hlod_levels,
+        default_lod_levels,
         origin_x, origin_y, origin_z,
         tile_size_x, tile_size_y, tile_size_z,
     )
@@ -4962,7 +5031,7 @@ def run():
                 continue
 
             hlod_entries = []
-            for level in active_hlod_levels:
+            for level in default_hlod_levels:
                 hlod_filename = f"{tile_id}{level['suffix']}.{ext}"
                 hlod_filepath = os.path.join(output_dir, hlod_filename)
                 print(
@@ -4985,7 +5054,7 @@ def run():
                 })
 
             lod_entries = []
-            for lod_idx, lod in enumerate(active_lod_levels):
+            for lod_idx, lod in enumerate(default_lod_levels):
                 lod_n        = lod_idx + 1
                 lod_filename = f"{tile_id}_lod{lod_n}.{ext}"
                 lod_filepath = os.path.join(output_dir, lod_filename)
