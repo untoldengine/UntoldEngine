@@ -237,6 +237,10 @@ def export_tiled_scene(
     floor_count: int,
     floor_band_height: float,
     scene_profile: str,
+    untagged_semantic_tier: str,
+    tier_radius_overrides: list[str] | None,
+    lod_level_overrides: list[str] | None,
+    hlod_level_overrides: list[str] | None,
     generate_hlod: bool,
     generate_lod: bool,
     compress_geometry: bool,
@@ -254,6 +258,8 @@ def export_tiled_scene(
     # workflow anyway.
     module.ERROR_IF_UNSAVED_SOURCE_NOT_FOUND = False
     module.SOURCE_SCENE_PATH_OVERRIDE = ""
+    module.TIER_RADIUS_OVERRIDES = {}
+    module.UNTAGGED_SEMANTIC_TIER = "Auto"
     module.resolve_source_scene_path = lambda: ""
 
     argv = [
@@ -261,10 +267,17 @@ def export_tiled_scene(
         "--output-dir", str(output_dir),
         "--parallel-workers", "1",
         "--scene-profile", scene_profile,
+        "--untagged-semantic-tier", untagged_semantic_tier,
         "--tile-size-x", str(tile_size_x),
         "--tile-size-y", str(tile_size_y),
         "--tile-size-z", str(tile_size_z),
     ]
+    for override in tier_radius_overrides or []:
+        argv.extend(["--tier-radius", override])
+    for override in lod_level_overrides or []:
+        argv.extend(["--lod-level", override])
+    for override in hlod_level_overrides or []:
+        argv.extend(["--hlod-level", override])
 
     argv.append("--visible-only" if visible_only else "--all-meshes")
 

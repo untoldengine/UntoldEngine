@@ -14,6 +14,43 @@ def exporter_bridge():
     return importlib.reload(bridge)
 
 
+def _tier_radius_overrides_from_settings(settings) -> list[str]:
+    if not getattr(settings, "use_custom_tier_radii", False):
+        return []
+
+    overrides: list[str] = []
+    tier_fields = [
+        ("ExteriorShell", "exterior_shell"),
+        ("StructuralInterior", "structural_interior"),
+        ("RoomContents", "room_contents"),
+        ("FineProps", "fine_props"),
+    ]
+    for tier, prefix in tier_fields:
+        streaming = float(getattr(settings, f"{prefix}_streaming_radius"))
+        unload = float(getattr(settings, f"{prefix}_unload_radius"))
+        priority = int(getattr(settings, f"{prefix}_priority"))
+        if streaming > 0.0 and unload > streaming:
+            overrides.append(f"{tier}={streaming:g},{unload:g},{priority}")
+    return overrides
+
+
+def _lod_level_overrides_from_settings(settings) -> list[str]:
+    if not getattr(settings, "use_custom_representation_ranges", False):
+        return []
+    return [
+        f"{float(settings.lod1_switch_distance):g}:{float(settings.lod1_reduction_ratio):g}",
+        f"{float(settings.lod2_switch_distance):g}:{float(settings.lod2_reduction_ratio):g}",
+    ]
+
+
+def _hlod_level_overrides_from_settings(settings) -> list[str]:
+    if not getattr(settings, "use_custom_representation_ranges", False):
+        return []
+    return [
+        f"_hlod:{float(settings.hlod_switch_distance):g}:{float(settings.hlod_reduction_ratio):g}",
+    ]
+
+
 bl_info = {
     "name": "Untold Engine Exporter",
     "author": "Untold Engine Studios",
@@ -330,6 +367,37 @@ class UNTOLD_OT_export_tiled_scene(bpy.types.Operator):
         default="auto",
     )
 
+    untagged_semantic_tier: EnumProperty(
+        name="Untagged Semantic",
+        description="Semantic tier used for meshes without an explicit Untold semantic override",
+        items=[
+            ("Auto", "Auto", "Infer from name, material, and size"),
+            ("ExteriorShell", "Exterior Shell", "Treat untagged meshes as exterior shell geometry"),
+            ("StructuralInterior", "Structural Interior", "Treat untagged meshes as structural interior geometry"),
+            ("RoomContents", "Room Contents", "Treat untagged meshes as room contents"),
+            ("FineProps", "Fine Props", "Treat untagged meshes as fine props"),
+        ],
+        default="Auto",
+    )
+
+    use_custom_tier_radii: BoolProperty(
+        name="Custom Tier Radii",
+        description="Override profile-derived semantic tier stream/unload radii for this tiled export",
+        default=False,
+    )
+    exterior_shell_streaming_radius: FloatProperty(name="Exterior Stream", default=80.0, min=0.0)
+    exterior_shell_unload_radius: FloatProperty(name="Exterior Unload", default=130.0, min=0.0)
+    exterior_shell_priority: IntProperty(name="Exterior Priority", default=15, min=0)
+    structural_interior_streaming_radius: FloatProperty(name="Structural Stream", default=80.0, min=0.0)
+    structural_interior_unload_radius: FloatProperty(name="Structural Unload", default=130.0, min=0.0)
+    structural_interior_priority: IntProperty(name="Structural Priority", default=15, min=0)
+    room_contents_streaming_radius: FloatProperty(name="Room Stream", default=35.0, min=0.0)
+    room_contents_unload_radius: FloatProperty(name="Room Unload", default=70.0, min=0.0)
+    room_contents_priority: IntProperty(name="Room Priority", default=8, min=0)
+    fine_props_streaming_radius: FloatProperty(name="Fine Stream", default=30.0, min=0.0)
+    fine_props_unload_radius: FloatProperty(name="Fine Unload", default=60.0, min=0.0)
+    fine_props_priority: IntProperty(name="Fine Priority", default=5, min=0)
+
     generate_hlod: BoolProperty(
         name="Generate HLOD",
         description="Generate simplified coarse HLOD assets for eligible tiles",
@@ -341,6 +409,18 @@ class UNTOLD_OT_export_tiled_scene(bpy.types.Operator):
         description="Generate per-tile LOD assets for eligible tiles",
         default=False,
     )
+
+    use_custom_representation_ranges: BoolProperty(
+        name="Custom Rep Ranges",
+        description="Override normalized LOD/HLOD switch positions used by tiled export",
+        default=False,
+    )
+    lod1_switch_distance: FloatProperty(name="LOD1 Start (m)", default=90.0, min=1.0, soft_max=2000.0)
+    lod1_reduction_ratio: FloatProperty(name="LOD1 Ratio", default=0.50, min=0.01, max=1.0)
+    lod2_switch_distance: FloatProperty(name="LOD2 Start (m)", default=150.0, min=1.0, soft_max=2000.0)
+    lod2_reduction_ratio: FloatProperty(name="LOD2 Ratio", default=0.20, min=0.01, max=1.0)
+    hlod_switch_distance: FloatProperty(name="HLOD Start (m)", default=250.0, min=1.0, soft_max=5000.0)
+    hlod_reduction_ratio: FloatProperty(name="HLOD Ratio", default=0.10, min=0.01, max=1.0)
 
     compress_geometry: BoolProperty(
         name="Compress Geometry",
@@ -371,8 +451,29 @@ class UNTOLD_OT_export_tiled_scene(bpy.types.Operator):
             self.floor_count = preview.floor_count
             self.floor_band_height = preview.floor_band_height
             self.scene_profile = preview.scene_profile
+            self.untagged_semantic_tier = preview.untagged_semantic_tier
+            self.use_custom_tier_radii = preview.use_custom_tier_radii
+            self.exterior_shell_streaming_radius = preview.exterior_shell_streaming_radius
+            self.exterior_shell_unload_radius = preview.exterior_shell_unload_radius
+            self.exterior_shell_priority = preview.exterior_shell_priority
+            self.structural_interior_streaming_radius = preview.structural_interior_streaming_radius
+            self.structural_interior_unload_radius = preview.structural_interior_unload_radius
+            self.structural_interior_priority = preview.structural_interior_priority
+            self.room_contents_streaming_radius = preview.room_contents_streaming_radius
+            self.room_contents_unload_radius = preview.room_contents_unload_radius
+            self.room_contents_priority = preview.room_contents_priority
+            self.fine_props_streaming_radius = preview.fine_props_streaming_radius
+            self.fine_props_unload_radius = preview.fine_props_unload_radius
+            self.fine_props_priority = preview.fine_props_priority
             self.generate_hlod = preview.generate_hlod
             self.generate_lod = preview.generate_lod
+            self.use_custom_representation_ranges = preview.use_custom_representation_ranges
+            self.lod1_switch_distance = preview.lod1_switch_distance
+            self.lod1_reduction_ratio = preview.lod1_reduction_ratio
+            self.lod2_switch_distance = preview.lod2_switch_distance
+            self.lod2_reduction_ratio = preview.lod2_reduction_ratio
+            self.hlod_switch_distance = preview.hlod_switch_distance
+            self.hlod_reduction_ratio = preview.hlod_reduction_ratio
         if not self.directory:
             blend_path = getattr(bpy.data, "filepath", "") or ""
             if blend_path:
@@ -396,6 +497,10 @@ class UNTOLD_OT_export_tiled_scene(bpy.types.Operator):
                 floor_count=self.floor_count,
                 floor_band_height=self.floor_band_height,
                 scene_profile=self.scene_profile,
+                untagged_semantic_tier=self.untagged_semantic_tier,
+                tier_radius_overrides=_tier_radius_overrides_from_settings(self),
+                lod_level_overrides=_lod_level_overrides_from_settings(self),
+                hlod_level_overrides=_hlod_level_overrides_from_settings(self),
                 generate_hlod=self.generate_hlod,
                 generate_lod=self.generate_lod,
                 compress_geometry=self.compress_geometry,
