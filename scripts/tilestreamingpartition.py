@@ -208,12 +208,14 @@ HLOD_LEVELS = [
 
 # --- Tile LOD levels ------------------------------------------
 # Per-tile discrete LOD generation.  Each entry is a (decimate_ratio,
-# switch_position) pair where switch_position is a normalized position in the
-# representation ladder, not a direct fraction of streaming_radius.
-# The exporter maps these positions through a non-linear curve so the bands are
-# wider at distance and less prone to HLOD/LOD/full-detail flip-flopping near
-# the streaming boundary.  Sorted ascending by position (finest first).  The
-# full-detail tile is always LOD0; entries here define LOD1, LOD2, etc.
+# switch_distance) pair.  switch_distance accepts two forms:
+#   • 0 < value <= 1.0  — normalised position in the [streaming_r, unload_r] band
+#                         (legacy / script-default mode; mapped through a non-linear
+#                         curve so bands are wider at distance)
+#   • value > 1.0       — absolute metres; clamped to the valid range for the tile's
+#                         tier (the mode used when the Blender addon or CLI sets values)
+# Sorted ascending by switch_distance (finest first).  LOD0 = full geometry; entries
+# here define LOD1, LOD2, etc.
 GENERATE_LOD = False
 TILE_LOD_LEVELS = [
     (0.5, 0.30),   # LOD1 — 50% poly, widened near/mid-band anchor
@@ -284,6 +286,7 @@ TIER_CONFIDENCE_THRESHOLD = 0.50
 # StructuralInterior is the safest default: loads at medium distance,
 # never deferred as long as FineProps, never as wide-radius as ExteriorShell.
 DEFAULT_SEMANTIC_TIER = "StructuralInterior"
+UNTAGGED_SEMANTIC_TIER = "Auto"  # Auto | ExteriorShell | StructuralInterior | RoomContents | FineProps
 
 # Fraction of objects that must carry Untold metadata before the quadtree
 # export path is activated.  Below this threshold the grid path runs instead.
@@ -596,11 +599,9 @@ def validate_hlod_levels():
             raise RuntimeError(
                 f"HLOD_LEVELS[{idx}] has invalid 'switch_distance': {level.get('switch_distance')}"
             )
-        if not (0.0 < switch_distance <= 1.0):
+        if switch_distance <= 0.0:
             raise RuntimeError(
-                f"HLOD_LEVELS[{idx}] switch_distance position must be in (0, 1], got {switch_distance}. "
-                f"This is a normalized position across the outer streaming band "
-                f"(e.g. 1.0 = near unload_radius)."
+                f"HLOD_LEVELS[{idx}] switch_distance must be > 0 (metres or 0–1 normalised), got {switch_distance}."
             )
 
         normalized.append({
@@ -645,10 +646,9 @@ def validate_lod_levels():
             raise RuntimeError(
                 f"TILE_LOD_LEVELS[{idx}] has invalid switch_distance: {entry[1]!r}"
             )
-        if not (0.0 < distance <= 1.0):
+        if distance <= 0.0:
             raise RuntimeError(
-                f"TILE_LOD_LEVELS[{idx}] switch_distance position must be in (0, 1], got {distance}. "
-                f"This is a normalized ladder position, not a direct fraction of streaming_radius."
+                f"TILE_LOD_LEVELS[{idx}] switch_distance must be > 0 (metres or 0–1 normalised), got {distance}."
             )
 
         normalized.append({
@@ -675,12 +675,18 @@ def compute_hlod_switch_distances(streaming_r, unload_r, levels):
     resolved = []
     prev = min_switch - SWITCH_DISTANCE_MIN_GAP
     for idx, level in enumerate(sorted(levels, key=lambda l: l["switch_distance"])):
-        t = clamp(level["switch_distance"], 0.0, 1.0)
-        eased_t = 1.0 - math.pow(1.0 - t, HLOD_SWITCH_CURVE_EXPONENT)
+        sd = level["switch_distance"]
         remaining = len(levels) - idx - 1
         upper_bound = max_switch - (remaining * SWITCH_DISTANCE_MIN_GAP)
-        candidate = lerp(min_switch, max_switch, eased_t)
-        candidate = clamp(candidate, prev + SWITCH_DISTANCE_MIN_GAP, upper_bound)
+        if sd > 1.0:
+            # Absolute metres — clamp directly to the valid window.
+            candidate = clamp(sd, prev + SWITCH_DISTANCE_MIN_GAP, upper_bound)
+        else:
+            # Normalised 0–1 — existing lerp/ease path.
+            t = clamp(sd, 0.0, 1.0)
+            eased_t = 1.0 - math.pow(1.0 - t, HLOD_SWITCH_CURVE_EXPONENT)
+            candidate = lerp(min_switch, max_switch, eased_t)
+            candidate = clamp(candidate, prev + SWITCH_DISTANCE_MIN_GAP, upper_bound)
         resolved.append({
             "suffix": level["suffix"],
             "reduction_ratio": level["reduction_ratio"],
@@ -713,12 +719,18 @@ def compute_lod_switch_distances(streaming_r, unload_r, hlod_levels, lod_levels)
     prev = near_limit - SWITCH_DISTANCE_MIN_GAP
     sorted_levels = sorted(lod_levels, key=lambda l: l["switch_distance"])
     for idx, level in enumerate(sorted_levels):
-        t = clamp(level["switch_distance"], 0.0, 1.0)
-        eased_t = math.pow(t, LOD_SWITCH_CURVE_EXPONENT)
+        sd = level["switch_distance"]
         remaining = len(sorted_levels) - idx - 1
         upper_bound = far_limit - (remaining * SWITCH_DISTANCE_MIN_GAP)
-        candidate = lerp(near_limit, far_limit, eased_t)
-        candidate = clamp(candidate, prev + SWITCH_DISTANCE_MIN_GAP, upper_bound)
+        if sd > 1.0:
+            # Absolute metres — clamp directly.
+            candidate = clamp(sd, prev + SWITCH_DISTANCE_MIN_GAP, upper_bound)
+        else:
+            # Normalised 0–1 — existing ease path.
+            t = clamp(sd, 0.0, 1.0)
+            eased_t = math.pow(t, LOD_SWITCH_CURVE_EXPONENT)
+            candidate = lerp(near_limit, far_limit, eased_t)
+            candidate = clamp(candidate, prev + SWITCH_DISTANCE_MIN_GAP, upper_bound)
         resolved.append({
             "ratio": level["ratio"],
             "switch_distance": round(candidate, 2),
@@ -798,10 +810,13 @@ def classify_runtime_representation(distance, unload_r, hlod_levels=None, lod_le
       HLOD covers far-field tiles after the HLOD switch distance.
       LOD covers mid-field tiles after the first LOD switch distance.
       Full geometry covers the near band.
-      Unloaded only applies when no secondary representation is active.
+      Unloaded applies beyond unload_radius for every representation.
     """
     hlod_levels = hlod_levels or []
     lod_levels = lod_levels or []
+
+    if distance >= unload_r:
+        return "unloaded"
 
     if hlod_levels and distance >= min(level["switch_distance"] for level in hlod_levels):
         return "hlod"
@@ -809,8 +824,26 @@ def classify_runtime_representation(distance, unload_r, hlod_levels=None, lod_le
     if lod_levels and distance >= min(level["switch_distance"] for level in lod_levels):
         return "lod"
 
+    return "full"
+
+
+def classify_runtime_representation_detail(distance, unload_r, hlod_levels=None, lod_levels=None):
+    """Return full, lod1/lod2/..., hlod, or unloaded for preview diagnostics."""
+    hlod_levels = hlod_levels or []
+    lod_levels = sorted(lod_levels or [], key=lambda l: l["switch_distance"])
+
     if distance >= unload_r:
         return "unloaded"
+
+    if hlod_levels and distance >= min(level["switch_distance"] for level in hlod_levels):
+        return "hlod"
+
+    active_lod_index = None
+    for idx, level in enumerate(lod_levels):
+        if distance >= level["switch_distance"]:
+            active_lod_index = idx
+    if active_lod_index is not None:
+        return f"lod{active_lod_index + 1}"
 
     return "full"
 
@@ -1059,6 +1092,18 @@ def tile_bounds_aabb_usd(tile_bounds):
     })
 
 
+def node_cell_bounds_aabb_usd(node_bounds_xy, objects, object_bounds):
+    """Return a USD-space AABB from a tree node's XY cell and object Z extent."""
+    if not node_bounds_xy or not objects:
+        return None
+    z_min = min(object_bounds[o.name]["min"][2] for o in objects)
+    z_max = max(object_bounds[o.name]["max"][2] for o in objects)
+    return aabb_to_usd_space({
+        "min": (node_bounds_xy["min_x"], node_bounds_xy["min_y"], z_min),
+        "max": (node_bounds_xy["max_x"], node_bounds_xy["max_y"], z_max),
+    })
+
+
 def compute_objects_aabb_usd(objects, object_bounds):
     """Compute the union AABB of a set of objects, returned in USD space.
 
@@ -1187,6 +1232,10 @@ def _semantic_override(obj):
     return value
 
 
+def _untagged_semantic_default():
+    return UNTAGGED_SEMANTIC_TIER if UNTAGGED_SEMANTIC_TIER in VALID_SEMANTIC_TIERS else None
+
+
 def object_priority_hint(obj):
     value = _obj_prop(obj, "untold_streaming_priority_hint")
     if value is None:
@@ -1219,17 +1268,18 @@ def read_untold_metadata(obj):
     """
     # --- Primary: Blender custom properties (bare or USD-namespaced) ---
     override = _semantic_override(obj)
+    untagged_default = _untagged_semantic_default()
     node_id = _obj_prop(obj, "untold_quadtree_node_id")
     if node_id is not None:
-        semantic = override or str(_obj_prop(obj, "untold_semantic_guess", DEFAULT_SEMANTIC_TIER))
+        semantic = override or untagged_default or str(_obj_prop(obj, "untold_semantic_guess", DEFAULT_SEMANTIC_TIER))
         return {
             "floor_id":      int(_obj_prop(obj, "untold_floor_id", 0)),
             "node_id":       str(node_id),
             "depth":         int(_obj_prop(obj, "untold_quadtree_depth", 0)),
             "spatial_class": str(_obj_prop(obj, "untold_spatial_class", "local")),
             "semantic":      semantic,
-            "confidence":    1.0 if override else float(_obj_prop(obj, "untold_semantic_confidence", 0.0)),
-            "source":        "custom_property_override" if override else "custom_property",
+            "confidence":    1.0 if (override or untagged_default) else float(_obj_prop(obj, "untold_semantic_confidence", 0.0)),
+            "source":        "custom_property_override" if override else ("custom_property_untagged_default" if untagged_default else "custom_property"),
         }
     # --- Secondary: parse suffix from the Xform prim name stored by Blender's USD importer ---
     xform_name = _obj_prop(obj, "blender:object_name")
@@ -1240,6 +1290,10 @@ def read_untold_metadata(obj):
                 meta["semantic"] = override
                 meta["confidence"] = 1.0
                 meta["source"] = "name_suffix_override"
+            elif untagged_default:
+                meta["semantic"] = untagged_default
+                meta["confidence"] = 1.0
+                meta["source"] = "name_suffix_untagged_default"
             return meta
     # --- Fallback: name suffix on the Blender object name itself ---
     meta = _parse_name_suffix(obj.name)
@@ -1247,6 +1301,10 @@ def read_untold_metadata(obj):
         meta["semantic"] = override
         meta["confidence"] = 1.0
         meta["source"] = "name_suffix_override"
+    elif meta and untagged_default:
+        meta["semantic"] = untagged_default
+        meta["confidence"] = 1.0
+        meta["source"] = "name_suffix_untagged_default"
     return meta
 
 
@@ -1386,6 +1444,24 @@ def quadtree_tile_id(node_id, tier):
     """
     code = TIER_SHORT_CODES.get(tier, "UK")
     return sanitize_name(f"{node_id}_{code}")
+
+
+def group_metadata(tile_objs, metadata_map):
+    return [metadata_map.get(obj.name) for obj in tile_objs if metadata_map.get(obj.name) is not None]
+
+
+def group_has_spanning_metadata(tile_objs, metadata_map):
+    return any(meta.get("spatial_class") == "spanning" for meta in group_metadata(tile_objs, metadata_map))
+
+
+def group_cell_bounds_xy(tile_objs, metadata_map):
+    if group_has_spanning_metadata(tile_objs, metadata_map):
+        return None
+    for meta in group_metadata(tile_objs, metadata_map):
+        cell = meta.get("cell_bounds_xy")
+        if cell:
+            return cell
+    return None
 
 
 # ============================================================
@@ -1616,18 +1692,7 @@ def compute_inline_kdtree_metadata(objects, object_bounds):
     scene_max_z  = global_max[2]
     scene_z_span = max(scene_max_z - scene_min_z, 0.001)
 
-    if INLINE_FLOOR_COUNT_OVERRIDE and INLINE_FLOOR_BAND_HEIGHT_OVERRIDE:
-        floor_count = max(1, int(INLINE_FLOOR_COUNT_OVERRIDE))
-        band_height = float(INLINE_FLOOR_BAND_HEIGHT_OVERRIDE)
-    elif INLINE_FLOOR_COUNT_OVERRIDE:
-        floor_count = max(1, int(INLINE_FLOOR_COUNT_OVERRIDE))
-        band_height = scene_z_span / floor_count
-    elif INLINE_FLOOR_BAND_HEIGHT_OVERRIDE:
-        band_height = float(INLINE_FLOOR_BAND_HEIGHT_OVERRIDE)
-        floor_count = max(1, int(_math.ceil(scene_z_span / band_height)))
-    else:
-        band_height = INLINE_AUTO_FLOOR_BAND_HEIGHT or _inline_estimate_floor_band_height(object_cache)
-        floor_count = max(1, int(_math.ceil(scene_z_span / band_height)))
+    floor_count, band_height = _resolve_inline_floor_layout(object_cache, scene_z_span)
 
     print(f"  [inline kd-tree] floor band height: {band_height:.2f}m, floors: {floor_count}")
 
@@ -1681,15 +1746,23 @@ def compute_inline_kdtree_metadata(objects, object_bounds):
         override = _semantic_override(obj)
         if override:
             semantic, confidence = override, 1.0
+        elif _untagged_semantic_default():
+            semantic, confidence = _untagged_semantic_default(), 1.0
 
         metadata_dict[obj.name] = {
             "floor_id":      fid + 1,
             "node_id":       node.node_id,
             "depth":         node.depth,
+            "cell_bounds_xy": {
+                "min_x": node.min_x,
+                "min_y": node.min_y,
+                "max_x": node.max_x,
+                "max_y": node.max_y,
+            },
             "spatial_class": spatial_class,
             "semantic":      semantic,
             "confidence":    confidence,
-            "source":        "inline_kdtree_override" if override else "inline_kdtree",
+            "source":        "inline_kdtree_override" if override else ("inline_kdtree_untagged_default" if _untagged_semantic_default() else "inline_kdtree"),
         }
         leaf_object_counts[node.node_id] = leaf_object_counts.get(node.node_id, 0) + 1
 
@@ -1724,6 +1797,34 @@ def _inline_estimate_floor_band_height(object_cache):
 def _inline_assign_floor_id(center_z, scene_min_z, band_height):
     import math as _math
     return int(_math.floor((center_z - scene_min_z) / max(band_height, 0.001)))
+
+
+def _resolve_inline_floor_layout(object_cache, scene_z_span):
+    """Resolve floor bands for inline tree annotation.
+
+    Outdoor scenes usually represent one exterior ground-plane layer, even when
+    buildings have large vertical extents. Auto floor slicing remains available
+    for indoor/auto profiles and for explicit user overrides.
+    """
+    import math as _math
+
+    if INLINE_FLOOR_COUNT_OVERRIDE and INLINE_FLOOR_BAND_HEIGHT_OVERRIDE:
+        floor_count = max(1, int(INLINE_FLOOR_COUNT_OVERRIDE))
+        band_height = float(INLINE_FLOOR_BAND_HEIGHT_OVERRIDE)
+    elif INLINE_FLOOR_COUNT_OVERRIDE:
+        floor_count = max(1, int(INLINE_FLOOR_COUNT_OVERRIDE))
+        band_height = scene_z_span / floor_count
+    elif INLINE_FLOOR_BAND_HEIGHT_OVERRIDE:
+        band_height = float(INLINE_FLOOR_BAND_HEIGHT_OVERRIDE)
+        floor_count = max(1, int(_math.ceil(scene_z_span / band_height)))
+    elif (SCENE_STREAMING_PROFILE or "auto").lower() == "outdoor":
+        floor_count = 1
+        band_height = scene_z_span
+    else:
+        band_height = INLINE_AUTO_FLOOR_BAND_HEIGHT or _inline_estimate_floor_band_height(object_cache)
+        floor_count = max(1, int(_math.ceil(scene_z_span / band_height)))
+
+    return floor_count, max(float(band_height), 0.001)
 
 
 def _inline_get_material_names(obj):
@@ -1819,22 +1920,7 @@ def compute_inline_quadtree_metadata(objects, object_bounds):
     scene_max_z  = global_max[2]
     scene_z_span = max(scene_max_z - scene_min_z, 0.001)
 
-    if INLINE_FLOOR_COUNT_OVERRIDE and INLINE_FLOOR_BAND_HEIGHT_OVERRIDE:
-        # Both pinned — user knows exactly what they want.
-        floor_count = max(1, int(INLINE_FLOOR_COUNT_OVERRIDE))
-        band_height = float(INLINE_FLOOR_BAND_HEIGHT_OVERRIDE)
-    elif INLINE_FLOOR_COUNT_OVERRIDE:
-        # Floor count pinned — derive band height from scene Z span.
-        floor_count = max(1, int(INLINE_FLOOR_COUNT_OVERRIDE))
-        band_height = scene_z_span / floor_count
-    elif INLINE_FLOOR_BAND_HEIGHT_OVERRIDE:
-        # Band height pinned — derive floor count from scene Z span.
-        band_height = float(INLINE_FLOOR_BAND_HEIGHT_OVERRIDE)
-        floor_count = max(1, int(_math.ceil(scene_z_span / band_height)))
-    else:
-        # Fully auto: estimate band height from object Z dimensions.
-        band_height = INLINE_AUTO_FLOOR_BAND_HEIGHT or _inline_estimate_floor_band_height(object_cache)
-        floor_count = max(1, int(_math.ceil(scene_z_span / band_height)))
+    floor_count, band_height = _resolve_inline_floor_layout(object_cache, scene_z_span)
 
     print(f"  [inline annotation] floor band height: {band_height:.2f}m, floors: {floor_count}")
 
@@ -1868,15 +1954,23 @@ def compute_inline_quadtree_metadata(objects, object_bounds):
         override = _semantic_override(obj)
         if override:
             semantic, confidence = override, 1.0
+        elif _untagged_semantic_default():
+            semantic, confidence = _untagged_semantic_default(), 1.0
 
         metadata_dict[obj.name] = {
             "floor_id":      floor_id + 1,   # 1-based to match annotation script
             "node_id":       node.node_id,
             "depth":         node.depth,
+            "cell_bounds_xy": {
+                "min_x": node.min_x,
+                "min_y": node.min_y,
+                "max_x": node.max_x,
+                "max_y": node.max_y,
+            },
             "spatial_class": spatial_class,
             "semantic":      semantic,
             "confidence":    confidence,
-            "source":        "inline_override" if override else "inline",
+            "source":        "inline_override" if override else ("inline_untagged_default" if _untagged_semantic_default() else "inline"),
         }
 
     annotated = len(metadata_dict)
@@ -3491,7 +3585,12 @@ def _run_worker_mode(work_bundle_path: str, result_file_path: str) -> None:
 
     tile_results = []
     tile_specs = bundle.get("tiles", [])
-    total_assets = sum(1 + len(active_hlod_levels) + len(active_lod_levels) for _ in tile_specs)
+    total_assets = sum(
+        1
+        + len(tile_spec.get("active_hlod_levels", active_hlod_levels))
+        + len(tile_spec.get("active_lod_levels", active_lod_levels))
+        for tile_spec in tile_specs
+    )
     completed_assets = 0
     append_worker_progress(progress_file, {
         "event": "start",
@@ -3506,6 +3605,8 @@ def _run_worker_mode(work_bundle_path: str, result_file_path: str) -> None:
         filepath    = tile_spec["filepath"]
         tile_bounds = tile_spec["tile_bounds"]
         obj_names   = tile_spec["object_names"]
+        tile_hlod_levels = tile_spec.get("active_hlod_levels", active_hlod_levels)
+        tile_lod_levels = tile_spec.get("active_lod_levels", active_lod_levels)
 
         objects = [bpy.data.objects.get(n) for n in obj_names]
         objects = [o for o in objects if o is not None]
@@ -3542,7 +3643,7 @@ def _run_worker_mode(work_bundle_path: str, result_file_path: str) -> None:
 
         hlod_results = []
         if ok and not DEBUG_AABB_ONLY:
-            for level in active_hlod_levels:
+            for level in tile_hlod_levels:
                 hlod_filepath = os.path.join(
                     os.path.dirname(filepath),
                     f"{tile_id}{level['suffix']}.{ext}",
@@ -3578,7 +3679,7 @@ def _run_worker_mode(work_bundle_path: str, result_file_path: str) -> None:
 
         lod_results = []
         if ok and not DEBUG_AABB_ONLY:
-            for lod_idx, lod in enumerate(active_lod_levels):
+            for lod_idx, lod in enumerate(tile_lod_levels):
                 lod_n        = lod_idx + 1
                 lod_filepath = os.path.join(
                     os.path.dirname(filepath),
@@ -4172,6 +4273,22 @@ def run():
         (scene_bounds["max"][1] - scene_bounds["min"][1]) ** 2
     )
     streaming_r, unload_r = compute_streaming_defaults(base_tile, scene_half_diag)
+    # When the user has explicitly configured tier radii, honour them for the
+    # uniform-grid representation ladder too.  Without this, LOD/HLOD switch
+    # distances are computed against the narrow auto-computed defaults
+    # (e.g. 38/57 m for a 22 m tile) even though the user set 80/150 m, which
+    # produces ~4 m bands that are visually instantaneous.  ExteriorShell is the
+    # dominant tier for outdoor/city scenes; fall back to StructuralInterior if
+    # only that override is present.
+    _grid_override = (
+        TIER_RADIUS_OVERRIDES.get("ExteriorShell")
+        or TIER_RADIUS_OVERRIDES.get("StructuralInterior")
+    )
+    if _grid_override:
+        _ov_s = _grid_override.get("streaming", 0.0)
+        _ov_u = _grid_override.get("unload", 0.0)
+        if _ov_s > 0.0 and _ov_u > _ov_s:
+            streaming_r, unload_r = _ov_s, _ov_u
     shared_r, shared_ur   = compute_shared_streaming_radii(scene_half_diag)
 
     # Resolve a default representation ladder for progress accounting and logs.
@@ -4431,6 +4548,16 @@ def run():
                 print(f"    {tier:25s}: {count:5d} objects  "
                       f"stream={radii.get('streaming','?')}m  "
                       f"unload={radii.get('unload','?')}m")
+            spanning_secondary_skips = sum(
+                1
+                for (_node_id, tier), objs in node_tier_groups.items()
+                if objs and tier in HLOD_LOD_TIERS and group_has_spanning_metadata(objs, metadata_map)
+            )
+            if spanning_secondary_skips:
+                print(
+                    f"  Secondary reps    : skipped for {spanning_secondary_skips} spanning/intermediate "
+                    "tile-tier pair(s) to avoid parent/child LOD-HLOD overlap"
+                )
 
             if use_kdtree:
                 # KD-tree leaf balance report — shows whether the tree is producing
@@ -4460,6 +4587,11 @@ def run():
                 tile_id   = quadtree_tile_id(node_id, tier)
                 filepath  = os.path.join(output_dir, f"{tile_id}.{ext}")
                 aabb_usd  = compute_objects_aabb_usd(tile_objs, object_bounds)
+                cell_aabb_usd = node_cell_bounds_aabb_usd(
+                    group_cell_bounds_xy(tile_objs, metadata_map),
+                    tile_objs,
+                    object_bounds,
+                )
                 center    = aabb_center(aabb_usd) if aabb_usd else [0,0,0]
                 est_mem   = sum(estimate_object_memory_bytes(o, mesh_size_cache)
                                 for o in tile_objs)
@@ -4470,7 +4602,8 @@ def run():
                     tile_objs,
                     tier_radii.get("priority", DEFAULT_STREAMING_PRIORITY),
                 )
-                tier_wants_hlod_lod = tier in HLOD_LOD_TIERS
+                is_spanning_group = group_has_spanning_metadata(tile_objs, metadata_map)
+                tier_wants_hlod_lod = tier in HLOD_LOD_TIERS and not is_spanning_group
                 tile_hlod_levels, tile_lod_levels = resolve_tile_representation_levels(
                     tile_stream,
                     tile_unload,
@@ -4517,6 +4650,12 @@ def run():
                     "estimated_memory_bytes": est_mem,
                     "bounds": {"min": list(aabb_usd["min"]), "max": list(aabb_usd["max"])}
                               if aabb_usd else {"min": [0,0,0], "max": [0,0,0]},
+                    "cell_bounds": {"min": list(cell_aabb_usd["min"]), "max": list(cell_aabb_usd["max"])}
+                                   if cell_aabb_usd else (
+                                       {"min": list(aabb_usd["min"]), "max": list(aabb_usd["max"])}
+                                       if aabb_usd else {"min": [0,0,0], "max": [0,0,0]}
+                                   ),
+                    "secondary_representation_policy": "none_spanning_group" if is_spanning_group else "normal",
                     "center": list(center),
                     "object_count": len(tile_objs),
                 })
@@ -4640,7 +4779,7 @@ def run():
             if not tile_objs:
                 continue
             planned_local_assets += 1
-            if quadtree_parallel or tier in HLOD_LOD_TIERS:
+            if tier in HLOD_LOD_TIERS and not group_has_spanning_metadata(tile_objs, metadata_map):
                 planned_local_assets += len(active_hlod_levels) + len(active_lod_levels)
     else:
         non_empty_tiles = sum(1 for _coord, tile_objs in tile_assignments.items() if tile_objs)
@@ -4711,14 +4850,16 @@ def run():
 
         # Attempt parallel export; falls back to None when PARALLEL_WORKERS=1
         # or there are too few tiles to justify subprocesses.
-        qt_parallel_results = _export_quadtree_tiles_parallel(
-            sorted_groups,
-            source_scene_path,
-            output_dir,
-            ext,
-            active_hlod_levels=default_hlod_levels,
-            active_lod_levels=default_lod_levels,
-        )
+        qt_parallel_results = None
+        if not active_hlod_levels and not active_lod_levels:
+            qt_parallel_results = _export_quadtree_tiles_parallel(
+                sorted_groups,
+                source_scene_path,
+                output_dir,
+                ext,
+                active_hlod_levels=[],
+                active_lod_levels=[],
+            )
 
         for (node_id, tier), tile_objs in sorted_groups:
             if not tile_objs:
@@ -4727,6 +4868,11 @@ def run():
             tile_id   = quadtree_tile_id(node_id, tier)
             filepath  = os.path.join(output_dir, f"{tile_id}.{ext}")
             aabb_usd  = compute_objects_aabb_usd(tile_objs, object_bounds)
+            cell_aabb_usd = node_cell_bounds_aabb_usd(
+                group_cell_bounds_xy(tile_objs, metadata_map),
+                tile_objs,
+                object_bounds,
+            )
             center    = aabb_center(aabb_usd) if aabb_usd else [0.0, 0.0, 0.0]
             est_mem   = sum(estimate_object_memory_bytes(o, mesh_size_cache)
                             for o in tile_objs)
@@ -4750,7 +4896,8 @@ def run():
 
             # HLOD/LOD is only useful for tiers with radii large enough to form a
             # meaningful switch band (ExteriorShell, StructuralInterior).
-            tier_wants_hlod_lod = tier in HLOD_LOD_TIERS
+            is_spanning_group = group_has_spanning_metadata(tile_objs, metadata_map)
+            tier_wants_hlod_lod = tier in HLOD_LOD_TIERS and not is_spanning_group
             tile_hlod_levels, tile_lod_levels = resolve_tile_representation_levels(
                 tile_stream,
                 tile_unload,
@@ -4873,6 +5020,12 @@ def run():
                 "estimated_memory_bytes": est_mem,
                 "bounds": {"min": list(aabb_usd["min"]), "max": list(aabb_usd["max"])}
                           if aabb_usd else {"min": [0,0,0], "max": [0,0,0]},
+                "cell_bounds": {"min": list(cell_aabb_usd["min"]), "max": list(cell_aabb_usd["max"])}
+                               if cell_aabb_usd else (
+                                   {"min": list(aabb_usd["min"]), "max": list(aabb_usd["max"])}
+                                   if aabb_usd else {"min": [0,0,0], "max": [0,0,0]}
+                               ),
+                "secondary_representation_policy": "none_spanning_group" if is_spanning_group else "normal",
                 "center": list(center),
                 "object_count": len(tile_objs),
             }
@@ -5129,6 +5282,20 @@ def parse_args(argv):
     parser.add_argument("--write-manifest-in-dry-run", action="store_true", help="Write the manifest JSON even when --dry-run is enabled.")
     parser.add_argument("--generate-hlod", action="store_true", help="Enable HLOD export regardless of the script default.")
     parser.add_argument("--generate-lod", action="store_true", help="Enable per-tile LOD export regardless of the script default.")
+    parser.add_argument(
+        "--lod-level",
+        action="append",
+        default=[],
+        metavar="DISTANCE:RATIO",
+        help="Override per-tile LOD levels. Repeat for LOD1, LOD2, etc. Distance in metres. Example: --lod-level 90:0.5",
+    )
+    parser.add_argument(
+        "--hlod-level",
+        action="append",
+        default=[],
+        metavar="SUFFIX:DISTANCE:RATIO",
+        help="Override HLOD levels. Distance in metres. Example: --hlod-level _hlod:250:0.1",
+    )
     parser.add_argument("--visible-only", action="store_true", help="Export only visible mesh objects.")
     parser.add_argument("--all-meshes", action="store_true", help="Export all mesh objects, including hidden ones.")
     parser.add_argument("--debug-aabb-only", action="store_true", help="Export debug AABB payloads instead of real geometry.")
@@ -5187,6 +5354,15 @@ def parse_args(argv):
         ),
     )
     parser.add_argument(
+        "--untagged-semantic-tier",
+        choices=("Auto", "ExteriorShell", "StructuralInterior", "RoomContents", "FineProps"),
+        default="Auto",
+        help=(
+            "Semantic tier assigned to meshes without an explicit untold_semantic_override. "
+            "Auto keeps the name/material/size classifier and falls back to StructuralInterior."
+        ),
+    )
+    parser.add_argument(
         "--floor-count",
         type=int,
         default=None,
@@ -5225,6 +5401,8 @@ def apply_cli_overrides(args):
     global DRY_RUN_WRITE_MANIFEST
     global GENERATE_HLOD
     global GENERATE_LOD
+    global HLOD_LEVELS
+    global TILE_LOD_LEVELS
     global VISIBLE_ONLY
     global DEBUG_AABB_ONLY
     global AUTO_TILE_SIZE
@@ -5238,6 +5416,7 @@ def apply_cli_overrides(args):
     global FORCE_KDTREE
     global SCENE_STREAMING_PROFILE
     global TIER_RADIUS_OVERRIDES
+    global UNTAGGED_SEMANTIC_TIER
     global INLINE_FLOOR_COUNT_OVERRIDE
     global INLINE_FLOOR_BAND_HEIGHT_OVERRIDE
 
@@ -5259,6 +5438,26 @@ def apply_cli_overrides(args):
         GENERATE_HLOD = True
     if args.generate_lod:
         GENERATE_LOD = True
+    if getattr(args, "lod_level", None):
+        parsed_lods = []
+        for value in args.lod_level:
+            parts = str(value).split(":")
+            if len(parts) != 2:
+                raise RuntimeError(f"--lod-level must be DISTANCE:RATIO, got {value!r}")
+            parsed_lods.append((float(parts[1]), float(parts[0])))  # (ratio, distance_metres)
+        TILE_LOD_LEVELS = parsed_lods
+    if getattr(args, "hlod_level", None):
+        parsed_hlods = []
+        for value in args.hlod_level:
+            parts = str(value).split(":")
+            if len(parts) != 3:
+                raise RuntimeError(f"--hlod-level must be SUFFIX:DISTANCE:RATIO, got {value!r}")
+            parsed_hlods.append({
+                "suffix": parts[0],
+                "reduction_ratio": float(parts[2]),
+                "switch_distance": float(parts[1]),  # metres
+            })
+        HLOD_LEVELS = parsed_hlods
     if args.visible_only:
         VISIBLE_ONLY = True
     if args.all_meshes:
@@ -5289,6 +5488,8 @@ def apply_cli_overrides(args):
     if getattr(args, "tier_radius", None):
         for tier, override in args.tier_radius:
             TIER_RADIUS_OVERRIDES[tier] = override
+    if getattr(args, "untagged_semantic_tier", None):
+        UNTAGGED_SEMANTIC_TIER = args.untagged_semantic_tier
     if getattr(args, "floor_count", None) is not None:
         INLINE_FLOOR_COUNT_OVERRIDE = args.floor_count
     if getattr(args, "floor_band_height", None) is not None:

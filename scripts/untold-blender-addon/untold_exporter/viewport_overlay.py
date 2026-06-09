@@ -21,6 +21,13 @@ _preview_object_names: set[str] = set()
 _preview_color_mode = "DENSITY"
 _mesh_view_state: dict[str, dict] = {}
 
+_TIER_RADIUS_FIELDS = [
+    ("ExteriorShell", "exterior_shell"),
+    ("StructuralInterior", "structural_interior"),
+    ("RoomContents", "room_contents"),
+    ("FineProps", "fine_props"),
+]
+
 
 # ── Color helpers ─────────────────────────────────────────────────────────────
 
@@ -43,11 +50,124 @@ def _runtime_color(state: str) -> tuple:
     colors = {
         "full": (0.10, 0.85, 0.25, 0.9),
         "lod": (1.00, 0.72, 0.08, 0.9),
+        "lod1": (1.00, 0.72, 0.08, 0.9),
+        "lod2": (1.00, 0.38, 0.05, 0.9),
         "hlod": (0.10, 0.78, 1.00, 0.9),
         "unloaded": (0.42, 0.42, 0.42, 0.55),
         "shared": _shared_color(),
     }
     return colors.get(state, colors["unloaded"])
+
+
+def _tier_radius_overrides(settings) -> dict:
+    if not getattr(settings, "use_custom_tier_radii", False):
+        return {}
+
+    overrides = {}
+    for tier, prefix in _TIER_RADIUS_FIELDS:
+        streaming = float(getattr(settings, f"{prefix}_streaming_radius"))
+        unload = float(getattr(settings, f"{prefix}_unload_radius"))
+        priority = int(getattr(settings, f"{prefix}_priority"))
+        if streaming > 0.0 and unload > streaming:
+            overrides[tier] = {
+                "streaming": streaming,
+                "unload": unload,
+                "priority": priority,
+            }
+    return overrides
+
+
+def _apply_tier_radius_overrides(module, settings) -> None:
+    module.TIER_RADIUS_OVERRIDES = _tier_radius_overrides(settings)
+
+
+def _apply_semantic_policy(module, settings) -> None:
+    module.UNTAGGED_SEMANTIC_TIER = getattr(settings, "untagged_semantic_tier", "Auto")
+
+
+def _apply_representation_ranges(module, settings) -> None:
+    if not getattr(settings, "use_custom_representation_ranges", False):
+        return
+    module.TILE_LOD_LEVELS = [
+        (float(getattr(settings, "lod1_reduction_ratio", 0.5)), float(getattr(settings, "lod1_switch_distance", 90.0))),
+        (float(getattr(settings, "lod2_reduction_ratio", 0.2)), float(getattr(settings, "lod2_switch_distance", 150.0))),
+    ]
+    module.HLOD_LEVELS = [{
+        "suffix": "_hlod",
+        "reduction_ratio": float(getattr(settings, "hlod_reduction_ratio", 0.10)),
+        "switch_distance": float(getattr(settings, "hlod_switch_distance", 250.0)),
+    }]
+
+
+def _repr_summary_for_settings(settings):
+    """Compute resolved LOD/HLOD switch distances (metres) for ExteriorShell, for panel display.
+
+    Returns a dict with keys: streaming_r, unload_r, lod1, lod2, hlod (all floats or None).
+    Returns None when Custom Tier Radii is not enabled (scene radii unknown without running the
+    partitioner).
+    """
+    if not getattr(settings, "use_custom_tier_radii", False):
+        return None
+    if not getattr(settings, "use_custom_representation_ranges", False):
+        return None
+
+    streaming_r = float(getattr(settings, "exterior_shell_streaming_radius", 80.0))
+    unload_r = float(getattr(settings, "exterior_shell_unload_radius", 130.0))
+    if unload_r <= streaming_r:
+        return None
+
+    GAP = 4.0
+    MARGIN = 4.0
+    gap_range = max(unload_r - streaming_r, GAP * 2.0)
+    min_sw = streaming_r + GAP
+    max_sw = max(min_sw, unload_r - min(MARGIN, gap_range * 0.25))
+
+    generate_hlod = getattr(settings, "generate_hlod", False)
+    generate_lod = getattr(settings, "generate_lod", False)
+
+    hlod = None
+    if generate_hlod:
+        raw = float(getattr(settings, "hlod_switch_distance", 250.0))
+        hlod = max(min_sw, min(max_sw, raw))
+
+    lod1 = lod2 = None
+    if generate_lod:
+        far_limit = (hlod - GAP) if hlod is not None else (unload_r - MARGIN)
+        near_limit = max(streaming_r + GAP, GAP)
+        raw1 = float(getattr(settings, "lod1_switch_distance", 90.0))
+        raw2 = float(getattr(settings, "lod2_switch_distance", 150.0))
+        lod1 = max(near_limit, min(far_limit - GAP, raw1))
+        lod2 = max(lod1 + GAP, min(far_limit, raw2))
+
+    return {
+        "streaming_r": streaming_r,
+        "unload_r": unload_r,
+        "lod1": lod1,
+        "lod2": lod2,
+        "hlod": hlod,
+    }
+
+
+def _group_cell_bounds_xy(module, objs, metadata_map):
+    if module.group_has_spanning_metadata(objs, metadata_map):
+        return None
+    for obj in objs:
+        meta = metadata_map.get(obj.name)
+        if meta and meta.get("cell_bounds_xy"):
+            return meta["cell_bounds_xy"]
+    return None
+
+
+def _cell_box_from_metadata(module, objs, aabbs, metadata_map):
+    cell = _group_cell_bounds_xy(module, objs, metadata_map)
+    if not cell:
+        return None
+    z_min = min(aabbs[obj.name][0].z for obj in objs)
+    z_max = max(aabbs[obj.name][1].z for obj in objs)
+    return (
+        (cell["min_x"], cell["min_y"], z_min),
+        (cell["max_x"], cell["max_y"], z_max),
+    )
 
 
 # ── Geometry helpers ──────────────────────────────────────────────────────────
@@ -351,6 +471,37 @@ class UntoldTilePreviewSettings(bpy.types.PropertyGroup):
         default="auto",
     )
 
+    untagged_semantic_tier: EnumProperty(
+        name="Untagged Semantic",
+        description="Semantic tier used for meshes without an explicit Untold semantic override",
+        items=[
+            ("Auto", "Auto", "Infer from name, material, and size"),
+            ("ExteriorShell", "Exterior Shell", "Treat untagged meshes as exterior shell geometry"),
+            ("StructuralInterior", "Structural Interior", "Treat untagged meshes as structural interior geometry"),
+            ("RoomContents", "Room Contents", "Treat untagged meshes as room contents"),
+            ("FineProps", "Fine Props", "Treat untagged meshes as fine props"),
+        ],
+        default="Auto",
+    )
+
+    use_custom_tier_radii: BoolProperty(
+        name="Custom Tier Radii",
+        description="Override profile-derived semantic tier stream/unload radii for preview and export",
+        default=False,
+    )
+    exterior_shell_streaming_radius: FloatProperty(name="Exterior Stream", default=80.0, min=0.0)
+    exterior_shell_unload_radius: FloatProperty(name="Exterior Unload", default=130.0, min=0.0)
+    exterior_shell_priority: IntProperty(name="Exterior Priority", default=15, min=0)
+    structural_interior_streaming_radius: FloatProperty(name="Structural Stream", default=80.0, min=0.0)
+    structural_interior_unload_radius: FloatProperty(name="Structural Unload", default=130.0, min=0.0)
+    structural_interior_priority: IntProperty(name="Structural Priority", default=15, min=0)
+    room_contents_streaming_radius: FloatProperty(name="Room Stream", default=35.0, min=0.0)
+    room_contents_unload_radius: FloatProperty(name="Room Unload", default=70.0, min=0.0)
+    room_contents_priority: IntProperty(name="Room Priority", default=8, min=0)
+    fine_props_streaming_radius: FloatProperty(name="Fine Stream", default=30.0, min=0.0)
+    fine_props_unload_radius: FloatProperty(name="Fine Unload", default=60.0, min=0.0)
+    fine_props_priority: IntProperty(name="Fine Priority", default=5, min=0)
+
     generate_hlod: BoolProperty(
         name="Generate HLOD",
         description="Generate far-distance coarse HLOD payloads for eligible tile groups",
@@ -361,6 +512,42 @@ class UntoldTilePreviewSettings(bpy.types.PropertyGroup):
         name="Generate LOD",
         description="Generate per-tile intermediate LOD payloads for eligible tile groups",
         default=False,
+    )
+
+    use_custom_representation_ranges: BoolProperty(
+        name="Custom Rep Ranges",
+        description="Override normalized LOD/HLOD switch positions used by preview and export",
+        default=False,
+    )
+    lod1_switch_distance: FloatProperty(
+        name="LOD1 Start (m)",
+        description="Distance in metres at which full-detail geometry switches to LOD1",
+        default=90.0, min=1.0, soft_max=2000.0,
+    )
+    lod1_reduction_ratio: FloatProperty(
+        name="LOD1 Ratio",
+        description="LOD1 mesh reduction ratio",
+        default=0.50, min=0.01, max=1.0,
+    )
+    lod2_switch_distance: FloatProperty(
+        name="LOD2 Start (m)",
+        description="Distance in metres at which LOD1 switches to LOD2",
+        default=150.0, min=1.0, soft_max=2000.0,
+    )
+    lod2_reduction_ratio: FloatProperty(
+        name="LOD2 Ratio",
+        description="LOD2 mesh reduction ratio",
+        default=0.20, min=0.01, max=1.0,
+    )
+    hlod_switch_distance: FloatProperty(
+        name="HLOD Start (m)",
+        description="Distance in metres at which the coarse HLOD representation replaces LOD geometry",
+        default=250.0, min=1.0, soft_max=5000.0,
+    )
+    hlod_reduction_ratio: FloatProperty(
+        name="HLOD Ratio",
+        description="HLOD mesh reduction ratio",
+        default=0.10, min=0.01, max=1.0,
     )
 
     runtime_source: EnumProperty(
@@ -521,6 +708,9 @@ def _build_tree_boxes(objects: list, aabbs: dict, settings, use_kdtree: bool) ->
 
     module.INLINE_FLOOR_COUNT_OVERRIDE       = settings.floor_count       if settings.floor_count > 0       else None
     module.INLINE_FLOOR_BAND_HEIGHT_OVERRIDE = settings.floor_band_height if settings.floor_band_height > 0.0 else None
+    module.SCENE_STREAMING_PROFILE = settings.scene_profile
+    _apply_semantic_policy(module, settings)
+    _apply_representation_ranges(module, settings)
 
     object_bounds = _aabbs_to_module_format(aabbs)
 
@@ -534,7 +724,7 @@ def _build_tree_boxes(objects: list, aabbs: dict, settings, use_kdtree: bool) ->
 
     # build_quadtree_assignments handles (node_id, tier) grouping and the
     # ExteriorShell-only rule for shared-bucket routing, matching the exporter.
-    node_tier_groups, shared_objects, _ = module.build_quadtree_assignments(
+    node_tier_groups, shared_objects, metadata_map = module.build_quadtree_assignments(
         objects, object_bounds, inline_metadata=metadata
     )
 
@@ -552,6 +742,10 @@ def _build_tree_boxes(objects: list, aabbs: dict, settings, use_kdtree: bool) ->
         color = _heatmap_color(t)
         z_min = min(aabbs[obj.name][0].z for obj in objs)
         z_max = max(aabbs[obj.name][1].z for obj in objs)
+        cell_box = _cell_box_from_metadata(module, objs, aabbs, metadata_map)
+        if cell_box:
+            boxes.append((cell_box[0], cell_box[1], color))
+            continue
 
         if not use_kdtree:
             bounds = _quadtree_node_xy_bounds(
@@ -593,6 +787,7 @@ def _build_lod_plan(objects: list, aabbs: dict, settings) -> dict:
     scene_bounds = _scene_bounds_from_aabbs(aabbs)
     scene_half_diag = _scene_half_diag(scene_bounds)
     base_tile = max(settings.tile_size_x, settings.tile_size_z, 1.0)
+    _apply_representation_ranges(module, settings)
     streaming_r, unload_r = module.compute_streaming_defaults(base_tile, scene_half_diag)
 
     hlod_levels = module.validate_hlod_levels() if settings.generate_hlod else []
@@ -626,25 +821,29 @@ def _build_lod_plan(objects: list, aabbs: dict, settings) -> dict:
         use_kdtree = mode == 'KDTREE'
         module.INLINE_FLOOR_COUNT_OVERRIDE = settings.floor_count if settings.floor_count > 0 else None
         module.INLINE_FLOOR_BAND_HEIGHT_OVERRIDE = settings.floor_band_height if settings.floor_band_height > 0.0 else None
+        module.SCENE_STREAMING_PROFILE = settings.scene_profile
+        _apply_semantic_policy(module, settings)
+        _apply_representation_ranges(module, settings)
         if use_kdtree:
             metadata = module.compute_inline_kdtree_metadata(objects, object_bounds)
         else:
             metadata = module.compute_inline_quadtree_metadata(objects, object_bounds)
-        node_tier_groups, _shared_objects, _metadata_map = module.build_quadtree_assignments(
+        node_tier_groups, _shared_objects, metadata_map = module.build_quadtree_assignments(
             objects, object_bounds, inline_metadata=metadata
         )
         resolved_profile = module.infer_streaming_profile(
             True, node_tier_groups, scene_half_diag, base_tile
         ) if settings.scene_profile == "auto" else settings.scene_profile
+        _apply_tier_radius_overrides(module, settings)
         module.init_tier_radii(scene_half_diag, resolved_profile)
         eligible_tiers = set(module.HLOD_LOD_TIERS)
         eligible_groups = sum(
             1 for (_node_id, tier), objs in node_tier_groups.items()
-            if objs and tier in eligible_tiers
+            if objs and tier in eligible_tiers and not module.group_has_spanning_metadata(objs, metadata_map)
         )
         skipped_groups = sum(
             1 for (_node_id, tier), objs in node_tier_groups.items()
-            if objs and tier not in eligible_tiers
+            if objs and (tier not in eligible_tiers or module.group_has_spanning_metadata(objs, metadata_map))
         )
         by_tier = {}
         for (_node_id, tier), objs in node_tier_groups.items():
@@ -682,11 +881,19 @@ def _distance_source_position(context: bpy.types.Context, settings) -> tuple[Vec
 def _runtime_ladder(module, streaming_r: float, unload_r: float, settings, eligible: bool) -> tuple[list, list]:
     if not eligible:
         return [], []
+    _apply_representation_ranges(module, settings)
     hlod_levels = module.validate_hlod_levels() if settings.generate_hlod else []
     lod_levels = module.validate_lod_levels() if settings.generate_lod else []
     active_hlod = module.compute_hlod_switch_distances(streaming_r, unload_r, hlod_levels)
     active_lod = module.compute_lod_switch_distances(streaming_r, unload_r, active_hlod, lod_levels)
     return active_hlod, active_lod
+
+
+def _runtime_distance_to_bounds(module, source_pos: Vector, aabb: dict) -> float:
+    return module.distance_to_aabb(
+        (source_pos.x, source_pos.y, source_pos.z),
+        aabb,
+    )
 
 
 def _build_uniform_runtime_boxes(objects: list, aabbs: dict, settings, source_pos: Vector) -> tuple[list, dict]:
@@ -722,10 +929,33 @@ def _build_uniform_runtime_boxes(objects: list, aabbs: dict, settings, source_po
     scene_min_z, scene_max_z = _scene_z_range(aabbs)
     scene_half_diag = _scene_half_diag(scene_bounds)
     streaming_r, unload_r = module.compute_streaming_defaults(max(tile_x, tile_z, 1.0), scene_half_diag)
+
+    # Apply profile, semantic policy, rep ranges, and tier radius overrides so
+    # that custom tier radii (and the outdoor 1-floor rule) take effect in
+    # Uniform Grid mode — without this, only the tiny tile-multiplier defaults
+    # (streaming=20 m, unload=30 m for a 10 m tile) are used, leaving almost
+    # every tile gray/unloaded when the camera is more than ~30 m from it.
+    module.SCENE_STREAMING_PROFILE = settings.scene_profile
+    _apply_semantic_policy(module, settings)
+    _apply_representation_ranges(module, settings)
+    _apply_tier_radius_overrides(module, settings)
+    resolved_profile = (
+        settings.scene_profile
+        if settings.scene_profile != "auto"
+        else module.infer_streaming_profile(False, {}, scene_half_diag, max(tile_x, tile_z, 1.0))
+    )
+    module.init_tier_radii(scene_half_diag, resolved_profile)
+    if getattr(settings, "use_custom_tier_radii", False):
+        dominant = module.tier_streaming_radii("ExteriorShell")
+        streaming_r = float(dominant.get("streaming", streaming_r))
+        unload_r = float(dominant.get("unload", unload_r))
+
     active_hlod, active_lod = _runtime_ladder(
         module, streaming_r, unload_r, settings, bool(settings.generate_hlod or settings.generate_lod)
     )
-    stats = {"full": 0, "lod": 0, "hlod": 0, "unloaded": 0, "shared": len(shared_objects)}
+    stats = {
+        "full": 0, "lod1": 0, "lod2": 0, "hlod": 0, "unloaded": 0, "shared": len(shared_objects),
+    }
     boxes: list[tuple] = []
 
     for tx, ty, tz in tile_assignments.keys():
@@ -735,11 +965,10 @@ def _build_uniform_runtime_boxes(objects: list, aabbs: dict, settings, source_po
         )
         mn = (tb["min_x"], tb["min_z"], scene_min_z)
         mx = (tb["max_x"], tb["max_z"], scene_max_z)
-        distance = module.distance_to_aabb(
-            (source_pos.x, source_pos.y, source_pos.z),
-            {"min": mn, "max": mx},
-        )
-        state = module.classify_runtime_representation(distance, unload_r, active_hlod, active_lod)
+        distance = _runtime_distance_to_bounds(module, source_pos, {"min": mn, "max": mx})
+        state = module.classify_runtime_representation_detail(distance, unload_r, active_hlod, active_lod)
+        if state not in stats:
+            stats[state] = 0
         stats[state] += 1
         boxes.append((mn, mx, _runtime_color(state)))
 
@@ -762,6 +991,9 @@ def _build_tree_runtime_boxes(
 
     module.INLINE_FLOOR_COUNT_OVERRIDE = settings.floor_count if settings.floor_count > 0 else None
     module.INLINE_FLOOR_BAND_HEIGHT_OVERRIDE = settings.floor_band_height if settings.floor_band_height > 0.0 else None
+    module.SCENE_STREAMING_PROFILE = settings.scene_profile
+    _apply_semantic_policy(module, settings)
+    _apply_representation_ranges(module, settings)
 
     object_bounds = _aabbs_to_module_format(aabbs)
     metadata = (
@@ -772,7 +1004,7 @@ def _build_tree_runtime_boxes(
     if not metadata:
         return [], {}
 
-    node_tier_groups, shared_objects, _ = module.build_quadtree_assignments(
+    node_tier_groups, shared_objects, metadata_map = module.build_quadtree_assignments(
         objects, object_bounds, inline_metadata=metadata
     )
 
@@ -782,6 +1014,7 @@ def _build_tree_runtime_boxes(
     resolved_profile = module.infer_streaming_profile(
         True, node_tier_groups, scene_half_diag, base_tile
     ) if settings.scene_profile == "auto" else settings.scene_profile
+    _apply_tier_radius_overrides(module, settings)
     module.init_tier_radii(scene_half_diag, resolved_profile)
 
     scene_min_x = min(v[0].x for v in aabbs.values())
@@ -789,16 +1022,23 @@ def _build_tree_runtime_boxes(
     scene_max_x = max(v[1].x for v in aabbs.values())
     scene_max_y = max(v[1].y for v in aabbs.values())
     eligible_tiers = set(module.HLOD_LOD_TIERS)
-    stats = {"full": 0, "lod": 0, "hlod": 0, "unloaded": 0, "shared": len(shared_objects)}
+    stats = {
+        "full": 0, "lod1": 0, "lod2": 0, "hlod": 0, "unloaded": 0, "shared": len(shared_objects),
+    }
     boxes: list[tuple] = []
 
     for (node_id, tier), objs in node_tier_groups.items():
         if not objs:
             continue
 
-        distance_aabb = module.object_union_aabb(objs, object_bounds)
-        distance_mn = distance_aabb["min"]
-        distance_mx = distance_aabb["max"]
+        cell_box = _cell_box_from_metadata(module, objs, aabbs, metadata_map)
+        if cell_box:
+            distance_mn, distance_mx = cell_box
+            distance_aabb = {"min": distance_mn, "max": distance_mx}
+        else:
+            distance_aabb = module.object_union_aabb(objs, object_bounds)
+            distance_mn = distance_aabb["min"]
+            distance_mx = distance_aabb["max"]
         z_min = distance_mn[2]
         z_max = distance_mx[2]
         if not use_kdtree:
@@ -823,14 +1063,14 @@ def _build_tree_runtime_boxes(
         radii = module.tier_streaming_radii(tier)
         streaming_r = float(radii.get("streaming", 1.0))
         unload_r = float(radii.get("unload", max(2.0, streaming_r * 1.5)))
+        is_spanning_group = module.group_has_spanning_metadata(objs, metadata_map)
         active_hlod, active_lod = _runtime_ladder(
-            module, streaming_r, unload_r, settings, tier in eligible_tiers
+            module, streaming_r, unload_r, settings, tier in eligible_tiers and not is_spanning_group
         )
-        distance = module.distance_to_aabb(
-            (source_pos.x, source_pos.y, source_pos.z),
-            distance_aabb,
-        )
-        state = module.classify_runtime_representation(distance, unload_r, active_hlod, active_lod)
+        distance = _runtime_distance_to_bounds(module, source_pos, distance_aabb)
+        state = module.classify_runtime_representation_detail(distance, unload_r, active_hlod, active_lod)
+        if state not in stats:
+            stats[state] = 0
         stats[state] += 1
         boxes.append((mn, mx, _runtime_color(state)))
 
@@ -912,8 +1152,8 @@ class UNTOLD_OT_preview_tiles(bpy.types.Operator):
 
 class UNTOLD_OT_preview_runtime_bands(bpy.types.Operator):
     bl_idname = "untold.preview_runtime_bands"
-    bl_label = "Preview Runtime Bands"
-    bl_description = "Color tiles by the representation active at the selected distance source"
+    bl_label = "Preview Runtime States"
+    bl_description = "Color each tile by the representation selected from its bounds distance and switch distances"
     bl_options = {"REGISTER"}
 
     def execute(self, context: bpy.types.Context) -> set[str]:
@@ -952,7 +1192,7 @@ class UNTOLD_OT_preview_runtime_bands(bpy.types.Operator):
             return {'CANCELLED'}
 
         if not boxes:
-            self.report({'WARNING'}, "No runtime bands computed — check settings")
+            self.report({'WARNING'}, "No runtime states computed — check settings")
             return {'CANCELLED'}
 
         _tile_boxes = boxes
@@ -965,8 +1205,10 @@ class UNTOLD_OT_preview_runtime_bands(bpy.types.Operator):
         profile = f" | profile {stats['profile']}" if stats.get("profile") else ""
         self.report(
             {'INFO'},
-            f"Runtime bands from {source_label}: full {stats['full']} | LOD {stats['lod']} | "
-            f"HLOD {stats['hlod']} | unloaded {stats['unloaded']} | shared {stats['shared']}{profile}"
+            f"Runtime states from {source_label}: full {stats.get('full', 0)} | "
+            f"LOD1 {stats.get('lod1', 0)} | LOD2 {stats.get('lod2', 0)} | "
+            f"HLOD {stats.get('hlod', 0)} | unloaded {stats.get('unloaded', 0)} | "
+            f"shared {stats.get('shared', 0)}{profile}"
         )
         return {'FINISHED'}
 
@@ -1140,15 +1382,66 @@ class UNTOLD_PT_tile_preview(bpy.types.Panel):
         col = layout.column(align=True)
         col.label(text="LOD")
         col.prop(settings, "scene_profile")
+        col.prop(settings, "untagged_semantic_tier")
+        col.prop(settings, "use_custom_tier_radii")
+        if settings.use_custom_tier_radii:
+            for label, prefix in [
+                ("Exterior Shell", "exterior_shell"),
+                ("Structural Interior", "structural_interior"),
+                ("Room Contents", "room_contents"),
+                ("Fine Props", "fine_props"),
+            ]:
+                box = col.box()
+                box.label(text=label)
+                row = box.row(align=True)
+                row.prop(settings, f"{prefix}_streaming_radius", text="Stream")
+                row.prop(settings, f"{prefix}_unload_radius", text="Unload")
+                row.prop(settings, f"{prefix}_priority", text="Priority")
         col.prop(settings, "generate_hlod")
         col.prop(settings, "generate_lod")
+        col.prop(settings, "use_custom_representation_ranges")
+        if settings.use_custom_representation_ranges:
+            box = col.box()
+            row = box.row(align=True)
+            row.prop(settings, "lod1_switch_distance", text="LOD1 (m)")
+            row.prop(settings, "lod1_reduction_ratio", text="Ratio")
+            row = box.row(align=True)
+            row.prop(settings, "lod2_switch_distance", text="LOD2 (m)")
+            row.prop(settings, "lod2_reduction_ratio", text="Ratio")
+            row = box.row(align=True)
+            row.prop(settings, "hlod_switch_distance", text="HLOD (m)")
+            row.prop(settings, "hlod_reduction_ratio", text="Ratio")
+            summary = _repr_summary_for_settings(settings)
+            if summary:
+                sr = summary["streaming_r"]
+                ur = summary["unload_r"]
+                lod1 = summary["lod1"]
+                lod2 = summary["lod2"]
+                hlod = summary["hlod"]
+                parts = [f"full < {sr:.0f} m"]
+                if lod1 is not None:
+                    end = f"{lod2:.0f}" if lod2 is not None else (f"{hlod:.0f}" if hlod is not None else f"{ur:.0f}")
+                    parts.append(f"LOD1 {lod1:.0f}–{end} m")
+                if lod2 is not None:
+                    end = f"{hlod:.0f}" if hlod is not None else f"{ur:.0f}"
+                    parts.append(f"LOD2 {lod2:.0f}–{end} m")
+                if hlod is not None:
+                    band = ur - hlod
+                    warn = " (!)" if band < 20 else ""
+                    parts.append(f"HLOD {hlod:.0f}–{ur:.0f} m{warn}")
+                sbox = col.box()
+                sbox.scale_y = 0.75
+                sbox.label(text=f"ExteriorShell ({sr:.0f} / {ur:.0f} m):")
+                sbox.label(text=" | ".join(parts))
+                if hlod is not None and (ur - hlod) < 20:
+                    sbox.label(text="HLOD band < 20 m — raise Unload or lower HLOD start", icon='ERROR')
         col.operator("untold.preview_lod_plan", icon='MOD_DECIM', text="Preview LOD Plan")
 
         layout.separator()
         col = layout.column(align=True)
         col.label(text="Runtime")
         col.prop(settings, "runtime_source")
-        col.operator("untold.preview_runtime_bands", icon='VIEW_CAMERA', text="Preview Runtime Bands")
+        col.operator("untold.preview_runtime_bands", icon='VIEW_CAMERA', text="Preview Runtime States")
 
         layout.separator()
         col = layout.column(align=True)
@@ -1172,7 +1465,8 @@ class UNTOLD_PT_tile_preview(bpy.types.Panel):
             if _preview_color_mode == "RUNTIME":
                 col.label(text="Runtime")
                 col.label(text="  Green  -  full tile")
-                col.label(text="  Orange  -  LOD")
+                col.label(text="  Orange  -  LOD1")
+                col.label(text="  Red-orange  -  LOD2")
                 col.label(text="  Cyan  -  HLOD")
                 col.label(text="  Gray  -  unloaded")
                 col.label(text="  Blue  -  shared bucket")
