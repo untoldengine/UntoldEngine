@@ -48,13 +48,13 @@ def _shared_color() -> tuple:
 
 def _runtime_color(state: str) -> tuple:
     colors = {
-        "full": (0.10, 0.85, 0.25, 0.9),
-        "lod": (1.00, 0.72, 0.08, 0.9),
-        "lod1": (1.00, 0.72, 0.08, 0.9),
-        "lod2": (1.00, 0.38, 0.05, 0.9),
-        "hlod": (0.10, 0.78, 1.00, 0.9),
-        "unloaded": (0.42, 0.42, 0.42, 0.55),
-        "shared": _shared_color(),
+        "full":     (0.92, 0.92, 0.92, 0.9),   # white/light grey — neutral "fully loaded"
+        "lod":      (0.10, 0.85, 1.00, 0.9),   # cyan
+        "lod1":     (0.10, 0.85, 1.00, 0.9),   # cyan
+        "lod2":     (1.00, 0.90, 0.10, 0.9),   # yellow
+        "hlod":     (1.00, 0.55, 0.10, 0.9),   # orange
+        "unloaded": (0.65, 0.12, 0.08, 0.55),  # dim red
+        "shared":   _shared_color(),
     }
     return colors.get(state, colors["unloaded"])
 
@@ -1017,17 +1017,13 @@ def _build_tree_runtime_boxes(
     _apply_tier_radius_overrides(module, settings)
     module.init_tier_radii(scene_half_diag, resolved_profile)
 
-    scene_min_x = min(v[0].x for v in aabbs.values())
-    scene_min_y = min(v[0].y for v in aabbs.values())
-    scene_max_x = max(v[1].x for v in aabbs.values())
-    scene_max_y = max(v[1].y for v in aabbs.values())
     eligible_tiers = set(module.HLOD_LOD_TIERS)
     stats = {
         "full": 0, "lod1": 0, "lod2": 0, "hlod": 0, "unloaded": 0, "shared": len(shared_objects),
     }
     boxes: list[tuple] = []
 
-    for (node_id, tier), objs in node_tier_groups.items():
+    for (_node_id, tier), objs in node_tier_groups.items():
         if not objs:
             continue
 
@@ -1039,26 +1035,8 @@ def _build_tree_runtime_boxes(
             distance_aabb = module.object_union_aabb(objs, object_bounds)
             distance_mn = distance_aabb["min"]
             distance_mx = distance_aabb["max"]
-        z_min = distance_mn[2]
-        z_max = distance_mx[2]
-        if not use_kdtree:
-            bounds = _quadtree_node_xy_bounds(
-                node_id, scene_min_x, scene_min_y, scene_max_x, scene_max_y
-            )
-            if bounds:
-                nx0, ny0, nx1, ny1 = bounds
-                mn = (nx0, ny0, z_min)
-                mx = (nx1, ny1, z_max)
-            else:
-                mn = None
-                mx = None
-        else:
-            mn = None
-            mx = None
-
-        if mn is None or mx is None:
-            mn = distance_mn
-            mx = distance_mx
+        mn = distance_mn
+        mx = distance_mx
 
         radii = module.tier_streaming_radii(tier)
         streaming_r = float(radii.get("streaming", 1.0))
@@ -1344,6 +1322,34 @@ class UNTOLD_OT_restore_mesh_display(bpy.types.Operator):
         return {'FINISHED'}
 
 
+# ── Force-local tile policy operator ──────────────────────────────────────────
+
+class UNTOLD_OT_set_tile_policy(bpy.types.Operator):
+    """Toggle Force Local on selected objects — bypasses shared-bucket classification
+so the object is assigned to a regular tile and receives its own LOD/HLOD ladder."""
+    bl_idname  = "untold.set_tile_policy"
+    bl_label   = "Toggle Force Local"
+    bl_options = {"REGISTER", "UNDO"}
+
+    policy: bpy.props.StringProperty(default="force_local")  # type: ignore[valid-type]
+
+    def execute(self, context: bpy.types.Context) -> set[str]:
+        targets = context.selected_objects or []
+        if not targets:
+            self.report({'WARNING'}, "No objects selected")
+            return {'CANCELLED'}
+        changed = 0
+        for obj in targets:
+            if obj.get("untold_tile_policy") == self.policy:
+                del obj["untold_tile_policy"]
+            else:
+                obj["untold_tile_policy"] = self.policy
+            changed += 1
+        noun = "object" if changed == 1 else "objects"
+        self.report({'INFO'}, f"Tile policy updated on {changed} {noun}")
+        return {'FINISHED'}
+
+
 # ── Sidebar panel ─────────────────────────────────────────────────────────────
 
 class UNTOLD_PT_tile_preview(bpy.types.Panel):
@@ -1452,6 +1458,27 @@ class UNTOLD_PT_tile_preview(bpy.types.Panel):
         row.operator("untold.restore_mesh_display", icon='FILE_REFRESH', text="Restore")
 
         layout.separator()
+        col = layout.column(align=True)
+        col.label(text="Object Override")
+        obj = context.active_object
+        if obj and obj.type == 'MESH':
+            is_force_local = obj.get("untold_tile_policy") == "force_local"
+            box = col.box()
+            row = box.row(align=True)
+            icon = 'PINNED' if is_force_local else 'UNPINNED'
+            row.label(text=obj.name, icon=icon)
+            op = row.operator(
+                "untold.set_tile_policy",
+                text="Force Local: ON" if is_force_local else "Force Local: OFF",
+                icon='CHECKBOX_HLT' if is_force_local else 'CHECKBOX_DEHLT',
+            )
+            op.policy = "force_local"
+            if is_force_local:
+                box.label(text="Excluded from shared bucket", icon='INFO')
+        else:
+            col.label(text="Select a mesh object", icon='INFO')
+
+        layout.separator()
 
         row = layout.row(align=True)
         row.operator("untold.preview_tiles", icon='OVERLAY', text="Preview Tiles")
@@ -1463,12 +1490,12 @@ class UNTOLD_PT_tile_preview(bpy.types.Panel):
             col = box.column(align=True)
             col.scale_y = 0.8
             if _preview_color_mode == "RUNTIME":
-                col.label(text="Runtime")
-                col.label(text="  Green  -  full tile")
-                col.label(text="  Orange  -  LOD1")
-                col.label(text="  Red-orange  -  LOD2")
-                col.label(text="  Cyan  -  HLOD")
-                col.label(text="  Gray  -  unloaded")
+                col.label(text="Runtime States")
+                col.label(text="  White  -  full (LOD0)")
+                col.label(text="  Cyan  -  LOD1")
+                col.label(text="  Yellow  -  LOD2")
+                col.label(text="  Orange  -  HLOD")
+                col.label(text="  Red  -  unloaded")
                 col.label(text="  Blue  -  shared bucket")
             else:
                 col.label(text="Density")
@@ -1490,6 +1517,7 @@ classes = (
     UNTOLD_OT_meshes_to_bounds,
     UNTOLD_OT_hide_meshes_for_preview,
     UNTOLD_OT_restore_mesh_display,
+    UNTOLD_OT_set_tile_policy,
 )
 
 

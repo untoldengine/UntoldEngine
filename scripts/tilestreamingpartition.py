@@ -1420,7 +1420,8 @@ def build_quadtree_assignments(objects, object_bounds, inline_metadata=None):
         #   unload with the floor's streaming radii and interior-zone gate.
         if meta["spatial_class"] == "spanning" and meta["depth"] == 0:
             tier = _resolve_tier(meta)
-            if tier == "ExteriorShell":
+            force_local = (_obj_prop(obj, "untold_tile_policy") == "force_local")
+            if tier == "ExteriorShell" and not force_local:
                 shared_objects.append(obj)
             else:
                 # Use the node_id already stored in metadata — it is the floor root
@@ -2025,9 +2026,12 @@ def build_assignments(objects, object_bounds, origin_x, origin_y, origin_z,
         xz_count = xz_tile_overlap_count(
             aabb, origin_x, origin_z, tile_size_x, tile_size_z, SPLIT_CLIP_EPSILON
         )
-        classification_map[obj.name] = classify_mesh(
-            aabb, tile_size_x, tile_size_z, xz_count, eff_overlap_thr
-        )
+        result = classify_mesh(aabb, tile_size_x, tile_size_z, xz_count, eff_overlap_thr)
+        if (_obj_prop(obj, "untold_tile_policy") == "force_local"
+                and result["policy"] in ("shared_bucket", "future_split_candidate")):
+            result = dict(result)
+            result["policy"] = "local_overlap"
+        classification_map[obj.name] = result
 
     # Build the bounding box of local-only objects.  Spanning objects are
     # clamped to this box so their tile assignments stay within the populated
@@ -4548,15 +4552,15 @@ def run():
                 print(f"    {tier:25s}: {count:5d} objects  "
                       f"stream={radii.get('streaming','?')}m  "
                       f"unload={radii.get('unload','?')}m")
-            spanning_secondary_skips = sum(
+            spanning_secondary_count = sum(
                 1
                 for (_node_id, tier), objs in node_tier_groups.items()
                 if objs and tier in HLOD_LOD_TIERS and group_has_spanning_metadata(objs, metadata_map)
             )
-            if spanning_secondary_skips:
+            if spanning_secondary_count:
                 print(
-                    f"  Secondary reps    : skipped for {spanning_secondary_skips} spanning/intermediate "
-                    "tile-tier pair(s) to avoid parent/child LOD-HLOD overlap"
+                    f"  Secondary reps    : {spanning_secondary_count} spanning tile-tier pair(s) "
+                    "will receive LOD/HLOD (same ladder as leaf tiles)"
                 )
 
             if use_kdtree:
@@ -4603,7 +4607,7 @@ def run():
                     tier_radii.get("priority", DEFAULT_STREAMING_PRIORITY),
                 )
                 is_spanning_group = group_has_spanning_metadata(tile_objs, metadata_map)
-                tier_wants_hlod_lod = tier in HLOD_LOD_TIERS and not is_spanning_group
+                tier_wants_hlod_lod = tier in HLOD_LOD_TIERS
                 tile_hlod_levels, tile_lod_levels = resolve_tile_representation_levels(
                     tile_stream,
                     tile_unload,
@@ -4779,7 +4783,7 @@ def run():
             if not tile_objs:
                 continue
             planned_local_assets += 1
-            if tier in HLOD_LOD_TIERS and not group_has_spanning_metadata(tile_objs, metadata_map):
+            if tier in HLOD_LOD_TIERS:
                 planned_local_assets += len(active_hlod_levels) + len(active_lod_levels)
     else:
         non_empty_tiles = sum(1 for _coord, tile_objs in tile_assignments.items() if tile_objs)
@@ -4897,7 +4901,7 @@ def run():
             # HLOD/LOD is only useful for tiers with radii large enough to form a
             # meaningful switch band (ExteriorShell, StructuralInterior).
             is_spanning_group = group_has_spanning_metadata(tile_objs, metadata_map)
-            tier_wants_hlod_lod = tier in HLOD_LOD_TIERS and not is_spanning_group
+            tier_wants_hlod_lod = tier in HLOD_LOD_TIERS
             tile_hlod_levels, tile_lod_levels = resolve_tile_representation_levels(
                 tile_stream,
                 tile_unload,
