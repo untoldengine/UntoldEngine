@@ -117,9 +117,28 @@ public final class SpatialDebugBoundsCollector: @unchecked Sendable {
                 guard let tc = scene.get(component: TileComponent.self, for: entityId),
                       let local = scene.get(component: LocalTransformComponent.self, for: entityId)
                 else { continue }
+                // The shared bucket is a global asset, not a partition cell — skip it
+                // so it doesn't draw a scene-wide AABB over everything.
+                guard !tc.isSharedBucket else { continue }
+                // "Occupied Only": skip tiles that have nothing resident at all.
+                if settings.octreeLeafOccupiedOnly,
+                   tc.state == .unloaded, tc.hlodState == .unloaded { continue }
 
-                let color = tileResidencyColor(for: tc)
-                let bounds = AABB(min: local.boundingBox.min, max: local.boundingBox.max)
+                // Prefer cell_bounds (partition cell) over mesh content AABB so the
+                // drawn box matches what the Blender tile overlay shows.
+                let bounds = tc.cellBounds ?? AABB(min: local.boundingBox.min, max: local.boundingBox.max)
+
+                // Respect the active color mode — tile bounds follow the same Mode picker
+                // that governs octree leaf cells so both visualizations stay consistent.
+                let color: simd_float4
+                switch settings.octreeLeafColorMode {
+                case .residency:
+                    color = tileResidencyColor(for: tc)
+                case .plain, .culling:
+                    // Culling is octree-cell specific; tile stubs have no RenderComponent.
+                    // Both plain and culling modes show a neutral wireframe for tile cells.
+                    color = defaultOctreeColor
+                }
                 snapshot.tileBounds.append(SpatialDebugBound(bounds: bounds, color: color))
             }
         }
