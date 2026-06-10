@@ -180,19 +180,40 @@
         }
 
         var spatialDebugEnabled: Bool = false {
-            didSet { onSpatialDebugChanged?(spatialDebugEnabled, spatialOccupiedOnly, spatialColorMode) }
+            didSet {
+                onSpatialDebugChanged?(spatialDebugEnabled, octreeCellsEnabled, spatialOccupiedOnly, spatialColorMode)
+                // Tile Bounds is a child of Spatial Debug; propagate the master gate.
+                onTileBoundsChanged?(spatialDebugEnabled ? tileBoundsEnabled : false)
+            }
+        }
+
+        /// Whether octree leaf cells are shown within the Spatial Debug overlay.
+        var octreeCellsEnabled: Bool = true {
+            didSet {
+                if spatialDebugEnabled {
+                    onSpatialDebugChanged?(true, octreeCellsEnabled, spatialOccupiedOnly, spatialColorMode)
+                }
+            }
         }
 
         var spatialColorMode: SpatialDebugLeafColorMode = .plain {
-            didSet { if spatialDebugEnabled { onSpatialDebugChanged?(true, spatialOccupiedOnly, spatialColorMode) } }
+            didSet {
+                if spatialDebugEnabled {
+                    onSpatialDebugChanged?(true, octreeCellsEnabled, spatialOccupiedOnly, spatialColorMode)
+                }
+            }
         }
 
         var spatialOccupiedOnly: Bool = true {
-            didSet { if spatialDebugEnabled { onSpatialDebugChanged?(true, spatialOccupiedOnly, spatialColorMode) } }
+            didSet {
+                if spatialDebugEnabled {
+                    onSpatialDebugChanged?(true, octreeCellsEnabled, spatialOccupiedOnly, spatialColorMode)
+                }
+            }
         }
 
         var tileBoundsEnabled: Bool = false {
-            didSet { onTileBoundsChanged?(tileBoundsEnabled) }
+            didSet { if spatialDebugEnabled { onTileBoundsChanged?(tileBoundsEnabled) } }
         }
 
         // MARK: - Stats
@@ -216,7 +237,7 @@
         var onAntiAliasingChanged: ((AntiAliasingMode) -> Void)?
         var onTextureStreamingTierDebugChanged: ((Bool) -> Void)?
         var onRenderDebugViewChanged: ((RenderDebugViewMode) -> Void)?
-        var onSpatialDebugChanged: ((Bool, Bool, SpatialDebugLeafColorMode) -> Void)?
+        var onSpatialDebugChanged: ((Bool, Bool, Bool, SpatialDebugLeafColorMode) -> Void)?
         var onTileBoundsChanged: ((Bool) -> Void)?
         var onMouseOverControlPanelChanged: ((Bool) -> Void)?
 

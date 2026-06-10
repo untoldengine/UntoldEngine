@@ -351,7 +351,15 @@
                 Toggle("Spatial Debug", isOn: $state.spatialDebugEnabled)
                     .toggleStyle(.checkbox)
                 if state.spatialDebugEnabled {
-                    Toggle("Occupied Only", isOn: $state.spatialOccupiedOnly)
+                    Toggle("Octree Cells", isOn: $state.octreeCellsEnabled)
+                        .toggleStyle(.checkbox)
+                        .padding(.leading, 12)
+                    if state.octreeCellsEnabled {
+                        Toggle("Occupied Only", isOn: $state.spatialOccupiedOnly)
+                            .toggleStyle(.checkbox)
+                            .padding(.leading, 24)
+                    }
+                    Toggle("Tile Bounds", isOn: $state.tileBoundsEnabled)
                         .toggleStyle(.checkbox)
                         .padding(.leading, 12)
                     Picker("Mode", selection: $state.spatialColorMode) {
@@ -361,9 +369,7 @@
                     }
                     .pickerStyle(.segmented)
                     .frame(minWidth: 180)
-                    Toggle("Tile Bounds", isOn: $state.tileBoundsEnabled)
-                        .toggleStyle(.checkbox)
-                        .padding(.leading, 12)
+                    .padding(.top, 2)
                 }
 
                 Divider()

@@ -76,8 +76,9 @@
 
             applyIBL = true
             renderEnvironment = false
-
-            // setEngineStatsLogging(enabled: true, profile: .verbose, intervalSeconds: 1.0)
+            Logger.enable(category: .tileStreaming)
+            Logger.enable(category: .streamingHeartbeat)
+            setEngineStatsLogging(enabled: true, profile: .verbose, intervalSeconds: 1.0)
         }
     }
 
@@ -279,12 +280,16 @@
         /// Draws (or hides) the octree leaf-node bounds debug overlay.
         func setSpatialDebug(
             enabled: Bool,
+            octreeCellsEnabled: Bool,
             occupiedOnly: Bool,
             colorMode: SpatialDebugLeafColorMode
         ) {
             if enabled {
+                // Always apply the color mode and occupiedOnly so tile bounds (which read
+                // these settings directly from SpatialDebugVisualization) stay in sync even
+                // when octree leaf cells are toggled off.
                 setOctreeLeafBoundsDebug(
-                    enabled: true,
+                    enabled: octreeCellsEnabled,
                     maxLeafNodeCount: 0,
                     occupiedOnly: occupiedOnly,
                     colorMode: colorMode

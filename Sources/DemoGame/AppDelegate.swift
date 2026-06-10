@@ -186,9 +186,10 @@
             demoState.onRenderDebugViewChanged = { [weak self] mode in
                 self?.gameScene.setRenderDebugView(mode)
             }
-            demoState.onSpatialDebugChanged = { [weak self] enabled, occupiedOnly, colorMode in
+            demoState.onSpatialDebugChanged = { [weak self] enabled, octreeCellsEnabled, occupiedOnly, colorMode in
                 self?.gameScene.setSpatialDebug(
                     enabled: enabled,
+                    octreeCellsEnabled: octreeCellsEnabled,
                     occupiedOnly: occupiedOnly,
                     colorMode: colorMode
                 )
