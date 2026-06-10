@@ -403,12 +403,14 @@ func scenePickingHitRepresentationMode(for entityId: EntityID) -> PickHitReprese
 @inline(__always)
 func scenePickingUsesMeshHitRepresentation(_ entityId: EntityID) -> Bool {
     scenePickingIsParticipationEnabled(for: entityId)
+        && isSceneEntityPickableByChannel(entityId: entityId)
         && scenePickingHitRepresentationMode(for: entityId) == .mesh
 }
 
 @inline(__always)
 func scenePickingShouldIgnoreEntityDueToInteractionSettings(_ entityId: EntityID) -> Bool {
     guard scenePickingIsParticipationEnabled(for: entityId) else { return true }
+    guard isSceneEntityPickableByChannel(entityId: entityId) else { return true }
     return scenePickingHitRepresentationMode(for: entityId) == .none
 }
 

@@ -32,6 +32,7 @@ public enum SceneChannelRenderMode: Equatable, Sendable {
 
 public enum SceneChannelProperty: Sendable {
     case renderMode(SceneChannelRenderMode)
+    case pickParticipation(Bool)
 }
 
 private final class SceneChannelVisibilityState: @unchecked Sendable {
@@ -120,6 +121,36 @@ private final class SceneChannelVisibilityState: @unchecked Sendable {
     }
 }
 
+private final class SceneChannelInteractionState: @unchecked Sendable {
+    static let shared = SceneChannelInteractionState()
+
+    private let lock = NSLock()
+    private var pickDisabledChannels: SceneChannel = []
+
+    func setPickParticipation(_ channel: SceneChannel, enabled: Bool) {
+        lock.lock()
+        if enabled {
+            pickDisabledChannels.remove(channel)
+        } else {
+            pickDisabledChannels.insert(channel)
+        }
+        lock.unlock()
+    }
+
+    func isPickEnabled(for channels: SceneChannel) -> Bool {
+        lock.lock()
+        let disabled = pickDisabledChannels
+        lock.unlock()
+        return disabled.intersection(channels).isEmpty
+    }
+
+    func reset() {
+        lock.lock()
+        pickDisabledChannels = []
+        lock.unlock()
+    }
+}
+
 public let selectableSceneEntityNamePrefix = "NM_"
 
 public func defaultSceneChannels(forName name: String, isRenderable: Bool = true) -> SceneChannel {
@@ -195,6 +226,9 @@ public func setSceneChannel(_ channel: SceneChannel, _ property: SceneChannelPro
     switch property {
     case let .renderMode(mode):
         SceneChannelVisibilityState.shared.setRenderMode(channel, mode)
+    case let .pickParticipation(enabled):
+        SceneChannelInteractionState.shared.setPickParticipation(channel, enabled: enabled)
+        markScenePickingDirty(forChannel: channel)
     }
 }
 
@@ -204,6 +238,10 @@ public func getSceneChannelRenderMode(_ channel: SceneChannel) -> SceneChannelRe
 
 public func getSceneChannelVisible(_ channel: SceneChannel) -> Bool {
     SceneChannelVisibilityState.shared.isVisible(channel)
+}
+
+public func getSceneChannelPickParticipation(_ channel: SceneChannel) -> Bool {
+    SceneChannelInteractionState.shared.isPickEnabled(for: channel)
 }
 
 @available(*, deprecated, message: "Use setSceneChannel(_:, .renderMode(_:)) instead")
@@ -218,6 +256,7 @@ public func setSceneChannelVisible(_ channel: SceneChannel, _ visible: Bool) {
 
 public func resetSceneChannelVisibility() {
     SceneChannelVisibilityState.shared.reset()
+    SceneChannelInteractionState.shared.reset()
 }
 
 public func shouldHideSceneEntity(entityId: EntityID) -> Bool {
@@ -234,6 +273,24 @@ public func shouldRenderSceneEntityAsPassthroughGhost(entityId: EntityID) -> Boo
 
 public func areSceneChannelsVisible(_ channels: SceneChannel) -> Bool {
     SceneChannelVisibilityState.shared.isVisible(channels)
+}
+
+public func areSceneChannelsPickable(_ channels: SceneChannel) -> Bool {
+    SceneChannelInteractionState.shared.isPickEnabled(for: channels)
+}
+
+/// Whether ray-picking is enabled for `entityId` based solely on its scene channel
+/// membership, independent of any per-entity `PickInteractionComponent` override.
+public func isSceneEntityPickableByChannel(entityId: EntityID) -> Bool {
+    areSceneChannelsPickable(getEntitySceneChannels(entityId: entityId))
+}
+
+/// Marks every visible entity belonging to `channel` as pick-dirty so the picking
+/// acceleration structures are rebuilt with the updated channel pick state.
+private func markScenePickingDirty(forChannel channel: SceneChannel) {
+    for entityId in visibleEntityIds where hasEntitySceneChannel(entityId: entityId, channel: channel) {
+        scenePickingMarkEntityDirty(entityId)
+    }
 }
 
 public func shouldRenderSceneChannelsAsWireframe(_ channels: SceneChannel) -> Bool {

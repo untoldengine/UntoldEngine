@@ -579,6 +579,75 @@ final class ScenePickingSystemTests: XCTestCase {
         XCTAssertNil(afterDestroy)
     }
 
+    // MARK: - Scene Channel Pick Participation
+
+    func testSceneChannelPickParticipationDisablesChannelButNotOthers() {
+        let wall = createRenderableEntity(position: simd_float3(3, 0, 0))
+        let pipe = createRenderableEntity(position: simd_float3(8, 0, 0))
+        setEntitySceneChannels(entityId: wall, channels: .contextGeometry)
+        setEntitySceneChannels(entityId: pipe, channels: [.selectableGeometry, .preserveIdentity])
+        visibleEntityIds = [wall, pipe]
+
+        setSceneChannel(.contextGeometry, .pickParticipation(false))
+
+        let result = pickEntity(
+            rayOrigin: simd_float3(0, 0, 0),
+            rayDirection: simd_float3(1, 0, 0),
+            options: ScenePickOptions(backend: .cpuOnly)
+        )
+
+        XCTAssertEqual(result?.entityId, pipe, "Context geometry should be skipped while the pipe remains pickable")
+    }
+
+    func testSceneChannelPickParticipationReEnable() {
+        let wall = createRenderableEntity(position: simd_float3(3, 0, 0))
+        setEntitySceneChannels(entityId: wall, channels: .contextGeometry)
+        visibleEntityIds = [wall]
+
+        setSceneChannel(.contextGeometry, .pickParticipation(false))
+        XCTAssertNil(pickEntity(
+            rayOrigin: simd_float3(0, 0, 0),
+            rayDirection: simd_float3(1, 0, 0),
+            options: ScenePickOptions(backend: .cpuOnly)
+        ))
+
+        setSceneChannel(.contextGeometry, .pickParticipation(true))
+        let result = pickEntity(
+            rayOrigin: simd_float3(0, 0, 0),
+            rayDirection: simd_float3(1, 0, 0),
+            options: ScenePickOptions(backend: .cpuOnly)
+        )
+        XCTAssertEqual(result?.entityId, wall)
+    }
+
+    func testEntityPickParticipationStillExcludesEntityWithinPickableChannel() {
+        let wall = createRenderableEntity(position: simd_float3(3, 0, 0), pickParticipation: false)
+        let pipe = createRenderableEntity(position: simd_float3(8, 0, 0))
+        setEntitySceneChannels(entityId: wall, channels: .contextGeometry)
+        setEntitySceneChannels(entityId: pipe, channels: [.selectableGeometry, .preserveIdentity])
+        visibleEntityIds = [wall, pipe]
+
+        // Channel itself remains pickable, but the wall opted out individually.
+        let result = pickEntity(
+            rayOrigin: simd_float3(0, 0, 0),
+            rayDirection: simd_float3(1, 0, 0),
+            options: ScenePickOptions(backend: .cpuOnly)
+        )
+
+        XCTAssertEqual(result?.entityId, pipe)
+    }
+
+    func testGetSceneChannelPickParticipationReflectsState() {
+        XCTAssertTrue(getSceneChannelPickParticipation(.contextGeometry))
+
+        setSceneChannel(.contextGeometry, .pickParticipation(false))
+        XCTAssertFalse(getSceneChannelPickParticipation(.contextGeometry))
+        XCTAssertTrue(getSceneChannelPickParticipation(.selectableGeometry))
+
+        setSceneChannel(.contextGeometry, .pickParticipation(true))
+        XCTAssertTrue(getSceneChannelPickParticipation(.contextGeometry))
+    }
+
     func testPickInteractionSettingsPersistThroughSceneSerialization() {
         let entity = createEntity()
         setEntityPickParticipation(entityId: entity, enabled: false)
