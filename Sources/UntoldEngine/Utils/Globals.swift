@@ -55,9 +55,9 @@ private final class CoreRuntimeGlobals: @unchecked Sendable {
     var radixScanPerTGPipeline = ComputePipeline()
     var radixScanPipeline = ComputePipeline()
     var radixScatterPipeline = ComputePipeline()
-    var radixHistogramBuffer: MTLBuffer? = nil
-    var radixPerTGHistBuffer: MTLBuffer? = nil
-    var radixSortTempBuffer: MTLBuffer? = nil
+    var radixHistogramBuffer: MTLBuffer?
+    var radixPerTGHistBuffer: MTLBuffer?
+    var radixSortTempBuffer: MTLBuffer?
     var scenePickingAccelStructResources = AccelStructResources()
     var scenePickingPipeline = ComputePipeline()
     var environmentMesh: MTKMesh!

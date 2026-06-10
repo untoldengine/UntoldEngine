@@ -155,6 +155,7 @@ public func executeGaussianDepth(_ commandBuffer: MTLCommandBuffer) {
 }
 
 // MARK: - Device Radix Sort
+
 //
 // LSD radix sort over the upper 32 bits of the packed UInt64 key
 // [depthKey | splatIndex].  Four passes of 8 bits each (bits 32-63).
@@ -192,13 +193,14 @@ public func executeRadixSort(_ commandBuffer: MTLCommandBuffer) {
 
     if radixHistogramBuffer == nil {
         radixHistogramBuffer = renderInfo.device.makeBuffer(
-            length: 256 * MemoryLayout<UInt32>.stride, options: .storageModeShared)
+            length: 256 * MemoryLayout<UInt32>.stride, options: .storageModeShared
+        )
     }
     guard let histBuffer = radixHistogramBuffer else { return }
 
     let transformId = getComponentId(for: WorldTransformComponent.self)
-    let gaussianId  = getComponentId(for: GaussianComponent.self)
-    let entities    = queryEntitiesWithComponentIds([transformId, gaussianId], in: scene)
+    let gaussianId = getComponentId(for: GaussianComponent.self)
+    let entities = queryEntitiesWithComponentIds([transformId, gaussianId], in: scene)
 
     // Single compute encoder for all entities and all passes.
     // Dispatches within one encoder execute sequentially on the GPU,
@@ -217,30 +219,32 @@ public func executeRadixSort(_ commandBuffer: MTLCommandBuffer) {
         let keyBufLen = n * MemoryLayout<UInt64>.stride
         if radixSortTempBuffer == nil || radixSortTempBuffer!.length < keyBufLen {
             radixSortTempBuffer = renderInfo.device.makeBuffer(
-                length: keyBufLen, options: .storageModeShared)
+                length: keyBufLen, options: .storageModeShared
+            )
         }
         guard let tempBuffer = radixSortTempBuffer else { continue }
 
         // Fixed block size: histogram and scatter MUST use the same value so
         // that histGroups == scatterGroups and perTGStart indexing is correct.
         let radixBlock = 256
-        let numGroups  = (n + radixBlock - 1) / radixBlock
+        let numGroups = (n + radixBlock - 1) / radixBlock
 
         let perTGLen = numGroups * 256 * MemoryLayout<UInt32>.stride
         if radixPerTGHistBuffer == nil || radixPerTGHistBuffer!.length < perTGLen {
             radixPerTGHistBuffer = renderInfo.device.makeBuffer(
-                length: perTGLen, options: .storageModeShared)
+                length: perTGLen, options: .storageModeShared
+            )
         }
         guard let perTGBuf = radixPerTGHistBuffer else { continue }
 
-        var numElems    = UInt32(n)
-        var numBuckets  = UInt32(256)
+        var numElems = UInt32(n)
+        var numBuckets = UInt32(256)
         var numGroups32 = UInt32(numGroups)
 
         for pass in 0 ..< 4 {
-            let isEven  = (pass % 2 == 0)
-            let keysIn  = isEven ? sortedIndices : tempBuffer
-            let keysOut = isEven ? tempBuffer    : sortedIndices
+            let isEven = (pass % 2 == 0)
+            let keysIn = isEven ? sortedIndices : tempBuffer
+            let keysOut = isEven ? tempBuffer : sortedIndices
             var passIdx = UInt32(pass)
 
             // ── 0. Clear histogram ───────────────────────────────────────────
@@ -250,11 +254,11 @@ public func executeRadixSort(_ commandBuffer: MTLCommandBuffer) {
 
             // ── 1. Histogram + per-TG counts ─────────────────────────────────
             enc.setComputePipelineState(radixHistogramPipeline.pipelineState!)
-            enc.setBuffer(keysIn,     offset: 0, index: Int(radixHistogramKeysIn.rawValue))
+            enc.setBuffer(keysIn, offset: 0, index: Int(radixHistogramKeysIn.rawValue))
             enc.setBuffer(histBuffer, offset: 0, index: Int(radixHistogramOutput.rawValue))
-            enc.setBuffer(perTGBuf,   offset: 0, index: Int(radixHistogramPerTGOut.rawValue))
+            enc.setBuffer(perTGBuf, offset: 0, index: Int(radixHistogramPerTGOut.rawValue))
             enc.setBytes(&numElems, length: MemoryLayout<UInt32>.stride, index: Int(radixHistogramNumElems.rawValue))
-            enc.setBytes(&passIdx,  length: MemoryLayout<UInt32>.stride, index: Int(radixHistogramPassIndex.rawValue))
+            enc.setBytes(&passIdx, length: MemoryLayout<UInt32>.stride, index: Int(radixHistogramPassIndex.rawValue))
             enc.dispatchThreadgroups(MTLSizeMake(numGroups, 1, 1), threadsPerThreadgroup: MTLSizeMake(radixBlock, 1, 1))
 
             // ── 2. Per-TG column scan → per-TG starting offsets ─────────────
@@ -271,12 +275,12 @@ public func executeRadixSort(_ commandBuffer: MTLCommandBuffer) {
 
             // ── 4. Stable scatter ────────────────────────────────────────────
             enc.setComputePipelineState(radixScatterPipeline.pipelineState!)
-            enc.setBuffer(keysIn,     offset: 0, index: Int(radixScatterKeysIn.rawValue))
-            enc.setBuffer(keysOut,    offset: 0, index: Int(radixScatterKeysOut.rawValue))
+            enc.setBuffer(keysIn, offset: 0, index: Int(radixScatterKeysIn.rawValue))
+            enc.setBuffer(keysOut, offset: 0, index: Int(radixScatterKeysOut.rawValue))
             enc.setBuffer(histBuffer, offset: 0, index: Int(radixScatterOffsets.rawValue))
-            enc.setBuffer(perTGBuf,   offset: 0, index: Int(radixScatterPerTGStart.rawValue))
+            enc.setBuffer(perTGBuf, offset: 0, index: Int(radixScatterPerTGStart.rawValue))
             enc.setBytes(&numElems, length: MemoryLayout<UInt32>.stride, index: Int(radixScatterNumElems.rawValue))
-            enc.setBytes(&passIdx,  length: MemoryLayout<UInt32>.stride, index: Int(radixScatterPassIdx.rawValue))
+            enc.setBytes(&passIdx, length: MemoryLayout<UInt32>.stride, index: Int(radixScatterPassIdx.rawValue))
             enc.dispatchThreadgroups(MTLSizeMake(numGroups, 1, 1), threadsPerThreadgroup: MTLSizeMake(radixBlock, 1, 1))
         }
     }
@@ -285,6 +289,7 @@ public func executeRadixSort(_ commandBuffer: MTLCommandBuffer) {
 }
 
 // MARK: - PLY Loading Helpers
+
 /*
  /// Loads Gaussian splats from a PLY file into the GPU buffer
  public func loadGaussianSplatsFromPLY(url: URL) throws -> Int {

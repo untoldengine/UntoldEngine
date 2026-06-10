@@ -14,34 +14,33 @@ import simd
 @testable import UntoldEngine
 import XCTest
 
-// Buffer binding indices for each radix sort kernel (matches DeviceRadixSort.metal once implemented)
+/// Buffer binding indices for each radix sort kernel (matches DeviceRadixSort.metal once implemented)
 private enum HistogramBuffer: Int {
-    case keysIn    = 0
-    case output    = 1
-    case numElems  = 2
+    case keysIn = 0
+    case output = 1
+    case numElems = 2
     case passIndex = 3
 }
 
 private enum ScanBuffer: Int {
-    case histogram  = 0
+    case histogram = 0
     case numBuckets = 1
 }
 
 private enum ScatterBuffer: Int {
-    case keysIn     = 0
-    case keysOut    = 1
-    case offsets    = 2
-    case numElems   = 3
-    case passIdx    = 4
-    case perTGStart = 5   // zero buffer for single-TG unit tests
+    case keysIn = 0
+    case keysOut = 1
+    case offsets = 2
+    case numElems = 3
+    case passIdx = 4
+    case perTGStart = 5 // zero buffer for single-TG unit tests
 }
 
-private let kRadixBuckets = 256  // 2^8
+private let kRadixBuckets = 256 // 2^8
 
 // MARK: - Helpers
 
 extension DeviceRadixSortTest {
-
     /// Returns an MTLComputePipelineState for the named Metal function, or nil if the
     /// function is not yet compiled into the library. Tests guard on this returning non-nil.
     private func makePipeline(named functionName: String) -> MTLComputePipelineState? {
@@ -60,7 +59,7 @@ extension DeviceRadixSortTest {
     }
 
     /// Allocates an empty shared MTLBuffer of the given element count.
-    private func makeBuffer<T>(count: Int, type: T.Type) -> MTLBuffer? {
+    private func makeBuffer<T>(count: Int, type _: T.Type) -> MTLBuffer? {
         renderInfo.device.makeBuffer(
             length: count * MemoryLayout<T>.stride,
             options: .storageModeShared
@@ -79,14 +78,14 @@ extension DeviceRadixSortTest {
     ) {
         guard
             let queue = renderInfo.device.makeCommandQueue(),
-            let cmd   = queue.makeCommandBuffer(),
-            let enc   = cmd.makeComputeCommandEncoder()
+            let cmd = queue.makeCommandBuffer(),
+            let enc = cmd.makeComputeCommandEncoder()
         else { XCTFail("Could not create command encoder"); return }
 
         enc.setComputePipelineState(pipeline)
         setup(enc)
 
-        let tew       = pipeline.threadExecutionWidth
+        let tew = pipeline.threadExecutionWidth
         let blockSize = max(tew, min(256, pipeline.maxTotalThreadsPerThreadgroup))
         let numGroups = max(1, (threadCount + blockSize - 1) / blockSize)
         enc.dispatchThreadgroups(
@@ -143,14 +142,16 @@ extension DeviceRadixSortTest {
     /// CPU reference: compute histogram of 8-bit digits for a given pass.
     private func referenceHistogram(keys: [UInt64], pass: Int) -> [UInt32] {
         var hist = [UInt32](repeating: 0, count: kRadixBuckets)
-        for key in keys { hist[digit(of: key, pass: pass)] += 1 }
+        for key in keys {
+            hist[digit(of: key, pass: pass)] += 1
+        }
         return hist
     }
 
     /// CPU reference: one scatter pass (stable).
     private func referenceScatter(keys: [UInt64], offsets: [UInt32], pass: Int) -> [UInt64] {
         var out = [UInt64](repeating: 0, count: keys.count)
-        var localOffsets = offsets                  // mutable copy; incremented per element
+        var localOffsets = offsets // mutable copy; incremented per element
         for key in keys {
             let d = digit(of: key, pass: pass)
             out[Int(localOffsets[d])] = key
@@ -163,7 +164,6 @@ extension DeviceRadixSortTest {
 // MARK: - Test Class
 
 final class DeviceRadixSortTest: BaseRenderSetup {
-
     override func setUp() async throws {
         try await super.setUp()
         // Gaussian pipelines are needed for integration tests that also run depth keys.
@@ -176,6 +176,7 @@ final class DeviceRadixSortTest: BaseRenderSetup {
 
     // =========================================================================
     // MARK: Phase 1 – Histogram
+
     // =========================================================================
 
     /// All N keys have the same digit in pass 0.
@@ -191,18 +192,18 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         // Depth byte 42 at pass 0 → bits 32-39 = 42
         let keys = (0 ..< n).map { i in packKey(depthByte: targetDigit, atPass: 0, index: UInt32(i)) }
 
-        guard let keyBuf  = makeBuffer(keys),
+        guard let keyBuf = makeBuffer(keys),
               let histBuf = makeBuffer(count: kRadixBuckets, type: UInt32.self)
         else { XCTFail("Buffer allocation failed"); return }
 
         zeroBuffer(histBuf)
-        var numElems  = UInt32(n)
+        var numElems = UInt32(n)
         var passIndex = UInt32(0)
 
         dispatch(pipeline, threadCount: n) { enc in
-            enc.setBuffer(keyBuf,  offset: 0, index: HistogramBuffer.keysIn.rawValue)
+            enc.setBuffer(keyBuf, offset: 0, index: HistogramBuffer.keysIn.rawValue)
             enc.setBuffer(histBuf, offset: 0, index: HistogramBuffer.output.rawValue)
-            enc.setBytes(&numElems,  length: MemoryLayout<UInt32>.stride, index: HistogramBuffer.numElems.rawValue)
+            enc.setBytes(&numElems, length: MemoryLayout<UInt32>.stride, index: HistogramBuffer.numElems.rawValue)
             enc.setBytes(&passIndex, length: MemoryLayout<UInt32>.stride, index: HistogramBuffer.passIndex.rawValue)
         }
 
@@ -228,18 +229,18 @@ final class DeviceRadixSortTest: BaseRenderSetup {
             packKey(depthByte: UInt8(i), atPass: 0, index: UInt32(i))
         }
 
-        guard let keyBuf  = makeBuffer(keys),
+        guard let keyBuf = makeBuffer(keys),
               let histBuf = makeBuffer(count: kRadixBuckets, type: UInt32.self)
         else { XCTFail("Buffer allocation failed"); return }
 
         zeroBuffer(histBuf)
-        var numElems  = UInt32(kRadixBuckets)
+        var numElems = UInt32(kRadixBuckets)
         var passIndex = UInt32(0)
 
         dispatch(pipeline, threadCount: kRadixBuckets) { enc in
-            enc.setBuffer(keyBuf,  offset: 0, index: HistogramBuffer.keysIn.rawValue)
+            enc.setBuffer(keyBuf, offset: 0, index: HistogramBuffer.keysIn.rawValue)
             enc.setBuffer(histBuf, offset: 0, index: HistogramBuffer.output.rawValue)
-            enc.setBytes(&numElems,  length: MemoryLayout<UInt32>.stride, index: HistogramBuffer.numElems.rawValue)
+            enc.setBytes(&numElems, length: MemoryLayout<UInt32>.stride, index: HistogramBuffer.numElems.rawValue)
             enc.setBytes(&passIndex, length: MemoryLayout<UInt32>.stride, index: HistogramBuffer.passIndex.rawValue)
         }
 
@@ -260,18 +261,18 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         let targetDigit: UInt8 = 200
         let keys = [packKey(depthByte: targetDigit, atPass: 0, index: 0)]
 
-        guard let keyBuf  = makeBuffer(keys),
+        guard let keyBuf = makeBuffer(keys),
               let histBuf = makeBuffer(count: kRadixBuckets, type: UInt32.self)
         else { XCTFail("Buffer allocation failed"); return }
 
         zeroBuffer(histBuf)
-        var numElems  = UInt32(1)
+        var numElems = UInt32(1)
         var passIndex = UInt32(0)
 
         dispatch(pipeline, threadCount: 1) { enc in
-            enc.setBuffer(keyBuf,  offset: 0, index: HistogramBuffer.keysIn.rawValue)
+            enc.setBuffer(keyBuf, offset: 0, index: HistogramBuffer.keysIn.rawValue)
             enc.setBuffer(histBuf, offset: 0, index: HistogramBuffer.output.rawValue)
-            enc.setBytes(&numElems,  length: MemoryLayout<UInt32>.stride, index: HistogramBuffer.numElems.rawValue)
+            enc.setBytes(&numElems, length: MemoryLayout<UInt32>.stride, index: HistogramBuffer.numElems.rawValue)
             enc.setBytes(&passIndex, length: MemoryLayout<UInt32>.stride, index: HistogramBuffer.passIndex.rawValue)
         }
 
@@ -292,11 +293,11 @@ final class DeviceRadixSortTest: BaseRenderSetup {
 
         let n = 512
         // Random-looking 64-bit keys that exercise all byte positions
-        let keys: [UInt64] = (0 ..< n).map { i in
+        let keys: [UInt64] = (0 ..< n).map { _ in
             UInt64.random(in: 0 ..< UInt64.max)
         }
 
-        guard let keyBuf  = makeBuffer(keys),
+        guard let keyBuf = makeBuffer(keys),
               let histBuf = makeBuffer(count: kRadixBuckets, type: UInt32.self)
         else { XCTFail("Buffer allocation failed"); return }
 
@@ -306,16 +307,16 @@ final class DeviceRadixSortTest: BaseRenderSetup {
             zeroBuffer(histBuf)
             var passIndex = UInt32(pass)
             dispatch(pipeline, threadCount: n) { enc in
-                enc.setBuffer(keyBuf,  offset: 0, index: HistogramBuffer.keysIn.rawValue)
+                enc.setBuffer(keyBuf, offset: 0, index: HistogramBuffer.keysIn.rawValue)
                 enc.setBuffer(histBuf, offset: 0, index: HistogramBuffer.output.rawValue)
-                enc.setBytes(&numElems,  length: MemoryLayout<UInt32>.stride, index: HistogramBuffer.numElems.rawValue)
+                enc.setBytes(&numElems, length: MemoryLayout<UInt32>.stride, index: HistogramBuffer.numElems.rawValue)
                 enc.setBytes(&passIndex, length: MemoryLayout<UInt32>.stride, index: HistogramBuffer.passIndex.rawValue)
             }
 
             let hist = readU32(histBuf, count: kRadixBuckets)
             let total = hist.reduce(UInt32(0), &+)
             XCTAssertEqual(total, UInt32(n),
-                "Pass \(pass): histogram sum \(total) != element count \(n)")
+                           "Pass \(pass): histogram sum \(total) != element count \(n)")
         }
         print("✅ test_radixHistogram_sumEqualsTotal_allPasses passed")
     }
@@ -330,7 +331,7 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         let n = 128
         let keys: [UInt64] = (0 ..< n).map { _ in UInt64.random(in: 0 ..< UInt64.max) }
 
-        guard let keyBuf  = makeBuffer(keys),
+        guard let keyBuf = makeBuffer(keys),
               let histBuf = makeBuffer(count: kRadixBuckets, type: UInt32.self)
         else { XCTFail("Buffer allocation failed"); return }
 
@@ -340,9 +341,9 @@ final class DeviceRadixSortTest: BaseRenderSetup {
             zeroBuffer(histBuf)
             var passIndex = UInt32(pass)
             dispatch(pipeline, threadCount: n) { enc in
-                enc.setBuffer(keyBuf,  offset: 0, index: HistogramBuffer.keysIn.rawValue)
+                enc.setBuffer(keyBuf, offset: 0, index: HistogramBuffer.keysIn.rawValue)
                 enc.setBuffer(histBuf, offset: 0, index: HistogramBuffer.output.rawValue)
-                enc.setBytes(&numElems,  length: MemoryLayout<UInt32>.stride, index: HistogramBuffer.numElems.rawValue)
+                enc.setBytes(&numElems, length: MemoryLayout<UInt32>.stride, index: HistogramBuffer.numElems.rawValue)
                 enc.setBytes(&passIndex, length: MemoryLayout<UInt32>.stride, index: HistogramBuffer.passIndex.rawValue)
             }
 
@@ -351,7 +352,7 @@ final class DeviceRadixSortTest: BaseRenderSetup {
 
             for b in 0 ..< kRadixBuckets {
                 XCTAssertEqual(gpuHist[b], cpuHist[b],
-                    "Pass \(pass) bucket \(b): GPU=\(gpuHist[b]) CPU=\(cpuHist[b])")
+                               "Pass \(pass) bucket \(b): GPU=\(gpuHist[b]) CPU=\(cpuHist[b])")
             }
         }
         print("✅ test_radixHistogram_matchesCPUReference passed")
@@ -359,6 +360,7 @@ final class DeviceRadixSortTest: BaseRenderSetup {
 
     // =========================================================================
     // MARK: Phase 2 – Exclusive Scan
+
     // =========================================================================
 
     /// All-zero histogram → all-zero prefix sums.
@@ -398,7 +400,8 @@ final class DeviceRadixSortTest: BaseRenderSetup {
 
         guard let histBuf = renderInfo.device.makeBuffer(
             bytes: &hist, length: hist.count * MemoryLayout<UInt32>.stride,
-            options: .storageModeShared)
+            options: .storageModeShared
+        )
         else { XCTFail("Buffer allocation failed"); return }
 
         var numBuckets = UInt32(kRadixBuckets)
@@ -421,12 +424,13 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         }
 
         // Build a deterministic histogram pattern
-        var hist = (0 ..< kRadixBuckets).map { i in UInt32(i % 17) }   // 0,1,2,...,16,0,1,...
+        var hist = (0 ..< kRadixBuckets).map { i in UInt32(i % 17) } // 0,1,2,...,16,0,1,...
         let expected = exclusiveScan(hist)
 
         guard let histBuf = renderInfo.device.makeBuffer(
             bytes: &hist, length: hist.count * MemoryLayout<UInt32>.stride,
-            options: .storageModeShared)
+            options: .storageModeShared
+        )
         else { XCTFail("Buffer allocation failed"); return }
 
         var numBuckets = UInt32(kRadixBuckets)
@@ -438,7 +442,7 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         let result = readU32(histBuf, count: kRadixBuckets)
         for b in 0 ..< kRadixBuckets {
             XCTAssertEqual(result[b], expected[b],
-                "Scan mismatch at bucket \(b): got \(result[b]), expected \(expected[b])")
+                           "Scan mismatch at bucket \(b): got \(result[b]), expected \(expected[b])")
         }
         print("✅ test_radixScan_knownSequence passed")
     }
@@ -453,7 +457,8 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         let n = 512
         var hist = referenceHistogram(
             keys: (0 ..< n).map { _ in UInt64.random(in: 0 ..< UInt64.max) },
-            pass: 0)
+            pass: 0
+        )
 
         // Remember the last count before the scan overwrites it
         let lastCount = hist[kRadixBuckets - 1]
@@ -461,7 +466,8 @@ final class DeviceRadixSortTest: BaseRenderSetup {
 
         guard let histBuf = renderInfo.device.makeBuffer(
             bytes: &hist, length: hist.count * MemoryLayout<UInt32>.stride,
-            options: .storageModeShared)
+            options: .storageModeShared
+        )
         else { XCTFail("Buffer allocation failed"); return }
 
         var numBuckets = UInt32(kRadixBuckets)
@@ -473,7 +479,7 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         let result = readU32(histBuf, count: kRadixBuckets)
         let lastOffset = result[kRadixBuckets - 1]
         XCTAssertEqual(lastOffset + lastCount, totalElements,
-            "result[last](\(lastOffset)) + original[last](\(lastCount)) should equal total (\(totalElements))")
+                       "result[last](\(lastOffset)) + original[last](\(lastCount)) should equal total (\(totalElements))")
         print("✅ test_radixScan_lastEntryPlusCountEqualsTotal passed")
     }
 
@@ -486,11 +492,13 @@ final class DeviceRadixSortTest: BaseRenderSetup {
 
         var hist = referenceHistogram(
             keys: (0 ..< 256).map { _ in UInt64.random(in: 0 ..< UInt64.max) },
-            pass: 1)
+            pass: 1
+        )
 
         guard let histBuf = renderInfo.device.makeBuffer(
             bytes: &hist, length: hist.count * MemoryLayout<UInt32>.stride,
-            options: .storageModeShared)
+            options: .storageModeShared
+        )
         else { XCTFail("Buffer allocation failed"); return }
 
         var numBuckets = UInt32(kRadixBuckets)
@@ -502,13 +510,14 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         let result = readU32(histBuf, count: kRadixBuckets)
         for b in 1 ..< kRadixBuckets {
             XCTAssertGreaterThanOrEqual(result[b], result[b - 1],
-                "Scan output not non-decreasing at bucket \(b): \(result[b]) < \(result[b-1])")
+                                        "Scan output not non-decreasing at bucket \(b): \(result[b]) < \(result[b - 1])")
         }
         print("✅ test_radixScan_monotonicallyNonDecreasing passed")
     }
 
     // =========================================================================
     // MARK: Phase 3 – Scatter
+
     // =========================================================================
 
     /// One radix pass with 8 elements whose digits are all distinct (0-7).
@@ -528,26 +537,27 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         let hist = referenceHistogram(keys: keys, pass: 0)
         let offsets = exclusiveScan(hist)
 
-        guard let keyInBuf  = makeBuffer(keys),
+        guard let keyInBuf = makeBuffer(keys),
               let keyOutBuf = makeBuffer(count: n, type: UInt64.self),
               let offsetBuf = renderInfo.device.makeBuffer(
-                bytes: offsets.map { $0 },
-                length: offsets.count * MemoryLayout<UInt32>.stride,
-                options: .storageModeShared),
-              let zeroBuf   = makeBuffer(count: kRadixBuckets, type: UInt32.self)
+                  bytes: offsets.map { $0 },
+                  length: offsets.count * MemoryLayout<UInt32>.stride,
+                  options: .storageModeShared
+              ),
+              let zeroBuf = makeBuffer(count: kRadixBuckets, type: UInt32.self)
         else { XCTFail("Buffer allocation failed"); return }
 
         zeroBuffer(zeroBuf)
-        var numElems  = UInt32(n)
+        var numElems = UInt32(n)
         var passIndex = UInt32(0)
 
         dispatch(pipeline, threadCount: n) { enc in
-            enc.setBuffer(keyInBuf,  offset: 0, index: ScatterBuffer.keysIn.rawValue)
+            enc.setBuffer(keyInBuf, offset: 0, index: ScatterBuffer.keysIn.rawValue)
             enc.setBuffer(keyOutBuf, offset: 0, index: ScatterBuffer.keysOut.rawValue)
             enc.setBuffer(offsetBuf, offset: 0, index: ScatterBuffer.offsets.rawValue)
-            enc.setBytes(&numElems,  length: MemoryLayout<UInt32>.stride, index: ScatterBuffer.numElems.rawValue)
+            enc.setBytes(&numElems, length: MemoryLayout<UInt32>.stride, index: ScatterBuffer.numElems.rawValue)
             enc.setBytes(&passIndex, length: MemoryLayout<UInt32>.stride, index: ScatterBuffer.passIdx.rawValue)
-            enc.setBuffer(zeroBuf,   offset: 0, index: ScatterBuffer.perTGStart.rawValue)
+            enc.setBuffer(zeroBuf, offset: 0, index: ScatterBuffer.perTGStart.rawValue)
         }
 
         let result = readU64(keyOutBuf, count: n)
@@ -555,7 +565,7 @@ final class DeviceRadixSortTest: BaseRenderSetup {
 
         for i in 0 ..< n {
             XCTAssertEqual(result[i], cpuRef[i],
-                "Scatter mismatch at output position \(i): got \(result[i]), expected \(cpuRef[i])")
+                           "Scatter mismatch at output position \(i): got \(result[i]), expected \(cpuRef[i])")
         }
         print("✅ test_radixScatter_singlePass_knownMapping passed")
     }
@@ -572,33 +582,34 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         let hist = referenceHistogram(keys: keys, pass: 0)
         let offsets = exclusiveScan(hist)
 
-        guard let keyInBuf  = makeBuffer(keys),
+        guard let keyInBuf = makeBuffer(keys),
               let keyOutBuf = makeBuffer(count: n, type: UInt64.self),
               let offsetBuf = renderInfo.device.makeBuffer(
-                bytes: offsets.map { $0 },
-                length: offsets.count * MemoryLayout<UInt32>.stride,
-                options: .storageModeShared),
-              let zeroBuf   = makeBuffer(count: kRadixBuckets, type: UInt32.self)
+                  bytes: offsets.map { $0 },
+                  length: offsets.count * MemoryLayout<UInt32>.stride,
+                  options: .storageModeShared
+              ),
+              let zeroBuf = makeBuffer(count: kRadixBuckets, type: UInt32.self)
         else { XCTFail("Buffer allocation failed"); return }
 
         zeroBuffer(zeroBuf)
-        var numElems  = UInt32(n)
+        var numElems = UInt32(n)
         var passIndex = UInt32(0)
 
         dispatch(pipeline, threadCount: n) { enc in
-            enc.setBuffer(keyInBuf,  offset: 0, index: ScatterBuffer.keysIn.rawValue)
+            enc.setBuffer(keyInBuf, offset: 0, index: ScatterBuffer.keysIn.rawValue)
             enc.setBuffer(keyOutBuf, offset: 0, index: ScatterBuffer.keysOut.rawValue)
             enc.setBuffer(offsetBuf, offset: 0, index: ScatterBuffer.offsets.rawValue)
-            enc.setBytes(&numElems,  length: MemoryLayout<UInt32>.stride, index: ScatterBuffer.numElems.rawValue)
+            enc.setBytes(&numElems, length: MemoryLayout<UInt32>.stride, index: ScatterBuffer.numElems.rawValue)
             enc.setBytes(&passIndex, length: MemoryLayout<UInt32>.stride, index: ScatterBuffer.passIdx.rawValue)
-            enc.setBuffer(zeroBuf,   offset: 0, index: ScatterBuffer.perTGStart.rawValue)
+            enc.setBuffer(zeroBuf, offset: 0, index: ScatterBuffer.perTGStart.rawValue)
         }
 
         let result = readU64(keyOutBuf, count: n)
 
         // Verify result is a permutation: same multiset as input
         XCTAssertEqual(result.sorted(), keys.sorted(),
-            "Scatter output is not a permutation of the input")
+                       "Scatter output is not a permutation of the input")
         print("✅ test_radixScatter_isPermutation passed")
     }
 
@@ -615,29 +626,30 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         // in the same order as they went in.
         let n = 16
         let keys: [UInt64] = (0 ..< n).map { i in packKey(depthByte: 0, atPass: 0, index: UInt32(i)) }
-        let hist = referenceHistogram(keys: keys, pass: 0)        // hist[0] == 16
-        let offsets = exclusiveScan(hist)                         // offsets[0] == 0
+        let hist = referenceHistogram(keys: keys, pass: 0) // hist[0] == 16
+        let offsets = exclusiveScan(hist) // offsets[0] == 0
 
-        guard let keyInBuf  = makeBuffer(keys),
+        guard let keyInBuf = makeBuffer(keys),
               let keyOutBuf = makeBuffer(count: n, type: UInt64.self),
               let offsetBuf = renderInfo.device.makeBuffer(
-                bytes: offsets.map { $0 },
-                length: offsets.count * MemoryLayout<UInt32>.stride,
-                options: .storageModeShared),
-              let zeroBuf   = makeBuffer(count: kRadixBuckets, type: UInt32.self)
+                  bytes: offsets.map { $0 },
+                  length: offsets.count * MemoryLayout<UInt32>.stride,
+                  options: .storageModeShared
+              ),
+              let zeroBuf = makeBuffer(count: kRadixBuckets, type: UInt32.self)
         else { XCTFail("Buffer allocation failed"); return }
 
         zeroBuffer(zeroBuf)
-        var numElems  = UInt32(n)
+        var numElems = UInt32(n)
         var passIndex = UInt32(0)
 
         dispatch(pipeline, threadCount: n) { enc in
-            enc.setBuffer(keyInBuf,  offset: 0, index: ScatterBuffer.keysIn.rawValue)
+            enc.setBuffer(keyInBuf, offset: 0, index: ScatterBuffer.keysIn.rawValue)
             enc.setBuffer(keyOutBuf, offset: 0, index: ScatterBuffer.keysOut.rawValue)
             enc.setBuffer(offsetBuf, offset: 0, index: ScatterBuffer.offsets.rawValue)
-            enc.setBytes(&numElems,  length: MemoryLayout<UInt32>.stride, index: ScatterBuffer.numElems.rawValue)
+            enc.setBytes(&numElems, length: MemoryLayout<UInt32>.stride, index: ScatterBuffer.numElems.rawValue)
             enc.setBytes(&passIndex, length: MemoryLayout<UInt32>.stride, index: ScatterBuffer.passIdx.rawValue)
-            enc.setBuffer(zeroBuf,   offset: 0, index: ScatterBuffer.perTGStart.rawValue)
+            enc.setBuffer(zeroBuf, offset: 0, index: ScatterBuffer.perTGStart.rawValue)
         }
 
         let result = readU64(keyOutBuf, count: n)
@@ -645,13 +657,14 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         // Stable: relative order within same digit must be preserved
         for i in 0 ..< n {
             XCTAssertEqual(result[i], keys[i],
-                "Stability violated at output position \(i): got index \(result[i] & 0xFFFF_FFFF), expected \(keys[i] & 0xFFFF_FFFF)")
+                           "Stability violated at output position \(i): got index \(result[i] & 0xFFFF_FFFF), expected \(keys[i] & 0xFFFF_FFFF)")
         }
         print("✅ test_radixScatter_stability passed")
     }
 
     // =========================================================================
     // MARK: Integration – Full Radix Sort
+
     // =========================================================================
 
     /// 8 packed depth keys at known depths; after full radix sort the depth keys
@@ -667,10 +680,10 @@ final class DeviceRadixSortTest: BaseRenderSetup {
 
         initGuassianComputePipelines()
 
-        let depthValues: [Float] = [10, 50, 20, 100, 30, 5, 70, 15]  // front-to-back: 5,10,15,20,30,50,70,100
+        let depthValues: [Float] = [10, 50, 20, 100, 30, 5, 70, 15] // front-to-back: 5,10,15,20,30,50,70,100
         let n = depthValues.count
 
-        // Compute depth keys using the same IEEE-754-to-sortable-uint conversion as the GPU
+        /// Compute depth keys using the same IEEE-754-to-sortable-uint conversion as the GPU
         func floatToSortableU32(_ x: Float) -> UInt32 {
             let u = x.bitPattern
             let mask: UInt32 = (u >> 31) != 0 ? 0xFFFF_FFFF : 0x8000_0000
@@ -697,7 +710,7 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         gc.splatCount = UInt(n)
 
         guard let queue = renderInfo.device.makeCommandQueue(),
-              let cmd   = queue.makeCommandBuffer()
+              let cmd = queue.makeCommandBuffer()
         else { XCTFail("Command queue failed"); return }
 
         executeRadixSort(cmd)
@@ -711,7 +724,7 @@ final class DeviceRadixSortTest: BaseRenderSetup {
             let prev = UInt32((result[i - 1] >> 32) & 0xFFFF_FFFF)
             let curr = UInt32((result[i] >> 32) & 0xFFFF_FFFF)
             XCTAssertLessThanOrEqual(prev, curr,
-                "Depth keys not in ascending order at position \(i): \(prev) > \(curr)")
+                                     "Depth keys not in ascending order at position \(i): \(prev) > \(curr)")
         }
         print("✅ test_radixSort_small_knownDepthOrder passed")
     }
@@ -746,7 +759,7 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         gc.splatCount = UInt(n)
 
         guard let queue = renderInfo.device.makeCommandQueue(),
-              let cmd   = queue.makeCommandBuffer()
+              let cmd = queue.makeCommandBuffer()
         else { XCTFail("Command queue failed"); return }
 
         executeRadixSort(cmd)
@@ -758,7 +771,7 @@ final class DeviceRadixSortTest: BaseRenderSetup {
 
         for i in 0 ..< n {
             XCTAssertEqual(result[i], expectedSorted[i],
-                "Mismatch at index \(i): got \(result[i]), expected \(expectedSorted[i])")
+                           "Mismatch at index \(i): got \(result[i]), expected \(expectedSorted[i])")
         }
         print("✅ test_radixSort_matchesCPUSort_256elements passed")
     }
@@ -793,7 +806,7 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         gc1.splatCount = UInt(n)
 
         guard let queue = renderInfo.device.makeCommandQueue(),
-              let cmd1  = queue.makeCommandBuffer()
+              let cmd1 = queue.makeCommandBuffer()
         else { XCTFail("Command queue failed"); return }
 
         executeRadixSort(cmd1)
@@ -804,7 +817,7 @@ final class DeviceRadixSortTest: BaseRenderSetup {
 
         for i in 0 ..< n {
             XCTAssertEqual(result1[i], expectedSorted[i],
-                "First sort: mismatch at \(i)")
+                           "First sort: mismatch at \(i)")
         }
         print("✅ test_radixSort_isDeterministic passed")
     }
@@ -838,7 +851,8 @@ final class DeviceRadixSortTest: BaseRenderSetup {
                 scale: simd_float4(1, 1, 1, 1),
                 color: simd_float4(1, 0, 0, 1),
                 quat: simd_float4(0, 0, 0, 1),
-                opacity: 1.0)
+                opacity: 1.0
+            )
         }
 
         let entity = createEntity()
@@ -851,8 +865,8 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         registerComponent(entityId: cameraEntity, componentType: LocalTransformComponent.self)
         CameraSystem.shared.activeCamera = cameraEntity
 
-        guard let gc  = scene.get(component: GaussianComponent.self, for: entity),
-              let wt  = scene.get(component: WorldTransformComponent.self, for: entity),
+        guard let gc = scene.get(component: GaussianComponent.self, for: entity),
+              let wt = scene.get(component: WorldTransformComponent.self, for: entity),
               let cam = scene.get(component: CameraComponent.self, for: cameraEntity)
         else { XCTFail("Component access failed"); return }
 
@@ -863,8 +877,9 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         guard let splatBuf = renderInfo.device.makeBuffer(
             bytes: splats,
             length: numSplats * MemoryLayout<GaussianSplat>.stride,
-            options: .storageModeShared),
-              let keyBuf = makeBuffer(count: numSplats, type: UInt64.self)
+            options: .storageModeShared
+        ),
+            let keyBuf = makeBuffer(count: numSplats, type: UInt64.self)
         else { XCTFail("Buffer allocation failed"); return }
 
         gc.splatData = splatBuf
@@ -873,11 +888,12 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         gc.spaceUniform = (0 ..< 2).compactMap { _ in
             renderInfo.device.makeBuffer(
                 length: MemoryLayout<Uniforms>.stride,
-                options: .storageModeShared)
+                options: .storageModeShared
+            )
         }
 
         guard let queue = renderInfo.device.makeCommandQueue(),
-              let cmd   = queue.makeCommandBuffer()
+              let cmd = queue.makeCommandBuffer()
         else { XCTFail("Command queue failed"); return }
 
         executeGaussianDepth(cmd)
@@ -893,7 +909,7 @@ final class DeviceRadixSortTest: BaseRenderSetup {
             let prevKey = UInt32((result[i - 1] >> 32) & 0xFFFF_FFFF)
             let currKey = UInt32((result[i] >> 32) & 0xFFFF_FFFF)
             XCTAssertLessThanOrEqual(prevKey, currKey,
-                "Depth keys not ascending at position \(i): \(prevKey) > \(currKey)")
+                                     "Depth keys not ascending at position \(i): \(prevKey) > \(currKey)")
         }
 
         // Verify all indices are in valid range
@@ -934,7 +950,7 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         gc.splatCount = UInt(n)
 
         guard let queue = renderInfo.device.makeCommandQueue(),
-              let cmd   = queue.makeCommandBuffer()
+              let cmd = queue.makeCommandBuffer()
         else { XCTFail("Command queue failed"); return }
 
         executeRadixSort(cmd)
@@ -947,12 +963,12 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         // Check monotonically sorted
         for i in 1 ..< n {
             XCTAssertLessThanOrEqual(result[i - 1], result[i],
-                "Not sorted at index \(i)")
+                                     "Not sorted at index \(i)")
         }
         // Check matches CPU
         for i in 0 ..< n {
             XCTAssertEqual(result[i], expectedSorted[i],
-                "CPU/GPU mismatch at index \(i)")
+                           "CPU/GPU mismatch at index \(i)")
         }
         print("✅ test_radixSort_1024elements_matchesCPU passed")
     }

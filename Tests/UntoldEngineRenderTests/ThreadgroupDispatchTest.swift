@@ -263,9 +263,9 @@ final class ThreadgroupDispatchTest: BaseRenderSetup {
 
         let results = [
             ("Frustum Culling", calculateFrustumCullingThreadgroups(count: testCount, pipeline: frustumPipeline)),
-            ("Gaussian Depth",  calculateGaussianDepthThreadgroups(splatCount: testCount, pipeline: gaussianDepthPipeline)),
-            ("Mark Visible",    calculateMarkVisibleThreadgroups(count: testCount, pipeline: markVisiblePipeline)),
-            ("Compact",         calculateCompactThreadgroups(count: testCount, pipeline: compactPipeline)),
+            ("Gaussian Depth", calculateGaussianDepthThreadgroups(splatCount: testCount, pipeline: gaussianDepthPipeline)),
+            ("Mark Visible", calculateMarkVisibleThreadgroups(count: testCount, pipeline: markVisiblePipeline)),
+            ("Compact", calculateCompactThreadgroups(count: testCount, pipeline: compactPipeline)),
         ]
 
         for (name, result) in results {
