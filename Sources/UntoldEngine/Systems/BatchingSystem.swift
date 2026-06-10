@@ -1013,6 +1013,10 @@ public class BatchingSystem: @unchecked Sendable {
 
     private func registerEntityForBatching(entityId: EntityID, deferBatchBuild: Bool) {
         guard let candidate = resolveBatchCandidate(entityId: entityId) else {
+            guard scene.exists(entityId) else {
+                removeEntityFromBatchingTracking(entityId: entityId)
+                return
+            }
             let hasStatic = scene.get(component: StaticBatchComponent.self, for: entityId) != nil
             let hasRender = scene.get(component: RenderComponent.self, for: entityId) != nil
             let meshEmpty = (scene.get(component: RenderComponent.self, for: entityId)?.mesh.isEmpty ?? true)

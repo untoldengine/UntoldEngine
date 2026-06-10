@@ -335,6 +335,7 @@ func finalizePendingDestroys() {
     if !cleanedPendingEntities.isEmpty {
         visibleEntityIds.removeAll { cleanedPendingEntities.contains($0) }
         tripleVisibleEntities.remove(ids: cleanedPendingEntities)
+        RenderPasses.invalidateShadowEntityCache()
     }
 }
 
