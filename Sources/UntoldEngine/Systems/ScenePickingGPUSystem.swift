@@ -318,6 +318,7 @@ private func scenePickingComputeEntitySignature(_ entityId: EntityID) -> UInt64 
     scenePickingHashCombine(&hash, UInt64(renderComponent.mesh.count))
     scenePickingHashCombine(&hash, scenePickingHasTransparentSubmesh(renderComponent) ? 1 : 0)
     scenePickingHashCombine(&hash, scenePickingIsParticipationEnabled(for: entityId) ? 1 : 0)
+    scenePickingHashCombine(&hash, isSceneEntityPickableByChannel(entityId: entityId) ? 1 : 0)
     scenePickingHashCombine(&hash, UInt64(scenePickingHitRepresentationMode(for: entityId).rawValue))
 
     // Only hash transform for static entities. Dynamic entities changing position should not

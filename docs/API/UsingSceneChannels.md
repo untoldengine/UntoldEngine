@@ -144,11 +144,32 @@ Outside mixed passthrough mode, ghosted channels render as normal opaque geometr
 
 Use `.ghostGeometry` when only selected walls or structures should ghost. Regular `.contextGeometry` can stay normal, hidden, or wireframe independently. If the entity is already static-batched, changing its scene channels queues a batch rebuild so it can split from its previous context batch.
 
+## Pick Participation
+
+The `.pickParticipation` property controls whether ray-picking (`pickEntity`) considers an entire channel:
+
+```swift
+setSceneChannel(.contextGeometry, .pickParticipation(false))
+setSceneChannel(.contextGeometry, .pickParticipation(true))
+```
+
+This is useful for large scenes where background geometry (walls, floors, merged tile geometry) should never be hit by picking rays, while interactive objects remain pickable:
+
+```swift
+// Walls, floors, and merged context geometry are skipped by pickEntity().
+setSceneChannel(.contextGeometry, .pickParticipation(false))
+
+// Pipes (.selectableGeometry / .preserveIdentity) are unaffected and remain pickable.
+```
+
+Channel pick state and per-entity pick state (`setEntityPickParticipation(entityId:enabled:)`) combine with "most restrictive wins": an entity is pickable only if both its channel allows picking and its own `PickInteractionComponent` allows picking. So `setEntityPickParticipation(entityId:enabled:false)` can still exclude individual entities from a channel that otherwise allows picking, but it cannot make an entity pickable again once its channel disables picking.
+
 ## Reading Channel State
 
 ```swift
-let mode = getSceneChannelRenderMode(.contextGeometry)  // SceneChannelRenderMode
-let visible = getSceneChannelVisible(.contextGeometry)  // Bool
+let mode = getSceneChannelRenderMode(.contextGeometry)              // SceneChannelRenderMode
+let visible = getSceneChannelVisible(.contextGeometry)              // Bool
+let pickable = getSceneChannelPickParticipation(.contextGeometry)   // Bool
 ```
 
 ## Explicit Entity Channels

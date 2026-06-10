@@ -60,6 +60,23 @@ For `.untold` assets, the exporter writes optional architectural edge index buff
 
 `WireframeRenderParams` controls visual density. `distanceFadeEnabled`, `fadeStartDistance`, `fadeEndDistance`, and `minimumAlpha` reduce line opacity for distant geometry without changing the scene-channel API. The fragment shader uses `color.a` as the near opacity and fades to `color.a * minimumAlpha` between `fadeStartDistance` and `fadeEndDistance`.
 
+## Picking
+
+`SceneChannelInteractionState` (in `SceneContextVisibility.swift`) tracks a bitmask of channels with picking disabled via:
+
+```swift
+setSceneChannel(.contextGeometry, .pickParticipation(false))
+```
+
+Two gating functions in `ScenePickingSystem.swift` check both the per-entity `PickInteractionComponent.participatesInPicking` and `isSceneEntityPickableByChannel(entityId:)` (channel-derived), combining them with "most restrictive wins":
+
+- `scenePickingShouldIgnoreEntityDueToInteractionSettings(_:)` — used by the CPU candidate list and the octree broad-phase.
+- `scenePickingUsesMeshHitRepresentation(_:)` — used by the standalone GPU backend (`pickEntityGPU`) to build/validate the Metal acceleration structure. This path is also reached from `automatic`/`octreeGPUPreferred` whenever the octree is disabled, so both functions need the channel check for full backend coverage.
+
+Toggling a channel's pick participation marks all currently-visible entities in that channel dirty (`scenePickingMarkEntityDirty`), forcing the GPU picking acceleration structures to rebuild on the next pick. `scenePickingComputeEntitySignature` also hashes the channel-derived pickability so cached signatures stay consistent.
+
+Channel pick state does not affect batching or rendering — it only filters `pickEntity` candidates.
+
 ## Batching
 
 Scene channels affect batching in two ways:
