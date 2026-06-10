@@ -112,7 +112,6 @@ public func CreatePipeline(
                 attachment?.alphaBlendOperation = .add
                 attachment?.sourceAlphaBlendFactor = .one
                 attachment?.destinationAlphaBlendFactor = .one
-
             }
         }
 
