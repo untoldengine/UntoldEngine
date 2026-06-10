@@ -1,4 +1,12 @@
 # Changelog
+## v0.13.1 - 2026-06-10
+### 🐞 Fixes
+- [Patch] Implemented MSAA (ec63a6c…)
+- [Patch] Fixed no entity found error messages (c07c3bc…)
+- [Patch] Fixed streaming swap warning messages (60676fe…)
+- [Patch] Implemented splats TBDR (ecec3b9…)
+- [Patch] Removed legacy gaussian splat architecture (29c74b7…)
+- [Patch] Added pick participation channel (5ca25d5…)
 ## v0.13.0 - 2026-06-02
 ### 🐞 Fixes
 - [Patch] Derive batch cell size from actual tile extents in quadtree/KD-tree manifests (86c00bf…)
