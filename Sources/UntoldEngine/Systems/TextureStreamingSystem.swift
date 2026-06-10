@@ -439,6 +439,7 @@ public class TextureStreamingSystem: @unchecked Sendable {
         // Priority 1: visible entities first. Apply tier target by distance.
         for entityId in visible {
             guard opsScheduled < availableSlots else { break }
+            guard scene.exists(entityId) else { continue }
             guard !isActiveOp(entityId) else { continue }
             // HLOD and per-tile LOD entities are coarse proxy meshes (TileLODTagComponent).
             // Streaming full-res textures onto transient proxy geometry wastes GPU budget

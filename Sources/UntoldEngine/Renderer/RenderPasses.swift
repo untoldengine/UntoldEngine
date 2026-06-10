@@ -523,6 +523,7 @@ public enum RenderPasses {
         result.reserveCapacity(candidates.count / 4)
 
         for entityId in candidates {
+            guard scene.mask(for: entityId) != nil else { continue }
             if shouldHideSceneEntity(entityId: entityId) { continue }
             if shouldRenderSceneEntityAsWireframe(entityId: entityId) { continue }
             if BatchingSystem.shared.isEnabled() {
