@@ -12,6 +12,12 @@ import Foundation
 import ModelIO
 import simd
 
+private struct TileRepresentationSwapWindow {
+    var windowStart: Double
+    var lastStatesByTarget: [String: String]
+    var toggleCountsByTarget: [String: Int]
+}
+
 public class GeometryStreamingSystem: @unchecked Sendable {
     public static let shared = GeometryStreamingSystem()
 
@@ -365,7 +371,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     var diagnostics: GeometryStreamingDiagnosticsSnapshot = .init()
     var cumulativeAsyncLoadMs: Double = 0.0
     var completedAsyncLoads: Int = 0
-    var tileSwapWindow: [EntityID: (windowStart: Double, swaps: Int)] = [:]
+    fileprivate var tileSwapWindow: [EntityID: TileRepresentationSwapWindow] = [:]
 
     /// First-detection timestamps (CFAbsoluteTime) keyed by entity ID.
     /// Records when each entity first appeared as a load candidate so we can measure
@@ -2263,30 +2269,55 @@ public struct GeometryStreamingDiagnosticsSnapshot: Sendable {
 
 extension GeometryStreamingSystem {
     func recordTileRepresentationSwap(entityId: EntityID, tileId: String, representation: String) {
+        guard let swapEvent = tileRepresentationSwapEvent(representation) else { return }
+
         let now = CFAbsoluteTimeGetCurrent()
-        let warningThreshold = 6
+        let warningThreshold = 4
         let windowSeconds = 5.0
 
-        let updated: (windowStart: Double, swaps: Int) = {
-            guard let existing = tileSwapWindow[entityId] else {
-                return (now, 1)
-            }
-            if now - existing.windowStart > windowSeconds {
-                return (now, 1)
-            }
-            return (existing.windowStart, existing.swaps + 1)
-        }()
+        let existing = tileSwapWindow[entityId]
+        var window: TileRepresentationSwapWindow
+        if let existing, now - existing.windowStart <= windowSeconds {
+            window = existing
+        } else {
+            window = TileRepresentationSwapWindow(
+                windowStart: now,
+                lastStatesByTarget: [:],
+                toggleCountsByTarget: [:]
+            )
+        }
 
-        tileSwapWindow[entityId] = updated
-        if updated.swaps == warningThreshold {
+        let previousState = window.lastStatesByTarget[swapEvent.target]
+        if let previousState, previousState != swapEvent.state {
+            window.toggleCountsByTarget[swapEvent.target, default: 0] += 1
+        }
+        window.lastStatesByTarget[swapEvent.target] = swapEvent.state
+
+        let toggles = window.toggleCountsByTarget[swapEvent.target] ?? 0
+        tileSwapWindow[entityId] = window
+
+        if toggles == warningThreshold {
             Logger.logWarning(
-                message: "[TileStreaming] Swap thrash detected for tile '\(tileId)' — \(updated.swaps) representation changes in \(Int(windowSeconds))s (latest=\(representation)).",
+                message: "[TileStreaming] Swap thrash detected for tile '\(tileId)' — \(toggles) \(swapEvent.target) load-state toggles in \(Int(windowSeconds))s (latest=\(representation)).",
                 category: LogCategory.tileStreaming.rawValue
             )
             withStateLock {
                 diagnostics.tileSwapWarnings += 1
             }
         }
+    }
+
+    private func tileRepresentationSwapEvent(_ representation: String) -> (target: String, state: String)? {
+        let parts = representation.split(separator: ":", maxSplits: 1).map(String.init)
+        guard parts.count == 2 else { return nil }
+
+        let state = parts[1]
+        guard state == "loaded" || state == "unloaded" else { return nil }
+
+        let target = parts[0]
+        guard target == "hlod" || target.hasPrefix("lod") else { return nil }
+
+        return (target, state)
     }
 }
 
