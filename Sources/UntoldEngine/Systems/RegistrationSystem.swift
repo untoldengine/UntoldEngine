@@ -1379,6 +1379,11 @@ private struct TileEntry: Decodable {
     /// Absent in older (v3 uniform_grid) manifests — treated as false.
     let isInterior: Bool?
 
+    /// Partition-cell AABB written by the exporter.  Tighter than `bounds` for
+    /// spanning tiles because it reflects the KD/quad-tree cell, not the mesh
+    /// content footprint.  Used for the "Tile Bounds" debug overlay.
+    let cellBounds: TileBounds?
+
     enum CodingKeys: String, CodingKey {
         case tileId = "tile_id"
         case pathRelativeToManifest = "path_relative_to_manifest"
@@ -1395,6 +1400,7 @@ private struct TileEntry: Decodable {
         case quadtreeNodeId = "quadtree_node_id"
         case semanticTier = "semantic_tier"
         case isInterior = "interior"
+        case cellBounds = "cell_bounds"
     }
 }
 
@@ -1769,6 +1775,7 @@ private func registerTiledScene(
                         tileComp.priority = shared.priority ?? defaults.priority
                         tileComp.prefetchRadius = shared.prefetchRadius ?? defaults.prefetchRadius ?? 0
                         tileComp.tileId = shared.tileId
+                        tileComp.isSharedBucket = true
                         tileComp.state = .unloaded
                     }
                     setParent(childId: entityId, parentId: rootEntityId)
@@ -1828,6 +1835,12 @@ private func registerTiledScene(
                 registerSceneGraphComponent(entityId: entityId)
                 registerComponent(entityId: entityId, componentType: TileComponent.self)
                 if let tileComp = scene.get(component: TileComponent.self, for: entityId) {
+                    if let cb = tile.cellBounds, cb.min.count >= 3, cb.max.count >= 3 {
+                        tileComp.cellBounds = AABB(
+                            min: simd_float3(cb.min[0], cb.min[1], cb.min[2]),
+                            max: simd_float3(cb.max[0], cb.max[1], cb.max[2])
+                        )
+                    }
                     let configuredStreamingRadius = tile.streamingRadius ?? defaults.streamingRadius
                     let configuredUnloadRadius = tile.unloadRadius ?? defaults.unloadRadius
                     let configuredPrefetch = tile.prefetchRadius ?? defaults.prefetchRadius ?? 0

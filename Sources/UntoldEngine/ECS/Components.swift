@@ -659,6 +659,18 @@ public class TileComponent: Component {
     /// Tracks representation churn for diagnostics and dwell logic.
     public var lastLoadedLODIndex: Int?
 
+    /// Partition-cell AABB from the manifest (key: "cell_bounds").
+    /// Tighter than the mesh content AABB for spanning tiles whose geometry
+    /// overflows the cell boundary.  Used by the debug tile-bounds visualizer
+    /// so the drawn box matches the Blender overlay partition cells.
+    /// nil for manifests that predate the cell_bounds field and for the shared bucket.
+    public var cellBounds: AABB?
+
+    /// True when this entity represents the shared-bucket tile (the monolithic asset
+    /// holding world-spanning objects).  The shared bucket is not a partition cell so
+    /// it is excluded from the "Tile Bounds" debug overlay.
+    public var isSharedBucket: Bool = false
+
     public required init() {}
 }
 
