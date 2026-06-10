@@ -90,12 +90,12 @@ def _apply_representation_ranges(module, settings) -> None:
         return
     module.TILE_LOD_LEVELS = [
         (float(getattr(settings, "lod1_reduction_ratio", 0.5)), float(getattr(settings, "lod1_switch_distance", 90.0))),
-        (float(getattr(settings, "lod2_reduction_ratio", 0.2)), float(getattr(settings, "lod2_switch_distance", 150.0))),
+        (float(getattr(settings, "lod2_reduction_ratio", 0.2)), float(getattr(settings, "lod2_switch_distance", 110.0))),
     ]
     module.HLOD_LEVELS = [{
         "suffix": "_hlod",
         "reduction_ratio": float(getattr(settings, "hlod_reduction_ratio", 0.10)),
-        "switch_distance": float(getattr(settings, "hlod_switch_distance", 250.0)),
+        "switch_distance": float(getattr(settings, "hlod_switch_distance", 130.0)),
     }]
 
 
@@ -112,7 +112,7 @@ def _repr_summary_for_settings(settings):
         return None
 
     streaming_r = float(getattr(settings, "exterior_shell_streaming_radius", 80.0))
-    unload_r = float(getattr(settings, "exterior_shell_unload_radius", 130.0))
+    unload_r = float(getattr(settings, "exterior_shell_unload_radius", 150.0))
     if unload_r <= streaming_r:
         return None
 
@@ -127,7 +127,7 @@ def _repr_summary_for_settings(settings):
 
     hlod = None
     if generate_hlod:
-        raw = float(getattr(settings, "hlod_switch_distance", 250.0))
+        raw = float(getattr(settings, "hlod_switch_distance", 130.0))
         hlod = max(min_sw, min(max_sw, raw))
 
     lod1 = lod2 = None
@@ -135,7 +135,7 @@ def _repr_summary_for_settings(settings):
         far_limit = (hlod - GAP) if hlod is not None else (unload_r - MARGIN)
         near_limit = max(streaming_r + GAP, GAP)
         raw1 = float(getattr(settings, "lod1_switch_distance", 90.0))
-        raw2 = float(getattr(settings, "lod2_switch_distance", 150.0))
+        raw2 = float(getattr(settings, "lod2_switch_distance", 110.0))
         lod1 = max(near_limit, min(far_limit - GAP, raw1))
         lod2 = max(lod1 + GAP, min(far_limit, raw2))
 
@@ -490,10 +490,10 @@ class UntoldTilePreviewSettings(bpy.types.PropertyGroup):
         default=False,
     )
     exterior_shell_streaming_radius: FloatProperty(name="Exterior Stream", default=80.0, min=0.0)
-    exterior_shell_unload_radius: FloatProperty(name="Exterior Unload", default=130.0, min=0.0)
+    exterior_shell_unload_radius: FloatProperty(name="Exterior Unload", default=150.0, min=0.0)
     exterior_shell_priority: IntProperty(name="Exterior Priority", default=15, min=0)
     structural_interior_streaming_radius: FloatProperty(name="Structural Stream", default=80.0, min=0.0)
-    structural_interior_unload_radius: FloatProperty(name="Structural Unload", default=130.0, min=0.0)
+    structural_interior_unload_radius: FloatProperty(name="Structural Unload", default=150.0, min=0.0)
     structural_interior_priority: IntProperty(name="Structural Priority", default=15, min=0)
     room_contents_streaming_radius: FloatProperty(name="Room Stream", default=35.0, min=0.0)
     room_contents_unload_radius: FloatProperty(name="Room Unload", default=70.0, min=0.0)
@@ -515,7 +515,7 @@ class UntoldTilePreviewSettings(bpy.types.PropertyGroup):
     )
 
     use_custom_representation_ranges: BoolProperty(
-        name="Custom Rep Ranges",
+        name="Custom LOD Ranges",
         description="Override normalized LOD/HLOD switch positions used by preview and export",
         default=False,
     )
@@ -532,7 +532,7 @@ class UntoldTilePreviewSettings(bpy.types.PropertyGroup):
     lod2_switch_distance: FloatProperty(
         name="LOD2 Start (m)",
         description="Distance in metres at which LOD1 switches to LOD2",
-        default=150.0, min=1.0, soft_max=2000.0,
+        default=110.0, min=1.0, soft_max=2000.0,
     )
     lod2_reduction_ratio: FloatProperty(
         name="LOD2 Ratio",
@@ -542,7 +542,7 @@ class UntoldTilePreviewSettings(bpy.types.PropertyGroup):
     hlod_switch_distance: FloatProperty(
         name="HLOD Start (m)",
         description="Distance in metres at which the coarse HLOD representation replaces LOD geometry",
-        default=250.0, min=1.0, soft_max=5000.0,
+        default=130.0, min=1.0, soft_max=5000.0,
     )
     hlod_reduction_ratio: FloatProperty(
         name="HLOD Ratio",
