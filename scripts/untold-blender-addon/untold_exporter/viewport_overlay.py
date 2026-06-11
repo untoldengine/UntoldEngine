@@ -279,17 +279,23 @@ def _ensure_draw_shader():
     return _draw_shader
 
 
-def _rebuild_draw_batches() -> None:
+def _rebuild_draw_batches(context: bpy.types.Context | None = None) -> None:
     global _fill_batches, _line_batches
     shader = _ensure_draw_shader()
     _fill_batches = []
     _line_batches = []
+
+    context = context or bpy.context
+    settings = getattr(context.scene, "untold_tile_preview", None)
+    show_fill = getattr(settings, "show_tile_floor_fill", True)
+
     for mn, mx, color in _tile_boxes:
-        fill = (color[0], color[1], color[2], color[3] * 0.20)
-        _fill_batches.append((
-            batch_for_shader(shader, 'TRIS', {"pos": _box_floor_tris(mn, mx)}),
-            fill,
-        ))
+        if show_fill:
+            fill = (color[0], color[1], color[2], color[3] * 0.20)
+            _fill_batches.append((
+                batch_for_shader(shader, 'TRIS', {"pos": _box_floor_tris(mn, mx)}),
+                fill,
+            ))
         _line_batches.append((
             batch_for_shader(shader, 'LINES', {"pos": _box_line_coords(mn, mx)}),
             color,
@@ -446,6 +452,15 @@ class UntoldTilePreviewSettings(bpy.types.PropertyGroup):
         name="Spanning Threshold",
         description="Objects wider than this many tile-lengths go to the shared bucket (blue)",
         default=4.0, min=1.0, max=32.0,
+    )
+
+    show_tile_floor_fill: BoolProperty(
+        name="Tile Floor Fill",
+        description="Draw a translucent floor fill for each tile box. "
+                     "Disable to show only the wireframe outlines, which makes it "
+                     "easier to inspect geometry inside overlapping/stacked tiles",
+        default=False,
+        update=lambda self, context: (_rebuild_draw_batches(context), _tag_viewports_redraw(context)),
     )
 
     # Quadtree / KD-tree
@@ -1107,7 +1122,7 @@ class UNTOLD_OT_preview_tiles(bpy.types.Operator):
         _tile_boxes = boxes
         _preview_color_mode = "DENSITY"
         _preview_object_names = {obj.name for obj in objects}
-        _rebuild_draw_batches()
+        _rebuild_draw_batches(context)
         _register_draw_handler()
         _tag_viewports_redraw(context)
 
@@ -1176,7 +1191,7 @@ class UNTOLD_OT_preview_runtime_bands(bpy.types.Operator):
         _tile_boxes = boxes
         _preview_color_mode = "RUNTIME"
         _preview_object_names = {obj.name for obj in objects}
-        _rebuild_draw_batches()
+        _rebuild_draw_batches(context)
         _register_draw_handler()
         _tag_viewports_redraw(context)
 
@@ -1353,11 +1368,11 @@ so the object is assigned to a regular tile and receives its own LOD/HLOD ladder
 # ── Sidebar panel ─────────────────────────────────────────────────────────────
 
 class UNTOLD_PT_tile_preview(bpy.types.Panel):
-    bl_label      = "Tile Preview"
+    bl_label      = "Tile & LOD Setup"
     bl_idname     = "UNTOLD_PT_tile_preview"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category   = 'Untold'
+    bl_category   = 'Untold Tiles'
 
     def draw(self, context: bpy.types.Context) -> None:
         layout   = self.layout
@@ -1483,6 +1498,7 @@ class UNTOLD_PT_tile_preview(bpy.types.Panel):
         row = layout.row(align=True)
         row.operator("untold.preview_tiles", icon='OVERLAY', text="Preview Tiles")
         row.operator("untold.clear_tile_preview", icon='X', text="")
+        layout.prop(settings, "show_tile_floor_fill")
 
         if _tile_boxes:
             layout.separator(factor=0.5)
