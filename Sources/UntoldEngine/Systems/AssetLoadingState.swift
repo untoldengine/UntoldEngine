@@ -144,6 +144,7 @@ public struct LoadingProgress {
     public let currentMesh: Int
     public let totalMeshes: Int
     public var phase: LoadingPhase
+    public let blocksRenderLoop: Bool
 
     public var percentage: Float {
         guard totalMeshes > 0 else { return 0 }
@@ -167,8 +168,15 @@ public actor AssetLoadingState {
     private init() {}
 
     /// Start tracking loading for an entity
-    public func startLoading(entityId: EntityID, filename: String, totalMeshes: Int = 0) {
-        if loadingEntities[entityId] == nil {
+    public func startLoading(entityId: EntityID, filename: String, totalMeshes: Int = 0, blockRenderLoop: Bool = true) {
+        let existing = loadingEntities[entityId]
+        let effectiveBlockRenderLoop = existing?.blocksRenderLoop == true || blockRenderLoop
+
+        if existing == nil {
+            if blockRenderLoop {
+                AssetLoadingGate.shared.beginLoading()
+            }
+        } else if existing?.blocksRenderLoop == false, blockRenderLoop {
             AssetLoadingGate.shared.beginLoading()
         }
 
@@ -177,7 +185,8 @@ public actor AssetLoadingState {
             filename: filename,
             currentMesh: 0,
             totalMeshes: totalMeshes,
-            phase: .loading
+            phase: .loading,
+            blocksRenderLoop: effectiveBlockRenderLoop
         )
     }
 
@@ -189,13 +198,16 @@ public actor AssetLoadingState {
             filename: existing.filename,
             currentMesh: currentMesh,
             totalMeshes: totalMeshes,
-            phase: phase ?? existing.phase
+            phase: phase ?? existing.phase,
+            blocksRenderLoop: existing.blocksRenderLoop
         )
     }
 
     /// Mark entity as finished loading
     public func finishLoading(entityId: EntityID) {
-        if loadingEntities.removeValue(forKey: entityId) != nil {
+        if let progress = loadingEntities.removeValue(forKey: entityId),
+           progress.blocksRenderLoop
+        {
             AssetLoadingGate.shared.finishLoading()
         }
     }

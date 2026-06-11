@@ -155,6 +155,10 @@ public struct EngineStreamingStats {
     public var lastApplyLoadedMeshMs: Double = 0.0
     public var tileSwapWarnings: Int = 0
     public var tilesSkippedByHierarchyGate: Int = 0
+    public var tileRepresentationGapWarnings: Int = 0
+    public var lod0VisibilityWarnings: Int = 0
+    public var lod0VisibilityWarningsWithFallback: Int = 0
+    public var lod0VisibilityWarningsNoFallback: Int = 0
 
     public init(
         activeLoads: Int = 0,
@@ -174,7 +178,12 @@ public struct EngineStreamingStats {
         evictionsPerformed: Int = 0,
         averageAsyncLoadMs: Double = 0.0,
         lastApplyLoadedMeshMs: Double = 0.0,
-        tileSwapWarnings: Int = 0
+        tileSwapWarnings: Int = 0,
+        tilesSkippedByHierarchyGate: Int = 0,
+        tileRepresentationGapWarnings: Int = 0,
+        lod0VisibilityWarnings: Int = 0,
+        lod0VisibilityWarningsWithFallback: Int = 0,
+        lod0VisibilityWarningsNoFallback: Int = 0
     ) {
         self.activeLoads = activeLoads
         self.loadCandidates = loadCandidates
@@ -194,6 +203,11 @@ public struct EngineStreamingStats {
         self.averageAsyncLoadMs = averageAsyncLoadMs
         self.lastApplyLoadedMeshMs = lastApplyLoadedMeshMs
         self.tileSwapWarnings = tileSwapWarnings
+        self.tilesSkippedByHierarchyGate = tilesSkippedByHierarchyGate
+        self.tileRepresentationGapWarnings = tileRepresentationGapWarnings
+        self.lod0VisibilityWarnings = lod0VisibilityWarnings
+        self.lod0VisibilityWarningsWithFallback = lod0VisibilityWarningsWithFallback
+        self.lod0VisibilityWarningsNoFallback = lod0VisibilityWarningsNoFallback
     }
 }
 

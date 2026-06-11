@@ -1065,14 +1065,10 @@ public func setEntityMeshAsync(
     let completionBox = completion.map { BoolCompletionBox(callback: $0) }
 
     Task {
-        // Mark as loading.  Secondary assets (LOD levels, HLODs) pass blockRenderLoop:false —
-        // the gate is opened and immediately closed so the render loop is never stalled
-        // waiting for supplementary geometry.  All downstream finishLoading calls are
-        // idempotent no-ops once the entity is already removed from the loading set.
-        await AssetLoadingState.shared.startLoading(entityId: entityId, filename: filename)
-        if !blockRenderLoop {
-            await AssetLoadingState.shared.finishLoading(entityId: entityId)
-        }
+        // Track progress for the whole async load.  Tile streaming passes
+        // blockRenderLoop:false so parsing does not freeze culling; only the short
+        // withWorldMutationGate registration sections pause render traversal.
+        await AssetLoadingState.shared.startLoading(entityId: entityId, filename: filename, blockRenderLoop: blockRenderLoop)
 
         // Get URL
         guard let url = LoadingSystem.shared.resourceURL(forResource: filename, withExtension: withExtension, subResource: nil) else {

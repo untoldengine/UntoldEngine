@@ -191,11 +191,9 @@ extension GeometryStreamingSystem {
             tileComp.lastHLODTransitionTime = CFAbsoluteTimeGetCurrent()
         }
 
-        // Force-release the AssetLoadingGate that setEntityMeshAsync opened via
-        // startLoading(entityId: capturedHlodEntityId).  Task.cancel() is cooperative —
-        // the inner Task may still be running after we destroy the entity, and its
-        // completion callback will find the entity gone and return early without calling
-        // finishLoading, leaving the gate permanently elevated and the render loop frozen.
+        // Clear async loading progress that setEntityMeshAsync registered. Task.cancel()
+        // is cooperative; the inner Task may still be running after we destroy the entity,
+        // and its completion callback can return early without calling finishLoading.
         // finishLoading is idempotent: if the Task already called it, this is a no-op.
         if let hlodId = capturedHlodEntityId {
             Task { await AssetLoadingState.shared.finishLoading(entityId: hlodId) }
@@ -386,7 +384,7 @@ extension GeometryStreamingSystem {
             }
         }
 
-        // Same gate-release fix as unloadHLOD — see comment there for full rationale.
+        // Same async loading-state cleanup as unloadHLOD — see comment there for rationale.
         if capturedLodEntityId != .invalid {
             Task { await AssetLoadingState.shared.finishLoading(entityId: capturedLodEntityId) }
         }
@@ -565,13 +563,6 @@ extension GeometryStreamingSystem {
                         self.markLoadedTileEntity(entityId)
                         self.recordTileRepresentationSwap(entityId: entityId, tileId: tileId, representation: "tile:parsed")
 
-                        // Only drop fallback coverage once full geometry is renderable.
-                        // OCC tiles may be parsed before enough child stubs have uploaded.
-                        if self.tileHasUsableFullGeometry(tc) {
-                            self.unloadHLOD(entityId: entityId)
-                            self.unloadAllLODLevels(entityId: entityId)
-                        }
-
                         // Tag the tile's mesh hierarchy for cell-based static batching.
                         // setEntityStaticBatchComponent walks the full child tree and
                         // attaches StaticBatchComponent to every entity that has a
@@ -600,6 +591,23 @@ extension GeometryStreamingSystem {
                                 BatchingSystem.shared.notifyTileEntitiesResident(tileRenderIds)
                                 TextureStreamingSystem.shared.notifyEntitiesReady(tileRenderIds)
                             }
+                        }
+
+                        self.recordLOD0Promotion(
+                            entityId: entityId,
+                            tileId: tileId,
+                            renderEntityIds: tileRenderIds,
+                            fallbackSummary: self.tileFallbackSummary(tc)
+                        )
+
+                        // Drop fallback coverage only after LOD0 is present in the
+                        // render-visible set.  A freshly parsed full tile can have
+                        // RenderComponent.isVisible=true while visibleEntityIds is
+                        // still frozen behind the loading gate/triple-buffer handoff.
+                        // Keeping LOD/HLOD alive through that window avoids a visible
+                        // hole during navigation.
+                        if self.canReleaseLOD0Fallback(entityId: entityId, tileComp: tc, renderEntityIds: tileRenderIds) {
+                            self.releaseLOD0FallbackCoverage(entityId: entityId)
                         }
 
                         let budgetStats = MemoryBudgetManager.shared.getStats()

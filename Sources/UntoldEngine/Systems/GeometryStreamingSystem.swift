@@ -18,6 +18,21 @@ private struct TileRepresentationSwapWindow {
     var toggleCountsByTarget: [String: Int]
 }
 
+private struct TileLOD0VisibilityProbe {
+    let tileId: String
+    let parsedFrame: Int
+    let renderEntityIds: Set<EntityID>
+    let fallbackSummaryAtParse: String
+    var warnedMissingVisibleSet: Bool = false
+}
+
+private struct TileRepresentationGapAuditSummary {
+    var unloadedNoRepresentation: Int = 0
+    var parsingNoRepresentation: Int = 0
+    var failedNoRepresentation: Int = 0
+    var parsedNoRepresentation: Int = 0
+}
+
 public class GeometryStreamingSystem: @unchecked Sendable {
     public static let shared = GeometryStreamingSystem()
 
@@ -140,6 +155,22 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     /// before the system allows another swap. This stabilizes bootstrap and boundary
     /// traversal by preventing rapid HLOD/LOD/full-tile churn in a narrow distance band.
     public var secondaryRepresentationMinDwellSeconds: Double = 1.0
+
+    /// Emits focused diagnostics for tile representation gaps and LOD0 handoffs.
+    /// This is intentionally runtime-enabled by default because the logs are throttled
+    /// and the data is only collected for active tile entities.
+    public var tileRepresentationDiagnosticsEnabled: Bool = true
+
+    /// Minimum time a tile may spend parsing with no loaded fallback before the
+    /// representation-gap diagnostic warns. This filters expected first-frame
+    /// startup hydration while still catching LOD0 stalls.
+    public var tileRepresentationGapDwellSeconds: Double = 0.5
+
+    /// Number of streaming-system frames LOD0 may remain absent from the published
+    /// visible set before warning. Culling/visible-set publication can legitimately
+    /// lag parse completion by several frames during tile bursts, so this warns only
+    /// on persistent handoff gaps.
+    public var lod0VisibilityWarningFrameDelay: Int = 12
 
     /// Maximum tile unload operations processed per streaming update tick.
     /// Capping unloads prevents a single-frame blank on fast camera movement or
@@ -320,6 +351,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         let entityId: EntityID
         let distance: Float
         let priority: Int
+        let urgency: Int
         let solidAngle: Float
         let viewAlignment: Float
         let occlusionScore: Float
@@ -372,6 +404,10 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     var cumulativeAsyncLoadMs: Double = 0.0
     var completedAsyncLoads: Int = 0
     fileprivate var tileSwapWindow: [EntityID: TileRepresentationSwapWindow] = [:]
+    private var tileRepresentationGapLastLogTime: [EntityID: Double] = [:]
+    private var lod0VisibilityProbes: [EntityID: TileLOD0VisibilityProbe] = [:]
+    private var tileLOD0HandoffPending: Set<EntityID> = []
+    private var lastTileGapSummaryLogTime: Double = 0
 
     /// First-detection timestamps (CFAbsoluteTime) keyed by entity ID.
     /// Records when each entity first appeared as a load candidate so we can measure
@@ -801,12 +837,10 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             tc.loadTask = nil
             tc.parseStartTime = 0
 
-            // Force-release the AssetLoadingGate for the hung inner Task.
-            // setEntityMeshAsync opens the gate via AssetLoadingState.shared.startLoading(entityId:)
-            // using capturedMeshEntityId.  Since loadTextures() ignores Swift cooperative
-            // cancellation, the gate never closes on its own — isLoadingAny stays permanently
-            // true and the render loop freezes.  Calling finishLoading here closes the gate
-            // so the render loop resumes on the next frame.
+            // Clear async loading progress for the hung inner Task.  setEntityMeshAsync
+            // tracks capturedMeshEntityId in AssetLoadingState; if ModelIO or texture
+            // decoding ignores cooperative cancellation, the normal finish path may never
+            // run and loadingCount() would stay elevated.
             let hungMeshId = tc.meshEntityId
             tc.meshEntityId = .invalid
             if hungMeshId != .invalid {
@@ -1099,7 +1133,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                 let beyondHLOD = dist >= tileComp.hlodSwitchDistance
                 let inHLODHysteresisBand = dist >= tileComp.hlodSwitchDistance * hlodHysteresisFactor
                 if beyondHLOD || hlodLoading || (hlodLoaded && inHLODHysteresisBand) {
-                    if hlodLoaded {
+                    if hlodLoaded, !tileLOD0HandoffPending.contains(entityId) {
                         unloadAllLODLevels(entityId: entityId)
                     }
                     continue
@@ -1126,7 +1160,11 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             let canTransitionLOD = tileComp.lastLODTransitionTime == 0 ||
                 timeoutNow - tileComp.lastLODTransitionTime >= secondaryRepresentationMinDwellSeconds
 
-            let fallbackTargetIndex = targetIndex ?? (!tileHasUsableFullGeometry(tileComp) ? tileComp.lodLevels.indices.first : nil)
+            let hasLoadedLOD = tileComp.lodLevels.contains { $0.state == .loaded }
+            let hasVisibleFallback = hasLoadedLOD || tileComp.hlodState == .loaded
+            let needsLOD0HandoffFallback = tileLOD0HandoffPending.contains(entityId) && !hasVisibleFallback
+            let fallbackTargetIndex = targetIndex ?? ((!tileHasUsableFullGeometry(tileComp) || needsLOD0HandoffFallback) ? tileComp.lodLevels.indices.first : nil)
+            let fallbackUrgency = (tileComp.state == .parsing && !hasVisibleFallback) || needsLOD0HandoffFallback ? 100 : 0
 
             switch tileComp.state {
             case .unloaded, .failed, .parsing:
@@ -1137,13 +1175,14 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                         priority: tileComp.priority,
                         levelIndex: target,
                         cameraPosition: effectiveCameraPosition,
-                        tileOccluders: tileOccluders
+                        tileOccluders: tileOccluders,
+                        urgency: fallbackUrgency
                     ))
                 } else if canTransitionLOD {
                     unloadAllLODLevels(entityId: entityId)
                 }
             case .parsed:
-                if tileHasUsableFullGeometry(tileComp) {
+                if tileHasUsableFullGeometry(tileComp), !tileLOD0HandoffPending.contains(entityId) {
                     unloadAllLODLevels(entityId: entityId)
                 } else if let target = fallbackTargetIndex {
                     lodLoadCandidates.append(makeTileRepresentationCandidate(
@@ -1152,7 +1191,8 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                         priority: tileComp.priority,
                         levelIndex: target,
                         cameraPosition: effectiveCameraPosition,
-                        tileOccluders: tileOccluders
+                        tileOccluders: tileOccluders,
+                        urgency: fallbackUrgency
                     ))
                 }
             case .unloading:
@@ -1234,7 +1274,10 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             // else: inside hysteresis band — keep current HLOD state.
             case .parsed:
                 // Full geometry must be renderable before HLOD coverage is dropped.
-                if tileHasUsableFullGeometry(tileComp), tileComp.hlodState != .unloaded {
+                if tileHasUsableFullGeometry(tileComp),
+                   !tileLOD0HandoffPending.contains(entityId),
+                   tileComp.hlodState != .unloaded
+                {
                     unloadHLOD(entityId: entityId)
                 }
             case .parsing, .unloading:
@@ -1597,6 +1640,16 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             }
         }
 
+        auditLOD0FallbackHandoffs(tileFrustum: tileStreamingFrustum)
+
+        if tileRepresentationDiagnosticsEnabled {
+            auditTileRepresentationDiagnostics(
+                nearbyEntities: nearbyEntities,
+                cameraPosition: effectiveCameraPosition,
+                tileFrustum: tileStreamingFrustum
+            )
+        }
+
         let updateWorkMs = (CFAbsoluteTimeGetCurrent() - updateStart) * 1000.0
         peakTickMs = max(peakTickMs, updateWorkMs)
         let activeLoadsAtEnd = activeLoadCountSnapshot()
@@ -1855,7 +1908,8 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         priority: Int,
         levelIndex: Int,
         cameraPosition: simd_float3,
-        tileOccluders: [TileOccluder]
+        tileOccluders: [TileOccluder],
+        urgency: Int = 0
     ) -> TileRepresentationCandidate {
         let (solidAngle, viewAlignment) = tileImportanceComponents(
             entityId: entityId,
@@ -1885,6 +1939,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             entityId: entityId,
             distance: distance,
             priority: priority,
+            urgency: urgency,
             solidAngle: solidAngle,
             viewAlignment: viewAlignment,
             occlusionScore: occlusionScore,
@@ -1897,6 +1952,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         let saFloor = max(maxSA, 1e-6)
         candidates.sort { lhs, rhs in
             if lhs.priority != rhs.priority { return lhs.priority > rhs.priority }
+            if lhs.urgency != rhs.urgency { return lhs.urgency > rhs.urgency }
             if enableImportanceSort {
                 let lScore = (lhs.solidAngle / saFloor) * lhs.viewAlignment * lhs.occlusionScore
                 let rScore = (rhs.solidAngle / saFloor) * rhs.viewAlignment * rhs.occlusionScore
@@ -2188,6 +2244,10 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             cumulativeAsyncLoadMs = 0
             completedAsyncLoads = 0
             tileSwapWindow.removeAll()
+            tileRepresentationGapLastLogTime.removeAll()
+            lod0VisibilityProbes.removeAll()
+            tileLOD0HandoffPending.removeAll()
+            lastTileGapSummaryLogTime = 0
             lastCameraPosition = nil
             cameraVelocity = .zero
             firstRangeTimestamps.removeAll()
@@ -2239,6 +2299,248 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     public func getDiagnosticsSnapshot() -> GeometryStreamingDiagnosticsSnapshot {
         withStateLock { diagnostics }
     }
+
+    func tileFallbackSummary(_ tileComp: TileComponent) -> String {
+        let lodSummary = tileComp.lodLevels.enumerated()
+            .filter { _, level in level.state != .unloaded }
+            .map { index, level in "lod\(index + 1)=\(level.state)" }
+            .joined(separator: ",")
+        let lodText = lodSummary.isEmpty ? "lod=none" : lodSummary
+        return "hlod=\(tileComp.hlodState) \(lodText)"
+    }
+
+    func canReleaseLOD0Fallback(
+        entityId _: EntityID,
+        tileComp: TileComponent,
+        renderEntityIds: Set<EntityID>
+    ) -> Bool {
+        guard tileHasUsableFullGeometry(tileComp) else { return false }
+        guard !renderEntityIds.isEmpty else { return true }
+
+        let visibleSet = Set(visibleEntityIds)
+        return renderEntityIds.contains { visibleSet.contains($0) }
+    }
+
+    func releaseLOD0FallbackCoverage(entityId: EntityID) {
+        tileLOD0HandoffPending.remove(entityId)
+        if !tileRepresentationDiagnosticsEnabled {
+            lod0VisibilityProbes.removeValue(forKey: entityId)
+        }
+        unloadHLOD(entityId: entityId)
+        unloadAllLODLevels(entityId: entityId)
+    }
+
+    func recordLOD0Promotion(
+        entityId: EntityID,
+        tileId: String,
+        renderEntityIds: Set<EntityID>,
+        fallbackSummary: String
+    ) {
+        let visibleSet = Set(visibleEntityIds)
+        let visibleSetCount = renderEntityIds.filter { visibleSet.contains($0) }.count
+        let renderVisibleCount = renderEntityIds.filter {
+            scene.get(component: RenderComponent.self, for: $0)?.isVisible == true
+        }.count
+
+        if !renderEntityIds.isEmpty, visibleSetCount == 0 {
+            tileLOD0HandoffPending.insert(entityId)
+        } else {
+            tileLOD0HandoffPending.remove(entityId)
+        }
+
+        lod0VisibilityProbes[entityId] = TileLOD0VisibilityProbe(
+            tileId: tileId,
+            parsedFrame: currentFrame,
+            renderEntityIds: renderEntityIds,
+            fallbackSummaryAtParse: fallbackSummary
+        )
+
+        if tileRepresentationDiagnosticsEnabled {
+            Logger.log(
+                message: "[TileStreaming][LOD0] Tile '\(tileId)' promoted parsedFrame=\(currentFrame) render=\(renderEntityIds.count) renderVisible=\(renderVisibleCount) visibleSet=\(visibleSetCount) fallbackAtParse={\(fallbackSummary)}",
+                category: LogCategory.tileStreaming.rawValue
+            )
+        }
+    }
+
+    private func auditTileRepresentationDiagnostics(
+        nearbyEntities: [EntityID],
+        cameraPosition: simd_float3,
+        tileFrustum: Frustum?
+    ) {
+        auditRepresentationGaps(
+            nearbyEntities: nearbyEntities,
+            cameraPosition: cameraPosition,
+            tileFrustum: tileFrustum
+        )
+        auditLOD0VisibilityProbes(tileFrustum: tileFrustum)
+    }
+
+    private func auditLOD0FallbackHandoffs(tileFrustum: Frustum?) {
+        guard !tileLOD0HandoffPending.isEmpty else { return }
+
+        let visibleSet = Set(visibleEntityIds)
+        var releases: [EntityID] = []
+
+        for entityId in tileLOD0HandoffPending {
+            guard scene.exists(entityId),
+                  let tileComp = scene.get(component: TileComponent.self, for: entityId),
+                  tileComp.state == .parsed,
+                  let probe = lod0VisibilityProbes[entityId]
+            else {
+                releases.append(entityId)
+                continue
+            }
+
+            let visibleSetCount = probe.renderEntityIds.filter { visibleSet.contains($0) }.count
+            if visibleSetCount > 0 {
+                releases.append(entityId)
+                continue
+            }
+
+            let ageFrames = currentFrame - probe.parsedFrame
+            if ageFrames > 120 || !tilePassesStreamingFrustum(entityId: entityId, frustum: tileFrustum) {
+                releases.append(entityId)
+            }
+        }
+
+        for entityId in releases {
+            releaseLOD0FallbackCoverage(entityId: entityId)
+        }
+    }
+
+    private func auditRepresentationGaps(
+        nearbyEntities: [EntityID],
+        cameraPosition: simd_float3,
+        tileFrustum: Frustum?
+    ) {
+        let now = CFAbsoluteTimeGetCurrent()
+        var summary = TileRepresentationGapAuditSummary()
+
+        for entityId in nearbyEntities {
+            guard scene.exists(entityId),
+                  let tileComp = scene.get(component: TileComponent.self, for: entityId)
+            else { continue }
+
+            let distance = calculateDistance(entityId: entityId, cameraPosition: cameraPosition)
+            guard distance <= tileComp.streamingRadius + 1.0,
+                  tilePassesStreamingFrustum(entityId: entityId, frustum: tileFrustum)
+            else { continue }
+
+            let hasFull = tileHasUsableFullGeometry(tileComp)
+            let loadedLODCount = tileComp.lodLevels.filter { $0.state == .loaded }.count
+            let loadingLODCount = tileComp.lodLevels.filter { $0.state == .loading }.count
+            let hasLoadedHLOD = tileComp.hlodState == .loaded
+            let hasVisibleFallback = loadedLODCount > 0 || hasLoadedHLOD
+
+            guard !hasFull, !hasVisibleFallback else {
+                tileRepresentationGapLastLogTime.removeValue(forKey: entityId)
+                continue
+            }
+
+            switch tileComp.state {
+            case .unloaded:
+                summary.unloadedNoRepresentation += 1
+                continue
+            case .parsing:
+                summary.parsingNoRepresentation += 1
+                guard tileComp.parseStartTime > 0,
+                      now - tileComp.parseStartTime >= tileRepresentationGapDwellSeconds
+                else { continue }
+            case .failed:
+                summary.failedNoRepresentation += 1
+            case .parsed:
+                summary.parsedNoRepresentation += 1
+            case .unloading:
+                continue
+            }
+
+            let lastLog = tileRepresentationGapLastLogTime[entityId] ?? 0
+            guard now - lastLog >= 2.0 else { continue }
+            tileRepresentationGapLastLogTime[entityId] = now
+
+            withStateLock {
+                diagnostics.tileRepresentationGapWarnings += 1
+            }
+
+            Logger.logWarning(
+                message: "[TileStreaming][Gap] Tile '\(tileComp.tileId)' has no visible representation in display range. dist=\(String(format: "%.1f", distance))m state=\(tileComp.state) visual=\(tileComp.visualState) fullUsable=\(hasFull) hlod=\(tileComp.hlodState) loadedLOD=\(loadedLODCount) loadingLOD=\(loadingLODCount) activeFullLoads=\(activeTileLoadCount())",
+                category: LogCategory.tileStreaming.rawValue
+            )
+        }
+
+        if summary.unloadedNoRepresentation > 0,
+           now - lastTileGapSummaryLogTime >= 2.0
+        {
+            lastTileGapSummaryLogTime = now
+            Logger.log(
+                message: "[TileStreaming][GapSummary] unloadedNoRep=\(summary.unloadedNoRepresentation) parsingNoRep=\(summary.parsingNoRepresentation) failedNoRep=\(summary.failedNoRepresentation) parsedNoRep=\(summary.parsedNoRepresentation) activeFullLoads=\(activeTileLoadCount()) maxFullLoads=\(maxConcurrentTileLoads) activeLODLoads=\(activeLODLoadCount()) maxLODLoads=\(maxConcurrentLODLoads) activeHLODLoads=\(activeHLODLoadCount()) maxHLODLoads=\(maxConcurrentHLODLoads)",
+                category: LogCategory.tileStreaming.rawValue
+            )
+        }
+    }
+
+    private func auditLOD0VisibilityProbes(tileFrustum: Frustum?) {
+        guard !lod0VisibilityProbes.isEmpty else { return }
+
+        let visibleSet = Set(visibleEntityIds)
+        var removals: [EntityID] = []
+
+        for (entityId, var probe) in lod0VisibilityProbes {
+            guard scene.exists(entityId),
+                  let tileComp = scene.get(component: TileComponent.self, for: entityId),
+                  tileComp.state == .parsed
+            else {
+                removals.append(entityId)
+                continue
+            }
+
+            let visibleSetCount = probe.renderEntityIds.filter { visibleSet.contains($0) }.count
+            let renderVisibleCount = probe.renderEntityIds.filter {
+                scene.get(component: RenderComponent.self, for: $0)?.isVisible == true
+            }.count
+            let ageFrames = currentFrame - probe.parsedFrame
+
+            if visibleSetCount > 0 {
+                Logger.log(
+                    message: "[TileStreaming][LOD0] Tile '\(probe.tileId)' first visible after \(ageFrames) frame(s). visibleSet=\(visibleSetCount)/\(probe.renderEntityIds.count) renderVisible=\(renderVisibleCount) fallbackAtParse={\(probe.fallbackSummaryAtParse)}",
+                    category: LogCategory.tileStreaming.rawValue
+                )
+                releaseLOD0FallbackCoverage(entityId: entityId)
+                removals.append(entityId)
+                continue
+            }
+
+            if ageFrames >= lod0VisibilityWarningFrameDelay,
+               !probe.warnedMissingVisibleSet,
+               tilePassesStreamingFrustum(entityId: entityId, frustum: tileFrustum)
+            {
+                probe.warnedMissingVisibleSet = true
+                lod0VisibilityProbes[entityId] = probe
+                withStateLock {
+                    diagnostics.lod0VisibilityWarnings += 1
+                    if tileComp.hlodState == .loaded || tileComp.lodLevels.contains(where: { $0.state == .loaded }) {
+                        diagnostics.lod0VisibilityWarningsWithFallback += 1
+                    } else {
+                        diagnostics.lod0VisibilityWarningsNoFallback += 1
+                    }
+                }
+                Logger.logWarning(
+                    message: "[TileStreaming][LOD0] Tile '\(probe.tileId)' parsed but LOD0 render entities have not entered the visible set after \(ageFrames) frame(s). render=\(probe.renderEntityIds.count) renderVisible=\(renderVisibleCount) visual=\(tileComp.visualState) fallbackNow={\(tileFallbackSummary(tileComp))} fallbackAtParse={\(probe.fallbackSummaryAtParse)}",
+                    category: LogCategory.tileStreaming.rawValue
+                )
+            }
+
+            if ageFrames > 120 {
+                releaseLOD0FallbackCoverage(entityId: entityId)
+                removals.append(entityId)
+            }
+        }
+
+        for entityId in removals {
+            lod0VisibilityProbes.removeValue(forKey: entityId)
+        }
+    }
 }
 
 public struct GeometryStreamingDiagnosticsSnapshot: Sendable {
@@ -2263,6 +2565,10 @@ public struct GeometryStreamingDiagnosticsSnapshot: Sendable {
     public var lastFailedAsyncLoadMs: Double = 0.0
     public var tileSwapWarnings: Int = 0
     public var tilesSkippedByHierarchyGate: Int = 0
+    public var tileRepresentationGapWarnings: Int = 0
+    public var lod0VisibilityWarnings: Int = 0
+    public var lod0VisibilityWarningsWithFallback: Int = 0
+    public var lod0VisibilityWarningsNoFallback: Int = 0
 
     public init() {}
 }
