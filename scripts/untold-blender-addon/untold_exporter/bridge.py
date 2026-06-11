@@ -246,6 +246,7 @@ def export_tiled_scene(
     compress_geometry: bool,
     dry_run: bool,
     write_manifest_in_dry_run: bool,
+    progress_callback: ProgressCallback | None = None,
 ) -> dict[str, object]:
     module = tile_exporter_module()
     output_dir = scene_dir / "tile_exports"
@@ -261,6 +262,7 @@ def export_tiled_scene(
     module.TIER_RADIUS_OVERRIDES = {}
     module.UNTAGGED_SEMANTIC_TIER = "Auto"
     module.resolve_source_scene_path = lambda: ""
+    module.PROGRESS_CALLBACK = progress_callback
 
     argv = [
         "tilestreamingpartition.py",

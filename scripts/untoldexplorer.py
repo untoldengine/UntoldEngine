@@ -95,10 +95,11 @@ ProgressCallback = Callable[[str, int, int, str], None]
 
 
 class ProgressReporter:
-    def __init__(self, label: str, total_steps: int) -> None:
+    def __init__(self, label: str, total_steps: int, on_progress: Optional[ProgressCallback] = None) -> None:
         self.label = label
         self.total_steps = max(int(total_steps), 1)
         self.completed_steps = 0
+        self.on_progress = on_progress
 
     def stage(self, stage: str, detail: str = "") -> None:
         self._emit(stage, detail, self.completed_steps)
@@ -115,6 +116,8 @@ class ProgressReporter:
             f"({completed_steps}/{self.total_steps}) {stage}{suffix}",
             flush=True,
         )
+        if self.on_progress is not None:
+            self.on_progress(stage, completed_steps, self.total_steps, detail)
 
 
 def align(value: int, alignment: int) -> int:
