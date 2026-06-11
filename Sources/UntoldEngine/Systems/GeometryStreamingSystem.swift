@@ -1124,18 +1124,15 @@ public class GeometryStreamingSystem: @unchecked Sendable {
 
             let dist = calculateDistance(entityId: entityId, cameraPosition: effectiveCameraPosition)
 
-            // LOD levels are only cleared for HLOD when the HLOD is actually renderable.
-            // If an HLOD is merely loading, keep the previous LOD as coverage until the
-            // replacement is resident.
+            // Keep loaded LOD coverage while HLOD is loading or resident. The renderer can
+            // cull/select the appropriate representation, but destroying the old LOD on the
+            // same tick the HLOD becomes loaded creates visible secondary-representation pops.
             if tileComp.hlodSwitchDistance > 0 {
                 let hlodLoaded = tileComp.hlodState == .loaded
                 let hlodLoading = tileComp.hlodState == .loading
                 let beyondHLOD = dist >= tileComp.hlodSwitchDistance
                 let inHLODHysteresisBand = dist >= tileComp.hlodSwitchDistance * hlodHysteresisFactor
                 if beyondHLOD || hlodLoading || (hlodLoaded && inHLODHysteresisBand) {
-                    if hlodLoaded, !tileLOD0HandoffPending.contains(entityId) {
-                        unloadAllLODLevels(entityId: entityId)
-                    }
                     continue
                 }
             }
@@ -1219,15 +1216,6 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             {
                 guard activeLODLoadCount() < maxConcurrentLODLoads else { break }
                 loadLODLevel(entityId: candidate.entityId, levelIndex: candidate.levelIndex)
-            }
-
-            for i in tileComp.lodLevels.indices where i != candidate.levelIndex {
-                if canTransitionLOD,
-                   tileComp.lodLevels[candidate.levelIndex].state == .loaded,
-                   tileComp.lodLevels[i].state != .unloaded
-                {
-                    unloadLODLevel(entityId: candidate.entityId, levelIndex: i)
-                }
             }
         }
 
@@ -2398,10 +2386,11 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                 continue
             }
 
-            let ageFrames = currentFrame - probe.parsedFrame
-            if ageFrames > 120 || !tilePassesStreamingFrustum(entityId: entityId, frustum: tileFrustum) {
-                releases.append(entityId)
-            }
+            // Do not release fallback coverage on a timeout or frustum miss. The
+            // RenderComponent can already be marked visible while the published
+            // visibleEntityIds set is still lagging; releasing here creates an
+            // uncovered LOD0 handoff window. Out-of-range cleanup will tear down
+            // stale representations when the tile genuinely leaves streaming range.
         }
 
         for entityId in releases {
@@ -2531,10 +2520,8 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                 )
             }
 
-            if ageFrames > 120 {
-                releaseLOD0FallbackCoverage(entityId: entityId)
-                removals.append(entityId)
-            }
+            // Keep the probe alive until LOD0 enters visibleEntityIds. A high age is
+            // diagnostic signal, not proof that the fallback can be dropped safely.
         }
 
         for entityId in removals {
