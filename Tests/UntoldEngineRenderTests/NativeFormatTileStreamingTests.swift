@@ -474,7 +474,7 @@ final class NativeFormatTileStreamingTests: BaseRenderSetup {
         XCTAssertTrue(childrenClear, "No HLOD child entity should survive after cancellation")
     }
 
-    func testHLOD_unloadedWhenFullTileParsed() async throws {
+    func testHLOD_unloadedAfterFullTileIsRenderVisible() async throws {
         let fixture = try makeUntoldTileSceneFixture(includeHLOD: true, includeLOD: false)
         try loadSceneManifest(at: fixture.manifestURL)
 
@@ -486,16 +486,23 @@ final class NativeFormatTileStreamingTests: BaseRenderSetup {
         }
         XCTAssertTrue(hlodLoaded, "HLOD should be resident before full tile parse")
 
-        // Parsing the full tile calls unloadHLOD internally on success.
+        // Parsing the full tile keeps HLOD resident until LOD0 appears in the
+        // render-visible set.
         GeometryStreamingSystem.shared.loadTile(entityId: tileEntityId)
         let tileParsed = await waitUntil(timeout: 5.0) {
             scene.get(component: TileComponent.self, for: tileEntityId)?.state == .parsed
         }
         XCTAssertTrue(tileParsed, "Full tile should reach .parsed state")
 
-        let tc = try XCTUnwrap(scene.get(component: TileComponent.self, for: tileEntityId))
-        XCTAssertEqual(tc.hlodState, .unloaded, "HLOD must be unloaded automatically when full tile parses")
-        XCTAssertNil(tc.hlodEntityId, "HLOD entity reference must be nil after full tile parses")
+        let parsedTC = try XCTUnwrap(scene.get(component: TileComponent.self, for: tileEntityId))
+        XCTAssertEqual(parsedTC.hlodState, .loaded, "HLOD should remain until LOD0 is visible")
+
+        visibleEntityIds = Array(GeometryStreamingSystem.shared.collectRenderDescendantIds(tileEntityId))
+        GeometryStreamingSystem.shared.update(cameraPosition: .zero, deltaTime: 0.016)
+
+        let releasedTC = try XCTUnwrap(scene.get(component: TileComponent.self, for: tileEntityId))
+        XCTAssertEqual(releasedTC.hlodState, .unloaded, "HLOD must unload after LOD0 enters the visible set")
+        XCTAssertNil(releasedTC.hlodEntityId, "HLOD entity reference must be nil after LOD0 handoff")
     }
 
     func testHLOD_doubleUnloadIsNoOp() throws {
