@@ -485,6 +485,22 @@ class UNTOLD_OT_export_tiled_scene(bpy.types.Operator):
 
     def execute(self, context: bpy.types.Context) -> set[str]:
         scene_dir = Path(bpy.path.abspath(self.directory)).expanduser().resolve()
+
+        wm = context.window_manager
+        workspace = context.workspace
+        wm.progress_begin(0, 100)
+
+        def progress(stage: str, done: int, total: int, detail: str) -> None:
+            percent = (100.0 * done) / max(total, 1)
+            suffix = f" - {detail}" if detail else ""
+            wm.progress_update(percent)
+            workspace.status_text_set(f"Untold Export: {stage} {percent:5.1f}%{suffix}")
+            print(f"[Untold Exporter] {percent:5.1f}% {stage}{suffix}", flush=True)
+            # Force the status bar to redraw now; the UI does not refresh on
+            # its own while this blocking export operator is running.
+            if not bpy.app.background:
+                bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=1)
+
         try:
             result = exporter_bridge().export_tiled_scene(
                 scene_dir=scene_dir,
@@ -506,11 +522,15 @@ class UNTOLD_OT_export_tiled_scene(bpy.types.Operator):
                 compress_geometry=self.compress_geometry,
                 dry_run=self.dry_run,
                 write_manifest_in_dry_run=self.write_manifest_in_dry_run,
+                progress_callback=progress,
             )
         except Exception as exc:
             self.report({"ERROR"}, str(exc))
             print(f"[Untold Exporter] Error: {exc}", flush=True)
             return {"CANCELLED"}
+        finally:
+            wm.progress_end()
+            workspace.status_text_set(None)
 
         mode = "planned" if result["dry_run"] else "exported"
         message = (
