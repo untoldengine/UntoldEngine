@@ -63,7 +63,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
-from untoldexplorer import ProgressReporter, clear_scene, export_objects_to_untold, import_usd_asset
+from untoldexplorer import ProgressCallback, ProgressReporter, clear_scene, export_objects_to_untold, import_usd_asset
 
 
 def print_export_stage(stage, detail=""):
@@ -358,6 +358,10 @@ INLINE_ROOM_CONTENT_MATERIAL_HINTS = [
 VISIBLE_ONLY = True
 SOURCE_SCENE_PATH_OVERRIDE = ""
 ERROR_IF_UNSAVED_SOURCE_NOT_FOUND = True
+
+# Set by bridge.py for in-process (Blender add-on) exports so the overall
+# "tile export" ProgressReporter can drive a UI progress bar.
+PROGRESS_CALLBACK: ProgressCallback | None = None
 
 # --- Auto tile sizing -----------------------------------------
 AUTO_TILE_SIZE = False
@@ -810,13 +814,15 @@ def classify_runtime_representation(distance, unload_r, hlod_levels=None, lod_le
       HLOD covers far-field tiles after the HLOD switch distance.
       LOD covers mid-field tiles after the first LOD switch distance.
       Full geometry covers the near band.
-      Unloaded applies beyond unload_radius for every representation.
+      Unloaded only applies when no secondary representation is active.
+
+    Note: in the engine, a loaded HLOD is only evicted once the tile leaves
+    GeometryStreamingSystem.maxQueryRadius (500m default) — far beyond
+    unload_radius, which only governs full-geometry eviction. So HLOD/LOD
+    take precedence over unload_radius here.
     """
     hlod_levels = hlod_levels or []
     lod_levels = lod_levels or []
-
-    if distance >= unload_r:
-        return "unloaded"
 
     if hlod_levels and distance >= min(level["switch_distance"] for level in hlod_levels):
         return "hlod"
@@ -824,16 +830,20 @@ def classify_runtime_representation(distance, unload_r, hlod_levels=None, lod_le
     if lod_levels and distance >= min(level["switch_distance"] for level in lod_levels):
         return "lod"
 
+    if distance >= unload_r:
+        return "unloaded"
+
     return "full"
 
 
 def classify_runtime_representation_detail(distance, unload_r, hlod_levels=None, lod_levels=None):
-    """Return full, lod1/lod2/..., hlod, or unloaded for preview diagnostics."""
+    """Return full, lod1/lod2/..., hlod, or unloaded for preview diagnostics.
+
+    See classify_runtime_representation for why HLOD/LOD take precedence over
+    unload_radius.
+    """
     hlod_levels = hlod_levels or []
     lod_levels = sorted(lod_levels or [], key=lambda l: l["switch_distance"])
-
-    if distance >= unload_r:
-        return "unloaded"
 
     if hlod_levels and distance >= min(level["switch_distance"] for level in hlod_levels):
         return "hlod"
@@ -844,6 +854,9 @@ def classify_runtime_representation_detail(distance, unload_r, hlod_levels=None,
             active_lod_index = idx
     if active_lod_index is not None:
         return f"lod{active_lod_index + 1}"
+
+    if distance >= unload_r:
+        return "unloaded"
 
     return "full"
 
@@ -4791,6 +4804,7 @@ def run():
     export_progress = ProgressReporter(
         "tile export",
         (1 if shared_objects else 0) + planned_local_assets + 1,
+        on_progress=PROGRESS_CALLBACK,
     )
     export_progress.stage("Start", f"{planned_local_assets} tile asset(s), {len(shared_objects)} shared object(s)")
 
