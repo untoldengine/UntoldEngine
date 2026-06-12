@@ -56,11 +56,17 @@ public enum RenderingProperty: Sendable {
     case debugView(RenderDebugViewMode)
     case postProcessing(RenderingToggle)
     case wireframe(WireframeProperty)
+    case environment(RenderingEnvironmentProperty)
 }
 
 public enum RenderingToggle: Sendable {
     case enabled
     case disabled
+}
+
+public enum RenderingEnvironmentProperty: Sendable {
+    case ibl(Bool)
+    case visible(Bool)
 }
 
 public enum WireframeProperty: Sendable {
@@ -81,6 +87,17 @@ public func setRendering(_ property: RenderingProperty) {
         bypassPostProcessing = true
     case let .wireframe(property):
         applyWireframeProperty(property)
+    case let .environment(property):
+        applyRenderingEnvironmentProperty(property)
+    }
+}
+
+private func applyRenderingEnvironmentProperty(_ property: RenderingEnvironmentProperty) {
+    switch property {
+    case let .ibl(value):
+        applyIBL = value
+    case let .visible(value):
+        renderEnvironment = value
     }
 }
 

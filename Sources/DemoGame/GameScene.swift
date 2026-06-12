@@ -73,8 +73,8 @@
             createDirLight(entityId: light)
             setCamera(.active(gameCamera))
             
-            applyIBL = true
-            renderEnvironment = false
+            setRendering(.environment(.ibl(true)))
+            setRendering(.environment(.visible(false)))
             // setEngineStatsLogging(enabled: true, profile: .verbose, intervalSeconds: 1.0)
         }
     }
@@ -99,7 +99,7 @@
                     setCamera(.active(camera))
                     cameraBehavior = .flyOrbit
                     setOrbitOffset(entityId: camera, uTargetOffset: Constants.orbitTargetOffset)
-                    renderEnvironment = false
+                    setRendering(.environment(.visible(false)))
                     completion(success)
                 }
             }
@@ -126,7 +126,7 @@
                     loadedContent = .tiledScene(sceneRoot)
                     cameraBehavior = Self.cameraBehavior(for: sceneID)
                     Self.applyCameraEye(for: sceneID)
-                    renderEnvironment = Self.shouldRenderEnvironment(for: sceneID)
+                    setRendering(.environment(.visible(Self.shouldRenderEnvironment(for: sceneID))))
                 }
                 completion(success)
             }

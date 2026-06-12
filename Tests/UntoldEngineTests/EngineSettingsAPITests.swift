@@ -21,6 +21,8 @@ final class EngineSettingsAPITests: XCTestCase {
         bypassPostProcessing = false
         antiAliasingMode = .fxaa
         renderDebugViewMode = .lit
+        applyIBL = false
+        renderEnvironment = false
         setCamera(.defaultFOV(65.0))
         setCamera(.clipPlanes(near: 0.1, far: 500.0))
         assetBasePath = nil
@@ -92,6 +94,16 @@ final class EngineSettingsAPITests: XCTestCase {
 
         setRendering(.postProcessing(.enabled))
         XCTAssertFalse(bypassPostProcessing)
+
+        setRendering(.environment(.ibl(true)))
+        setRendering(.environment(.visible(true)))
+        XCTAssertTrue(applyIBL)
+        XCTAssertTrue(renderEnvironment)
+
+        setRendering(.environment(.ibl(false)))
+        setRendering(.environment(.visible(false)))
+        XCTAssertFalse(applyIBL)
+        XCTAssertFalse(renderEnvironment)
     }
 
     func testSetEngineUpdatesGlobals() {
