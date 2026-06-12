@@ -1473,7 +1473,10 @@ public func setEntityStreamScene(
         return
     }
 
-    Logger.log(message: "[setEntityStreamScene] Manifest v\(tileManifest.version) decoded — \(tileManifest.tiles.count) tile(s).")
+    Logger.log(
+        message: "[setEntityStreamScene] Manifest v\(tileManifest.version) decoded — \(tileManifest.tiles.count) tile(s).",
+        category: LogCategory.tileStreaming.rawValue
+    )
 
     registerTiledScene(
         rootEntityId: rootEntityId,
@@ -1515,7 +1518,10 @@ public func loadTiledScene(
         return
     }
 
-    Logger.log(message: "[loadTiledScene] Manifest v\(tileManifest.version) decoded — \(tileManifest.tiles.count) tile(s).")
+    Logger.log(
+        message: "[loadTiledScene] Manifest v\(tileManifest.version) decoded — \(tileManifest.tiles.count) tile(s).",
+        category: LogCategory.tileStreaming.rawValue
+    )
 
     let rootEntityId = createEntity()
     setEntityName(entityId: rootEntityId, name: "\(manifest).root")
@@ -1569,7 +1575,10 @@ public func setEntityStreamScene(
                 return
             }
 
-            Logger.log(message: "[setEntityStreamScene] Manifest v\(tileManifest.version) decoded — \(tileManifest.tiles.count) tile(s).")
+            Logger.log(
+                message: "[setEntityStreamScene] Manifest v\(tileManifest.version) decoded — \(tileManifest.tiles.count) tile(s).",
+                category: LogCategory.tileStreaming.rawValue
+            )
 
             registerTiledScene(
                 rootEntityId: rootEntityId,
@@ -1621,7 +1630,10 @@ public func loadTiledScene(
                 return
             }
 
-            Logger.log(message: "[loadTiledScene] Manifest v\(tileManifest.version) decoded — \(tileManifest.tiles.count) tile(s).")
+            Logger.log(
+                message: "[loadTiledScene] Manifest v\(tileManifest.version) decoded — \(tileManifest.tiles.count) tile(s).",
+                category: LogCategory.tileStreaming.rawValue
+            )
 
             let rootEntityId = createEntity()
             setEntityName(entityId: rootEntityId, name: "\(manifestURL.deletingPathExtension().lastPathComponent).root")
@@ -1747,9 +1759,15 @@ private func registerTiledScene(
         if let shared = tileManifest.sharedBucket {
             let sharedURL = manifestDir.appendingPathComponent(shared.pathRelativeToManifest)
             if !FileManager.default.fileExists(atPath: sharedURL.path) {
-                Logger.logWarning(message: "[loadTiledScene] Shared bucket file missing: '\(shared.pathRelativeToManifest)' — skipping.")
+                Logger.logWarning(
+                    message: "[loadTiledScene] Shared bucket file missing: '\(shared.pathRelativeToManifest)' — skipping.",
+                    category: LogCategory.tileStreaming.rawValue
+                )
             } else if shared.bounds.min.count < 3 || shared.bounds.max.count < 3 || shared.center.count < 3 {
-                Logger.logWarning(message: "[loadTiledScene] Shared bucket has malformed bounds — skipping.")
+                Logger.logWarning(
+                    message: "[loadTiledScene] Shared bucket has malformed bounds — skipping.",
+                    category: LogCategory.tileStreaming.rawValue
+                )
             } else {
                 withWorldMutationGate {
                     let entityId = createEntity()
@@ -1778,7 +1796,10 @@ private func registerTiledScene(
                     OctreeSystem.shared.registerEntity(entityId)
                 }
                 hasSharedBucket = true
-                Logger.log(message: "[loadTiledScene] Shared bucket stub registered: '\(shared.tileId)'.")
+                Logger.log(
+                    message: "[loadTiledScene] Shared bucket stub registered: '\(shared.tileId)'.",
+                    category: LogCategory.tileStreaming.rawValue
+                )
             }
         }
 
@@ -1788,12 +1809,18 @@ private func registerTiledScene(
                 max: simd_float3(iz.max[0], iz.max[1], iz.max[2])
             )
             GeometryStreamingSystem.shared.interiorZone = zone
-            Logger.log(message: "[loadTiledScene] Interior zone set: \(zone.min) → \(zone.max)")
+            Logger.log(
+                message: "[loadTiledScene] Interior zone set: \(zone.min) → \(zone.max)",
+                category: LogCategory.tileStreaming.rawValue
+            )
         }
 
         let skipMsg = regState.skippedCount > 0 ? " (\(regState.skippedCount) skipped)" : ""
         let bucketMsg = hasSharedBucket ? " + shared bucket" : ""
-        Logger.log(message: "[loadTiledScene] '\(label)': \(regState.registeredCount) tile stubs registered\(skipMsg)\(bucketMsg).")
+        Logger.log(
+            message: "[loadTiledScene] '\(label)': \(regState.registeredCount) tile stubs registered\(skipMsg)\(bucketMsg).",
+            category: LogCategory.tileStreaming.rawValue
+        )
         GeometryStreamingSystem.shared.buildTileHierarchyIndex()
         regState.completion?(true)
     }
@@ -1810,7 +1837,10 @@ private func registerTiledScene(
                 guard tile.bounds.min.count >= 3, tile.bounds.max.count >= 3,
                       tile.center.count >= 3
                 else {
-                    Logger.logWarning(message: "[loadTiledScene] Tile '\(tile.tileId)' has malformed bounds or center — skipping.")
+                    Logger.logWarning(
+                        message: "[loadTiledScene] Tile '\(tile.tileId)' has malformed bounds or center — skipping.",
+                        category: LogCategory.tileStreaming.rawValue
+                    )
                     regState.skippedCount += 1
                     continue
                 }
@@ -1867,7 +1897,10 @@ private func registerTiledScene(
                     tileComp.state = .unloaded
                     if let tier = tile.semanticTier {
                         let floorTag = tile.floorId.map { "floor=\($0) " } ?? ""
-                        Logger.log(message: "[loadTiledScene] \(tile.tileId): \(floorTag)tier=\(tier) stream=\(String(format: "%.1f", configuredStreamingRadius))m")
+                        Logger.log(
+                            message: "[loadTiledScene] \(tile.tileId): \(floorTag)tier=\(tier) stream=\(String(format: "%.1f", configuredStreamingRadius))m",
+                            category: LogCategory.tileStreaming.rawValue
+                        )
                     }
                     if let hlodLevels = tile.hlodLevels, let first = hlodLevels.first,
                        let normalizedHLOD = normalizedBands.hlodSwitchDistance
@@ -1938,7 +1971,8 @@ private func normalizeTileStreamingBands(
 
     if normalizedHLOD != hlodSwitchDistance || normalizedLODs != lodSwitchDistances || normalizedPrefetch != prefetchRadius {
         Logger.logWarning(
-            message: "[loadTiledScene] Normalized streaming bands for tile '\(tileId)' — prefetch=\(String(format: "%.2f", normalizedPrefetch)) hlod=\(normalizedHLOD.map { String(format: "%.2f", $0) } ?? "nil") lods=\(normalizedLODs.map { String(format: "%.2f", $0) })"
+            message: "[loadTiledScene] Normalized streaming bands for tile '\(tileId)' — prefetch=\(String(format: "%.2f", normalizedPrefetch)) hlod=\(normalizedHLOD.map { String(format: "%.2f", $0) } ?? "nil") lods=\(normalizedLODs.map { String(format: "%.2f", $0) })",
+            category: LogCategory.tileStreaming.rawValue
         )
     }
 

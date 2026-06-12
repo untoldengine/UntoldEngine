@@ -12,8 +12,18 @@
 import XCTest
 
 final class LoggerCategoryTests: XCTestCase {
+    private var previousLogLevel: LogLevel = .debug
+
+    override func setUp() {
+        super.setUp()
+        previousLogLevel = Logger.logLevel
+        Logger.logLevel = .debug
+        Logger.resetCategoryToggles()
+    }
+
     override func tearDown() {
         Logger.resetCategoryToggles()
+        Logger.logLevel = previousLogLevel
         super.tearDown()
     }
 
@@ -35,5 +45,31 @@ final class LoggerCategoryTests: XCTestCase {
         XCTAssertFalse(Logger.isEnabled(category: .textureStreaming))
         XCTAssertFalse(Logger.isEnabled(category: .textureLoading))
         XCTAssertFalse(Logger.isEnabled(category: .streamingHeartbeat))
+    }
+
+    func testWarningsRespectCategoryToggles() {
+        Logger.resetCategoryToggles()
+
+        var disabledWarningEvaluated = false
+        Logger.logWarning(
+            message: {
+                disabledWarningEvaluated = true
+                return "disabled tile streaming warning"
+            }(),
+            category: LogCategory.tileStreaming.rawValue
+        )
+        XCTAssertFalse(disabledWarningEvaluated)
+
+        Logger.enable(category: .tileStreaming)
+
+        var enabledWarningEvaluated = false
+        Logger.logWarning(
+            message: {
+                enabledWarningEvaluated = true
+                return "enabled tile streaming warning"
+            }(),
+            category: LogCategory.tileStreaming.rawValue
+        )
+        XCTAssertTrue(enabledWarningEvaluated)
     }
 }
