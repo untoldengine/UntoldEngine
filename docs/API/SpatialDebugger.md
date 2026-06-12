@@ -49,18 +49,17 @@ OctreeSystem.shared.worldBounds = AABB(
 )
 
 // Enable octree debug rendering.
-setOctreeLeafBoundsDebug(
-    enabled: true,
+setSpatialDebug(.octreeLeafBounds(.enabled(
     maxLeafNodeCount: 0,   // 0 = unlimited
     occupiedOnly: true,    // draw only leaves containing entries
     colorMode: .culling
-)
+)))
 ```
 
 Disable the spatial debugger:
 
 ``` swift
-disableSpatialDebugVisualization()
+setSpatialDebug(.disabled)
 ```
 
 ------------------------------------------------------------------------
@@ -78,12 +77,11 @@ Useful for verifying:
 -   entity placement inside the tree
 
 ``` swift
-setOctreeLeafBoundsDebug(
-    enabled: true,
+setSpatialDebug(.octreeLeafBounds(.enabled(
     maxLeafNodeCount: 0,
     occupiedOnly: true,
     colorMode: .plain
-)
+)))
 ```
 
 ------------------------------------------------------------------------
@@ -99,12 +97,11 @@ Useful for diagnosing:
 -   streaming thrashing
 
 ``` swift
-setOctreeLeafBoundsDebug(
-    enabled: true,
+setSpatialDebug(.octreeLeafBounds(.enabled(
     maxLeafNodeCount: 0,
     occupiedOnly: true,
     colorMode: .residency
-)
+)))
 ```
 
 Color meanings:
@@ -137,12 +134,11 @@ Useful for diagnosing:
 -   visibility system behavior
 
 ``` swift
-setOctreeLeafBoundsDebug(
-    enabled: true,
+setSpatialDebug(.octreeLeafBounds(.enabled(
     maxLeafNodeCount: 0,
     occupiedOnly: true,
     colorMode: .culling
-)
+)))
 ```
 
 Color meanings:
@@ -170,12 +166,11 @@ moves.
 To visualize the full octree structure including empty regions:
 
 ``` swift
-setOctreeLeafBoundsDebug(
-    enabled: true,
+setSpatialDebug(.octreeLeafBounds(.enabled(
     maxLeafNodeCount: 0,
     occupiedOnly: false,
     colorMode: .residency
-)
+)))
 ```
 
 This can help diagnose:
@@ -188,14 +183,19 @@ This can help diagnose:
 
 ## API
 
-### setOctreeLeafBoundsDebug
+### setSpatialDebug
 
-    setOctreeLeafBoundsDebug(
-        enabled: Bool,
+    setSpatialDebug(.octreeLeafBounds(.enabled(
         maxLeafNodeCount: Int,
         occupiedOnly: Bool,
-        colorMode: SpatialDebugColorMode
-    )
+        colorMode: SpatialDebugLeafColorMode
+    )))
+
+    setSpatialDebug(.tileBounds(enabled: Bool, maxTileNodeCount: Int))
+    setSpatialDebug(.staticBatchCellBounds(enabled: Bool, maxCellCount: Int))
+    setSpatialDebug(.lodLevels(Bool))
+    setSpatialDebug(.textureStreamingTiers(Bool))
+    setSpatialDebug(.disabled)
 
 Parameters:
 
@@ -214,12 +214,12 @@ Available color modes:
 
 ------------------------------------------------------------------------
 
-### disableSpatialDebugVisualization
+### Disable All
 
 Disables all spatial debugging overlays.
 
 ``` swift
-disableSpatialDebugVisualization()
+setSpatialDebug(.disabled)
 ```
 
 ------------------------------------------------------------------------
@@ -264,7 +264,7 @@ level each renderable is currently using.
 Enable it with:
 
 ``` swift
-setLODLevelDebug(enabled: true)
+setSpatialDebug(.lodLevels(true))
 ```
 
 This mode colors renderables by their active LOD level to help diagnose:

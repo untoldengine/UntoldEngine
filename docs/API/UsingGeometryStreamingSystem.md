@@ -96,45 +96,43 @@ Important defaults:
 
 ```swift
 // Tile concurrency
-GeometryStreamingSystem.shared.maxConcurrentTileLoads = 2
-GeometryStreamingSystem.shared.maxConcurrentLoads = 3
-GeometryStreamingSystem.shared.maxConcurrentLODLoads = 4
-GeometryStreamingSystem.shared.maxConcurrentHLODLoads = 4
+setGeometryStreaming(.tileConcurrency(2))
+setGeometryStreaming(.meshConcurrency(3))
+setGeometryStreaming(.lodConcurrency(4))
+setGeometryStreaming(.hlodConcurrency(4))
 
 // Frustum gate
-GeometryStreamingSystem.shared.enableFrustumGate = true
-GeometryStreamingSystem.shared.tileFrustumGatePadding = 20.0   // m — wider pad for tiles
-GeometryStreamingSystem.shared.frustumGatePadding = 5.0        // m — pad for mesh-level OCC
+setGeometryStreaming(.frustumGate(.enabled(
+    meshPadding: 5.0,
+    tilePadding: 20.0
+)))
 
 // Spatial query
-GeometryStreamingSystem.shared.maxQueryRadius = 500.0          // must cover farthest unload_radius
+setGeometryStreaming(.queryRadius(500.0)) // must cover farthest unload_radius
 
 // Velocity predictor (predictive tile loading)
-GeometryStreamingSystem.shared.velocityLookAheadTime = 0.5     // s — how far ahead to project
-GeometryStreamingSystem.shared.velocityLookAheadMinSpeed = 1.5 // m/s — activation threshold
+setGeometryStreaming(.velocityLookAhead(time: 0.5, minSpeed: 1.5))
 
 // Interior zone gating (v4 quadtree-floor manifests)
 // Tiles tagged interior=true only load when the camera is inside this AABB.
 // Set automatically from the manifest; override if needed:
-GeometryStreamingSystem.shared.interiorZone = AABB(
+setGeometryStreaming(.interiorZone(AABB(
     min: simd_float3(-10, 0, -10),
     max: simd_float3(10, 5, 10)
-)
+)))
 
 // Floor-aware gating for v4 quadtree-floor manifests.
 // Interior tiles with floor metadata only dispatch when their Y center is near the camera.
-GeometryStreamingSystem.shared.floorProximityGateY = 5.0
+setGeometryStreaming(.floorProximityGateY(5.0))
 
 // Tile candidate ordering
-GeometryStreamingSystem.shared.enableImportanceSort = true
-GeometryStreamingSystem.shared.enableOcclusionSort = true
+setGeometryStreaming(.candidateSorting(importance: true, occlusion: true))
 
 // Tile unload stability
-GeometryStreamingSystem.shared.minimumParsedTileResidentSeconds = 8.0
+setGeometryStreaming(.minimumParsedTileResidentSeconds(8.0))
 
 // Parse safety
-GeometryStreamingSystem.shared.tileParseTimeoutSeconds = 60.0  // watchdog deadline per tile
-GeometryStreamingSystem.shared.meshLoadTimeoutSeconds = 60.0   // watchdog deadline per OCC mesh load
+setGeometryStreaming(.timeouts(tileParse: 60.0, meshLoad: 60.0))
 ```
 
 Use `maxQueryRadius` large enough to cover the farthest `unload_radius` in the scene, or out-of-range tiles may not be discovered for teardown.
@@ -204,8 +202,8 @@ The rule of thumb: **call it whenever you know a new tile-streaming session is a
 
 ### Tiles pop in on camera rotation
 
-- Increase `GeometryStreamingSystem.shared.tileFrustumGatePadding`
-- Keep `enableFrustumGate = true`
+- Increase `setGeometryStreaming(.frustumGate(.enabled(meshPadding:tilePadding:)))` tile padding
+- Keep the frustum gate enabled
 
 ### Tiles unload and reload too aggressively
 
@@ -214,7 +212,7 @@ The rule of thumb: **call it whenever you know a new tile-streaming session is a
 
 ### Tile parse bursts spike memory
 
-- Lower `maxConcurrentTileLoads`
+- Lower `setGeometryStreaming(.tileConcurrency(...))`
 - Reduce per-tile file sizes in the exported manifest
 
 ### Streaming does nothing

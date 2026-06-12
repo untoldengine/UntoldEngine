@@ -108,7 +108,7 @@ public func playSceneAt(url: URL, completion: (() -> Void)? = nil) {
         }
 
         // Early camera rebind during async mesh loading window.
-        CameraSystem.shared.activeCamera = findGameCamera()
+        setCamera(.active(findGameCamera()))
     }
 }
 ```

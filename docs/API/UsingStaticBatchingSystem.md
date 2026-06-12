@@ -22,7 +22,7 @@ setEntityMesh(entityId: cube2, filename: "cube", withExtension: "untold")
 translateTo(entityId: cube2, position: simd_float3(2, 0, 0))
 setEntityStaticBatchComponent(entityId: cube2)
 
-enableBatching(true)
+setBatching(.enabled(true))
 generateBatches()
 ```
 
@@ -34,7 +34,7 @@ let building = createEntity()
 setEntityMeshAsync(entityId: building, filename: "office_building", withExtension: "untold") { success in
     guard success else { return }
     setEntityStaticBatchComponent(entityId: building)
-    enableBatching(true)
+    setBatching(.enabled(true))
     generateBatches()
 }
 ```
@@ -67,23 +67,23 @@ For tiled/streamed scenes, the engine manages static batching automatically. Whe
 
 Do **not** call `generateBatches()` for streamed scenes. That function performs a full global rebuild — it queries every entity in the scene simultaneously, merges entities from different tiles into shared batch groups, and allocates all GPU buffers synchronously on the render thread. This overrides the engine's incremental system and causes a noticeable stall.
 
-For streamed scenes, only call `enableBatching(true)` after the scene loads. The engine handles the rest:
+For streamed scenes, only call `setBatching(.enabled(true))` after the scene loads. The engine handles the rest:
 
 ```swift
 setEntityStreamScene(entityId: sceneRoot, manifest: "city", withExtension: "json") { success in
-    enableBatching(true)
+    setBatching(.enabled(true))
     setSceneReady(success)
 }
 ```
 
-For non-streamed scenes (single `.untold`), call `setEntityStaticBatchComponent`, `generateBatches()`, and `enableBatching(true)` as normal. The same applies to any operation that mutates material state (color, opacity) — wrap it with `enableBatching(false)` before and `generateBatches()` + `enableBatching(true)` after, but only for non-streamed scenes:
+For non-streamed scenes (single `.untold`), call `setEntityStaticBatchComponent`, `generateBatches()`, and `setBatching(.enabled(true))` as normal. The same applies to any operation that mutates material state (color, opacity) — wrap it with `setBatching(.enabled(false))` before and `generateBatches()` + `setBatching(.enabled(true))` after, but only for non-streamed scenes:
 
 ```swift
 // Non-streamed only — do not use this pattern in tiled/streamed scenes
-enableBatching(false)
+setBatching(.enabled(false))
 setEntityColor(entityId: prop, color: simd_float4(1, 0, 0, 1))
 generateBatches()
-enableBatching(true)
+setBatching(.enabled(true))
 ```
 
 ## Core APIs
@@ -104,12 +104,16 @@ Removes static batching tags from the entity hierarchy.
 removeEntityStaticBatchComponent(entityId: entity)
 ```
 
-### `enableBatching(_:)`
+### `setBatching(_:)`
 
-Globally enables or disables runtime batching.
+Configures runtime batching.
 
 ```swift
-enableBatching(true)
+setBatching(.enabled(true))
+setBatching(.cellSize(32.0))
+setBatching(.maxDirtyCellsPerTick(8))
+setBatching(.visibilityGatedBuild(true))
+setBatching(.backgroundArtifactBuild(true))
 ```
 
 ### `generateBatches()`

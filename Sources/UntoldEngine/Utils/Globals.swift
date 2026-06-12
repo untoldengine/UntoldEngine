@@ -253,10 +253,21 @@ var timePassedSinceLastFrame: Float {
     set { RuntimeGlobalsStore.shared.timePassedSinceLastFrame = newValue }
 }
 
-// Frustum info
-public let far: Float = 500
-public let near: Float = 0.1
-public let fov: Float = 65.0
+/// Frustum info
+public var far: Float {
+    get { RuntimeGlobalsStore.shared.cameraFarPlane }
+    set { RuntimeGlobalsStore.shared.cameraFarPlane = max(newValue, RuntimeGlobalsStore.shared.cameraNearPlane + 0.001) }
+}
+
+public var near: Float {
+    get { RuntimeGlobalsStore.shared.cameraNearPlane }
+    set { RuntimeGlobalsStore.shared.cameraNearPlane = max(newValue, 0.0001) }
+}
+
+public var fov: Float {
+    get { RuntimeGlobalsStore.shared.cameraDefaultFOV }
+    set { RuntimeGlobalsStore.shared.cameraDefaultFOV = min(max(newValue, 1.0), 179.0) }
+}
 
 // Shadow max parameters (legacy single-cascade — kept for reference)
 let shadowMaxWidth: Float = 300.0
@@ -730,6 +741,9 @@ private final class RuntimeGlobalsStore: @unchecked Sendable {
     private var bypassPostProcessingValue: Bool = false
     private var antiAliasingModeValue: AntiAliasingMode = .fxaa
     private var renderDebugViewModeValue: RenderDebugViewMode = .lit
+    private var cameraDefaultFOVValue: Float = 65.0
+    private var cameraNearPlaneValue: Float = 0.1
+    private var cameraFarPlaneValue: Float = 500.0
     private var entityMeshMapValue: [EntityID: [Mesh]] = [:]
     private var entityNameMapValue: [EntityID: String] = [:]
     private var reverseEntityNameMapValue: [String: [EntityID]] = [:]
@@ -1251,6 +1265,51 @@ private final class RuntimeGlobalsStore: @unchecked Sendable {
         set {
             lock.lock()
             reverseEntityNameMapValue = newValue
+            lock.unlock()
+        }
+    }
+
+    var cameraDefaultFOV: Float {
+        get {
+            lock.lock()
+            let value = cameraDefaultFOVValue
+            lock.unlock()
+            return value
+        }
+        set {
+            lock.lock()
+            cameraDefaultFOVValue = newValue
+            lock.unlock()
+        }
+    }
+
+    var cameraNearPlane: Float {
+        get {
+            lock.lock()
+            let value = cameraNearPlaneValue
+            lock.unlock()
+            return value
+        }
+        set {
+            lock.lock()
+            cameraNearPlaneValue = newValue
+            if cameraFarPlaneValue <= cameraNearPlaneValue {
+                cameraFarPlaneValue = cameraNearPlaneValue + 0.001
+            }
+            lock.unlock()
+        }
+    }
+
+    var cameraFarPlane: Float {
+        get {
+            lock.lock()
+            let value = cameraFarPlaneValue
+            lock.unlock()
+            return value
+        }
+        set {
+            lock.lock()
+            cameraFarPlaneValue = max(newValue, cameraNearPlaneValue + 0.001)
             lock.unlock()
         }
     }

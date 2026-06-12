@@ -115,7 +115,7 @@ Most examples need a game camera and at least one light.
 let camera = createEntity()
 setEntityName(entityId: camera, name: "Main Camera")
 createGameCamera(entityId: camera)
-CameraSystem.shared.activeCamera = camera
+setCamera(.active(camera))
 moveCameraTo(entityId: camera, 0.0, 3.0, 10.0)
 
 let sun = createEntity()
@@ -264,7 +264,7 @@ final class GameScene {
         let camera = createEntity()
         setEntityName(entityId: camera, name: "Main Camera")
         createGameCamera(entityId: camera)
-        CameraSystem.shared.activeCamera = camera
+        setCamera(.active(camera))
         moveCameraTo(entityId: camera, 0.0, 3.0, 10.0)
 
         let sun = createEntity()

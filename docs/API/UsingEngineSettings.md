@@ -1,6 +1,6 @@
 # Engine Settings API
 
-Untold Engine settings should use a consistent style:
+The Untold Engine uses a consistent style for its API:
 
 ```swift
 setDomain(.property(value))
@@ -11,24 +11,6 @@ This keeps user-facing setup code predictable and avoids requiring developers to
 
 Existing direct APIs such as `LODConfig.shared`, `SSAOParams.shared`, `antiAliasingMode`, and `assetBasePath` are still available for compatibility and advanced tuning.
 
-## LOD
-
-```swift
-setLOD(.fadeTransitions(.enabled(duration: 0.25)))
-setLOD(.fadeTransitions(.disabled))
-setLOD(.distanceBias(1.0))
-setLOD(.hysteresis(5.0))
-setLOD(.updateFrameInterval(4))
-setLOD(.minimumCameraDisplacement(0.5))
-setLOD(.distanceThresholds([50, 100, 200, 500]))
-```
-
-`setLOD(.fadeTransitions(.enabled(duration:)))` replaces the older direct configuration:
-
-```swift
-LODConfig.shared.enableFadeTransitions = true
-LODConfig.shared.fadeTransitionTime = 0.25
-```
 
 ## Rendering
 
@@ -103,15 +85,120 @@ setEngine(.metrics(.enabled))
 setEngine(.metrics(.disabled))
 ```
 
+## Geometry Streaming
+
+```swift
+setGeometryStreaming(.enabled(true))
+setGeometryStreaming(.tileConcurrency(2))
+setGeometryStreaming(.meshConcurrency(3))
+setGeometryStreaming(.lodConcurrency(4))
+setGeometryStreaming(.hlodConcurrency(4))
+setGeometryStreaming(.queryRadius(500.0))
+setGeometryStreaming(.frustumGate(.enabled(meshPadding: 5.0, tilePadding: 20.0)))
+setGeometryStreaming(.velocityLookAhead(time: 0.5, minSpeed: 1.5))
+setGeometryStreaming(.candidateSorting(importance: true, occlusion: true))
+setGeometryStreaming(.minimumParsedTileResidentSeconds(8.0))
+setGeometryStreaming(.timeouts(tileParse: 60.0, meshLoad: 60.0))
+```
+
+Keep one-shot streaming actions as commands:
+
+```swift
+GeometryStreamingSystem.shared.forceUnloadAllParsedTiles()
+```
+
+## Static Batching
+
+```swift
+setBatching(.enabled(true))
+setBatching(.cellSize(32.0))
+setBatching(.maxDirtyCellsPerTick(8))
+setBatching(.visibilityGatedBuild(true))
+setBatching(.backgroundArtifactBuild(true))
+setBatching(.runtimeTuning(.visionOSBalanced))
+```
+
+Entity tagging and rebuild commands remain explicit:
+
+```swift
+setEntityStaticBatchComponent(entityId: entity)
+generateBatches()
+clearSceneBatches()
+```
+
+## LOD
+
+```swift
+setLOD(.fadeTransitions(.enabled(duration: 0.25)))
+setLOD(.fadeTransitions(.disabled))
+setLOD(.distanceBias(1.0))
+setLOD(.hysteresis(5.0))
+setLOD(.updateFrameInterval(4))
+setLOD(.minimumCameraDisplacement(0.5))
+setLOD(.distanceThresholds([50, 100, 200, 500]))
+```
+
+`setLOD(.fadeTransitions(.enabled(duration:)))` replaces the older direct configuration:
+
+```swift
+LODConfig.shared.enableFadeTransitions = true
+LODConfig.shared.fadeTransitionTime = 0.25
+```
+
+
+## Spatial Debug
+
+```swift
+setSpatialDebug(.octreeLeafBounds(.enabled(
+    maxLeafNodeCount: 0,
+    occupiedOnly: true,
+    colorMode: .culling
+)))
+setSpatialDebug(.tileBounds(enabled: true, maxTileNodeCount: 500))
+setSpatialDebug(.staticBatchCellBounds(enabled: true, maxCellCount: 2000, colorMode: .lod))
+setSpatialDebug(.lodLevels(true))
+setSpatialDebug(.textureStreamingTiers(true))
+setSpatialDebug(.disabled)
+```
+
+## Logger
+
+```swift
+setLogger(.level(.debug))
+setLogger(.category(.tileStreaming, true))
+setLogger(.categories([.streamingHeartbeat, .oocTiming], true))
+setLogger(.resetCategories)
+```
+
+Logging itself stays message-oriented:
+
+```swift
+Logger.log(message: "Scene loaded", category: LogCategory.general.rawValue)
+```
+
+## Camera
+
+```swift
+let camera = findGameCamera()
+setCamera(.active(camera))
+setCamera(.defaultFOV(70.0))
+setCamera(.clipPlanes(near: 0.1, far: 1000.0))
+```
+
 ## Style Rule
 
-When adding new public settings, prefer one of these forms:
+For Contributors, when adding new public settings, prefer one of these forms:
 
 ```swift
 setLOD(.newProperty(value))
 setRendering(.newProperty(value))
 setPostFX(.effect(.newProperty(value)))
 setEngine(.newProperty(value))
+setGeometryStreaming(.newProperty(value))
+setBatching(.newProperty(value))
+setSpatialDebug(.newProperty(value))
+setLogger(.newProperty(value))
+setCamera(.newProperty(value))
 setSceneChannel(.contextGeometry, .renderMode(.wireframe))
 ```
 
