@@ -34,6 +34,19 @@ extension GeometryStreamingSystem {
 
         withWorldMutationGate {
             for var fade in activeTileRepresentationFades {
+                if fade.waitsForIncomingVisibility {
+                    let visibleSet = Set(visibleEntityIds)
+                    let incomingVisible = fade.incomingRenderIds.contains { visibleSet.contains($0) }
+                    if !incomingVisible {
+                        for entityId in fade.allRenderIds where scene.exists(entityId) {
+                            scene.get(component: TileRepresentationFadeComponent.self, for: entityId)?.progress = 0
+                        }
+                        remaining.append(fade)
+                        continue
+                    }
+                    fade.waitsForIncomingVisibility = false
+                }
+
                 fade.elapsed += deltaTime
                 let progress = simd_clamp(fade.elapsed / max(fade.duration, 0.001), 0.0, 1.0)
 
@@ -127,6 +140,7 @@ extension GeometryStreamingSystem {
                 completion: completion,
                 elapsed: 0,
                 duration: duration,
+                waitsForIncomingVisibility: true,
                 incomingRenderIds: incomingRenderIds,
                 outgoingRenderIds: outgoingRenderIds
             ))
@@ -314,6 +328,7 @@ extension GeometryStreamingSystem {
     func unloadHLOD(entityId: EntityID) {
         guard let tileComp = scene.get(component: TileComponent.self, for: entityId),
               tileComp.hlodState != .unloaded else { return }
+        guard canUnloadTileFallback(entityId: entityId, tileComp: tileComp, removingHLOD: true) else { return }
 
         // Set .unloading BEFORE cancel() so any in-flight completion callback
         // that checks hlodState sees .unloading (not .loading) and discards its result.
@@ -500,6 +515,7 @@ extension GeometryStreamingSystem {
         guard let tileComp = scene.get(component: TileComponent.self, for: entityId),
               levelIndex < tileComp.lodLevels.count,
               tileComp.lodLevels[levelIndex].state != .unloaded else { return }
+        guard canUnloadTileFallback(entityId: entityId, tileComp: tileComp, removingLODLevel: levelIndex) else { return }
 
         // Set .unloading BEFORE cancel() so an in-flight completion sees it and discards.
         // If the level was still .loading, the completion callback will not decrement the
@@ -730,8 +746,9 @@ extension GeometryStreamingSystem {
 
                         let tileRenderIds = self.collectRenderDescendantIds(capturedMeshEntityId)
                         let selectableRenderIds = tileRenderIds.filter { hasEntitySceneChannel(entityId: $0, channel: .selectableGeometry) }
+                        let hasFallbackCoverage = tc.hlodState == .loaded || tc.lodLevels.contains { $0.state == .loaded }
                         let canReleaseFallback = self.canReleaseLOD0Fallback(entityId: entityId, tileComp: tc, renderEntityIds: tileRenderIds)
-                        let fullTileFadeStarted = canReleaseFallback
+                        let fullTileFadeStarted = hasFallbackCoverage
                             ? self.beginFadeFromTileFallbacksToFullTile(entityId: entityId, tileComp: tc)
                             : false
 

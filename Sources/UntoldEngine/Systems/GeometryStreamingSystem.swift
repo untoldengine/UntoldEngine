@@ -43,6 +43,7 @@ struct ActiveTileRepresentationFade {
     let completion: TileFadeCompletion
     var elapsed: Float
     let duration: Float
+    var waitsForIncomingVisibility: Bool
     let incomingRenderIds: Set<EntityID>
     let outgoingRenderIds: Set<EntityID>
 
@@ -2384,6 +2385,52 @@ public class GeometryStreamingSystem: @unchecked Sendable {
 
         let visibleSet = Set(visibleEntityIds)
         return renderEntityIds.contains { visibleSet.contains($0) }
+    }
+
+    func fullTileHasVisibleCoverage(entityId: EntityID, tileComp: TileComponent) -> Bool {
+        guard tileHasUsableFullGeometry(tileComp) else { return false }
+        let renderIds = fullTileRenderDescendantIds(tileEntityId: entityId)
+        return canReleaseLOD0Fallback(entityId: entityId, tileComp: tileComp, renderEntityIds: renderIds)
+    }
+
+    func canUnloadTileFallback(entityId: EntityID, tileComp: TileComponent, removingLODLevel levelIndex: Int? = nil, removingHLOD: Bool = false) -> Bool {
+        let visibleSet = Set(visibleEntityIds)
+
+        if removingHLOD {
+            let removingIds = hlodRenderDescendantIds(tileComp)
+            if !removingIds.contains(where: { visibleSet.contains($0) }) {
+                return true
+            }
+        }
+
+        if let levelIndex {
+            let removingIds = lodRenderDescendantIds(tileComp, levelIndex: levelIndex)
+            if !removingIds.contains(where: { visibleSet.contains($0) }) {
+                return true
+            }
+        }
+
+        if fullTileHasVisibleCoverage(entityId: entityId, tileComp: tileComp) {
+            return true
+        }
+
+        if tileComp.hlodState == .loaded, !removingHLOD {
+            let renderIds = hlodRenderDescendantIds(tileComp)
+            if renderIds.contains(where: { visibleSet.contains($0) }) {
+                return true
+            }
+        }
+
+        for (index, level) in tileComp.lodLevels.enumerated()
+            where level.state == .loaded && index != levelIndex
+        {
+            let renderIds = lodRenderDescendantIds(tileComp, levelIndex: index)
+            if renderIds.contains(where: { visibleSet.contains($0) }) {
+                return true
+            }
+        }
+
+        return false
     }
 
     func releaseLOD0FallbackCoverage(entityId: EntityID) {
