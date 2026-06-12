@@ -1693,7 +1693,7 @@ public final class SMAAParams: ObservableObject, @unchecked Sendable {
 }
 
 /// SSAO Quality Settings
-public enum SSAOQuality: Int, CaseIterable {
+public enum SSAOQuality: Int, CaseIterable, Sendable {
     case fast = 0
     case balanced = 1
     case high = 2

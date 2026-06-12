@@ -12,7 +12,7 @@ Use structured metrics as the source of truth, then enable category logs only wh
 Enable the profiler at runtime:
 
 ```swift
-enableEngineMetrics = true
+setEngine(.metrics(.enabled))
 ```
 
 Or via environment variable:
@@ -115,7 +115,7 @@ Enable them when diagnosing OOC/loader behavior:
 
 ```swift
 // Keep structured profiler metrics on
-enableEngineMetrics = true
+setEngine(.metrics(.enabled))
 setEngineStatsLogging(enabled: true, profile: .compact, intervalSeconds: 1.0)
 
 // Add focused trace logs
@@ -354,7 +354,7 @@ To inspect timeline data:
 1. Open Instruments
 2. Choose **Points of Interest**
 3. Filter subsystem to `com.untoldengine.profiling`
-4. Run the app with `enableEngineMetrics = true` (or `UNTOLD_METRICS=1`)
+4. Run the app with `setEngine(.metrics(.enabled))` (or `UNTOLD_METRICS=1`)
 
 ## Build Configuration Notes
 

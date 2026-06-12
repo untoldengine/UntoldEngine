@@ -73,9 +73,9 @@ Once everything is set up:
 Set the anti-aliasing mode globally before the first frame (or at any point to change it at runtime):
 
 ```swift
-antiAliasingMode = .fxaa   // Fast Approximate Anti-Aliasing (default)
-antiAliasingMode = .smaa   // Subpixel Morphological Anti-Aliasing
-antiAliasingMode = .none   // Disabled
+setRendering(.antiAliasing(.fxaa))   // Fast Approximate Anti-Aliasing (default)
+setRendering(.antiAliasing(.smaa))   // Subpixel Morphological Anti-Aliasing
+setRendering(.antiAliasing(.none))   // Disabled
 ```
 
 SMAA produces sharper results than FXAA and handles diagonal/corner patterns, at roughly 3× the GPU cost of FXAA. For most scenes `.fxaa` is a good default. See [UsingPostFX](UsingPostFX.md) for debug views that let you inspect the intermediate AA passes.
@@ -86,13 +86,13 @@ SMAA produces sharper results than FXAA and handles diagonal/corner patterns, at
 
 Opaque geometry uses a tile-based deferred rendering (TBDR) path. The model pass writes G-Buffer data into memoryless tile attachments, then the lighting shader reads those attachments through framebuffer fetch inside the same render encoder. This keeps the high-bandwidth G-Buffer data on the GPU tile instead of round-tripping it through full-screen textures.
 
-SSAO is still available through `SSAO.setEnabled(true)`, `SSAOParams.shared`, and `PostFX` presets, but the current implementation is **depth-only**. It samples the stored opaque depth buffer and applies the blurred occlusion during pre-composite. It no longer requires the normal or position G-Buffer textures to be stored in memory.
+SSAO is still available through `setPostFX(.ssao(...))` and PostFX presets, but the current implementation is **depth-only**. It samples the stored opaque depth buffer and applies the blurred occlusion during pre-composite. It no longer requires the normal or position G-Buffer textures to be stored in memory.
 
 ```swift
-SSAO.setEnabled(true)
-SSAOParams.shared.radius = 0.8
-SSAOParams.shared.bias = 0.025
-SSAOParams.shared.intensity = 0.75
+setPostFX(.ssao(.enabled(true)))
+setPostFX(.ssao(.radius(0.8)))
+setPostFX(.ssao(.bias(0.025)))
+setPostFX(.ssao(.intensity(0.75)))
 ```
 
 Use `.ssaoBlurred` in the debug view to inspect the final blurred occlusion texture.
@@ -104,17 +104,19 @@ Use `.ssaoBlurred` in the debug view to inspect the final blurred occlusion text
 The engine can visualize individual G-Buffer layers and anti-aliasing internals in place of the final lit image:
 
 ```swift
-renderDebugViewMode = .lit             // Normal output (default)
-renderDebugViewMode = .albedo          // G-Buffer base color
-renderDebugViewMode = .normal          // G-Buffer surface normals
-renderDebugViewMode = .depth           // Linearized depth buffer (grayscale)
-renderDebugViewMode = .ssaoBlurred     // SSAO occlusion result
-renderDebugViewMode = .fxaaEdgeDebug   // FXAA luma-gradient edge map
-renderDebugViewMode = .smaaEdges       // SMAA edge detection output
-renderDebugViewMode = .smaaBlend       // SMAA blend-weight texture
-renderDebugViewMode = .smaaDifference  // Original vs. SMAA-resolved difference
+setRendering(.debugView(.lit))            // Normal output (default)
+setRendering(.debugView(.albedo))         // G-Buffer base color
+setRendering(.debugView(.normal))         // G-Buffer surface normals
+setRendering(.debugView(.depth))          // Linearized depth buffer (grayscale)
+setRendering(.debugView(.ssaoBlurred))    // SSAO occlusion result
+setRendering(.debugView(.fxaaEdgeDebug))  // FXAA luma-gradient edge map
+setRendering(.debugView(.smaaEdges))      // SMAA edge detection output
+setRendering(.debugView(.smaaBlend))      // SMAA blend-weight texture
+setRendering(.debugView(.smaaDifference)) // Original vs. SMAA-resolved difference
 ```
 
-Restore normal rendering with `renderDebugViewMode = .lit`.
+Restore normal rendering with `setRendering(.debugView(.lit))`.
+
+For the broader settings style, see [Engine Settings API](UsingEngineSettings.md).
 
 ---
