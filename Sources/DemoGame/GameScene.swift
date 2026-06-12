@@ -77,9 +77,9 @@
             applyIBL = true
             renderEnvironment = false
             LODConfig.shared.enableFadeTransitions = true
-            Logger.enable(category: .tileStreaming)
-            Logger.enable(category: .streamingHeartbeat)
-            setEngineStatsLogging(enabled: true, profile: .verbose, intervalSeconds: 1.0)
+            //Logger.enable(category: .tileStreaming)
+            //Logger.enable(category: .streamingHeartbeat)
+            //setEngineStatsLogging(enabled: true, profile: .verbose, intervalSeconds: 1.0)
         }
     }
 
