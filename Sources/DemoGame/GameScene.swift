@@ -76,7 +76,7 @@
 
             applyIBL = true
             renderEnvironment = false
-            LODConfig.shared.enableFadeTransitions = true
+            setLOD(.fadeTransitions(.enabled(duration: 0.25)))
             //Logger.enable(category: .tileStreaming)
             //Logger.enable(category: .streamingHeartbeat)
             //setEngineStatsLogging(enabled: true, profile: .verbose, intervalSeconds: 1.0)

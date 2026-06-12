@@ -9,7 +9,7 @@ The engine provides a post-processing system through the `PostFX` namespace. You
 The simplest way to set up post-effects is to apply one of the built-in presets:
 
 ```swift
-PostFX.apply(.cinematic)
+setPostFX(.preset(.cinematic))
 ```
 
 That single call configures color grading and SSAO together. No scene wiring or callback setup is needed — it works from anywhere in your game code.
@@ -30,13 +30,13 @@ Presets can be swapped at any point during gameplay — for example when transit
 
 ```swift
 // Entering a dark dungeon
-PostFX.apply(.cinematic)
+setPostFX(.preset(.cinematic))
 
 // Entering a bright outdoor area
-PostFX.apply(.highContrast)
+setPostFX(.preset(.highContrast))
 
 // Reset everything to defaults
-PostFX.apply(.neutral)
+setPostFX(.preset(.neutral))
 ```
 
 ---
@@ -54,10 +54,12 @@ let sunset = PostFXPreset(
     temperature: 0.4
 )
 
-PostFX.apply(sunset)
+setPostFX(.preset(sunset))
 ```
 
 All parameters have defaults (matching `.neutral`), so you only need to specify the values you want to change.
+
+The older `PostFX.apply(...)` call remains supported. New code should prefer `setPostFX(.preset(...))` so settings use the same facade style as LOD, rendering, and engine globals.
 
 ### PostFXPreset Parameters
 
@@ -80,12 +82,12 @@ All parameters have defaults (matching `.neutral`), so you only need to specify 
 
 ## Anti-Aliasing
 
-Anti-aliasing is configured through the `antiAliasingMode` global, not through the `PostFX` namespace:
+Anti-aliasing is configured through the rendering settings facade, not through the `PostFX` namespace:
 
 ```swift
-antiAliasingMode = .fxaa   // Fast Approximate Anti-Aliasing (default)
-antiAliasingMode = .smaa   // Subpixel Morphological Anti-Aliasing (3-pass)
-antiAliasingMode = .none   // No anti-aliasing
+setRendering(.antiAliasing(.fxaa))   // Fast Approximate Anti-Aliasing (default)
+setRendering(.antiAliasing(.smaa))   // Subpixel Morphological Anti-Aliasing (3-pass)
+setRendering(.antiAliasing(.none))   // No anti-aliasing
 ```
 
 | Mode | Description |
@@ -94,14 +96,14 @@ antiAliasingMode = .none   // No anti-aliasing
 | `.smaa` | Three-pass chain (edge detection → blend weights → neighborhood blend). Sharper than FXAA, handles diagonal and corner patterns. Costs ~3× the GPU time of FXAA. |
 | `.none` | Anti-aliasing skipped entirely. The output transform reads directly from the look pass. |
 
-SMAA also exposes intermediate debug views via `renderDebugViewMode`:
+SMAA also exposes intermediate debug views through `setRendering(.debugView(...))`:
 
 ```swift
-renderDebugViewMode = .smaaEdges      // Show edge detection result
-renderDebugViewMode = .smaaBlend      // Show blend-weight texture
-renderDebugViewMode = .smaaDifference // Show original vs. resolved difference
-renderDebugViewMode = .fxaaEdgeDebug  // Show FXAA luma-gradient edge map
-renderDebugViewMode = .lit            // Normal rendering (default)
+setRendering(.debugView(.smaaEdges))      // Show edge detection result
+setRendering(.debugView(.smaaBlend))      // Show blend-weight texture
+setRendering(.debugView(.smaaDifference)) // Show original vs. resolved difference
+setRendering(.debugView(.fxaaEdgeDebug))  // Show FXAA luma-gradient edge map
+setRendering(.debugView(.lit))            // Normal rendering (default)
 ```
 
 ---
@@ -111,9 +113,9 @@ renderDebugViewMode = .lit            // Normal rendering (default)
 For fine-grained control outside of presets, you can enable or disable individual effects:
 
 ```swift
-PostFX.setEnabled(.colorGrading, true)
-PostFX.setEnabled(.vignette, true)
-PostFX.setEnabled(.chromaticAberration, false)
+setPostFX(.colorGrading(.enabled(true)))
+setPostFX(.vignette(.enabled(true)))
+setPostFX(.chromaticAberration(.enabled(false)))
 ```
 
 And read their current state:
@@ -136,11 +138,9 @@ let isActive = PostFX.isEnabled(.bloomThreshold)
 
 > **SSAO is not a `PostFXEffect`** — it has its own enable API:
 > ```swift
-> SSAO.setEnabled(true)
-> // or directly:
-> SSAOParams.shared.enabled = true
+> setPostFX(.ssao(.enabled(true)))
 > ```
-> SSAO is also configured through `PostFXPreset` when you call `PostFX.apply(preset)`, but it is not accessible via `PostFX.setEnabled(...)` or `PostFX.isEnabled(...)`.
+> SSAO is also configured through `PostFXPreset` when you call `setPostFX(.preset(preset))`.
 
 The current SSAO renderer is depth-only. It samples the stored opaque depth buffer, runs the blur chain internally, and applies the result during pre-composite. This keeps SSAO compatible with the engine's tile-based deferred renderer without forcing normal or position G-Buffer attachments to be stored in memory.
 
@@ -152,23 +152,27 @@ Each effect exposes its parameters through a shared singleton. Import `UntoldEng
 
 ```swift
 // Color grading
-ColorGradingParams.shared.exposure    = -0.2
-ColorGradingParams.shared.contrast    = 1.15
-ColorGradingParams.shared.saturation  = 0.9
-ColorGradingParams.shared.temperature = -0.1
+setPostFX(.colorGrading(.exposure(-0.2)))
+setPostFX(.colorGrading(.contrast(1.15)))
+setPostFX(.colorGrading(.saturation(0.9)))
+setPostFX(.colorGrading(.temperature(-0.1)))
 
 // Bloom
-BloomThresholdParams.shared.threshold = 0.6
-BloomThresholdParams.shared.intensity = 0.8
-BloomThresholdParams.shared.enabled   = true
+setPostFX(.bloomThreshold(.threshold(0.6)))
+setPostFX(.bloomThreshold(.intensity(0.8)))
+setPostFX(.bloomThreshold(.enabled(true)))
 
 // Vignette
-VignetteParams.shared.intensity = 0.5
-VignetteParams.shared.radius    = 0.8
-VignetteParams.shared.enabled   = true
+setPostFX(.vignette(.intensity(0.5)))
+setPostFX(.vignette(.radius(0.8)))
+setPostFX(.vignette(.enabled(true)))
 
 // SSAO
-SSAOParams.shared.radius    = 0.8
-SSAOParams.shared.intensity = 0.75
-SSAOParams.shared.enabled   = true
+setPostFX(.ssao(.radius(0.8)))
+setPostFX(.ssao(.intensity(0.75)))
+setPostFX(.ssao(.enabled(true)))
 ```
+
+Direct singleton access remains available for compatibility and advanced tooling. Prefer the `setPostFX(...)` facade in user-facing examples.
+
+For the broader settings style, see [Engine Settings API](UsingEngineSettings.md).

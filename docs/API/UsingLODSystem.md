@@ -263,16 +263,17 @@ Configure global LOD behavior:
 
 ```swift
 // Adjust LOD bias (higher = switch to lower detail sooner)
-LODConfig.shared.lodBias = 1.5  // Performance mode
-LODConfig.shared.lodBias = 0.75 // Quality mode
+setLOD(.distanceBias(1.5))  // Performance mode
+setLOD(.distanceBias(0.75)) // Quality mode
 
 // Adjust hysteresis to prevent flickering
-LODConfig.shared.hysteresis = 10.0
+setLOD(.hysteresis(10.0))
 
-// Enable fade transitions between LODs - Not yet implemented
-LODConfig.shared.enableFadeTransitions = true
-LODConfig.shared.fadeTransitionTime = 0.5 // seconds
+// Enable dithered cross-fade transitions between LOD representations
+setLOD(.fadeTransitions(.enabled(duration: 0.5)))
 ```
+
+The older `LODConfig.shared` values remain available for compatibility and advanced tuning. New code should prefer `setLOD(...)` so LOD settings follow the same style as scene channels, rendering, and PostFX.
 
 ### Forced LOD Override
 
@@ -354,8 +355,8 @@ Base distances on object importance and size:
 - Ensure camera has `CameraComponent` and is active
 
 ### Visual Popping Between LODs
-- Increase `LODConfig.shared.hysteresis` value
-- Enable fade transitions: `LODConfig.shared.enableFadeTransitions = true` - not yet implemented
+- Increase hysteresis: `setLOD(.hysteresis(8.0))`
+- Enable dithered cross-fade transitions: `setLOD(.fadeTransitions(.enabled(duration: 0.3)))`
 - Adjust LOD bias for smoother transitions
 
 ### File Not Found Errors
@@ -396,8 +397,9 @@ for i in 0..<10 {
 }
 
 // Configure LOD system for this scene
-LODConfig.shared.lodBias = 1.2  // Slightly favor performance
-LODConfig.shared.hysteresis = 8.0  // Prevent flickering
+setLOD(.distanceBias(1.2)) // Slightly favor performance
+setLOD(.hysteresis(8.0)) // Prevent flickering
+setLOD(.fadeTransitions(.enabled(duration: 0.3)))
 
 print("Created \(trees.count) trees with LOD support")
 ```
