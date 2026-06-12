@@ -254,7 +254,7 @@
             ssaoBias = Double(preset.ssaoBias)
             ssaoIntensity = Double(preset.ssaoIntensity)
             isApplyingPostFXPreset = false
-            PostFX.apply(preset)
+            setPostFX(.preset(preset))
         }
 
         private func notifyColorGradingChanged(force: Bool = false) {
