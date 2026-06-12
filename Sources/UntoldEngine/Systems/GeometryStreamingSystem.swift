@@ -33,6 +33,24 @@ private struct TileRepresentationGapAuditSummary {
     var parsedNoRepresentation: Int = 0
 }
 
+enum TileFadeCompletion {
+    case unloadHLOD
+    case unloadLODLevel(Int)
+}
+
+struct ActiveTileRepresentationFade {
+    let tileEntityId: EntityID
+    let completion: TileFadeCompletion
+    var elapsed: Float
+    let duration: Float
+    let incomingRenderIds: Set<EntityID>
+    let outgoingRenderIds: Set<EntityID>
+
+    var allRenderIds: Set<EntityID> {
+        incomingRenderIds.union(outgoingRenderIds)
+    }
+}
+
 public class GeometryStreamingSystem: @unchecked Sendable {
     public static let shared = GeometryStreamingSystem()
 
@@ -252,6 +270,8 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     /// Protected by stateLock.  Same role as lodLoadingCount — prevents simultaneous
     /// mass dispatch of 100+ HLOD parses that would OOM-kill the process.
     var hlodLoadingCount: Int = 0
+
+    var activeTileRepresentationFades: [ActiveTileRepresentationFade] = []
 
     // MARK: - Camera Velocity (4.5 predictive loading)
 
@@ -648,6 +668,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
 
         currentFrame += 1
         MeshResourceManager.shared.currentFrame = currentFrame // Keep cache LRU updated
+        advanceTileRepresentationFades(deltaTime: deltaTime)
 
         let activeLoadsAtStart = activeLoadCountSnapshot()
 
@@ -1180,7 +1201,9 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                 }
             case .parsed:
                 if tileHasUsableFullGeometry(tileComp), !tileLOD0HandoffPending.contains(entityId) {
-                    unloadAllLODLevels(entityId: entityId)
+                    if !beginFadeFromTileFallbacksToFullTile(entityId: entityId, tileComp: tileComp) {
+                        unloadAllLODLevels(entityId: entityId)
+                    }
                 } else if let target = fallbackTargetIndex {
                     lodLoadCandidates.append(makeTileRepresentationCandidate(
                         entityId: entityId,
@@ -1216,6 +1239,23 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             {
                 guard activeLODLoadCount() < maxConcurrentLODLoads else { break }
                 loadLODLevel(entityId: candidate.entityId, levelIndex: candidate.levelIndex)
+            }
+
+            for i in tileComp.lodLevels.indices where i != candidate.levelIndex {
+                if canTransitionLOD,
+                   tileComp.lodLevels[candidate.levelIndex].state == .loaded,
+                   tileComp.lodLevels[i].state != .unloaded
+                {
+                    let startedFade = beginTileRepresentationFade(
+                        tileEntityId: candidate.entityId,
+                        incomingRenderIds: lodRenderDescendantIds(tileComp, levelIndex: candidate.levelIndex),
+                        outgoingRenderIds: lodRenderDescendantIds(tileComp, levelIndex: i),
+                        completion: .unloadLODLevel(i)
+                    )
+                    if !startedFade {
+                        unloadLODLevel(entityId: candidate.entityId, levelIndex: i)
+                    }
+                }
             }
         }
 
@@ -1256,7 +1296,21 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                        tileComp.hlodState != .unloaded,
                        tileHasLoadedLOD(tileComp) || tileHasUsableFullGeometry(tileComp)
                     {
-                        unloadHLOD(entityId: entityId)
+                        var incoming: Set<EntityID> = []
+                        if tileHasUsableFullGeometry(tileComp) {
+                            incoming = fullTileRenderDescendantIds(tileEntityId: entityId)
+                        } else if let loadedLOD = tileComp.lodLevels.indices.first(where: { tileComp.lodLevels[$0].state == .loaded }) {
+                            incoming = lodRenderDescendantIds(tileComp, levelIndex: loadedLOD)
+                        }
+                        let startedFade = beginTileRepresentationFade(
+                            tileEntityId: entityId,
+                            incomingRenderIds: incoming,
+                            outgoingRenderIds: hlodRenderDescendantIds(tileComp),
+                            completion: .unloadHLOD
+                        )
+                        if !startedFade {
+                            unloadHLOD(entityId: entityId)
+                        }
                     }
                 }
             // else: inside hysteresis band — keep current HLOD state.
@@ -1266,7 +1320,15 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                    !tileLOD0HandoffPending.contains(entityId),
                    tileComp.hlodState != .unloaded
                 {
-                    unloadHLOD(entityId: entityId)
+                    let startedFade = beginTileRepresentationFade(
+                        tileEntityId: entityId,
+                        incomingRenderIds: fullTileRenderDescendantIds(tileEntityId: entityId),
+                        outgoingRenderIds: hlodRenderDescendantIds(tileComp),
+                        completion: .unloadHLOD
+                    )
+                    if !startedFade {
+                        unloadHLOD(entityId: entityId)
+                    }
                 }
             case .parsing, .unloading:
                 // Keep HLOD visible during full-tile load for a seamless transition.
@@ -2138,6 +2200,15 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     /// This API frees GPU memory immediately so the next full-scale session can
     /// start loading tiles with a clean memory budget.
     public func forceUnloadAllParsedTiles() {
+        withWorldMutationGate {
+            let tileFadeComponentId = getComponentId(for: TileRepresentationFadeComponent.self)
+            let fadingEntities = queryEntitiesWithComponentIds([tileFadeComponentId], in: scene)
+            for entityId in fadingEntities {
+                scene.remove(component: TileRepresentationFadeComponent.self, from: entityId)
+            }
+            activeTileRepresentationFades.removeAll(keepingCapacity: true)
+        }
+
         // Cancel in-flight (.parsing) tiles first so their Tasks cannot complete
         // through the success path after this call returns.
         let parsingSnapshot = loadingTileEntitiesSnapshot()
@@ -2204,6 +2275,12 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                     }
                 }
             }
+            let tileFadeComponentId = getComponentId(for: TileRepresentationFadeComponent.self)
+            let fadingEntities = queryEntitiesWithComponentIds([tileFadeComponentId], in: scene)
+            for entityId in fadingEntities {
+                scene.remove(component: TileRepresentationFadeComponent.self, from: entityId)
+            }
+            activeTileRepresentationFades.removeAll(keepingCapacity: true)
             withStateLock {
                 loadedHLODEntities.removeAll()
                 loadedLODEntities.removeAll()
@@ -2310,12 +2387,24 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     }
 
     func releaseLOD0FallbackCoverage(entityId: EntityID) {
+        var fadeStarted = false
+        if let tileComp = scene.get(component: TileComponent.self, for: entityId) {
+            fadeStarted = beginFadeFromTileFallbacksToFullTile(entityId: entityId, tileComp: tileComp)
+        }
+
+        clearLOD0FallbackBookkeeping(entityId: entityId)
+
+        if !fadeStarted {
+            unloadHLOD(entityId: entityId)
+            unloadAllLODLevels(entityId: entityId)
+        }
+    }
+
+    func clearLOD0FallbackBookkeeping(entityId: EntityID) {
         tileLOD0HandoffPending.remove(entityId)
         if !tileRepresentationDiagnosticsEnabled {
             lod0VisibilityProbes.removeValue(forKey: entityId)
         }
-        unloadHLOD(entityId: entityId)
-        unloadAllLODLevels(entityId: entityId)
     }
 
     func recordLOD0Promotion(

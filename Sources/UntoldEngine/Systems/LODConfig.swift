@@ -52,7 +52,8 @@ public struct LODConfig {
     /// Hysteresis to prevent flickering ( add to distance when switching up)
     public var hysteresis: Float = 5.0
 
-    // Enable smooth transitions - Not yet implemented
+    /// Enable dithered cross-fade transitions for entity-level LOD switches and
+    /// tile representation handoffs.
     public var enableFadeTransitions: Bool = false
     public var fadeTransitionTime: Float = 0.3
 

@@ -199,6 +199,21 @@ final class LODSystemTests: XCTestCase {
         XCTAssertEqual(lodComp.transitionProgress, 0.0, "Transition progress should reset to 0")
     }
 
+    func testLODSelectionDefersDuringFadeTransition() {
+        XCTAssertTrue(
+            shouldDeferLODSelectionDuringTransition(fadeTransitionsEnabled: true, previousLOD: 1),
+            "Active fades should finish before LOD selection can retarget the entity"
+        )
+        XCTAssertFalse(
+            shouldDeferLODSelectionDuringTransition(fadeTransitionsEnabled: true, previousLOD: nil),
+            "LOD selection should run normally when no fade is active"
+        )
+        XCTAssertFalse(
+            shouldDeferLODSelectionDuringTransition(fadeTransitionsEnabled: false, previousLOD: 1),
+            "Instant-switch mode should not use fade-transition deferral"
+        )
+    }
+
     // MARK: - Array Extension Tests
 
     func testSafeArraySubscript() {

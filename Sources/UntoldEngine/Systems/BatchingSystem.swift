@@ -711,6 +711,37 @@ public class BatchingSystem: @unchecked Sendable {
         pendingEntityRemovals.formUnion(entityIds)
     }
 
+    /// Removes fading tile representation entities from active/pending batches so
+    /// the renderer can draw them with per-entity dither uniforms.
+    public func notifyTileEntitiesFading(_ entityIds: Set<EntityID>) {
+        guard !entityIds.isEmpty else { return }
+
+        pendingEntityAdditions.subtract(entityIds)
+        newlyResidentEntities.subtract(entityIds)
+        tileParsedEntityIds.subtract(entityIds)
+        if pendingTileResidentQueueHead < pendingTileResidentQueue.count {
+            let tail = pendingTileResidentQueue[pendingTileResidentQueueHead...]
+            pendingTileResidentQueue = tail.filter { !entityIds.contains($0) }
+        } else {
+            pendingTileResidentQueue.removeAll(keepingCapacity: true)
+        }
+        pendingTileResidentQueueHead = 0
+
+        var affectedCells: Set<BatchCellID> = []
+        for entityId in entityIds {
+            if let cellId = entityToCellMembership[entityId] ?? resolveCellIdForEntity(entityId: entityId) {
+                affectedCells.insert(cellId)
+            }
+            pendingEntityRemovals.insert(entityId)
+        }
+
+        for cellId in affectedCells {
+            _ = removeBatchesForCell(cellId, queueForRetirement: false)
+            dirtyCells.insert(cellId)
+            setCellState(cellId, .renderableUnbatched)
+        }
+    }
+
     /// Compact one-line summary for periodic heartbeat logging.
     /// Reports the fields most likely to reveal accumulation bugs:
     /// registered entity count, dirty cells, and last rebuild cost.
@@ -732,12 +763,19 @@ public class BatchingSystem: @unchecked Sendable {
         // The premature dirtyCells.insert is also omitted: removeEntityFromBatchingTracking
         // calls markCellDirtyForFallback during the tick which inserts the same cell —
         // the early insert only caused a redundant estimateCellWork() call on the same tick.
-        if entityToCellMembership[event.entityId] != nil {
+        let isActiveLODFade = scene.get(component: LODComponent.self, for: event.entityId)?.previousLOD != nil
+        if let cellId = entityToCellMembership[event.entityId] {
+            if isActiveLODFade {
+                _ = removeBatchesForCell(cellId, queueForRetirement: false)
+            }
             pendingEntityRemovals.insert(event.entityId)
         }
 
-        // Always re-queue for addition so the entity rebatches under its new LOD key.
-        pendingEntityAdditions.insert(event.entityId)
+        // Active entity LOD fades need per-entity uniforms. LODSystem emits a
+        // same-LOD completion event after the fade clears, which requeues batching.
+        if !isActiveLODFade {
+            pendingEntityAdditions.insert(event.entityId)
+        }
     }
 
     private func handleResidencyChange(_ event: AssetResidencyChangedEvent) {
@@ -1596,6 +1634,14 @@ public class BatchingSystem: @unchecked Sendable {
 
         // Skip entities with empty meshes (not yet loaded by streaming)
         if renderComponent.mesh.isEmpty { return nil }
+
+        if scene.get(component: LODComponent.self, for: entityId)?.previousLOD != nil {
+            return nil
+        }
+
+        if scene.get(component: TileRepresentationFadeComponent.self, for: entityId) != nil {
+            return nil
+        }
 
         // Identity-preserved streamed objects must stay individually renderable/selectable.
         if shouldPreserveSceneEntityIdentity(entityId: entityId) { return nil }

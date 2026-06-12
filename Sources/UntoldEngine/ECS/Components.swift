@@ -400,6 +400,22 @@ public class TileLODTagComponent: Component {
     }
 }
 
+/// Per-render-descendant dither state used while tile LOD/HLOD/full-tile
+/// representations hand off visibility.
+public class TileRepresentationFadeComponent: Component {
+    /// 0...1 cross-fade progress.
+    public var progress: Float = 0
+    /// Matches MaterialParametersUniform.lodDither.y.
+    /// 1 = incoming representation, 2 = outgoing representation.
+    public var mode: Float = 0
+
+    public required init() {}
+    public init(progress: Float, mode: Float) {
+        self.progress = progress
+        self.mode = mode
+    }
+}
+
 // MARK: Static Batching Component
 
 public class StaticBatchComponent: Component {

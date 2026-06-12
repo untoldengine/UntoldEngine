@@ -23,13 +23,29 @@ import XCTest
 final class StreamingGateTests: BaseRenderSetup {
     override func setUp() async throws {
         try await super.setUp()
+        destroyAllEntities()
         GeometryStreamingSystem.shared.reset()
         GeometryStreamingSystem.shared.enabled = true
+        GeometryStreamingSystem.shared.maxConcurrentLoads = 3
         GeometryStreamingSystem.shared.updateInterval = 0.0
+        GeometryStreamingSystem.shared.maxQueryRadius = 500.0
+        GeometryStreamingSystem.shared.maxConcurrentTileLoads = 2
+        GeometryStreamingSystem.shared.maxConcurrentLODLoads = 4
+        GeometryStreamingSystem.shared.maxConcurrentHLODLoads = 4
+        GeometryStreamingSystem.shared.tileParseMemoryBudgetMB = 200.0
+        GeometryStreamingSystem.shared.velocitySmoothing = 0.85
+        GeometryStreamingSystem.shared.velocityLookAheadTime = 0.5
+        GeometryStreamingSystem.shared.velocityLookAheadMinSpeed = 1.5
+        GeometryStreamingSystem.shared.floorProximityGateY = 5.0
+        GeometryStreamingSystem.shared.enableImportanceSort = true
         GeometryStreamingSystem.shared.enableFrustumGate = false // disabled by default; re-enabled per test
         GeometryStreamingSystem.shared.tileParseTimeoutSeconds = 60.0
+        LODConfig.shared = LODConfig()
+        OctreeSystem.shared.clear()
         MemoryBudgetManager.shared.clear()
         MemoryBudgetManager.shared.enabled = true
+        MemoryBudgetManager.shared.highWaterMark = 0.85
+        MemoryBudgetManager.shared.lowWaterMark = 0.70
         MemoryBudgetManager.shared.geometryBudget = 512 * 1024 * 1024
         MemoryBudgetManager.shared.textureBudget = 256 * 1024 * 1024
     }
@@ -37,10 +53,25 @@ final class StreamingGateTests: BaseRenderSetup {
     override func tearDown() async throws {
         GeometryStreamingSystem.shared.reset()
         GeometryStreamingSystem.shared.enabled = false
+        GeometryStreamingSystem.shared.maxConcurrentLoads = 3
+        GeometryStreamingSystem.shared.maxQueryRadius = 500.0
+        GeometryStreamingSystem.shared.maxConcurrentTileLoads = 2
+        GeometryStreamingSystem.shared.maxConcurrentLODLoads = 4
+        GeometryStreamingSystem.shared.maxConcurrentHLODLoads = 4
+        GeometryStreamingSystem.shared.tileParseMemoryBudgetMB = 200.0
+        GeometryStreamingSystem.shared.velocitySmoothing = 0.85
+        GeometryStreamingSystem.shared.velocityLookAheadTime = 0.5
+        GeometryStreamingSystem.shared.velocityLookAheadMinSpeed = 1.5
+        GeometryStreamingSystem.shared.floorProximityGateY = 5.0
+        GeometryStreamingSystem.shared.enableImportanceSort = true
         GeometryStreamingSystem.shared.enableFrustumGate = true // restore default
         GeometryStreamingSystem.shared.interiorZone = nil
+        LODConfig.shared = LODConfig()
         CameraSystem.shared.activeCamera = nil
+        OctreeSystem.shared.clear()
         MemoryBudgetManager.shared.clear()
+        MemoryBudgetManager.shared.highWaterMark = 0.85
+        MemoryBudgetManager.shared.lowWaterMark = 0.70
         LoadingSystem.shared.resourceURLFn = getResourceURL
         destroyAllEntities()
         try await super.tearDown()

@@ -25,6 +25,161 @@ extension GeometryStreamingSystem {
     ///
     // MARK: - HLOD Load / Unload
 
+    func advanceTileRepresentationFades(deltaTime: Float) {
+        guard !activeTileRepresentationFades.isEmpty else { return }
+
+        var remaining: [ActiveTileRepresentationFade] = []
+        var completed: [ActiveTileRepresentationFade] = []
+        remaining.reserveCapacity(activeTileRepresentationFades.count)
+
+        withWorldMutationGate {
+            for var fade in activeTileRepresentationFades {
+                fade.elapsed += deltaTime
+                let progress = simd_clamp(fade.elapsed / max(fade.duration, 0.001), 0.0, 1.0)
+
+                for entityId in fade.allRenderIds where scene.exists(entityId) {
+                    scene.get(component: TileRepresentationFadeComponent.self, for: entityId)?.progress = progress
+                }
+
+                if progress >= 1.0 {
+                    for entityId in fade.allRenderIds where scene.exists(entityId) {
+                        scene.remove(component: TileRepresentationFadeComponent.self, from: entityId)
+                    }
+                    completed.append(fade)
+                } else {
+                    remaining.append(fade)
+                }
+            }
+
+            activeTileRepresentationFades = remaining
+        }
+
+        for fade in completed {
+            if !fade.incomingRenderIds.isEmpty {
+                BatchingSystem.shared.notifyTileEntitiesResident(fade.incomingRenderIds)
+                TextureStreamingSystem.shared.notifyEntitiesReady(fade.incomingRenderIds)
+            }
+
+            switch fade.completion {
+            case .unloadHLOD:
+                unloadHLOD(entityId: fade.tileEntityId)
+            case .unloadLODLevel(let levelIndex):
+                unloadLODLevel(entityId: fade.tileEntityId, levelIndex: levelIndex)
+            }
+        }
+    }
+
+    func hasActiveTileRepresentationFade(entityId: EntityID, completion: TileFadeCompletion? = nil) -> Bool {
+        activeTileRepresentationFades.contains { fade in
+            guard fade.tileEntityId == entityId else { return false }
+            guard let completion else { return true }
+            return tileFadeCompletion(fade.completion, matches: completion)
+        }
+    }
+
+    private func tileFadeCompletion(_ lhs: TileFadeCompletion, matches rhs: TileFadeCompletion) -> Bool {
+        switch (lhs, rhs) {
+        case (.unloadHLOD, .unloadHLOD):
+            return true
+        case (.unloadLODLevel(let a), .unloadLODLevel(let b)):
+            return a == b
+        default:
+            return false
+        }
+    }
+
+    @discardableResult
+    func beginTileRepresentationFade(
+        tileEntityId: EntityID,
+        incomingRenderIds: Set<EntityID>,
+        outgoingRenderIds: Set<EntityID>,
+        completion: TileFadeCompletion
+    ) -> Bool {
+        guard LODConfig.shared.enableFadeTransitions else { return false }
+        guard !incomingRenderIds.isEmpty, !outgoingRenderIds.isEmpty else { return false }
+        guard !hasActiveTileRepresentationFade(entityId: tileEntityId, completion: completion) else { return true }
+
+        let duration = max(LODConfig.shared.fadeTransitionTime, 0.001)
+
+        withWorldMutationGate {
+            for entityId in incomingRenderIds where scene.exists(entityId) {
+                if scene.get(component: TileRepresentationFadeComponent.self, for: entityId) == nil {
+                    registerComponent(entityId: entityId, componentType: TileRepresentationFadeComponent.self)
+                }
+                if let fade = scene.get(component: TileRepresentationFadeComponent.self, for: entityId) {
+                    fade.progress = 0
+                    fade.mode = 1.0
+                }
+            }
+
+            for entityId in outgoingRenderIds where scene.exists(entityId) {
+                if scene.get(component: TileRepresentationFadeComponent.self, for: entityId) == nil {
+                    registerComponent(entityId: entityId, componentType: TileRepresentationFadeComponent.self)
+                }
+                if let fade = scene.get(component: TileRepresentationFadeComponent.self, for: entityId) {
+                    fade.progress = 0
+                    fade.mode = 2.0
+                }
+            }
+
+            activeTileRepresentationFades.append(ActiveTileRepresentationFade(
+                tileEntityId: tileEntityId,
+                completion: completion,
+                elapsed: 0,
+                duration: duration,
+                incomingRenderIds: incomingRenderIds,
+                outgoingRenderIds: outgoingRenderIds
+            ))
+        }
+
+        BatchingSystem.shared.notifyTileEntitiesFading(incomingRenderIds.union(outgoingRenderIds))
+        return true
+    }
+
+    func fullTileRenderDescendantIds(tileEntityId: EntityID) -> Set<EntityID> {
+        collectRenderDescendantIds(tileEntityId).filter {
+            scene.get(component: TileLODTagComponent.self, for: $0) == nil
+        }
+    }
+
+    func lodRenderDescendantIds(_ tileComp: TileComponent, levelIndex: Int) -> Set<EntityID> {
+        guard tileComp.lodLevels.indices.contains(levelIndex) else { return [] }
+        let entityId = tileComp.lodLevels[levelIndex].entityId
+        guard entityId != .invalid, scene.exists(entityId) else { return [] }
+        return collectRenderDescendantIds(entityId)
+    }
+
+    func hlodRenderDescendantIds(_ tileComp: TileComponent) -> Set<EntityID> {
+        guard let entityId = tileComp.hlodEntityId, scene.exists(entityId) else { return [] }
+        return collectRenderDescendantIds(entityId)
+    }
+
+    @discardableResult
+    func beginFadeFromTileFallbacksToFullTile(entityId: EntityID, tileComp: TileComponent) -> Bool {
+        let incoming = fullTileRenderDescendantIds(tileEntityId: entityId)
+        var started = false
+
+        if tileComp.hlodState == .loaded {
+            started = beginTileRepresentationFade(
+                tileEntityId: entityId,
+                incomingRenderIds: incoming,
+                outgoingRenderIds: hlodRenderDescendantIds(tileComp),
+                completion: .unloadHLOD
+            ) || started
+        }
+
+        for i in tileComp.lodLevels.indices where tileComp.lodLevels[i].state == .loaded {
+            started = beginTileRepresentationFade(
+                tileEntityId: entityId,
+                incomingRenderIds: incoming,
+                outgoingRenderIds: lodRenderDescendantIds(tileComp, levelIndex: i),
+                completion: .unloadLODLevel(i)
+            ) || started
+        }
+
+        return started
+    }
+
     /// Loads the coarse HLOD mesh for a tile stub as a child entity.
     /// Called when the camera is beyond `hlodSwitchDistance` and the tile is unloaded.
     /// HLOD entities are rendered through the standard model pass (no batching) and
@@ -575,6 +730,10 @@ extension GeometryStreamingSystem {
 
                         let tileRenderIds = self.collectRenderDescendantIds(capturedMeshEntityId)
                         let selectableRenderIds = tileRenderIds.filter { hasEntitySceneChannel(entityId: $0, channel: .selectableGeometry) }
+                        let canReleaseFallback = self.canReleaseLOD0Fallback(entityId: entityId, tileComp: tc, renderEntityIds: tileRenderIds)
+                        let fullTileFadeStarted = canReleaseFallback
+                            ? self.beginFadeFromTileFallbacksToFullTile(entityId: entityId, tileComp: tc)
+                            : false
 
                         // For fullLoad tiles (occCount == 0) the RenderComponent is
                         // already present on capturedMeshEntityId and its children —
@@ -587,7 +746,7 @@ extension GeometryStreamingSystem {
                             // Also enqueue into the texture streaming burst queue so
                             // freshly loaded tile geometry gets its first texture upgrade
                             // before the regular visible-entity pass.
-                            if !tileRenderIds.isEmpty {
+                            if !tileRenderIds.isEmpty, !fullTileFadeStarted {
                                 BatchingSystem.shared.notifyTileEntitiesResident(tileRenderIds)
                                 TextureStreamingSystem.shared.notifyEntitiesReady(tileRenderIds)
                             }
@@ -606,8 +765,12 @@ extension GeometryStreamingSystem {
                         // still frozen behind the loading gate/triple-buffer handoff.
                         // Keeping LOD/HLOD alive through that window avoids a visible
                         // hole during navigation.
-                        if self.canReleaseLOD0Fallback(entityId: entityId, tileComp: tc, renderEntityIds: tileRenderIds) {
-                            self.releaseLOD0FallbackCoverage(entityId: entityId)
+                        if canReleaseFallback {
+                            if fullTileFadeStarted {
+                                self.clearLOD0FallbackBookkeeping(entityId: entityId)
+                            } else {
+                                self.releaseLOD0FallbackCoverage(entityId: entityId)
+                            }
                         }
 
                         let budgetStats = MemoryBudgetManager.shared.getStats()

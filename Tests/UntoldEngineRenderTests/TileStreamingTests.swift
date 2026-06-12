@@ -667,11 +667,15 @@ final class TileStreamingHysteresisTests: BaseRenderSetup {
     override func setUp() async throws {
         try await super.setUp()
 
+        destroyAllEntities()
         GeometryStreamingSystem.shared.reset()
         GeometryStreamingSystem.shared.enabled = true
         GeometryStreamingSystem.shared.updateInterval = 0.0 // no throttle
+        LODConfig.shared = LODConfig()
         GeometryStreamingSystem.shared.lodHysteresisFactor = hysteresisFactor
+        GeometryStreamingSystem.shared.hlodHysteresisFactor = hysteresisFactor
         GeometryStreamingSystem.shared.maxConcurrentLODLoads = 4
+        GeometryStreamingSystem.shared.maxConcurrentHLODLoads = 4
         GeometryStreamingSystem.shared.maxConcurrentTileLoads = 0
         GeometryStreamingSystem.shared.maxQueryRadius = 500.0
 
@@ -686,7 +690,12 @@ final class TileStreamingHysteresisTests: BaseRenderSetup {
         GeometryStreamingSystem.shared.reset()
         GeometryStreamingSystem.shared.enabled = false
         GeometryStreamingSystem.shared.updateInterval = 0.1
+        LODConfig.shared = LODConfig()
+        GeometryStreamingSystem.shared.lodHysteresisFactor = 0.90
+        GeometryStreamingSystem.shared.hlodHysteresisFactor = 0.90
         GeometryStreamingSystem.shared.maxConcurrentTileLoads = 2
+        GeometryStreamingSystem.shared.maxConcurrentLODLoads = 4
+        GeometryStreamingSystem.shared.maxConcurrentHLODLoads = 4
         OctreeSystem.shared.clear()
         MemoryBudgetManager.shared.clear()
         try await super.tearDown()
