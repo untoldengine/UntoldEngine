@@ -94,6 +94,81 @@ CityBlender/
 The manifest lives beside `tile_exports`, and all paths in the manifest are
 relative to the manifest location.
 
+### Visualize Tiles
+
+Use the viewport tile preview before exporting to check how the scene will be
+partitioned, which objects become shared assets, and which LOD/HLOD
+representation would be active at runtime.
+
+In Blender's 3D viewport, press `N` to open the sidebar, then select the
+`Untold Tiles` tab. The `Tile & LOD Setup` panel exposes the same high-level
+partitioning choices used by `File > Export > Untold Tiled Scene`:
+
+- `Uniform Grid`: a regular X/Z grid. Use this for simple outdoor scenes or
+  scenes where evenly sized tiles are enough. `Auto Tile Size` lets the exporter
+  choose a grid size from scene complexity; disabling it enables manual
+  `Tile Size X` and `Tile Size Z (Depth)` values. `Spanning Threshold` controls
+  when very large objects are placed in the shared bucket instead of a single
+  local tile.
+- `Quadtree`: a floor-aware hierarchy that recursively subdivides dense areas.
+  This is usually the best starting point for multi-floor buildings.
+- `KD-Tree`: a floor-aware hierarchy that splits along scene density. This can
+  produce better balance when objects are clustered unevenly.
+
+Enable `Visible Objects Only` when you want the preview to match the default
+export scope. Disable it when hidden scene meshes should still participate in
+the partition.
+
+Press `Preview Tiles` to draw the tile overlay in the viewport. In density mode,
+the overlay colors mean:
+
+- `Green`: low object density.
+- `Yellow`: medium object density.
+- `Red`: high object density.
+- `Blue`: shared bucket geometry, usually objects too large to belong cleanly to
+  one tile.
+
+![Tile Preview](../images/TilePreview.png)
+
+Use `Tile Floor Fill` to toggle translucent tile floors. Leave it off when you
+want wireframe-only boxes for inspecting dense or stacked geometry.
+
+The panel also previews runtime LOD state. Choose a `Scene Profile` (`auto`,
+`indoor`, or `outdoor`) and optionally enable `Custom Tier Radii` to override
+the stream, unload, and priority values for `ExteriorShell`,
+`StructuralInterior`, `RoomContents`, and `FineProps`. Enable `Generate HLOD`
+or `Generate LOD` when you want the preview and export to include those payloads;
+`Preview LOD Plan` reports how many payloads would be generated before any files
+are written.
+
+To simulate runtime streaming, choose the `Distance Source`:
+
+- `Active Camera`: measure tile distance from the active scene camera.
+- `3D Cursor`: measure from the cursor position.
+- `Selected Object`: measure from the active selected object.
+
+Move the chosen source, then press `Preview Runtime States`. The overlay changes
+from density colors to runtime colors:
+
+- `White`: full-detail tile, also called LOD0.
+- `Cyan`: LOD1.
+- `Yellow`: LOD2.
+- `Orange`: HLOD.
+- `Red`: unloaded.
+- `Blue`: shared bucket geometry.
+
+![Tile Runtime Preview](../images/PreviewRuntimeLOD.png)
+
+For heavy scenes, use `Set Meshes To Bounds` to draw meshes as bounding boxes
+while keeping them exportable. `Hide Meshes` hides scene meshes after a preview
+so the tile overlay is easier to inspect, and `Restore` returns the saved
+viewport display state. If `Visible Objects Only` is enabled, restore hidden
+meshes before running another preview or export so they are included.
+
+The `Object Override` area lets you toggle `Force Local` on the active mesh. Use
+this when an object is being classified into the shared bucket but should instead
+belong to a regular tile and receive its own LOD/HLOD ladder.
+
 ### Object Annotations
 
 Select a mesh object and open `Object Properties > Untold` to author
