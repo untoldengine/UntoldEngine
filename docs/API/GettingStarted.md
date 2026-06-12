@@ -294,7 +294,7 @@ the camera after assets load:
 let gameCamera = createEntity()
 setEntityName(entityId: gameCamera, name: "Main Camera")
 createGameCamera(entityId: gameCamera)
-CameraSystem.shared.activeCamera = gameCamera
+setCamera(.active(gameCamera))
 
 let light = createEntity()
 setEntityName(entityId: light, name: "Directional Light")
@@ -322,7 +322,7 @@ final class GameScene {
         let gameCamera = createEntity()
         setEntityName(entityId: gameCamera, name: "Main Camera")
         createGameCamera(entityId: gameCamera)
-        CameraSystem.shared.activeCamera = gameCamera
+        setCamera(.active(gameCamera))
 
         let light = createEntity()
         setEntityName(entityId: light, name: "Directional Light")

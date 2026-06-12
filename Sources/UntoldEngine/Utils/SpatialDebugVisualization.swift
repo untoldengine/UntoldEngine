@@ -10,13 +10,13 @@
 
 import Foundation
 
-public enum SpatialDebugLeafColorMode: String {
+public enum SpatialDebugLeafColorMode: String, Sendable {
     case plain
     case residency
     case culling
 }
 
-public enum SpatialDebugBatchCellColorMode: String {
+public enum SpatialDebugBatchCellColorMode: String, Sendable {
     case plain
     case culling
     case lod

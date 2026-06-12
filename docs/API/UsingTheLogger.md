@@ -7,11 +7,11 @@ UntoldEngine includes a thread-safe logger with log-level filtering, per-categor
 Log level controls the minimum severity that is emitted. Set it once at startup:
 
 ```swift
-Logger.logLevel = .debug   // emit everything
-Logger.logLevel = .info    // emit info, warnings, and errors
-Logger.logLevel = .warning // emit warnings and errors only
-Logger.logLevel = .error   // emit errors only
-Logger.logLevel = .none    // suppress all output
+setLogger(.level(.debug))   // emit everything
+setLogger(.level(.info))    // emit info, warnings, and errors
+setLogger(.level(.warning)) // emit warnings and errors only
+setLogger(.level(.error))   // emit errors only
+setLogger(.level(.none))    // suppress all output
 ```
 
 | Level     | Value | What emits                        |
@@ -94,46 +94,49 @@ High-volume categories are off by default to avoid log spam during normal operat
 
 ```swift
 // Enable a category
-Logger.enable(category: .oocStatus)
+setLogger(.category(.oocStatus, true))
 
 // Disable a category
-Logger.disable(category: .xrCamera)
+setLogger(.category(.xrCamera, false))
 
-// Toggle with a Bool
-Logger.set(category: .assetLoader, enabled: true)
+// Toggle multiple categories
+setLogger(.categories([.assetLoader, .tileStreaming], true))
 
 // Check current state
 if Logger.isEnabled(category: .ecs) { ... }
 
 // Reset all overrides back to defaults
-Logger.resetCategoryToggles()
+setLogger(.resetCategories)
 ```
 
 ### Typical debug session
 
 ```swift
 // Turn on verbose geometry streaming traces for a debug session
-Logger.enable(category: .tileStreaming)
-Logger.enable(category: .streamingHeartbeat)
-Logger.enable(category: .oocStatus)
-Logger.enable(category: .oocTiming)
-Logger.enable(category: .assetLoader)
+setLogger(.categories([
+    .tileStreaming,
+    .streamingHeartbeat,
+    .oocStatus,
+    .oocTiming,
+    .assetLoader,
+], true))
 
 // ... reproduce the issue ...
 
 // Clean up after capture
-Logger.disable(category: .tileStreaming)
-Logger.disable(category: .streamingHeartbeat)
-Logger.disable(category: .oocStatus)
-Logger.disable(category: .oocTiming)
-Logger.disable(category: .assetLoader)
+setLogger(.categories([
+    .tileStreaming,
+    .streamingHeartbeat,
+    .oocStatus,
+    .oocTiming,
+    .assetLoader,
+], false))
 ```
 
 Texture diagnostics can be enabled separately:
 
 ```swift
-Logger.enable(category: .textureStreaming)
-Logger.enable(category: .textureLoading)
+setLogger(.categories([.textureStreaming, .textureLoading], true))
 ```
 
 ### Static batching diagnostics
@@ -143,19 +146,19 @@ The `.batching` category drives `BatchingSystem`'s material-diversity report. It
 **One-shot snapshot** (most common):
 
 ```swift
-Logger.enable(category: .batching)
+setLogger(.category(.batching, true))
 BatchingSystem.shared.logMaterialDiagnosticsNow()  // immediate scan and emit
-Logger.disable(category: .batching)
+setLogger(.category(.batching, false))
 ```
 
 **Periodic auto-logging** (fires at most once every 30 s while enabled):
 
 ```swift
 // Call once at startup to arm it; the engine loop calls logMaterialDiagnosticsIfDue() each frame.
-Logger.enable(category: .batching)
+setLogger(.category(.batching, true))
 
 // When done:
-Logger.disable(category: .batching)
+setLogger(.category(.batching, false))
 ```
 
 Sample output:
@@ -210,4 +213,4 @@ Sinks are held weakly — the logger will not extend their lifetime.
 
 - `Logger.log(...)` respects both `logLevel` and category state.
 - `Logger.logWarning(...)` and `Logger.logError(...)` respect `logLevel` only — they are never suppressed by category.
-- Category overrides layer on top of the built-in defaults. Call `resetCategoryToggles()` to restore defaults without restarting.
+- Category overrides layer on top of the built-in defaults. Call `setLogger(.resetCategories)` to restore defaults without restarting.

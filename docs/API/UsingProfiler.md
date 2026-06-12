@@ -119,17 +119,13 @@ setEngine(.metrics(.enabled))
 setEngineStatsLogging(enabled: true, profile: .compact, intervalSeconds: 1.0)
 
 // Add focused trace logs
-Logger.enable(category: .oocStatus)   // OutOfCore lifecycle/status
-Logger.enable(category: .oocTiming)   // OOC timing detail
-Logger.enable(category: .assetLoader) // progressive loader parse/upload
+setLogger(.categories([.oocStatus, .oocTiming, .assetLoader], true))
 ```
 
 Disable after capture:
 
 ```swift
-Logger.disable(category: .oocTiming)
-Logger.disable(category: .oocStatus)
-Logger.disable(category: .assetLoader)
+setLogger(.categories([.oocTiming, .oocStatus, .assetLoader], false))
 ```
 
 ## Static Batching Triage
@@ -140,15 +136,15 @@ Enable the `.batching` log category to get a material-diversity report:
 
 ```swift
 // One-shot snapshot at any point (e.g. after the scene finishes loading)
-Logger.enable(category: .batching)
+setLogger(.category(.batching, true))
 BatchingSystem.shared.logMaterialDiagnosticsNow()
-Logger.disable(category: .batching)
+setLogger(.category(.batching, false))
 ```
 
 Or arm it to fire automatically every 30 seconds during a session:
 
 ```swift
-Logger.enable(category: .batching)
+setLogger(.category(.batching, true))
 // engine loop calls logMaterialDiagnosticsIfDue() each frame — no extra code needed
 ```
 
@@ -243,9 +239,9 @@ Output includes: loaded / loading / unloaded entity counts, active load slot usa
 Enable the `.tileStreaming` category for event-level traces (tile parse timeouts, eviction warnings, swap-thrash alerts):
 
 ```swift
-Logger.enable(category: .tileStreaming)
+setLogger(.category(.tileStreaming, true))
 // ... reproduce the issue ...
-Logger.disable(category: .tileStreaming)
+setLogger(.category(.tileStreaming, false))
 ```
 
 ---

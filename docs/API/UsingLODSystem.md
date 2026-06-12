@@ -444,7 +444,7 @@ private func setupLODWithBatching() {
             loadedCount += 1
             if loadedCount == totalTrees {
                 // All trees loaded - generate batches
-                enableBatching(true)
+                setBatching(.enabled(true))
                 generateBatches()
                 print("\(totalTrees) trees configured with LOD + Batching")
             }

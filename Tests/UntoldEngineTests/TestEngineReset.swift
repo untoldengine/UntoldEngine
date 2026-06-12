@@ -17,6 +17,8 @@
 @MainActor func resetEngineTestState() {
     scene = Scene()
     CameraSystem.shared.activeCamera = nil
+    setCamera(.defaultFOV(65.0))
+    setCamera(.clipPlanes(near: 0.1, far: 500.0))
     visibleEntityIds.removeAll()
     entityMeshMap.removeAll()
     entityNameMap.removeAll()

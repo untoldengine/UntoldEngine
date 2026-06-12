@@ -36,7 +36,7 @@ private func setupLODWithBatching() {
 
             loadedCount += 1
             if loadedCount == totalTrees {
-                enableBatching(true)
+                setBatching(.enabled(true))
                 generateBatches()
             }
         }

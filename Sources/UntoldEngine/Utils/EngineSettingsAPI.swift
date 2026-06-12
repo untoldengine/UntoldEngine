@@ -230,6 +230,201 @@ public func setPostFX(_ property: PostFXProperty) {
     }
 }
 
+public enum GeometryStreamingProperty: Sendable {
+    case enabled(Bool)
+    case tileConcurrency(Int)
+    case meshConcurrency(Int)
+    case lodConcurrency(Int)
+    case hlodConcurrency(Int)
+    case queryRadius(Float)
+    case floorProximityGateY(Float)
+    case interiorZone(AABB?)
+    case frustumGate(GeometryStreamingFrustumGateSetting)
+    case velocityLookAhead(time: Float, minSpeed: Float)
+    case candidateSorting(importance: Bool, occlusion: Bool)
+    case minimumParsedTileResidentSeconds(Double)
+    case timeouts(tileParse: Double, meshLoad: Double)
+}
+
+public enum GeometryStreamingFrustumGateSetting: Sendable {
+    case enabled(meshPadding: Float = 5.0, tilePadding: Float = 20.0)
+    case disabled
+}
+
+public func setGeometryStreaming(_ property: GeometryStreamingProperty) {
+    let streaming = GeometryStreamingSystem.shared
+
+    switch property {
+    case let .enabled(value):
+        streaming.enabled = value
+    case let .tileConcurrency(value):
+        streaming.maxConcurrentTileLoads = max(value, 1)
+    case let .meshConcurrency(value):
+        streaming.maxConcurrentLoads = max(value, 1)
+    case let .lodConcurrency(value):
+        streaming.maxConcurrentLODLoads = max(value, 1)
+    case let .hlodConcurrency(value):
+        streaming.maxConcurrentHLODLoads = max(value, 1)
+    case let .queryRadius(value):
+        streaming.maxQueryRadius = max(value, 0)
+    case let .floorProximityGateY(value):
+        streaming.floorProximityGateY = max(value, 0)
+    case let .interiorZone(value):
+        streaming.interiorZone = value
+    case let .frustumGate(.enabled(meshPadding, tilePadding)):
+        streaming.enableFrustumGate = true
+        streaming.frustumGatePadding = max(meshPadding, 0)
+        streaming.tileFrustumGatePadding = max(tilePadding, 0)
+    case .frustumGate(.disabled):
+        streaming.enableFrustumGate = false
+    case let .velocityLookAhead(time, minSpeed):
+        streaming.velocityLookAheadTime = max(time, 0)
+        streaming.velocityLookAheadMinSpeed = max(minSpeed, 0)
+    case let .candidateSorting(importance, occlusion):
+        streaming.enableImportanceSort = importance
+        streaming.enableOcclusionSort = occlusion
+    case let .minimumParsedTileResidentSeconds(value):
+        streaming.minimumParsedTileResidentSeconds = max(value, 0)
+    case let .timeouts(tileParse, meshLoad):
+        streaming.tileParseTimeoutSeconds = max(tileParse, 0)
+        streaming.meshLoadTimeoutSeconds = max(meshLoad, 0)
+    }
+}
+
+public enum BatchingProperty: Sendable {
+    case enabled(Bool)
+    case cellSize(Float)
+    case runtimeTuning(RuntimeBatchingTuning)
+    case maxDirtyCellsPerTick(Int)
+    case retireDelayFrames(Int)
+    case maxRetirementsPerTick(Int)
+    case backgroundArtifactBuild(Bool)
+    case visibilityGatedBuild(Bool)
+    case maxBuildDispatchesPerTick(Int)
+    case maxArtifactAppliesPerTick(Int)
+    case rebuildBudgets(vertices: Int, indices: Int, bytes: Int)
+    case runtimeCellLimits(vertices: Int, indices: Int, bytes: Int)
+    case quiescenceFramesBeforeBuild(Int)
+    case recentVisibilityWindowFrames(Int)
+}
+
+public func setBatching(_ property: BatchingProperty) {
+    let batching = BatchingSystem.shared
+
+    switch property {
+    case let .enabled(value):
+        batching.setEnabled(value)
+    case let .cellSize(value):
+        batching.setBatchCellSize(value)
+    case let .runtimeTuning(value):
+        batching.applyRuntimeBatchingTuning(value)
+    case let .maxDirtyCellsPerTick(value):
+        batching.setMaxDirtyCellsPerTick(value)
+    case let .retireDelayFrames(value):
+        batching.setBatchRetireDelayFrames(value)
+    case let .maxRetirementsPerTick(value):
+        batching.setMaxRetirementsPerTick(value)
+    case let .backgroundArtifactBuild(value):
+        batching.setBackgroundArtifactBuildEnabled(value)
+    case let .visibilityGatedBuild(value):
+        batching.setVisibilityGatedBatchBuildEnabled(value)
+    case let .maxBuildDispatchesPerTick(value):
+        batching.setMaxBuildDispatchesPerTick(value)
+    case let .maxArtifactAppliesPerTick(value):
+        batching.setMaxArtifactAppliesPerTick(value)
+    case let .rebuildBudgets(vertices, indices, bytes):
+        batching.setMaxRebuildVerticesPerTick(vertices)
+        batching.setMaxRebuildIndicesPerTick(indices)
+        batching.setMaxRebuildBufferBytesPerTick(bytes)
+    case let .runtimeCellLimits(vertices, indices, bytes):
+        batching.setMaxRuntimeCellVertices(vertices)
+        batching.setMaxRuntimeCellIndices(indices)
+        batching.setMaxRuntimeCellBufferBytes(bytes)
+    case let .quiescenceFramesBeforeBuild(value):
+        batching.setQuiescenceFramesBeforeBatchBuild(value)
+    case let .recentVisibilityWindowFrames(value):
+        batching.setRecentVisibilityWindowFrames(value)
+    }
+}
+
+public enum SpatialDebugProperty: Sendable {
+    case disabled
+    case octreeLeafBounds(SpatialDebugOctreeLeafBoundsSetting)
+    case tileBounds(enabled: Bool, maxTileNodeCount: Int = 500)
+    case staticBatchCellBounds(enabled: Bool, maxCellCount: Int = 2000, colorMode: SpatialDebugBatchCellColorMode = .plain)
+    case lodLevels(Bool)
+    case textureStreamingTiers(Bool)
+}
+
+public enum SpatialDebugOctreeLeafBoundsSetting: Sendable {
+    case enabled(maxLeafNodeCount: Int = 2000, occupiedOnly: Bool = true, colorMode: SpatialDebugLeafColorMode = .plain)
+    case disabled
+}
+
+public func setSpatialDebug(_ property: SpatialDebugProperty) {
+    switch property {
+    case .disabled:
+        disableSpatialDebugVisualization()
+    case let .octreeLeafBounds(.enabled(maxLeafNodeCount, occupiedOnly, colorMode)):
+        setOctreeLeafBoundsDebug(
+            enabled: true,
+            maxLeafNodeCount: maxLeafNodeCount,
+            occupiedOnly: occupiedOnly,
+            colorMode: colorMode
+        )
+    case .octreeLeafBounds(.disabled):
+        setOctreeLeafBoundsDebug(enabled: false)
+    case let .tileBounds(enabled, maxTileNodeCount):
+        setTileBoundsDebug(enabled: enabled, maxTileNodeCount: maxTileNodeCount)
+    case let .staticBatchCellBounds(enabled, maxCellCount, colorMode):
+        setStaticBatchCellBoundsDebug(enabled: enabled, maxCellCount: maxCellCount, colorMode: colorMode)
+    case let .lodLevels(value):
+        setLODLevelDebug(enabled: value)
+    case let .textureStreamingTiers(value):
+        setTextureStreamingTierDebug(enabled: value)
+    }
+}
+
+public enum LoggerProperty: Sendable {
+    case level(LogLevel)
+    case category(LogCategory, Bool)
+    case categories([LogCategory], Bool)
+    case resetCategories
+}
+
+public func setLogger(_ property: LoggerProperty) {
+    switch property {
+    case let .level(value):
+        Logger.logLevel = value
+    case let .category(category, enabled):
+        Logger.set(category: category, enabled: enabled)
+    case let .categories(categories, enabled):
+        for category in categories {
+            Logger.set(category: category, enabled: enabled)
+        }
+    case .resetCategories:
+        Logger.resetCategoryToggles()
+    }
+}
+
+public enum CameraProperty: Sendable {
+    case active(EntityID?)
+    case defaultFOV(Float)
+    case clipPlanes(near: Float, far: Float)
+}
+
+public func setCamera(_ property: CameraProperty) {
+    switch property {
+    case let .active(entityId):
+        CameraSystem.shared.activeCamera = entityId
+    case let .defaultFOV(value):
+        fov = value
+    case let .clipPlanes(near: nearPlane, far: farPlane):
+        near = nearPlane
+        far = farPlane
+    }
+}
+
 private func applyColorGradingProperty(_ property: ColorGradingProperty) {
     switch property {
     case let .enabled(value):

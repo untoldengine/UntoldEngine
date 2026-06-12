@@ -8,10 +8,17 @@ For gameplay, always use the game camera (not the editor/scene camera). Call `fi
 
 ```swift
 let camera = findGameCamera()
-CameraSystem.shared.activeCamera = camera
+setCamera(.active(camera))
 ```
 
 If no game camera exists, `findGameCamera()` creates one and sets it up with default values.
+
+Configure global projection defaults at startup:
+
+```swift
+setCamera(.defaultFOV(70.0))
+setCamera(.clipPlanes(near: 0.1, far: 1000.0))
+```
 
 ## Translate (Move) the Camera
 
@@ -133,6 +140,6 @@ startCameraPath(waypoints: waypoints, mode: .once, settings: settings)
 
 ## Notes
 
-- `startCameraPath` and `updateCameraPath` operate on `CameraSystem.shared.activeCamera`.
+- `startCameraPath` and `updateCameraPath` operate on the active camera set with `setCamera(.active(...))`.
 - `segmentDuration` is the time to move from the current waypoint to the next.
 - For gameplay, always acquire the camera with `findGameCamera()` and set it active before path playback or follow logic.
