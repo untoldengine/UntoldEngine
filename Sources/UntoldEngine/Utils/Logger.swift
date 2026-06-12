@@ -147,6 +147,7 @@ public enum Logger {
                                   line: Int = #line)
     {
         guard logLevel.rawValue >= LogLevel.warning.rawValue else { return }
+        guard state.isCategoryEnabled(category) else { return }
         let renderedMessage = message()
         print("Warning: \(renderedMessage)")
         emit(level: .warning, message: renderedMessage, category: category, file: file, function: function, line: line)
