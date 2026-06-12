@@ -29,22 +29,22 @@ public func setLOD(_ property: LODProperty) {
     var config = LODConfig.shared
 
     switch property {
-    case .fadeTransitions(.enabled(let duration)):
+    case let .fadeTransitions(.enabled(duration)):
         config.enableFadeTransitions = true
         if let duration {
             config.fadeTransitionTime = max(duration, 0.001)
         }
     case .fadeTransitions(.disabled):
         config.enableFadeTransitions = false
-    case .distanceBias(let value):
+    case let .distanceBias(value):
         config.lodBias = max(value, 0.001)
-    case .hysteresis(let value):
+    case let .hysteresis(value):
         config.hysteresis = max(value, 0)
-    case .updateFrameInterval(let value):
+    case let .updateFrameInterval(value):
         config.lodUpdateFrameInterval = max(value, 1)
-    case .minimumCameraDisplacement(let value):
+    case let .minimumCameraDisplacement(value):
         config.minimumCameraDisplacementForLODUpdate = max(value, 0)
-    case .distanceThresholds(let values):
+    case let .distanceThresholds(values):
         config.lodDistances = values.map { max($0, 0) }
     }
 
@@ -71,15 +71,15 @@ public enum WireframeProperty: Sendable {
 
 public func setRendering(_ property: RenderingProperty) {
     switch property {
-    case .antiAliasing(let mode):
+    case let .antiAliasing(mode):
         antiAliasingMode = mode
-    case .debugView(let mode):
+    case let .debugView(mode):
         renderDebugViewMode = mode
     case .postProcessing(.enabled):
         bypassPostProcessing = false
     case .postProcessing(.disabled):
         bypassPostProcessing = true
-    case .wireframe(let property):
+    case let .wireframe(property):
         applyWireframeProperty(property)
     }
 }
@@ -90,7 +90,7 @@ private func applyWireframeProperty(_ property: WireframeProperty) {
     wireframeRenderStateLock.unlock()
 
     switch property {
-    case .color(let color):
+    case let .color(color):
         setWireframeParams(
             color: color,
             fadeEnabled: current.distanceFadeEnabled,
@@ -98,7 +98,7 @@ private func applyWireframeProperty(_ property: WireframeProperty) {
             fadeEnd: current.fadeEndDistance,
             minimumAlpha: current.minimumAlpha
         )
-    case .distanceFade(let enabled, let start, let end, let minimumAlpha):
+    case let .distanceFade(enabled, start, end, minimumAlpha):
         setWireframeParams(
             color: current.color,
             fadeEnabled: enabled,
@@ -106,7 +106,7 @@ private func applyWireframeProperty(_ property: WireframeProperty) {
             fadeEnd: end,
             minimumAlpha: minimumAlpha
         )
-    case .params(let color, let fadeEnabled, let fadeStart, let fadeEnd, let minimumAlpha):
+    case let .params(color, fadeEnabled, fadeStart, fadeEnd, minimumAlpha):
         setWireframeParams(
             color: color,
             fadeEnabled: fadeEnabled,
@@ -129,7 +129,7 @@ public enum EngineMetricsSetting: Sendable {
 
 public func setEngine(_ property: EngineProperty) {
     switch property {
-    case .assetBasePath(let url):
+    case let .assetBasePath(url):
         assetBasePath = url
     case .metrics(.enabled):
         enableEngineMetrics = true
@@ -209,129 +209,129 @@ public enum SSAOProperty: Sendable {
 
 public func setPostFX(_ property: PostFXProperty) {
     switch property {
-    case .preset(let preset):
+    case let .preset(preset):
         PostFX.apply(preset)
-    case .colorGrading(let property):
+    case let .colorGrading(property):
         applyColorGradingProperty(property)
-    case .colorCorrection(let property):
+    case let .colorCorrection(property):
         applyColorCorrectionProperty(property)
-    case .bloomThreshold(let property):
+    case let .bloomThreshold(property):
         applyBloomThresholdProperty(property)
-    case .bloomComposite(let property):
+    case let .bloomComposite(property):
         applyBloomCompositeProperty(property)
-    case .vignette(let property):
+    case let .vignette(property):
         applyVignetteProperty(property)
-    case .chromaticAberration(let property):
+    case let .chromaticAberration(property):
         applyChromaticAberrationProperty(property)
-    case .depthOfField(let property):
+    case let .depthOfField(property):
         applyDepthOfFieldProperty(property)
-    case .ssao(let property):
+    case let .ssao(property):
         applySSAOProperty(property)
     }
 }
 
 private func applyColorGradingProperty(_ property: ColorGradingProperty) {
     switch property {
-    case .enabled(let value):
+    case let .enabled(value):
         ColorGradingParams.shared.enabled = value
-    case .exposure(let value):
+    case let .exposure(value):
         ColorGradingParams.shared.exposure = value
-    case .brightness(let value):
+    case let .brightness(value):
         ColorGradingParams.shared.brightness = value
-    case .contrast(let value):
+    case let .contrast(value):
         ColorGradingParams.shared.contrast = value
-    case .saturation(let value):
+    case let .saturation(value):
         ColorGradingParams.shared.saturation = value
-    case .temperature(let value):
+    case let .temperature(value):
         ColorGradingParams.shared.temperature = value
-    case .tint(let value):
+    case let .tint(value):
         ColorGradingParams.shared.tint = value
     }
 }
 
 private func applyColorCorrectionProperty(_ property: ColorCorrectionProperty) {
     switch property {
-    case .enabled(let value):
+    case let .enabled(value):
         ColorCorrectionParams.shared.enabled = value
-    case .lift(let value):
+    case let .lift(value):
         ColorCorrectionParams.shared.lift = value
-    case .gamma(let value):
+    case let .gamma(value):
         ColorCorrectionParams.shared.gamma = value
-    case .gain(let value):
+    case let .gain(value):
         ColorCorrectionParams.shared.gain = value
     }
 }
 
 private func applyBloomThresholdProperty(_ property: BloomThresholdProperty) {
     switch property {
-    case .enabled(let value):
+    case let .enabled(value):
         BloomThresholdParams.shared.enabled = value
-    case .threshold(let value):
+    case let .threshold(value):
         BloomThresholdParams.shared.threshold = value
-    case .intensity(let value):
+    case let .intensity(value):
         BloomThresholdParams.shared.intensity = value
     }
 }
 
 private func applyBloomCompositeProperty(_ property: BloomCompositeProperty) {
     switch property {
-    case .enabled(let value):
+    case let .enabled(value):
         BloomCompositeParams.shared.enabled = value
-    case .intensity(let value):
+    case let .intensity(value):
         BloomCompositeParams.shared.intensity = value
     }
 }
 
 private func applyVignetteProperty(_ property: VignetteProperty) {
     switch property {
-    case .enabled(let value):
+    case let .enabled(value):
         VignetteParams.shared.enabled = value
-    case .intensity(let value):
+    case let .intensity(value):
         VignetteParams.shared.intensity = value
-    case .radius(let value):
+    case let .radius(value):
         VignetteParams.shared.radius = value
-    case .softness(let value):
+    case let .softness(value):
         VignetteParams.shared.softness = value
-    case .center(let value):
+    case let .center(value):
         VignetteParams.shared.center = value
     }
 }
 
 private func applyChromaticAberrationProperty(_ property: ChromaticAberrationProperty) {
     switch property {
-    case .enabled(let value):
+    case let .enabled(value):
         ChromaticAberrationParams.shared.enabled = value
-    case .intensity(let value):
+    case let .intensity(value):
         ChromaticAberrationParams.shared.intensity = value
-    case .center(let value):
+    case let .center(value):
         ChromaticAberrationParams.shared.center = value
     }
 }
 
 private func applyDepthOfFieldProperty(_ property: DepthOfFieldProperty) {
     switch property {
-    case .enabled(let value):
+    case let .enabled(value):
         DepthOfFieldParams.shared.enabled = value
-    case .focusDistance(let value):
+    case let .focusDistance(value):
         DepthOfFieldParams.shared.focusDistance = value
-    case .focusRange(let value):
+    case let .focusRange(value):
         DepthOfFieldParams.shared.focusRange = value
-    case .maxBlur(let value):
+    case let .maxBlur(value):
         DepthOfFieldParams.shared.maxBlur = value
     }
 }
 
 private func applySSAOProperty(_ property: SSAOProperty) {
     switch property {
-    case .enabled(let value):
+    case let .enabled(value):
         SSAOParams.shared.enabled = value
-    case .radius(let value):
+    case let .radius(value):
         SSAOParams.shared.radius = value
-    case .bias(let value):
+    case let .bias(value):
         SSAOParams.shared.bias = value
-    case .intensity(let value):
+    case let .intensity(value):
         SSAOParams.shared.intensity = value
-    case .quality(let value):
+    case let .quality(value):
         SSAOParams.shared.quality = value
     }
 }

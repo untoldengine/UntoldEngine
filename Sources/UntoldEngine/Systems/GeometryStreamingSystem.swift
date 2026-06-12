@@ -2500,7 +2500,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         auditLOD0VisibilityProbes(tileFrustum: tileFrustum)
     }
 
-    private func auditLOD0FallbackHandoffs(tileFrustum: Frustum?) {
+    private func auditLOD0FallbackHandoffs(tileFrustum _: Frustum?) {
         guard !tileLOD0HandoffPending.isEmpty else { return }
 
         let visibleSet = Set(visibleEntityIds)
