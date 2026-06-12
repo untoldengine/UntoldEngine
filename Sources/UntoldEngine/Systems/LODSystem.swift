@@ -215,7 +215,7 @@ public class LODSystem: @unchecked Sendable {
         return lodComponent.lodLevels.count - 1
     }
 
-    private func applyLOD(entityId: EntityID, newLOD: Int, deltaTime: Float) {
+    private func applyLOD(entityId: EntityID, newLOD: Int, deltaTime _: Float) {
         guard let lodComponent = scene.get(component: LODComponent.self, for: entityId),
               let renderComponent = scene.get(component: RenderComponent.self, for: entityId)
         else { return }

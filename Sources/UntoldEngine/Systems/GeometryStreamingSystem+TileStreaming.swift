@@ -76,7 +76,7 @@ extension GeometryStreamingSystem {
             switch fade.completion {
             case .unloadHLOD:
                 unloadHLOD(entityId: fade.tileEntityId)
-            case .unloadLODLevel(let levelIndex):
+            case let .unloadLODLevel(levelIndex):
                 unloadLODLevel(entityId: fade.tileEntityId, levelIndex: levelIndex)
             }
         }
@@ -94,7 +94,7 @@ extension GeometryStreamingSystem {
         switch (lhs, rhs) {
         case (.unloadHLOD, .unloadHLOD):
             return true
-        case (.unloadLODLevel(let a), .unloadLODLevel(let b)):
+        case let (.unloadLODLevel(a), .unloadLODLevel(b)):
             return a == b
         default:
             return false

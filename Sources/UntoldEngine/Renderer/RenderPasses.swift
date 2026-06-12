@@ -1265,177 +1265,177 @@ public enum RenderPasses {
             }
 
             for lodDraw in opaqueLODDraws(entityId: entityId, renderComponent: renderComponent) {
-            for mesh in lodDraw.meshes {
-                // update uniforms
-                var modelUniforms = Uniforms()
+                for mesh in lodDraw.meshes {
+                    // update uniforms
+                    var modelUniforms = Uniforms()
 
-                let rootMatrix = worldTransformComponent.space
-                var modelMatrix = simd_mul(rootMatrix, mesh.localSpace)
+                    let rootMatrix = worldTransformComponent.space
+                    var modelMatrix = simd_mul(rootMatrix, mesh.localSpace)
 
-                let viewMatrix: simd_float4x4 = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
+                    let viewMatrix: simd_float4x4 = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
 
-                let modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
+                    let modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
 
-                let upperModelMatrix: matrix_float3x3 = matrix3x3_upper_left(modelMatrix)
+                    let upperModelMatrix: matrix_float3x3 = matrix3x3_upper_left(modelMatrix)
 
-                let inverseUpperModelMatrix: matrix_float3x3 = upperModelMatrix.inverse
+                    let inverseUpperModelMatrix: matrix_float3x3 = upperModelMatrix.inverse
 
-                let normalMatrix: matrix_float3x3 = inverseUpperModelMatrix.transpose
+                    let normalMatrix: matrix_float3x3 = inverseUpperModelMatrix.transpose
 
-                modelUniforms.modelViewMatrix = modelViewMatrix
+                    modelUniforms.modelViewMatrix = modelViewMatrix
 
-                modelUniforms.normalMatrix = normalMatrix
+                    modelUniforms.normalMatrix = normalMatrix
 
-                modelUniforms.viewMatrix = viewMatrix
+                    modelUniforms.viewMatrix = viewMatrix
 
-                modelUniforms.modelMatrix = modelMatrix
+                    modelUniforms.modelMatrix = modelMatrix
 
-                modelUniforms.cameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
+                    modelUniforms.cameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
 
-                modelUniforms.projectionMatrix = renderInfo.perspectiveSpace
+                    modelUniforms.projectionMatrix = renderInfo.perspectiveSpace
 
-                renderEncoder.setVertexBytes(
-                    &modelUniforms, length: MemoryLayout<Uniforms>.stride, index: Int(modelPassUniformIndex.rawValue)
-                )
+                    renderEncoder.setVertexBytes(
+                        &modelUniforms, length: MemoryLayout<Uniforms>.stride, index: Int(modelPassUniformIndex.rawValue)
+                    )
 
-                // Only enable armature path when a valid joint transform buffer exists.
-                let jointTransformBuffer = mesh.skin?.jointTransformsBuffer
-                var hasArmature = scene.get(component: SkeletonComponent.self, for: entityId) != nil && jointTransformBuffer != nil
+                    // Only enable armature path when a valid joint transform buffer exists.
+                    let jointTransformBuffer = mesh.skin?.jointTransformsBuffer
+                    var hasArmature = scene.get(component: SkeletonComponent.self, for: entityId) != nil && jointTransformBuffer != nil
 
-                renderEncoder.setVertexBytes(&hasArmature, length: MemoryLayout<Bool>.stride, index: Int(modelPassHasArmature.rawValue))
+                    renderEncoder.setVertexBytes(&hasArmature, length: MemoryLayout<Bool>.stride, index: Int(modelPassHasArmature.rawValue))
 
-                renderEncoder.setVertexBuffer(
-                    mesh.metalKitMesh.vertexBuffers[Int(modelPassVerticesIndex.rawValue)].buffer,
-                    offset: 0, index: Int(modelPassVerticesIndex.rawValue)
-                )
+                    renderEncoder.setVertexBuffer(
+                        mesh.metalKitMesh.vertexBuffers[Int(modelPassVerticesIndex.rawValue)].buffer,
+                        offset: 0, index: Int(modelPassVerticesIndex.rawValue)
+                    )
 
-                renderEncoder.setVertexBuffer(
-                    mesh.metalKitMesh.vertexBuffers[Int(modelPassNormalIndex.rawValue)].buffer,
-                    offset: 0, index: Int(modelPassNormalIndex.rawValue)
-                )
+                    renderEncoder.setVertexBuffer(
+                        mesh.metalKitMesh.vertexBuffers[Int(modelPassNormalIndex.rawValue)].buffer,
+                        offset: 0, index: Int(modelPassNormalIndex.rawValue)
+                    )
 
-                renderEncoder.setVertexBuffer(
-                    mesh.metalKitMesh.vertexBuffers[Int(modelPassUVIndex.rawValue)].buffer, offset: 0,
-                    index: Int(modelPassUVIndex.rawValue)
-                )
+                    renderEncoder.setVertexBuffer(
+                        mesh.metalKitMesh.vertexBuffers[Int(modelPassUVIndex.rawValue)].buffer, offset: 0,
+                        index: Int(modelPassUVIndex.rawValue)
+                    )
 
-                renderEncoder.setVertexBuffer(
-                    mesh.metalKitMesh.vertexBuffers[Int(modelPassTangentIndex.rawValue)].buffer,
-                    offset: 0, index: Int(modelPassTangentIndex.rawValue)
-                )
+                    renderEncoder.setVertexBuffer(
+                        mesh.metalKitMesh.vertexBuffers[Int(modelPassTangentIndex.rawValue)].buffer,
+                        offset: 0, index: Int(modelPassTangentIndex.rawValue)
+                    )
 
-                renderEncoder.setVertexBuffer(
-                    mesh.metalKitMesh.vertexBuffers[Int(modelPassJointIdIndex.rawValue)].buffer,
-                    offset: 0, index: Int(modelPassJointIdIndex.rawValue)
-                )
+                    renderEncoder.setVertexBuffer(
+                        mesh.metalKitMesh.vertexBuffers[Int(modelPassJointIdIndex.rawValue)].buffer,
+                        offset: 0, index: Int(modelPassJointIdIndex.rawValue)
+                    )
 
-                renderEncoder.setVertexBuffer(
-                    mesh.metalKitMesh.vertexBuffers[Int(modelPassJointWeightsIndex.rawValue)].buffer,
-                    offset: 0, index: Int(modelPassJointWeightsIndex.rawValue)
-                )
+                    renderEncoder.setVertexBuffer(
+                        mesh.metalKitMesh.vertexBuffers[Int(modelPassJointWeightsIndex.rawValue)].buffer,
+                        offset: 0, index: Int(modelPassJointWeightsIndex.rawValue)
+                    )
 
-                if let jointTransformBuffer {
-                    renderEncoder.setVertexBuffer(jointTransformBuffer, offset: 0, index: Int(modelPassJointTransformIndex.rawValue))
-                } else {
-                    var identityMatrix = matrix_identity_float4x4
-                    renderEncoder.setVertexBytes(&identityMatrix, length: MemoryLayout<simd_float4x4>.stride, index: Int(modelPassJointTransformIndex.rawValue))
-                }
-
-                renderEncoder.setFragmentBytes(
-                    &modelUniforms, length: MemoryLayout<Uniforms>.stride, index: Int(modelPassFragmentUniformIndex.rawValue)
-                )
-
-                for subMesh in mesh.submeshes {
-                    guard let material = subMesh.material else { continue }
-
-                    // Blend-mode submeshes are rendered in the transparency pass.
-                    if material.alphaMode == .blend {
-                        continue
+                    if let jointTransformBuffer {
+                        renderEncoder.setVertexBuffer(jointTransformBuffer, offset: 0, index: Int(modelPassJointTransformIndex.rawValue))
+                    } else {
+                        var identityMatrix = matrix_identity_float4x4
+                        renderEncoder.setVertexBytes(&identityMatrix, length: MemoryLayout<simd_float4x4>.stride, index: Int(modelPassJointTransformIndex.rawValue))
                     }
 
-                    var stScale: Float = material.stScale
-
-                    renderEncoder.setFragmentBytes(&stScale, length: MemoryLayout<Float>.stride, index: Int(modelPassFragmentSTScaleIndex.rawValue))
-
-                    // set base texture
-                    renderEncoder.setFragmentTexture(
-                        material.baseColor.texture, index: Int(modelPassBaseTextureIndex.rawValue)
-                    )
-
-                    renderEncoder.setFragmentSamplerState(material.baseColor.sampler, index: Int(modelPassBaseSamplerIndex.rawValue))
-
-                    // set roughness
-                    renderEncoder.setFragmentTexture(
-                        material.roughness.texture, index: Int(modelPassRoughnessTextureIndex.rawValue)
-                    )
-
-                    renderEncoder.setFragmentSamplerState(material.roughness.sampler, index: Int(modelPassMaterialSamplerIndex.rawValue))
-
-                    // set metallic
-                    renderEncoder.setFragmentTexture(
-                        material.metallic.texture, index: Int(modelPassMetallicTextureIndex.rawValue)
-                    )
-
-                    // set normal
-                    // set normal
-                    var hasNormal: Bool = (material.normal.texture != nil)
                     renderEncoder.setFragmentBytes(
-                        &hasNormal, length: MemoryLayout<Bool>.stride,
-                        index: Int(modelPassFragmentHasNormalTextureIndex.rawValue)
+                        &modelUniforms, length: MemoryLayout<Uniforms>.stride, index: Int(modelPassFragmentUniformIndex.rawValue)
                     )
 
-                    var materialParameters = MaterialParametersUniform()
-                    materialParameters.specular = material.specular
-                    materialParameters.specularTint = material.specularTint
-                    materialParameters.subsurface = material.subsurface
-                    materialParameters.anisotropic = material.anisotropic
-                    materialParameters.sheen = material.sheen
-                    materialParameters.sheenTint = material.sheenTint
-                    materialParameters.clearCoat = material.clearCoat
-                    materialParameters.clearCoatGloss = material.clearCoatGloss
-                    materialParameters.baseColor = material.baseColorValue
-                    materialParameters.roughness = material.roughnessValue
-                    materialParameters.metallic = material.metallicValue
-                    materialParameters.ior = material.ior
-                    materialParameters.edgeTint = material.edgeTint
-                    materialParameters.alphaCutoff = material.alphaCutoff
-                    materialParameters.passthroughAlpha = passthroughGhostAlpha(for: entityId)
-                    materialParameters.alphaMode = Int32(material.alphaMode.rawValue)
-                    materialParameters.interactWithLight = material.interactWithLight
-                    materialParameters.emmissive = material.emissiveValue
+                    for subMesh in mesh.submeshes {
+                        guard let material = subMesh.material else { continue }
 
-                    materialParameters.hasTexture = simd_int4(
-                        Int32(material.hasBaseMap ? 1 : 0),
-                        Int32(material.hasRoughMap ? 1 : 0),
-                        Int32(material.hasMetalMap ? 1 : 0),
-                        0
-                    )
-                    applyLODDebugColorOverride(entityId: entityId, materialParameters: &materialParameters)
-                    applyStreamingTierDebugColorOverride(entityId: entityId, materialParameters: &materialParameters)
-                    applyLODDither(draw: lodDraw, materialParameters: &materialParameters)
-                    applyTileRepresentationDither(entityId: entityId, materialParameters: &materialParameters)
+                        // Blend-mode submeshes are rendered in the transparency pass.
+                        if material.alphaMode == .blend {
+                            continue
+                        }
 
-                    renderEncoder.setFragmentBytes(
-                        &materialParameters, length: MemoryLayout<MaterialParametersUniform>.stride,
-                        index: Int(modelPassFragmentMaterialParameterIndex.rawValue)
-                    )
+                        var stScale: Float = material.stScale
 
-                    renderEncoder.setFragmentTexture(
-                        material.normal.texture, index: Int(modelPassNormalTextureIndex.rawValue)
-                    )
+                        renderEncoder.setFragmentBytes(&stScale, length: MemoryLayout<Float>.stride, index: Int(modelPassFragmentSTScaleIndex.rawValue))
 
-                    renderEncoder.setFragmentSamplerState(material.normal.sampler, index: Int(modelPassNormalSamplerIndex.rawValue))
+                        // set base texture
+                        renderEncoder.setFragmentTexture(
+                            material.baseColor.texture, index: Int(modelPassBaseTextureIndex.rawValue)
+                        )
 
-                    renderEncoder.drawIndexedPrimitivesTracked(
-                        type: subMesh.metalKitSubmesh.primitiveType,
-                        indexCount: subMesh.metalKitSubmesh.indexCount,
-                        indexType: subMesh.metalKitSubmesh.indexType,
-                        indexBuffer: subMesh.metalKitSubmesh.indexBuffer.buffer,
-                        indexBufferOffset: subMesh.metalKitSubmesh.indexBuffer.offset,
-                        category: .opaque
-                    )
+                        renderEncoder.setFragmentSamplerState(material.baseColor.sampler, index: Int(modelPassBaseSamplerIndex.rawValue))
+
+                        // set roughness
+                        renderEncoder.setFragmentTexture(
+                            material.roughness.texture, index: Int(modelPassRoughnessTextureIndex.rawValue)
+                        )
+
+                        renderEncoder.setFragmentSamplerState(material.roughness.sampler, index: Int(modelPassMaterialSamplerIndex.rawValue))
+
+                        // set metallic
+                        renderEncoder.setFragmentTexture(
+                            material.metallic.texture, index: Int(modelPassMetallicTextureIndex.rawValue)
+                        )
+
+                        // set normal
+                        // set normal
+                        var hasNormal: Bool = (material.normal.texture != nil)
+                        renderEncoder.setFragmentBytes(
+                            &hasNormal, length: MemoryLayout<Bool>.stride,
+                            index: Int(modelPassFragmentHasNormalTextureIndex.rawValue)
+                        )
+
+                        var materialParameters = MaterialParametersUniform()
+                        materialParameters.specular = material.specular
+                        materialParameters.specularTint = material.specularTint
+                        materialParameters.subsurface = material.subsurface
+                        materialParameters.anisotropic = material.anisotropic
+                        materialParameters.sheen = material.sheen
+                        materialParameters.sheenTint = material.sheenTint
+                        materialParameters.clearCoat = material.clearCoat
+                        materialParameters.clearCoatGloss = material.clearCoatGloss
+                        materialParameters.baseColor = material.baseColorValue
+                        materialParameters.roughness = material.roughnessValue
+                        materialParameters.metallic = material.metallicValue
+                        materialParameters.ior = material.ior
+                        materialParameters.edgeTint = material.edgeTint
+                        materialParameters.alphaCutoff = material.alphaCutoff
+                        materialParameters.passthroughAlpha = passthroughGhostAlpha(for: entityId)
+                        materialParameters.alphaMode = Int32(material.alphaMode.rawValue)
+                        materialParameters.interactWithLight = material.interactWithLight
+                        materialParameters.emmissive = material.emissiveValue
+
+                        materialParameters.hasTexture = simd_int4(
+                            Int32(material.hasBaseMap ? 1 : 0),
+                            Int32(material.hasRoughMap ? 1 : 0),
+                            Int32(material.hasMetalMap ? 1 : 0),
+                            0
+                        )
+                        applyLODDebugColorOverride(entityId: entityId, materialParameters: &materialParameters)
+                        applyStreamingTierDebugColorOverride(entityId: entityId, materialParameters: &materialParameters)
+                        applyLODDither(draw: lodDraw, materialParameters: &materialParameters)
+                        applyTileRepresentationDither(entityId: entityId, materialParameters: &materialParameters)
+
+                        renderEncoder.setFragmentBytes(
+                            &materialParameters, length: MemoryLayout<MaterialParametersUniform>.stride,
+                            index: Int(modelPassFragmentMaterialParameterIndex.rawValue)
+                        )
+
+                        renderEncoder.setFragmentTexture(
+                            material.normal.texture, index: Int(modelPassNormalTextureIndex.rawValue)
+                        )
+
+                        renderEncoder.setFragmentSamplerState(material.normal.sampler, index: Int(modelPassNormalSamplerIndex.rawValue))
+
+                        renderEncoder.drawIndexedPrimitivesTracked(
+                            type: subMesh.metalKitSubmesh.primitiveType,
+                            indexCount: subMesh.metalKitSubmesh.indexCount,
+                            indexType: subMesh.metalKitSubmesh.indexType,
+                            indexBuffer: subMesh.metalKitSubmesh.indexBuffer.buffer,
+                            indexBufferOffset: subMesh.metalKitSubmesh.indexBuffer.offset,
+                            category: .opaque
+                        )
+                    }
                 }
-            }
             }
         }
 
@@ -1747,100 +1747,100 @@ public enum RenderPasses {
             guard scene.get(component: LocalTransformComponent.self, for: entityId) != nil else { continue }
 
             for lodDraw in opaqueLODDraws(entityId: entityId, renderComponent: renderComponent) {
-            for mesh in lodDraw.meshes {
-                var modelUniforms = Uniforms()
-                let modelMatrix = simd_mul(worldTransformComponent.space, mesh.localSpace)
-                let modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
-                let normalMatrix = matrix3x3_upper_left(modelMatrix).inverse.transpose
+                for mesh in lodDraw.meshes {
+                    var modelUniforms = Uniforms()
+                    let modelMatrix = simd_mul(worldTransformComponent.space, mesh.localSpace)
+                    let modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
+                    let normalMatrix = matrix3x3_upper_left(modelMatrix).inverse.transpose
 
-                modelUniforms.modelViewMatrix = modelViewMatrix
-                modelUniforms.normalMatrix = normalMatrix
-                modelUniforms.viewMatrix = viewMatrix
-                modelUniforms.modelMatrix = modelMatrix
-                modelUniforms.cameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
-                modelUniforms.projectionMatrix = renderInfo.perspectiveSpace
+                    modelUniforms.modelViewMatrix = modelViewMatrix
+                    modelUniforms.normalMatrix = normalMatrix
+                    modelUniforms.viewMatrix = viewMatrix
+                    modelUniforms.modelMatrix = modelMatrix
+                    modelUniforms.cameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
+                    modelUniforms.projectionMatrix = renderInfo.perspectiveSpace
 
-                renderEncoder.setVertexBytes(&modelUniforms, length: MemoryLayout<Uniforms>.stride, index: Int(modelPassUniformIndex.rawValue))
+                    renderEncoder.setVertexBytes(&modelUniforms, length: MemoryLayout<Uniforms>.stride, index: Int(modelPassUniformIndex.rawValue))
 
-                let jointTransformBuffer = mesh.skin?.jointTransformsBuffer
-                var hasArmature = scene.get(component: SkeletonComponent.self, for: entityId) != nil && jointTransformBuffer != nil
-                renderEncoder.setVertexBytes(&hasArmature, length: MemoryLayout<Bool>.stride, index: Int(modelPassHasArmature.rawValue))
+                    let jointTransformBuffer = mesh.skin?.jointTransformsBuffer
+                    var hasArmature = scene.get(component: SkeletonComponent.self, for: entityId) != nil && jointTransformBuffer != nil
+                    renderEncoder.setVertexBytes(&hasArmature, length: MemoryLayout<Bool>.stride, index: Int(modelPassHasArmature.rawValue))
 
-                renderEncoder.setVertexBuffer(mesh.metalKitMesh.vertexBuffers[Int(modelPassVerticesIndex.rawValue)].buffer, offset: 0, index: Int(modelPassVerticesIndex.rawValue))
-                renderEncoder.setVertexBuffer(mesh.metalKitMesh.vertexBuffers[Int(modelPassNormalIndex.rawValue)].buffer, offset: 0, index: Int(modelPassNormalIndex.rawValue))
-                renderEncoder.setVertexBuffer(mesh.metalKitMesh.vertexBuffers[Int(modelPassUVIndex.rawValue)].buffer, offset: 0, index: Int(modelPassUVIndex.rawValue))
-                renderEncoder.setVertexBuffer(mesh.metalKitMesh.vertexBuffers[Int(modelPassTangentIndex.rawValue)].buffer, offset: 0, index: Int(modelPassTangentIndex.rawValue))
-                renderEncoder.setVertexBuffer(mesh.metalKitMesh.vertexBuffers[Int(modelPassJointIdIndex.rawValue)].buffer, offset: 0, index: Int(modelPassJointIdIndex.rawValue))
-                renderEncoder.setVertexBuffer(mesh.metalKitMesh.vertexBuffers[Int(modelPassJointWeightsIndex.rawValue)].buffer, offset: 0, index: Int(modelPassJointWeightsIndex.rawValue))
+                    renderEncoder.setVertexBuffer(mesh.metalKitMesh.vertexBuffers[Int(modelPassVerticesIndex.rawValue)].buffer, offset: 0, index: Int(modelPassVerticesIndex.rawValue))
+                    renderEncoder.setVertexBuffer(mesh.metalKitMesh.vertexBuffers[Int(modelPassNormalIndex.rawValue)].buffer, offset: 0, index: Int(modelPassNormalIndex.rawValue))
+                    renderEncoder.setVertexBuffer(mesh.metalKitMesh.vertexBuffers[Int(modelPassUVIndex.rawValue)].buffer, offset: 0, index: Int(modelPassUVIndex.rawValue))
+                    renderEncoder.setVertexBuffer(mesh.metalKitMesh.vertexBuffers[Int(modelPassTangentIndex.rawValue)].buffer, offset: 0, index: Int(modelPassTangentIndex.rawValue))
+                    renderEncoder.setVertexBuffer(mesh.metalKitMesh.vertexBuffers[Int(modelPassJointIdIndex.rawValue)].buffer, offset: 0, index: Int(modelPassJointIdIndex.rawValue))
+                    renderEncoder.setVertexBuffer(mesh.metalKitMesh.vertexBuffers[Int(modelPassJointWeightsIndex.rawValue)].buffer, offset: 0, index: Int(modelPassJointWeightsIndex.rawValue))
 
-                if let jtb = jointTransformBuffer {
-                    renderEncoder.setVertexBuffer(jtb, offset: 0, index: Int(modelPassJointTransformIndex.rawValue))
-                } else {
-                    var identity = matrix_identity_float4x4
-                    renderEncoder.setVertexBytes(&identity, length: MemoryLayout<simd_float4x4>.stride, index: Int(modelPassJointTransformIndex.rawValue))
+                    if let jtb = jointTransformBuffer {
+                        renderEncoder.setVertexBuffer(jtb, offset: 0, index: Int(modelPassJointTransformIndex.rawValue))
+                    } else {
+                        var identity = matrix_identity_float4x4
+                        renderEncoder.setVertexBytes(&identity, length: MemoryLayout<simd_float4x4>.stride, index: Int(modelPassJointTransformIndex.rawValue))
+                    }
+
+                    renderEncoder.setFragmentBytes(&modelUniforms, length: MemoryLayout<Uniforms>.stride, index: Int(modelPassFragmentUniformIndex.rawValue))
+
+                    for subMesh in mesh.submeshes {
+                        guard let material = subMesh.material else { continue }
+                        if material.alphaMode == .blend { continue }
+
+                        var stScale: Float = material.stScale
+                        renderEncoder.setFragmentBytes(&stScale, length: MemoryLayout<Float>.stride, index: Int(modelPassFragmentSTScaleIndex.rawValue))
+                        renderEncoder.setFragmentTexture(material.baseColor.texture, index: Int(modelPassBaseTextureIndex.rawValue))
+                        renderEncoder.setFragmentSamplerState(material.baseColor.sampler, index: Int(modelPassBaseSamplerIndex.rawValue))
+                        renderEncoder.setFragmentTexture(material.roughness.texture, index: Int(modelPassRoughnessTextureIndex.rawValue))
+                        renderEncoder.setFragmentSamplerState(material.roughness.sampler, index: Int(modelPassMaterialSamplerIndex.rawValue))
+                        renderEncoder.setFragmentTexture(material.metallic.texture, index: Int(modelPassMetallicTextureIndex.rawValue))
+
+                        var hasNormal = (material.normal.texture != nil)
+                        renderEncoder.setFragmentBytes(&hasNormal, length: MemoryLayout<Bool>.stride, index: Int(modelPassFragmentHasNormalTextureIndex.rawValue))
+
+                        var materialParameters = MaterialParametersUniform()
+                        materialParameters.specular = material.specular
+                        materialParameters.specularTint = material.specularTint
+                        materialParameters.subsurface = material.subsurface
+                        materialParameters.anisotropic = material.anisotropic
+                        materialParameters.sheen = material.sheen
+                        materialParameters.sheenTint = material.sheenTint
+                        materialParameters.clearCoat = material.clearCoat
+                        materialParameters.clearCoatGloss = material.clearCoatGloss
+                        materialParameters.baseColor = material.baseColorValue
+                        materialParameters.roughness = material.roughnessValue
+                        materialParameters.metallic = material.metallicValue
+                        materialParameters.ior = material.ior
+                        materialParameters.edgeTint = material.edgeTint
+                        materialParameters.alphaCutoff = material.alphaCutoff
+                        materialParameters.passthroughAlpha = passthroughGhostAlpha(for: entityId)
+                        materialParameters.alphaMode = Int32(material.alphaMode.rawValue)
+                        materialParameters.interactWithLight = material.interactWithLight
+                        materialParameters.emmissive = material.emissiveValue
+                        materialParameters.hasTexture = simd_int4(
+                            Int32(material.hasBaseMap ? 1 : 0),
+                            Int32(material.hasRoughMap ? 1 : 0),
+                            Int32(material.hasMetalMap ? 1 : 0),
+                            0
+                        )
+                        applyLODDebugColorOverride(entityId: entityId, materialParameters: &materialParameters)
+                        applyStreamingTierDebugColorOverride(entityId: entityId, materialParameters: &materialParameters)
+                        applyLODDither(draw: lodDraw, materialParameters: &materialParameters)
+                        applyTileRepresentationDither(entityId: entityId, materialParameters: &materialParameters)
+
+                        renderEncoder.setFragmentBytes(&materialParameters, length: MemoryLayout<MaterialParametersUniform>.stride, index: Int(modelPassFragmentMaterialParameterIndex.rawValue))
+                        renderEncoder.setFragmentTexture(material.normal.texture, index: Int(modelPassNormalTextureIndex.rawValue))
+                        renderEncoder.setFragmentSamplerState(material.normal.sampler, index: Int(modelPassNormalSamplerIndex.rawValue))
+
+                        renderEncoder.drawIndexedPrimitivesTracked(
+                            type: subMesh.metalKitSubmesh.primitiveType,
+                            indexCount: subMesh.metalKitSubmesh.indexCount,
+                            indexType: subMesh.metalKitSubmesh.indexType,
+                            indexBuffer: subMesh.metalKitSubmesh.indexBuffer.buffer,
+                            indexBufferOffset: subMesh.metalKitSubmesh.indexBuffer.offset,
+                            category: .opaque
+                        )
+                    }
                 }
-
-                renderEncoder.setFragmentBytes(&modelUniforms, length: MemoryLayout<Uniforms>.stride, index: Int(modelPassFragmentUniformIndex.rawValue))
-
-                for subMesh in mesh.submeshes {
-                    guard let material = subMesh.material else { continue }
-                    if material.alphaMode == .blend { continue }
-
-                    var stScale: Float = material.stScale
-                    renderEncoder.setFragmentBytes(&stScale, length: MemoryLayout<Float>.stride, index: Int(modelPassFragmentSTScaleIndex.rawValue))
-                    renderEncoder.setFragmentTexture(material.baseColor.texture, index: Int(modelPassBaseTextureIndex.rawValue))
-                    renderEncoder.setFragmentSamplerState(material.baseColor.sampler, index: Int(modelPassBaseSamplerIndex.rawValue))
-                    renderEncoder.setFragmentTexture(material.roughness.texture, index: Int(modelPassRoughnessTextureIndex.rawValue))
-                    renderEncoder.setFragmentSamplerState(material.roughness.sampler, index: Int(modelPassMaterialSamplerIndex.rawValue))
-                    renderEncoder.setFragmentTexture(material.metallic.texture, index: Int(modelPassMetallicTextureIndex.rawValue))
-
-                    var hasNormal = (material.normal.texture != nil)
-                    renderEncoder.setFragmentBytes(&hasNormal, length: MemoryLayout<Bool>.stride, index: Int(modelPassFragmentHasNormalTextureIndex.rawValue))
-
-                    var materialParameters = MaterialParametersUniform()
-                    materialParameters.specular = material.specular
-                    materialParameters.specularTint = material.specularTint
-                    materialParameters.subsurface = material.subsurface
-                    materialParameters.anisotropic = material.anisotropic
-                    materialParameters.sheen = material.sheen
-                    materialParameters.sheenTint = material.sheenTint
-                    materialParameters.clearCoat = material.clearCoat
-                    materialParameters.clearCoatGloss = material.clearCoatGloss
-                    materialParameters.baseColor = material.baseColorValue
-                    materialParameters.roughness = material.roughnessValue
-                    materialParameters.metallic = material.metallicValue
-                    materialParameters.ior = material.ior
-                    materialParameters.edgeTint = material.edgeTint
-                    materialParameters.alphaCutoff = material.alphaCutoff
-                    materialParameters.passthroughAlpha = passthroughGhostAlpha(for: entityId)
-                    materialParameters.alphaMode = Int32(material.alphaMode.rawValue)
-                    materialParameters.interactWithLight = material.interactWithLight
-                    materialParameters.emmissive = material.emissiveValue
-                    materialParameters.hasTexture = simd_int4(
-                        Int32(material.hasBaseMap ? 1 : 0),
-                        Int32(material.hasRoughMap ? 1 : 0),
-                        Int32(material.hasMetalMap ? 1 : 0),
-                        0
-                    )
-                    applyLODDebugColorOverride(entityId: entityId, materialParameters: &materialParameters)
-                    applyStreamingTierDebugColorOverride(entityId: entityId, materialParameters: &materialParameters)
-                    applyLODDither(draw: lodDraw, materialParameters: &materialParameters)
-                    applyTileRepresentationDither(entityId: entityId, materialParameters: &materialParameters)
-
-                    renderEncoder.setFragmentBytes(&materialParameters, length: MemoryLayout<MaterialParametersUniform>.stride, index: Int(modelPassFragmentMaterialParameterIndex.rawValue))
-                    renderEncoder.setFragmentTexture(material.normal.texture, index: Int(modelPassNormalTextureIndex.rawValue))
-                    renderEncoder.setFragmentSamplerState(material.normal.sampler, index: Int(modelPassNormalSamplerIndex.rawValue))
-
-                    renderEncoder.drawIndexedPrimitivesTracked(
-                        type: subMesh.metalKitSubmesh.primitiveType,
-                        indexCount: subMesh.metalKitSubmesh.indexCount,
-                        indexType: subMesh.metalKitSubmesh.indexType,
-                        indexBuffer: subMesh.metalKitSubmesh.indexBuffer.buffer,
-                        indexBufferOffset: subMesh.metalKitSubmesh.indexBuffer.offset,
-                        category: .opaque
-                    )
-                }
-            }
             }
         }
 
