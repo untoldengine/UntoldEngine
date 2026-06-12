@@ -55,7 +55,7 @@
         init() {
             InputSystem.shared.registerKeyboardEvents()
             InputSystem.shared.registerMouseEvents()
-            bypassPostProcessing = false
+            setRendering(.postProcessing(.enabled))
             setupDefaultSceneObjects()
         }
     }
@@ -77,9 +77,9 @@
             applyIBL = true
             renderEnvironment = false
             setLOD(.fadeTransitions(.enabled(duration: 0.25)))
-            //Logger.enable(category: .tileStreaming)
-            //Logger.enable(category: .streamingHeartbeat)
-            //setEngineStatsLogging(enabled: true, profile: .verbose, intervalSeconds: 1.0)
+            // Logger.enable(category: .tileStreaming)
+            // Logger.enable(category: .streamingHeartbeat)
+            // setEngineStatsLogging(enabled: true, profile: .verbose, intervalSeconds: 1.0)
         }
     }
 
@@ -241,23 +241,23 @@
 
     extension GameScene {
         func setColorGrading(enabled: Bool, exposure: Float, brightness: Float, contrast: Float, saturation: Float) {
-            PostFX.enableColorGrading(enabled)
-            ColorGradingParams.shared.exposure = exposure
-            ColorGradingParams.shared.brightness = brightness
-            ColorGradingParams.shared.contrast = contrast
-            ColorGradingParams.shared.saturation = saturation
+            setPostFX(.colorGrading(.enabled(enabled)))
+            setPostFX(.colorGrading(.exposure(exposure)))
+            setPostFX(.colorGrading(.brightness(brightness)))
+            setPostFX(.colorGrading(.contrast(contrast)))
+            setPostFX(.colorGrading(.saturation(saturation)))
         }
 
         func setSSAO(enabled: Bool, radius: Float, bias: Float, intensity: Float) {
-            SSAO.setEnabled(enabled)
-            SSAO.setRadius(radius)
-            SSAO.setBias(bias)
-            SSAO.setIntensity(intensity)
+            setPostFX(.ssao(.enabled(enabled)))
+            setPostFX(.ssao(.radius(radius)))
+            setPostFX(.ssao(.bias(bias)))
+            setPostFX(.ssao(.intensity(intensity)))
         }
 
         /// Selects the active anti-aliasing pass used by the render graph.
         func setAntiAliasing(_ mode: AntiAliasingMode) {
-            antiAliasingMode = mode
+            setRendering(.antiAliasing(mode))
         }
 
         /// Toggles the per-entity LOD level colour overlay.
@@ -273,9 +273,9 @@
         /// Selects the renderer debug output.
         func setRenderDebugView(_ mode: RenderDebugViewMode) {
             if mode == .ssaoBlurred, SSAO.isEnabled() == false {
-                SSAO.setEnabled(true)
+                setPostFX(.ssao(.enabled(true)))
             }
-            renderDebugViewMode = mode
+            setRendering(.debugView(mode))
         }
 
         /// Draws (or hides) the octree leaf-node bounds debug overlay.
