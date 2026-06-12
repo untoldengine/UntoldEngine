@@ -15,8 +15,8 @@
     /// - Entity lifecycle: `createEntity`, `setEntityName`, `destroyAllEntities`
     /// - Camera/input: `createGameCamera`, `findGameCamera`, `moveCameraWithInput`, `orbitCameraAround`
     /// - Asset loading: `setEntityMeshAsync` (always-resident), `setEntityStreamScene` (streamable scene)
-    /// - Performance features: `setEntityStaticBatchComponent`, `enableBatching`, `generateBatches`, `enableStreaming`
-    /// - Debug overlays: `setLODLevelDebug`, `setTextureStreamingTierDebug`, `setOctreeLeafBoundsDebug`
+    /// - Performance features: `setEntityStaticBatchComponent`, `setBatching`, `generateBatches`, `setGeometryStreaming`
+    /// - Debug overlays: `setSpatialDebug`
     final class GameScene: @unchecked Sendable {
         private enum LoadedContent {
             case none
@@ -71,14 +71,10 @@
             let light = createEntity()
             setEntityName(entityId: light, name: "Directional Light")
             createDirLight(entityId: light)
-
-            CameraSystem.shared.activeCamera = gameCamera
-
+            setCamera(.active(gameCamera))
+            
             applyIBL = true
             renderEnvironment = false
-            setLOD(.fadeTransitions(.enabled(duration: 0.25)))
-            // Logger.enable(category: .tileStreaming)
-            // Logger.enable(category: .streamingHeartbeat)
             // setEngineStatsLogging(enabled: true, profile: .verbose, intervalSeconds: 1.0)
         }
     }
@@ -100,7 +96,7 @@
                     loadedEntity = success ? entity : nil
                     loadedContent = success ? .mesh(entity) : .none
                     let camera = findGameCamera()
-                    CameraSystem.shared.activeCamera = camera
+                    setCamera(.active(camera))
                     cameraBehavior = .flyOrbit
                     setOrbitOffset(entityId: camera, uTargetOffset: Constants.orbitTargetOffset)
                     renderEnvironment = false
@@ -118,7 +114,7 @@
             }
 
             clearSceneBatches()
-            GeometryStreamingSystem.shared.enabled = true
+            setGeometryStreaming(.enabled(true))
 
             let sceneRoot = createEntity()
             setEntityName(entityId: sceneRoot, name: sceneID)
@@ -138,7 +134,7 @@
 
         private func prepareForMeshLoad(completion: @escaping () -> Void) {
             clearSceneBatches()
-            GeometryStreamingSystem.shared.enabled = false
+            setGeometryStreaming(.enabled(false))
 
             switch loadedContent {
             case let .mesh(entity):
@@ -172,7 +168,7 @@
             }
 
             cameraLookAt(entityId: camera, eye: eye, target: target, up: cameraUpDefault)
-            CameraSystem.shared.activeCamera = camera
+            setCamera(.active(camera))
             if cameraBehavior(for: sceneID) == .originOrbit {
                 setOriginOrbitTarget(entityId: camera)
             } else {
@@ -223,17 +219,17 @@
             guard let entity = loadedEntity else { return }
             if enabled {
                 setEntityStaticBatchComponent(entityId: entity)
-                enableBatching(true)
+                UntoldEngine.setBatching(.enabled(true))
                 generateBatches()
             } else {
-                enableBatching(false)
+                UntoldEngine.setBatching(.enabled(false))
             }
         }
 
         /// Enables or disables the geometry streaming system.
         /// Streaming radii are declared in the scene manifest; this is a runtime on/off toggle only.
         func setStreaming(_ enabled: Bool, streamingRadius _: Float, unloadRadius _: Float) {
-            GeometryStreamingSystem.shared.enabled = enabled
+            setGeometryStreaming(.enabled(enabled))
         }
     }
 
@@ -262,12 +258,17 @@
 
         /// Toggles the per-entity LOD level colour overlay.
         func setLodDebug(_ enabled: Bool) {
-            setLODLevelDebug(enabled: enabled)
+            UntoldEngine.setSpatialDebug(.lodLevels(enabled))
         }
 
         /// Toggles the texture streaming tier colour overlay.
         func setStreamingTierDebug(_ enabled: Bool) {
-            setTextureStreamingTierDebug(enabled: enabled)
+            UntoldEngine.setSpatialDebug(.textureStreamingTiers(enabled))
+        }
+
+        /// Toggles streamed tile bounds in the Spatial Debug overlay.
+        func setTileBoundsDebug(_ enabled: Bool) {
+            UntoldEngine.setSpatialDebug(.tileBounds(enabled: enabled))
         }
 
         /// Selects the renderer debug output.
@@ -289,14 +290,17 @@
                 // Always apply the color mode and occupiedOnly so tile bounds (which read
                 // these settings directly from SpatialDebugVisualization) stay in sync even
                 // when octree leaf cells are toggled off.
-                setOctreeLeafBoundsDebug(
-                    enabled: octreeCellsEnabled,
-                    maxLeafNodeCount: 0,
-                    occupiedOnly: occupiedOnly,
-                    colorMode: colorMode
-                )
+                if octreeCellsEnabled {
+                    UntoldEngine.setSpatialDebug(.octreeLeafBounds(.enabled(
+                        maxLeafNodeCount: 0,
+                        occupiedOnly: occupiedOnly,
+                        colorMode: colorMode
+                    )))
+                } else {
+                    UntoldEngine.setSpatialDebug(.octreeLeafBounds(.disabled))
+                }
             } else {
-                disableSpatialDebugVisualization()
+                UntoldEngine.setSpatialDebug(.disabled)
             }
         }
     }

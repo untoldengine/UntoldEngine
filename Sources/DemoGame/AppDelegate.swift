@@ -194,8 +194,8 @@
                     colorMode: colorMode
                 )
             }
-            demoState.onTileBoundsChanged = { enabled in
-                setTileBoundsDebug(enabled: enabled)
+            demoState.onTileBoundsChanged = { [weak self] enabled in
+                self?.gameScene.setTileBoundsDebug(enabled)
             }
             demoState.onMouseOverControlPanelChanged = { [weak self] isOver in
                 self?.gameScene.suppressCameraInput = isOver
