@@ -76,9 +76,10 @@
 
             applyIBL = true
             renderEnvironment = false
-//            Logger.enable(category: .tileStreaming)
-//            Logger.enable(category: .streamingHeartbeat)
-//            setEngineStatsLogging(enabled: true, profile: .verbose, intervalSeconds: 1.0)
+            LODConfig.shared.enableFadeTransitions = true
+            Logger.enable(category: .tileStreaming)
+            Logger.enable(category: .streamingHeartbeat)
+            setEngineStatsLogging(enabled: true, profile: .verbose, intervalSeconds: 1.0)
         }
     }
 
@@ -159,7 +160,7 @@
         private static func applyCameraEye(for sceneID: String) {
             let camera = findGameCamera()
             let eye: simd_float3
-            let target: simd_float3
+            var target: simd_float3
 
             switch cameraBehavior(for: sceneID) {
             case .originOrbit:

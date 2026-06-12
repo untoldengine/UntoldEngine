@@ -57,6 +57,12 @@ public enum RenderPasses {
         let vertexCount: Int
     }
 
+    private struct LODDitherDraw {
+        let meshes: [Mesh]
+        let threshold: Float
+        let mode: Float
+    }
+
     private final class RuntimeState: @unchecked Sendable {
         let lock = NSLock()
         var transparencyXRDepthWriteState: MTLDepthStencilState?
@@ -277,6 +283,63 @@ public enum RenderPasses {
             return 1.0
         }
         return opacity
+    }
+
+    @inline(__always)
+    private static func isEntityInActiveLODFade(_ entityId: EntityID) -> Bool {
+        guard LODConfig.shared.enableFadeTransitions,
+              let lod = scene.get(component: LODComponent.self, for: entityId)
+        else { return false }
+        return lod.previousLOD != nil
+    }
+
+    @inline(__always)
+    private static func isEntityInActiveTileRepresentationFade(_ entityId: EntityID) -> Bool {
+        scene.get(component: TileRepresentationFadeComponent.self, for: entityId) != nil
+    }
+
+    private static func opaqueLODDraws(entityId: EntityID, renderComponent: RenderComponent) -> [LODDitherDraw] {
+        guard LODConfig.shared.enableFadeTransitions,
+              let lod = scene.get(component: LODComponent.self, for: entityId),
+              let previousLOD = lod.previousLOD,
+              previousLOD >= 0,
+              previousLOD < lod.lodLevels.count
+        else {
+            return [LODDitherDraw(meshes: renderComponent.mesh, threshold: 1.0, mode: 0.0)]
+        }
+
+        let previousMeshes = lod.lodLevels[previousLOD].mesh
+        guard !previousMeshes.isEmpty else {
+            return [LODDitherDraw(meshes: renderComponent.mesh, threshold: 1.0, mode: 0.0)]
+        }
+
+        let threshold = simd_clamp(lod.transitionProgress, 0.0, 1.0)
+        return [
+            LODDitherDraw(meshes: previousMeshes, threshold: threshold, mode: 2.0),
+            LODDitherDraw(meshes: renderComponent.mesh, threshold: threshold, mode: 1.0),
+        ]
+    }
+
+    @inline(__always)
+    private static func applyLODDither(
+        draw: LODDitherDraw,
+        materialParameters: inout MaterialParametersUniform
+    ) {
+        materialParameters.lodDither = simd_float4(draw.threshold, draw.mode, 0.0, 0.0)
+    }
+
+    @inline(__always)
+    private static func applyTileRepresentationDither(
+        entityId: EntityID,
+        materialParameters: inout MaterialParametersUniform
+    ) {
+        guard let fade = scene.get(component: TileRepresentationFadeComponent.self, for: entityId) else { return }
+        materialParameters.lodDither = simd_float4(
+            simd_clamp(fade.progress, 0.0, 1.0),
+            fade.mode,
+            0.0,
+            0.0
+        )
     }
 
     @inline(__always)
@@ -1167,7 +1230,11 @@ public enum RenderPasses {
             if shouldRenderSceneEntityAsWireframe(entityId: entityId) { continue }
 
             // Skip batched entities if batching is enabled
-            if BatchingSystem.shared.isEnabled(), BatchingSystem.shared.isBatched(entityId: entityId) {
+            if BatchingSystem.shared.isEnabled(),
+               BatchingSystem.shared.isBatched(entityId: entityId),
+               !isEntityInActiveLODFade(entityId),
+               !isEntityInActiveTileRepresentationFade(entityId)
+            {
                 continue
             }
 
@@ -1197,7 +1264,8 @@ public enum RenderPasses {
                 continue
             }
 
-            for mesh in renderComponent.mesh {
+            for lodDraw in opaqueLODDraws(entityId: entityId, renderComponent: renderComponent) {
+            for mesh in lodDraw.meshes {
                 // update uniforms
                 var modelUniforms = Uniforms()
 
@@ -1344,6 +1412,8 @@ public enum RenderPasses {
                     )
                     applyLODDebugColorOverride(entityId: entityId, materialParameters: &materialParameters)
                     applyStreamingTierDebugColorOverride(entityId: entityId, materialParameters: &materialParameters)
+                    applyLODDither(draw: lodDraw, materialParameters: &materialParameters)
+                    applyTileRepresentationDither(entityId: entityId, materialParameters: &materialParameters)
 
                     renderEncoder.setFragmentBytes(
                         &materialParameters, length: MemoryLayout<MaterialParametersUniform>.stride,
@@ -1365,6 +1435,7 @@ public enum RenderPasses {
                         category: .opaque
                     )
                 }
+            }
             }
         }
 
@@ -1661,7 +1732,11 @@ public enum RenderPasses {
             if scene.mask(for: entityId) == nil { continue }
             if shouldHideSceneEntity(entityId: entityId) { continue }
             if shouldRenderSceneEntityAsWireframe(entityId: entityId) { continue }
-            if BatchingSystem.shared.isEnabled(), BatchingSystem.shared.isBatched(entityId: entityId) { continue }
+            if BatchingSystem.shared.isEnabled(),
+               BatchingSystem.shared.isBatched(entityId: entityId),
+               !isEntityInActiveLODFade(entityId),
+               !isEntityInActiveTileRepresentationFade(entityId)
+            { continue }
             if scene.get(component: SceneCameraComponent.self, for: entityId) != nil { continue }
             if scene.get(component: CameraComponent.self, for: entityId) != nil { continue }
             if hasComponent(entityId: entityId, componentType: GizmoComponent.self) { continue }
@@ -1671,7 +1746,8 @@ public enum RenderPasses {
             guard let worldTransformComponent = scene.get(component: WorldTransformComponent.self, for: entityId) else { continue }
             guard scene.get(component: LocalTransformComponent.self, for: entityId) != nil else { continue }
 
-            for mesh in renderComponent.mesh {
+            for lodDraw in opaqueLODDraws(entityId: entityId, renderComponent: renderComponent) {
+            for mesh in lodDraw.meshes {
                 var modelUniforms = Uniforms()
                 let modelMatrix = simd_mul(worldTransformComponent.space, mesh.localSpace)
                 let modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
@@ -1748,6 +1824,8 @@ public enum RenderPasses {
                     )
                     applyLODDebugColorOverride(entityId: entityId, materialParameters: &materialParameters)
                     applyStreamingTierDebugColorOverride(entityId: entityId, materialParameters: &materialParameters)
+                    applyLODDither(draw: lodDraw, materialParameters: &materialParameters)
+                    applyTileRepresentationDither(entityId: entityId, materialParameters: &materialParameters)
 
                     renderEncoder.setFragmentBytes(&materialParameters, length: MemoryLayout<MaterialParametersUniform>.stride, index: Int(modelPassFragmentMaterialParameterIndex.rawValue))
                     renderEncoder.setFragmentTexture(material.normal.texture, index: Int(modelPassNormalTextureIndex.rawValue))
@@ -1762,6 +1840,7 @@ public enum RenderPasses {
                         category: .opaque
                     )
                 }
+            }
             }
         }
 

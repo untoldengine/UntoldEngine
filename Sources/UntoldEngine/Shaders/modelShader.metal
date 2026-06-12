@@ -15,6 +15,23 @@
 
 using namespace metal;
 
+constant ushort lodBayer8x8[64] = {
+    0, 48, 12, 60, 3, 51, 15, 63,
+    32, 16, 44, 28, 35, 19, 47, 31,
+    8, 56, 4, 52, 11, 59, 7, 55,
+    40, 24, 36, 20, 43, 27, 39, 23,
+    2, 50, 14, 62, 1, 49, 13, 61,
+    34, 18, 46, 30, 33, 17, 45, 29,
+    10, 58, 6, 54, 9, 57, 5, 53,
+    42, 26, 38, 22, 41, 25, 37, 21,
+};
+
+static inline float lodBayerThreshold(float2 position) {
+    uint2 pixel = uint2(floor(position)) & uint2(7);
+    uint index = pixel.y * 8u + pixel.x;
+    return (float(lodBayer8x8[index]) + 0.5) / 64.0;
+}
+
 vertex VertexOutModel vertexModelShader(
     VertexInModel in [[stage_in]],
     constant Uniforms &uniforms [[buffer(modelPassUniformIndex)]],
@@ -121,6 +138,20 @@ fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
 
     if (materialParameter.alphaMode == 1 && inBaseColor.a < materialParameter.alphaCutoff) {
         discard_fragment();
+    }
+
+    float lodDitherMode = materialParameter.lodDither.y;
+    if (lodDitherMode > 0.5) {
+        float threshold = clamp(materialParameter.lodDither.x, 0.0, 1.0);
+        float dither = lodBayerThreshold(in.position.xy);
+
+        if (lodDitherMode < 1.5) {
+            if (dither >= threshold) {
+                discard_fragment();
+            }
+        } else if (dither < threshold) {
+            discard_fragment();
+        }
     }
 
     float passthroughAlpha = clamp(materialParameter.passthroughAlpha, 0.0, 1.0);

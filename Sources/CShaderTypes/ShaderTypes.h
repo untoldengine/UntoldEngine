@@ -315,6 +315,7 @@ typedef struct{
     float alphaCutoff;
     float passthroughAlpha; // mixed passthrough color alpha; depth remains opaque
     int alphaMode; // 0=opaque, 1=mask, 2=blend
+    simd_float4 lodDither; // x=threshold, y=mode: 0 off, 1 keep below, 2 keep at/above
     bool interactWithLight;
 }MaterialParametersUniform;
 

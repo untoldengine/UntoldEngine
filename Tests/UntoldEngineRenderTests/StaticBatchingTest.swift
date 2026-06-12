@@ -86,6 +86,7 @@ final class StaticBatchingTest: BaseRenderSetup {
     }
 
     private func setVisibleEntitiesForSpatialDebug(_ entities: [EntityID]) {
+        cullFrameIndex &+= 1
         visibleEntityIds = entities
         for frame in 0 ..< 3 {
             tripleVisibleEntities.setWrite(frame: frame, with: entities)

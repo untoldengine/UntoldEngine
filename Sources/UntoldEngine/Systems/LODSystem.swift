@@ -29,6 +29,10 @@ public class LODSystem: @unchecked Sendable {
     public func update(deltaTime: Float) {
         frameCounter &+= 1
 
+        if LODConfig.shared.enableFadeTransitions {
+            advanceActiveTransitions(deltaTime: deltaTime)
+        }
+
         // Get active camera
         guard let camera = CameraSystem.shared.activeCamera,
               let cameraComponent = scene.get(component: CameraComponent.self, for: camera)
@@ -58,11 +62,57 @@ public class LODSystem: @unchecked Sendable {
         }
     }
 
+    private func advanceActiveTransitions(deltaTime: Float) {
+        let lodId = getComponentId(for: LODComponent.self)
+        let entities = queryEntitiesWithComponentIds([lodId], in: scene)
+        let transitionDuration = max(LODConfig.shared.fadeTransitionTime, 0.001)
+
+        for entityId in entities {
+            guard let lodComponent = scene.get(component: LODComponent.self, for: entityId),
+                  lodComponent.previousLOD != nil
+            else { continue }
+
+            withWorldMutationGate {
+                lodComponent.transitionProgress += deltaTime / transitionDuration
+
+                if lodComponent.transitionProgress >= 1.0 {
+                    lodComponent.previousLOD = nil
+                    lodComponent.transitionProgress = 0.0
+
+                    let meshAssetID: String
+                    if lodComponent.currentLOD >= 0, lodComponent.currentLOD < lodComponent.lodLevels.count {
+                        meshAssetID = generateMeshAssetID(
+                            lodLevel: lodComponent.lodLevels[lodComponent.currentLOD],
+                            lodIndex: lodComponent.currentLOD
+                        )
+                    } else {
+                        meshAssetID = lodComponent.activeMeshAssetID
+                    }
+
+                    let event = EntityLODChangedEvent(
+                        entityId: entityId,
+                        previousLODIndex: lodComponent.currentLOD,
+                        newLODIndex: lodComponent.currentLOD,
+                        meshAssetID: meshAssetID
+                    )
+                    SystemEventBus.shared.queueLODChange(event)
+                }
+            }
+        }
+    }
+
     private func updateEntityLOD(entityId: EntityID, cameraPosition: simd_float3, deltaTime: Float) {
         guard let lodComponent = scene.get(component: LODComponent.self, for: entityId) else { return }
 
         // Skip if no LOD levels loaded yet (async loading may still be in progress)
         guard !lodComponent.lodLevels.isEmpty else { return }
+
+        if shouldDeferLODSelectionDuringTransition(
+            fadeTransitionsEnabled: LODConfig.shared.enableFadeTransitions,
+            previousLOD: lodComponent.previousLOD
+        ) {
+            return
+        }
 
         // Calculate distance
         let distance = calculateDistance(entityId: entityId, cameraPosition: cameraPosition)
@@ -187,16 +237,6 @@ public class LODSystem: @unchecked Sendable {
                     lodComponent.transitionProgress = 0.0
                 }
 
-                // Update transition
-                if lodComponent.previousLOD != nil {
-                    lodComponent.transitionProgress += deltaTime / LODConfig.shared.fadeTransitionTime
-
-                    if lodComponent.transitionProgress >= 1.0 {
-                        // Transition complete
-                        lodComponent.previousLOD = nil
-                        lodComponent.transitionProgress = 0.0
-                    }
-                }
             } else {
                 // Instant switch
                 lodComponent.currentLOD = newLOD
@@ -256,4 +296,11 @@ func lodShouldRunThisFrame(
     if frameCounter % max(1, interval) == 0 { return true }
     // Fast-path: camera jumped far enough since last update — run immediately.
     return simd_distance(cameraPosition, lastCameraPosition) > displacementThreshold
+}
+
+func shouldDeferLODSelectionDuringTransition(
+    fadeTransitionsEnabled: Bool,
+    previousLOD: Int?
+) -> Bool {
+    fadeTransitionsEnabled && previousLOD != nil
 }
