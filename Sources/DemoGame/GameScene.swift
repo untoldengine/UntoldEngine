@@ -72,7 +72,7 @@
             setEntityName(entityId: light, name: "Directional Light")
             createDirLight(entityId: light)
             setCamera(.active(gameCamera))
-            
+
             setRendering(.environment(.ibl(true)))
             setRendering(.environment(.visible(false)))
             // setEngineStatsLogging(enabled: true, profile: .verbose, intervalSeconds: 1.0)
