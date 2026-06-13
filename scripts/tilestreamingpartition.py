@@ -314,6 +314,13 @@ INLINE_KDTREE_MIN_LEAF    = 4    # Stop subdividing when a node holds <= this ma
 # When True, the KD-tree path is always used (set via the --kdtree CLI flag).
 FORCE_KDTREE = False
 
+# Runtime tiles are emitted per (spatial node, semantic tier), so an apparently
+# balanced spatial leaf can still become several singleton runtime tiles after
+# semantic grouping.  Collapse underfilled leaf-tier groups upward until each
+# group has at least this many objects or reaches the floor root.
+INLINE_MIN_OBJECTS_PER_TILE_TIER = 4
+INLINE_COLLAPSE_UNDERFILLED_TILE_TIERS = True
+
 INLINE_AUTO_FLOOR_BAND_HEIGHT = None   # set to a float (metres) to override auto-detection
 INLINE_MIN_FLOOR_BAND_HEIGHT  = 2.5
 INLINE_MAX_FLOOR_BAND_HEIGHT  = 5.0
@@ -1537,6 +1544,175 @@ def _qt_descend(node, rect, max_depth):
     return _qt_descend(overlapping[0], rect, max_depth)
 
 
+def _partition_parent_node_id(node_id):
+    if "_" not in node_id:
+        return None
+    parent = node_id.rsplit("_", 1)[0]
+    if parent == node_id:
+        return None
+    return parent
+
+
+def _qt_find_or_create_node(root, node_id):
+    if root.node_id == node_id:
+        return root
+    suffix = node_id[len(root.node_id):]
+    if not suffix.startswith("_"):
+        return None
+    node = root
+    for part in suffix[1:].split("_"):
+        if not part:
+            continue
+        try:
+            child_index = int(part)
+        except ValueError:
+            return None
+        if child_index < 0 or child_index > 3:
+            return None
+        if not node.children:
+            node.subdivide()
+        node = node.children[child_index]
+    return node
+
+
+def _update_meta_node(meta, node, source_suffix):
+    meta["node_id"] = node.node_id
+    meta["depth"] = node.depth
+    meta["cell_bounds_xy"] = {
+        "min_x": node.min_x,
+        "min_y": node.min_y,
+        "max_x": node.max_x,
+        "max_y": node.max_y,
+    }
+    source = str(meta.get("source", ""))
+    if source_suffix not in source:
+        meta["source"] = f"{source}{source_suffix}" if source else source_suffix.lstrip("_")
+
+
+def _print_tile_tier_quality(label, metadata_dict):
+    groups = {}
+    depth_hist = {}
+    for meta in metadata_dict.values():
+        key = (meta.get("node_id"), meta.get("semantic"))
+        groups[key] = groups.get(key, 0) + 1
+        depth = int(meta.get("depth", 0))
+        depth_hist[depth] = depth_hist.get(depth, 0) + 1
+
+    if not groups:
+        return
+
+    counts = sorted(groups.values())
+    total_groups = len(counts)
+    singleton_groups = sum(1 for c in counts if c == 1)
+    under_min_groups = sum(1 for c in counts if c < INLINE_MIN_OBJECTS_PER_TILE_TIER)
+
+    def percentile(sorted_values, p):
+        if not sorted_values:
+            return 0
+        idx = int(math.ceil((p / 100.0) * len(sorted_values))) - 1
+        idx = max(0, min(idx, len(sorted_values) - 1))
+        return sorted_values[idx]
+
+    print(f"  [{label}] tile-tier quality:")
+    print(
+        f"    groups={total_groups}  singleton={singleton_groups}  "
+        f"under_min<{INLINE_MIN_OBJECTS_PER_TILE_TIER}={under_min_groups}"
+    )
+    print(
+        f"    objects/group min={counts[0]}  p50={percentile(counts, 50)}  "
+        f"p95={percentile(counts, 95)}  max={counts[-1]}  "
+        f"avg={sum(counts) / len(counts):.1f}"
+    )
+    depth_parts = [f"d{depth}:{count}" for depth, count in sorted(depth_hist.items())]
+    print(f"    object depth histogram: {' '.join(depth_parts)}")
+
+
+def print_node_tier_group_quality(label, node_tier_groups):
+    if not node_tier_groups:
+        return
+    counts = sorted(len(objs) for objs in node_tier_groups.values())
+    if not counts:
+        return
+    singleton_groups = sum(1 for c in counts if c == 1)
+    under_min_groups = sum(1 for c in counts if c < INLINE_MIN_OBJECTS_PER_TILE_TIER)
+    by_tier = {}
+    by_depth = {}
+    for (node_id, tier), objs in node_tier_groups.items():
+        by_tier[tier] = by_tier.get(tier, 0) + 1
+        depth = max(0, node_id.count("_") - 1)
+        by_depth[depth] = by_depth.get(depth, 0) + 1
+
+    def percentile(sorted_values, p):
+        idx = int(math.ceil((p / 100.0) * len(sorted_values))) - 1
+        idx = max(0, min(idx, len(sorted_values) - 1))
+        return sorted_values[idx]
+
+    print(f"\n  {label} tile-tier quality:")
+    print(
+        f"    groups={len(counts)}  singleton={singleton_groups}  "
+        f"under_min<{INLINE_MIN_OBJECTS_PER_TILE_TIER}={under_min_groups}"
+    )
+    print(
+        f"    objects/group min={counts[0]}  p50={percentile(counts, 50)}  "
+        f"p95={percentile(counts, 95)}  max={counts[-1]}  "
+        f"avg={sum(counts) / len(counts):.1f}"
+    )
+    tier_parts = [f"{tier}:{count}" for tier, count in sorted(by_tier.items())]
+    depth_parts = [f"d{depth}:{count}" for depth, count in sorted(by_depth.items())]
+    print(f"    groups by tier : {' '.join(tier_parts)}")
+    print(f"    groups by depth: {' '.join(depth_parts)}")
+
+
+def _collapse_underfilled_tile_tiers(metadata_dict, root_for_floor, find_node, label):
+    if not INLINE_COLLAPSE_UNDERFILLED_TILE_TIERS or INLINE_MIN_OBJECTS_PER_TILE_TIER <= 1:
+        _print_tile_tier_quality(label, metadata_dict)
+        return
+
+    groups = {}
+    for obj_name, meta in metadata_dict.items():
+        key = (meta.get("node_id"), meta.get("semantic"))
+        groups.setdefault(key, set()).add(obj_name)
+
+    moved = 0
+    changed = True
+    while changed:
+        changed = False
+        for obj_name in sorted(metadata_dict.keys()):
+            meta = metadata_dict[obj_name]
+            if meta.get("spatial_class") != "local":
+                continue
+            node_id = meta.get("node_id")
+            tier = meta.get("semantic")
+            key = (node_id, tier)
+            if len(groups.get(key, ())) >= INLINE_MIN_OBJECTS_PER_TILE_TIER:
+                continue
+
+            parent_id = _partition_parent_node_id(node_id)
+            if parent_id is None:
+                continue
+
+            root = root_for_floor(meta.get("floor_id"))
+            parent = find_node(root, parent_id) if root is not None else None
+            if parent is None:
+                continue
+
+            groups[key].discard(obj_name)
+            if not groups[key]:
+                groups.pop(key, None)
+            parent_key = (parent.node_id, tier)
+            groups.setdefault(parent_key, set()).add(obj_name)
+            _update_meta_node(meta, parent, "_collapsed")
+            moved += 1
+            changed = True
+
+    if moved:
+        print(
+            f"  [{label}] collapsed {moved} object assignment(s) from underfilled "
+            f"tile-tier groups (<{INLINE_MIN_OBJECTS_PER_TILE_TIER} objects)"
+        )
+    _print_tile_tier_quality(label, metadata_dict)
+
+
 # ============================================================
 # SECTION 4.65: KD-TREE SPATIAL PARTITIONING
 # Alternative to the quadtree: at each node, splits on the
@@ -1661,6 +1837,14 @@ def _kd_assign_rect(node, rect_min_x, rect_min_y, rect_max_x, rect_max_y, cx, cy
     return _kd_assign_rect(child, rect_min_x, rect_min_y, rect_max_x, rect_max_y, cx, cy)
 
 
+def _kd_collect_nodes(node, out):
+    if node is None:
+        return
+    out[node.node_id] = node
+    _kd_collect_nodes(node.left, out)
+    _kd_collect_nodes(node.right, out)
+
+
 def compute_inline_kdtree_metadata(objects, object_bounds):
     """Run floor + KD-tree + semantic annotation inline on imported objects.
 
@@ -1730,6 +1914,11 @@ def compute_inline_kdtree_metadata(objects, object_bounds):
             max_depth=INLINE_KDTREE_MAX_DEPTH,
             min_leaf=INLINE_KDTREE_MIN_LEAF,
         )
+    floor_node_maps = {}
+    for fid, root in floor_roots.items():
+        node_map = {}
+        _kd_collect_nodes(root, node_map)
+        floor_node_maps[fid + 1] = node_map
 
     # --- Pass 2: assign each object to its KD-tree node + semantic tier ---
     # Spanning detection: if an object's AABB crosses a KD split plane, it is
@@ -1784,6 +1973,13 @@ def compute_inline_kdtree_metadata(objects, object_bounds):
     span_count  = sum(1 for m in metadata_dict.values() if m["spatial_class"] == "spanning")
     print(f"  [inline kd-tree] annotated {annotated}/{len(objects)} objects "
           f"({span_count} spanning → shared/floor-root routing)")
+
+    _collapse_underfilled_tile_tiers(
+        metadata_dict,
+        lambda floor_id: floor_roots.get(int(floor_id) - 1) if floor_id else None,
+        lambda root, node_id: floor_node_maps.get(int(root.node_id[1:3]), {}).get(node_id) if root is not None else None,
+        "inline kd-tree",
+    )
 
     # --- Heavy-leaf diagnostics ---
     if leaf_object_counts:
@@ -1989,6 +2185,12 @@ def compute_inline_quadtree_metadata(objects, object_bounds):
 
     annotated = len(metadata_dict)
     print(f"  [inline annotation] annotated {annotated}/{len(objects)} objects")
+    _collapse_underfilled_tile_tiers(
+        metadata_dict,
+        lambda floor_id: floor_roots.get(int(floor_id) - 1) if floor_id else None,
+        _qt_find_or_create_node,
+        "inline quadtree",
+    )
     return metadata_dict
 
 
@@ -4371,6 +4573,7 @@ def run():
             f"{mode_str} groups: {len(node_tier_groups)} tile-tier pairs, "
             f"{len(shared_objects)} shared-bucket objects"
         )
+        print_node_tier_group_quality("Final partition", node_tier_groups)
     else:
         print("No quadtree metadata detected — using uniform grid partitioning.")
         tile_assignments, shared_objects, classification_map = build_assignments(
@@ -4507,6 +4710,14 @@ def run():
             "spanning_threshold_tiles": SPANNING_THRESHOLD_TILES,
             "overlap_threshold": OVERLAP_THRESHOLD,
             "future_split_tile_threshold": FUTURE_SPLIT_TILE_THRESHOLD,
+        },
+        "partition_quality_config": {
+            "collapse_underfilled_tile_tiers": (
+                bool(INLINE_COLLAPSE_UNDERFILLED_TILE_TIERS)
+                if use_quadtree and not pre_annotated else False
+            ),
+            "min_objects_per_tile_tier": INLINE_MIN_OBJECTS_PER_TILE_TIER,
+            "applies_to_preannotated_metadata": False,
         },
         "hlod_generation": {
             "enabled": bool(active_hlod_levels),
@@ -5349,6 +5560,17 @@ def parse_args(argv):
         ),
     )
     parser.add_argument(
+        "--min-objects-per-tile-tier",
+        type=int,
+        default=None,
+        help=(
+            "For inline quadtree/KD-tree exports, collapse underfilled "
+            "(node, semantic tier) groups upward until each emitted tile-tier "
+            "has at least this many objects or reaches the floor root. "
+            "Default: 4. Use 1 to preserve the old singleton-leaf behavior."
+        ),
+    )
+    parser.add_argument(
         "--scene-profile",
         choices=("auto", "indoor", "outdoor"),
         default="auto",
@@ -5437,6 +5659,8 @@ def apply_cli_overrides(args):
     global UNTAGGED_SEMANTIC_TIER
     global INLINE_FLOOR_COUNT_OVERRIDE
     global INLINE_FLOOR_BAND_HEIGHT_OVERRIDE
+    global INLINE_MIN_OBJECTS_PER_TILE_TIER
+    global INLINE_COLLAPSE_UNDERFILLED_TILE_TIERS
 
     if args.input:
         SOURCE_SCENE_PATH_OVERRIDE = args.input
@@ -5501,6 +5725,9 @@ def apply_cli_overrides(args):
     if getattr(args, "kdtree", False):
         FORCE_KDTREE   = True
         FORCE_QUADTREE = True   # KD-tree uses the same quadtree export pipeline
+    if getattr(args, "min_objects_per_tile_tier", None) is not None:
+        INLINE_MIN_OBJECTS_PER_TILE_TIER = max(1, int(args.min_objects_per_tile_tier))
+        INLINE_COLLAPSE_UNDERFILLED_TILE_TIERS = INLINE_MIN_OBJECTS_PER_TILE_TIER > 1
     if getattr(args, "scene_profile", None):
         SCENE_STREAMING_PROFILE = args.scene_profile
     if getattr(args, "tier_radius", None):
