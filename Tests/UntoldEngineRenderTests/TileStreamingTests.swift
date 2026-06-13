@@ -767,6 +767,20 @@ final class TileStreamingHysteresisTests: BaseRenderSetup {
         return (entityId, tileComp)
     }
 
+    private func attachVisibleRenderRepresentation(parentId: EntityID) -> EntityID {
+        let rootId = createEntity()
+        registerSceneGraphComponent(entityId: rootId)
+        setParent(childId: rootId, parentId: parentId)
+
+        let renderId = createEntity()
+        registerSceneGraphComponent(entityId: renderId)
+        _ = scene.assign(to: renderId, component: RenderComponent.self)
+        setParent(childId: renderId, parentId: rootId)
+
+        visibleEntityIds.append(renderId)
+        return rootId
+    }
+
     // MARK: Tests
 
     /// Camera within hysteresis band [hysteresisThreshold, switchDistance):
@@ -1036,6 +1050,27 @@ final class TileStreamingHysteresisTests: BaseRenderSetup {
 
         XCTAssertNotEqual(lodTileComp.lodLevels[0].state, .unloaded, "Nearby LOD coverage should be admitted first")
         XCTAssertNotEqual(hlodTileComp.hlodState, .unloaded, "Far HLOD coverage should still be admitted when HLOD capacity is free")
+    }
+
+    func testHLODReplacement_unloadsVisibleLODWhenHLODIsVisible() {
+        let (tileEntityId, tileComp) = makeTileEntity(
+            distance: 150,
+            lodSwitchDistance: 50,
+            initialLODState: .loaded,
+            hlodSwitchDistance: 100,
+            initialHLODState: .loaded
+        )
+
+        tileComp.lodLevels[0].entityId = attachVisibleRenderRepresentation(parentId: tileEntityId)
+        tileComp.hlodEntityId = attachVisibleRenderRepresentation(parentId: tileEntityId)
+
+        GeometryStreamingSystem.shared.update(
+            cameraPosition: simd_float3(0, 0, 0),
+            deltaTime: 0.016
+        )
+
+        XCTAssertEqual(tileComp.hlodState, .loaded, "HLOD should remain loaded as far-field coverage")
+        XCTAssertEqual(tileComp.lodLevels[0].state, .unloaded, "Visible LOD should unload once visible HLOD coverage exists")
     }
 
     /// Inactive LOD level (state = .unloaded) at dist inside the hysteresis band:

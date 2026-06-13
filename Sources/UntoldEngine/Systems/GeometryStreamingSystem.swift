@@ -1275,6 +1275,10 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             let canTransitionHLOD = tileComp.lastHLODTransitionTime == 0 ||
                 timeoutNow - tileComp.lastHLODTransitionTime >= secondaryRepresentationMinDwellSeconds
 
+            if dist > tileComp.hlodSwitchDistance, tileComp.hlodState == .loaded {
+                retireLODLevelsCoveredByHLOD(entityId: entityId, tileComp: tileComp)
+            }
+
             switch tileComp.state {
             case .unloaded, .failed:
                 if dist > tileComp.hlodSwitchDistance {

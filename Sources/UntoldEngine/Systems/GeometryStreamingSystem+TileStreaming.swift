@@ -194,6 +194,23 @@ extension GeometryStreamingSystem {
         return started
     }
 
+    func retireLODLevelsCoveredByHLOD(entityId: EntityID, tileComp: TileComponent) {
+        guard tileComp.hlodState == .loaded else { return }
+
+        let incoming = hlodRenderDescendantIds(tileComp)
+        for i in tileComp.lodLevels.indices where tileComp.lodLevels[i].state != .unloaded {
+            let startedFade = beginTileRepresentationFade(
+                tileEntityId: entityId,
+                incomingRenderIds: incoming,
+                outgoingRenderIds: lodRenderDescendantIds(tileComp, levelIndex: i),
+                completion: .unloadLODLevel(i)
+            )
+            if !startedFade {
+                unloadLODLevel(entityId: entityId, levelIndex: i)
+            }
+        }
+    }
+
     /// Loads the coarse HLOD mesh for a tile stub as a child entity.
     /// Called when the camera is beyond `hlodSwitchDistance` and the tile is unloaded.
     /// HLOD entities are rendered through the standard model pass (no batching) and
