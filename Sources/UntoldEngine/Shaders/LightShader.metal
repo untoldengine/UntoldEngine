@@ -101,8 +101,9 @@ LightContribution computePointLightContribution(constant PointLightUniform &ligh
                                      float roughness,
                                      float metallic
                                      ){
-    float3 lightDirection=normalize(light.position.xyz-verticesInWorldSpace.xyz);
-    float lightDistance=length(light.position.xyz-verticesInWorldSpace.xyz);
+    float3 lightDelta = light.position.xyz - verticesInWorldSpace.xyz;
+    float lightDistance = length(lightDelta);
+    float3 lightDirection = lightDelta * rsqrt(max(dot(lightDelta, lightDelta), 1.0e-8));
 
     LightContribution br=computeBRDF(lightDirection, viewVector, normalMap.xyz, inBaseColor, float3(1.0), roughness,metallic);
 
