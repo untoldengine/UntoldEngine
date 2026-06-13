@@ -242,6 +242,18 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
     }
 
     #if ENGINE_STATS_ENABLED
+        private struct TileRenderCostSummary {
+            var fullVisibleInstances: Int = 0
+            var lodVisibleInstances: Int = 0
+            var hlodVisibleInstances: Int = 0
+            var fullDrawsEstimate: Int = 0
+            var lodDrawsEstimate: Int = 0
+            var hlodDrawsEstimate: Int = 0
+            var fullTrianglesEstimate: Int = 0
+            var lodTrianglesEstimate: Int = 0
+            var hlodTrianglesEstimate: Int = 0
+        }
+
         private func publishEngineStats(frameStartTime: Double) {
             let frameTotalMs: Double
             if let dt = timeSinceLastUpdate as Float?, dt > 0 {
@@ -260,6 +272,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
             let gateBlockedMs = AssetLoadingGate.shared.consumeBlockedMsSinceLastSample()
             let gateActiveLoads = AssetLoadingGate.shared.activeLoadCount
             let drawStats = RenderStatsCollector.shared.snapshot()
+            let tileRenderCosts = auditVisibleTileRenderCosts()
             let memStats = MemoryBudgetManager.shared.getStats()
 
             EngineStatsMonitor.shared.update { snapshot in
@@ -272,6 +285,15 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
                 snapshot.render.drawCallsBatched = drawStats.drawCallsBatched
                 snapshot.render.trianglesTotal = drawStats.trianglesTotal
                 snapshot.render.visibleInstances = max(visibleEntityIds.count, hzbStats.visibleAfterOcclusionCount)
+                snapshot.render.tileFullVisibleInstances = tileRenderCosts.fullVisibleInstances
+                snapshot.render.tileLODVisibleInstances = tileRenderCosts.lodVisibleInstances
+                snapshot.render.tileHLODVisibleInstances = tileRenderCosts.hlodVisibleInstances
+                snapshot.render.tileFullDrawsEstimate = tileRenderCosts.fullDrawsEstimate
+                snapshot.render.tileLODDrawsEstimate = tileRenderCosts.lodDrawsEstimate
+                snapshot.render.tileHLODDrawsEstimate = tileRenderCosts.hlodDrawsEstimate
+                snapshot.render.tileFullTrianglesEstimate = tileRenderCosts.fullTrianglesEstimate
+                snapshot.render.tileLODTrianglesEstimate = tileRenderCosts.lodTrianglesEstimate
+                snapshot.render.tileHLODTrianglesEstimate = tileRenderCosts.hlodTrianglesEstimate
 
                 snapshot.culling.frustumTested = hzbStats.frustumTestedCount
                 snapshot.culling.frustumPassed = hzbStats.frustumCandidateCount
@@ -315,6 +337,18 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
                 snapshot.streaming.lod0VisibilityWarnings = streamingDiag.lod0VisibilityWarnings
                 snapshot.streaming.lod0VisibilityWarningsWithFallback = streamingDiag.lod0VisibilityWarningsWithFallback
                 snapshot.streaming.lod0VisibilityWarningsNoFallback = streamingDiag.lod0VisibilityWarningsNoFallback
+                snapshot.streaming.residentFullTileRepresentations = streamingDiag.residentFullTileRepresentations
+                snapshot.streaming.residentLODRepresentations = streamingDiag.residentLODRepresentations
+                snapshot.streaming.residentHLODRepresentations = streamingDiag.residentHLODRepresentations
+                snapshot.streaming.visibleFullTileRepresentations = streamingDiag.visibleFullTileRepresentations
+                snapshot.streaming.visibleLODRepresentations = streamingDiag.visibleLODRepresentations
+                snapshot.streaming.visibleHLODRepresentations = streamingDiag.visibleHLODRepresentations
+                snapshot.streaming.fullAndLODVisibleOverlapTiles = streamingDiag.fullAndLODVisibleOverlapTiles
+                snapshot.streaming.fullAndHLODVisibleOverlapTiles = streamingDiag.fullAndHLODVisibleOverlapTiles
+                snapshot.streaming.lodAndHLODVisibleOverlapTiles = streamingDiag.lodAndHLODVisibleOverlapTiles
+                snapshot.streaming.fullAndFallbackResidentOverlapTiles = streamingDiag.fullAndFallbackResidentOverlapTiles
+                snapshot.streaming.activeTileRepresentationFades = streamingDiag.activeTileRepresentationFades
+                snapshot.streaming.waitingTileRepresentationFades = streamingDiag.waitingTileRepresentationFades
 
                 snapshot.batching.batchGroupCount = batchGroups.count
                 snapshot.batching.batchedMeshCount = batchedMeshCount
@@ -336,6 +370,62 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
                 snapshot.memory.trackedEntityCount = memStats.trackedEntityCount
             }
             EngineStatsMonitor.shared.completeFrame()
+        }
+
+        private func auditVisibleTileRenderCosts() -> TileRenderCostSummary {
+            var summary = TileRenderCostSummary()
+            let loadedFullTiles = Set(GeometryStreamingSystem.shared.loadedTileEntitiesSnapshot())
+
+            for entityId in visibleEntityIds {
+                guard scene.exists(entityId),
+                      let render = scene.get(component: RenderComponent.self, for: entityId)
+                else { continue }
+
+                let cost = tileRenderCost(for: render)
+                if let tag = scene.get(component: TileLODTagComponent.self, for: entityId) {
+                    if tag.levelIndex == 5 {
+                        summary.hlodVisibleInstances += 1
+                        summary.hlodDrawsEstimate += cost.draws
+                        summary.hlodTrianglesEstimate += cost.triangles
+                    } else {
+                        summary.lodVisibleInstances += 1
+                        summary.lodDrawsEstimate += cost.draws
+                        summary.lodTrianglesEstimate += cost.triangles
+                    }
+                } else if visibleEntityHasLoadedFullTileAncestor(entityId, loadedFullTiles: loadedFullTiles) {
+                    summary.fullVisibleInstances += 1
+                    summary.fullDrawsEstimate += cost.draws
+                    summary.fullTrianglesEstimate += cost.triangles
+                }
+            }
+
+            return summary
+        }
+
+        private func visibleEntityHasLoadedFullTileAncestor(_ entityId: EntityID, loadedFullTiles: Set<EntityID>) -> Bool {
+            var current = getEntityParent(entityId: entityId)
+            while let parent = current {
+                if loadedFullTiles.contains(parent) { return true }
+                current = getEntityParent(entityId: parent)
+            }
+            return false
+        }
+
+        private func tileRenderCost(for render: RenderComponent) -> (draws: Int, triangles: Int) {
+            var draws = 0
+            var triangles = 0
+
+            for mesh in render.mesh {
+                for submesh in mesh.submeshes {
+                    guard let material = submesh.material else { continue }
+                    if material.alphaMode == .blend { continue }
+
+                    draws += 1
+                    triangles += max(0, submesh.metalKitSubmesh.indexCount / 3)
+                }
+            }
+
+            return (draws, triangles)
         }
     #endif
 

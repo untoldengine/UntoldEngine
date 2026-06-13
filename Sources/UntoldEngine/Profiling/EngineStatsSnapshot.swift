@@ -71,6 +71,15 @@ public struct EngineRenderStats {
     public var drawCallsBatched: Int = 0
     public var trianglesTotal: Int = 0
     public var visibleInstances: Int = 0
+    public var tileFullVisibleInstances: Int = 0
+    public var tileLODVisibleInstances: Int = 0
+    public var tileHLODVisibleInstances: Int = 0
+    public var tileFullDrawsEstimate: Int = 0
+    public var tileLODDrawsEstimate: Int = 0
+    public var tileHLODDrawsEstimate: Int = 0
+    public var tileFullTrianglesEstimate: Int = 0
+    public var tileLODTrianglesEstimate: Int = 0
+    public var tileHLODTrianglesEstimate: Int = 0
 
     public init(
         drawCallsTotal: Int = 0,
@@ -79,7 +88,16 @@ public struct EngineRenderStats {
         drawCallsShadow: Int = 0,
         drawCallsBatched: Int = 0,
         trianglesTotal: Int = 0,
-        visibleInstances: Int = 0
+        visibleInstances: Int = 0,
+        tileFullVisibleInstances: Int = 0,
+        tileLODVisibleInstances: Int = 0,
+        tileHLODVisibleInstances: Int = 0,
+        tileFullDrawsEstimate: Int = 0,
+        tileLODDrawsEstimate: Int = 0,
+        tileHLODDrawsEstimate: Int = 0,
+        tileFullTrianglesEstimate: Int = 0,
+        tileLODTrianglesEstimate: Int = 0,
+        tileHLODTrianglesEstimate: Int = 0
     ) {
         self.drawCallsTotal = drawCallsTotal
         self.drawCallsOpaque = drawCallsOpaque
@@ -88,6 +106,15 @@ public struct EngineRenderStats {
         self.drawCallsBatched = drawCallsBatched
         self.trianglesTotal = trianglesTotal
         self.visibleInstances = visibleInstances
+        self.tileFullVisibleInstances = tileFullVisibleInstances
+        self.tileLODVisibleInstances = tileLODVisibleInstances
+        self.tileHLODVisibleInstances = tileHLODVisibleInstances
+        self.tileFullDrawsEstimate = tileFullDrawsEstimate
+        self.tileLODDrawsEstimate = tileLODDrawsEstimate
+        self.tileHLODDrawsEstimate = tileHLODDrawsEstimate
+        self.tileFullTrianglesEstimate = tileFullTrianglesEstimate
+        self.tileLODTrianglesEstimate = tileLODTrianglesEstimate
+        self.tileHLODTrianglesEstimate = tileHLODTrianglesEstimate
     }
 }
 
@@ -159,6 +186,18 @@ public struct EngineStreamingStats {
     public var lod0VisibilityWarnings: Int = 0
     public var lod0VisibilityWarningsWithFallback: Int = 0
     public var lod0VisibilityWarningsNoFallback: Int = 0
+    public var residentFullTileRepresentations: Int = 0
+    public var residentLODRepresentations: Int = 0
+    public var residentHLODRepresentations: Int = 0
+    public var visibleFullTileRepresentations: Int = 0
+    public var visibleLODRepresentations: Int = 0
+    public var visibleHLODRepresentations: Int = 0
+    public var fullAndLODVisibleOverlapTiles: Int = 0
+    public var fullAndHLODVisibleOverlapTiles: Int = 0
+    public var lodAndHLODVisibleOverlapTiles: Int = 0
+    public var fullAndFallbackResidentOverlapTiles: Int = 0
+    public var activeTileRepresentationFades: Int = 0
+    public var waitingTileRepresentationFades: Int = 0
 
     public init(
         activeLoads: Int = 0,
@@ -183,7 +222,19 @@ public struct EngineStreamingStats {
         tileRepresentationGapWarnings: Int = 0,
         lod0VisibilityWarnings: Int = 0,
         lod0VisibilityWarningsWithFallback: Int = 0,
-        lod0VisibilityWarningsNoFallback: Int = 0
+        lod0VisibilityWarningsNoFallback: Int = 0,
+        residentFullTileRepresentations: Int = 0,
+        residentLODRepresentations: Int = 0,
+        residentHLODRepresentations: Int = 0,
+        visibleFullTileRepresentations: Int = 0,
+        visibleLODRepresentations: Int = 0,
+        visibleHLODRepresentations: Int = 0,
+        fullAndLODVisibleOverlapTiles: Int = 0,
+        fullAndHLODVisibleOverlapTiles: Int = 0,
+        lodAndHLODVisibleOverlapTiles: Int = 0,
+        fullAndFallbackResidentOverlapTiles: Int = 0,
+        activeTileRepresentationFades: Int = 0,
+        waitingTileRepresentationFades: Int = 0
     ) {
         self.activeLoads = activeLoads
         self.loadCandidates = loadCandidates
@@ -208,6 +259,18 @@ public struct EngineStreamingStats {
         self.lod0VisibilityWarnings = lod0VisibilityWarnings
         self.lod0VisibilityWarningsWithFallback = lod0VisibilityWarningsWithFallback
         self.lod0VisibilityWarningsNoFallback = lod0VisibilityWarningsNoFallback
+        self.residentFullTileRepresentations = residentFullTileRepresentations
+        self.residentLODRepresentations = residentLODRepresentations
+        self.residentHLODRepresentations = residentHLODRepresentations
+        self.visibleFullTileRepresentations = visibleFullTileRepresentations
+        self.visibleLODRepresentations = visibleLODRepresentations
+        self.visibleHLODRepresentations = visibleHLODRepresentations
+        self.fullAndLODVisibleOverlapTiles = fullAndLODVisibleOverlapTiles
+        self.fullAndHLODVisibleOverlapTiles = fullAndHLODVisibleOverlapTiles
+        self.lodAndHLODVisibleOverlapTiles = lodAndHLODVisibleOverlapTiles
+        self.fullAndFallbackResidentOverlapTiles = fullAndFallbackResidentOverlapTiles
+        self.activeTileRepresentationFades = activeTileRepresentationFades
+        self.waitingTileRepresentationFades = waitingTileRepresentationFades
     }
 }
 
