@@ -33,6 +33,21 @@ private struct TileRepresentationGapAuditSummary {
     var parsedNoRepresentation: Int = 0
 }
 
+private struct TileRepresentationOverlapAuditSummary {
+    var residentFullTiles: Int = 0
+    var residentLODTiles: Int = 0
+    var residentHLODTiles: Int = 0
+    var visibleFullTiles: Int = 0
+    var visibleLODTiles: Int = 0
+    var visibleHLODTiles: Int = 0
+    var fullAndLODVisibleTiles: Int = 0
+    var fullAndHLODVisibleTiles: Int = 0
+    var lodAndHLODVisibleTiles: Int = 0
+    var fullAndFallbackResidentTiles: Int = 0
+    var activeFadeTiles: Int = 0
+    var waitingFadeTiles: Int = 0
+}
+
 enum TileFadeCompletion {
     case unloadHLOD
     case unloadLODLevel(Int)
@@ -2501,7 +2516,79 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             cameraPosition: cameraPosition,
             tileFrustum: tileFrustum
         )
+        auditRepresentationOverlaps()
         auditLOD0VisibilityProbes(tileFrustum: tileFrustum)
+    }
+
+    private func auditRepresentationOverlaps() {
+        let visibleSet = Set(visibleEntityIds)
+        var summary = TileRepresentationOverlapAuditSummary()
+        let fadingTiles = Set(activeTileRepresentationFades.map(\.tileEntityId))
+        let waitingFadeTiles = Set(activeTileRepresentationFades.filter(\.waitsForIncomingVisibility).map(\.tileEntityId))
+        let fullTileEntities = Set(loadedTileEntitiesSnapshot())
+        let lodTileEntities = Set(loadedLODEntitiesSnapshot())
+        let hlodTileEntities = Set(loadedHLODEntitiesSnapshot())
+        let tileEntities = fullTileEntities
+            .union(lodTileEntities)
+            .union(hlodTileEntities)
+            .union(fadingTiles)
+            .union(waitingFadeTiles)
+
+        for entityId in tileEntities {
+            guard scene.exists(entityId),
+                  let tileComp = scene.get(component: TileComponent.self, for: entityId)
+            else { continue }
+
+            let fullIds = fullTileEntities.contains(entityId)
+                ? fullTileRenderDescendantIds(tileEntityId: entityId)
+                : []
+            let lodIds: Set<EntityID> = lodTileEntities.contains(entityId)
+                ? tileComp.lodLevels.indices.reduce(into: Set<EntityID>()) { result, index in
+                    guard tileComp.lodLevels[index].state == .loaded else { return }
+                    result.formUnion(lodRenderDescendantIds(tileComp, levelIndex: index))
+                }
+                : []
+            let hlodIds = hlodTileEntities.contains(entityId) && tileComp.hlodState == .loaded
+                ? hlodRenderDescendantIds(tileComp)
+                : []
+
+            let hasFullResident = !fullIds.isEmpty && tileHasUsableFullGeometry(tileComp)
+            let hasLODResident = !lodIds.isEmpty
+            let hasHLODResident = !hlodIds.isEmpty
+            let fullVisible = hasFullResident && fullIds.contains { visibleSet.contains($0) }
+            let lodVisible = hasLODResident && lodIds.contains { visibleSet.contains($0) }
+            let hlodVisible = hasHLODResident && hlodIds.contains { visibleSet.contains($0) }
+
+            if hasFullResident { summary.residentFullTiles += 1 }
+            if hasLODResident { summary.residentLODTiles += 1 }
+            if hasHLODResident { summary.residentHLODTiles += 1 }
+            if fullVisible { summary.visibleFullTiles += 1 }
+            if lodVisible { summary.visibleLODTiles += 1 }
+            if hlodVisible { summary.visibleHLODTiles += 1 }
+            if fullVisible && lodVisible { summary.fullAndLODVisibleTiles += 1 }
+            if fullVisible && hlodVisible { summary.fullAndHLODVisibleTiles += 1 }
+            if lodVisible && hlodVisible { summary.lodAndHLODVisibleTiles += 1 }
+            if hasFullResident && (hasLODResident || hasHLODResident) {
+                summary.fullAndFallbackResidentTiles += 1
+            }
+            if fadingTiles.contains(entityId) { summary.activeFadeTiles += 1 }
+            if waitingFadeTiles.contains(entityId) { summary.waitingFadeTiles += 1 }
+        }
+
+        withStateLock {
+            diagnostics.residentFullTileRepresentations = summary.residentFullTiles
+            diagnostics.residentLODRepresentations = summary.residentLODTiles
+            diagnostics.residentHLODRepresentations = summary.residentHLODTiles
+            diagnostics.visibleFullTileRepresentations = summary.visibleFullTiles
+            diagnostics.visibleLODRepresentations = summary.visibleLODTiles
+            diagnostics.visibleHLODRepresentations = summary.visibleHLODTiles
+            diagnostics.fullAndLODVisibleOverlapTiles = summary.fullAndLODVisibleTiles
+            diagnostics.fullAndHLODVisibleOverlapTiles = summary.fullAndHLODVisibleTiles
+            diagnostics.lodAndHLODVisibleOverlapTiles = summary.lodAndHLODVisibleTiles
+            diagnostics.fullAndFallbackResidentOverlapTiles = summary.fullAndFallbackResidentTiles
+            diagnostics.activeTileRepresentationFades = summary.activeFadeTiles
+            diagnostics.waitingTileRepresentationFades = summary.waitingFadeTiles
+        }
     }
 
     private func auditLOD0FallbackHandoffs(tileFrustum _: Frustum?) {
@@ -2696,6 +2783,18 @@ public struct GeometryStreamingDiagnosticsSnapshot: Sendable {
     public var lod0VisibilityWarnings: Int = 0
     public var lod0VisibilityWarningsWithFallback: Int = 0
     public var lod0VisibilityWarningsNoFallback: Int = 0
+    public var residentFullTileRepresentations: Int = 0
+    public var residentLODRepresentations: Int = 0
+    public var residentHLODRepresentations: Int = 0
+    public var visibleFullTileRepresentations: Int = 0
+    public var visibleLODRepresentations: Int = 0
+    public var visibleHLODRepresentations: Int = 0
+    public var fullAndLODVisibleOverlapTiles: Int = 0
+    public var fullAndHLODVisibleOverlapTiles: Int = 0
+    public var lodAndHLODVisibleOverlapTiles: Int = 0
+    public var fullAndFallbackResidentOverlapTiles: Int = 0
+    public var activeTileRepresentationFades: Int = 0
+    public var waitingTileRepresentationFades: Int = 0
 
     public init() {}
 }
