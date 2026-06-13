@@ -10,12 +10,9 @@
 
 #include <metal_stdlib>
 #include "../../CShaderTypes/ShaderTypes.h"
+#include "ShaderStructs.h"
+#include "ShadersUtils.h"
 using namespace metal;
-
-struct LightContribution {
-    half3  diff = half3(0.0);   // low-freq, FP16-friendly
-    float3 spec = float3(0.0);   // high-freq, keep precision
-};
 
 
 float3x3 rotation_matrix(float3 axis, float angle) {
@@ -228,13 +225,13 @@ float3 computeSpecBRDF(float3 incomingLightDir, float3 viewDir, float3 surfaceNo
 
     float VoH = max(dot(viewDir, halfVector), 0.001);
     //float LoH = max(dot(incomingLightDir, halfVector), 0.001);
-    //float NoH = max(dot(surfaceNormal, halfVector), 0.001);
+    float NoH = max(dot(surfaceNormal, halfVector), 0.001);
 
     float3 f0 = mix(0.04, diffuseColor.rgb, (half)metallic);
 
     float3 F=fresnelSchlick(VoH,f0);
     
-    float D=g1GGXSchlick(NoV,roughness);
+    float D=distributionGGX(NoH,roughness);
 
     float G=geometricSmith(NoV,NoL,roughness);
 
@@ -592,7 +589,13 @@ float3 LTC_Evaluate(float3 N, float3 V, float3 P, float3x3 Minv, float3 points[4
     // constuct orthonormal basis around N
     
     float3 T1, T2;
-    T1 = normalize(V-N*dot(V,N));
+    T1 = V - N * dot(V, N);
+    if (dot(T1, T1) < 1.0e-6) {
+        T1 = abs(N.z) < 0.999 ? normalize(cross(float3(0.0, 0.0, 1.0), N))
+                               : normalize(cross(float3(0.0, 1.0, 0.0), N));
+    } else {
+        T1 = normalize(T1);
+    }
     T2 = cross(N, T1);
     
     //rotate area light in (T1,T2, N) basis
@@ -622,8 +625,9 @@ float3 LTC_Evaluate(float3 N, float3 V, float3 P, float3x3 Minv, float3 points[4
     
     float3 Lo_i = float3(sum, sum, sum);
     
-    //return Lo_i;
-    return Lo_i*2.0/M_PI_F;
+    // Normalize the edge integral so a light covering the full visible hemisphere
+    // evaluates to 1.0 for a Lambertian surface.
+    return Lo_i * (1.0 / (2.0 * M_PI_F));
 }
 
 float getLuminance(float3 color){
