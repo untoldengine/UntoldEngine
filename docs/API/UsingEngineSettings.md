@@ -17,6 +17,7 @@ Existing direct APIs such as `LODConfig.shared`, `SSAOParams.shared`, `antiAlias
 ```swift
 setRendering(.antiAliasing(.fxaa))
 setRendering(.antiAliasing(.smaa))
+setRendering(.antiAliasing(.msaa))
 setRendering(.antiAliasing(.none))
 
 setRendering(.debugView(.lit))
