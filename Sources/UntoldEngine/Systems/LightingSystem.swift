@@ -59,6 +59,23 @@ private func assignDefaultProceduralLightMesh(entityId: EntityID) {
     setEntityMeshDirect(entityId: entityId, meshes: meshes, assetName: "default_cube")
 }
 
+private let minimumLightRadius: Float = 0.001
+private let minimumSpotConeAngle: Float = 0.1
+private let maximumSpotConeAngle: Float = 89.0
+private let minimumSpotConeSeparation: Float = 0.05
+
+private func sanitizedLightRadius(_ radius: Float) -> Float {
+    max(radius, minimumLightRadius)
+}
+
+private func sanitizedLightFalloff(_ falloff: Float) -> Float {
+    simd_clamp(falloff, 0.0, 1.0)
+}
+
+private func sanitizedSpotConeAngle(_ coneAngle: Float) -> Float {
+    simd_clamp(coneAngle, minimumSpotConeAngle, maximumSpotConeAngle)
+}
+
 public func createDirLight(entityId: EntityID) {
     registerComponent(entityId: entityId, componentType: LightComponent.self)
     registerComponent(entityId: entityId, componentType: DirectionalLightComponent.self)
@@ -307,7 +324,7 @@ public func updateLightRadius(entityId: EntityID, radius: Float) {
             return
         }
 
-        spotLightComponent.radius = radius
+        spotLightComponent.radius = sanitizedLightRadius(radius)
     }
 }
 
@@ -383,7 +400,7 @@ public func updateLightFalloff(entityId: EntityID, falloff: Float) {
             return
         }
 
-        spotLightComponent.falloff = falloff
+        spotLightComponent.falloff = sanitizedLightFalloff(falloff)
     }
 }
 
@@ -524,15 +541,19 @@ func getSpotLights() -> [SpotLight] {
         spotLight.position = getLocalPosition(entityId: entity)
         spotLight.color = lightComponent.color
 
-        let linear: Float = simd_mix(0.1, 0.0, spotLightComponent.falloff)
-        let quadratic: Float = simd_mix(0.0, 1.0 / (spotLightComponent.radius * spotLightComponent.radius), spotLightComponent.falloff)
+        let falloff = sanitizedLightFalloff(spotLightComponent.falloff)
+        let radius = sanitizedLightRadius(spotLightComponent.radius)
+        let linear: Float = simd_mix(0.1, 0.0, falloff)
+        let quadratic: Float = simd_mix(0.0, 1.0 / (radius * radius), falloff)
         let constant: Float = 1.0
 
         spotLight.attenuation = simd_float4(constant, linear, quadratic, 0.0)
         spotLight.intensity = lightComponent.intensity
 
-        spotLight.outerCone = degreesToRadians(degrees: spotLightComponent.coneAngle)
-        let edgeSoftness = simd_mix(1.0, 10.0, spotLightComponent.falloff) // values 1 and 10 are emperically chosen. You can tweek these values
+        let coneAngle = sanitizedSpotConeAngle(spotLightComponent.coneAngle)
+        spotLight.outerCone = degreesToRadians(degrees: coneAngle)
+        let requestedEdgeSoftness = simd_mix(1.0, 10.0, falloff) // values 1 and 10 are emperically chosen. You can tweek these values
+        let edgeSoftness = min(requestedEdgeSoftness, max(minimumSpotConeSeparation, coneAngle - minimumSpotConeSeparation))
         spotLight.innerCone = spotLight.outerCone - degreesToRadians(degrees: edgeSoftness)
 
         spotLights.append(spotLight)
@@ -592,7 +613,7 @@ public func updateLightConeAngle(entityId: EntityID, coneAngle: Float) {
         return
     }
 
-    spotLightComponent.coneAngle = coneAngle
+    spotLightComponent.coneAngle = sanitizedSpotConeAngle(coneAngle)
 }
 
 func getAreaLights() -> [AreaLight] {
@@ -661,7 +682,7 @@ public func handleLightScaleInput(projectedAmount: Float, axis: simd_float3) {
     }
 
     if let spotLightComponent = scene.get(component: SpotLightComponent.self, for: activeEntity) {
-        spotLightComponent.coneAngle += projectedAmount * 10.0
+        spotLightComponent.coneAngle = sanitizedSpotConeAngle(spotLightComponent.coneAngle + projectedAmount * 10.0)
     }
 
     if scene.get(component: AreaLightComponent.self, for: activeEntity) != nil {

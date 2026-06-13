@@ -124,17 +124,22 @@ LightContribution computeSpotLightContribution(constant SpotLightUniform &light,
                                      float metallic
                                      ){
     
-    float3 lightDirection=normalize(light.position.xyz-verticesInWorldSpace.xyz);
-    float3 spotDirection = normalize(light.direction.xyz);
-    float lightDistance=length(light.position.xyz-verticesInWorldSpace.xyz);
+    float3 lightDelta = light.position.xyz - verticesInWorldSpace.xyz;
+    float lightDistance = length(lightDelta);
+    float3 lightDirection = lightDelta * rsqrt(max(dot(lightDelta, lightDelta), 1.0e-8));
+    float directionLen2 = dot(light.direction.xyz, light.direction.xyz);
+    float3 spotDirection = directionLen2 > 1.0e-8 ? light.direction.xyz * rsqrt(directionLen2) : float3(0.0, -1.0, 0.0);
     
     float attenuation=calculateAttenuation(lightDistance, light.attenuation);
     
     LightContribution br=computeBRDF(lightDirection, viewVector, normalMap.xyz, inBaseColor, float3(1.0), roughness,metallic);
     
     float theta = dot(-lightDirection, spotDirection); // cosine of angle between light dir and spot dir
-    float epsilon = cos(light.innerCone) - cos(light.outerCone);
-    float coneFalloff = clamp((theta-cos(light.outerCone))/epsilon, 0.0, 1.0);
+    float innerCone = clamp(light.innerCone, 0.0, M_PI_F - 1.0e-4);
+    float outerCone = clamp(light.outerCone, innerCone + 1.0e-4, M_PI_F);
+    float outerCos = cos(outerCone);
+    float epsilon = max(cos(innerCone) - outerCos, 1.0e-4);
+    float coneFalloff = clamp((theta - outerCos) / epsilon, 0.0, 1.0);
     
     LightContribution outC;
     outC.diff = br.diff * (half)attenuation * (half)coneFalloff * (half)light.intensity * half3(light.color);
