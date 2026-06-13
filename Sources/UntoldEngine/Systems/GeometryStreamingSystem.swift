@@ -2565,10 +2565,10 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             if fullVisible { summary.visibleFullTiles += 1 }
             if lodVisible { summary.visibleLODTiles += 1 }
             if hlodVisible { summary.visibleHLODTiles += 1 }
-            if fullVisible && lodVisible { summary.fullAndLODVisibleTiles += 1 }
-            if fullVisible && hlodVisible { summary.fullAndHLODVisibleTiles += 1 }
-            if lodVisible && hlodVisible { summary.lodAndHLODVisibleTiles += 1 }
-            if hasFullResident && (hasLODResident || hasHLODResident) {
+            if fullVisible, lodVisible { summary.fullAndLODVisibleTiles += 1 }
+            if fullVisible, hlodVisible { summary.fullAndHLODVisibleTiles += 1 }
+            if lodVisible, hlodVisible { summary.lodAndHLODVisibleTiles += 1 }
+            if hasFullResident, hasLODResident || hasHLODResident {
                 summary.fullAndFallbackResidentTiles += 1
             }
             if fadingTiles.contains(entityId) { summary.activeFadeTiles += 1 }
