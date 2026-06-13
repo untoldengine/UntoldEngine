@@ -14,23 +14,6 @@
 #include "ShadersUtils.h"
 using namespace metal;
 
-constant uint MAX_POINT_LIGHTS = 1024;
-
-struct PointLightBlock{
-    uint4 count;
-    PointLightUniform lights[MAX_POINT_LIGHTS];
-};
-
-struct SpotLightBlock{
-    uint4 count;
-    SpotLightUniform lights[MAX_POINT_LIGHTS];
-};
-
-struct AreaLightBlock{
-    uint4 count;
-    AreaLightUniform lights[MAX_POINT_LIGHTS];
-};
-
 // Cascaded shadow map sampling.
 // Selects the cascade whose far-split encloses the fragment's camera view-depth,
 // then performs a 16-tap Poisson-disk PCF on that cascade's depth slice.
@@ -182,13 +165,19 @@ LightContribution evaluateAreaLight(constant AreaLightUniform &light,
 
     //float NoV = max(dot(normalMap, viewVector), 0.001);
     
-    float theta = acos(clamp(dot(normalMap, viewVector), 0.0, 1.0));
-    float2 uv = float2(roughness, theta / (0.5 * M_PI_F));
+    float NoV = clamp(dot(normalMap, viewVector), 0.0, 1.0);
+    float theta = acos(NoV);
+    float2 uv = float2(clamp(roughness, 0.0, 1.0), theta / (0.5 * M_PI_F));
     uv = uv * LUT_SCALE + LUT_BIAS;
 
     
     float4 t = ltcMat.sample(s, uv);
     float4 t2 = ltcMag.sample(s,uv);
+
+    if (light.bounds.x <= 0.0 || light.bounds.y <= 0.0) {
+        LightContribution outC;
+        return outC;
+    }
     
     float3x3 Minv= float3x3(float3(t.x,0,t.y),
                             float3(0,1.0,0),
@@ -198,38 +187,45 @@ LightContribution evaluateAreaLight(constant AreaLightUniform &light,
     float3 P = verticesInWorldSpace.xyz;
     
     // Compute corners
-    float3 u = light.right * light.bounds.x;
-    float3 v = light.up * light.bounds.y;
+    float3 u = normalize(light.right) * light.bounds.x;
+    float3 v = normalize(light.up) * light.bounds.y;
     float3 p0 = light.position - 0.5 * u - 0.5 * v;
     float3 p1 = light.position + 0.5 * u - 0.5 * v;
     float3 p2 = light.position + 0.5 * u + 0.5 * v;
     float3 p3 = light.position - 0.5 * u + 0.5 * v;
 
     float3 points[4];
-    points[0]=p0;
-    points[1]=p1;
-    points[2]=p2;
-    points[3]=p3;
+    float3 areaNormalRaw = cross(u, v);
+    float areaNormalLen2 = dot(areaNormalRaw, areaNormalRaw);
+    float3 areaNormal = areaNormalLen2 > 1.0e-8 ? areaNormalRaw * rsqrt(areaNormalLen2) : float3(0.0, 0.0, 1.0);
+    float forwardLen2 = dot(light.forward, light.forward);
+    float3 emittingNormal = forwardLen2 > 1.0e-8 ? light.forward * rsqrt(forwardLen2) : areaNormal;
+    if (dot(areaNormal, emittingNormal) >= 0.0) {
+        points[0]=p0;
+        points[1]=p1;
+        points[2]=p2;
+        points[3]=p3;
+    } else {
+        points[0]=p0;
+        points[1]=p3;
+        points[2]=p2;
+        points[3]=p1;
+    }
     
     float3x3 identity=float3x3(float3(1.0,0.0,0.0),
                                float3(0.0,1.0,0.0),
                                float3(0.0,0.0,1.0));
     float3 Lo_spec=LTC_Evaluate(normalMap.xyz, viewVector, P,Minv, points, light.twoSided);
-    
-    Lo_spec *= t2.x;
 
     float3 Lo_diffuse = LTC_Evaluate(normalMap.xyz, viewVector, P,identity, points, light.twoSided);
 
-    float3 lightDirection=normalize(light.position.xyz-verticesInWorldSpace.xyz);
-    
-    half3 diffuseBRDF = computeDiffuseBRDF(lightDirection, viewVector, normalMap, inBaseColor.rgb, float3(1.0), roughness, metallic);
-
-    float3 specBRDF = computeSpecBRDF(lightDirection, viewVector, normalMap, inBaseColor.rgb, float3(1.0), roughness, metallic);
-
+    float3 f0 = mix(float3(0.04), inBaseColor.rgb, metallic);
+    float3 fresnelScale = f0 * t2.x + (1.0 - f0) * t2.y;
+    float3 diffuseBRDF = inBaseColor.rgb * (1.0 - metallic);
     
     LightContribution outC;
-    outC.diff = (half)light.intensity * (half3)Lo_diffuse * diffuseBRDF * (half3)light.color;
-    outC.spec = light.intensity * Lo_spec * specBRDF * light.color;
+    outC.diff = (half3)(light.intensity * light.color * Lo_diffuse * diffuseBRDF);
+    outC.spec = light.intensity * light.color * Lo_spec * fresnelScale;
 
     return outC;
     

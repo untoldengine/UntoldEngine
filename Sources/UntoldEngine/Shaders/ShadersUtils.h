@@ -36,6 +36,28 @@ constant float LUT_SIZE = 64.0;
 constant float LUT_SCALE = (LUT_SIZE - 1.0)/LUT_SIZE;
 constant float LUT_BIAS  = 0.5/LUT_SIZE;
 
+struct LightContribution {
+    half3 diff = half3(0.0);
+    float3 spec = float3(0.0);
+};
+
+constant uint MAX_POINT_LIGHTS = 1024;
+
+struct PointLightBlock{
+    uint4 count;
+    PointLightUniform lights[MAX_POINT_LIGHTS];
+};
+
+struct SpotLightBlock{
+    uint4 count;
+    SpotLightUniform lights[MAX_POINT_LIGHTS];
+};
+
+struct AreaLightBlock{
+    uint4 count;
+    AreaLightUniform lights[MAX_POINT_LIGHTS];
+};
+
 float degreesToRadians(float degrees);
 
 float3 rotateDirection(float3 dir, float3 axis, float angle);
@@ -46,7 +68,7 @@ float3x3 rotation_matrix(float3 axis, float angle);
 
 float4x4 rotationmatrix4x4(float3 axis, float angle);
 
-float calculateAttenuation(float distance, simd_float4 attenuation, float radius);
+float calculateAttenuation(float distance, simd_float4 attenuation);
 
 float mod(float x, float y);
 
@@ -63,11 +85,11 @@ float g1GGXSchlick(float NoV, float roughness);
 float geometricSmith(float NoV, float NoL,float roughness);
 
 // Cook-Torrance BRDF function - Refer to https://graphicscompendium.com/gamedev/15-pbr
-LightContribution computeBRDF(float3 incomingLightDir, float3 viewDir, float3 surfaceNormal, float3 diffuseColor, float3 specularColor, MaterialParametersUniform materialParam,float roughnessMap, float metallicMap);
+LightContribution computeBRDF(float3 incomingLightDir, float3 viewDir, float3 surfaceNormal, float3 diffuseColor, float3 specularColor, float roughnessMap, float metallicMap);
 
-half3 computeDiffuseBRDF(float3 incomingLightDir, float3 viewDir, float3 surfaceNormal, float3 diffuseColor, float3 specularColor, MaterialParametersUniform materialParam,float roughnessMap, float metallicMap);
+half3 computeDiffuseBRDF(float3 incomingLightDir, float3 viewDir, float3 surfaceNormal, float3 diffuseColor, float3 specularColor, float roughnessMap, float metallicMap);
 
-float3 computeSpecBRDF(float3 incomingLightDir, float3 viewDir, float3 surfaceNormal, float3 diffuseColor, float3 specularColor, MaterialParametersUniform materialParam,float roughnessMap, float metallicMap);
+float3 computeSpecBRDF(float3 incomingLightDir, float3 viewDir, float3 surfaceNormal, float3 diffuseColor, float3 specularColor, float roughnessMap, float metallicMap);
 
 
 
@@ -118,6 +140,50 @@ float4 BRDFIntegrationMap(float roughness, float NoV);
 float3 specularIBL(float3 F0 , float roughness, float3 N, float3 V, texture2d<float> specularMap, texture2d<float> brdfMap, float3 rotationAxis, float rotationAngle);
 
 float3 diffuseIBL(float3 normal, texture2d<float> irradianceMap, float3 rotationAxis, float rotationAngle);
+
+float computeCSMShadow(depth2d_array<float> shadowArray,
+                       constant CSMUniforms &csm,
+                       float3 worldPos,
+                       float3 cameraPos,
+                       float3 normal,
+                       float3 lightDir);
+
+float3 computeIBLContribution(texture2d<float> irradianceTexture,
+                              texture2d<float> specularTexture,
+                              texture2d<float> iblBRDFTexture,
+                              constant float &iblRotationAngle,
+                              constant IBLParamsUniform &iblParam,
+                              float4 inBaseColor,
+                              float3 normalMap,
+                              float3 viewVector,
+                              float roughness,
+                              float metallic);
+
+LightContribution computePointLightContribution(constant PointLightUniform &light,
+                                                float4 verticesInWorldSpace,
+                                                float3 viewVector,
+                                                float3 normalMap,
+                                                float3 inBaseColor,
+                                                float roughness,
+                                                float metallic);
+
+LightContribution computeSpotLightContribution(constant SpotLightUniform &light,
+                                               float4 verticesInWorldSpace,
+                                               float3 viewVector,
+                                               float3 normalMap,
+                                               float3 inBaseColor,
+                                               float roughness,
+                                               float metallic);
+
+LightContribution evaluateAreaLight(constant AreaLightUniform &light,
+                                    float4 verticesInWorldSpace,
+                                    float3 viewVector,
+                                    float3 normalMap,
+                                    texture2d<float> ltcMat,
+                                    texture2d<float> ltcMag,
+                                    float3 inBaseColor,
+                                    float roughness,
+                                    float metallic);
 
 float3 ACESFilmicToneMapping(float3 x);
 
