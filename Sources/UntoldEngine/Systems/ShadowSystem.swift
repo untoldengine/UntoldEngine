@@ -66,20 +66,16 @@ struct ShadowSystem {
 
         isActive = false
 
-        // Find directional light entity
-        let lightComponentID = getComponentId(for: DirectionalLightComponent.self)
-        let localTransformComponentID = getComponentId(for: LocalTransformComponent.self)
-        let entities = queryEntitiesWithComponentIds([lightComponentID, localTransformComponentID], in: scene)
-
-        var lightForward = simd_float3(0, -1, 0)
-        var foundLight = false
-        for entity in entities {
-            guard scene.get(component: DirectionalLightComponent.self, for: entity) != nil else { continue }
-            let fwd = getForwardAxisVector(entityId: entity)
-            lightForward = -normalize(simd_float3(fwd.x, fwd.y, fwd.z))
-            foundLight = true
+        guard let lightEntity = LightingSystem.shared.activeDirectionalLight,
+              scene.get(component: DirectionalLightComponent.self, for: lightEntity) != nil,
+              scene.get(component: LocalTransformComponent.self, for: lightEntity) != nil
+        else {
+            LightingSystem.shared.activeDirectionalLight = nil
+            return
         }
-        guard foundLight else { return }
+
+        let fwd = getForwardAxisVector(entityId: lightEntity)
+        let lightForward = -normalize(simd_float3(fwd.x, fwd.y, fwd.z))
 
         // Get camera
         guard let camEntity = CameraSystem.shared.activeCamera,

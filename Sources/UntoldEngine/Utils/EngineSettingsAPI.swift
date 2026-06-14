@@ -430,6 +430,10 @@ public enum CameraProperty: Sendable {
     case clipPlanes(near: Float, far: Float)
 }
 
+public enum DirectionalLightProperty: Sendable {
+    case active(EntityID?)
+}
+
 public func setCamera(_ property: CameraProperty) {
     switch property {
     case let .active(entityId):
@@ -439,6 +443,23 @@ public func setCamera(_ property: CameraProperty) {
     case let .clipPlanes(near: nearPlane, far: farPlane):
         near = nearPlane
         far = farPlane
+    }
+}
+
+public func setDirectionalLight(_ property: DirectionalLightProperty) {
+    switch property {
+    case let .active(entityId):
+        guard let entityId else {
+            LightingSystem.shared.activeDirectionalLight = nil
+            return
+        }
+
+        guard hasComponent(entityId: entityId, componentType: DirectionalLightComponent.self) else {
+            Logger.logWarning(message: "[LightingSystem] Cannot set active directional light. Entity \(entityId) has no DirectionalLightComponent.")
+            return
+        }
+
+        LightingSystem.shared.activeDirectionalLight = entityId
     }
 }
 
