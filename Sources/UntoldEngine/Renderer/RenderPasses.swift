@@ -973,7 +973,7 @@ public enum RenderPasses {
             renderEncoder.setRenderPipelineState(shadowPipeline.pipelineState!)
             renderEncoder.setDepthStencilState(shadowPipeline.depthState!)
             renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
-            renderEncoder.setDepthBias(0.005, slopeScale: 1.0, clamp: 1.0)
+            renderEncoder.setDepthBias(0.0015, slopeScale: 0.75, clamp: 0.02)
             renderEncoder.setViewport(
                 MTLViewport(originX: 0, originY: 0,
                             width: Double(shadowResolution.x), height: Double(shadowResolution.y),
@@ -1106,7 +1106,7 @@ public enum RenderPasses {
             renderEncoder.setRenderPipelineState(shadowPipeline.pipelineState!)
             renderEncoder.setDepthStencilState(shadowPipeline.depthState!)
             renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
-            renderEncoder.setDepthBias(0.005, slopeScale: 1.0, clamp: 1.0)
+            renderEncoder.setDepthBias(0.0015, slopeScale: 0.75, clamp: 0.02)
             renderEncoder.setViewport(
                 MTLViewport(originX: 0, originY: 0,
                             width: Double(shadowResolution.x), height: Double(shadowResolution.y),

@@ -48,14 +48,15 @@ float computeCSMShadow(
     constexpr sampler shadowSampler(coord::normalized, filter::linear, address::clamp_to_edge);
     float2 texelSize = 1.0 / float2(shadowArray.get_width(), shadowArray.get_height());
 
-    float bias = max(0.002 * (1.0 - dot(normalize(normal), normalize(lightDir))), 0.001);
+    float NoL = clamp(dot(normalize(normal), normalize(lightDir)), 0.0, 1.0);
+    float bias = max(0.0011 * (1.0 - NoL), 0.0003);
     float currentDepth = proj.z;
 
     float shadow = 0.0;
     for (int i = 0; i < 16; ++i) {
-        float2 offset = poissonDisk[i] * texelSize * 1.5;
+        float2 offset = poissonDisk[i] * texelSize;
         float sampledDepth = shadowArray.sample(shadowSampler, proj.xy + offset, cascade);
-        shadow += (currentDepth - bias) > sampledDepth ? 0.3 : 1.0;
+        shadow += (currentDepth - bias) > sampledDepth ? 0.0 : 1.0;
     }
     return shadow / 16.0;
 }
