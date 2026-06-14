@@ -59,15 +59,15 @@ public struct NativeFormatLoader: NamedRuntimeAssetLoading {
             jointWeightChunkData: jointWeightChunkData
         )
 
-        return RuntimeAsset(
+        return try RuntimeAsset(
             sourceURL: url,
             sourceKind: .untold,
             assetName: url.deletingPathExtension().lastPathComponent,
             rootTransform: decoded.header.rootTransform,
             worldBounds: decoded.header.worldBounds,
             nodes: nodes,
-            lights: try makeRuntimeLights(decoded: decoded),
-            cameras: try makeRuntimeCameras(decoded: decoded),
+            lights: makeRuntimeLights(decoded: decoded),
+            cameras: makeRuntimeCameras(decoded: decoded),
             animationClips: animationClips
         )
     }

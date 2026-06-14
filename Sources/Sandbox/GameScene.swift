@@ -25,16 +25,13 @@
             // Make sure to convert your usdz files to .untold format as explained in docs/API/UsingTheExporter
 
             // Uncomment to render a simple mesh.
-            
-             let entity = createEntity()
-            setEntityMeshAsync(entityId: entity, filename: "/Users/haroldserrano/Downloads/simplescenedir/simplescene.untold", withExtension: "untold", importOptions: .sceneAuthored) { success in
 
-                 setEntityName(entityId: entity, name: "redplayer")
+            let entity = createEntity()
+            setEntityMeshAsync(entityId: entity, filename: "/Users/haroldserrano/Downloads/simplescenedir/simplescene.untold", withExtension: "untold", importOptions: .sceneAuthored) { _ in
+                setEntityName(entityId: entity, name: "redplayer")
 
-                 setSceneReady(true)
-
-             }
-              
+                setSceneReady(true)
+            }
 
             // Uncomment to render a streamed scene
             /*
@@ -62,7 +59,7 @@
 
             let light = createEntity()
             setEntityName(entityId: light, name: "Directional Light")
-            //createDirLight(entityId: light)
+            // createDirLight(entityId: light)
         }
 
         func update(deltaTime _: Float) {

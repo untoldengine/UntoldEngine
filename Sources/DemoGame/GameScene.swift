@@ -71,7 +71,7 @@
             let light = createEntity()
             setEntityName(entityId: light, name: "Directional Light")
             createDirLight(entityId: light)
-            
+
             setDirectionalLight(.active(light))
             setCamera(.active(gameCamera))
 
