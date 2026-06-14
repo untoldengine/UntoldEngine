@@ -1029,7 +1029,7 @@ private func normalizedImportedDirection(_ direction: simd_float3, fallback: sim
 }
 
 private func importedTransformAxis(_ transform: simd_float4x4, column: Int, fallback: simd_float3) -> simd_float3 {
-    let vector: simd_float3 = switch column {
+    let vector = switch column {
     case 0:
         simd_float3(transform.columns.0.x, transform.columns.0.y, transform.columns.0.z)
     case 1:
@@ -1112,7 +1112,6 @@ private func registerUntoldLight(_ light: RuntimeLightSource, under rootEntityId
         if LightingSystem.shared.activeDirectionalLight == nil {
             setDirectionalLight(.active(lightEntityId))
         }
-        break
 
     case .point:
         if let pointLight = scene.get(component: PointLightComponent.self, for: lightEntityId) {
