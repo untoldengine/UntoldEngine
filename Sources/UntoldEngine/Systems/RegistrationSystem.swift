@@ -1109,6 +1109,9 @@ private func registerUntoldLight(_ light: RuntimeLightSource, under rootEntityId
 
     switch light.kind {
     case .directional:
+        if LightingSystem.shared.activeDirectionalLight == nil {
+            setDirectionalLight(.active(lightEntityId))
+        }
         break
 
     case .point:
@@ -2272,6 +2275,9 @@ func removeEntityLight(entityId: EntityID) {
     }
 
     if scene.get(component: DirectionalLightComponent.self, for: entityId) != nil {
+        if LightingSystem.shared.activeDirectionalLight == entityId {
+            LightingSystem.shared.activeDirectionalLight = nil
+        }
         scene.remove(component: DirectionalLightComponent.self, from: entityId)
     }
 

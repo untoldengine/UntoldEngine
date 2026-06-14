@@ -173,7 +173,8 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         setEntityName(entityId: light, name: "Directional Light")
         createDirLight(entityId: light)
 
-        CameraSystem.shared.activeCamera = gameCamera
+        setCamera(.active(gameCamera))
+        setDirectionalLight(.active(light))
 
         #if os(visionOS)
             BatchingSystem.shared.applyRuntimeBatchingTuning(.visionOSBalanced)

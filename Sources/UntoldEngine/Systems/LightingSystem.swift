@@ -13,6 +13,28 @@ import CShaderTypes
 import Foundation
 import simd
 
+public final class LightingSystem: @unchecked Sendable {
+    public static let shared: LightingSystem = .init()
+
+    private let activeDirectionalLightLock = NSLock()
+    private var _activeDirectionalLight: EntityID?
+
+    private init() {}
+
+    public var activeDirectionalLight: EntityID? {
+        get {
+            activeDirectionalLightLock.lock()
+            defer { activeDirectionalLightLock.unlock() }
+            return _activeDirectionalLight
+        }
+        set {
+            activeDirectionalLightLock.lock()
+            _activeDirectionalLight = newValue
+            activeDirectionalLightLock.unlock()
+        }
+    }
+}
+
 public struct DirectionalLight {
     var direction: simd_float3 = .init(1.0, 1.0, 1.0)
     var color: simd_float3 = .init(1.0, 1.0, 1.0)
@@ -91,6 +113,9 @@ public func createDirLight(entityId: EntityID) {
     }
 
     lightComponent.lightType = .directional
+    if LightingSystem.shared.activeDirectionalLight == nil {
+        LightingSystem.shared.activeDirectionalLight = entityId
+    }
 
     do {
         let texture = try loadTexture(device: renderInfo.device, textureName: "directional_light_icon_256x256", withExtension: "png")
@@ -187,28 +212,30 @@ func getDirectionalLightParameters() -> LightParameters {
     var lightIntensity: Float = 0.0
     var lightColor = simd_float3(0.0, 0.0, 0.0)
 
-    let lightComponentID = getComponentId(for: LightComponent.self)
-    let dirLightComponentID = getComponentId(for: DirectionalLightComponent.self)
-    let localTransformComponentID = getComponentId(for: LocalTransformComponent.self)
-
-    let lightEntities = queryEntitiesWithComponentIds([lightComponentID, dirLightComponentID, localTransformComponentID], in: scene)
-
-    for entity in lightEntities {
-        guard let lightComponent = scene.get(component: LightComponent.self, for: entity) else {
-            handleError(.noLightComponent)
-            continue
-        }
-
-        guard scene.get(component: DirectionalLightComponent.self, for: entity) != nil else {
-            handleError(.noDirLightComponent)
-            continue
-        }
-
-        let forward = getForwardAxisVector(entityId: entity)
-        lightDirection = simd_float3(forward.x, forward.y, forward.z)
-        lightIntensity = lightComponent.intensity
-        lightColor = lightComponent.color
+    guard let entity = LightingSystem.shared.activeDirectionalLight else {
+        var lightParameter = LightParameters()
+        lightParameter.direction = lightDirection
+        lightParameter.intensity = lightIntensity
+        lightParameter.color = lightColor
+        return lightParameter
     }
+
+    guard let lightComponent = scene.get(component: LightComponent.self, for: entity),
+          scene.get(component: DirectionalLightComponent.self, for: entity) != nil,
+          scene.get(component: LocalTransformComponent.self, for: entity) != nil
+    else {
+        LightingSystem.shared.activeDirectionalLight = nil
+        var lightParameter = LightParameters()
+        lightParameter.direction = lightDirection
+        lightParameter.intensity = lightIntensity
+        lightParameter.color = lightColor
+        return lightParameter
+    }
+
+    let forward = getForwardAxisVector(entityId: entity)
+    lightDirection = simd_float3(forward.x, forward.y, forward.z)
+    lightIntensity = lightComponent.intensity
+    lightColor = lightComponent.color
 
     var lightParameter = LightParameters()
     lightParameter.direction = lightDirection
