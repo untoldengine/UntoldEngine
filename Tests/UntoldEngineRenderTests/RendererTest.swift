@@ -273,12 +273,13 @@ final class RendererTests: BaseRenderSetup {
             )
         }
 
-        let expectedLastSplit = renderInfo.isXRStereoMode ? Float(50.0) : far
+        let shadowFar = min(far, RenderPasses.maxShadowCastingDistance)
+        let expectedLastSplit = renderInfo.isXRStereoMode ? min(Float(50.0), shadowFar) : shadowFar
         XCTAssertEqual(
             shadowSystem.cascadeSplitDistances.last ?? -1,
             expectedLastSplit,
             accuracy: 0.001,
-            "Last cascade split should reach the configured CSM far distance"
+            "Last cascade split should reach the effective CSM shadow distance"
         )
 
         for matrix in shadowSystem.cascadeLightSpaceMatrices {
