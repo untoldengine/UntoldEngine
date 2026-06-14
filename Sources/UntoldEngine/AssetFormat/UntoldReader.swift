@@ -58,6 +58,18 @@ public final class UntoldReader: @unchecked Sendable {
             from: data,
             entries: chunks
         )
+        let lights = try decodeTableIfPresent(
+            UntoldLightRecordV1.self,
+            chunkType: .lightTable,
+            from: data,
+            entries: chunks
+        )
+        let cameras = try decodeTableIfPresent(
+            UntoldCameraRecordV1.self,
+            chunkType: .cameraTable,
+            from: data,
+            entries: chunks
+        )
         let skeletons = try decodeTableIfPresent(
             UntoldSkeletonRecordV1.self,
             chunkType: .skeletonTable,
@@ -115,6 +127,8 @@ public final class UntoldReader: @unchecked Sendable {
             meshes: meshes,
             materials: materials,
             textures: textures,
+            lights: lights,
+            cameras: cameras,
             skeletons: skeletons,
             skeletonJoints: skeletonJoints,
             skins: skins,
@@ -437,6 +451,8 @@ public struct UntoldDecodedAsset: Sendable {
     public let meshes: [UntoldMeshRecordV1]
     public let materials: [UntoldMaterialRecordV1]
     public let textures: [UntoldTextureRefRecordV1]
+    public let lights: [UntoldLightRecordV1]
+    public let cameras: [UntoldCameraRecordV1]
     public let skeletons: [UntoldSkeletonRecordV1]
     public let skeletonJoints: [UntoldSkeletonJointRecordV1]
     public let skins: [UntoldSkinRecordV1]
@@ -454,6 +470,8 @@ public struct UntoldDecodedAsset: Sendable {
         meshes: [UntoldMeshRecordV1],
         materials: [UntoldMaterialRecordV1],
         textures: [UntoldTextureRefRecordV1],
+        lights: [UntoldLightRecordV1] = [],
+        cameras: [UntoldCameraRecordV1] = [],
         skeletons: [UntoldSkeletonRecordV1],
         skeletonJoints: [UntoldSkeletonJointRecordV1],
         skins: [UntoldSkinRecordV1],
@@ -470,6 +488,8 @@ public struct UntoldDecodedAsset: Sendable {
         self.meshes = meshes
         self.materials = materials
         self.textures = textures
+        self.lights = lights
+        self.cameras = cameras
         self.skeletons = skeletons
         self.skeletonJoints = skeletonJoints
         self.skins = skins

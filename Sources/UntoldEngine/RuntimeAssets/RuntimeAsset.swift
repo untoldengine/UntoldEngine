@@ -24,6 +24,105 @@ public enum RuntimeAssetSourceKind: String, Sendable {
     case procedural
 }
 
+public enum RuntimeLightSourceKind: String, Sendable, Equatable {
+    case directional
+    case point
+    case spot
+    case area
+}
+
+public struct RuntimeLightSource: Sendable, Equatable {
+    public var name: String?
+    public var kind: RuntimeLightSourceKind
+    public var color: SIMD3<Float>
+    public var intensity: Float
+    public var position: SIMD3<Float>
+    public var radius: Float
+    public var direction: SIMD3<Float>
+    public var falloff: Float
+    public var right: SIMD3<Float>
+    public var innerCone: Float
+    public var up: SIMD3<Float>
+    public var outerCone: Float
+    public var areaSize: SIMD2<Float>
+    public var sourcePower: Float
+    public var sourceExposure: Float
+    public var localTransform: simd_float4x4
+
+    public init(
+        name: String? = nil,
+        kind: RuntimeLightSourceKind,
+        color: SIMD3<Float> = SIMD3<Float>(1, 1, 1),
+        intensity: Float = 1.0,
+        position: SIMD3<Float> = .zero,
+        radius: Float = 1.0,
+        direction: SIMD3<Float> = SIMD3<Float>(0, -1, 0),
+        falloff: Float = 0.5,
+        right: SIMD3<Float> = SIMD3<Float>(1, 0, 0),
+        innerCone: Float = 5.0,
+        up: SIMD3<Float> = SIMD3<Float>(0, 1, 0),
+        outerCone: Float = 10.0,
+        areaSize: SIMD2<Float> = SIMD2<Float>(1, 1),
+        sourcePower: Float = 1.0,
+        sourceExposure: Float = 0.0,
+        localTransform: simd_float4x4 = matrix_identity_float4x4
+    ) {
+        self.name = name
+        self.kind = kind
+        self.color = color
+        self.intensity = intensity
+        self.position = position
+        self.radius = radius
+        self.direction = direction
+        self.falloff = falloff
+        self.right = right
+        self.innerCone = innerCone
+        self.up = up
+        self.outerCone = outerCone
+        self.areaSize = areaSize
+        self.sourcePower = sourcePower
+        self.sourceExposure = sourceExposure
+        self.localTransform = localTransform
+    }
+}
+
+public struct RuntimeCameraSource: Sendable, Equatable {
+    public var name: String?
+    public var position: SIMD3<Float>
+    public var forward: SIMD3<Float>
+    public var up: SIMD3<Float>
+    public var right: SIMD3<Float>
+    public var fovYDegrees: Float
+    public var nearClip: Float
+    public var farClip: Float
+    public var aspectRatio: Float
+    public var localTransform: simd_float4x4
+
+    public init(
+        name: String? = nil,
+        position: SIMD3<Float> = .zero,
+        forward: SIMD3<Float> = SIMD3<Float>(0, 0, 1),
+        up: SIMD3<Float> = SIMD3<Float>(0, 1, 0),
+        right: SIMD3<Float> = SIMD3<Float>(1, 0, 0),
+        fovYDegrees: Float = 50.0,
+        nearClip: Float = 0.1,
+        farClip: Float = 1000.0,
+        aspectRatio: Float = 1.5,
+        localTransform: simd_float4x4 = matrix_identity_float4x4
+    ) {
+        self.name = name
+        self.position = position
+        self.forward = forward
+        self.up = up
+        self.right = right
+        self.fovYDegrees = fovYDegrees
+        self.nearClip = nearClip
+        self.farClip = farClip
+        self.aspectRatio = aspectRatio
+        self.localTransform = localTransform
+    }
+}
+
 public struct RuntimeTextureReference: Sendable, Equatable {
     public var name: String?
     public var sourceURL: URL?
@@ -341,6 +440,8 @@ public struct RuntimeAsset: Sendable, Equatable {
     public var rootTransform: simd_float4x4
     public var worldBounds: RuntimeAABB
     public var nodes: [RuntimeAssetNode]
+    public var lights: [RuntimeLightSource]
+    public var cameras: [RuntimeCameraSource]
     public var animationClips: [RuntimeAnimationClip]
     public var meshGroups: [RuntimeMeshGroup]
 
@@ -351,6 +452,8 @@ public struct RuntimeAsset: Sendable, Equatable {
         rootTransform: simd_float4x4 = matrix_identity_float4x4,
         worldBounds: RuntimeAABB,
         nodes: [RuntimeAssetNode] = [],
+        lights: [RuntimeLightSource] = [],
+        cameras: [RuntimeCameraSource] = [],
         animationClips: [RuntimeAnimationClip] = [],
         meshGroups: [RuntimeMeshGroup]
     ) {
@@ -360,6 +463,8 @@ public struct RuntimeAsset: Sendable, Equatable {
         self.rootTransform = rootTransform
         self.worldBounds = worldBounds
         self.nodes = nodes
+        self.lights = lights
+        self.cameras = cameras
         self.animationClips = animationClips
         self.meshGroups = meshGroups
     }
@@ -371,6 +476,8 @@ public struct RuntimeAsset: Sendable, Equatable {
         rootTransform: simd_float4x4 = matrix_identity_float4x4,
         worldBounds: RuntimeAABB,
         nodes: [RuntimeAssetNode],
+        lights: [RuntimeLightSource] = [],
+        cameras: [RuntimeCameraSource] = [],
         animationClips: [RuntimeAnimationClip] = []
     ) {
         self.sourceURL = sourceURL
@@ -379,6 +486,8 @@ public struct RuntimeAsset: Sendable, Equatable {
         self.rootTransform = rootTransform
         self.worldBounds = worldBounds
         self.nodes = nodes
+        self.lights = lights
+        self.cameras = cameras
         self.animationClips = animationClips
         meshGroups = nodes.compactMap { node in
             guard !node.primitives.isEmpty else { return nil }

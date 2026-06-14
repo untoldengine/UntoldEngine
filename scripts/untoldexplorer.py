@@ -78,11 +78,17 @@ CHUNK_TYPES = {
     "joint_index_data": 16,
     "joint_weight_data": 17,
     "edge_index_data": 18,
+    "light_table": 19,
+    "camera_table": 20,
 }
 
 VERTEX_LAYOUT_PBR_STATIC_V1 = 1
 INDEX_TYPE_UINT16 = 1
 INDEX_TYPE_UINT32 = 2
+LIGHT_TYPE_DIRECTIONAL = 1
+LIGHT_TYPE_POINT = 2
+LIGHT_TYPE_SPOT = 3
+LIGHT_TYPE_AREA = 4
 ARCHITECTURAL_EDGE_ANGLE_DEGREES = 30.0
 ARCHITECTURAL_EDGE_POSITION_EPSILON = 1.0e-5
 TEXTURE_FORMAT_UNKNOWN = 0
@@ -389,6 +395,44 @@ class TextureRecord:
 
 
 @dataclass(frozen=True)
+class LightRecord:
+    entity_id: int
+    name_offset: int
+    light_type: int
+    flags: int
+    color: tuple[float, float, float]
+    intensity: float
+    position: tuple[float, float, float]
+    radius: float
+    direction: tuple[float, float, float]
+    falloff: float
+    right: tuple[float, float, float]
+    inner_cone: float
+    up: tuple[float, float, float]
+    outer_cone: float
+    area_size: tuple[float, float]
+    source_power: float
+    source_exposure: float
+    local_transform_rows: list[list[float]]
+
+
+@dataclass(frozen=True)
+class CameraRecord:
+    entity_id: int
+    name_offset: int
+    flags: int
+    position: tuple[float, float, float]
+    forward: tuple[float, float, float]
+    up: tuple[float, float, float]
+    right: tuple[float, float, float]
+    fov_y_degrees: float
+    near_clip: float
+    far_clip: float
+    aspect_ratio: float
+    local_transform_rows: list[list[float]]
+
+
+@dataclass(frozen=True)
 class MaterialRecord:
     name_offset: int
     flags: int
@@ -582,6 +626,40 @@ class ExportedNode:
     world_bounds: AABB
     skeleton: Optional[ExportedSkeleton] = None
     mesh: Optional[ExportedMesh] = None
+
+
+@dataclass(frozen=True)
+class ExportedLight:
+    entity_name: str
+    light_type: int
+    color: tuple[float, float, float]
+    intensity: float
+    position: tuple[float, float, float]
+    radius: float
+    direction: tuple[float, float, float]
+    falloff: float
+    right: tuple[float, float, float]
+    inner_cone: float
+    up: tuple[float, float, float]
+    outer_cone: float
+    area_size: tuple[float, float]
+    source_power: float
+    source_exposure: float
+    local_transform_rows: list[list[float]]
+
+
+@dataclass(frozen=True)
+class ExportedCamera:
+    entity_name: str
+    position: tuple[float, float, float]
+    forward: tuple[float, float, float]
+    up: tuple[float, float, float]
+    right: tuple[float, float, float]
+    fov_y_degrees: float
+    near_clip: float
+    far_clip: float
+    aspect_ratio: float
+    local_transform_rows: list[list[float]]
 
 
 @dataclass(frozen=True)
@@ -1016,6 +1094,53 @@ def write_texture_record(writer: BinaryWriter, texture: TextureRecord) -> None:
     writer.write_u32(texture.height)
     writer.write_u32(texture.mip_count)
     writer.write_u32(0)
+
+
+def write_light_record(writer: BinaryWriter, light: LightRecord) -> None:
+    writer.write_u32(light.entity_id)
+    writer.write_u32(light.name_offset)
+    writer.write_u32(light.light_type)
+    writer.write_u32(light.flags)
+    for value in light.color:
+        writer.write_f32(value)
+    writer.write_f32(light.intensity)
+    for value in light.position:
+        writer.write_f32(value)
+    writer.write_f32(light.radius)
+    for value in light.direction:
+        writer.write_f32(value)
+    writer.write_f32(light.falloff)
+    for value in light.right:
+        writer.write_f32(value)
+    writer.write_f32(light.inner_cone)
+    for value in light.up:
+        writer.write_f32(value)
+    writer.write_f32(light.outer_cone)
+    writer.write_f32(light.area_size[0])
+    writer.write_f32(light.area_size[1])
+    writer.write_f32(light.source_power)
+    writer.write_f32(light.source_exposure)
+    writer.write_matrix4x4_column_major(light.local_transform_rows)
+
+
+def write_camera_record(writer: BinaryWriter, camera: CameraRecord) -> None:
+    writer.write_u32(camera.entity_id)
+    writer.write_u32(camera.name_offset)
+    writer.write_u32(camera.flags)
+    writer.write_u32(0)
+    for value in camera.position:
+        writer.write_f32(value)
+    writer.write_f32(camera.fov_y_degrees)
+    for value in camera.forward:
+        writer.write_f32(value)
+    writer.write_f32(camera.near_clip)
+    for value in camera.up:
+        writer.write_f32(value)
+    writer.write_f32(camera.far_clip)
+    for value in camera.right:
+        writer.write_f32(value)
+    writer.write_f32(camera.aspect_ratio)
+    writer.write_matrix4x4_column_major(camera.local_transform_rows)
 
 
 def write_skeleton_record(writer: BinaryWriter, skeleton: SkeletonRecord) -> None:
@@ -1464,6 +1589,212 @@ def prepare_export_objects_from_blender_objects(
     export_objects = include_linked_armatures(export_objects)
     export_objects = split_blender_objects_by_material(export_objects)
     return export_objects
+
+
+def _object_transform_rows(
+    obj: object,
+    conversion_matrix: Optional[object],
+    *,
+    world: bool = True,
+) -> list[list[float]]:
+    matrix = obj.matrix_world if world else obj.matrix_local
+    rows = matrix_rows_from_blender(matrix)
+    if conversion_matrix is not None:
+        rows = transform_matrix_rows(rows, conversion_matrix)
+    return rows
+
+
+def _semantic_camera_transform_rows(obj: object, conversion_matrix: Optional[object]) -> list[list[float]]:
+    matrix = obj.matrix_world
+    position = vector3(matrix.translation)
+    right = transform_direction(matrix, (1.0, 0.0, 0.0), (1.0, 0.0, 0.0))
+    up = transform_direction(matrix, (0.0, 1.0, 0.0), (0.0, 1.0, 0.0))
+    forward = transform_direction(matrix, (0.0, 0.0, -1.0), (0.0, 0.0, 1.0))
+
+    if conversion_matrix is not None:
+        position = transform_point(conversion_matrix, position)
+        right = transform_direction(conversion_matrix, right, (1.0, 0.0, 0.0))
+        up = transform_direction(conversion_matrix, up, (0.0, 1.0, 0.0))
+        forward = transform_direction(conversion_matrix, forward, (0.0, 0.0, 1.0))
+
+    return [
+        [right[0], up[0], forward[0], position[0]],
+        [right[1], up[1], forward[1], position[1]],
+        [right[2], up[2], forward[2], position[2]],
+        [0.0, 0.0, 0.0, 1.0],
+    ]
+
+
+def _semantic_light_transform_rows(
+    obj: object,
+    conversion_matrix: Optional[object],
+    light_type: int,
+) -> list[list[float]]:
+    matrix = obj.matrix_world
+    position = vector3(matrix.translation)
+    right = transform_direction(matrix, (1.0, 0.0, 0.0), (1.0, 0.0, 0.0))
+    up = transform_direction(matrix, (0.0, 1.0, 0.0), (0.0, 1.0, 0.0))
+
+    if light_type == LIGHT_TYPE_DIRECTIONAL:
+        forward = transform_direction(matrix, (0.0, 0.0, 1.0), (0.0, 0.0, 1.0))
+    elif light_type == LIGHT_TYPE_AREA:
+        forward = transform_direction(matrix, (0.0, 0.0, -1.0), (0.0, 0.0, 1.0))
+    elif light_type == LIGHT_TYPE_SPOT:
+        forward = transform_direction(matrix, (0.0, 0.0, 1.0), (0.0, 0.0, 1.0))
+    else:
+        forward = transform_direction(matrix, (0.0, 0.0, 1.0), (0.0, 0.0, 1.0))
+
+    if conversion_matrix is not None:
+        position = transform_point(conversion_matrix, position)
+        right = transform_direction(conversion_matrix, right, (1.0, 0.0, 0.0))
+        up = transform_direction(conversion_matrix, up, (0.0, 1.0, 0.0))
+        forward = transform_direction(conversion_matrix, forward, (0.0, 0.0, 1.0))
+
+    return [
+        [right[0], up[0], forward[0], position[0]],
+        [right[1], up[1], forward[1], position[1]],
+        [right[2], up[2], forward[2], position[2]],
+        [0.0, 0.0, 0.0, 1.0],
+    ]
+
+
+def _position_from_matrix_rows(matrix_rows: list[list[float]]) -> tuple[float, float, float]:
+    return (matrix_rows[0][3], matrix_rows[1][3], matrix_rows[2][3])
+
+
+def _direction_from_matrix_rows(
+    matrix_rows: list[list[float]],
+    direction: tuple[float, float, float],
+    fallback: tuple[float, float, float],
+) -> tuple[float, float, float]:
+    return transform_direction_rows(matrix_rows, direction, fallback)
+
+
+def _blender_light_type(light_data: object) -> int:
+    light_type = getattr(light_data, "type", "")
+    if light_type == "SUN":
+        return LIGHT_TYPE_DIRECTIONAL
+    if light_type == "SPOT":
+        return LIGHT_TYPE_SPOT
+    if light_type == "AREA":
+        return LIGHT_TYPE_AREA
+    return LIGHT_TYPE_POINT
+
+
+def _blender_light_radius(light_data: object, light_type: int) -> float:
+    if light_type == LIGHT_TYPE_AREA:
+        shape = getattr(light_data, "shape", "SQUARE")
+        if shape == "RECTANGLE":
+            return max(float(getattr(light_data, "size", 1.0)), float(getattr(light_data, "size_y", 1.0)), 0.001)
+        return max(float(getattr(light_data, "size", 1.0)), 0.001)
+    return max(float(getattr(light_data, "shadow_soft_size", 1.0)), 0.001)
+
+
+def _blender_light_area_size(light_data: object) -> tuple[float, float]:
+    shape = getattr(light_data, "shape", "SQUARE")
+    width = max(float(getattr(light_data, "size", 1.0)), 0.001)
+    height = max(float(getattr(light_data, "size_y", width if shape == "RECTANGLE" else width)), 0.001)
+    return (width, height)
+
+
+def _blender_light_source_exposure(light_data: object) -> float:
+    value = getattr(light_data, "exposure", 0.0)
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _blender_light_engine_intensity(light_data: object) -> float:
+    power = max(float(getattr(light_data, "energy", 1.0)), 0.0)
+    exposure = _blender_light_source_exposure(light_data)
+    return power * math.pow(2.0, exposure)
+
+
+def _blender_light_color(light_data: object) -> tuple[float, float, float]:
+    color = getattr(light_data, "color", None)
+    if color is None:
+        return (1.0, 1.0, 1.0)
+    try:
+        return (
+            clamp(float(color[0]), 0.0, 1.0),
+            clamp(float(color[1]), 0.0, 1.0),
+            clamp(float(color[2]), 0.0, 1.0),
+        )
+    except (TypeError, ValueError, IndexError):
+        return (1.0, 1.0, 1.0)
+
+
+def extract_scene_payload_from_objects(
+    objects: list[object],
+    *,
+    convert_orientation: bool = False,
+    source_orientation: str = "blender-native",
+    include_scene_payload: bool = True,
+) -> tuple[list[ExportedLight], list[ExportedCamera]]:
+    blender_required()
+    if not include_scene_payload:
+        return [], []
+
+    conversion_matrix = make_export_orientation_matrix(source_orientation) if convert_orientation else None
+    lights: list[ExportedLight] = []
+    cameras: list[ExportedCamera] = []
+
+    for obj in objects:
+        object_type = getattr(obj, "type", None)
+        if object_type == "LIGHT":
+            light_data = obj.data
+            light_type = _blender_light_type(light_data)
+            transform_rows = _semantic_light_transform_rows(obj, conversion_matrix, light_type)
+            spot_size = max(float(getattr(light_data, "spot_size", math.radians(45.0))), math.radians(0.1))
+            spot_blend = clamp(float(getattr(light_data, "spot_blend", 0.15)), 0.0, 1.0)
+            outer_cone = math.degrees(spot_size)
+            inner_cone = max(0.1, outer_cone * (1.0 - spot_blend))
+            lights.append(
+                ExportedLight(
+                    entity_name=obj.name,
+                    light_type=light_type,
+                    color=_blender_light_color(light_data),
+                    intensity=_blender_light_engine_intensity(light_data),
+                    position=_position_from_matrix_rows(transform_rows),
+                    radius=_blender_light_radius(light_data, light_type),
+                    direction=_direction_from_matrix_rows(transform_rows, (0.0, 0.0, -1.0), (0.0, -1.0, 0.0)),
+                    falloff=0.5,
+                    right=_direction_from_matrix_rows(transform_rows, (1.0, 0.0, 0.0), (1.0, 0.0, 0.0)),
+                    inner_cone=inner_cone,
+                    up=_direction_from_matrix_rows(transform_rows, (0.0, 1.0, 0.0), (0.0, 1.0, 0.0)),
+                    outer_cone=outer_cone,
+                    area_size=_blender_light_area_size(light_data),
+                    source_power=max(float(getattr(light_data, "energy", 1.0)), 0.0),
+                    source_exposure=_blender_light_source_exposure(light_data),
+                    local_transform_rows=transform_rows,
+                )
+            )
+        elif object_type == "CAMERA":
+            camera_data = obj.data
+            transform_rows = _semantic_camera_transform_rows(obj, conversion_matrix)
+            sensor_fit = getattr(camera_data, "sensor_fit", "AUTO")
+            sensor_width = max(float(getattr(camera_data, "sensor_width", 36.0)), 0.001)
+            sensor_height = max(float(getattr(camera_data, "sensor_height", 24.0)), 0.001)
+            aspect = sensor_width / sensor_height
+            if sensor_fit == "VERTICAL":
+                aspect = sensor_height / sensor_width
+            cameras.append(
+                ExportedCamera(
+                    entity_name=obj.name,
+                    position=_position_from_matrix_rows(transform_rows),
+                    forward=_direction_from_matrix_rows(transform_rows, (0.0, 0.0, 1.0), (0.0, 0.0, 1.0)),
+                    up=_direction_from_matrix_rows(transform_rows, (0.0, 1.0, 0.0), (0.0, 1.0, 0.0)),
+                    right=_direction_from_matrix_rows(transform_rows, (1.0, 0.0, 0.0), (1.0, 0.0, 0.0)),
+                    fov_y_degrees=math.degrees(float(getattr(camera_data, "angle_y", getattr(camera_data, "angle", math.radians(50.0))))),
+                    near_clip=max(float(getattr(camera_data, "clip_start", 0.1)), 0.001),
+                    far_clip=max(float(getattr(camera_data, "clip_end", 1000.0)), 0.001),
+                    aspect_ratio=aspect,
+                    local_transform_rows=transform_rows,
+                )
+            )
+
+    return lights, cameras
 
 
 def triangulate_mesh(mesh_data: object) -> None:
@@ -2639,6 +2970,22 @@ def extract_nodes(
     )
 
 
+def extract_scene_payload_from_current_scene(
+    *,
+    mesh_name: Optional[str],
+    convert_orientation: bool = False,
+    source_orientation: str = "blender-native",
+) -> tuple[list[ExportedLight], list[ExportedCamera]]:
+    blender_required()
+    include_scene_payload = mesh_name is None
+    return extract_scene_payload_from_objects(
+        list(bpy.data.objects),
+        convert_orientation=convert_orientation,
+        source_orientation=source_orientation,
+        include_scene_payload=include_scene_payload,
+    )
+
+
 def extract_nodes_from_objects(
     export_objects: list[object],
     asset_path: Path,
@@ -2704,6 +3051,9 @@ def extract_nodes_from_objects(
     export_object_ids = {obj.as_pointer() for obj in export_objects}
     nodes: list[ExportedNode] = []
     for obj in export_objects:
+        if getattr(obj, "type", None) in {"LIGHT", "CAMERA"}:
+            continue
+
         local_transform_rows = matrix_rows_from_blender(obj.matrix_local)
         if conversion_matrix is not None:
             local_transform_rows = transform_matrix_rows(local_transform_rows, conversion_matrix)
@@ -2783,11 +3133,15 @@ def build_untold_file(
     output_path: Path,
     file_type_name: str,
     *,
+    exported_lights: Optional[list[ExportedLight]] = None,
+    exported_cameras: Optional[list[ExportedCamera]] = None,
     compress_geometry: bool = False,
     progress_callback: Optional[ProgressCallback] = None,
 ) -> bytes:
     if not exported_nodes:
         raise RuntimeError("No nodes were extracted for export")
+    exported_lights = exported_lights or []
+    exported_cameras = exported_cameras or []
 
     string_table = StringTableBuilder()
     textures: list[TextureRecord] = []
@@ -2795,6 +3149,8 @@ def build_untold_file(
     materials: list[MaterialRecord] = []
     material_indices: dict[tuple[object, ...], int] = {}
     entities: list[EntityRecord] = []
+    light_records: list[LightRecord] = []
+    camera_records: list[CameraRecord] = []
     meshes: list[MeshRecord] = []
     skeletons: list[SkeletonRecord] = []
     skeleton_joints: list[SkeletonJointRecord] = []
@@ -2895,6 +3251,7 @@ def build_untold_file(
     )
 
     entity_ids_by_name = {exported_node.entity_name: entity_id for entity_id, exported_node in enumerate(exported_nodes)}
+    next_scene_payload_entity_id = len(exported_nodes)
 
     total_nodes = len(exported_nodes)
     for entity_id, exported_node in enumerate(exported_nodes):
@@ -2998,6 +3355,52 @@ def build_untold_file(
         if progress_callback is not None:
             progress_callback("Build records", entity_id + 1, total_nodes, exported_node.entity_name)
 
+    for exported_light in exported_lights:
+        entity_id = next_scene_payload_entity_id
+        next_scene_payload_entity_id += 1
+        light_records.append(
+            LightRecord(
+                entity_id=entity_id,
+                name_offset=string_table.add(exported_light.entity_name),
+                light_type=exported_light.light_type,
+                flags=0,
+                color=exported_light.color,
+                intensity=exported_light.intensity,
+                position=exported_light.position,
+                radius=exported_light.radius,
+                direction=exported_light.direction,
+                falloff=exported_light.falloff,
+                right=exported_light.right,
+                inner_cone=exported_light.inner_cone,
+                up=exported_light.up,
+                outer_cone=exported_light.outer_cone,
+                area_size=exported_light.area_size,
+                source_power=exported_light.source_power,
+                source_exposure=exported_light.source_exposure,
+                local_transform_rows=exported_light.local_transform_rows,
+            )
+        )
+
+    for exported_camera in exported_cameras:
+        entity_id = next_scene_payload_entity_id
+        next_scene_payload_entity_id += 1
+        camera_records.append(
+            CameraRecord(
+                entity_id=entity_id,
+                name_offset=string_table.add(exported_camera.entity_name),
+                flags=0,
+                position=exported_camera.position,
+                forward=exported_camera.forward,
+                up=exported_camera.up,
+                right=exported_camera.right,
+                fov_y_degrees=exported_camera.fov_y_degrees,
+                near_clip=exported_camera.near_clip,
+                far_clip=exported_camera.far_clip,
+                aspect_ratio=exported_camera.aspect_ratio,
+                local_transform_rows=exported_camera.local_transform_rows,
+            )
+        )
+
     if progress_callback is not None:
         progress_callback("Build chunks", 0, 1, output_path.name)
     string_chunk = string_table.data
@@ -3015,6 +3418,16 @@ def build_untold_file(
     for texture_record in textures:
         write_texture_record(texture_writer, texture_record)
     texture_chunk = texture_writer.data
+
+    light_writer = BinaryWriter()
+    for light_record in light_records:
+        write_light_record(light_writer, light_record)
+    light_chunk = light_writer.data
+
+    camera_writer = BinaryWriter()
+    for camera_record in camera_records:
+        write_camera_record(camera_writer, camera_record)
+    camera_chunk = camera_writer.data
 
     skeleton_writer = BinaryWriter()
     for skeleton in skeletons:
@@ -3091,6 +3504,8 @@ def build_untold_file(
         (CHUNK_TYPES["skeleton_joint_table"], skeleton_joint_chunk, len(skeleton_joint_chunk), len(skeleton_joints), COMPRESSION_NONE),
         (CHUNK_TYPES["skin_table"], skin_chunk, len(skin_chunk), len(skins), COMPRESSION_NONE),
         (CHUNK_TYPES["skin_joint_mapping_table"], skin_mapping_chunk, len(skin_mapping_chunk), len(skin_joint_mappings), COMPRESSION_NONE),
+        (CHUNK_TYPES["light_table"], light_chunk, len(light_chunk), len(light_records), COMPRESSION_NONE),
+        (CHUNK_TYPES["camera_table"], camera_chunk, len(camera_chunk), len(camera_records), COMPRESSION_NONE),
         (CHUNK_TYPES["vertex_data"], vertex_payload, len(vertex_raw), 0, geo_compression),
         (CHUNK_TYPES["index_data"], index_payload, len(index_raw), 0, geo_compression),
         (CHUNK_TYPES["edge_index_data"], edge_index_raw, len(edge_index_raw), 0, COMPRESSION_NONE),
@@ -3417,6 +3832,12 @@ def export_objects_to_untold(
     compress_geometry: bool = False,
     progress_callback: Optional[ProgressCallback] = None,
 ) -> dict[str, object]:
+    exported_lights, exported_cameras = extract_scene_payload_from_objects(
+        export_objects,
+        convert_orientation=convert_orientation,
+        source_orientation=source_orientation,
+        include_scene_payload=True,
+    )
     exported_nodes = extract_nodes_from_objects(
         export_objects,
         source_asset_path,
@@ -3433,6 +3854,8 @@ def export_objects_to_untold(
         exported_nodes,
         output_path,
         file_type_name,
+        exported_lights=exported_lights,
+        exported_cameras=exported_cameras,
         compress_geometry=compress_geometry,
         progress_callback=progress_callback,
     )
@@ -3460,6 +3883,8 @@ def export_objects_to_untold(
         "bytes_written": len(untold_bytes),
         "node_count": len(exported_nodes),
         "mesh_count": len(exported_meshes),
+        "light_count": len(exported_lights),
+        "camera_count": len(exported_cameras),
         "vertex_count": sum(exported_mesh.vertex_count for exported_mesh in exported_meshes),
         "index_count": sum(exported_mesh.index_count for exported_mesh in exported_meshes),
     }
@@ -3544,6 +3969,11 @@ def main(argv: list[str]) -> int:
             ),
         )
         progress.advance("Extract nodes", f"{len(exported_nodes)} node(s)")
+        exported_lights, exported_cameras = extract_scene_payload_from_current_scene(
+            mesh_name=args.mesh_name,
+            convert_orientation=args.convert_orientation,
+            source_orientation=args.source_orientation,
+        )
         print(f"Staging {len(exported_nodes)} node(s) ...", flush=True)
         exported_nodes = stage_nodes_for_output(exported_nodes, output_path)
         progress.advance("Stage nodes", output_path.name)
@@ -3552,6 +3982,8 @@ def main(argv: list[str]) -> int:
             exported_nodes,
             output_path,
             args.file_type,
+            exported_lights=exported_lights,
+            exported_cameras=exported_cameras,
             compress_geometry=args.compress_geometry,
             progress_callback=lambda stage, done, total, detail: progress.stage(
                 stage,
@@ -3564,6 +3996,7 @@ def main(argv: list[str]) -> int:
         exported_meshes = [exported_node.mesh for exported_node in exported_nodes if exported_node.mesh is not None]
         print(f"Wrote {output_path} ({len(untold_bytes)} bytes)")
         print(f"Nodes: {len(exported_nodes)}, Meshes: {len(exported_meshes)}")
+        print(f"Lights: {len(exported_lights)}, Cameras: {len(exported_cameras)}")
         print(f"Vertices: {sum(exported_mesh.vertex_count for exported_mesh in exported_meshes)}, indices: {sum(exported_mesh.index_count for exported_mesh in exported_meshes)}")
         if args.validate:
             # This sidecar is only for validation/debugging in engine-side tests.

@@ -331,6 +331,158 @@ extension UntoldTextureRefRecordV1: UntoldBinaryEncodable, UntoldBinaryDecodable
     }
 }
 
+extension UntoldLightRecordV1: UntoldBinaryEncodable, UntoldBinaryDecodable {
+    public func encode(to writer: UntoldBinaryWriter) {
+        writer.writeUInt32LE(entityId)
+        writer.writeUInt32LE(nameOffset)
+        writer.writeUInt32LE(lightType.rawValue)
+        writer.writeUInt32LE(flags)
+        writer.writeFloat32LE(color.x)
+        writer.writeFloat32LE(color.y)
+        writer.writeFloat32LE(color.z)
+        writer.writeFloat32LE(intensity)
+        writer.writeFloat32LE(position.x)
+        writer.writeFloat32LE(position.y)
+        writer.writeFloat32LE(position.z)
+        writer.writeFloat32LE(radius)
+        writer.writeFloat32LE(direction.x)
+        writer.writeFloat32LE(direction.y)
+        writer.writeFloat32LE(direction.z)
+        writer.writeFloat32LE(falloff)
+        writer.writeFloat32LE(right.x)
+        writer.writeFloat32LE(right.y)
+        writer.writeFloat32LE(right.z)
+        writer.writeFloat32LE(innerCone)
+        writer.writeFloat32LE(up.x)
+        writer.writeFloat32LE(up.y)
+        writer.writeFloat32LE(up.z)
+        writer.writeFloat32LE(outerCone)
+        writer.writeFloat32LE(areaSize.x)
+        writer.writeFloat32LE(areaSize.y)
+        writer.writeFloat32LE(sourcePower)
+        writer.writeFloat32LE(sourceExposure)
+        writer.writeMatrix4x4LE(localTransform)
+    }
+
+    public static func decode(from reader: UntoldBinaryReader) throws -> UntoldLightRecordV1 {
+        let entityId = try reader.readUInt32LE()
+        let nameOffset = try reader.readUInt32LE()
+        let lightTypeRaw = try reader.readUInt32LE()
+        guard let lightType = UntoldLightType(rawValue: lightTypeRaw) else {
+            throw UntoldValidationError.unsupportedEnumValue
+        }
+
+        return try UntoldLightRecordV1(
+            entityId: entityId,
+            nameOffset: nameOffset,
+            lightType: lightType,
+            flags: reader.readUInt32LE(),
+            color: SIMD3<Float>(
+                reader.readFloat32LE(),
+                reader.readFloat32LE(),
+                reader.readFloat32LE()
+            ),
+            intensity: reader.readFloat32LE(),
+            position: SIMD3<Float>(
+                reader.readFloat32LE(),
+                reader.readFloat32LE(),
+                reader.readFloat32LE()
+            ),
+            radius: reader.readFloat32LE(),
+            direction: SIMD3<Float>(
+                reader.readFloat32LE(),
+                reader.readFloat32LE(),
+                reader.readFloat32LE()
+            ),
+            falloff: reader.readFloat32LE(),
+            right: SIMD3<Float>(
+                reader.readFloat32LE(),
+                reader.readFloat32LE(),
+                reader.readFloat32LE()
+            ),
+            innerCone: reader.readFloat32LE(),
+            up: SIMD3<Float>(
+                reader.readFloat32LE(),
+                reader.readFloat32LE(),
+                reader.readFloat32LE()
+            ),
+            outerCone: reader.readFloat32LE(),
+            areaSize: SIMD2<Float>(
+                reader.readFloat32LE(),
+                reader.readFloat32LE()
+            ),
+            sourcePower: reader.readFloat32LE(),
+            sourceExposure: reader.readFloat32LE(),
+            localTransform: reader.readMatrix4x4LE()
+        )
+    }
+}
+
+extension UntoldCameraRecordV1: UntoldBinaryEncodable, UntoldBinaryDecodable {
+    public func encode(to writer: UntoldBinaryWriter) {
+        writer.writeUInt32LE(entityId)
+        writer.writeUInt32LE(nameOffset)
+        writer.writeUInt32LE(flags)
+        writer.writeUInt32LE(reserved0)
+        writer.writeFloat32LE(position.x)
+        writer.writeFloat32LE(position.y)
+        writer.writeFloat32LE(position.z)
+        writer.writeFloat32LE(fovYDegrees)
+        writer.writeFloat32LE(forward.x)
+        writer.writeFloat32LE(forward.y)
+        writer.writeFloat32LE(forward.z)
+        writer.writeFloat32LE(nearClip)
+        writer.writeFloat32LE(up.x)
+        writer.writeFloat32LE(up.y)
+        writer.writeFloat32LE(up.z)
+        writer.writeFloat32LE(farClip)
+        writer.writeFloat32LE(right.x)
+        writer.writeFloat32LE(right.y)
+        writer.writeFloat32LE(right.z)
+        writer.writeFloat32LE(aspectRatio)
+        writer.writeMatrix4x4LE(localTransform)
+    }
+
+    public static func decode(from reader: UntoldBinaryReader) throws -> UntoldCameraRecordV1 {
+        let entityId = try reader.readUInt32LE()
+        let nameOffset = try reader.readUInt32LE()
+        let flags = try reader.readUInt32LE()
+        let reserved0 = try reader.readUInt32LE()
+        var record = try UntoldCameraRecordV1(
+            entityId: entityId,
+            nameOffset: nameOffset,
+            flags: flags,
+            position: SIMD3<Float>(
+                reader.readFloat32LE(),
+                reader.readFloat32LE(),
+                reader.readFloat32LE()
+            ),
+            fovYDegrees: reader.readFloat32LE(),
+            forward: SIMD3<Float>(
+                reader.readFloat32LE(),
+                reader.readFloat32LE(),
+                reader.readFloat32LE()
+            ),
+            nearClip: reader.readFloat32LE(),
+            up: SIMD3<Float>(
+                reader.readFloat32LE(),
+                reader.readFloat32LE(),
+                reader.readFloat32LE()
+            ),
+            farClip: reader.readFloat32LE(),
+            right: SIMD3<Float>(
+                reader.readFloat32LE(),
+                reader.readFloat32LE(),
+                reader.readFloat32LE()
+            ),
+            aspectRatio: reader.readFloat32LE(),
+            localTransform: reader.readMatrix4x4LE()
+        )
+        record.reserved0 = reserved0
+        return record
+    }
+}
+
 extension UntoldSkeletonRecordV1: UntoldBinaryEncodable, UntoldBinaryDecodable {
     public func encode(to writer: UntoldBinaryWriter) {
         writer.writeUInt32LE(entityId)
