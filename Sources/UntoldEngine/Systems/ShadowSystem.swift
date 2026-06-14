@@ -100,8 +100,10 @@ struct ShadowSystem {
         // typical max IPD so the cascade AABB envelopes both eye frustums.
         let xrExpansion: Float = renderInfo.isXRStereoMode ? 0.04 : 0.0
 
-        // Use a tighter far for XR — room-scale scenes rarely exceed 50 m.
-        let cameraFar: Float = renderInfo.isXRStereoMode ? 50.0 : far
+        // Keep cascades within the same effective distance used to cull shadow casters.
+        // This gives small/editor scenes more texel density in the near cascade.
+        let shadowFar = min(far, RenderPasses.maxShadowCastingDistance)
+        let cameraFar: Float = renderInfo.isXRStereoMode ? min(50.0, shadowFar) : shadowFar
 
         // Practical split scheme (blend of log and uniform, λ=0.5).
         let splits = computeCascadeSplits(cameraNear: near, cameraFar: cameraFar)
@@ -166,8 +168,9 @@ struct ShadowSystem {
                 minZ = min(minZ, lc.z); maxZ = max(maxZ, lc.z)
             }
 
-            // Extend the near (minZ) so objects behind the camera can still cast shadows.
-            let depthMargin: Float = 50.0
+            // Extend the near (minZ) so nearby off-camera casters can still contribute,
+            // without destroying depth precision for small scenes.
+            let depthMargin: Float = min(10.0, cameraFar * 0.25)
             minZ -= depthMargin
 
             // Convert light-space Z extents to positive near/far distances for the ortho matrix.
