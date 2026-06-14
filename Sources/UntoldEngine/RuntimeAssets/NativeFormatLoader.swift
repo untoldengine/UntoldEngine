@@ -66,6 +66,8 @@ public struct NativeFormatLoader: NamedRuntimeAssetLoading {
             rootTransform: decoded.header.rootTransform,
             worldBounds: decoded.header.worldBounds,
             nodes: nodes,
+            lights: try makeRuntimeLights(decoded: decoded),
+            cameras: try makeRuntimeCameras(decoded: decoded),
             animationClips: animationClips
         )
     }
@@ -133,6 +135,55 @@ public struct NativeFormatLoader: NamedRuntimeAssetLoading {
                 jointWeightChunkData: jointWeightChunkData,
                 runtimeSkeletonsByEntity: runtimeSkeletonsByEntity
             )
+        }
+    }
+
+    private func makeRuntimeLights(decoded: UntoldDecodedAsset) throws -> [RuntimeLightSource] {
+        try decoded.lights.map { record in
+            try RuntimeLightSource(
+                name: decoded.string(at: record.nameOffset),
+                kind: runtimeLightKind(from: record.lightType),
+                color: record.color,
+                intensity: record.intensity,
+                position: record.position,
+                radius: record.radius,
+                direction: record.direction,
+                falloff: record.falloff,
+                right: record.right,
+                innerCone: record.innerCone,
+                up: record.up,
+                outerCone: record.outerCone,
+                areaSize: record.areaSize,
+                sourcePower: record.sourcePower,
+                sourceExposure: record.sourceExposure,
+                localTransform: record.localTransform
+            )
+        }
+    }
+
+    private func makeRuntimeCameras(decoded: UntoldDecodedAsset) throws -> [RuntimeCameraSource] {
+        try decoded.cameras.map { record in
+            try RuntimeCameraSource(
+                name: decoded.string(at: record.nameOffset),
+                position: record.position,
+                forward: record.forward,
+                up: record.up,
+                right: record.right,
+                fovYDegrees: record.fovYDegrees,
+                nearClip: record.nearClip,
+                farClip: record.farClip,
+                aspectRatio: record.aspectRatio,
+                localTransform: record.localTransform
+            )
+        }
+    }
+
+    private func runtimeLightKind(from lightType: UntoldLightType) -> RuntimeLightSourceKind {
+        switch lightType {
+        case .directional: .directional
+        case .point: .point
+        case .spot: .spot
+        case .area: .area
         }
     }
 

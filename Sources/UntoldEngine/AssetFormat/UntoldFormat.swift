@@ -51,6 +51,8 @@ public enum UntoldChunkType: UInt32, Sendable {
     case jointIndexData = 16
     case jointWeightData = 17
     case edgeIndexData = 18
+    case lightTable = 19
+    case cameraTable = 20
 }
 
 public enum UntoldCompressionType: UInt32, Sendable {
@@ -86,6 +88,13 @@ public enum UntoldTextureFormat: UInt32, Sendable {
         default: false
         }
     }
+}
+
+public enum UntoldLightType: UInt32, Sendable {
+    case directional = 1
+    case point = 2
+    case spot = 3
+    case area = 4
 }
 
 public struct UntoldAABB: Sendable, Equatable {
@@ -351,6 +360,112 @@ public struct UntoldTextureRefRecordV1: Sendable, Equatable {
         self.height = height
         self.mipCount = mipCount
         reserved0 = 0
+    }
+}
+
+public struct UntoldLightRecordV1: Sendable, Equatable {
+    public var entityId: UInt32
+    public var nameOffset: UInt32
+    public var lightType: UntoldLightType
+    public var flags: UInt32
+    public var color: SIMD3<Float>
+    public var intensity: Float
+    public var position: SIMD3<Float>
+    public var radius: Float
+    public var direction: SIMD3<Float>
+    public var falloff: Float
+    public var right: SIMD3<Float>
+    public var innerCone: Float
+    public var up: SIMD3<Float>
+    public var outerCone: Float
+    public var areaSize: SIMD2<Float>
+    public var sourcePower: Float
+    public var sourceExposure: Float
+    public var localTransform: simd_float4x4
+
+    public init(
+        entityId: UInt32,
+        nameOffset: UInt32 = UntoldFormat.invalidIndex,
+        lightType: UntoldLightType,
+        flags: UInt32 = 0,
+        color: SIMD3<Float> = SIMD3<Float>(1, 1, 1),
+        intensity: Float = 1.0,
+        position: SIMD3<Float> = .zero,
+        radius: Float = 1.0,
+        direction: SIMD3<Float> = SIMD3<Float>(0, -1, 0),
+        falloff: Float = 0.5,
+        right: SIMD3<Float> = SIMD3<Float>(1, 0, 0),
+        innerCone: Float = 5.0,
+        up: SIMD3<Float> = SIMD3<Float>(0, 1, 0),
+        outerCone: Float = 10.0,
+        areaSize: SIMD2<Float> = SIMD2<Float>(1, 1),
+        sourcePower: Float = 1.0,
+        sourceExposure: Float = 0.0,
+        localTransform: simd_float4x4 = matrix_identity_float4x4
+    ) {
+        self.entityId = entityId
+        self.nameOffset = nameOffset
+        self.lightType = lightType
+        self.flags = flags
+        self.color = color
+        self.intensity = intensity
+        self.position = position
+        self.radius = radius
+        self.direction = direction
+        self.falloff = falloff
+        self.right = right
+        self.innerCone = innerCone
+        self.up = up
+        self.outerCone = outerCone
+        self.areaSize = areaSize
+        self.sourcePower = sourcePower
+        self.sourceExposure = sourceExposure
+        self.localTransform = localTransform
+    }
+}
+
+public struct UntoldCameraRecordV1: Sendable, Equatable {
+    public var entityId: UInt32
+    public var nameOffset: UInt32
+    public var flags: UInt32
+    public var reserved0: UInt32
+    public var position: SIMD3<Float>
+    public var fovYDegrees: Float
+    public var forward: SIMD3<Float>
+    public var nearClip: Float
+    public var up: SIMD3<Float>
+    public var farClip: Float
+    public var right: SIMD3<Float>
+    public var aspectRatio: Float
+    public var localTransform: simd_float4x4
+
+    public init(
+        entityId: UInt32,
+        nameOffset: UInt32 = UntoldFormat.invalidIndex,
+        flags: UInt32 = 0,
+        position: SIMD3<Float> = .zero,
+        fovYDegrees: Float = 50.0,
+        forward: SIMD3<Float> = SIMD3<Float>(0, 0, 1),
+        nearClip: Float = 0.1,
+        up: SIMD3<Float> = SIMD3<Float>(0, 1, 0),
+        farClip: Float = 1000.0,
+        right: SIMD3<Float> = SIMD3<Float>(1, 0, 0),
+        aspectRatio: Float = 1.5,
+        localTransform: simd_float4x4 = matrix_identity_float4x4
+    ) {
+        self.entityId = entityId
+        self.nameOffset = nameOffset
+        self.flags = flags
+        reserved0 = 0
+        self.position = position
+        self.fovYDegrees = fovYDegrees
+        self.forward = forward
+        self.nearClip = nearClip
+        self.up = up
+        self.farClip = farClip
+        self.right = right
+        self.aspectRatio = aspectRatio
+        self.localTransform = localTransform
     }
 }
 

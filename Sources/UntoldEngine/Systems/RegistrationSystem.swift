@@ -1002,6 +1002,169 @@ public enum MeshStreamingPolicy: Sendable {
     case immediate
 }
 
+/// Controls optional scene-authored payloads embedded in a `.untold` asset.
+///
+/// Mesh imports default to `assetOnly` so loading a model does not unexpectedly
+/// add source-DCC lights or cameras to the current scene.
+public struct UntoldImportOptions: Sendable, Equatable {
+    public var importLights: Bool
+    public var importCameras: Bool
+
+    public init(importLights: Bool = false, importCameras: Bool = false) {
+        self.importLights = importLights
+        self.importCameras = importCameras
+    }
+
+    public static let assetOnly = UntoldImportOptions()
+    public static let sceneAuthored = UntoldImportOptions(importLights: true, importCameras: true)
+}
+
+private let untoldImportedMinimumLightRadius: Float = 0.001
+private let untoldImportedMinimumSpotConeAngle: Float = 0.1
+private let untoldImportedMaximumSpotConeAngle: Float = 89.0
+private let untoldImportedMinimumSpotConeSeparation: Float = 0.05
+
+private func normalizedImportedDirection(_ direction: simd_float3, fallback: simd_float3) -> simd_float3 {
+    simd_length_squared(direction) > 1.0e-8 ? simd_normalize(direction) : fallback
+}
+
+private func importedTransformAxis(_ transform: simd_float4x4, column: Int, fallback: simd_float3) -> simd_float3 {
+    let vector: simd_float3 = switch column {
+    case 0:
+        simd_float3(transform.columns.0.x, transform.columns.0.y, transform.columns.0.z)
+    case 1:
+        simd_float3(transform.columns.1.x, transform.columns.1.y, transform.columns.1.z)
+    default:
+        simd_float3(transform.columns.2.x, transform.columns.2.y, transform.columns.2.z)
+    }
+    return normalizedImportedDirection(vector, fallback: fallback)
+}
+
+private func importedTransformPosition(_ transform: simd_float4x4) -> simd_float3 {
+    simd_float3(transform.columns.3.x, transform.columns.3.y, transform.columns.3.z)
+}
+
+private func scaleImportedAreaLight(_ areaSize: simd_float2, entityId: EntityID) {
+    guard let localTransform = scene.get(component: LocalTransformComponent.self, for: entityId) else {
+        handleError(.noLocalTransformComponent, entityId)
+        return
+    }
+
+    let currentScale = localTransform.scale
+    let dimensions = getDimension(entityId: entityId)
+    let baseWidth = abs(currentScale.x) > 1.0e-6 ? dimensions.width / currentScale.x : dimensions.width
+    let baseHeight = abs(currentScale.y) > 1.0e-6 ? dimensions.height / currentScale.y : dimensions.height
+
+    let targetWidth = max(areaSize.x, untoldImportedMinimumLightRadius)
+    let targetHeight = max(areaSize.y, untoldImportedMinimumLightRadius)
+    let nextScaleX = abs(baseWidth) > 1.0e-6 ? currentScale.x * (targetWidth / baseWidth) : currentScale.x
+    let nextScaleY = abs(baseHeight) > 1.0e-6 ? currentScale.y * (targetHeight / baseHeight) : currentScale.y
+
+    scaleTo(entityId: entityId, scale: simd_float3(nextScaleX, nextScaleY, currentScale.z))
+}
+
+private func registerUntoldScenePayloadIfRequested(
+    from runtimeAsset: RuntimeAsset,
+    under entityId: EntityID,
+    options: UntoldImportOptions
+) {
+    guard options.importLights || options.importCameras else { return }
+
+    if options.importLights {
+        for light in runtimeAsset.lights {
+            registerUntoldLight(light, under: entityId)
+        }
+    }
+
+    if options.importCameras {
+        for camera in runtimeAsset.cameras {
+            registerUntoldCamera(camera, under: entityId)
+        }
+    }
+}
+
+private func registerUntoldLight(_ light: RuntimeLightSource, under rootEntityId: EntityID) {
+    let lightEntityId = createEntity()
+
+    switch light.kind {
+    case .directional:
+        createDirLight(entityId: lightEntityId)
+    case .point:
+        createPointLight(entityId: lightEntityId)
+    case .spot:
+        createSpotLight(entityId: lightEntityId)
+    case .area:
+        createAreaLight(entityId: lightEntityId)
+    }
+
+    setEntityName(entityId: lightEntityId, name: light.name ?? "Imported Light")
+    applyLocalTransform(light.localTransform, to: lightEntityId)
+    setParent(childId: lightEntityId, parentId: rootEntityId)
+
+    if let lightComponent = scene.get(component: LightComponent.self, for: lightEntityId) {
+        lightComponent.color = light.color
+        lightComponent.intensity = light.intensity
+        updateMaterialEmmisive(entityId: lightEntityId, emmissive: light.color)
+    }
+
+    switch light.kind {
+    case .directional:
+        break
+
+    case .point:
+        if let pointLight = scene.get(component: PointLightComponent.self, for: lightEntityId) {
+            pointLight.radius = max(light.radius, untoldImportedMinimumLightRadius)
+            pointLight.falloff = simd_clamp(light.falloff, 0.0, 1.0)
+        }
+
+    case .spot:
+        if let spotLight = scene.get(component: SpotLightComponent.self, for: lightEntityId) {
+            spotLight.radius = max(light.radius, untoldImportedMinimumLightRadius)
+            spotLight.falloff = simd_clamp(light.falloff, 0.0, 1.0)
+            spotLight.innerCone = simd_clamp(light.innerCone, untoldImportedMinimumSpotConeAngle, untoldImportedMaximumSpotConeAngle)
+            spotLight.outerCone = simd_clamp(light.outerCone, untoldImportedMinimumSpotConeAngle, untoldImportedMaximumSpotConeAngle)
+            if spotLight.innerCone >= spotLight.outerCone {
+                spotLight.innerCone = max(untoldImportedMinimumSpotConeAngle, spotLight.outerCone - untoldImportedMinimumSpotConeSeparation)
+            }
+            spotLight.coneAngle = spotLight.outerCone
+        }
+
+    case .area:
+        if let areaLight = scene.get(component: AreaLightComponent.self, for: lightEntityId) {
+            scaleImportedAreaLight(light.areaSize, entityId: lightEntityId)
+            areaLight.bounds = simd_float2(
+                max(light.areaSize.x, untoldImportedMinimumLightRadius),
+                max(light.areaSize.y, untoldImportedMinimumLightRadius)
+            )
+        }
+    }
+}
+
+private func registerUntoldCamera(_ camera: RuntimeCameraSource, under rootEntityId: EntityID) {
+    let gameCamera = createEntity()
+    createGameCamera(entityId: gameCamera)
+    setCamera(.active(gameCamera))
+    setEntityName(entityId: gameCamera, name: camera.name ?? "Imported Camera")
+
+    if hasComponent(entityId: gameCamera, componentType: LocalTransformComponent.self) == false {
+        registerTransformComponent(entityId: gameCamera)
+    }
+    if hasComponent(entityId: gameCamera, componentType: ScenegraphComponent.self) == false {
+        registerSceneGraphComponent(entityId: gameCamera)
+    }
+
+    let position = importedTransformPosition(camera.localTransform)
+    let forward = importedTransformAxis(camera.localTransform, column: 2, fallback: simd_float3(0.0, 0.0, 1.0))
+    let up = importedTransformAxis(camera.localTransform, column: 1, fallback: simd_float3(0.0, 1.0, 0.0))
+    cameraLookAt(
+        entityId: gameCamera,
+        eye: position,
+        target: position + forward,
+        up: up
+    )
+    setParent(childId: gameCamera, parentId: rootEntityId)
+}
+
 /// Synchronously load a .untold mesh onto an entity.
 ///
 /// Blocks the calling thread until the asset is fully registered and GPU-resident.
@@ -1014,7 +1177,8 @@ public func setEntityMesh(
     entityId: EntityID,
     filename: String,
     withExtension: String,
-    assetName: String? = nil
+    assetName: String? = nil,
+    importOptions: UntoldImportOptions = .assetOnly
 ) {
     guard let url = LoadingSystem.shared.resourceURL(
         forResource: filename,
@@ -1048,6 +1212,12 @@ public func setEntityMesh(
 
     if !didLoad {
         loadFallbackMesh(entityId: entityId, filename: filename)
+    } else if assetName == nil {
+        registerUntoldScenePayloadIfRequested(
+            from: runtimeAsset,
+            under: entityId,
+            options: importOptions
+        )
     }
 
     RenderPasses.invalidateShadowEntityCache()
@@ -1059,6 +1229,7 @@ public func setEntityMeshAsync(
     filename: String,
     withExtension: String,
     assetName: String? = nil,
+    importOptions: UntoldImportOptions = .assetOnly,
     flip _: Bool = true,
     coordinateConversion _: CoordinateSystemConversion = .autoDetect,
     streamingPolicy: MeshStreamingPolicy = .immediate,
@@ -1167,6 +1338,12 @@ public func setEntityMeshAsync(
 
                 if !loaded {
                     loadFallbackMesh(entityId: entityId, filename: filename)
+                } else if assetName == nil {
+                    registerUntoldScenePayloadIfRequested(
+                        from: runtimeAsset,
+                        under: entityId,
+                        options: importOptions
+                    )
                 }
 
                 // Non-streaming entities don't fire residency events, so the shadow
