@@ -25,14 +25,25 @@
             // Make sure to convert your usdz files to .untold format as explained in docs/API/UsingTheExporter
 
             // Uncomment to render a simple mesh.
-
+/*
             let entity = createEntity()
-            setEntityMeshAsync(entityId: entity, filename: "/Users/haroldserrano/Downloads/simplescenedir/simplescene.untold", withExtension: "untold", importOptions: .sceneAuthored) { _ in
+            setEntityMeshAsync(entityId: entity, filename: "/path/to/file", withExtension: "untold", importOptions: .sceneAuthored) { _ in
                 setEntityName(entityId: entity, name: "redplayer")
 
                 setSceneReady(true)
             }
-
+*/
+            /*
+            let sceneRoot = createEntity()
+            setEntityStreamScene(
+                  entityId: sceneRoot,
+                  url: URL(fileURLWithPath: "/path/to/local/json"),
+                  importOptions: .sceneAuthored
+              ) { success in
+                  setSceneReady(success)
+              }
+            */
+            
             // Uncomment to render a streamed scene
             /*
              let sceneRoot = createEntity()
@@ -54,11 +65,11 @@
             let camera = createEntity()
             setEntityName(entityId: camera, name: "Main Camera")
             createGameCamera(entityId: camera)
-            CameraSystem.shared.activeCamera = camera
+            setCamera(.active(camera))
             setOrbitOffset(entityId: camera, uTargetOffset: Constants.orbitTargetOffset)
 
-            let light = createEntity()
-            setEntityName(entityId: light, name: "Directional Light")
+//            let light = createEntity()
+//            setEntityName(entityId: light, name: "Directional Light")
             // createDirLight(entityId: light)
         }
 
