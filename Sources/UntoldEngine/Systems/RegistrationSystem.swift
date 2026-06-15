@@ -1109,8 +1109,7 @@ private func registerUntoldLight(_ light: RuntimeLightSource, under rootEntityId
 
     switch light.kind {
     case .directional:
-            setDirectionalLight(.active(lightEntityId))
-        
+        setDirectionalLight(.active(lightEntityId))
 
     case .point:
         if let pointLight = scene.get(component: PointLightComponent.self, for: lightEntityId) {
@@ -1551,17 +1550,17 @@ private struct ManifestLightEntry: Decodable {
         name = try container.decodeIfPresent(String.self, forKey: .name)
             ?? container.decodeIfPresent(String.self, forKey: .entityName)
         kind = try Self.decodeKind(from: container)
-        color = decodeFloat3(try container.decodeIfPresent([Float].self, forKey: .color), default: simd_float3(1, 1, 1))
+        color = try decodeFloat3(container.decodeIfPresent([Float].self, forKey: .color), default: simd_float3(1, 1, 1))
         intensity = try container.decodeIfPresent(Float.self, forKey: .intensity) ?? 1.0
-        position = decodeFloat3(try container.decodeIfPresent([Float].self, forKey: .position), default: .zero)
+        position = try decodeFloat3(container.decodeIfPresent([Float].self, forKey: .position), default: .zero)
         radius = try container.decodeIfPresent(Float.self, forKey: .radius) ?? 1.0
-        direction = decodeFloat3(try container.decodeIfPresent([Float].self, forKey: .direction), default: simd_float3(0, -1, 0))
+        direction = try decodeFloat3(container.decodeIfPresent([Float].self, forKey: .direction), default: simd_float3(0, -1, 0))
         falloff = try container.decodeIfPresent(Float.self, forKey: .falloff) ?? 0.5
-        right = decodeFloat3(try container.decodeIfPresent([Float].self, forKey: .right), default: simd_float3(1, 0, 0))
+        right = try decodeFloat3(container.decodeIfPresent([Float].self, forKey: .right), default: simd_float3(1, 0, 0))
         innerCone = try container.decodeIfPresent(Float.self, forKey: .innerCone) ?? 5.0
-        up = decodeFloat3(try container.decodeIfPresent([Float].self, forKey: .up), default: simd_float3(0, 1, 0))
+        up = try decodeFloat3(container.decodeIfPresent([Float].self, forKey: .up), default: simd_float3(0, 1, 0))
         outerCone = try container.decodeIfPresent(Float.self, forKey: .outerCone) ?? 10.0
-        areaSize = decodeFloat2(try container.decodeIfPresent([Float].self, forKey: .areaSize), default: simd_float2(1, 1))
+        areaSize = try decodeFloat2(container.decodeIfPresent([Float].self, forKey: .areaSize), default: simd_float2(1, 1))
         sourcePower = try container.decodeIfPresent(Float.self, forKey: .sourcePower) ?? intensity
         sourceExposure = try container.decodeIfPresent(Float.self, forKey: .sourceExposure) ?? 0.0
         let transformRows = try container.decodeIfPresent([[Float]].self, forKey: .localTransformRows)
@@ -1642,14 +1641,14 @@ private struct ManifestCameraEntry: Decodable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         name = try container.decodeIfPresent(String.self, forKey: .name)
             ?? container.decodeIfPresent(String.self, forKey: .entityName)
-        position = decodeFloat3(try container.decodeIfPresent([Float].self, forKey: .position), default: .zero)
-        forward = decodeFloat3(try container.decodeIfPresent([Float].self, forKey: .forward), default: simd_float3(0, 0, 1))
-        up = decodeFloat3(try container.decodeIfPresent([Float].self, forKey: .up), default: simd_float3(0, 1, 0))
-        right = decodeFloat3(try container.decodeIfPresent([Float].self, forKey: .right), default: simd_float3(1, 0, 0))
+        position = try decodeFloat3(container.decodeIfPresent([Float].self, forKey: .position), default: .zero)
+        forward = try decodeFloat3(container.decodeIfPresent([Float].self, forKey: .forward), default: simd_float3(0, 0, 1))
+        up = try decodeFloat3(container.decodeIfPresent([Float].self, forKey: .up), default: simd_float3(0, 1, 0))
+        right = try decodeFloat3(container.decodeIfPresent([Float].self, forKey: .right), default: simd_float3(1, 0, 0))
         fovYDegrees = try container.decodeIfPresent(Float.self, forKey: .fovYDegrees) ?? 50.0
-        nearClip = max(try container.decodeIfPresent(Float.self, forKey: .nearClip) ?? 0.1, 0.001)
-        farClip = max(try container.decodeIfPresent(Float.self, forKey: .farClip) ?? 1000.0, 0.001)
-        aspectRatio = max(try container.decodeIfPresent(Float.self, forKey: .aspectRatio) ?? 1.5, 0.001)
+        nearClip = try max(container.decodeIfPresent(Float.self, forKey: .nearClip) ?? 0.1, 0.001)
+        farClip = try max(container.decodeIfPresent(Float.self, forKey: .farClip) ?? 1000.0, 0.001)
+        aspectRatio = try max(container.decodeIfPresent(Float.self, forKey: .aspectRatio) ?? 1.5, 0.001)
         let transformRows = try container.decodeIfPresent([[Float]].self, forKey: .localTransformRows)
             ?? container.decodeIfPresent([[Float]].self, forKey: .localTransform)
         localTransform = decodeMatrix4x4Rows(
