@@ -106,15 +106,21 @@ fragment float4 fragmentColorGradingShader(VertexCompositeOutput vertexOut [[sta
                                            constant float &contrast [[buffer(colorGradingPassContrastIndex)]],
                                            constant float &saturation [[buffer(colorGradingPassSaturationIndex)]],
                                            constant float &exposure [[buffer(colorGradingPassExposureIndex)]],
-                                           constant float3 &whiteBalanceCoeffs[[buffer(colorGradingWhiteBalanceCoeffsIndex)]])
+                                           constant float3 &whiteBalanceCoeffs[[buffer(colorGradingWhiteBalanceCoeffsIndex)]],
+                                           constant bool &enabled [[buffer(colorGradingPassEnabledIndex)]])
 {
     constexpr sampler s(min_filter::linear, mag_filter::linear, address::clamp_to_edge);
-    float3 color = finalTexture.sample(s, vertexOut.uvCoords).rgb;
+    float4 sample = finalTexture.sample(s, vertexOut.uvCoords);
+    float3 color = sample.rgb;
+
+    if (!enabled) {
+        return sample;
+    }
 
     color = colorExposure(color, exposure);
     color = whiteBalance(color, whiteBalanceCoeffs);
     color = colorContrast(color, contrast);
     color *= (1.0+brightness);
     color = colorSaturation(color, saturation);
-    return float4(max(color,0.0), 1.0);
+    return float4(max(color,0.0), sample.a);
 }

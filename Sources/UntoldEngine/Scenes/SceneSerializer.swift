@@ -53,7 +53,7 @@ struct ColorGradingData: Codable {
     var brightness: Float = 0.0
     var contrast: Float = 1.0
     var saturation: Float = 1.0
-    var exposure: Float = 1.0
+    var exposure: Float = 0.0
     var temperature: Float = 0.0
     var tint: Float = 0.0
     var enabled: Bool? = false
@@ -65,6 +65,7 @@ struct ColorCorrectionData: Codable {
     var lift: simd_float3 = .zero // RGB adjustment for shadows (0 - 2)
     var gamma: simd_float3 = .one // RGB adjustment for midtones (0.5 - 2.5)
     var gain: simd_float3 = .one // RGB adjustment for highlights (0 - 2)
+    var enabled: Bool? = false
 }
 
 struct BloomThresholdData: Codable {
@@ -898,7 +899,8 @@ public func serializeScene() -> SceneData {
     sceneData.colorCorrection = ColorCorrectionData(
         lift: ColorCorrectionParams.shared.lift,
         gamma: ColorCorrectionParams.shared.gamma,
-        gain: ColorCorrectionParams.shared.gain
+        gain: ColorCorrectionParams.shared.gain,
+        enabled: ColorCorrectionParams.shared.enabled
     )
 
     sceneData.colorGrading = ColorGradingData(
@@ -1094,6 +1096,15 @@ public func deserializeScene(
         ColorGradingParams.shared.tint = colorGrading.tint
         if let enabled = colorGrading.enabled {
             ColorGradingParams.shared.enabled = enabled
+        }
+    }
+
+    if let colorCorrection = sceneData.colorCorrection {
+        ColorCorrectionParams.shared.lift = colorCorrection.lift
+        ColorCorrectionParams.shared.gamma = colorCorrection.gamma
+        ColorCorrectionParams.shared.gain = colorCorrection.gain
+        if let enabled = colorCorrection.enabled {
+            ColorCorrectionParams.shared.enabled = enabled
         }
     }
 
