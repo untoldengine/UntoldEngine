@@ -1144,6 +1144,8 @@ private func registerUntoldCamera(_ camera: RuntimeCameraSource, under rootEntit
     let gameCamera = createEntity()
     createGameCamera(entityId: gameCamera)
     setCamera(.active(gameCamera))
+    setCamera(.defaultFOV(camera.fovYDegrees))
+    setCamera(.clipPlanes(near: camera.nearClip, far: camera.farClip))
     setEntityName(entityId: gameCamera, name: camera.name ?? "Imported Camera")
 
     if hasComponent(entityId: gameCamera, componentType: LocalTransformComponent.self) == false {

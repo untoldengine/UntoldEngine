@@ -154,6 +154,25 @@ final class NativeFormatTileStreamingTests: BaseRenderSetup {
         XCTAssertEqual(tileComp.state, .unloaded)
     }
 
+    func testLoadTiledSceneFromURLRegistersSceneAuthoredLightsAndCamerasWhenRequested() async throws {
+        let fixture = try makeUntoldTileSceneFixture(
+            includeHLOD: false,
+            includeLOD: false,
+            includeScenePayload: true
+        )
+
+        let didSucceed = await loadSceneManifestFromURL(fixture.manifestURL, importOptions: .sceneAuthored)
+        XCTAssertTrue(didSucceed, "loadTiledScene(url:importOptions:) should succeed for a local manifest URL")
+
+        XCTAssertNotNil(findEntity(named: "Manifest Key Light"))
+        let cameraEntityId = try XCTUnwrap(findEntity(named: "Manifest Camera"))
+        XCTAssertNotNil(scene.get(component: CameraComponent.self, for: cameraEntityId))
+        XCTAssertEqual(CameraSystem.shared.activeCamera, cameraEntityId)
+        XCTAssertEqual(fov, 55.0, accuracy: 0.001)
+        XCTAssertEqual(near, 0.05, accuracy: 0.001)
+        XCTAssertEqual(far, 750.0, accuracy: 0.001)
+    }
+
     func testTileManifestSkipsSceneAuthoredLightsAndCamerasByDefault() throws {
         let fixture = try makeUntoldTileSceneFixture(
             includeHLOD: false,
@@ -187,6 +206,9 @@ final class NativeFormatTileStreamingTests: BaseRenderSetup {
         let cameraEntityId = try XCTUnwrap(findEntity(named: "Manifest Camera"))
         XCTAssertNotNil(scene.get(component: CameraComponent.self, for: cameraEntityId))
         XCTAssertEqual(CameraSystem.shared.activeCamera, cameraEntityId)
+        XCTAssertEqual(fov, 55.0, accuracy: 0.001)
+        XCTAssertEqual(near, 0.05, accuracy: 0.001)
+        XCTAssertEqual(far, 750.0, accuracy: 0.001)
     }
 
     // MARK: - Parse timeout — clock starts after download, not before
@@ -739,9 +761,12 @@ final class NativeFormatTileStreamingTests: BaseRenderSetup {
     /// Async variant that wraps `loadTiledScene(url:)` in a `CheckedContinuation`
     /// so it can be awaited from `async throws` test methods without using
     /// `wait(for:)` which is unavailable in async contexts.
-    private func loadSceneManifestFromURL(_ url: URL) async -> Bool {
+    private func loadSceneManifestFromURL(
+        _ url: URL,
+        importOptions: UntoldImportOptions = .assetOnly
+    ) async -> Bool {
         await withCheckedContinuation { continuation in
-            loadTiledScene(url: url) { @Sendable success in
+            loadTiledScene(url: url, importOptions: importOptions) { @Sendable success in
                 continuation.resume(returning: success)
             }
         }

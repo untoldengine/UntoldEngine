@@ -1,4 +1,5 @@
 import json
+import math
 import struct
 import sys
 import tempfile
@@ -11,6 +12,40 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 import untoldexplorer as u
+
+
+class FakeVector:
+    def __init__(self, values) -> None:
+        self.x = float(values[0])
+        self.y = float(values[1])
+        self.z = float(values[2])
+
+    def __getitem__(self, index: int) -> float:
+        return (self.x, self.y, self.z)[index]
+
+
+class FakeMatrix:
+    def __init__(self, translation=(0.0, 0.0, 0.0)) -> None:
+        self.translation = translation
+
+    def to_3x3(self):
+        return self
+
+    def __matmul__(self, vector):
+        return FakeVector(vector)
+
+
+class FakeData:
+    def __init__(self, **values) -> None:
+        self.__dict__.update(values)
+
+
+class FakeSceneObject:
+    def __init__(self, name: str, object_type: str, data: FakeData, translation=(0.0, 0.0, 0.0)) -> None:
+        self.name = name
+        self.type = object_type
+        self.data = data
+        self.matrix_world = FakeMatrix(translation)
 
 
 class UntoldExplorerTests(unittest.TestCase):
@@ -186,6 +221,70 @@ class UntoldExplorerTests(unittest.TestCase):
         self.assertEqual(args.source_orientation, "engine-oriented")
         self.assertTrue(args.validate)
         self.assertTrue(args.animation)
+
+    def test_extract_scene_payload_exports_sun_spot_and_camera_fields(self) -> None:
+        original_bpy = u.bpy
+        original_vector = u.Vector
+        u.bpy = object()
+        u.Vector = FakeVector
+        try:
+            sun = FakeSceneObject(
+                "Sun",
+                "LIGHT",
+                FakeData(type="SUN", color=(1.0, 0.8, 0.6), energy=4.0, exposure=1.0),
+                translation=(1.0, 2.0, 3.0),
+            )
+            spot = FakeSceneObject(
+                "Spot",
+                "LIGHT",
+                FakeData(
+                    type="SPOT",
+                    color=(0.2, 0.4, 1.0),
+                    energy=5.0,
+                    spot_size=math.radians(40.0),
+                    spot_blend=0.25,
+                    shadow_soft_size=6.0,
+                ),
+                translation=(2.0, 3.0, 4.0),
+            )
+            camera = FakeSceneObject(
+                "Camera",
+                "CAMERA",
+                FakeData(
+                    angle_y=math.radians(55.0),
+                    clip_start=0.05,
+                    clip_end=750.0,
+                    sensor_width=32.0,
+                    sensor_height=20.0,
+                    sensor_fit="AUTO",
+                ),
+                translation=(0.0, 1.0, 6.0),
+            )
+
+            lights, cameras = u.extract_scene_payload_from_objects([sun, spot, camera])
+        finally:
+            u.bpy = original_bpy
+            u.Vector = original_vector
+
+        self.assertEqual(len(lights), 2)
+        self.assertEqual(len(cameras), 1)
+
+        self.assertEqual(lights[0].entity_name, "Sun")
+        self.assertEqual(lights[0].light_type, u.LIGHT_TYPE_DIRECTIONAL)
+        self.assertEqual(lights[0].position, (1.0, 2.0, 3.0))
+        self.assertAlmostEqual(lights[0].intensity, 8.0)
+
+        self.assertEqual(lights[1].entity_name, "Spot")
+        self.assertEqual(lights[1].light_type, u.LIGHT_TYPE_SPOT)
+        self.assertAlmostEqual(lights[1].outer_cone, 40.0)
+        self.assertAlmostEqual(lights[1].inner_cone, 30.0)
+        self.assertAlmostEqual(lights[1].radius, 6.0)
+
+        self.assertEqual(cameras[0].entity_name, "Camera")
+        self.assertAlmostEqual(cameras[0].fov_y_degrees, 55.0)
+        self.assertAlmostEqual(cameras[0].near_clip, 0.05)
+        self.assertAlmostEqual(cameras[0].far_clip, 750.0)
+        self.assertAlmostEqual(cameras[0].aspect_ratio, 1.6)
 
     def test_normalize_blender_path_and_blender_required(self) -> None:
         resolved = u.normalize_blender_path("./scripts/../scripts/untoldexplorer.py")
