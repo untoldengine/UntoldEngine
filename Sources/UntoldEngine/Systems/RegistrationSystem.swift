@@ -1109,9 +1109,8 @@ private func registerUntoldLight(_ light: RuntimeLightSource, under rootEntityId
 
     switch light.kind {
     case .directional:
-        if LightingSystem.shared.activeDirectionalLight == nil {
             setDirectionalLight(.active(lightEntityId))
-        }
+        
 
     case .point:
         if let pointLight = scene.get(component: PointLightComponent.self, for: lightEntityId) {
