@@ -39,14 +39,12 @@ fragment float4 fragmentTonemappingShader(VertexCompositeOutput vertexOut [[stag
         // Apply Uncharted2 Tone Mapping
         color.rgb = filmicToneMapping(color.rgb);
 
-    }
-
-    if(toneMapOperator==2){
+    } else if(toneMapOperator==2){
 
         // Apply Reinhard Tone Mapping
         color.rgb = reinhardToneMapping(color.rgb);
 
-    }else{
+    } else{
         
         // Apply ACES Filmic Tone Mapping
         color.rgb = ACESFilmicToneMapping(color.rgb);
