@@ -13,6 +13,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import Foundation
+import simd
 @preconcurrency @testable import UntoldEngine
 import XCTest
 
@@ -93,6 +94,100 @@ final class NativeFormatRegistrationTests: BaseRenderSetup {
         XCTAssertEqual(renderComponent.assetURL.pathExtension, "untold")
         XCTAssertFalse(renderComponent.assetName.isEmpty, "Async .untold load should register an asset name")
         XCTAssertTrue(renderComponent.isVisible, "Async .untold load should leave the entity visible")
+    }
+
+    func testSetEntityMeshScenePayloadHonorsAssetOnlyAndSceneAuthoredOptions() throws {
+        let fixture = try makeSceneAuthoredUntoldFixture()
+        let originalResourceURLFn = LoadingSystem.shared.resourceURLFn
+        LoadingSystem.shared.resourceURLFn = { name, ext, subName in
+            if name == fixture.stem, ext == "untold" {
+                return fixture.url
+            }
+            return getResourceURL(resourceName: name, ext: ext, subName: subName)
+        }
+        defer { LoadingSystem.shared.resourceURLFn = originalResourceURLFn }
+
+        let assetOnlyRoot = createEntity()
+        setEntityMesh(entityId: assetOnlyRoot, filename: fixture.stem, withExtension: "untold")
+
+        XCTAssertNil(findEntity(named: fixture.sunName))
+        XCTAssertNil(findEntity(named: fixture.spotName))
+        XCTAssertNil(findEntity(named: fixture.cameraName))
+
+        let sceneAuthoredRoot = createEntity()
+        setEntityMesh(
+            entityId: sceneAuthoredRoot,
+            filename: fixture.stem,
+            withExtension: "untold",
+            importOptions: .sceneAuthored
+        )
+
+        let sunEntity = try XCTUnwrap(findEntity(named: fixture.sunName))
+        XCTAssertEqual(LightingSystem.shared.activeDirectionalLight, sunEntity)
+        XCTAssertNotNil(scene.get(component: DirectionalLightComponent.self, for: sunEntity))
+
+        let spotEntity = try XCTUnwrap(findEntity(named: fixture.spotName))
+        let spotComponent = try XCTUnwrap(scene.get(component: SpotLightComponent.self, for: spotEntity))
+        XCTAssertEqual(spotComponent.innerCone, 14.0, accuracy: 0.001)
+        XCTAssertEqual(spotComponent.outerCone, 36.0, accuracy: 0.001)
+
+        let spotParameters = getSpotLights()
+        let importedSpot = try XCTUnwrap(spotParameters.first(where: { abs($0.outerCone - degreesToRadians(degrees: 36.0)) < 0.001 }))
+        XCTAssertEqual(importedSpot.innerCone, degreesToRadians(degrees: 14.0), accuracy: 0.001)
+
+        let cameraEntity = try XCTUnwrap(findEntity(named: fixture.cameraName))
+        XCTAssertEqual(CameraSystem.shared.activeCamera, cameraEntity)
+        XCTAssertEqual(fov, 58.0, accuracy: 0.001)
+        XCTAssertEqual(near, 0.05, accuracy: 0.001)
+        XCTAssertEqual(far, 650.0, accuracy: 0.001)
+    }
+
+    func testSetEntityMeshAsyncScenePayloadHonorsPartialImportOptions() async throws {
+        let fixture = try makeSceneAuthoredUntoldFixture()
+        let originalResourceURLFn = LoadingSystem.shared.resourceURLFn
+        LoadingSystem.shared.resourceURLFn = { name, ext, subName in
+            if name == fixture.stem, ext == "untold" {
+                return fixture.url
+            }
+            return getResourceURL(resourceName: name, ext: ext, subName: subName)
+        }
+        defer { LoadingSystem.shared.resourceURLFn = originalResourceURLFn }
+
+        let lightsOnlyRoot = createEntity()
+        let lightsOnlyExpectation = expectation(description: "lights-only scene payload loaded")
+        setEntityMeshAsync(
+            entityId: lightsOnlyRoot,
+            filename: fixture.stem,
+            withExtension: "untold",
+            importOptions: UntoldImportOptions(importLights: true, importCameras: false)
+        ) { success in
+            XCTAssertTrue(success)
+            lightsOnlyExpectation.fulfill()
+        }
+        await fulfillment(of: [lightsOnlyExpectation], timeout: 5.0)
+
+        XCTAssertNotNil(findEntity(named: fixture.sunName))
+        XCTAssertNotNil(findEntity(named: fixture.spotName))
+        XCTAssertNil(findEntity(named: fixture.cameraName))
+
+        destroyAllEntities()
+
+        let camerasOnlyRoot = createEntity()
+        let camerasOnlyExpectation = expectation(description: "cameras-only scene payload loaded")
+        setEntityMeshAsync(
+            entityId: camerasOnlyRoot,
+            filename: fixture.stem,
+            withExtension: "untold",
+            importOptions: UntoldImportOptions(importLights: false, importCameras: true)
+        ) { success in
+            XCTAssertTrue(success)
+            camerasOnlyExpectation.fulfill()
+        }
+        await fulfillment(of: [camerasOnlyExpectation], timeout: 5.0)
+
+        XCTAssertNil(findEntity(named: fixture.sunName))
+        XCTAssertNil(findEntity(named: fixture.spotName))
+        XCTAssertNotNil(findEntity(named: fixture.cameraName))
     }
 
     func testSetEntityMesh_loadsNamedNodeFromUntold() async throws {
@@ -196,4 +291,207 @@ final class NativeFormatRegistrationTests: BaseRenderSetup {
 
         XCTAssertNotNil(animationComponent.currentAnimation)
     }
+
+    private func findEntity(named name: String) -> EntityID? {
+        reverseEntityNameMap[name]?.first(where: { scene.exists($0) && getEntityName(entityId: $0) == name })
+    }
+}
+
+private struct SceneAuthoredUntoldFixture {
+    var url: URL
+    var stem: String
+    var sunName: String
+    var spotName: String
+    var cameraName: String
+}
+
+private func makeSceneAuthoredUntoldFixture() throws -> SceneAuthoredUntoldFixture {
+    let stem = "scene-authored-\(UUID().uuidString)"
+    let url = FileManager.default.temporaryDirectory.appendingPathComponent("\(stem).untold")
+    let sunName = "Imported Sun"
+    let spotName = "Imported Spot"
+    let cameraName = "Imported Camera"
+
+    let strings = makeNativeStringTable([
+        "root_entity",
+        "mesh_0",
+        "mat_0",
+        "albedo.ktx2",
+        sunName,
+        spotName,
+        cameraName,
+    ])
+    let bounds = UntoldAABB(min: SIMD3<Float>(-1, -1, -1), max: SIMD3<Float>(1, 1, 1))
+    let entity = UntoldEntityRecordV1(
+        entityId: 0,
+        nameOffset: strings.offsets["root_entity"]!,
+        firstMeshRecordIndex: 0,
+        meshRecordCount: 1,
+        localBounds: bounds,
+        worldBounds: bounds
+    )
+    let material = UntoldMaterialRecordV1(
+        nameOffset: strings.offsets["mat_0"]!,
+        baseColorTextureIndex: UntoldFormat.invalidIndex
+    )
+    let texture = UntoldTextureRefRecordV1(
+        nameOffset: strings.offsets["albedo.ktx2"]!,
+        uriOffset: strings.offsets["albedo.ktx2"]!,
+        textureFormat: .rgba8,
+        width: 16,
+        height: 16,
+        mipCount: 1
+    )
+    let vertex = UntoldPBRStaticVertexV1(
+        position: SIMD3<Float>(0, 0, 0),
+        normalPacked: UntoldVertexPacking.packNormal(SIMD3<Float>(0, 1, 0)),
+        tangentPacked: UntoldVertexPacking.packTangent(SIMD3<Float>(1, 0, 0), handedness: 1)
+    )
+    let vertexWriter = UntoldBinaryWriter()
+    vertex.encode(to: vertexWriter)
+    let vertexData = vertexWriter.data
+    let indexWriter = UntoldBinaryWriter()
+    indexWriter.writeUInt16LE(0)
+    indexWriter.writeUInt16LE(0)
+    indexWriter.writeUInt16LE(0)
+    let indexData = indexWriter.data
+    let mesh = UntoldMeshRecordV1(
+        entityId: 0,
+        meshNameOffset: strings.offsets["mesh_0"]!,
+        materialIndex: 0,
+        indexType: .uint16,
+        vertexCount: 1,
+        indexCount: 3,
+        vertexStrideBytes: UInt32(vertexData.count),
+        vertexDataOffset: 0,
+        indexDataOffset: 0,
+        vertexDataSizeBytes: UInt64(vertexData.count),
+        indexDataSizeBytes: UInt64(indexData.count),
+        estimatedGPUBytes: UInt64(vertexData.count + indexData.count),
+        localBounds: bounds
+    )
+
+    var sunTransform = matrix_identity_float4x4
+    sunTransform.columns.3 = SIMD4<Float>(0, 4, 0, 1)
+    let sun = UntoldLightRecordV1(
+        entityId: 1,
+        nameOffset: strings.offsets[sunName]!,
+        lightType: .directional,
+        color: SIMD3<Float>(1.0, 0.95, 0.8),
+        intensity: 2.0,
+        localTransform: sunTransform
+    )
+    var spotTransform = matrix_identity_float4x4
+    spotTransform.columns.3 = SIMD4<Float>(2, 3, 4, 1)
+    let spot = UntoldLightRecordV1(
+        entityId: 2,
+        nameOffset: strings.offsets[spotName]!,
+        lightType: .spot,
+        color: SIMD3<Float>(0.2, 0.4, 1.0),
+        intensity: 5.0,
+        position: SIMD3<Float>(2, 3, 4),
+        radius: 8.0,
+        falloff: 0.25,
+        innerCone: 14.0,
+        outerCone: 36.0,
+        localTransform: spotTransform
+    )
+    var cameraTransform = matrix_identity_float4x4
+    cameraTransform.columns.3 = SIMD4<Float>(0, 1, 6, 1)
+    let camera = UntoldCameraRecordV1(
+        entityId: 3,
+        nameOffset: strings.offsets[cameraName]!,
+        position: SIMD3<Float>(0, 1, 6),
+        fovYDegrees: 58.0,
+        nearClip: 0.05,
+        farClip: 650.0,
+        aspectRatio: 1.6,
+        localTransform: cameraTransform
+    )
+
+    var header = UntoldFileHeaderV1(
+        fileType: .tile,
+        chunkCount: 0,
+        meshCount: 1,
+        materialCount: 1,
+        textureRefCount: 1,
+        entityCount: 1,
+        vertexLayout: .pbrStaticV1,
+        worldBounds: bounds
+    )
+    let payloads: [(UntoldChunkType, Data, UInt32)] = [
+        (.stringTable, strings.data, 0),
+        (.entityTable, encodeNativeRecords([entity]), 1),
+        (.meshTable, encodeNativeRecords([mesh]), 1),
+        (.materialTable, encodeNativeRecords([material]), 1),
+        (.textureTable, encodeNativeRecords([texture]), 1),
+        (.vertexData, vertexData, 0),
+        (.indexData, indexData, 0),
+        (.lightTable, encodeNativeRecords([sun, spot]), 2),
+        (.cameraTable, encodeNativeRecords([camera]), 1),
+    ]
+    header.chunkCount = UInt32(payloads.count)
+    let fileData = buildNativeFileData(header: header, payloads: payloads)
+    try fileData.write(to: url, options: .atomic)
+
+    return SceneAuthoredUntoldFixture(url: url, stem: stem, sunName: sunName, spotName: spotName, cameraName: cameraName)
+}
+
+private func encodeNativeRecords(_ records: [some UntoldBinaryEncodable]) -> Data {
+    let writer = UntoldBinaryWriter()
+    for record in records {
+        record.encode(to: writer)
+    }
+    return writer.data
+}
+
+private func makeNativeStringTable(_ strings: [String]) -> (data: Data, offsets: [String: UInt32]) {
+    let writer = UntoldBinaryWriter()
+    var offsets: [String: UInt32] = [:]
+    for string in strings {
+        offsets[string] = UInt32(writer.count)
+        writer.writeNullTerminatedUTF8(string)
+    }
+    return (writer.data, offsets)
+}
+
+private func buildNativeFileData(
+    header: UntoldFileHeaderV1,
+    payloads: [(UntoldChunkType, Data, UInt32)]
+) -> Data {
+    let headerWriter = UntoldBinaryWriter()
+    header.encode(to: headerWriter)
+
+    let chunkTableBytes = 40 * payloads.count
+    var runningOffset = headerWriter.count + chunkTableBytes
+    var entries: [UntoldChunkEntryV1] = []
+    for payload in payloads {
+        runningOffset = alignNativeOffset(runningOffset, to: Int(UntoldFormat.fileAlignment))
+        entries.append(
+            UntoldChunkEntryV1(
+                chunkType: payload.0,
+                fileOffset: UInt64(runningOffset),
+                compressedSize: UInt64(payload.1.count),
+                uncompressedSize: UInt64(payload.1.count),
+                elementCount: payload.2
+            )
+        )
+        runningOffset += payload.1.count
+    }
+
+    let writer = UntoldBinaryWriter()
+    header.encode(to: writer)
+    for entry in entries {
+        entry.encode(to: writer)
+    }
+    for payload in payloads {
+        writer.align(to: Int(UntoldFormat.fileAlignment))
+        writer.writeData(payload.1)
+    }
+    return writer.data
+}
+
+private func alignNativeOffset(_ value: Int, to alignment: Int) -> Int {
+    let remainder = value % alignment
+    return remainder == 0 ? value : value + (alignment - remainder)
 }

@@ -176,6 +176,33 @@ final class NativeFormatTests: XCTestCase {
         XCTAssertEqual(try decoded.string(at: decoded.entities[1].nameOffset), "entity_b")
     }
 
+    func testLightAndCameraTablesRoundtripThroughRuntimeLoader() throws {
+        let fixture = makeScenePayloadFixture()
+        let decoded = try UntoldReader().readAsset(from: fixture.fileData)
+
+        XCTAssertEqual(decoded.lights, [fixture.light])
+        XCTAssertEqual(decoded.cameras, [fixture.camera])
+        XCTAssertEqual(try decoded.string(at: fixture.light.nameOffset), "Authored Spot")
+        XCTAssertEqual(try decoded.string(at: fixture.camera.nameOffset), "Authored Camera")
+
+        let loaded = try NativeFormatLoader().loadAssetSync(from: writeFixtureToTemporaryFile(fixture.fileData))
+        let runtimeLight = try XCTUnwrap(loaded.lights.first)
+        XCTAssertEqual(runtimeLight.name, "Authored Spot")
+        XCTAssertEqual(runtimeLight.kind, .spot)
+        XCTAssertEqual(runtimeLight.color, SIMD3<Float>(0.25, 0.5, 1.0))
+        XCTAssertEqual(runtimeLight.intensity, 7.0, accuracy: 0.0001)
+        XCTAssertEqual(runtimeLight.radius, 9.0, accuracy: 0.0001)
+        XCTAssertEqual(runtimeLight.innerCone, 12.0, accuracy: 0.0001)
+        XCTAssertEqual(runtimeLight.outerCone, 34.0, accuracy: 0.0001)
+
+        let runtimeCamera = try XCTUnwrap(loaded.cameras.first)
+        XCTAssertEqual(runtimeCamera.name, "Authored Camera")
+        XCTAssertEqual(runtimeCamera.fovYDegrees, 58.0, accuracy: 0.0001)
+        XCTAssertEqual(runtimeCamera.nearClip, 0.05, accuracy: 0.0001)
+        XCTAssertEqual(runtimeCamera.farClip, 650.0, accuracy: 0.0001)
+        XCTAssertEqual(runtimeCamera.aspectRatio, 1.6, accuracy: 0.0001)
+    }
+
     private func encodeChunk(_ records: [some UntoldBinaryEncodable]) -> Data {
         let writer = UntoldBinaryWriter()
         for record in records {
@@ -209,6 +236,12 @@ final class NativeFormatTests: XCTestCase {
         var material: UntoldMaterialRecordV1
         var texture: UntoldTextureRefRecordV1
         var vertex: UntoldPBRStaticVertexV1
+    }
+
+    private struct ScenePayloadFixture {
+        var fileData: Data
+        var light: UntoldLightRecordV1
+        var camera: UntoldCameraRecordV1
     }
 
     private func makeTinyFixture(
@@ -445,6 +478,64 @@ final class NativeFormatTests: XCTestCase {
         return TinyFixture(fileData: fileData, chunkPayloads: chunkPayloads, chunkEntries: chunkEntries, entity: entityA, mesh: meshA, material: material, texture: texture, vertex: vertexA)
     }
 
+    private func makeScenePayloadFixture() -> ScenePayloadFixture {
+        let fixture = makeTinyFixture()
+        let stringTable = makeStringTable(["root_entity", "mesh_0", "mat_0", "albedo.ktx2", "Authored Spot", "Authored Camera"])
+        var lightTransform = matrix_identity_float4x4
+        lightTransform.columns.3 = SIMD4<Float>(2.0, 3.0, 4.0, 1.0)
+        let light = UntoldLightRecordV1(
+            entityId: 10,
+            nameOffset: stringTable.offsets["Authored Spot"]!,
+            lightType: .spot,
+            color: SIMD3<Float>(0.25, 0.5, 1.0),
+            intensity: 7.0,
+            position: SIMD3<Float>(2.0, 3.0, 4.0),
+            radius: 9.0,
+            direction: SIMD3<Float>(0.0, -1.0, 0.0),
+            falloff: 0.25,
+            innerCone: 12.0,
+            outerCone: 34.0,
+            localTransform: lightTransform
+        )
+        var cameraTransform = matrix_identity_float4x4
+        cameraTransform.columns.3 = SIMD4<Float>(0.0, 1.0, 6.0, 1.0)
+        let camera = UntoldCameraRecordV1(
+            entityId: 11,
+            nameOffset: stringTable.offsets["Authored Camera"]!,
+            position: SIMD3<Float>(0.0, 1.0, 6.0),
+            fovYDegrees: 58.0,
+            nearClip: 0.05,
+            farClip: 650.0,
+            aspectRatio: 1.6,
+            localTransform: cameraTransform
+        )
+
+        var header = UntoldFileHeaderV1(
+            fileType: .tile,
+            chunkCount: 0,
+            meshCount: 1,
+            materialCount: 1,
+            textureRefCount: 1,
+            entityCount: 1,
+            vertexLayout: .pbrStaticV1,
+            worldBounds: fixture.entity.worldBounds
+        )
+        let chunkPayloads = buildChunkPayloads(
+            stringTableData: stringTable.data,
+            entities: [fixture.entity],
+            meshes: [fixture.mesh],
+            materials: [fixture.material],
+            textures: [fixture.texture],
+            vertexData: fixture.chunkPayloads.first(where: { $0.type == .vertexData })!.data,
+            indexData: fixture.chunkPayloads.first(where: { $0.type == .indexData })!.data,
+            lights: [light],
+            cameras: [camera]
+        )
+        header.chunkCount = UInt32(chunkPayloads.count)
+        let (fileData, _) = buildFileData(header: header, chunkPayloads: chunkPayloads)
+        return ScenePayloadFixture(fileData: fileData, light: light, camera: camera)
+    }
+
     private func buildChunkPayloads(
         stringTableData: Data,
         entities: [UntoldEntityRecordV1],
@@ -454,6 +545,8 @@ final class NativeFormatTests: XCTestCase {
         vertexData: Data,
         indexData: Data,
         edgeIndexData: Data = Data(),
+        lights: [UntoldLightRecordV1] = [],
+        cameras: [UntoldCameraRecordV1] = [],
         removedChunkTypes: Set<UntoldChunkType> = []
     ) -> [(type: UntoldChunkType, data: Data, elementCount: UInt32)] {
         var all: [(type: UntoldChunkType, data: Data, elementCount: UInt32)] = [
@@ -467,6 +560,12 @@ final class NativeFormatTests: XCTestCase {
         ]
         if !edgeIndexData.isEmpty {
             all.append((.edgeIndexData, edgeIndexData, 0))
+        }
+        if !lights.isEmpty {
+            all.append((.lightTable, encodeChunk(lights), UInt32(lights.count)))
+        }
+        if !cameras.isEmpty {
+            all.append((.cameraTable, encodeChunk(cameras), UInt32(cameras.count)))
         }
         return all.filter { !removedChunkTypes.contains($0.type) }
     }

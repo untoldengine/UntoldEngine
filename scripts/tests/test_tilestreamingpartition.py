@@ -15,6 +15,7 @@ parallel worker spawning) are intentionally excluded — see README.md.
 
 import sys
 import unittest
+from types import SimpleNamespace
 from unittest.mock import MagicMock
 from pathlib import Path
 
@@ -181,6 +182,71 @@ class TileStreamingPartitionTests(unittest.TestCase):
         bounds = {"min": (0.0, 0.0, 0.0), "max": (10.0, 10.0, 10.0)}
 
         self.assertAlmostEqual(t.distance_to_aabb((13.0, 14.0, 10.0), bounds), 5.0)
+
+    def test_collect_manifest_scene_payload_serializes_lights_and_cameras(self) -> None:
+        original_extract = t.extract_scene_payload_from_objects
+        original_objects = t.bpy.data.objects
+        t.bpy.data.objects = [FakeObject("Sun"), FakeObject("Camera")]
+        t.extract_scene_payload_from_objects = MagicMock(return_value=(
+            [
+                SimpleNamespace(
+                    entity_name="Sun",
+                    light_type=1,
+                    color=(1.0, 0.9, 0.8),
+                    intensity=3.0,
+                    position=(1.0, 2.0, 3.0),
+                    radius=0.001,
+                    direction=(0.0, -1.0, 0.0),
+                    falloff=0.5,
+                    right=(1.0, 0.0, 0.0),
+                    inner_cone=10.0,
+                    up=(0.0, 1.0, 0.0),
+                    outer_cone=25.0,
+                    area_size=(1.0, 1.0),
+                    source_power=3.0,
+                    source_exposure=0.0,
+                    local_transform_rows=[
+                        [1.0, 0.0, 0.0, 1.0],
+                        [0.0, 1.0, 0.0, 2.0],
+                        [0.0, 0.0, 1.0, 3.0],
+                        [0.0, 0.0, 0.0, 1.0],
+                    ],
+                )
+            ],
+            [
+                SimpleNamespace(
+                    entity_name="Camera",
+                    position=(0.0, 1.0, 6.0),
+                    forward=(0.0, 0.0, 1.0),
+                    up=(0.0, 1.0, 0.0),
+                    right=(1.0, 0.0, 0.0),
+                    fov_y_degrees=55.0,
+                    near_clip=0.05,
+                    far_clip=750.0,
+                    aspect_ratio=1.6,
+                    local_transform_rows=[
+                        [1.0, 0.0, 0.0, 0.0],
+                        [0.0, 1.0, 0.0, 1.0],
+                        [0.0, 0.0, 1.0, 6.0],
+                        [0.0, 0.0, 0.0, 1.0],
+                    ],
+                )
+            ],
+        ))
+        try:
+            lights, cameras = t.collect_manifest_scene_payload()
+        finally:
+            t.extract_scene_payload_from_objects = original_extract
+            t.bpy.data.objects = original_objects
+
+        self.assertEqual(lights[0]["entity_name"], "Sun")
+        self.assertEqual(lights[0]["kind"], "directional")
+        self.assertEqual(lights[0]["light_type"], 1)
+        self.assertEqual(lights[0]["local_transform_rows"][0][3], 1.0)
+        self.assertEqual(cameras[0]["entity_name"], "Camera")
+        self.assertEqual(cameras[0]["fov_y_degrees"], 55.0)
+        self.assertEqual(cameras[0]["near_clip"], 0.05)
+        self.assertEqual(cameras[0]["far_clip"], 750.0)
 
     def test_object_union_aabb(self) -> None:
         objs = [FakeObject("A"), FakeObject("B")]

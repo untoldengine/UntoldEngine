@@ -146,6 +146,31 @@ final class LightSystemTest: BaseRenderSetup {
         destroyEntity(entityId: entityId)
     }
 
+    func testSpotLightParametersUseAuthoredInnerAndOuterCones() {
+        destroyAllEntities()
+
+        let entityId: EntityID = createEntity()
+        createSpotLight(entityId: entityId)
+
+        guard let spotLightComponent = scene.get(component: SpotLightComponent.self, for: entityId) else {
+            handleError(.noSpotLightComponent, entityId)
+            return
+        }
+
+        spotLightComponent.innerCone = 12.0
+        spotLightComponent.outerCone = 34.0
+        spotLightComponent.coneAngle = 45.0
+        spotLightComponent.falloff = 0.5
+
+        let spotLightParameters = getSpotLights()
+
+        XCTAssertEqual(spotLightParameters.count, 1)
+        XCTAssertEqual(spotLightParameters[0].innerCone, degreesToRadians(degrees: 12.0), accuracy: 0.001)
+        XCTAssertEqual(spotLightParameters[0].outerCone, degreesToRadians(degrees: 34.0), accuracy: 0.001)
+
+        destroyEntity(entityId: entityId)
+    }
+
     func testGetPointLightCount() {
         destroyAllEntities()
         let entityId0: EntityID = createEntity()
