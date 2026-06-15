@@ -1487,6 +1487,10 @@ private struct TileManifest: Decodable {
     /// The streaming system only loads interior tiles when the camera is inside
     /// this volume.  Nil for uniform_grid manifests — interior gate is disabled.
     let interiorZone: TileBounds?
+    /// Scene-authored lights/cameras exported alongside a tile manifest.
+    /// Registered once under the streamed scene root; not tied to tile residency.
+    let sceneLights: [ManifestLightEntry]?
+    let sceneCameras: [ManifestCameraEntry]?
 
     enum CodingKeys: String, CodingKey {
         case version
@@ -1496,6 +1500,165 @@ private struct TileManifest: Decodable {
         case sharedBucket = "shared_bucket"
         case tileSize = "tile_size"
         case interiorZone = "interior_zone"
+        case sceneLights = "scene_lights"
+        case sceneCameras = "scene_cameras"
+    }
+}
+
+private struct ManifestLightEntry: Decodable {
+    let name: String?
+    let kind: RuntimeLightSourceKind
+    let color: simd_float3
+    let intensity: Float
+    let position: simd_float3
+    let radius: Float
+    let direction: simd_float3
+    let falloff: Float
+    let right: simd_float3
+    let innerCone: Float
+    let up: simd_float3
+    let outerCone: Float
+    let areaSize: simd_float2
+    let sourcePower: Float
+    let sourceExposure: Float
+    let localTransform: simd_float4x4
+
+    enum CodingKeys: String, CodingKey {
+        case name
+        case entityName = "entity_name"
+        case kind
+        case type
+        case lightType = "light_type"
+        case color
+        case intensity
+        case position
+        case radius
+        case direction
+        case falloff
+        case right
+        case innerCone = "inner_cone"
+        case up
+        case outerCone = "outer_cone"
+        case areaSize = "area_size"
+        case sourcePower = "source_power"
+        case sourceExposure = "source_exposure"
+        case localTransform = "local_transform"
+        case localTransformRows = "local_transform_rows"
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        name = try container.decodeIfPresent(String.self, forKey: .name)
+            ?? container.decodeIfPresent(String.self, forKey: .entityName)
+        kind = try Self.decodeKind(from: container)
+        color = decodeFloat3(try container.decodeIfPresent([Float].self, forKey: .color), default: simd_float3(1, 1, 1))
+        intensity = try container.decodeIfPresent(Float.self, forKey: .intensity) ?? 1.0
+        position = decodeFloat3(try container.decodeIfPresent([Float].self, forKey: .position), default: .zero)
+        radius = try container.decodeIfPresent(Float.self, forKey: .radius) ?? 1.0
+        direction = decodeFloat3(try container.decodeIfPresent([Float].self, forKey: .direction), default: simd_float3(0, -1, 0))
+        falloff = try container.decodeIfPresent(Float.self, forKey: .falloff) ?? 0.5
+        right = decodeFloat3(try container.decodeIfPresent([Float].self, forKey: .right), default: simd_float3(1, 0, 0))
+        innerCone = try container.decodeIfPresent(Float.self, forKey: .innerCone) ?? 5.0
+        up = decodeFloat3(try container.decodeIfPresent([Float].self, forKey: .up), default: simd_float3(0, 1, 0))
+        outerCone = try container.decodeIfPresent(Float.self, forKey: .outerCone) ?? 10.0
+        areaSize = decodeFloat2(try container.decodeIfPresent([Float].self, forKey: .areaSize), default: simd_float2(1, 1))
+        sourcePower = try container.decodeIfPresent(Float.self, forKey: .sourcePower) ?? intensity
+        sourceExposure = try container.decodeIfPresent(Float.self, forKey: .sourceExposure) ?? 0.0
+        let transformRows = try container.decodeIfPresent([[Float]].self, forKey: .localTransformRows)
+            ?? container.decodeIfPresent([[Float]].self, forKey: .localTransform)
+        localTransform = decodeMatrix4x4Rows(
+            transformRows,
+            fallbackPosition: position,
+            right: right,
+            up: up,
+            forward: direction
+        )
+    }
+
+    private static func decodeKind(from container: KeyedDecodingContainer<CodingKeys>) throws -> RuntimeLightSourceKind {
+        if let rawString = (try? container.decode(String.self, forKey: .kind))
+            ?? (try? container.decode(String.self, forKey: .type))
+            ?? (try? container.decode(String.self, forKey: .lightType))
+        {
+            switch rawString.lowercased() {
+            case "directional", "sun", "dir":
+                return .directional
+            case "point":
+                return .point
+            case "spot":
+                return .spot
+            case "area":
+                return .area
+            default:
+                return .point
+            }
+        }
+
+        let rawInt = try? container.decode(Int.self, forKey: .lightType)
+        let rawType = (try? container.decode(UInt32.self, forKey: .lightType))
+            ?? rawInt.flatMap { UInt32(exactly: $0) }
+            ?? UntoldLightType.point.rawValue
+        switch rawType {
+        case UInt32(UntoldLightType.directional.rawValue):
+            return .directional
+        case UInt32(UntoldLightType.spot.rawValue):
+            return .spot
+        case UInt32(UntoldLightType.area.rawValue):
+            return .area
+        default:
+            return .point
+        }
+    }
+}
+
+private struct ManifestCameraEntry: Decodable {
+    let name: String?
+    let position: simd_float3
+    let forward: simd_float3
+    let up: simd_float3
+    let right: simd_float3
+    let fovYDegrees: Float
+    let nearClip: Float
+    let farClip: Float
+    let aspectRatio: Float
+    let localTransform: simd_float4x4
+
+    enum CodingKeys: String, CodingKey {
+        case name
+        case entityName = "entity_name"
+        case position
+        case forward
+        case up
+        case right
+        case fovYDegrees = "fov_y_degrees"
+        case nearClip = "near_clip"
+        case farClip = "far_clip"
+        case aspectRatio = "aspect_ratio"
+        case localTransform = "local_transform"
+        case localTransformRows = "local_transform_rows"
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        name = try container.decodeIfPresent(String.self, forKey: .name)
+            ?? container.decodeIfPresent(String.self, forKey: .entityName)
+        position = decodeFloat3(try container.decodeIfPresent([Float].self, forKey: .position), default: .zero)
+        forward = decodeFloat3(try container.decodeIfPresent([Float].self, forKey: .forward), default: simd_float3(0, 0, 1))
+        up = decodeFloat3(try container.decodeIfPresent([Float].self, forKey: .up), default: simd_float3(0, 1, 0))
+        right = decodeFloat3(try container.decodeIfPresent([Float].self, forKey: .right), default: simd_float3(1, 0, 0))
+        fovYDegrees = try container.decodeIfPresent(Float.self, forKey: .fovYDegrees) ?? 50.0
+        nearClip = max(try container.decodeIfPresent(Float.self, forKey: .nearClip) ?? 0.1, 0.001)
+        farClip = max(try container.decodeIfPresent(Float.self, forKey: .farClip) ?? 1000.0, 0.001)
+        aspectRatio = max(try container.decodeIfPresent(Float.self, forKey: .aspectRatio) ?? 1.5, 0.001)
+        let transformRows = try container.decodeIfPresent([[Float]].self, forKey: .localTransformRows)
+            ?? container.decodeIfPresent([[Float]].self, forKey: .localTransform)
+        localTransform = decodeMatrix4x4Rows(
+            transformRows,
+            fallbackPosition: position,
+            right: right,
+            up: up,
+            forward: forward
+        )
     }
 }
 
@@ -1610,6 +1773,94 @@ private struct TileBounds: Decodable {
     let max: [Float]
 }
 
+private func decodeFloat2(_ values: [Float]?, default defaultValue: simd_float2) -> simd_float2 {
+    guard let values, values.count >= 2 else { return defaultValue }
+    return simd_float2(values[0], values[1])
+}
+
+private func decodeFloat3(_ values: [Float]?, default defaultValue: simd_float3) -> simd_float3 {
+    guard let values, values.count >= 3 else { return defaultValue }
+    return simd_float3(values[0], values[1], values[2])
+}
+
+private func decodeMatrix4x4Rows(
+    _ rows: [[Float]]?,
+    fallbackPosition: simd_float3 = .zero,
+    right: simd_float3 = simd_float3(1, 0, 0),
+    up: simd_float3 = simd_float3(0, 1, 0),
+    forward: simd_float3 = simd_float3(0, 0, 1)
+) -> simd_float4x4 {
+    guard let rows, rows.count >= 4, rows[0].count >= 4, rows[1].count >= 4,
+          rows[2].count >= 4, rows[3].count >= 4
+    else {
+        return simd_float4x4(
+            simd_float4(right, 0),
+            simd_float4(up, 0),
+            simd_float4(forward, 0),
+            simd_float4(fallbackPosition, 1)
+        )
+    }
+
+    return simd_float4x4(
+        simd_float4(rows[0][0], rows[1][0], rows[2][0], rows[3][0]),
+        simd_float4(rows[0][1], rows[1][1], rows[2][1], rows[3][1]),
+        simd_float4(rows[0][2], rows[1][2], rows[2][2], rows[3][2]),
+        simd_float4(rows[0][3], rows[1][3], rows[2][3], rows[3][3])
+    )
+}
+
+private func registerManifestScenePayload(
+    _ manifest: TileManifest,
+    under rootEntityId: EntityID,
+    options: UntoldImportOptions
+) {
+    if options.importLights {
+        for light in manifest.sceneLights ?? [] {
+            registerUntoldLight(
+                RuntimeLightSource(
+                    name: light.name,
+                    kind: light.kind,
+                    color: light.color,
+                    intensity: light.intensity,
+                    position: light.position,
+                    radius: light.radius,
+                    direction: light.direction,
+                    falloff: light.falloff,
+                    right: light.right,
+                    innerCone: light.innerCone,
+                    up: light.up,
+                    outerCone: light.outerCone,
+                    areaSize: light.areaSize,
+                    sourcePower: light.sourcePower,
+                    sourceExposure: light.sourceExposure,
+                    localTransform: light.localTransform
+                ),
+                under: rootEntityId
+            )
+        }
+    }
+
+    if options.importCameras {
+        for camera in manifest.sceneCameras ?? [] {
+            registerUntoldCamera(
+                RuntimeCameraSource(
+                    name: camera.name,
+                    position: camera.position,
+                    forward: camera.forward,
+                    up: camera.up,
+                    right: camera.right,
+                    fovYDegrees: camera.fovYDegrees,
+                    nearClip: camera.nearClip,
+                    farClip: camera.farClip,
+                    aspectRatio: camera.aspectRatio,
+                    localTransform: camera.localTransform
+                ),
+                under: rootEntityId
+            )
+        }
+    }
+}
+
 // MARK: - setEntityStreamScene / loadTiledScene
 
 /// Attaches a distance-streamed tile scene to `rootEntityId`.
@@ -1622,8 +1873,10 @@ private struct TileBounds: Decodable {
 ///
 /// The caller is responsible for creating `rootEntityId` via `createEntity()` before
 /// calling this function, and for managing its lifetime.  To replace a streamed scene,
-/// destroy the old root (cascades to all tile stubs), then call this with a new root.
-/// Camera and light entities are also the caller's responsibility.
+/// destroy the old root (cascades to all tile stubs and scene payload children), then
+/// call this with a new root.  Manifests may include scene-authored lights and cameras
+/// in `scene_lights` / `scene_cameras`; otherwise those entities remain the caller's
+/// responsibility.
 ///
 /// - Parameters:
 ///   - rootEntityId:  Entity that becomes the parent of all tile stubs.
@@ -1634,6 +1887,7 @@ public func setEntityStreamScene(
     entityId rootEntityId: EntityID,
     manifest: String,
     withExtension ext: String = "json",
+    importOptions: UntoldImportOptions = .assetOnly,
     completion: ((Bool) -> Void)? = nil
 ) {
     guard let manifestURL = LoadingSystem.shared.resourceURL(
@@ -1665,6 +1919,7 @@ public func setEntityStreamScene(
         baseURL: manifestURL.deletingLastPathComponent(),
         label: "\(manifest).\(ext)",
         manifestURL: manifestURL,
+        importOptions: importOptions,
         completion: completion
     )
 }
@@ -1674,11 +1929,12 @@ public func setEntityStreamScene(
 /// Backwards-compatible overload.  Prefer `setEntityStreamScene(entityId:manifest:)`
 /// when you need a stable handle to the loaded scene.
 ///
-/// The caller is responsible for creating any camera or light entities the
-/// scene requires.
+/// Manifests may include scene-authored lights and cameras in `scene_lights` /
+/// `scene_cameras`; otherwise those entities remain the caller's responsibility.
 public func loadTiledScene(
     manifest: String,
     withExtension ext: String = "json",
+    importOptions: UntoldImportOptions = .assetOnly,
     completion: ((Bool) -> Void)? = nil
 ) {
     guard let manifestURL = LoadingSystem.shared.resourceURL(
@@ -1713,6 +1969,7 @@ public func loadTiledScene(
         baseURL: manifestURL.deletingLastPathComponent(),
         label: "\(manifest).\(ext)",
         manifestURL: manifestURL,
+        importOptions: importOptions,
         completion: completion
     )
 }
@@ -1725,8 +1982,9 @@ public func loadTiledScene(
 /// streaming system as the camera approaches each tile.
 ///
 /// The caller is responsible for creating `rootEntityId` via `createEntity()` before
-/// calling this function, and for managing its lifetime.
-/// Camera and light entities are also the caller's responsibility.
+/// calling this function, and for managing its lifetime.  Manifests may include
+/// scene-authored lights and cameras in `scene_lights` / `scene_cameras`; otherwise
+/// those entities remain the caller's responsibility.
 ///
 /// - Parameters:
 ///   - rootEntityId: Entity that becomes the parent of all tile stubs.
@@ -1735,6 +1993,7 @@ public func loadTiledScene(
 public func setEntityStreamScene(
     entityId rootEntityId: EntityID,
     url manifestURL: URL,
+    importOptions: UntoldImportOptions = .assetOnly,
     completion: (@Sendable (Bool) -> Void)? = nil
 ) {
     Task {
@@ -1767,6 +2026,7 @@ public func setEntityStreamScene(
                 baseURL: manifestURL.deletingLastPathComponent(),
                 label: manifestURL.lastPathComponent,
                 manifestURL: manifestURL,
+                importOptions: importOptions,
                 completion: completion
             )
         } catch {
@@ -1782,14 +2042,15 @@ public func setEntityStreamScene(
 /// Backwards-compatible overload.  Prefer `setEntityStreamScene(entityId:url:)`
 /// when you need a stable handle to the loaded scene.
 ///
-/// The caller is responsible for creating any camera or light entities the
-/// scene requires.
+/// Manifests may include scene-authored lights and cameras in `scene_lights` /
+/// `scene_cameras`; otherwise those entities remain the caller's responsibility.
 ///
 /// - Parameters:
 ///   - url:        Full URL to the manifest JSON (local or remote).
 ///   - completion: Called on the calling thread with `true` on success.
 public func loadTiledScene(
     url manifestURL: URL,
+    importOptions: UntoldImportOptions = .assetOnly,
     completion: (@Sendable (Bool) -> Void)? = nil
 ) {
     Task {
@@ -1825,6 +2086,7 @@ public func loadTiledScene(
                 baseURL: manifestURL.deletingLastPathComponent(),
                 label: manifestURL.lastPathComponent,
                 manifestURL: manifestURL,
+                importOptions: importOptions,
                 completion: completion
             )
         } catch {
@@ -1844,8 +2106,8 @@ public func loadTiledScene(
 /// scene contract; tile payloads are runtime implementation details (for example
 /// `.untold`, with legacy USD/USDZ support still present during migration).
 ///
-/// The caller is responsible for creating any camera or light entities the scene
-/// requires, and for managing the lifetime of `rootEntityId`.
+/// Scene-authored manifest lights/cameras are registered once under `rootEntityId`;
+/// otherwise camera/light ownership remains with the caller.
 ///
 /// - Parameters:
 ///   - rootEntityId: Entity that becomes the parent of all tile stubs.
@@ -1859,6 +2121,7 @@ private func registerTiledScene(
     baseURL manifestDir: URL,
     label: String,
     manifestURL: URL? = nil,
+    importOptions: UntoldImportOptions = .assetOnly,
     completion: ((Bool) -> Void)?
 ) {
     // ── 1. Align streaming systems to this manifest ────────────────────────
@@ -1996,10 +2259,21 @@ private func registerTiledScene(
             )
         }
 
+        let sceneLightCount = importOptions.importLights ? tileManifest.sceneLights?.count ?? 0 : 0
+        let sceneCameraCount = importOptions.importCameras ? tileManifest.sceneCameras?.count ?? 0 : 0
+        if sceneLightCount > 0 || sceneCameraCount > 0 {
+            withWorldMutationGate {
+                registerManifestScenePayload(tileManifest, under: rootEntityId, options: importOptions)
+            }
+        }
+
         let skipMsg = regState.skippedCount > 0 ? " (\(regState.skippedCount) skipped)" : ""
         let bucketMsg = hasSharedBucket ? " + shared bucket" : ""
+        let scenePayloadMsg = (sceneLightCount > 0 || sceneCameraCount > 0)
+            ? " + \(sceneLightCount) light(s), \(sceneCameraCount) camera(s)"
+            : ""
         Logger.log(
-            message: "[loadTiledScene] '\(label)': \(regState.registeredCount) tile stubs registered\(skipMsg)\(bucketMsg).",
+            message: "[loadTiledScene] '\(label)': \(regState.registeredCount) tile stubs registered\(skipMsg)\(bucketMsg)\(scenePayloadMsg).",
             category: LogCategory.tileStreaming.rawValue
         )
         GeometryStreamingSystem.shared.buildTileHierarchyIndex()

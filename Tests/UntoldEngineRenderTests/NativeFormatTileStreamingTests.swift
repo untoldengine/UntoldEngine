@@ -154,6 +154,41 @@ final class NativeFormatTileStreamingTests: BaseRenderSetup {
         XCTAssertEqual(tileComp.state, .unloaded)
     }
 
+    func testTileManifestSkipsSceneAuthoredLightsAndCamerasByDefault() throws {
+        let fixture = try makeUntoldTileSceneFixture(
+            includeHLOD: false,
+            includeLOD: false,
+            includeScenePayload: true
+        )
+        try loadSceneManifest(at: fixture.manifestURL)
+
+        XCTAssertNil(findEntity(named: "Manifest Key Light"))
+        XCTAssertNil(findEntity(named: "Manifest Camera"))
+    }
+
+    func testTileManifestRegistersSceneAuthoredLightsAndCamerasWhenRequested() throws {
+        let fixture = try makeUntoldTileSceneFixture(
+            includeHLOD: false,
+            includeLOD: false,
+            includeScenePayload: true
+        )
+        try loadSceneManifest(at: fixture.manifestURL, importOptions: .sceneAuthored)
+
+        let lightEntityId = try XCTUnwrap(findEntity(named: "Manifest Key Light"))
+        let light = try XCTUnwrap(scene.get(component: LightComponent.self, for: lightEntityId))
+        let point = try XCTUnwrap(scene.get(component: PointLightComponent.self, for: lightEntityId))
+
+        XCTAssertEqual(light.color.x, 0.8, accuracy: 0.001)
+        XCTAssertEqual(light.color.y, 0.9, accuracy: 0.001)
+        XCTAssertEqual(light.color.z, 1.0, accuracy: 0.001)
+        XCTAssertEqual(light.intensity, 3.5, accuracy: 0.001)
+        XCTAssertEqual(point.radius, 12.0, accuracy: 0.001)
+
+        let cameraEntityId = try XCTUnwrap(findEntity(named: "Manifest Camera"))
+        XCTAssertNotNil(scene.get(component: CameraComponent.self, for: cameraEntityId))
+        XCTAssertEqual(CameraSystem.shared.activeCamera, cameraEntityId)
+    }
+
     // MARK: - Parse timeout — clock starts after download, not before
 
     /// Verifies the parse-timeout fix: `parseStartTime` is 0 immediately after
@@ -680,12 +715,19 @@ final class NativeFormatTileStreamingTests: BaseRenderSetup {
         tileComp.parseStartTime = 0
     }
 
-    private func loadSceneManifest(at manifestURL: URL) throws {
+    private func loadSceneManifest(
+        at manifestURL: URL,
+        importOptions: UntoldImportOptions = .assetOnly
+    ) throws {
         let expectation = XCTestExpectation(description: "Manifest loaded")
         let manifestStem = manifestURL.deletingPathExtension().path
         var didSucceed = false
 
-        loadTiledScene(manifest: manifestStem, withExtension: manifestURL.pathExtension) { success in
+        loadTiledScene(
+            manifest: manifestStem,
+            withExtension: manifestURL.pathExtension,
+            importOptions: importOptions
+        ) { success in
             didSucceed = success
             expectation.fulfill()
         }
@@ -727,7 +769,11 @@ private struct UntoldTileSceneFixture {
     let tileFileName: String
 }
 
-private func makeUntoldTileSceneFixture(includeHLOD: Bool, includeLOD: Bool) throws -> UntoldTileSceneFixture {
+private func makeUntoldTileSceneFixture(
+    includeHLOD: Bool,
+    includeLOD: Bool,
+    includeScenePayload: Bool = false
+) throws -> UntoldTileSceneFixture {
     guard let sourceUntoldURL = Bundle.module.url(forResource: "redplayer", withExtension: "untold") else {
         throw NSError(domain: "NativeFormatTileStreamingTests", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to locate redplayer.untold in test resources"])
     }
@@ -784,7 +830,7 @@ private func makeUntoldTileSceneFixture(includeHLOD: Bool, includeLOD: Bool) thr
         ]
     }
 
-    let manifest: [String: Any] = [
+    var manifest: [String: Any] = [
         "version": 1,
         "streaming_defaults": [
             "streaming_radius": 50.0,
@@ -794,6 +840,53 @@ private func makeUntoldTileSceneFixture(includeHLOD: Bool, includeLOD: Bool) thr
         ],
         "tiles": [tileEntry],
     ]
+
+    if includeScenePayload {
+        manifest["scene_lights"] = [
+            [
+                "entity_name": "Manifest Key Light",
+                "kind": "point",
+                "color": [0.8, 0.9, 1.0],
+                "intensity": 3.5,
+                "position": [2.0, 3.0, 4.0],
+                "radius": 12.0,
+                "direction": [0.0, -1.0, 0.0],
+                "falloff": 0.4,
+                "right": [1.0, 0.0, 0.0],
+                "inner_cone": 10.0,
+                "up": [0.0, 1.0, 0.0],
+                "outer_cone": 25.0,
+                "area_size": [1.0, 1.0],
+                "source_power": 3.5,
+                "source_exposure": 0.0,
+                "local_transform_rows": [
+                    [1.0, 0.0, 0.0, 2.0],
+                    [0.0, 1.0, 0.0, 3.0],
+                    [0.0, 0.0, 1.0, 4.0],
+                    [0.0, 0.0, 0.0, 1.0],
+                ],
+            ],
+        ]
+        manifest["scene_cameras"] = [
+            [
+                "entity_name": "Manifest Camera",
+                "position": [0.0, 1.0, 6.0],
+                "forward": [0.0, 0.0, 1.0],
+                "up": [0.0, 1.0, 0.0],
+                "right": [1.0, 0.0, 0.0],
+                "fov_y_degrees": 55.0,
+                "near_clip": 0.05,
+                "far_clip": 750.0,
+                "aspect_ratio": 1.6,
+                "local_transform_rows": [
+                    [1.0, 0.0, 0.0, 0.0],
+                    [0.0, 1.0, 0.0, 1.0],
+                    [0.0, 0.0, 1.0, 6.0],
+                    [0.0, 0.0, 0.0, 1.0],
+                ],
+            ],
+        ]
+    }
 
     let manifestData = try JSONSerialization.data(withJSONObject: manifest, options: [.prettyPrinted, .sortedKeys])
     let manifestURL = fixtureRoot.appendingPathComponent("scene.json")
