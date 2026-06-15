@@ -63,7 +63,14 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
-from untoldexplorer import ProgressCallback, ProgressReporter, clear_scene, export_objects_to_untold, import_usd_asset
+from untoldexplorer import (
+    ProgressCallback,
+    ProgressReporter,
+    clear_scene,
+    export_objects_to_untold,
+    extract_scene_payload_from_objects,
+    import_usd_asset,
+)
 
 
 def print_export_stage(stage, detail=""):
@@ -78,6 +85,73 @@ def make_untold_progress_callback(label):
         else:
             print(f"[progress] {label}: {stage} - {detail}", flush=True)
     return _callback
+
+
+def _manifest_vec(values):
+    return [float(value) for value in values]
+
+
+def _manifest_matrix_rows(rows):
+    return [[float(value) for value in row] for row in rows]
+
+
+def _manifest_light_kind(light_type):
+    return {
+        1: "directional",
+        2: "point",
+        3: "spot",
+        4: "area",
+    }.get(int(light_type), "point")
+
+
+def _manifest_light_payload(light):
+    return {
+        "entity_name": light.entity_name,
+        "kind": _manifest_light_kind(light.light_type),
+        "light_type": int(light.light_type),
+        "color": _manifest_vec(light.color),
+        "intensity": float(light.intensity),
+        "position": _manifest_vec(light.position),
+        "radius": float(light.radius),
+        "direction": _manifest_vec(light.direction),
+        "falloff": float(light.falloff),
+        "right": _manifest_vec(light.right),
+        "inner_cone": float(light.inner_cone),
+        "up": _manifest_vec(light.up),
+        "outer_cone": float(light.outer_cone),
+        "area_size": _manifest_vec(light.area_size),
+        "source_power": float(light.source_power),
+        "source_exposure": float(light.source_exposure),
+        "local_transform_rows": _manifest_matrix_rows(light.local_transform_rows),
+    }
+
+
+def _manifest_camera_payload(camera):
+    return {
+        "entity_name": camera.entity_name,
+        "position": _manifest_vec(camera.position),
+        "forward": _manifest_vec(camera.forward),
+        "up": _manifest_vec(camera.up),
+        "right": _manifest_vec(camera.right),
+        "fov_y_degrees": float(camera.fov_y_degrees),
+        "near_clip": float(camera.near_clip),
+        "far_clip": float(camera.far_clip),
+        "aspect_ratio": float(camera.aspect_ratio),
+        "local_transform_rows": _manifest_matrix_rows(camera.local_transform_rows),
+    }
+
+
+def collect_manifest_scene_payload():
+    lights, cameras = extract_scene_payload_from_objects(
+        list(bpy.data.objects),
+        convert_orientation=CONVERT_ORIENTATION,
+        source_orientation=SOURCE_ORIENTATION,
+        include_scene_payload=True,
+    )
+    return (
+        [_manifest_light_payload(light) for light in lights],
+        [_manifest_camera_payload(camera) for camera in cameras],
+    )
 
 
 def append_worker_progress(progress_file, event):
@@ -4682,6 +4756,7 @@ def run():
         "min": (scene_bounds["min"][0], scene_bounds["min"][1], scene_bounds["min"][2]),
         "max": (scene_bounds["max"][0], scene_bounds["max"][1], scene_bounds["max"][2]),
     })
+    scene_lights, scene_cameras = collect_manifest_scene_payload()
 
     manifest = {
         "version": 4 if use_quadtree else 3,
@@ -4694,6 +4769,8 @@ def run():
         "tile_size_mode": "auto" if AUTO_TILE_SIZE else "manual",
         "tile_size": {"x": tile_size_x, "y": tile_size_y, "z": tile_size_z},
         "scene_bounds": {"min": list(sb_usd["min"]), "max": list(sb_usd["max"])},
+        "scene_lights": scene_lights,
+        "scene_cameras": scene_cameras,
         "streaming_profile": {
             "requested": SCENE_STREAMING_PROFILE,
             "resolved": resolved_profile,
