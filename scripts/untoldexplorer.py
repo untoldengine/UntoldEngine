@@ -1638,7 +1638,7 @@ def _semantic_light_transform_rows(
     if light_type == LIGHT_TYPE_DIRECTIONAL:
         forward = transform_direction(matrix, (0.0, 0.0, 1.0), (0.0, 0.0, 1.0))
     elif light_type == LIGHT_TYPE_AREA:
-        forward = transform_direction(matrix, (0.0, 0.0, -1.0), (0.0, 0.0, 1.0))
+        forward = transform_direction(matrix, (0.0, 0.0, 1.0), (0.0, 0.0, 1.0))
     elif light_type == LIGHT_TYPE_SPOT:
         forward = transform_direction(matrix, (0.0, 0.0, 1.0), (0.0, 0.0, 1.0))
     else:
