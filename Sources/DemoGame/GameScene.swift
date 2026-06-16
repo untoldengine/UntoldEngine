@@ -86,14 +86,23 @@
     extension GameScene {
         /// Loads a USDZ file as an always-resident asset, replacing whatever was previously loaded.
         /// The previously loaded entity is destroyed; the scene camera and light are preserved.
-        func loadFile(path: String, completion: @escaping @Sendable (Bool) -> Void) {
+        func loadFile(
+            path: String,
+            importOptions: UntoldImportOptions = .assetOnly,
+            completion: @escaping @Sendable (Bool) -> Void
+        ) {
             prepareForMeshLoad { [weak self] in
                 guard let self else { return }
 
                 let entity = createEntity()
                 setEntityName(entityId: entity, name: path)
 
-                setEntityMeshAsync(entityId: entity, filename: path, withExtension: "untold") { [weak self] success in
+                setEntityMeshAsync(
+                    entityId: entity,
+                    filename: path,
+                    withExtension: "untold",
+                    importOptions: importOptions
+                ) { [weak self] success in
                     guard let self else { return }
                     loadedEntity = success ? entity : nil
                     loadedContent = success ? .mesh(entity) : .none
@@ -108,7 +117,12 @@
         }
 
         /// Loads a tiled scene from a local or remote manifest URL.
-        func loadTileScene(sceneID: String, url: URL, completion: @escaping @Sendable (Bool) -> Void) {
+        func loadTileScene(
+            sceneID: String,
+            url: URL,
+            importOptions: UntoldImportOptions = .assetOnly,
+            completion: @escaping @Sendable (Bool) -> Void
+        ) {
             // Destroy any previously loaded tiled scene before registering a new one.
             if case let .tiledScene(oldRoot) = loadedContent {
                 destroyEntity(entityId: oldRoot)
@@ -121,13 +135,15 @@
             let sceneRoot = createEntity()
             setEntityName(entityId: sceneRoot, name: sceneID)
 
-            setEntityStreamScene(entityId: sceneRoot, url: url) { [weak self] success in
+            setEntityStreamScene(entityId: sceneRoot, url: url, importOptions: importOptions) { [weak self] success in
                 guard let self else { return }
                 if success {
                     loadedEntity = nil
                     loadedContent = .tiledScene(sceneRoot)
-                    cameraBehavior = Self.cameraBehavior(for: sceneID)
-                    Self.applyCameraEye(for: sceneID)
+                    if importOptions.importCameras == false {
+                        cameraBehavior = Self.cameraBehavior(for: sceneID)
+                        Self.applyCameraEye(for: sceneID)
+                    }
                     setRendering(.environment(.visible(Self.shouldRenderEnvironment(for: sceneID))))
                 }
                 completion(success)
