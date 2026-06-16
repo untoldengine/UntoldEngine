@@ -103,6 +103,8 @@
             remoteScenes.first { $0.id == selectedRemoteSceneID }
         }
 
+        var localSceneAuthoredEnabled: Bool = false
+
         // MARK: - Features
 
         var batchingEnabled: Bool = false {
@@ -227,8 +229,8 @@
 
         // MARK: - Callbacks (wired by AppDelegate)
 
-        var onLoadFile: ((String, @escaping @Sendable (Bool) -> Void) -> Void)?
-        var onLoadTiledScene: ((String, URL, @escaping @Sendable (Bool) -> Void) -> Void)?
+        var onLoadFile: ((String, UntoldImportOptions, @escaping @Sendable (Bool) -> Void) -> Void)?
+        var onLoadTiledScene: ((String, URL, UntoldImportOptions, @escaping @Sendable (Bool) -> Void) -> Void)?
         var onBatchingChanged: ((Bool) -> Void)?
         var onStreamingChanged: ((Bool, Double, Double) -> Void)?
         var onLodDebugChanged: ((Bool) -> Void)?

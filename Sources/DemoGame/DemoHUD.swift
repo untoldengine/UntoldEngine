@@ -208,6 +208,11 @@
                     Spacer(minLength: 0)
                 }
 
+                Toggle("Scene Authored", isOn: $state.localSceneAuthoredEnabled)
+                    .toggleStyle(.checkbox)
+                    .padding(.leading, 100)
+                    .disabled(state.isLoading)
+
                 Divider()
 
                 sectionLabel("CONTROLS")
@@ -486,7 +491,7 @@
             state.isLoading = true
 
             let sceneID = scene.id
-            onLoadTiledScene(sceneID, manifestURL) { success in
+            onLoadTiledScene(sceneID, manifestURL, .assetOnly) { success in
                 Task { @MainActor in
                     state.isLoading = false
                     state.hasLoadedEntity = success
@@ -528,13 +533,14 @@
 
         private func loadLocalAsset(url: URL, accessing: Bool) {
             let path = url.deletingPathExtension().path
+            let importOptions = localImportOptions
 
             guard let onLoadFile = state.onLoadFile else {
                 finishLocalImport(url: url, accessing: accessing, success: false, streamingEnabled: false)
                 return
             }
 
-            onLoadFile(path) { success in
+            onLoadFile(path, importOptions) { success in
                 Task { @MainActor in
                     if success {
                         state.selectedPostFXPreset = .neutral
@@ -552,8 +558,9 @@
             }
 
             let sceneID = url.deletingPathExtension().lastPathComponent
+            let importOptions = localImportOptions
 
-            onLoadTiledScene(sceneID, url) { success in
+            onLoadTiledScene(sceneID, url, importOptions) { success in
                 Task { @MainActor in
                     if success {
                         state.selectedPostFXPreset = .neutral
@@ -562,6 +569,10 @@
                     finishLocalImport(url: url, accessing: accessing, success: success, streamingEnabled: success)
                 }
             }
+        }
+
+        private var localImportOptions: UntoldImportOptions {
+            state.localSceneAuthoredEnabled ? .sceneAuthored : .assetOnly
         }
 
         private static func postFXPreset(for sceneID: String) -> DemoState.PostFXPreset {
