@@ -60,7 +60,8 @@ public enum CameraMoveSpace {
 public func findGameCamera() -> EntityID {
     if let activeCamera = CameraSystem.shared.activeCamera,
        scene.exists(activeCamera),
-       hasComponent(entityId: activeCamera, componentType: CameraComponent.self)
+       hasComponent(entityId: activeCamera, componentType: CameraComponent.self),
+       !hasComponent(entityId: activeCamera, componentType: SceneCameraComponent.self)
     {
         return activeCamera
     }

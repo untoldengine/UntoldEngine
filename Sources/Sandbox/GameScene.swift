@@ -27,19 +27,23 @@
             // Uncomment to render a simple mesh.
             /*
              let entity = createEntity()
-             setEntityMeshAsync(entityId: entity, filename: "/path/to/file", withExtension: "untold", importOptions: .sceneAuthored) { _ in
+             setEntityMeshAsync(entityId: entity, filename: "/path/to/file", withExtension: "untold") { success in
                  setEntityName(entityId: entity, name: "redplayer")
-
-                 setSceneReady(true)
+                 if success {
+                     loadSceneAuthored(filename: "/path/to/file", withExtension: "untold")
+                 }
+                 setSceneReady(success)
              }
              */
             /*
              let sceneRoot = createEntity()
              setEntityStreamScene(
                    entityId: sceneRoot,
-                   url: URL(fileURLWithPath: "/path/to/local/json"),
-                   importOptions: .sceneAuthored
+                   url: URL(fileURLWithPath: "/path/to/local/json")
                ) { success in
+                   if success {
+                       loadSceneAuthored(url: URL(fileURLWithPath: "/path/to/local/json"))
+                   }
                    setSceneReady(success)
                }
              */

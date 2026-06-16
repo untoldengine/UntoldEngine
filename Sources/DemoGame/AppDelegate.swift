@@ -141,16 +141,17 @@
         }
 
         private func wireDemoStateCallbacks() {
-            demoState.onLoadFile = { [weak self] path, importOptions, completion in
-                self?.gameScene.loadFile(path: path, importOptions: importOptions, completion: completion)
+            demoState.onLoadFile = { [weak self] path, completion in
+                self?.gameScene.loadFile(path: path, completion: completion)
             }
-            demoState.onLoadTiledScene = { [weak self] sceneID, url, importOptions, completion in
-                self?.gameScene.loadTileScene(
-                    sceneID: sceneID,
-                    url: url,
-                    importOptions: importOptions,
-                    completion: completion
-                )
+            demoState.onLoadTiledScene = { [weak self] sceneID, url, completion in
+                self?.gameScene.loadTileScene(sceneID: sceneID, url: url, completion: completion)
+            }
+            demoState.onLoadSceneAuthoredFile = { [weak self] path, completion in
+                self?.gameScene.loadSceneAuthoredFile(path: path, completion: completion)
+            }
+            demoState.onLoadSceneAuthoredURL = { [weak self] url, completion in
+                self?.gameScene.loadSceneAuthoredURL(url: url, completion: completion)
             }
             demoState.onBatchingChanged = { [weak self] enabled in
                 self?.gameScene.setBatching(enabled)

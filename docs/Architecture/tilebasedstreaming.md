@@ -52,10 +52,10 @@ A scene is described by a manifest file listing tiles.
 | `shared_bucket` | *(optional)* A single always-resident tile for geometry that spans many tiles |
 | `tile_size` | *(optional)* Tile footprint in world units, used to align batch cell size with tile boundaries |
 | `interior_zone` | *(v4 only)* Union AABB of all `ExteriorShell` tiles. Interior tiles are only loaded while the camera is inside this volume |
-| `scene_lights` | *(optional)* Scene-authored lights exported from Blender. Registered once under the streamed scene root; not tied to tile residency |
-| `scene_cameras` | *(optional)* Scene-authored cameras exported from Blender. Registered once under the streamed scene root; not tied to tile residency |
+| `scene_lights` | *(optional)* Scene-authored lights exported from Blender. Registered only by an explicit `loadSceneAuthored(url:)` call; not tied to tile residency |
+| `scene_cameras` | *(optional)* Scene-authored cameras exported from Blender. Registered only by an explicit `loadSceneAuthored(url:)` call; not tied to tile residency |
 
-The `streaming_defaults` block sets scene-wide fallback values for all per-tile fields. An optional `shared_bucket` entry holds geometry that spans many tiles and should always be resident (loaded as soon as the camera enters the scene). `scene_lights` and `scene_cameras` are persistent scene payload arrays, so unloading individual tiles never removes them.
+The `streaming_defaults` block sets scene-wide fallback values for all per-tile fields. An optional `shared_bucket` entry holds geometry that spans many tiles and should always be resident (loaded as soon as the camera enters the scene). `scene_lights` and `scene_cameras` are persistent scene payload arrays available to `loadSceneAuthored(url:)`; regular tile scene loading does not register them automatically.
 
 #### Per-tile entry fields
 

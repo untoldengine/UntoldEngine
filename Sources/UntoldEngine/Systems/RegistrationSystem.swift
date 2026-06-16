@@ -1002,22 +1002,6 @@ public enum MeshStreamingPolicy: Sendable {
     case immediate
 }
 
-/// Controls optional scene-authored payloads embedded in a `.untold` asset.
-///
-/// Mesh imports default to `assetOnly` so loading a model does not unexpectedly
-/// add source-DCC lights or cameras to the current scene.
-public struct UntoldImportOptions: Sendable, Equatable {
-    public var importLights: Bool
-    public var importCameras: Bool
-
-    public init(importLights: Bool = false, importCameras: Bool = false) {
-        self.importLights = importLights
-        self.importCameras = importCameras
-    }
-
-    public static let assetOnly = UntoldImportOptions()
-    public static let sceneAuthored = UntoldImportOptions(importLights: true, importCameras: true)
-}
 
 private let untoldImportedMinimumLightRadius: Float = 0.001
 private let untoldImportedMinimumSpotConeAngle: Float = 0.1
@@ -1063,27 +1047,16 @@ private func scaleImportedAreaLight(_ areaSize: simd_float2, entityId: EntityID)
     scaleTo(entityId: entityId, scale: simd_float3(nextScaleX, nextScaleY, currentScale.z))
 }
 
-private func registerUntoldScenePayloadIfRequested(
-    from runtimeAsset: RuntimeAsset,
-    under entityId: EntityID,
-    options: UntoldImportOptions
-) {
-    guard options.importLights || options.importCameras else { return }
-
-    if options.importLights {
-        for light in runtimeAsset.lights {
-            registerUntoldLight(light, under: entityId)
-        }
+private func registerUntoldScenePayload(from runtimeAsset: RuntimeAsset) {
+    for light in runtimeAsset.lights {
+        registerUntoldLight(light)
     }
-
-    if options.importCameras {
-        for camera in runtimeAsset.cameras {
-            registerUntoldCamera(camera, under: entityId)
-        }
+    for camera in runtimeAsset.cameras {
+        registerUntoldCamera(camera)
     }
 }
 
-private func registerUntoldLight(_ light: RuntimeLightSource, under rootEntityId: EntityID) {
+private func registerUntoldLight(_ light: RuntimeLightSource) {
     let lightEntityId = createEntity()
 
     switch light.kind {
@@ -1099,7 +1072,6 @@ private func registerUntoldLight(_ light: RuntimeLightSource, under rootEntityId
 
     setEntityName(entityId: lightEntityId, name: light.name ?? "Imported Light")
     applyLocalTransform(light.localTransform, to: lightEntityId)
-    setParent(childId: lightEntityId, parentId: rootEntityId)
 
     if let lightComponent = scene.get(component: LightComponent.self, for: lightEntityId) {
         lightComponent.color = light.color
@@ -1140,7 +1112,7 @@ private func registerUntoldLight(_ light: RuntimeLightSource, under rootEntityId
     }
 }
 
-private func registerUntoldCamera(_ camera: RuntimeCameraSource, under rootEntityId: EntityID) {
+private func registerUntoldCamera(_ camera: RuntimeCameraSource) {
     let gameCamera = createEntity()
     createGameCamera(entityId: gameCamera)
     setCamera(.active(gameCamera))
@@ -1164,7 +1136,6 @@ private func registerUntoldCamera(_ camera: RuntimeCameraSource, under rootEntit
         target: position + forward,
         up: up
     )
-    setParent(childId: gameCamera, parentId: rootEntityId)
 }
 
 /// Synchronously load a .untold mesh onto an entity.
@@ -1179,8 +1150,7 @@ public func setEntityMesh(
     entityId: EntityID,
     filename: String,
     withExtension: String,
-    assetName: String? = nil,
-    importOptions: UntoldImportOptions = .assetOnly
+    assetName: String? = nil
 ) {
     guard let url = LoadingSystem.shared.resourceURL(
         forResource: filename,
@@ -1214,12 +1184,6 @@ public func setEntityMesh(
 
     if !didLoad {
         loadFallbackMesh(entityId: entityId, filename: filename)
-    } else if assetName == nil {
-        registerUntoldScenePayloadIfRequested(
-            from: runtimeAsset,
-            under: entityId,
-            options: importOptions
-        )
     }
 
     RenderPasses.invalidateShadowEntityCache()
@@ -1231,7 +1195,6 @@ public func setEntityMeshAsync(
     filename: String,
     withExtension: String,
     assetName: String? = nil,
-    importOptions: UntoldImportOptions = .assetOnly,
     flip _: Bool = true,
     coordinateConversion _: CoordinateSystemConversion = .autoDetect,
     streamingPolicy: MeshStreamingPolicy = .immediate,
@@ -1340,12 +1303,6 @@ public func setEntityMeshAsync(
 
                 if !loaded {
                     loadFallbackMesh(entityId: entityId, filename: filename)
-                } else if assetName == nil {
-                    registerUntoldScenePayloadIfRequested(
-                        from: runtimeAsset,
-                        under: entityId,
-                        options: importOptions
-                    )
                 }
 
                 // Non-streaming entities don't fire residency events, so the shadow
@@ -1370,6 +1327,83 @@ public func setEntityMeshAsync(
         }
         await AssetLoadingState.shared.finishLoading(entityId: entityId)
         completionBox?.call(false)
+    }
+}
+
+/// Loads scene-authored lights and cameras from a `.untold` asset as independent
+/// top-level entities, separate from any mesh load.
+///
+/// Call this alongside `setEntityMeshAsync` when you want to bring scene-authored
+/// lights and cameras from an exported asset into the current scene without coupling
+/// them to the mesh entity's transform.
+public func loadSceneAuthored(
+    filename: String,
+    withExtension ext: String,
+    completion: (@Sendable (Bool) -> Void)? = nil
+) {
+    Task {
+        guard let url = LoadingSystem.shared.resourceURL(
+            forResource: filename, withExtension: ext, subResource: nil
+        ) else {
+            handleError(.filenameNotFound, filename)
+            completion?(false)
+            return
+        }
+
+        guard RuntimeAssetSource.infer(from: url).kind == .untold else {
+            Logger.logWarning(message: "[RegistrationSystem] loadSceneAuthored only supports .untold assets.")
+            completion?(false)
+            return
+        }
+
+        guard let runtimeAsset = loadUntoldRuntimeAsset(url: url) else {
+            completion?(false)
+            return
+        }
+
+        withWorldMutationGate {
+            registerUntoldScenePayload(from: runtimeAsset)
+        }
+        completion?(true)
+    }
+}
+
+/// Loads scene-authored lights and cameras from a `.json` tile manifest as independent
+/// top-level entities, separate from any tile scene load.
+///
+/// Call this alongside `setEntityStreamScene` when the manifest contains
+/// `scene_lights` / `scene_cameras` you want imported into the current scene.
+public func loadSceneAuthored(
+    url manifestURL: URL,
+    completion: (@Sendable (Bool) -> Void)? = nil
+) {
+    Task {
+        do {
+            let localURL: URL
+            if manifestURL.scheme?.lowercased() == "https" {
+                localURL = try await RemoteAssetDownloader.shared.localURL(for: manifestURL)
+            } else if manifestURL.scheme?.lowercased() == "http" {
+                throw RemoteAssetDownloader.DownloadError.insecureScheme("http")
+            } else {
+                localURL = manifestURL
+            }
+
+            guard let data = try? Data(contentsOf: localURL),
+                  let tileManifest = try? JSONDecoder().decode(TileManifest.self, from: data)
+            else {
+                handleError(.manifestDecodeFailed, manifestURL.lastPathComponent)
+                completion?(false)
+                return
+            }
+
+            withWorldMutationGate {
+                registerManifestScenePayload(tileManifest)
+            }
+            completion?(true)
+        } catch {
+            handleError(.manifestNotFound, error.localizedDescription, manifestURL.lastPathComponent)
+            completion?(false)
+        }
     }
 }
 
@@ -1489,7 +1523,7 @@ private struct TileManifest: Decodable {
     /// this volume.  Nil for uniform_grid manifests — interior gate is disabled.
     let interiorZone: TileBounds?
     /// Scene-authored lights/cameras exported alongside a tile manifest.
-    /// Registered once under the streamed scene root; not tied to tile residency.
+    /// Decoded only by explicit `loadSceneAuthored(url:)` calls; not tied to tile residency.
     let sceneLights: [ManifestLightEntry]?
     let sceneCameras: [ManifestCameraEntry]?
 
@@ -1810,55 +1844,44 @@ private func decodeMatrix4x4Rows(
     )
 }
 
-private func registerManifestScenePayload(
-    _ manifest: TileManifest,
-    under rootEntityId: EntityID,
-    options: UntoldImportOptions
-) {
-    if options.importLights {
-        for light in manifest.sceneLights ?? [] {
-            registerUntoldLight(
-                RuntimeLightSource(
-                    name: light.name,
-                    kind: light.kind,
-                    color: light.color,
-                    intensity: light.intensity,
-                    position: light.position,
-                    radius: light.radius,
-                    direction: light.direction,
-                    falloff: light.falloff,
-                    right: light.right,
-                    innerCone: light.innerCone,
-                    up: light.up,
-                    outerCone: light.outerCone,
-                    areaSize: light.areaSize,
-                    sourcePower: light.sourcePower,
-                    sourceExposure: light.sourceExposure,
-                    localTransform: light.localTransform
-                ),
-                under: rootEntityId
+private func registerManifestScenePayload(_ manifest: TileManifest) {
+    for light in manifest.sceneLights ?? [] {
+        registerUntoldLight(
+            RuntimeLightSource(
+                name: light.name,
+                kind: light.kind,
+                color: light.color,
+                intensity: light.intensity,
+                position: light.position,
+                radius: light.radius,
+                direction: light.direction,
+                falloff: light.falloff,
+                right: light.right,
+                innerCone: light.innerCone,
+                up: light.up,
+                outerCone: light.outerCone,
+                areaSize: light.areaSize,
+                sourcePower: light.sourcePower,
+                sourceExposure: light.sourceExposure,
+                localTransform: light.localTransform
             )
-        }
+        )
     }
-
-    if options.importCameras {
-        for camera in manifest.sceneCameras ?? [] {
-            registerUntoldCamera(
-                RuntimeCameraSource(
-                    name: camera.name,
-                    position: camera.position,
-                    forward: camera.forward,
-                    up: camera.up,
-                    right: camera.right,
-                    fovYDegrees: camera.fovYDegrees,
-                    nearClip: camera.nearClip,
-                    farClip: camera.farClip,
-                    aspectRatio: camera.aspectRatio,
-                    localTransform: camera.localTransform
-                ),
-                under: rootEntityId
+    for camera in manifest.sceneCameras ?? [] {
+        registerUntoldCamera(
+            RuntimeCameraSource(
+                name: camera.name,
+                position: camera.position,
+                forward: camera.forward,
+                up: camera.up,
+                right: camera.right,
+                fovYDegrees: camera.fovYDegrees,
+                nearClip: camera.nearClip,
+                farClip: camera.farClip,
+                aspectRatio: camera.aspectRatio,
+                localTransform: camera.localTransform
             )
-        }
+        )
     }
 }
 
@@ -1874,10 +1897,10 @@ private func registerManifestScenePayload(
 ///
 /// The caller is responsible for creating `rootEntityId` via `createEntity()` before
 /// calling this function, and for managing its lifetime.  To replace a streamed scene,
-/// destroy the old root (cascades to all tile stubs and scene payload children), then
-/// call this with a new root.  Manifests may include scene-authored lights and cameras
-/// in `scene_lights` / `scene_cameras`; otherwise those entities remain the caller's
-/// responsibility.
+/// destroy the old root (cascades to all tile stubs), then call this with a new root.
+/// Manifests may include scene-authored lights and cameras in `scene_lights` /
+/// `scene_cameras`; this call does not register them.  Call `loadSceneAuthored(url:)`
+/// explicitly when you want those entities in the current scene.
 ///
 /// - Parameters:
 ///   - rootEntityId:  Entity that becomes the parent of all tile stubs.
@@ -1888,7 +1911,6 @@ public func setEntityStreamScene(
     entityId rootEntityId: EntityID,
     manifest: String,
     withExtension ext: String = "json",
-    importOptions: UntoldImportOptions = .assetOnly,
     completion: ((Bool) -> Void)? = nil
 ) {
     guard let manifestURL = LoadingSystem.shared.resourceURL(
@@ -1920,7 +1942,6 @@ public func setEntityStreamScene(
         baseURL: manifestURL.deletingLastPathComponent(),
         label: "\(manifest).\(ext)",
         manifestURL: manifestURL,
-        importOptions: importOptions,
         completion: completion
     )
 }
@@ -1931,11 +1952,11 @@ public func setEntityStreamScene(
 /// when you need a stable handle to the loaded scene.
 ///
 /// Manifests may include scene-authored lights and cameras in `scene_lights` /
-/// `scene_cameras`; otherwise those entities remain the caller's responsibility.
+/// `scene_cameras`; this call does not register them.  Call `loadSceneAuthored(url:)`
+/// explicitly when you want those entities in the current scene.
 public func loadTiledScene(
     manifest: String,
     withExtension ext: String = "json",
-    importOptions: UntoldImportOptions = .assetOnly,
     completion: ((Bool) -> Void)? = nil
 ) {
     guard let manifestURL = LoadingSystem.shared.resourceURL(
@@ -1970,7 +1991,6 @@ public func loadTiledScene(
         baseURL: manifestURL.deletingLastPathComponent(),
         label: "\(manifest).\(ext)",
         manifestURL: manifestURL,
-        importOptions: importOptions,
         completion: completion
     )
 }
@@ -1984,8 +2004,9 @@ public func loadTiledScene(
 ///
 /// The caller is responsible for creating `rootEntityId` via `createEntity()` before
 /// calling this function, and for managing its lifetime.  Manifests may include
-/// scene-authored lights and cameras in `scene_lights` / `scene_cameras`; otherwise
-/// those entities remain the caller's responsibility.
+/// scene-authored lights and cameras in `scene_lights` / `scene_cameras`; this call
+/// does not register them.  Call `loadSceneAuthored(url:)` explicitly when you want
+/// those entities in the current scene.
 ///
 /// - Parameters:
 ///   - rootEntityId: Entity that becomes the parent of all tile stubs.
@@ -1994,7 +2015,6 @@ public func loadTiledScene(
 public func setEntityStreamScene(
     entityId rootEntityId: EntityID,
     url manifestURL: URL,
-    importOptions: UntoldImportOptions = .assetOnly,
     completion: (@Sendable (Bool) -> Void)? = nil
 ) {
     Task {
@@ -2027,7 +2047,6 @@ public func setEntityStreamScene(
                 baseURL: manifestURL.deletingLastPathComponent(),
                 label: manifestURL.lastPathComponent,
                 manifestURL: manifestURL,
-                importOptions: importOptions,
                 completion: completion
             )
         } catch {
@@ -2044,14 +2063,14 @@ public func setEntityStreamScene(
 /// when you need a stable handle to the loaded scene.
 ///
 /// Manifests may include scene-authored lights and cameras in `scene_lights` /
-/// `scene_cameras`; otherwise those entities remain the caller's responsibility.
+/// `scene_cameras`; this call does not register them.  Call `loadSceneAuthored(url:)`
+/// explicitly when you want those entities in the current scene.
 ///
 /// - Parameters:
 ///   - url:        Full URL to the manifest JSON (local or remote).
 ///   - completion: Called on the calling thread with `true` on success.
 public func loadTiledScene(
     url manifestURL: URL,
-    importOptions: UntoldImportOptions = .assetOnly,
     completion: (@Sendable (Bool) -> Void)? = nil
 ) {
     Task {
@@ -2087,7 +2106,6 @@ public func loadTiledScene(
                 baseURL: manifestURL.deletingLastPathComponent(),
                 label: manifestURL.lastPathComponent,
                 manifestURL: manifestURL,
-                importOptions: importOptions,
                 completion: completion
             )
         } catch {
@@ -2122,7 +2140,6 @@ private func registerTiledScene(
     baseURL manifestDir: URL,
     label: String,
     manifestURL: URL? = nil,
-    importOptions: UntoldImportOptions = .assetOnly,
     completion: ((Bool) -> Void)?
 ) {
     // ── 1. Align streaming systems to this manifest ────────────────────────
@@ -2260,21 +2277,10 @@ private func registerTiledScene(
             )
         }
 
-        let sceneLightCount = importOptions.importLights ? tileManifest.sceneLights?.count ?? 0 : 0
-        let sceneCameraCount = importOptions.importCameras ? tileManifest.sceneCameras?.count ?? 0 : 0
-        if sceneLightCount > 0 || sceneCameraCount > 0 {
-            withWorldMutationGate {
-                registerManifestScenePayload(tileManifest, under: rootEntityId, options: importOptions)
-            }
-        }
-
         let skipMsg = regState.skippedCount > 0 ? " (\(regState.skippedCount) skipped)" : ""
         let bucketMsg = hasSharedBucket ? " + shared bucket" : ""
-        let scenePayloadMsg = (sceneLightCount > 0 || sceneCameraCount > 0)
-            ? " + \(sceneLightCount) light(s), \(sceneCameraCount) camera(s)"
-            : ""
         Logger.log(
-            message: "[loadTiledScene] '\(label)': \(regState.registeredCount) tile stubs registered\(skipMsg)\(bucketMsg)\(scenePayloadMsg).",
+            message: "[loadTiledScene] '\(label)': \(regState.registeredCount) tile stubs registered\(skipMsg)\(bucketMsg).",
             category: LogCategory.tileStreaming.rawValue
         )
         GeometryStreamingSystem.shared.buildTileHierarchyIndex()

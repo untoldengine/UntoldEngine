@@ -491,7 +491,7 @@
             state.isLoading = true
 
             let sceneID = scene.id
-            onLoadTiledScene(sceneID, manifestURL, .assetOnly) { success in
+            onLoadTiledScene(sceneID, manifestURL) { success in
                 Task { @MainActor in
                     state.isLoading = false
                     state.hasLoadedEntity = success
@@ -533,18 +533,20 @@
 
         private func loadLocalAsset(url: URL, accessing: Bool) {
             let path = url.deletingPathExtension().path
-            let importOptions = localImportOptions
 
             guard let onLoadFile = state.onLoadFile else {
                 finishLocalImport(url: url, accessing: accessing, success: false, streamingEnabled: false)
                 return
             }
 
-            onLoadFile(path, importOptions) { success in
+            onLoadFile(path) { success in
                 Task { @MainActor in
                     if success {
                         state.selectedPostFXPreset = .neutral
                         state.applySelectedPostFXPreset()
+                        if state.localSceneAuthoredEnabled {
+                            state.onLoadSceneAuthoredFile?(path) { _ in }
+                        }
                     }
                     finishLocalImport(url: url, accessing: accessing, success: success, streamingEnabled: false)
                 }
@@ -558,21 +560,19 @@
             }
 
             let sceneID = url.deletingPathExtension().lastPathComponent
-            let importOptions = localImportOptions
 
-            onLoadTiledScene(sceneID, url, importOptions) { success in
+            onLoadTiledScene(sceneID, url) { success in
                 Task { @MainActor in
                     if success {
                         state.selectedPostFXPreset = .neutral
                         state.applySelectedPostFXPreset()
+                        if state.localSceneAuthoredEnabled {
+                            state.onLoadSceneAuthoredURL?(url) { _ in }
+                        }
                     }
                     finishLocalImport(url: url, accessing: accessing, success: success, streamingEnabled: success)
                 }
             }
-        }
-
-        private var localImportOptions: UntoldImportOptions {
-            state.localSceneAuthoredEnabled ? .sceneAuthored : .assetOnly
         }
 
         private static func postFXPreset(for sceneID: String) -> DemoState.PostFXPreset {

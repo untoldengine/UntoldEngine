@@ -96,7 +96,7 @@ final class NativeFormatRegistrationTests: BaseRenderSetup {
         XCTAssertTrue(renderComponent.isVisible, "Async .untold load should leave the entity visible")
     }
 
-    func testSetEntityMeshScenePayloadHonorsAssetOnlyAndSceneAuthoredOptions() throws {
+    func testSetEntityMeshLoadsOnlyMeshAndLoadSceneAuthoredLoadsMeshAndScene() throws {
         let fixture = try makeSceneAuthoredUntoldFixture()
         let originalResourceURLFn = LoadingSystem.shared.resourceURLFn
         LoadingSystem.shared.resourceURLFn = { name, ext, subName in
@@ -107,20 +107,20 @@ final class NativeFormatRegistrationTests: BaseRenderSetup {
         }
         defer { LoadingSystem.shared.resourceURLFn = originalResourceURLFn }
 
-        let assetOnlyRoot = createEntity()
-        setEntityMesh(entityId: assetOnlyRoot, filename: fixture.stem, withExtension: "untold")
+        // Mesh-only load — no lights or camera should appear.
+        let meshRoot = createEntity()
+        setEntityMesh(entityId: meshRoot, filename: fixture.stem, withExtension: "untold")
 
         XCTAssertNil(findEntity(named: fixture.sunName))
         XCTAssertNil(findEntity(named: fixture.spotName))
         XCTAssertNil(findEntity(named: fixture.cameraName))
 
-        let sceneAuthoredRoot = createEntity()
-        setEntityMesh(
-            entityId: sceneAuthoredRoot,
-            filename: fixture.stem,
-            withExtension: "untold",
-            importOptions: .sceneAuthored
-        )
+        // Separate scene-authored load — lights and camera registered as top-level entities.
+        let sceneExpectation = expectation(description: "scene authored loaded")
+        loadSceneAuthored(filename: fixture.stem, withExtension: "untold") { _ in
+            sceneExpectation.fulfill()
+        }
+        wait(for: [sceneExpectation], timeout: 5.0)
 
         let sunEntity = try XCTUnwrap(findEntity(named: fixture.sunName))
         XCTAssertEqual(LightingSystem.shared.activeDirectionalLight, sunEntity)
@@ -140,54 +140,6 @@ final class NativeFormatRegistrationTests: BaseRenderSetup {
         XCTAssertEqual(fov, 58.0, accuracy: 0.001)
         XCTAssertEqual(near, 0.05, accuracy: 0.001)
         XCTAssertEqual(far, 650.0, accuracy: 0.001)
-    }
-
-    func testSetEntityMeshAsyncScenePayloadHonorsPartialImportOptions() async throws {
-        let fixture = try makeSceneAuthoredUntoldFixture()
-        let originalResourceURLFn = LoadingSystem.shared.resourceURLFn
-        LoadingSystem.shared.resourceURLFn = { name, ext, subName in
-            if name == fixture.stem, ext == "untold" {
-                return fixture.url
-            }
-            return getResourceURL(resourceName: name, ext: ext, subName: subName)
-        }
-        defer { LoadingSystem.shared.resourceURLFn = originalResourceURLFn }
-
-        let lightsOnlyRoot = createEntity()
-        let lightsOnlyExpectation = expectation(description: "lights-only scene payload loaded")
-        setEntityMeshAsync(
-            entityId: lightsOnlyRoot,
-            filename: fixture.stem,
-            withExtension: "untold",
-            importOptions: UntoldImportOptions(importLights: true, importCameras: false)
-        ) { success in
-            XCTAssertTrue(success)
-            lightsOnlyExpectation.fulfill()
-        }
-        await fulfillment(of: [lightsOnlyExpectation], timeout: 5.0)
-
-        XCTAssertNotNil(findEntity(named: fixture.sunName))
-        XCTAssertNotNil(findEntity(named: fixture.spotName))
-        XCTAssertNil(findEntity(named: fixture.cameraName))
-
-        destroyAllEntities()
-
-        let camerasOnlyRoot = createEntity()
-        let camerasOnlyExpectation = expectation(description: "cameras-only scene payload loaded")
-        setEntityMeshAsync(
-            entityId: camerasOnlyRoot,
-            filename: fixture.stem,
-            withExtension: "untold",
-            importOptions: UntoldImportOptions(importLights: false, importCameras: true)
-        ) { success in
-            XCTAssertTrue(success)
-            camerasOnlyExpectation.fulfill()
-        }
-        await fulfillment(of: [camerasOnlyExpectation], timeout: 5.0)
-
-        XCTAssertNil(findEntity(named: fixture.sunName))
-        XCTAssertNil(findEntity(named: fixture.spotName))
-        XCTAssertNotNil(findEntity(named: fixture.cameraName))
     }
 
     func testSetEntityMesh_loadsNamedNodeFromUntold() async throws {

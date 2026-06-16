@@ -229,8 +229,10 @@
 
         // MARK: - Callbacks (wired by AppDelegate)
 
-        var onLoadFile: ((String, UntoldImportOptions, @escaping @Sendable (Bool) -> Void) -> Void)?
-        var onLoadTiledScene: ((String, URL, UntoldImportOptions, @escaping @Sendable (Bool) -> Void) -> Void)?
+        var onLoadFile: ((String, @escaping @Sendable (Bool) -> Void) -> Void)?
+        var onLoadTiledScene: ((String, URL, @escaping @Sendable (Bool) -> Void) -> Void)?
+        var onLoadSceneAuthoredFile: ((String, @escaping @Sendable (Bool) -> Void) -> Void)?
+        var onLoadSceneAuthoredURL: ((URL, @escaping @Sendable (Bool) -> Void) -> Void)?
         var onBatchingChanged: ((Bool) -> Void)?
         var onStreamingChanged: ((Bool, Double, Double) -> Void)?
         var onLodDebugChanged: ((Bool) -> Void)?

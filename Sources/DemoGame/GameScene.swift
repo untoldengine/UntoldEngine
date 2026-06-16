@@ -88,7 +88,6 @@
         /// The previously loaded entity is destroyed; the scene camera and light are preserved.
         func loadFile(
             path: String,
-            importOptions: UntoldImportOptions = .assetOnly,
             completion: @escaping @Sendable (Bool) -> Void
         ) {
             prepareForMeshLoad { [weak self] in
@@ -100,8 +99,7 @@
                 setEntityMeshAsync(
                     entityId: entity,
                     filename: path,
-                    withExtension: "untold",
-                    importOptions: importOptions
+                    withExtension: "untold"
                 ) { [weak self] success in
                     guard let self else { return }
                     loadedEntity = success ? entity : nil
@@ -120,7 +118,6 @@
         func loadTileScene(
             sceneID: String,
             url: URL,
-            importOptions: UntoldImportOptions = .assetOnly,
             completion: @escaping @Sendable (Bool) -> Void
         ) {
             // Destroy any previously loaded tiled scene before registering a new one.
@@ -135,19 +132,25 @@
             let sceneRoot = createEntity()
             setEntityName(entityId: sceneRoot, name: sceneID)
 
-            setEntityStreamScene(entityId: sceneRoot, url: url, importOptions: importOptions) { [weak self] success in
+            setEntityStreamScene(entityId: sceneRoot, url: url) { [weak self] success in
                 guard let self else { return }
                 if success {
                     loadedEntity = nil
                     loadedContent = .tiledScene(sceneRoot)
-                    if importOptions.importCameras == false {
-                        cameraBehavior = Self.cameraBehavior(for: sceneID)
-                        Self.applyCameraEye(for: sceneID)
-                    }
+                    cameraBehavior = Self.cameraBehavior(for: sceneID)
+                    Self.applyCameraEye(for: sceneID)
                     setRendering(.environment(.visible(Self.shouldRenderEnvironment(for: sceneID))))
                 }
                 completion(success)
             }
+        }
+
+        func loadSceneAuthoredFile(path: String, completion: @escaping @Sendable (Bool) -> Void) {
+            loadSceneAuthored(filename: path, withExtension: "untold", completion: completion)
+        }
+
+        func loadSceneAuthoredURL(url: URL, completion: @escaping @Sendable (Bool) -> Void) {
+            loadSceneAuthored(url: url, completion: completion)
         }
 
         private func prepareForMeshLoad(completion: @escaping () -> Void) {
