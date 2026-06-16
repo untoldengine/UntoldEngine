@@ -222,7 +222,7 @@ class UntoldExplorerTests(unittest.TestCase):
         self.assertTrue(args.validate)
         self.assertTrue(args.animation)
 
-    def test_extract_scene_payload_exports_sun_spot_and_camera_fields(self) -> None:
+    def test_extract_scene_payload_exports_sun_spot_area_and_camera_fields(self) -> None:
         original_bpy = u.bpy
         original_vector = u.Vector
         u.bpy = object()
@@ -247,6 +247,19 @@ class UntoldExplorerTests(unittest.TestCase):
                 ),
                 translation=(2.0, 3.0, 4.0),
             )
+            area = FakeSceneObject(
+                "Area",
+                "LIGHT",
+                FakeData(
+                    type="AREA",
+                    color=(1.0, 1.0, 1.0),
+                    energy=7.0,
+                    shape="RECTANGLE",
+                    size=3.0,
+                    size_y=2.0,
+                ),
+                translation=(3.0, 4.0, 5.0),
+            )
             camera = FakeSceneObject(
                 "Camera",
                 "CAMERA",
@@ -261,12 +274,12 @@ class UntoldExplorerTests(unittest.TestCase):
                 translation=(0.0, 1.0, 6.0),
             )
 
-            lights, cameras = u.extract_scene_payload_from_objects([sun, spot, camera])
+            lights, cameras = u.extract_scene_payload_from_objects([sun, spot, area, camera])
         finally:
             u.bpy = original_bpy
             u.Vector = original_vector
 
-        self.assertEqual(len(lights), 2)
+        self.assertEqual(len(lights), 3)
         self.assertEqual(len(cameras), 1)
 
         self.assertEqual(lights[0].entity_name, "Sun")
@@ -279,6 +292,23 @@ class UntoldExplorerTests(unittest.TestCase):
         self.assertAlmostEqual(lights[1].outer_cone, 40.0)
         self.assertAlmostEqual(lights[1].inner_cone, 30.0)
         self.assertAlmostEqual(lights[1].radius, 6.0)
+
+        self.assertEqual(lights[2].entity_name, "Area")
+        self.assertEqual(lights[2].light_type, u.LIGHT_TYPE_AREA)
+        self.assertEqual(lights[2].position, (3.0, 4.0, 5.0))
+        self.assertEqual(lights[2].direction, (0.0, 0.0, -1.0))
+        self.assertEqual(lights[2].right, (1.0, 0.0, 0.0))
+        self.assertEqual(lights[2].up, (0.0, 1.0, 0.0))
+        self.assertEqual(lights[2].area_size, (3.0, 2.0))
+        self.assertEqual(
+            lights[2].local_transform_rows,
+            [
+                [1.0, 0.0, 0.0, 3.0],
+                [0.0, 1.0, 0.0, 4.0],
+                [0.0, 0.0, 1.0, 5.0],
+                [0.0, 0.0, 0.0, 1.0],
+            ],
+        )
 
         self.assertEqual(cameras[0].entity_name, "Camera")
         self.assertAlmostEqual(cameras[0].fov_y_degrees, 55.0)
