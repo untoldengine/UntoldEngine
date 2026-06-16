@@ -82,6 +82,36 @@ def scene_export_candidates(context: Any, scope: str) -> list[object]:
     ]
 
 
+def scene_payload_candidates(context: Any, scope: str) -> list[object]:
+    if scope == "SELECTED":
+        return [
+            obj
+            for obj in context.selected_objects
+            if getattr(obj, "type", None) in {"LIGHT", "CAMERA"}
+        ]
+
+    view_layer_object_ids = {obj.as_pointer() for obj in context.view_layer.objects}
+    return [
+        obj
+        for obj in context.scene.objects
+        if obj.as_pointer() in view_layer_object_ids
+        and not getattr(obj, "hide_get", lambda: False)()
+        and getattr(obj, "type", None) in {"LIGHT", "CAMERA"}
+    ]
+
+
+def append_unique_objects(objects: list[object], additions: list[object]) -> list[object]:
+    seen = {obj.as_pointer() for obj in objects}
+    merged = list(objects)
+    for obj in additions:
+        pointer = obj.as_pointer()
+        if pointer in seen:
+            continue
+        seen.add(pointer)
+        merged.append(obj)
+    return merged
+
+
 def export_asset(
     *,
     context: Any,
@@ -103,6 +133,7 @@ def export_asset(
         raise RuntimeError("No exportable objects were found for the selected scope")
 
     export_objects = module.prepare_export_objects_from_blender_objects(objects)
+    export_objects = append_unique_objects(export_objects, scene_payload_candidates(context, scope))
     result = module.export_objects_to_untold(
         export_objects,
         source_asset_path=source_asset_path_for_export(output_path),
