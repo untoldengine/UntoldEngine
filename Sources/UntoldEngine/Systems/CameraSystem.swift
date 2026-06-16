@@ -58,10 +58,11 @@ public enum CameraMoveSpace {
 }
 
 public func findGameCamera() -> EntityID {
-    for entityId in scene.getAllEntities() {
-        if hasComponent(entityId: entityId, componentType: CameraComponent.self), !hasComponent(entityId: entityId, componentType: SceneCameraComponent.self) {
-            return entityId
-        }
+    if let activeCamera = CameraSystem.shared.activeCamera,
+       scene.exists(activeCamera),
+       hasComponent(entityId: activeCamera, componentType: CameraComponent.self)
+    {
+        return activeCamera
     }
 
     // if scene camera was not found, then create one
@@ -78,6 +79,7 @@ public func createGameCamera(entityId: EntityID) {
     cameraLookAt(entityId: entityId,
                  eye: cameraDefaultEye, target: cameraTargetDefault,
                  up: cameraUpDefault)
+    setCamera(.active(entityId))
 }
 
 public func resetCameraToDefaultTransform(entityId: EntityID) {
