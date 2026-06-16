@@ -154,15 +154,21 @@ final class NativeFormatTileStreamingTests: BaseRenderSetup {
         XCTAssertEqual(tileComp.state, .unloaded)
     }
 
-    func testLoadTiledSceneFromURLRegistersSceneAuthoredLightsAndCamerasWhenRequested() async throws {
+    // MARK: - Scene-authored manifest payload
+
+    func testLoadSceneAuthoredFromURLRegistersManifestLightsAndCameras() async throws {
         let fixture = try makeUntoldTileSceneFixture(
             includeHLOD: false,
             includeLOD: false,
             includeScenePayload: true
         )
 
-        let didSucceed = await loadSceneManifestFromURL(fixture.manifestURL, importOptions: .sceneAuthored)
-        XCTAssertTrue(didSucceed, "loadTiledScene(url:importOptions:) should succeed for a local manifest URL")
+        let didSucceed = await loadSceneManifestFromURL(fixture.manifestURL)
+        XCTAssertTrue(didSucceed, "loadSceneManifestFromURL should succeed for a local manifest URL")
+
+        let sceneAuthoredExpectation = expectation(description: "scene authored loaded")
+        loadSceneAuthored(url: fixture.manifestURL) { _ in sceneAuthoredExpectation.fulfill() }
+        await fulfillment(of: [sceneAuthoredExpectation], timeout: 5.0)
 
         XCTAssertNotNil(findEntity(named: "Manifest Key Light"))
         let cameraEntityId = try XCTUnwrap(findEntity(named: "Manifest Camera"))
@@ -191,7 +197,10 @@ final class NativeFormatTileStreamingTests: BaseRenderSetup {
             includeLOD: false,
             includeScenePayload: true
         )
-        try loadSceneManifest(at: fixture.manifestURL, importOptions: .sceneAuthored)
+        try loadSceneManifest(at: fixture.manifestURL)
+        let sceneAuthoredExpectation = expectation(description: "scene authored loaded")
+        loadSceneAuthored(url: fixture.manifestURL) { _ in sceneAuthoredExpectation.fulfill() }
+        wait(for: [sceneAuthoredExpectation], timeout: 5.0)
 
         let lightEntityId = try XCTUnwrap(findEntity(named: "Manifest Key Light"))
         let light = try XCTUnwrap(scene.get(component: LightComponent.self, for: lightEntityId))
@@ -737,18 +746,14 @@ final class NativeFormatTileStreamingTests: BaseRenderSetup {
         tileComp.parseStartTime = 0
     }
 
-    private func loadSceneManifest(
-        at manifestURL: URL,
-        importOptions: UntoldImportOptions = .assetOnly
-    ) throws {
+    private func loadSceneManifest(at manifestURL: URL) throws {
         let expectation = XCTestExpectation(description: "Manifest loaded")
         let manifestStem = manifestURL.deletingPathExtension().path
         var didSucceed = false
 
         loadTiledScene(
             manifest: manifestStem,
-            withExtension: manifestURL.pathExtension,
-            importOptions: importOptions
+            withExtension: manifestURL.pathExtension
         ) { success in
             didSucceed = success
             expectation.fulfill()
@@ -758,15 +763,9 @@ final class NativeFormatTileStreamingTests: BaseRenderSetup {
         XCTAssertTrue(didSucceed, "Tile manifest should load successfully")
     }
 
-    /// Async variant that wraps `loadTiledScene(url:)` in a `CheckedContinuation`
-    /// so it can be awaited from `async throws` test methods without using
-    /// `wait(for:)` which is unavailable in async contexts.
-    private func loadSceneManifestFromURL(
-        _ url: URL,
-        importOptions: UntoldImportOptions = .assetOnly
-    ) async -> Bool {
+    private func loadSceneManifestFromURL(_ url: URL) async -> Bool {
         await withCheckedContinuation { continuation in
-            loadTiledScene(url: url, importOptions: importOptions) { @Sendable success in
+            loadTiledScene(url: url) { @Sendable success in
                 continuation.resume(returning: success)
             }
         }

@@ -633,7 +633,6 @@ public func serializeScene() -> SceneData {
             entityData.lightData?.radius = getLightRadius(entityId: entityId)
 
             entityData.lightData?.intensity = getLightIntensity(entityId: entityId)
-
             entityData.lightData?.falloff = getLightFalloff(entityId: entityId)
         }
 
@@ -667,7 +666,6 @@ public func serializeScene() -> SceneData {
             entityData.lightData?.color = getLightColor(entityId: entityId)
 
             entityData.lightData?.intensity = getLightIntensity(entityId: entityId)
-
             entityData.lightData?.forward = getForwardAxisVector(entityId: entityId)
 
             entityData.lightData?.right = getRightAxisVector(entityId: entityId)
