@@ -172,6 +172,27 @@ final class CameraTests: XCTestCase {
         XCTAssertEqual(findGameCamera(), camera, "Could not find Main camera")
     }
 
+    func testCreateGameCameraSetsActiveCamera() {
+        CameraSystem.shared.activeCamera = nil
+        let newCamera = createEntity()
+
+        createGameCamera(entityId: newCamera)
+
+        XCTAssertEqual(CameraSystem.shared.activeCamera, newCamera)
+        destroyEntity(entityId: newCamera)
+    }
+
+    func testFindGameCameraReturnsActiveCameraWhenMultipleCamerasExist() {
+        let secondCamera = createEntity()
+        createGameCamera(entityId: secondCamera)
+        setCamera(.active(secondCamera))
+
+        XCTAssertEqual(findGameCamera(), secondCamera)
+        XCTAssertNotEqual(findGameCamera(), camera)
+
+        destroyEntity(entityId: secondCamera)
+    }
+
     func testCameraMoveByWorld() {
         moveCameraTo(entityId: camera, 0, 0, 0)
         cameraMoveBy(entityId: camera, delta: simd_float3(1, 2, 3), space: .world)
