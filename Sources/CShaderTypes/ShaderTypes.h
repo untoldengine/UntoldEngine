@@ -55,6 +55,7 @@ typedef struct{
 
 typedef struct{
     simd_float4 attenuation;
+    // Emission direction from the spot light into the scene.
     simd_float3 direction;
     simd_float3 position;
     simd_float3 color;
@@ -66,6 +67,7 @@ typedef struct{
 typedef struct{
     simd_float3 position;
     simd_float3 color;
+    // LTC polygon/front normal used to choose rectangle winding in the area-light shader.
     simd_float3 forward;
     simd_float3 right;
     simd_float3 up;

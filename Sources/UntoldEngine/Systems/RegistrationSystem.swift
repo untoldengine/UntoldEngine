@@ -474,6 +474,7 @@ private func applyDecomposedTransform(_ transform: simd_float4x4, to entityId: E
         localTransform.rotationX = eulerAngles.pitch
         localTransform.rotationY = eulerAngles.yaw
         localTransform.rotationZ = eulerAngles.roll
+        syncWorldTransformAndMarkOctreeDirty(entityId: entityId)
     }
 }
 
@@ -1606,7 +1607,7 @@ private struct ManifestLightEntry: Decodable {
             fallbackPosition: position,
             right: right,
             up: up,
-            forward: direction
+            forward: -normalizedImportedDirection(direction, fallback: simd_float3(0.0, -1.0, 0.0))
         )
     }
 

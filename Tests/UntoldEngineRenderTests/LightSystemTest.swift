@@ -27,6 +27,18 @@ final class LightSystemTest: BaseRenderSetup {
 
     // MARK: - Light Tests
 
+    private func assertVector(
+        _ value: simd_float3,
+        equals expected: simd_float3,
+        accuracy: Float = 0.001,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        XCTAssertEqual(value.x, expected.x, accuracy: accuracy, file: file, line: line)
+        XCTAssertEqual(value.y, expected.y, accuracy: accuracy, file: file, line: line)
+        XCTAssertEqual(value.z, expected.z, accuracy: accuracy, file: file, line: line)
+    }
+
     func testDirectionalLight() {
         let entityId: EntityID = createEntity()
 
@@ -63,6 +75,39 @@ final class LightSystemTest: BaseRenderSetup {
         destroyEntity(entityId: entityId)
     }
 
+    func testAreaLight() {
+        let entityId: EntityID = createEntity()
+
+        createAreaLight(entityId: entityId)
+
+        XCTAssertTrue(hasComponent(entityId: entityId, componentType: LightComponent.self), "Should have a Light component")
+
+        XCTAssertTrue(hasComponent(entityId: entityId, componentType: AreaLightComponent.self), "Should have an Area Light component")
+
+        destroyEntity(entityId: entityId)
+    }
+
+    func testDefaultLightsUseLocalNegativeZEmissionConvention() {
+        destroyAllEntities()
+
+        let directional = createEntity()
+        createDirLight(entityId: directional)
+        assertVector(getLightTransformForwardAxis(entityId: directional), equals: simd_float3(0.0, 1.0, 0.0))
+        assertVector(getLightEmissionDirection(entityId: directional), equals: simd_float3(0.0, -1.0, 0.0))
+        assertVector(getDirectionalLightShaderDirection(entityId: directional), equals: simd_float3(0.0, 1.0, 0.0))
+
+        let spot = createEntity()
+        createSpotLight(entityId: spot)
+        assertVector(getLightTransformForwardAxis(entityId: spot), equals: simd_float3(0.0, 1.0, 0.0))
+        assertVector(getLightEmissionDirection(entityId: spot), equals: simd_float3(0.0, -1.0, 0.0))
+        assertVector(getSpotLights().first?.direction ?? .zero, equals: simd_float3(0.0, -1.0, 0.0))
+
+        let area = createEntity()
+        createAreaLight(entityId: area)
+        assertVector(getLightTransformForwardAxis(entityId: area), equals: simd_float3(0.0, 1.0, 0.0))
+        assertVector(getLightEmissionDirection(entityId: area), equals: simd_float3(0.0, -1.0, 0.0))
+        assertVector(getAreaLights().first?.forward ?? .zero, equals: simd_float3(0.0, 1.0, 0.0))
+    }
     func testGetDirLightParameters() {
         let entityId: EntityID = createEntity()
 

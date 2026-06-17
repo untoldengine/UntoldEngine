@@ -74,8 +74,7 @@ struct ShadowSystem {
             return
         }
 
-        let fwd = getForwardAxisVector(entityId: lightEntity)
-        let lightForward = -normalize(simd_float3(fwd.x, fwd.y, fwd.z))
+        let lightForward = getLightEmissionDirection(entityId: lightEntity)
 
         // Get camera
         guard let camEntity = CameraSystem.shared.activeCamera,
