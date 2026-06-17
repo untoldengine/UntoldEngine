@@ -62,7 +62,7 @@ public struct SpotLight {
 public struct AreaLight {
     var position: simd_float3 = .init(0.0, 0.0, 0.0) // Center position of the area light
     var color: simd_float3 = .init(1.0, 1.0, 1.0) // Light color
-    var forward: simd_float3 = .init(0.0, 0.0, -1.0) // Normal vector of the light's surface
+    var forward: simd_float3 = .init(0.0, 0.0, 1.0) // LTC polygon/front normal used by the shader
     var right: simd_float3 = .init(1.0, 0.0, 0.0) // Right vector defining the surface orientation
     var up: simd_float3 = .init(0.0, 1.0, 0.0) // Up vector defining the surface orientation
     var bounds: simd_float2 = .one
@@ -71,8 +71,8 @@ public struct AreaLight {
 }
 
 private func applyDefaultLightOrientation(entityId: EntityID) {
-    // Light shaders/systems assume local forward points along +Y by default.
-    // Rotate +Z-forward entities (identity rotation) into +Y-forward.
+    // Engine light emission is defined as local -Z transformed into world space.
+    // Rotate identity lights so the default emission direction points along -Y.
     rotateTo(entityId: entityId, angle: -90.0, axis: simd_float3(1.0, 0.0, 0.0))
 }
 
@@ -114,6 +114,46 @@ private func syncDerivedSpotConeAngles(_ spotLightComponent: SpotLightComponent)
     )
     spotLightComponent.innerCone = cones.inner
     spotLightComponent.outerCone = cones.outer
+}
+
+private func normalizedLightDirection(_ direction: simd_float3, fallback: simd_float3) -> simd_float3 {
+    let lengthSquared = simd_length_squared(direction)
+    guard lengthSquared.isFinite, lengthSquared > 1.0e-8 else {
+        return fallback
+    }
+    return direction / sqrt(lengthSquared)
+}
+
+/// Returns the entity transform's local +Z axis in world space.
+///
+/// This is a pure transform concept. Use `getLightEmissionDirection(entityId:)`
+/// when asking where a non-point light emits.
+public func getLightTransformForwardAxis(entityId: EntityID) -> simd_float3 {
+    normalizedLightDirection(
+        getForwardAxisVector(entityId: entityId),
+        fallback: simd_float3(0.0, 0.0, 1.0)
+    )
+}
+
+/// Returns the semantic light emission/travel direction.
+///
+/// Untold lights emit along local -Z transformed into world space. Point lights do
+/// not have a physical emission axis, but returning the transform-derived value
+/// keeps editor/debug handles deterministic if they request one.
+public func getLightEmissionDirection(entityId: EntityID) -> simd_float3 {
+    normalizedLightDirection(
+        -getLightTransformForwardAxis(entityId: entityId),
+        fallback: simd_float3(0.0, -1.0, 0.0)
+    )
+}
+
+/// Directional lighting shaders currently consume the BRDF light vector from the
+/// shaded point toward the light source, which is opposite the light's emission.
+public func getDirectionalLightShaderDirection(entityId: EntityID) -> simd_float3 {
+    normalizedLightDirection(
+        -getLightEmissionDirection(entityId: entityId),
+        fallback: simd_float3(0.0, 1.0, 0.0)
+    )
 }
 
 public func createDirLight(entityId: EntityID) {
@@ -253,8 +293,7 @@ func getDirectionalLightParameters() -> LightParameters {
         return lightParameter
     }
 
-    let forward = getForwardAxisVector(entityId: entity)
-    lightDirection = simd_float3(forward.x, forward.y, forward.z)
+    lightDirection = getDirectionalLightShaderDirection(entityId: entity)
     lightIntensity = lightComponent.intensity
     lightColor = lightComponent.color
 
@@ -585,10 +624,8 @@ func getSpotLights() -> [SpotLight] {
             continue
         }
 
-        // get orientation
-        let forward = getForwardAxisVector(entityId: entity) * -1.0
         var spotLight = SpotLight()
-        spotLight.direction = simd_float3(forward.x, forward.y, forward.z)
+        spotLight.direction = getLightEmissionDirection(entityId: entity)
         spotLight.position = getLocalPosition(entityId: entity)
         spotLight.color = lightComponent.color
 
@@ -713,7 +750,7 @@ func getAreaLights() -> [AreaLight] {
         areaLight.position = getLocalPosition(entityId: entity)
         areaLight.color = lightComponent.color
         areaLight.intensity = lightComponent.intensity
-        areaLight.forward = getForwardAxisVector(entityId: entity)
+        areaLight.forward = getLightTransformForwardAxis(entityId: entity)
         areaLight.right = getRightAxisVector(entityId: entity)
         areaLight.up = getUpAxisVector(entityId: entity)
         let (width, height, _) = getDimension(entityId: entity)

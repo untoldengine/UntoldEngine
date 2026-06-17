@@ -134,6 +134,9 @@ final class NativeFormatRegistrationTests: BaseRenderSetup {
         let spotParameters = getSpotLights()
         let importedSpot = try XCTUnwrap(spotParameters.first(where: { abs($0.outerCone - degreesToRadians(degrees: 36.0)) < 0.001 }))
         XCTAssertEqual(importedSpot.innerCone, degreesToRadians(degrees: 14.0), accuracy: 0.001)
+        XCTAssertEqual(importedSpot.direction.x, 0.0, accuracy: 0.001)
+        XCTAssertEqual(importedSpot.direction.y, 0.0, accuracy: 0.001)
+        XCTAssertEqual(importedSpot.direction.z, -1.0, accuracy: 0.001)
 
         let cameraEntity = try XCTUnwrap(findEntity(named: fixture.cameraName))
         XCTAssertEqual(CameraSystem.shared.activeCamera, cameraEntity)

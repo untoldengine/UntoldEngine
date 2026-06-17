@@ -41,6 +41,18 @@ final class NativeFormatTileStreamingTests: BaseRenderSetup {
 
     override func initializeAssets() {}
 
+    private func assertVector(
+        _ value: simd_float3,
+        equals expected: simd_float3,
+        accuracy: Float = 0.001,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        XCTAssertEqual(value.x, expected.x, accuracy: accuracy, file: file, line: line)
+        XCTAssertEqual(value.y, expected.y, accuracy: accuracy, file: file, line: line)
+        XCTAssertEqual(value.z, expected.z, accuracy: accuracy, file: file, line: line)
+    }
+
     func testLoadTileAndReloadUntoldManifestPayload() async throws {
         let fixture = try makeUntoldTileSceneFixture(includeHLOD: false, includeLOD: false)
         try loadSceneManifest(at: fixture.manifestURL)
@@ -171,6 +183,8 @@ final class NativeFormatTileStreamingTests: BaseRenderSetup {
         await fulfillment(of: [sceneAuthoredExpectation], timeout: 5.0)
 
         XCTAssertNotNil(findEntity(named: "Manifest Key Light"))
+        XCTAssertNotNil(findEntity(named: "Manifest Spot Fallback"))
+        XCTAssertNotNil(findEntity(named: "Manifest Area Fallback"))
         let cameraEntityId = try XCTUnwrap(findEntity(named: "Manifest Camera"))
         XCTAssertNotNil(scene.get(component: CameraComponent.self, for: cameraEntityId))
         XCTAssertEqual(CameraSystem.shared.activeCamera, cameraEntityId)
@@ -211,6 +225,21 @@ final class NativeFormatTileStreamingTests: BaseRenderSetup {
         XCTAssertEqual(light.color.z, 1.0, accuracy: 0.001)
         XCTAssertEqual(light.intensity, 3.5, accuracy: 0.001)
         XCTAssertEqual(point.radius, 12.0, accuracy: 0.001)
+        let spotEntityId = try XCTUnwrap(findEntity(named: "Manifest Spot Fallback"))
+        XCTAssertNotNil(scene.get(component: SpotLightComponent.self, for: spotEntityId))
+        assertVector(getLightEmissionDirection(entityId: spotEntityId), equals: simd_float3(0.0, -1.0, 0.0))
+        assertVector(
+            getSpotLights().first(where: { simd_length($0.position - simd_float3(-2.0, 3.0, 4.0)) < 0.001 })?.direction ?? .zero,
+            equals: simd_float3(0.0, -1.0, 0.0)
+        )
+
+        let areaEntityId = try XCTUnwrap(findEntity(named: "Manifest Area Fallback"))
+        XCTAssertNotNil(scene.get(component: AreaLightComponent.self, for: areaEntityId))
+        assertVector(getLightEmissionDirection(entityId: areaEntityId), equals: simd_float3(0.0, 0.0, -1.0))
+        assertVector(
+            getAreaLights().first(where: { simd_length($0.position - simd_float3(0.0, 5.0, 0.0)) < 0.001 })?.forward ?? .zero,
+            equals: simd_float3(0.0, 0.0, 1.0)
+        )
 
         let cameraEntityId = try XCTUnwrap(findEntity(named: "Manifest Camera"))
         XCTAssertNotNil(scene.get(component: CameraComponent.self, for: cameraEntityId))
@@ -866,50 +895,85 @@ private func makeUntoldTileSceneFixture(
     ]
 
     if includeScenePayload {
-        manifest["scene_lights"] = [
-            [
-                "entity_name": "Manifest Key Light",
-                "kind": "point",
-                "color": [0.8, 0.9, 1.0],
-                "intensity": 3.5,
-                "position": [2.0, 3.0, 4.0],
-                "radius": 12.0,
-                "direction": [0.0, -1.0, 0.0],
-                "falloff": 0.4,
-                "right": [1.0, 0.0, 0.0],
-                "inner_cone": 10.0,
-                "up": [0.0, 1.0, 0.0],
-                "outer_cone": 25.0,
-                "area_size": [1.0, 1.0],
-                "source_power": 3.5,
-                "source_exposure": 0.0,
-                "local_transform_rows": [
-                    [1.0, 0.0, 0.0, 2.0],
-                    [0.0, 1.0, 0.0, 3.0],
-                    [0.0, 0.0, 1.0, 4.0],
-                    [0.0, 0.0, 0.0, 1.0],
-                ],
-            ],
+        let keyLightRows: [[Float]] = [
+            [1.0, 0.0, 0.0, 2.0],
+            [0.0, 1.0, 0.0, 3.0],
+            [0.0, 0.0, 1.0, 4.0],
+            [0.0, 0.0, 0.0, 1.0],
         ]
-        manifest["scene_cameras"] = [
-            [
-                "entity_name": "Manifest Camera",
-                "position": [0.0, 1.0, 6.0],
-                "forward": [0.0, 0.0, 1.0],
-                "up": [0.0, 1.0, 0.0],
-                "right": [1.0, 0.0, 0.0],
-                "fov_y_degrees": 55.0,
-                "near_clip": 0.05,
-                "far_clip": 750.0,
-                "aspect_ratio": 1.6,
-                "local_transform_rows": [
-                    [1.0, 0.0, 0.0, 0.0],
-                    [0.0, 1.0, 0.0, 1.0],
-                    [0.0, 0.0, 1.0, 6.0],
-                    [0.0, 0.0, 0.0, 1.0],
-                ],
-            ],
+        let keyLight: [String: Any] = [
+            "entity_name": "Manifest Key Light",
+            "kind": "point",
+            "color": [0.8, 0.9, 1.0],
+            "intensity": 3.5,
+            "position": [2.0, 3.0, 4.0],
+            "radius": 12.0,
+            "direction": [0.0, -1.0, 0.0],
+            "falloff": 0.4,
+            "right": [1.0, 0.0, 0.0],
+            "inner_cone": 10.0,
+            "up": [0.0, 1.0, 0.0],
+            "outer_cone": 25.0,
+            "area_size": [1.0, 1.0],
+            "source_power": 3.5,
+            "source_exposure": 0.0,
+            "local_transform_rows": keyLightRows,
         ]
+        let spotFallback: [String: Any] = [
+            "entity_name": "Manifest Spot Fallback",
+            "kind": "spot",
+            "color": [1.0, 0.6, 0.2],
+            "intensity": 2.0,
+            "position": [-2.0, 3.0, 4.0],
+            "radius": 9.0,
+            "direction": [0.0, -1.0, 0.0],
+            "falloff": 0.2,
+            "right": [1.0, 0.0, 0.0],
+            "inner_cone": 8.0,
+            "up": [0.0, 0.0, -1.0],
+            "outer_cone": 20.0,
+            "area_size": [1.0, 1.0],
+            "source_power": 2.0,
+            "source_exposure": 0.0,
+        ]
+        let areaFallback: [String: Any] = [
+            "entity_name": "Manifest Area Fallback",
+            "kind": "area",
+            "color": [0.4, 1.0, 0.6],
+            "intensity": 4.0,
+            "position": [0.0, 5.0, 0.0],
+            "radius": 1.0,
+            "direction": [0.0, 0.0, -1.0],
+            "falloff": 0.5,
+            "right": [1.0, 0.0, 0.0],
+            "inner_cone": 5.0,
+            "up": [0.0, 1.0, 0.0],
+            "outer_cone": 10.0,
+            "area_size": [3.0, 2.0],
+            "source_power": 4.0,
+            "source_exposure": 0.0,
+        ]
+        manifest["scene_lights"] = [keyLight, spotFallback, areaFallback]
+
+        let cameraRows: [[Float]] = [
+            [1.0, 0.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0, 1.0],
+            [0.0, 0.0, 1.0, 6.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ]
+        let camera: [String: Any] = [
+            "entity_name": "Manifest Camera",
+            "position": [0.0, 1.0, 6.0],
+            "forward": [0.0, 0.0, 1.0],
+            "up": [0.0, 1.0, 0.0],
+            "right": [1.0, 0.0, 0.0],
+            "fov_y_degrees": 55.0,
+            "near_clip": 0.05,
+            "far_clip": 750.0,
+            "aspect_ratio": 1.6,
+            "local_transform_rows": cameraRows,
+        ]
+        manifest["scene_cameras"] = [camera]
     }
 
     let manifestData = try JSONSerialization.data(withJSONObject: manifest, options: [.prettyPrinted, .sortedKeys])
