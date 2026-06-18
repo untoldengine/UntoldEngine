@@ -202,6 +202,7 @@ final class NativeFormatTests: XCTestCase {
         XCTAssertEqual(runtimeCamera.farClip, 650.0, accuracy: 0.0001)
         XCTAssertEqual(runtimeCamera.aspectRatio, 1.6, accuracy: 0.0001)
     }
+
     func testMaterialTextureChannelsRoundtripThroughRuntimeLoader() throws {
         let fixture = makeTinyFixture(mutator: { _, _, _, material, _, _, _ in
             material = UntoldMaterialRecordV1(

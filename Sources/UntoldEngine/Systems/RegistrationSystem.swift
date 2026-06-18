@@ -1003,7 +1003,6 @@ public enum MeshStreamingPolicy: Sendable {
     case immediate
 }
 
-
 private let untoldImportedMinimumLightRadius: Float = 0.001
 private let untoldImportedMinimumSpotConeAngle: Float = 0.1
 private let untoldImportedMaximumSpotConeAngle: Float = 89.0
