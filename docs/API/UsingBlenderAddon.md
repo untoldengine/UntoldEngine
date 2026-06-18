@@ -7,7 +7,40 @@ Use it when you want to import or open a model in Blender, inspect or edit it,
 then export it without caring whether the original source was `.usdz`, `.fbx`,
 `.glb`, `.obj`, or another Blender-supported format.
 
-## Install
+## Install From A Release
+
+If you are new to Untold Engine or only want to use the engine/editor, you do
+not need to clone the repository to install the Blender add-on.
+
+Download the packaged add-on from the GitHub release page:
+
+```text
+https://github.com/untoldengine/UntoldEngine/releases
+```
+
+Each release includes `untold_exporter.zip` as a downloadable asset. Download
+that file directly and keep it as a `.zip`; do not unzip it before installing.
+
+In Blender:
+
+1. Open `Edit > Preferences > Add-ons`.
+2. Click `Install...`.
+3. Select the downloaded `untold_exporter.zip`.
+4. Enable `Untold Engine Exporter`.
+
+After enabling the add-on, Blender adds:
+
+- `File > Export > Untold (.untold)`
+- `File > Export > Untold Animation (.untold)`
+- `File > Export > Untold Tiled Scene`
+
+For best results, install the add-on from the same release version as the
+engine/editor you are using.
+
+## Install From A Repository Checkout
+
+Use this path if you are developing the engine or want to build the add-on zip
+from source.
 
 Build the plugin zip from the repo root:
 
@@ -22,7 +55,7 @@ In Blender:
 3. Select `scripts/untold-blender-addon/build/untold_exporter.zip`.
 4. Enable `Untold Engine Exporter`.
 
-The plugin adds:
+After installing, the plugin adds the same export menu entries:
 
 - `File > Export > Untold (.untold)`
 - `File > Export > Untold Animation (.untold)`
