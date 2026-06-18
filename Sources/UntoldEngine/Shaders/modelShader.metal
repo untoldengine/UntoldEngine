@@ -173,12 +173,14 @@ fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
     normalMap=(hasNormal==false)?normalize(normalVectorInWorldSpace):normalize(TBN*normalMap);
 
     float roughness=(materialParameter.hasTexture.y==1)
-        ? roughnessTexture.sample(materialSampler, st, bias(0.25f)).r * materialParameter.roughness
+        ? selectTextureChannel(roughnessTexture.sample(materialSampler, st, bias(0.25f)), materialParameter.textureChannels.x) * materialParameter.roughness
         : materialParameter.roughness;
+    roughness=clamp(roughness, 0.045, 1.0);
     
     float metallic=(materialParameter.hasTexture.z==1) 
-        ? metallicTexture.sample(materialSampler, st, bias(0.25f)).r * materialParameter.metallic
+        ? selectTextureChannel(metallicTexture.sample(materialSampler, st, bias(0.25f)), materialParameter.textureChannels.y) * materialParameter.metallic
         : materialParameter.metallic;
+    metallic=clamp(metallic, 0.0, 1.0);
 
     float4 color=inBaseColor;
 

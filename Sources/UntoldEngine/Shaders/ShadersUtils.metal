@@ -58,6 +58,19 @@ float mod(float x, float y){
     return x-y*floor(x/y);
 }
 
+float selectTextureChannel(float4 sample, int channel){
+    switch (channel) {
+        case 1:
+            return sample.g;
+        case 2:
+            return sample.b;
+        case 3:
+            return sample.a;
+        default:
+            return sample.r;
+    }
+}
+
 void transformToLogDepth(thread simd_float4 &position, float far){
 
     float logarithmicDepthScale=100.0;

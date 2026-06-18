@@ -624,6 +624,8 @@ public struct Material {
     public var emissiveValue: simd_float3 = .zero
     public var roughnessValue: Float = 1.0
     public var metallicValue: Float = 0.0
+    public var roughnessChannel: UntoldTextureChannel = .r
+    public var metallicChannel: UntoldTextureChannel = .r
 
     // Disney material properties
     public var specular: Float = 0.0
@@ -788,6 +790,8 @@ public struct Material {
         emissiveValue = runtimeMaterial.emissiveFactor
         roughnessValue = runtimeMaterial.roughnessFactor
         metallicValue = runtimeMaterial.metallicFactor
+        roughnessChannel = runtimeMaterial.roughnessTextureChannel
+        metallicChannel = runtimeMaterial.metallicTextureChannel
         alphaCutoff = runtimeMaterial.alphaCutoff
 
         let alphaModeBits = runtimeMaterial.flags & 0b11

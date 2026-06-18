@@ -72,6 +72,8 @@ float calculateAttenuation(float distance, simd_float4 attenuation);
 
 float mod(float x, float y);
 
+float selectTextureChannel(float4 sample, int channel);
+
 void transformToLogDepth(thread simd_float4 &position, float far);
 
 //BRDF - Great intro: https://boksajak.github.io/files/CrashCourseBRDF.pdf 

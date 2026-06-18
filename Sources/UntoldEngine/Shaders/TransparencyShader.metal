@@ -72,12 +72,14 @@ fragment float4 fragmentTransparencyShader(
         : normalize(uniforms.normalMatrix * in.normal);
 
     float roughness = (materialParameter.hasTexture.y == 1)
-        ? roughnessTexture.sample(materialSampler, st).r * materialParameter.roughness
+        ? selectTextureChannel(roughnessTexture.sample(materialSampler, st), materialParameter.textureChannels.x) * materialParameter.roughness
         : materialParameter.roughness;
+    roughness = clamp(roughness, 0.045, 1.0);
 
     float metallic = (materialParameter.hasTexture.z == 1)
-        ? metallicTexture.sample(materialSampler, st).r * materialParameter.metallic
+        ? selectTextureChannel(metallicTexture.sample(materialSampler, st), materialParameter.textureChannels.y) * materialParameter.metallic
         : materialParameter.metallic;
+    metallic = clamp(metallic, 0.0, 1.0);
 
     float4 verticesInWorldSpace = uniforms.modelMatrix * in.vPosition;
     float3 viewVector = normalize(cameraPosition - verticesInWorldSpace.xyz);

@@ -163,6 +163,8 @@ public struct RuntimeMaterialSource: Sendable, Equatable {
     public var normalScale: Float
     public var metallicFactor: Float
     public var roughnessFactor: Float
+    public var metallicTextureChannel: UntoldTextureChannel
+    public var roughnessTextureChannel: UntoldTextureChannel
     public var occlusionStrength: Float
     public var alphaCutoff: Float
     public var flags: UInt32
@@ -180,6 +182,8 @@ public struct RuntimeMaterialSource: Sendable, Equatable {
         normalScale: Float = 1.0,
         metallicFactor: Float = 1.0,
         roughnessFactor: Float = 1.0,
+        metallicTextureChannel: UntoldTextureChannel = .r,
+        roughnessTextureChannel: UntoldTextureChannel = .r,
         occlusionStrength: Float = 1.0,
         alphaCutoff: Float = 0.5,
         flags: UInt32 = 0,
@@ -196,6 +200,8 @@ public struct RuntimeMaterialSource: Sendable, Equatable {
         self.normalScale = normalScale
         self.metallicFactor = metallicFactor
         self.roughnessFactor = roughnessFactor
+        self.metallicTextureChannel = metallicTextureChannel
+        self.roughnessTextureChannel = roughnessTextureChannel
         self.occlusionStrength = occlusionStrength
         self.alphaCutoff = alphaCutoff
         self.flags = flags
