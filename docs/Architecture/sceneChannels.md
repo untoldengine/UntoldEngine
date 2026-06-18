@@ -15,7 +15,13 @@ Current built-in channels:
 | `.preserveIdentity` | Entities that should remain separate and should not be static-batched |
 | `.ghostGeometry` | Specific walls/structures selected for passthrough ghost rendering |
 
-The bitmask design allows future channels to be added without changing the storage model.
+The bitmask design allows future channels to be added without changing the storage model. Bits `0...31` are reserved for built-in engine channels. Bits `32...63` are reserved for app/project-specific channels created through:
+
+```swift
+SceneChannel.userCustom(index: 0)
+```
+
+This lets apps define domain names such as `.ceilingGeometry` or `.windowGeometry` in their own code without hardcoding those semantics into the engine and without colliding with future engine channels.
 
 ## Default Assignment
 
@@ -24,9 +30,19 @@ Runtime and streamed entities receive `EntitySceneChannelsComponent` during regi
 | Source | Channels |
 |---|---|
 | entity name starts with `NM_` | `.selectableGeometry`, `.preserveIdentity` |
+| entity name matches a registered app prefix | registered channels |
 | renderable/streamed entity without `NM_` | `.contextGeometry` |
 
 Explicit calls to `setEntitySceneChannels(entityId:channels:)` override the default mapping. The component tracks whether its value came from engine defaults so later name updates can refresh default channels without overwriting app-defined channels.
+
+Apps can register additional prefix mappings:
+
+```swift
+registerSceneChannelPrefix("CEIL_", channels: .userCustom(index: 0))
+registerSceneChannelPrefix("WIN_", channels: .userCustom(index: 1))
+```
+
+The built-in `NM_` prefix is evaluated first to preserve selectable-object compatibility. Registered prefixes use longest-prefix matching so broad and specific project prefixes can coexist.
 
 `fallbackSceneChannels` exists only as a temporary compatibility path for entities created outside the normal registration flow. It should be removed once all entity creation paths assign scene channels explicitly.
 
@@ -95,4 +111,4 @@ The engine does not require object names to implement channels. However, the cur
 - At runtime they default to `.selectableGeometry` and `.preserveIdentity`.
 - Regular merged geometry defaults to `.contextGeometry`.
 
-This keeps the existing selectable-object workflow intact while moving the engine feature itself toward generic channels.
+This keeps the existing selectable-object workflow intact while moving the engine feature itself toward generic channels. Additional app-specific exporter prefixes should be registered at runtime rather than added as built-in engine semantics.

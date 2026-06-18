@@ -11,6 +11,15 @@ The current built-in channels are:
 | `.preserveIdentity` | Entities that should not be merged into static batches because their identity matters at runtime |
 | `.ghostGeometry` | Specific walls or structures selected for passthrough ghost rendering |
 
+Built-in channels use the lower 32 bits of the `SceneChannel` mask. App/project-specific channels should use `SceneChannel.userCustom(index:)`, which uses the upper 32 bits and avoids collisions with future engine channels:
+
+```swift
+extension SceneChannel {
+    static let ceilingGeometry = SceneChannel.userCustom(index: 0)
+    static let windowGeometry = SceneChannel.userCustom(index: 1)
+}
+```
+
 ## Default Behavior
 
 For exported tiled scenes, the engine assigns channels automatically:
@@ -23,6 +32,15 @@ For exported tiled scenes, the engine assigns channels automatically:
 | merged tile geometry | `.contextGeometry` |
 
 This preserves the existing `NM_` workflow. Objects whose names start with `NM_` remain selectable by default; you do not need to call a channel visibility function to make them selectable.
+
+Apps can register additional name prefixes for project-specific channels:
+
+```swift
+registerSceneChannelPrefix("CEIL_", channels: .ceilingGeometry)
+registerSceneChannelPrefix("WIN_", channels: .windowGeometry)
+```
+
+The built-in `NM_` selectable prefix takes precedence over registered prefixes. If more than one registered prefix matches a name, the longest prefix wins.
 
 ## Setting Channel Properties
 
@@ -39,6 +57,7 @@ setSceneChannel(.contextGeometry, .renderMode(.wireframe))
 setSceneChannel(.contextGeometry, .renderMode(.hidden))
 setSceneChannel(.contextGeometry, .renderMode(.normal))
 setSceneChannel(.ghostGeometry, .renderMode(.passthroughGhost(opacity: 0.35)))
+setSceneChannel(.ceilingGeometry, .renderMode(.wireframe))
 ```
 
 New properties can be added to `SceneChannelProperty` in the future without introducing new top-level functions.
@@ -198,6 +217,28 @@ let selectable = isSelectableSceneEntity(entityId: entity)
 let context = isNonSelectableSceneContextEntity(entityId: entity)
 let preserveIdentity = shouldPreserveSceneEntityIdentity(entityId: entity)
 ```
+
+## User Custom Channels
+
+Use `SceneChannel.userCustom(index:)` for app-specific groups such as ceilings, windows, annotations, work zones, or discipline-specific layers. The engine reserves bits `0...31`; `userCustom(index:)` maps indexes `0...31` to bits `32...63`.
+
+```swift
+extension SceneChannel {
+    static let ceilingGeometry = SceneChannel.userCustom(index: 0)
+    static let windowGeometry = SceneChannel.userCustom(index: 1)
+}
+
+registerSceneChannelPrefix("CEIL_", channels: .ceilingGeometry)
+registerSceneChannelPrefix("WIN_", channels: .windowGeometry)
+
+setSceneChannel(.ceilingGeometry, .renderMode(.hidden))
+setSceneChannel(.ceilingGeometry, .renderMode(.wireframe))
+setSceneChannel(.ceilingGeometry, .renderMode(.normal))
+
+setSceneChannel(.windowGeometry, .renderMode(.passthroughGhost(opacity: 0.0)))
+```
+
+These names are defined by the app, not by the engine. The engine only provides the collision-free custom channel range and the prefix registration API.
 
 ## Recommended Construction Workflow
 

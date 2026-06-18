@@ -17,10 +17,18 @@ public struct SceneChannel: OptionSet, Sendable {
         self.rawValue = rawValue
     }
 
+    public static let engineReservedMask = SceneChannel(rawValue: 0x0000_0000_FFFF_FFFF)
+    public static let userCustomMask = SceneChannel(rawValue: 0xFFFF_FFFF_0000_0000)
+
     public static let contextGeometry = SceneChannel(rawValue: 1 << 0)
     public static let selectableGeometry = SceneChannel(rawValue: 1 << 1)
     public static let preserveIdentity = SceneChannel(rawValue: 1 << 2)
     public static let ghostGeometry = SceneChannel(rawValue: 1 << 3)
+
+    public static func userCustom(index: Int) -> SceneChannel {
+        precondition((0 ..< 32).contains(index), "User custom scene channel index must be 0...31")
+        return SceneChannel(rawValue: UInt64(1) << UInt64(32 + index))
+    }
 }
 
 public enum SceneChannelRenderMode: Equatable, Sendable {
@@ -153,9 +161,64 @@ private final class SceneChannelInteractionState: @unchecked Sendable {
 
 public let selectableSceneEntityNamePrefix = "NM_"
 
+private final class SceneChannelPrefixRegistry: @unchecked Sendable {
+    static let shared = SceneChannelPrefixRegistry()
+
+    private let lock = NSLock()
+    private var entriesByPrefix: [String: SceneChannel] = [:]
+
+    func register(prefix: String, channels: SceneChannel) {
+        precondition(prefix.isEmpty == false, "Scene channel prefix cannot be empty")
+        precondition(channels.isEmpty == false, "Scene channel prefix must map to at least one channel")
+
+        lock.lock()
+        entriesByPrefix[prefix] = channels
+        lock.unlock()
+    }
+
+    func unregister(prefix: String) {
+        lock.lock()
+        entriesByPrefix.removeValue(forKey: prefix)
+        lock.unlock()
+    }
+
+    func channels(forName name: String) -> SceneChannel? {
+        lock.lock()
+        let entries = entriesByPrefix
+        lock.unlock()
+
+        return entries
+            .filter { name.hasPrefix($0.key) }
+            .max { lhs, rhs in lhs.key.count < rhs.key.count }?
+            .value
+    }
+
+    func reset() {
+        lock.lock()
+        entriesByPrefix = [:]
+        lock.unlock()
+    }
+}
+
+public func registerSceneChannelPrefix(_ prefix: String, channels: SceneChannel) {
+    SceneChannelPrefixRegistry.shared.register(prefix: prefix, channels: channels)
+}
+
+public func unregisterSceneChannelPrefix(_ prefix: String) {
+    SceneChannelPrefixRegistry.shared.unregister(prefix: prefix)
+}
+
+public func resetSceneChannelPrefixes() {
+    SceneChannelPrefixRegistry.shared.reset()
+}
+
 public func defaultSceneChannels(forName name: String, isRenderable: Bool = true) -> SceneChannel {
     if name.hasPrefix(selectableSceneEntityNamePrefix) {
         return [.selectableGeometry, .preserveIdentity]
+    }
+
+    if let channels = SceneChannelPrefixRegistry.shared.channels(forName: name) {
+        return channels
     }
 
     return isRenderable ? .contextGeometry : []
