@@ -21,6 +21,13 @@ final class SceneContextVisibilityTests: XCTestCase {
         XCTAssertTrue(getSceneChannelVisible(.contextGeometry))
     }
 
+    func testUserCustomSceneChannelsUseReservedUpperBits() {
+        XCTAssertEqual(SceneChannel.userCustom(index: 0).rawValue, UInt64(1) << 32)
+        XCTAssertEqual(SceneChannel.userCustom(index: 31).rawValue, UInt64(1) << 63)
+        XCTAssertTrue(SceneChannel.engineReservedMask.intersection(.userCustom(index: 0)).isEmpty)
+        XCTAssertTrue(SceneChannel.userCustomMask.intersection(.contextGeometry).isEmpty)
+    }
+
     func testContextSceneChannelVisibilityCanToggle() {
         setSceneChannel(.contextGeometry, .renderMode(.hidden))
         XCTAssertFalse(getSceneChannelVisible(.contextGeometry))
@@ -132,6 +139,47 @@ final class SceneContextVisibilityTests: XCTestCase {
         XCTAssertTrue(shouldPreserveSceneEntityIdentity(entityId: entityId))
         XCTAssertFalse(isNonSelectableSceneContextEntity(entityId: entityId))
         XCTAssertFalse(shouldHideSceneEntity(entityId: entityId))
+    }
+
+    func testRegisteredPrefixAssignsUserCustomDefaultSceneChannel() {
+        let ceilingChannel = SceneChannel.userCustom(index: 0)
+        registerSceneChannelPrefix("CEIL_", channels: ceilingChannel)
+
+        let entityId = createEntity()
+        setEntityName(entityId: entityId, name: "CEIL_Level01_A")
+        _ = scene.assign(to: entityId, component: RenderComponent.self)
+
+        XCTAssertEqual(getEntitySceneChannels(entityId: entityId), ceilingChannel)
+
+        setSceneChannel(ceilingChannel, .renderMode(.wireframe))
+
+        XCTAssertTrue(shouldRenderSceneEntityAsWireframe(entityId: entityId))
+        XCTAssertFalse(shouldRenderSceneChannelsOpaque(ceilingChannel))
+    }
+
+    func testRegisteredPrefixUsesLongestMatchingPrefix() {
+        let broadChannel = SceneChannel.userCustom(index: 0)
+        let specificChannel = SceneChannel.userCustom(index: 1)
+        registerSceneChannelPrefix("WIN_", channels: broadChannel)
+        registerSceneChannelPrefix("WIN_GLASS_", channels: specificChannel)
+
+        XCTAssertEqual(defaultSceneChannels(forName: "WIN_Frame_01"), broadChannel)
+        XCTAssertEqual(defaultSceneChannels(forName: "WIN_GLASS_Main_01"), specificChannel)
+    }
+
+    func testSelectablePrefixTakesPrecedenceOverRegisteredPrefix() {
+        let customChannel = SceneChannel.userCustom(index: 0)
+        registerSceneChannelPrefix("NM_", channels: customChannel)
+
+        XCTAssertEqual(defaultSceneChannels(forName: "NM_Pipe_001"), [.selectableGeometry, .preserveIdentity])
+    }
+
+    func testUnregisteredPrefixFallsBackToContextGeometry() {
+        let customChannel = SceneChannel.userCustom(index: 0)
+        registerSceneChannelPrefix("CEIL_", channels: customChannel)
+        unregisterSceneChannelPrefix("CEIL_")
+
+        XCTAssertEqual(defaultSceneChannels(forName: "CEIL_Level01_A"), .contextGeometry)
     }
 
     func testNonNMEntityIsHiddenWhenNonSelectableSceneIsHidden() {

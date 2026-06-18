@@ -36,5 +36,6 @@
     activeEntity = .invalid
     OctreeSystem.shared.clear()
     resetSceneChannelVisibility()
+    resetSceneChannelPrefixes()
     setSceneReady(true)
 }
