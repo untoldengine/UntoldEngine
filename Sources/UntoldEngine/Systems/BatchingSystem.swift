@@ -2796,6 +2796,8 @@ public class BatchingSystem: @unchecked Sendable {
         // Material values (rounded to avoid tiny differences)
         components.append(String(format: "%.2f", material.roughnessValue))
         components.append(String(format: "%.2f", material.metallicValue))
+        components.append("\(material.roughnessChannel.rawValue)")
+        components.append("\(material.metallicChannel.rawValue)")
         components.append(String(format: "%.2f", material.specular))
         components.append(String(format: "%.2f", material.ior))
         components.append(String(format: "%.2f", material.stScale))

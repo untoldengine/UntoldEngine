@@ -96,6 +96,10 @@ TEXTURE_FLAG_SRGB = 1 << 0
 TEXTURE_FLAG_NORMAL_MAP = 1 << 1
 TEXTURE_FLAG_EMISSIVE = 1 << 6
 TEXTURE_FLAG_OCCLUSION = 1 << 7
+TEXTURE_CHANNEL_R = 0
+TEXTURE_CHANNEL_G = 1
+TEXTURE_CHANNEL_B = 2
+TEXTURE_CHANNEL_A = 3
 
 ProgressCallback = Callable[[str, int, int, str], None]
 
@@ -133,6 +137,39 @@ def align(value: int, alignment: int) -> int:
 
 def clamp(value: float, minimum: float, maximum: float) -> float:
     return max(minimum, min(maximum, value))
+
+
+def clamp_texture_channel(channel: int) -> int:
+    channel = int(channel)
+    if channel in (TEXTURE_CHANNEL_R, TEXTURE_CHANNEL_G, TEXTURE_CHANNEL_B, TEXTURE_CHANNEL_A):
+        return channel
+    return TEXTURE_CHANNEL_R
+
+
+def pack_material_texture_channels(
+    roughness: int = TEXTURE_CHANNEL_R,
+    metallic: int = TEXTURE_CHANNEL_R,
+) -> int:
+    return (clamp_texture_channel(roughness) & 0b11) | ((clamp_texture_channel(metallic) & 0b11) << 2)
+
+
+def texture_channel_from_socket_name(name: str, default: int = TEXTURE_CHANNEL_R) -> int:
+    normalized = str(name or "").strip().lower().replace(" ", "").replace("_", "")
+    channel_by_name = {
+        "r": TEXTURE_CHANNEL_R,
+        "red": TEXTURE_CHANNEL_R,
+        "x": TEXTURE_CHANNEL_R,
+        "g": TEXTURE_CHANNEL_G,
+        "green": TEXTURE_CHANNEL_G,
+        "y": TEXTURE_CHANNEL_G,
+        "b": TEXTURE_CHANNEL_B,
+        "blue": TEXTURE_CHANNEL_B,
+        "z": TEXTURE_CHANNEL_B,
+        "a": TEXTURE_CHANNEL_A,
+        "alpha": TEXTURE_CHANNEL_A,
+        "w": TEXTURE_CHANNEL_A,
+    }
+    return channel_by_name.get(normalized, default)
 
 
 def normalize3(vector: tuple[float, float, float], fallback: tuple[float, float, float]) -> tuple[float, float, float]:
@@ -449,6 +486,8 @@ class MaterialRecord:
     roughness_texture_index: int = INVALID_INDEX
     emissive_texture_index: int = INVALID_INDEX
     occlusion_texture_index: int = INVALID_INDEX
+    roughness_texture_channel: int = TEXTURE_CHANNEL_R
+    metallic_texture_channel: int = TEXTURE_CHANNEL_R
 
 
 @dataclass(frozen=True)
@@ -558,6 +597,7 @@ class ExportedTexture:
     mip_count: int
     source_path: Optional[Path] = None
     source_image_name: Optional[str] = None
+    channel: int = TEXTURE_CHANNEL_R
 
 
 @dataclass(frozen=True)
@@ -576,6 +616,8 @@ class ExportedMaterial:
     roughness_texture: Optional[ExportedTexture] = None
     emissive_texture: Optional[ExportedTexture] = None
     occlusion_texture: Optional[ExportedTexture] = None
+    roughness_texture_channel: int = TEXTURE_CHANNEL_R
+    metallic_texture_channel: int = TEXTURE_CHANNEL_R
 
 
 @dataclass(frozen=True)
@@ -1081,7 +1123,7 @@ def write_material_record(writer: BinaryWriter, material: MaterialRecord) -> Non
     writer.write_u32(material.roughness_texture_index)
     writer.write_u32(material.emissive_texture_index)
     writer.write_u32(material.occlusion_texture_index)
-    writer.write_u32(0)
+    writer.write_u32(pack_material_texture_channels(material.roughness_texture_channel, material.metallic_texture_channel))
     writer.write_u32(0)
 
 
@@ -1809,21 +1851,23 @@ def triangulate_mesh(mesh_data: object) -> None:
 
 
 def resolve_texture_from_socket(input_socket: object, asset_path: Path) -> Optional[ExportedTexture]:
-    return _resolve_texture_from_socket(input_socket, asset_path, visited_nodes=set())
+    return _resolve_texture_from_socket(input_socket, asset_path, visited_nodes=set(), channel=TEXTURE_CHANNEL_R)
 
 
-def _resolve_texture_from_socket(input_socket: object, asset_path: Path, visited_nodes: set[int]) -> Optional[ExportedTexture]:
+def _resolve_texture_from_socket(input_socket: object, asset_path: Path, visited_nodes: set[int], channel: int) -> Optional[ExportedTexture]:
     if not getattr(input_socket, "is_linked", False):
         return None
 
     source_link = input_socket.links[0]
     source_node = source_link.from_node
+    source_socket = getattr(source_link, "from_socket", None)
     source_node_id = id(source_node)
     if source_node_id in visited_nodes:
         return None
     visited_nodes.add(source_node_id)
 
     if source_node.bl_idname == "ShaderNodeTexImage" and source_node.image is not None:
+        texture_channel = texture_channel_from_socket_name(getattr(source_socket, "name", ""), channel)
         image = source_node.image
         image_path = bpy.path.abspath(image.filepath, library=image.library) if bpy is not None else image.filepath
         texture_path = Path(image_path)
@@ -1843,12 +1887,18 @@ def _resolve_texture_from_socket(input_socket: object, asset_path: Path, visited
             mip_count=1 if width > 0 and height > 0 else 0,
             source_path=texture_path,
             source_image_name=getattr(image, "name", None),
+            channel=texture_channel,
         )
+
+    if source_node.bl_idname in {"ShaderNodeSeparateColor", "ShaderNodeSeparateRGB"}:
+        texture_channel = texture_channel_from_socket_name(getattr(source_socket, "name", ""), channel)
+        input_name = "Color" if source_node.bl_idname == "ShaderNodeSeparateColor" else "Image"
+        nested_input = source_node.inputs.get(input_name)
+        if nested_input is not None:
+            return _resolve_texture_from_socket(nested_input, asset_path, visited_nodes, texture_channel)
 
     passthrough_input_names = {
         "ShaderNodeNormalMap":      ["Color"],
-        "ShaderNodeSeparateColor":  ["Color"],
-        "ShaderNodeSeparateRGB":    ["Image"],
         "ShaderNodeRGBToBW":        ["Color"],
         "NodeReroute":              ["Input"],
         # Color-correction nodes — the texture passes through their Color input.
@@ -1867,7 +1917,7 @@ def _resolve_texture_from_socket(input_socket: object, asset_path: Path, visited
         nested_input = source_node.inputs.get(input_name)
         if nested_input is None:
             continue
-        resolved = _resolve_texture_from_socket(nested_input, asset_path, visited_nodes)
+        resolved = _resolve_texture_from_socket(nested_input, asset_path, visited_nodes, channel)
         if resolved is not None:
             return resolved
 
@@ -2336,6 +2386,8 @@ def extract_material(mesh_object: object, asset_path: Path) -> ExportedMaterial:
             roughness_texture=None,
             emissive_texture=None,
             occlusion_texture=None,
+            roughness_texture_channel=TEXTURE_CHANNEL_R,
+            metallic_texture_channel=TEXTURE_CHANNEL_R,
         )
 
     principled = None
@@ -2415,6 +2467,8 @@ def extract_material(mesh_object: object, asset_path: Path) -> ExportedMaterial:
         roughness_texture=roughness_texture,
         emissive_texture=emissive_texture,
         occlusion_texture=occlusion_texture,
+        roughness_texture_channel=roughness_texture.channel if roughness_texture is not None else TEXTURE_CHANNEL_R,
+        metallic_texture_channel=metallic_texture.channel if metallic_texture is not None else TEXTURE_CHANNEL_R,
     )
 
 
@@ -3216,6 +3270,8 @@ def build_untold_file(
             roughness_texture_index,
             emissive_texture_index,
             occlusion_texture_index,
+            material.roughness_texture_channel,
+            material.metallic_texture_channel,
         )
         existing = material_indices.get(key)
         if existing is not None:
@@ -3240,6 +3296,8 @@ def build_untold_file(
                 roughness_texture_index=roughness_texture_index,
                 emissive_texture_index=emissive_texture_index,
                 occlusion_texture_index=occlusion_texture_index,
+                roughness_texture_channel=material.roughness_texture_channel,
+                metallic_texture_channel=material.metallic_texture_channel,
             )
         )
         return index

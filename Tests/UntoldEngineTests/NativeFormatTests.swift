@@ -202,6 +202,39 @@ final class NativeFormatTests: XCTestCase {
         XCTAssertEqual(runtimeCamera.farClip, 650.0, accuracy: 0.0001)
         XCTAssertEqual(runtimeCamera.aspectRatio, 1.6, accuracy: 0.0001)
     }
+    func testMaterialTextureChannelsRoundtripThroughRuntimeLoader() throws {
+        let fixture = makeTinyFixture(mutator: { _, _, _, material, _, _, _ in
+            material = UntoldMaterialRecordV1(
+                nameOffset: material.nameOffset,
+                flags: material.flags,
+                baseColorFactor: material.baseColorFactor,
+                emissiveFactor: material.emissiveFactor,
+                normalScale: material.normalScale,
+                metallicFactor: material.metallicFactor,
+                roughnessFactor: material.roughnessFactor,
+                occlusionStrength: material.occlusionStrength,
+                alphaCutoff: material.alphaCutoff,
+                baseColorTextureIndex: material.baseColorTextureIndex,
+                normalTextureIndex: material.normalTextureIndex,
+                metallicTextureIndex: material.metallicTextureIndex,
+                roughnessTextureIndex: material.roughnessTextureIndex,
+                emissiveTextureIndex: material.emissiveTextureIndex,
+                occlusionTextureIndex: material.occlusionTextureIndex,
+                roughnessTextureChannel: .g,
+                metallicTextureChannel: .b
+            )
+        })
+
+        let decoded = try UntoldReader().readAsset(from: fixture.fileData)
+        XCTAssertEqual(decoded.materials[0].reserved0[0], UntoldMaterialRecordV1.packTextureChannels(roughness: .g, metallic: .b))
+        XCTAssertEqual(decoded.materials[0].roughnessTextureChannel, .g)
+        XCTAssertEqual(decoded.materials[0].metallicTextureChannel, .b)
+
+        let loaded = try NativeFormatLoader().loadAssetSync(from: writeFixtureToTemporaryFile(fixture.fileData))
+        let material = try XCTUnwrap(loaded.nodes.first?.primitives.first?.material)
+        XCTAssertEqual(material.roughnessTextureChannel, .g)
+        XCTAssertEqual(material.metallicTextureChannel, .b)
+    }
 
     private func encodeChunk(_ records: [some UntoldBinaryEncodable]) -> Data {
         let writer = UntoldBinaryWriter()

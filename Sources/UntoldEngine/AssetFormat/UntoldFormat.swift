@@ -90,6 +90,16 @@ public enum UntoldTextureFormat: UInt32, Sendable {
     }
 }
 
+public enum UntoldTextureChannel: UInt32, Sendable, Equatable {
+    case r = 0
+    case g = 1
+    case b = 2
+    case a = 3
+
+    public static func decoded(from rawValue: UInt32) -> UntoldTextureChannel {
+        UntoldTextureChannel(rawValue: rawValue & 0b11) ?? .r
+    }
+}
 public enum UntoldLightType: UInt32, Sendable {
     case directional = 1
     case point = 2
@@ -279,6 +289,9 @@ public struct UntoldMeshRecordV1: Sendable, Equatable {
 }
 
 public struct UntoldMaterialRecordV1: Sendable, Equatable {
+    private static let roughnessChannelShift: UInt32 = 0
+    private static let metallicChannelShift: UInt32 = 2
+    private static let textureChannelMask: UInt32 = 0b11
     public var nameOffset: UInt32
     public var flags: UInt32
     public var baseColorFactor: SIMD4<Float>
@@ -296,6 +309,23 @@ public struct UntoldMaterialRecordV1: Sendable, Equatable {
     public var occlusionTextureIndex: UInt32
     /// Reserved fixed-length 2-word field for forward compatibility.
     public var reserved0: [UInt32]
+    public var roughnessTextureChannel: UntoldTextureChannel {
+        let word = reserved0.first ?? 0
+        return UntoldTextureChannel.decoded(from: word >> Self.roughnessChannelShift)
+    }
+
+    public var metallicTextureChannel: UntoldTextureChannel {
+        let word = reserved0.first ?? 0
+        return UntoldTextureChannel.decoded(from: word >> Self.metallicChannelShift)
+    }
+
+    public static func packTextureChannels(
+        roughness: UntoldTextureChannel = .r,
+        metallic: UntoldTextureChannel = .r
+    ) -> UInt32 {
+        ((roughness.rawValue & textureChannelMask) << roughnessChannelShift)
+            | ((metallic.rawValue & textureChannelMask) << metallicChannelShift)
+    }
 
     public init(
         nameOffset: UInt32 = UntoldFormat.invalidIndex,
@@ -312,7 +342,9 @@ public struct UntoldMaterialRecordV1: Sendable, Equatable {
         metallicTextureIndex: UInt32 = UntoldFormat.invalidIndex,
         roughnessTextureIndex: UInt32 = UntoldFormat.invalidIndex,
         emissiveTextureIndex: UInt32 = UntoldFormat.invalidIndex,
-        occlusionTextureIndex: UInt32 = UntoldFormat.invalidIndex
+        occlusionTextureIndex: UInt32 = UntoldFormat.invalidIndex,
+        roughnessTextureChannel: UntoldTextureChannel = .r,
+        metallicTextureChannel: UntoldTextureChannel = .r
     ) {
         self.nameOffset = nameOffset
         self.flags = flags
@@ -329,7 +361,13 @@ public struct UntoldMaterialRecordV1: Sendable, Equatable {
         self.roughnessTextureIndex = roughnessTextureIndex
         self.emissiveTextureIndex = emissiveTextureIndex
         self.occlusionTextureIndex = occlusionTextureIndex
-        reserved0 = [0, 0]
+        reserved0 = [
+            Self.packTextureChannels(
+                roughness: roughnessTextureChannel,
+                metallic: metallicTextureChannel
+            ),
+            0,
+        ]
     }
 }
 

@@ -47,6 +47,29 @@ class FakeSceneObject:
         self.data = data
         self.matrix_world = FakeMatrix(translation)
 
+class FakeSocket:
+    def __init__(self, name: str = "") -> None:
+        self.name = name
+        self.is_linked = False
+        self.links = []
+
+    def link_from(self, from_node: object, from_socket_name: str) -> None:
+        self.is_linked = True
+        self.links = [FakeLink(from_node, FakeSocket(from_socket_name))]
+
+
+class FakeLink:
+    def __init__(self, from_node: object, from_socket: FakeSocket) -> None:
+        self.from_node = from_node
+        self.from_socket = from_socket
+
+
+class FakeNode:
+    def __init__(self, bl_idname: str, *, image: object = None, inputs: dict[str, FakeSocket] | None = None) -> None:
+        self.bl_idname = bl_idname
+        self.image = image
+        self.inputs = inputs or {}
+
 
 class UntoldExplorerTests(unittest.TestCase):
     def test_align_and_clamp_helpers(self) -> None:
@@ -55,6 +78,49 @@ class UntoldExplorerTests(unittest.TestCase):
         self.assertEqual(u.clamp(-1.0, 0.0, 1.0), 0.0)
         self.assertEqual(u.clamp(0.5, 0.0, 1.0), 0.5)
         self.assertEqual(u.clamp(2.0, 0.0, 1.0), 1.0)
+    def test_material_texture_channel_helpers(self) -> None:
+        self.assertEqual(
+            u.pack_material_texture_channels(u.TEXTURE_CHANNEL_R, u.TEXTURE_CHANNEL_G),
+            0b0100,
+        )
+        self.assertEqual(
+            u.pack_material_texture_channels(u.TEXTURE_CHANNEL_B, u.TEXTURE_CHANNEL_A),
+            0b1110,
+        )
+        self.assertEqual(u.pack_material_texture_channels(99, -1), 0)
+
+        self.assertEqual(u.texture_channel_from_socket_name("Red", u.TEXTURE_CHANNEL_B), u.TEXTURE_CHANNEL_R)
+        self.assertEqual(u.texture_channel_from_socket_name("G", u.TEXTURE_CHANNEL_R), u.TEXTURE_CHANNEL_G)
+        self.assertEqual(u.texture_channel_from_socket_name("Alpha", u.TEXTURE_CHANNEL_R), u.TEXTURE_CHANNEL_A)
+        self.assertEqual(u.texture_channel_from_socket_name("Color", u.TEXTURE_CHANNEL_B), u.TEXTURE_CHANNEL_B)
+
+    def test_resolve_texture_from_socket_preserves_separate_rgb_channel(self) -> None:
+        image = FakeData(filepath="textures/packed.png", library=None, size=(256, 128), name="packed")
+        image_node = FakeNode("ShaderNodeTexImage", image=image)
+        separate_input = FakeSocket("Image")
+        separate_input.link_from(image_node, "Color")
+        separate_node = FakeNode("ShaderNodeSeparateRGB", inputs={"Image": separate_input})
+        metallic_input = FakeSocket("Metallic")
+        metallic_input.link_from(separate_node, "G")
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            texture = u.resolve_texture_from_socket(metallic_input, Path(tmpdir) / "asset.untold")
+
+        self.assertIsNotNone(texture)
+        self.assertEqual(texture.channel, u.TEXTURE_CHANNEL_G, "SeparateRGB G output should map to green")
+        self.assertTrue(texture.uri.endswith("textures/packed.png"))
+
+    def test_resolve_texture_from_socket_preserves_image_alpha_channel(self) -> None:
+        image = FakeData(filepath="textures/mask.png", library=None, size=(64, 64), name="mask")
+        image_node = FakeNode("ShaderNodeTexImage", image=image)
+        alpha_input = FakeSocket("Alpha")
+        alpha_input.link_from(image_node, "Alpha")
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            texture = u.resolve_texture_from_socket(alpha_input, Path(tmpdir) / "asset.untold")
+
+        self.assertIsNotNone(texture)
+        self.assertEqual(texture.channel, u.TEXTURE_CHANNEL_A)
 
     def test_normalize_and_pack_helpers_use_fallbacks_and_clamping(self) -> None:
         self.assertEqual(u.normalize3((0.0, 0.0, 0.0), (1.0, 2.0, 3.0)), (1.0, 2.0, 3.0))
@@ -440,9 +506,12 @@ class UntoldExplorerTests(unittest.TestCase):
             roughness_texture_index=u.INVALID_INDEX,
             emissive_texture_index=u.INVALID_INDEX,
             occlusion_texture_index=u.INVALID_INDEX,
+            roughness_texture_channel=u.TEXTURE_CHANNEL_G,
+            metallic_texture_channel=u.TEXTURE_CHANNEL_B,
         )
         u.write_material_record(wm, mat)
         self.assertEqual(wm.count, 88)
+        self.assertEqual(struct.unpack_from("<I", wm.data, 80)[0], 0b1001)
 
         # Texture record: 8×u32 = 32 bytes
         wt = u.BinaryWriter()

@@ -400,6 +400,8 @@ public struct NativeFormatLoader: NamedRuntimeAssetLoading {
             normalScale: material.normalScale,
             metallicFactor: material.metallicFactor,
             roughnessFactor: material.roughnessFactor,
+            metallicTextureChannel: material.metallicTextureChannel,
+            roughnessTextureChannel: material.roughnessTextureChannel,
             occlusionStrength: material.occlusionStrength,
             alphaCutoff: material.alphaCutoff,
             flags: material.flags,

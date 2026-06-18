@@ -667,6 +667,25 @@ public enum RenderPasses {
     }
 
     @inline(__always)
+    private static func applyMaterialTextureState(
+        material: Material,
+        materialParameters: inout MaterialParametersUniform
+    ) {
+        materialParameters.hasTexture = simd_int4(
+            Int32(material.hasBaseMap ? 1 : 0),
+            Int32(material.hasRoughMap ? 1 : 0),
+            Int32(material.hasMetalMap ? 1 : 0),
+            0
+        )
+        materialParameters.textureChannels = simd_int4(
+            Int32(material.roughnessChannel.rawValue),
+            Int32(material.metallicChannel.rawValue),
+            0,
+            0
+        )
+    }
+
+    @inline(__always)
     private static func applyLODDebugColorOverride(
         entityId: EntityID? = nil,
         batchGroup: BatchGroup? = nil,
@@ -1404,12 +1423,7 @@ public enum RenderPasses {
                         materialParameters.interactWithLight = material.interactWithLight
                         materialParameters.emmissive = material.emissiveValue
 
-                        materialParameters.hasTexture = simd_int4(
-                            Int32(material.hasBaseMap ? 1 : 0),
-                            Int32(material.hasRoughMap ? 1 : 0),
-                            Int32(material.hasMetalMap ? 1 : 0),
-                            0
-                        )
+                        applyMaterialTextureState(material: material, materialParameters: &materialParameters)
                         applyLODDebugColorOverride(entityId: entityId, materialParameters: &materialParameters)
                         applyStreamingTierDebugColorOverride(entityId: entityId, materialParameters: &materialParameters)
                         applyLODDither(draw: lodDraw, materialParameters: &materialParameters)
@@ -1629,12 +1643,7 @@ public enum RenderPasses {
             materialParameters.interactWithLight = material.interactWithLight
             materialParameters.emmissive = material.emissiveValue
 
-            materialParameters.hasTexture = simd_int4(
-                Int32(material.hasBaseMap ? 1 : 0),
-                Int32(material.hasRoughMap ? 1 : 0),
-                Int32(material.hasMetalMap ? 1 : 0),
-                0
-            )
+            applyMaterialTextureState(material: material, materialParameters: &materialParameters)
             applyLODDebugColorOverride(
                 batchGroup: batchGroup,
                 materialParameters: &materialParameters
@@ -1816,12 +1825,7 @@ public enum RenderPasses {
                         materialParameters.alphaMode = Int32(material.alphaMode.rawValue)
                         materialParameters.interactWithLight = material.interactWithLight
                         materialParameters.emmissive = material.emissiveValue
-                        materialParameters.hasTexture = simd_int4(
-                            Int32(material.hasBaseMap ? 1 : 0),
-                            Int32(material.hasRoughMap ? 1 : 0),
-                            Int32(material.hasMetalMap ? 1 : 0),
-                            0
-                        )
+                        applyMaterialTextureState(material: material, materialParameters: &materialParameters)
                         applyLODDebugColorOverride(entityId: entityId, materialParameters: &materialParameters)
                         applyStreamingTierDebugColorOverride(entityId: entityId, materialParameters: &materialParameters)
                         applyLODDither(draw: lodDraw, materialParameters: &materialParameters)
@@ -1914,12 +1918,7 @@ public enum RenderPasses {
                     materialParameters.alphaMode = Int32(material.alphaMode.rawValue)
                     materialParameters.interactWithLight = material.interactWithLight
                     materialParameters.emmissive = material.emissiveValue
-                    materialParameters.hasTexture = simd_int4(
-                        Int32(material.hasBaseMap ? 1 : 0),
-                        Int32(material.hasRoughMap ? 1 : 0),
-                        Int32(material.hasMetalMap ? 1 : 0),
-                        0
-                    )
+                    applyMaterialTextureState(material: material, materialParameters: &materialParameters)
                     applyLODDebugColorOverride(batchGroup: batchGroup, materialParameters: &materialParameters)
                     applyStreamingTierDebugColorOverride(batchMaterial: material, materialParameters: &materialParameters)
 
@@ -3217,12 +3216,7 @@ public enum RenderPasses {
                     materialParameters.alphaMode = Int32(material.alphaMode.rawValue)
                     materialParameters.interactWithLight = material.interactWithLight
                     materialParameters.emmissive = material.emissiveValue
-                    materialParameters.hasTexture = simd_int4(
-                        Int32(material.hasBaseMap ? 1 : 0),
-                        Int32(material.hasRoughMap ? 1 : 0),
-                        Int32(material.hasMetalMap ? 1 : 0),
-                        0
-                    )
+                    applyMaterialTextureState(material: material, materialParameters: &materialParameters)
                     applyLODDebugColorOverride(entityId: entityId, materialParameters: &materialParameters)
                     applyStreamingTierDebugColorOverride(entityId: entityId, materialParameters: &materialParameters)
 
