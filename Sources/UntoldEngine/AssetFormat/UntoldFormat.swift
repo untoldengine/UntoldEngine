@@ -100,6 +100,7 @@ public enum UntoldTextureChannel: UInt32, Sendable, Equatable {
         UntoldTextureChannel(rawValue: rawValue & 0b11) ?? .r
     }
 }
+
 public enum UntoldLightType: UInt32, Sendable {
     case directional = 1
     case point = 2

@@ -108,6 +108,7 @@ final class LightSystemTest: BaseRenderSetup {
         assertVector(getLightEmissionDirection(entityId: area), equals: simd_float3(0.0, -1.0, 0.0))
         assertVector(getAreaLights().first?.forward ?? .zero, equals: simd_float3(0.0, 1.0, 0.0))
     }
+
     func testGetDirLightParameters() {
         let entityId: EntityID = createEntity()
 
