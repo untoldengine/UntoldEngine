@@ -115,3 +115,70 @@ func executeIBLPreFilterPass(uCommandBuffer: MTLCommandBuffer, _ envTexture: MTL
         }
     }
 }
+
+public func executeXRIBLCubePreFilterPass(
+    commandBuffer: MTLCommandBuffer,
+    environmentCubeTexture: MTLTexture,
+    target: RuntimeEnvironmentLightingTextureSet
+) -> Bool {
+    guard environmentCubeTexture.textureType == .typeCube else {
+        Logger.logWarning(message: "[XRLighting] Environment probe texture is not a cube texture")
+        return false
+    }
+
+    guard let iblPrefilterPipeline = PipelineManager.shared.renderPipelinesByType[.xrIBLCubePreFilter] else {
+        handleError(.pipelineStateNulled, "xrIBLCubePreFilterPipeline is nil")
+        return false
+    }
+
+    guard iblPrefilterPipeline.success,
+          let pipelineState = iblPrefilterPipeline.pipelineState
+    else {
+        return false
+    }
+
+    let renderPassDescriptor = MTLRenderPassDescriptor()
+    renderPassDescriptor.renderTargetWidth = target.irradianceMap.width
+    renderPassDescriptor.renderTargetHeight = target.irradianceMap.height
+
+    renderPassDescriptor.colorAttachments[0].texture = target.irradianceMap
+    renderPassDescriptor.colorAttachments[0].loadAction = .dontCare
+    renderPassDescriptor.colorAttachments[0].storeAction = .store
+
+    renderPassDescriptor.colorAttachments[1].texture = target.specularMap
+    renderPassDescriptor.colorAttachments[1].loadAction = .dontCare
+    renderPassDescriptor.colorAttachments[1].storeAction = .store
+
+    renderPassDescriptor.colorAttachments[2].texture = target.brdfMap
+    renderPassDescriptor.colorAttachments[2].loadAction = .dontCare
+    renderPassDescriptor.colorAttachments[2].storeAction = .store
+
+    guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
+        return false
+    }
+
+    renderEncoder.setRenderPipelineState(pipelineState)
+    renderEncoder.pushDebugGroup("XR IBL Cube Pre-Filter Pass")
+    renderEncoder.label = "XR IBL Cube Pre-Filter Pass"
+    renderEncoder.setVertexBuffer(bufferResources.quadVerticesBuffer, offset: 0, index: 0)
+    renderEncoder.setVertexBuffer(bufferResources.quadTexCoordsBuffer, offset: 0, index: 1)
+    renderEncoder.setFragmentTexture(environmentCubeTexture, index: 0)
+    renderEncoder.drawIndexedPrimitivesTracked(
+        type: .triangle,
+        indexCount: 6,
+        indexType: .uint16,
+        indexBuffer: bufferResources.quadIndexBuffer!,
+        indexBufferOffset: 0
+    )
+    renderEncoder.popDebugGroup()
+    renderEncoder.endEncoding()
+
+    guard let blitEncoder = commandBuffer.makeBlitCommandEncoder() else {
+        return false
+    }
+    blitEncoder.label = "XR IBL Specular Mipmap Generation"
+    blitEncoder.generateMipmaps(for: target.specularMap)
+    blitEncoder.endEncoding()
+
+    return true
+}

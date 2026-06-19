@@ -729,6 +729,19 @@ public func InitIBLPreFilterPipeline() -> RenderPipeline? {
     )
 }
 
+public func InitXRIBLCubePreFilterPipeline() -> RenderPipeline? {
+    CreatePipeline(
+        vertexShader: "vertexIBLPreFilterShader",
+        fragmentShader: "fragmentXRIBLCubePreFilterShader",
+        vertexDescriptor: createIBLPreFilterVertexDescriptor(),
+        colorFormats: [wf.ibl, wf.ibl, wf.ibl],
+        depthFormat: .invalid,
+        depthCompareFunction: .less,
+        depthEnabled: false,
+        name: "XR IBL Cube Pre-Filter Pipeline"
+    )
+}
+
 public func InitLookPipeline() -> RenderPipeline? {
     CreatePipeline(
         vertexShader: "vertexLookShader",
@@ -920,6 +933,7 @@ public func DefaultPipeLines() -> [(RenderPipelineType, RenderPipelineInitBlock)
         (.ssaoUpsample, InitSSAOUpsamplePipeline),
         (.environment, InitEnvironmentPipeline),
         (.iblPreFilter, InitIBLPreFilterPipeline),
+        (.xrIBLCubePreFilter, InitXRIBLCubePreFilterPipeline),
         (.gaussianTBDRInitialize, InitGaussianTBDRInitializePipeline),
         (.gaussianTBDRDraw, InitGaussianTBDRDrawPipeline),
         (.gaussianTBDRPostprocess, InitGaussianTBDRPostprocessPipeline),

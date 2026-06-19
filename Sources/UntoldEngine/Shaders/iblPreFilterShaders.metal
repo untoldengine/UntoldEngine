@@ -40,3 +40,66 @@ fragment IBLFragmentOut fragmentIBLPreFilterShader(VertexCompositeOutput in [[st
 
     return out;
 }
+
+static float3 xrIBLNormalFromEquirectUV(float2 texCoords) {
+    float thetaN = M_PI_F * (1.0 - texCoords.y);
+    float phiN = 2.0 * M_PI_F * (1.0 - texCoords.x);
+    return float3(sin(thetaN) * cos(phiN), sin(thetaN) * sin(phiN), cos(thetaN));
+}
+
+static float4 diffuseImportanceMapCube(float2 texCoords, texturecube<float> environmentTexture) {
+    constexpr sampler s(coord::normalized,
+                        filter::linear,
+                        mip_filter::none,
+                        address::clamp_to_edge);
+
+    constexpr uint sampleCount = 128u;
+    float3 normal = xrIBLNormalFromEquirectUV(texCoords);
+    float3x3 normalSpace = getNormalSpace(normal);
+    float3 result = float3(0.0);
+
+    for (uint n = 1u; n <= sampleCount; n++) {
+        float2 p = hammersley(n, sampleCount);
+        float theta = asin(sqrt(p.y));
+        float phi = 2.0 * M_PI_F * p.x;
+        float3 pos = float3(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
+        float3 posGlob = normalize(normalSpace * pos);
+        result += environmentTexture.sample(s, posGlob).rgb;
+    }
+
+    return float4(result / float(sampleCount), 1.0);
+}
+
+static float4 specularImportanceMapCube(float2 texCoords, texturecube<float> environmentTexture) {
+    constexpr sampler s(coord::normalized,
+                        filter::linear,
+                        mip_filter::none,
+                        address::clamp_to_edge);
+
+    constexpr float shininess = 600.0;
+    constexpr uint sampleCount = 128u;
+    float3 normal = xrIBLNormalFromEquirectUV(texCoords);
+    float3x3 normalSpace = getNormalSpace(normal);
+    float3 result = float3(0.0);
+
+    for (uint n = 1u; n <= sampleCount; n++) {
+        float2 p = hammersley(n, sampleCount);
+        float theta = acos(pow(1.0 - p.y, 1.0 / (shininess + 1.0)));
+        float phi = 2.0 * M_PI_F * p.x;
+        float3 pos = float3(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
+        float3 posGlob = normalize(normalSpace * pos);
+        result += environmentTexture.sample(s, posGlob).rgb;
+    }
+
+    result = result / float(sampleCount) * (shininess + 2.0) / (shininess + 1.0);
+    return float4(result, 1.0);
+}
+
+fragment IBLFragmentOut fragmentXRIBLCubePreFilterShader(VertexCompositeOutput in [[stage_in]],
+                                                         texturecube<float> environmentTexture [[texture(0)]]) {
+    IBLFragmentOut out;
+    out.irradiance = diffuseImportanceMapCube(in.uvCoords, environmentTexture);
+    out.specular = specularImportanceMapCube(in.uvCoords, environmentTexture);
+    out.brdfMap = BRDFIntegrationMap(1.0 - in.uvCoords.y, in.uvCoords.x);
+    return out;
+}

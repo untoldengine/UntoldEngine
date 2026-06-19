@@ -44,6 +44,7 @@
         private let passDescriptorLeft = MTLRenderPassDescriptor()
         private let passDescriptorRight = MTLRenderPassDescriptor()
         private let spatialGestureRecognizer = XRSpatialGestureRecognizer()
+        private let xrEnvironmentLightingSystem = XREnvironmentLightingSystem()
 
         /// Task handle for the plane-update monitor so we can cancel it on shutdown.
         private var planeMonitorTask: Task<Void, Never>?
@@ -69,36 +70,9 @@
         @MainActor
         public func initUntoldXR(device: MTLDevice, commandQueue: MTLCommandQueue, layerRenderer: LayerRenderer) {
             configureSpatialEventBridge()
+            applyXRLightingMode(RuntimeEnvironmentLightingStore.shared.mode)
 
-            // Start ARKit tracking asynchronously
-            // Use unstructured Task to avoid blocking initialization
-            let worldTracking = worldTracking
-            let arSession = arSession
-            let planeDetection = planeDetection
-            Task {
-                do {
-                    guard worldTracking.state != .running else { return }
-
-                    // Check world sensing authorization before attempting to run.
-                    let authStatus = await arSession.queryAuthorization(for: [.worldSensing])
-                    if authStatus[.worldSensing] == .denied {
-                        print("⚠️ World sensing authorization denied — plane detection disabled. Grant permission in Settings > Privacy > World Sensing.")
-                        // Still run with world tracking only so device tracking works.
-                        try await arSession.run([worldTracking])
-                        return
-                    }
-
-                    var providers: [any DataProvider] = [worldTracking]
-                    if PlaneDetectionProvider.isSupported {
-                        providers.append(planeDetection)
-                    } else {
-                        print("⚠️ PlaneDetectionProvider is not supported on this device")
-                    }
-                    try await arSession.run(providers)
-                } catch {
-                    print("⚠️ Failed to start ARKit providers: \(error)")
-                }
-            }
+            startARKitProviders()
 
             // Start monitoring plane anchor updates in the background.
             if PlaneDetectionProvider.isSupported {
@@ -249,7 +223,47 @@
             lock.unlock()
             planeMonitorTask?.cancel()
             planeMonitorTask = nil
+            xrEnvironmentLightingSystem.setEnabled(false)
             RealSurfacePlaneStore.shared.clear()
+        }
+
+        private func startARKitProviders() {
+            #if canImport(ARKit)
+                let worldTracking = worldTracking
+                let arSession = arSession
+                let planeDetection = planeDetection
+                let xrEnvironmentLightingSystem = xrEnvironmentLightingSystem
+
+                Task {
+                    do {
+                        // Check world sensing authorization before attempting plane detection.
+                        let authStatus = await arSession.queryAuthorization(for: [.worldSensing])
+                        let worldSensingAllowed = authStatus[.worldSensing] != .denied
+
+                        var providers: [any DataProvider] = [worldTracking]
+
+                        if worldSensingAllowed {
+                            if PlaneDetectionProvider.isSupported {
+                                providers.append(planeDetection)
+                            } else {
+                                print("⚠️ PlaneDetectionProvider is not supported on this device")
+                            }
+                        } else {
+                            print("⚠️ World sensing authorization denied — plane detection disabled. Grant permission in Settings > Privacy > World Sensing.")
+                        }
+
+                        if let lightingProvider = xrEnvironmentLightingSystem.providerForSession {
+                            providers.append(lightingProvider)
+                        }
+
+                        try await arSession.run(providers)
+                        xrEnvironmentLightingSystem.markProviderRunning(xrEnvironmentLightingSystem.providerForSession != nil)
+                    } catch {
+                        xrEnvironmentLightingSystem.markProviderRunning(false)
+                        print("⚠️ Failed to start ARKit providers: \(error)")
+                    }
+                }
+            #endif
         }
 
         private func isRunning() -> Bool {
@@ -696,18 +710,9 @@
 
                 lastWorldTrackingRecoveryAttemptTime = now
 
-                let worldTracking = worldTracking
-                let arSession = arSession
-
-                Task {
-                    do {
-                        guard worldTracking.state != .running else { return }
-                        try await arSession.run([worldTracking])
-                        print("✓ XR world tracking restarted")
-                    } catch {
-                        print("⚠️ XR world tracking recovery failed: \(error)")
-                    }
-                }
+                guard worldTracking.state != .running else { return }
+                startARKitProviders()
+                print("✓ XR ARKit providers recovery scheduled")
             #endif
         }
 
@@ -736,6 +741,25 @@
             default:
                 break
             }
+        }
+
+        public func setXRLightingMode(_ mode: RuntimeEnvironmentLightingMode) {
+            RuntimeEnvironmentLightingStore.shared.mode = mode
+            applyXRLightingMode(mode)
+            startARKitProviders()
+        }
+
+        private func applyXRLightingMode(_ mode: RuntimeEnvironmentLightingMode) {
+            switch mode {
+            case .realWorldEstimate, .authoredPlusRealWorldEstimate:
+                xrEnvironmentLightingSystem.setEnabled(true)
+            case .authoredOnly, .staticIBL:
+                xrEnvironmentLightingSystem.setEnabled(false)
+            }
+        }
+
+        public func xrEnvironmentLightingDiagnostics() -> XREnvironmentLightingDiagnostics {
+            xrEnvironmentLightingSystem.diagnostics()
         }
     }
 
