@@ -1961,9 +1961,10 @@ public enum RenderPasses {
         renderEncoder.setFragmentBytes(&csmUniforms, length: MemoryLayout<CSMUniforms>.stride, index: Int(lightPassLightOrthoViewMatrixIndex.rawValue))
 
         renderEncoder.setFragmentTexture(textureResources.csmShadowMap, index: Int(lightPassShadowTextureIndex.rawValue))
-        renderEncoder.setFragmentTexture(textureResources.irradianceMap, index: Int(lightPassIBLIrradianceTextureIndex.rawValue))
-        renderEncoder.setFragmentTexture(textureResources.specularMap, index: Int(lightPassIBLSpecularTextureIndex.rawValue))
-        renderEncoder.setFragmentTexture(textureResources.iblBRDFMap, index: Int(lightPassIBLBRDFMapTextureIndex.rawValue))
+        let environmentLighting = resolveCurrentEnvironmentLighting()
+        renderEncoder.setFragmentTexture(environmentLighting.irradianceMap, index: Int(lightPassIBLIrradianceTextureIndex.rawValue))
+        renderEncoder.setFragmentTexture(environmentLighting.specularMap, index: Int(lightPassIBLSpecularTextureIndex.rawValue))
+        renderEncoder.setFragmentTexture(environmentLighting.brdfMap, index: Int(lightPassIBLBRDFMapTextureIndex.rawValue))
         renderEncoder.setFragmentTexture(textureResources.areaTextureLTCMag, index: Int(lightPassAreaLTCMagTextureIndex.rawValue))
         renderEncoder.setFragmentTexture(textureResources.areaTextureLTCMat, index: Int(lightPassAreaLTCMatTextureIndex.rawValue))
 
@@ -2000,8 +2001,8 @@ public enum RenderPasses {
         )
 
         var brdfParameters = IBLParamsUniform()
-        brdfParameters.applyIBL = applyIBL
-        brdfParameters.ambientIntensity = ambientIntensity
+        brdfParameters.applyIBL = environmentLighting.applyIBL
+        brdfParameters.ambientIntensity = environmentLighting.ambientIntensity
         renderEncoder.setFragmentBytes(&brdfParameters, length: MemoryLayout<IBLParamsUniform>.stride, index: Int(lightPassIBLParamIndex.rawValue))
 
         var lightPassRotationAngle = envRotationAngle
@@ -2676,20 +2677,22 @@ public enum RenderPasses {
 
         renderEncoder.setFragmentTexture(textureResources.areaTextureLTCMag, index: Int(lightPassAreaLTCMagTextureIndex.rawValue))
 
+        let environmentLighting = resolveCurrentEnvironmentLighting()
+
         // ibl
         renderEncoder.setFragmentTexture(
-            textureResources.irradianceMap, index: Int(lightPassIBLIrradianceTextureIndex.rawValue)
+            environmentLighting.irradianceMap, index: Int(lightPassIBLIrradianceTextureIndex.rawValue)
         )
         renderEncoder.setFragmentTexture(
-            textureResources.specularMap, index: Int(lightPassIBLSpecularTextureIndex.rawValue)
+            environmentLighting.specularMap, index: Int(lightPassIBLSpecularTextureIndex.rawValue)
         )
         renderEncoder.setFragmentTexture(
-            textureResources.iblBRDFMap, index: Int(lightPassIBLBRDFMapTextureIndex.rawValue)
+            environmentLighting.brdfMap, index: Int(lightPassIBLBRDFMapTextureIndex.rawValue)
         )
 
         var brdfParameters = IBLParamsUniform()
-        brdfParameters.applyIBL = applyIBL
-        brdfParameters.ambientIntensity = ambientIntensity
+        brdfParameters.applyIBL = environmentLighting.applyIBL
+        brdfParameters.ambientIntensity = environmentLighting.ambientIntensity
 
         renderEncoder.setFragmentBytes(
             &brdfParameters, length: MemoryLayout<IBLParamsUniform>.stride,
@@ -2983,16 +2986,17 @@ public enum RenderPasses {
             textureResources.areaTextureLTCMag,
             index: Int(transparencyPassAreaLTCMagTextureIndex.rawValue)
         )
+        let environmentLighting = resolveCurrentEnvironmentLighting()
         renderEncoder.setFragmentTexture(
-            textureResources.irradianceMap,
+            environmentLighting.irradianceMap,
             index: Int(transparencyPassIBLIrradianceTextureIndex.rawValue)
         )
         renderEncoder.setFragmentTexture(
-            textureResources.specularMap,
+            environmentLighting.specularMap,
             index: Int(transparencyPassIBLSpecularTextureIndex.rawValue)
         )
         renderEncoder.setFragmentTexture(
-            textureResources.iblBRDFMap,
+            environmentLighting.brdfMap,
             index: Int(transparencyPassIBLBRDFMapTextureIndex.rawValue)
         )
         renderEncoder.setFragmentTexture(
@@ -3001,8 +3005,8 @@ public enum RenderPasses {
         )
 
         var iblParameters = IBLParamsUniform()
-        iblParameters.applyIBL = applyIBL
-        iblParameters.ambientIntensity = ambientIntensity
+        iblParameters.applyIBL = environmentLighting.applyIBL
+        iblParameters.ambientIntensity = environmentLighting.ambientIntensity
         renderEncoder.setFragmentBytes(
             &iblParameters,
             length: MemoryLayout<IBLParamsUniform>.stride,

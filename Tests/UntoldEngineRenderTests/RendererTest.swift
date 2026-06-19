@@ -338,6 +338,15 @@ final class RendererTests: BaseRenderSetup {
         XCTAssertTrue(outputPipeline.success, "Output transform pipeline should compile successfully")
     }
 
+    func testXRIBLCubePreFilterPipelineInitialized() {
+        guard let pipeline = PipelineManager.shared.renderPipelinesByType[.xrIBLCubePreFilter] else {
+            XCTFail("XR IBL cube prefilter pipeline should be initialized")
+            return
+        }
+
+        XCTAssertTrue(pipeline.success, "XR IBL cube prefilter pipeline should compile successfully")
+    }
+
     func testSMAAEdgesPipelineInitialized() {
         guard let pipeline = PipelineManager.shared.renderPipelinesByType[.smaaEdges] else {
             XCTFail("SMAA edges pipeline should be initialized")
