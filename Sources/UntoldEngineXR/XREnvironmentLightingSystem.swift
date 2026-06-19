@@ -25,6 +25,7 @@
         public var latestCameraScaleReference: Float?
         public var prefilterInFlight: Bool
         public var lastPrefilterDurationMs: Double?
+        public var realWorldLightingContribution: Float
         public var acceptedProbeUpdateCount: Int
         public var skippedProbeUpdateCount: Int
         public var fallbackReason: String?
@@ -362,6 +363,7 @@
                 latestCameraScaleReference: latestCameraScaleReferenceValue,
                 prefilterInFlight: prefilterInFlightValue,
                 lastPrefilterDurationMs: lastPrefilterDurationMsValue,
+                realWorldLightingContribution: RuntimeEnvironmentLightingStore.shared.realWorldLightingContribution,
                 acceptedProbeUpdateCount: acceptedProbeUpdateCountValue,
                 skippedProbeUpdateCount: skippedProbeUpdateCountValue,
                 fallbackReason: fallbackReasonValue

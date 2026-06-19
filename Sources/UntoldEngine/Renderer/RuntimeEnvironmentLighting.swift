@@ -117,6 +117,7 @@ public final class RuntimeEnvironmentLightingStore: @unchecked Sendable {
 
     private let lock = NSLock()
     private var modeValue: RuntimeEnvironmentLightingMode = .staticIBL
+    private var realWorldLightingContributionValue: Float = 1.0
     private var xrLightingValue: RuntimeEnvironmentLighting?
 
     private init() {}
@@ -131,6 +132,20 @@ public final class RuntimeEnvironmentLightingStore: @unchecked Sendable {
         set {
             lock.lock()
             modeValue = newValue
+            lock.unlock()
+        }
+    }
+
+    public var realWorldLightingContribution: Float {
+        get {
+            lock.lock()
+            let value = realWorldLightingContributionValue
+            lock.unlock()
+            return value
+        }
+        set {
+            lock.lock()
+            realWorldLightingContributionValue = Self.sanitizedContribution(newValue)
             lock.unlock()
         }
     }
@@ -151,6 +166,7 @@ public final class RuntimeEnvironmentLightingStore: @unchecked Sendable {
     public func reset() {
         lock.lock()
         modeValue = .staticIBL
+        realWorldLightingContributionValue = 1.0
         xrLightingValue = nil
         lock.unlock()
     }
@@ -164,6 +180,7 @@ public final class RuntimeEnvironmentLightingStore: @unchecked Sendable {
     ) -> ResolvedEnvironmentLighting {
         lock.lock()
         let currentMode = modeValue
+        let realWorldLightingContribution = realWorldLightingContributionValue
         let xrLighting = xrLightingValue
         lock.unlock()
 
@@ -209,10 +226,15 @@ public final class RuntimeEnvironmentLightingStore: @unchecked Sendable {
                 specularMap: specularMap,
                 brdfMap: brdfMap,
                 applyIBL: true,
-                ambientIntensity: ambientIntensity * xrLighting.intensityScale,
+                ambientIntensity: ambientIntensity * xrLighting.intensityScale * realWorldLightingContribution,
                 mode: currentMode,
                 fallbackReason: nil
             )
         }
+    }
+
+    private static func sanitizedContribution(_ value: Float) -> Float {
+        guard value.isFinite else { return 1.0 }
+        return max(value, 0.0)
     }
 }

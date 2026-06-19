@@ -749,6 +749,10 @@
             startARKitProviders()
         }
 
+        public func setXRLightingContribution(_ factor: Float) {
+            RuntimeEnvironmentLightingStore.shared.realWorldLightingContribution = factor
+        }
+
         private func applyXRLightingMode(_ mode: RuntimeEnvironmentLightingMode) {
             switch mode {
             case .realWorldEstimate, .authoredPlusRealWorldEstimate:

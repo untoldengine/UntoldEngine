@@ -68,6 +68,7 @@ public enum RenderingEnvironmentProperty: Sendable {
     case ibl(Bool)
     case visible(Bool)
     case lightingMode(RuntimeEnvironmentLightingMode)
+    case realWorldLightingContribution(Float)
 }
 
 public enum WireframeProperty: Sendable {
@@ -101,6 +102,8 @@ private func applyRenderingEnvironmentProperty(_ property: RenderingEnvironmentP
         renderEnvironment = value
     case let .lightingMode(value):
         RuntimeEnvironmentLightingStore.shared.mode = value
+    case let .realWorldLightingContribution(value):
+        RuntimeEnvironmentLightingStore.shared.realWorldLightingContribution = value
     }
 }
 
