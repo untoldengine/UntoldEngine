@@ -100,6 +100,12 @@ final class RuntimeEnvironmentLightingTests: XCTestCase {
         XCTAssertEqual(RuntimeEnvironmentLightingStore.shared.mode, .realWorldEstimate)
     }
 
+    func testRenderingEnvironmentSettingUpdatesRealWorldLightingContribution() {
+        setRendering(.environment(.realWorldLightingContribution(0.35)))
+
+        XCTAssertEqual(RuntimeEnvironmentLightingStore.shared.realWorldLightingContribution, 0.35, accuracy: 0.0001)
+    }
+
     func testValidXRLightingOverridesStaticIBLAndAppliesIntensityScale() throws {
         guard let device = MTLCreateSystemDefaultDevice() else {
             throw XCTSkip("Metal device is required for texture-backed XR lighting test")
@@ -138,6 +144,41 @@ final class RuntimeEnvironmentLightingTests: XCTestCase {
         XCTAssertTrue(resolved.brdfMap === xrBRDF)
         XCTAssertEqual(resolved.ambientIntensity, 0.6, accuracy: 0.0001)
         XCTAssertNil(resolved.fallbackReason)
+    }
+
+    func testRealWorldLightingContributionScalesExistingXRLighting() throws {
+        guard let device = MTLCreateSystemDefaultDevice() else {
+            throw XCTSkip("Metal device is required for texture-backed XR lighting test")
+        }
+
+        RuntimeEnvironmentLightingStore.shared.mode = .realWorldEstimate
+        RuntimeEnvironmentLightingStore.shared.realWorldLightingContribution = 0.25
+        try RuntimeEnvironmentLightingStore.shared.publishXRLighting(
+            RuntimeEnvironmentLighting(
+                irradianceMap: makeTexture(device: device, label: "XR Irradiance"),
+                specularMap: makeTexture(device: device, label: "XR Specular"),
+                brdfMap: makeTexture(device: device, label: "XR BRDF"),
+                intensityScale: 2.0,
+                isValid: true
+            )
+        )
+
+        let resolved = RuntimeEnvironmentLightingStore.shared.resolve(
+            staticIrradianceMap: nil,
+            staticSpecularMap: nil,
+            staticBRDFMap: nil,
+            staticIBLEnabled: true,
+            ambientIntensity: 0.8
+        )
+
+        XCTAssertEqual(resolved.ambientIntensity, 0.4, accuracy: 0.0001)
+        XCTAssertNil(resolved.fallbackReason)
+    }
+
+    func testRealWorldLightingContributionClampsNegativeValues() {
+        RuntimeEnvironmentLightingStore.shared.realWorldLightingContribution = -0.5
+
+        XCTAssertEqual(RuntimeEnvironmentLightingStore.shared.realWorldLightingContribution, 0.0, accuracy: 0.0001)
     }
 
     func testIncompleteXRLightingFallsBackWithoutApplyingIntensityScale() {
