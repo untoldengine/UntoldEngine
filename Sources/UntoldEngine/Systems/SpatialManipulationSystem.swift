@@ -12,6 +12,13 @@
     import Foundation
     import simd
 
+    public enum SpatialDragPlane: Sendable, Equatable {
+        case unconstrained
+        case xy
+        case xz
+        case yz
+    }
+
     private struct SpatialTranslationSession {
         var entityId: EntityID
         var planePoint: simd_float3
@@ -53,6 +60,7 @@
         var entityId: EntityID
         var initialInputDevicePositionWorld: simd_float3
         var initialEntityWorldPosition: simd_float3
+        var dragPlane: SpatialDragPlane
     }
 
     private struct AnchoredSceneDragSession {
@@ -319,7 +327,12 @@
         ///
         /// Call this each frame from your input loop.
         /// It captures the initial hand + entity world positions and applies absolute displacement.
-        public func processAnchoredPinchDragLifecycle(from state: XRSpatialInputState, entityId: EntityID? = nil, sensitivity: Float = 1.0) {
+        public func processAnchoredPinchDragLifecycle(
+            from state: XRSpatialInputState,
+            entityId: EntityID? = nil,
+            sensitivity: Float = 1.0,
+            dragPlane: SpatialDragPlane = .unconstrained
+        ) {
             if state.currentPhase == .ended || state.currentPhase == .cancelled {
                 endAnchoredPinchDrag()
                 return
@@ -333,7 +346,7 @@
             }
 
             if anchoredPinchDragSession == nil {
-                beginAnchoredPinchDragIfNeeded(from: state, entityId: entityId)
+                beginAnchoredPinchDragIfNeeded(from: state, entityId: entityId, dragPlane: dragPlane)
             }
 
             guard state.spatialDragActive,
@@ -354,7 +367,10 @@
             else { return }
 
             let clampedSensitivity = max(sensitivity, 0)
-            let delta = (currentInputDevicePosition - session.initialInputDevicePositionWorld) * clampedSensitivity
+            let delta = projectedDragDelta(
+                (currentInputDevicePosition - session.initialInputDevicePositionWorld) * clampedSensitivity,
+                onto: session.dragPlane
+            )
             guard delta.x.isFinite, delta.y.isFinite, delta.z.isFinite else { return }
 
             let targetWorldPosition = session.initialEntityWorldPosition + delta
@@ -362,7 +378,11 @@
             translateTo(entityId: session.entityId, position: targetLocalPosition)
         }
 
-        public func beginAnchoredPinchDragIfNeeded(from state: XRSpatialInputState, entityId: EntityID? = nil) {
+        public func beginAnchoredPinchDragIfNeeded(
+            from state: XRSpatialInputState,
+            entityId: EntityID? = nil,
+            dragPlane: SpatialDragPlane = .unconstrained
+        ) {
             guard anchoredPinchDragSession == nil else { return }
 
             guard let target = resolveManipulationTarget(explicitEntityId: entityId, state: state),
@@ -382,12 +402,26 @@
             anchoredPinchDragSession = AnchoredPinchDragSession(
                 entityId: target,
                 initialInputDevicePositionWorld: initialInputDevicePosition,
-                initialEntityWorldPosition: getPosition(entityId: target)
+                initialEntityWorldPosition: getPosition(entityId: target),
+                dragPlane: dragPlane
             )
         }
 
         public func endAnchoredPinchDrag() {
             anchoredPinchDragSession = nil
+        }
+
+        private func projectedDragDelta(_ delta: simd_float3, onto dragPlane: SpatialDragPlane) -> simd_float3 {
+            switch dragPlane {
+            case .unconstrained:
+                return delta
+            case .xy:
+                return simd_float3(delta.x, delta.y, 0)
+            case .xz:
+                return simd_float3(delta.x, 0, delta.z)
+            case .yz:
+                return simd_float3(0, delta.y, delta.z)
+            }
         }
 
         // MARK: - Anchored Scene Drag

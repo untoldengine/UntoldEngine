@@ -264,7 +264,8 @@ func handleInput() {
 
     processAnchoredPinchDragLifecycle(
         from: state,
-        entityId: sceneRootEntity
+        entityId: sceneRootEntity,
+        dragPlane: .xz
     )
 }
 ```
@@ -273,9 +274,11 @@ This helper:
 
 -   Captures initial hand + entity world positions
 -   Applies absolute displacement from gesture start
+-   Optionally constrains movement to `.xy`, `.xz`, or `.yz`
 -   Cleans up session state on end/cancel
 
 Use this when moving large roots (buildings/scenes) where incremental delta jitter can become visible.
+Use `.xz` for floor-plane dragging, `.xy` for wall-plane dragging, and `.unconstrained` for free 3D movement.
 
 ------------------------------------------------------------------------
 
@@ -741,8 +744,8 @@ Use these free functions for spatial manipulation. They all delegate to `Spatial
 -   `applyPinchDragIfNeeded(from:entityId:sensitivity:)`
     Lower-level translation helper if you want full control.
 
--   `processAnchoredPinchDragLifecycle(from:entityId:sensitivity:)`
-    Anchored drag for a single entity. Applies absolute displacement from gesture start.
+-   `processAnchoredPinchDragLifecycle(from:entityId:sensitivity:dragPlane:)`
+    Anchored drag for a single entity. Applies absolute displacement from gesture start, optionally constrained to a world-axis plane.
 
 -   `processAnchoredSceneDragLifecycle(from:sensitivity:)`
     Anchored drag for the entire scene root. Applies absolute displacement via `translateSceneTo`.

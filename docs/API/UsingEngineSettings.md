@@ -231,7 +231,7 @@ processPinchTransformLifecycle(from: state)
 applyPinchDragIfNeeded(from: state, entityId: myEntity, sensitivity: 1.0)
 
 // Anchored drag / rotate for individual entities
-processAnchoredPinchDragLifecycle(from: state, entityId: myEntity)
+processAnchoredPinchDragLifecycle(from: state, entityId: myEntity, dragPlane: .xz)
 
 // Anchored drag / rotate for the entire scene root
 processAnchoredSceneDragLifecycle(from: state)
