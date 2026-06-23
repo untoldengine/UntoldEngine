@@ -150,6 +150,43 @@ LightContribution computeSpotLightContribution(constant SpotLightUniform &light,
     return outC;
 }
 
+static inline float areaLightSurfaceDistance(constant AreaLightUniform &light,
+                                             float3 P,
+                                             float3 emittingNormal) {
+    float3 rightN = normalize(light.right);
+    float3 upN = normalize(light.up);
+    float3 toLightSample = P - light.position;
+    float planeDistance = abs(dot(toLightSample, emittingNormal));
+    float2 rectangleDistance = abs(float2(dot(toLightSample, rightN), dot(toLightSample, upN))) - light.bounds * 0.5;
+    float edgeDistance = length(max(rectangleDistance, float2(0.0)));
+    return length(float2(planeDistance, edgeDistance));
+}
+
+static inline float areaLightRangeAttenuation(constant AreaLightUniform &light,
+                                              float3 P,
+                                              float3 emittingNormal) {
+    if (light.range <= 0.0) {
+        return 1.0;
+    }
+
+    float distanceToLight = areaLightSurfaceDistance(light, P, emittingNormal);
+    return 1.0 - smoothstep(light.range * 0.75, light.range, distanceToLight);
+}
+
+static inline float areaLightNearSourceAttenuation(constant AreaLightUniform &light,
+                                                   float3 P,
+                                                   float3 emittingNormal) {
+    if (light.nearSourceSuppressionRadius <= 0.0) {
+        return 1.0;
+    }
+
+    float sourceDistance = areaLightSurfaceDistance(light, P, emittingNormal);
+    return smoothstep(
+        light.nearSourceSuppressionRadius * 0.35,
+        light.nearSourceSuppressionRadius,
+        sourceDistance
+    );
+}
 
 LightContribution evaluateAreaLight(constant AreaLightUniform &light,
                             float4 verticesInWorldSpace,
@@ -229,10 +266,12 @@ LightContribution evaluateAreaLight(constant AreaLightUniform &light,
     float3 f0 = mix(float3(0.04), inBaseColor.rgb, metallic);
     float3 fresnelScale = f0 * t2.x + (1.0 - f0) * t2.y;
     float3 diffuseBRDF = inBaseColor.rgb * (1.0 - metallic);
+    float lightAttenuation = areaLightRangeAttenuation(light, P, emittingNormal)
+        * areaLightNearSourceAttenuation(light, P, emittingNormal);
     
     LightContribution outC;
-    outC.diff = (half3)(light.intensity * light.color * Lo_diffuse * diffuseBRDF);
-    outC.spec = light.intensity * light.color * Lo_spec * fresnelScale;
+    outC.diff = (half3)(lightAttenuation * light.intensity * light.color * Lo_diffuse * diffuseBRDF);
+    outC.spec = lightAttenuation * light.intensity * light.color * Lo_spec * fresnelScale;
 
     return outC;
     

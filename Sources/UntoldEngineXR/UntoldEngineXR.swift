@@ -39,6 +39,9 @@
         private var missingAnchorFrameCount: Int = 0
         private var lastAnchorDiagnosticsLogTime: CFTimeInterval = 0
         private let anchorDiagnosticsLogIntervalSeconds: CFTimeInterval = 1.0
+        private var arKitProviderRunAttemptCount: Int = 0
+        private var lastXRStallDiagnosticsLogTime: CFTimeInterval = 0
+        private let xrStallDiagnosticsLogIntervalSeconds: CFTimeInterval = 1.0
 
         // Reuse render pass descriptors to avoid allocation churn (2 eyes × 90 FPS = 180 allocs/sec)
         private let passDescriptorLeft = MTLRenderPassDescriptor()
@@ -72,7 +75,7 @@
             configureSpatialEventBridge()
             applyXRLightingMode(RuntimeEnvironmentLightingStore.shared.mode)
 
-            startARKitProviders()
+            startARKitProviders(reason: "startup")
 
             // Start monitoring plane anchor updates in the background.
             if PlaneDetectionProvider.isSupported {
@@ -227,12 +230,15 @@
             RealSurfacePlaneStore.shared.clear()
         }
 
-        private func startARKitProviders() {
+        private func startARKitProviders(reason: String = "unspecified") {
             #if canImport(ARKit)
                 let worldTracking = worldTracking
                 let arSession = arSession
                 let planeDetection = planeDetection
                 let xrEnvironmentLightingSystem = xrEnvironmentLightingSystem
+                arKitProviderRunAttemptCount += 1
+                let attempt = arKitProviderRunAttemptCount
+                let startTime = CACurrentMediaTime()
 
                 Task {
                     do {
@@ -241,10 +247,12 @@
                         let worldSensingAllowed = authStatus[.worldSensing] != .denied
 
                         var providers: [any DataProvider] = [worldTracking]
+                        var providerNames = ["WorldTrackingProvider"]
 
                         if worldSensingAllowed {
                             if PlaneDetectionProvider.isSupported {
                                 providers.append(planeDetection)
+                                providerNames.append("PlaneDetectionProvider")
                             } else {
                                 print("⚠️ PlaneDetectionProvider is not supported on this device")
                             }
@@ -254,12 +262,21 @@
 
                         if let lightingProvider = xrEnvironmentLightingSystem.providerForSession {
                             providers.append(lightingProvider)
+                            providerNames.append("EnvironmentLightingProvider")
                         }
 
+                        let providerList = providerNames.joined(separator: ",")
+                        print("XR ARKit providers run starting: attempt=\(attempt), reason=\(reason), providers=\(providerList), worldSensingAllowed=\(worldSensingAllowed)")
                         try await arSession.run(providers)
                         xrEnvironmentLightingSystem.markProviderRunning(xrEnvironmentLightingSystem.providerForSession != nil)
+                        let durationMs = (CACurrentMediaTime() - startTime) * 1000.0
+                        let durationText = String(format: "%.2f", durationMs)
+                        print("XR ARKit providers run completed: attempt=\(attempt), durationMs=\(durationText), worldTrackingState=\(String(describing: worldTracking.state))")
                     } catch {
                         xrEnvironmentLightingSystem.markProviderRunning(false)
+                        let durationMs = (CACurrentMediaTime() - startTime) * 1000.0
+                        let durationText = String(format: "%.2f", durationMs)
+                        print("XR ARKit providers run failed: attempt=\(attempt), durationMs=\(durationText), worldTrackingState=\(String(describing: worldTracking.state)), error=\(error)")
                         print("⚠️ Failed to start ARKit providers: \(error)")
                     }
                 }
@@ -423,13 +440,13 @@
             } else if let cachedAnchor = lastValidDeviceAnchor {
                 missingAnchorFrameCount += 1
                 if shouldLogAnchorDiagnostics() {
-                    print("⚠️ XR device anchor missing for \(missingAnchorFrameCount) frame(s); using cached anchor")
+                    printXRAnchorDiagnostics(message: "XR device anchor missing; using cached anchor")
                 }
                 drawable.deviceAnchor = cachedAnchor
             } else {
                 missingAnchorFrameCount += 1
                 if shouldLogAnchorDiagnostics() {
-                    print("⚠️ XR device anchor missing for \(missingAnchorFrameCount) frame(s); no cached anchor available")
+                    printXRAnchorDiagnostics(message: "XR device anchor missing; no cached anchor available")
                 }
             }
             // Note: If we have no cached anchor either, drawable.deviceAnchor remains nil
@@ -522,7 +539,19 @@
 
         func executeXRSystemPass(frame _: LayerRenderer.Frame, drawable: LayerRenderer.Drawable, loading: Bool) {
             // Wait for available command buffer slot to prevent unbounded memory growth
-            commandBufferSemaphore.wait()
+            let semaphoreWaitStart = CACurrentMediaTime()
+            let firstWaitResult = commandBufferSemaphore.wait(timeout: .now() + .milliseconds(100))
+            if firstWaitResult == .timedOut {
+                let waitMs = (CACurrentMediaTime() - semaphoreWaitStart) * 1000.0
+                if shouldLogXRStallDiagnostics() {
+                    printXRCommandBufferStallDiagnostics(waitMs: waitMs, phase: "initial-timeout")
+                }
+                commandBufferSemaphore.wait()
+            }
+            let semaphoreWaitMs = (CACurrentMediaTime() - semaphoreWaitStart) * 1000.0
+            if semaphoreWaitMs > 16.0, shouldLogXRStallDiagnostics() {
+                printXRCommandBufferStallDiagnostics(waitMs: semaphoreWaitMs, phase: "acquired")
+            }
 
             guard let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() else {
                 // Failed to create command buffer - release semaphore
@@ -688,6 +717,60 @@
             return true
         }
 
+        private func shouldLogXRStallDiagnostics() -> Bool {
+            let now = CACurrentMediaTime()
+            guard now - lastXRStallDiagnosticsLogTime >= xrStallDiagnosticsLogIntervalSeconds else {
+                return false
+            }
+
+            lastXRStallDiagnosticsLogTime = now
+            return true
+        }
+
+        private func printXRAnchorDiagnostics(message: String) {
+            #if canImport(ARKit)
+                let portalDiagnostics = getLightPortalRenderDiagnostics()
+                let lightingDiagnostics = xrEnvironmentLightingSystem.diagnostics()
+                let layerState = layerRenderer.map { String(describing: $0.state) } ?? "nil"
+                print(
+                    "⚠️ \(message): missingFrameCount=\(missingAnchorFrameCount), " +
+                        "worldTrackingState=\(String(describing: worldTracking.state)), " +
+                        "layerState=\(layerState), " +
+                        "lastValidAnchorAvailable=\(lastValidDeviceAnchor != nil), " +
+                        "xrLightingValid=\(lightingDiagnostics.latestProbeTextureValid), " +
+                        "xrIntensityScale=\(String(describing: lightingDiagnostics.latestIntensityScale)), " +
+                        "portalAreaLightCount=\(portalDiagnostics.portalAreaLightCount), " +
+                        "totalPortalIntensity=\(portalDiagnostics.totalEffectivePortalIntensity), " +
+                        "portalFallback=\(String(describing: portalDiagnostics.fallbackReason))"
+                )
+            #else
+                _ = message
+            #endif
+        }
+
+        private func printXRCommandBufferStallDiagnostics(waitMs: Double, phase: String) {
+            #if canImport(ARKit)
+                let portalDiagnostics = getLightPortalRenderDiagnostics()
+                let lightingDiagnostics = xrEnvironmentLightingSystem.diagnostics()
+                let layerState = layerRenderer.map { String(describing: $0.state) } ?? "nil"
+                let waitText = String(format: "%.2f", waitMs)
+                print(
+                    "⚠️ XR command buffer semaphore stall: phase=\(phase), waitMs=\(waitText), " +
+                        "missingAnchorFrameCount=\(missingAnchorFrameCount), " +
+                        "worldTrackingState=\(String(describing: worldTracking.state)), " +
+                        "layerState=\(layerState), " +
+                        "xrLightingValid=\(lightingDiagnostics.latestProbeTextureValid), " +
+                        "xrIntensityScale=\(String(describing: lightingDiagnostics.latestIntensityScale)), " +
+                        "portalAreaLightCount=\(portalDiagnostics.portalAreaLightCount), " +
+                        "totalPortalIntensity=\(portalDiagnostics.totalEffectivePortalIntensity), " +
+                        "portalFallback=\(String(describing: portalDiagnostics.fallbackReason))"
+                )
+            #else
+                _ = waitMs
+                _ = phase
+            #endif
+        }
+
         private func queryDeviceAnchorIfTrackingRunning(atTimestamp timestamp: TimeInterval) -> DeviceAnchor? {
             #if canImport(ARKit)
                 guard worldTracking.state == .running else {
@@ -705,14 +788,17 @@
             #if canImport(ARKit)
                 let now = CACurrentMediaTime()
                 guard now - lastWorldTrackingRecoveryAttemptTime >= worldTrackingRecoveryCooldownSeconds else {
+                    if shouldLogAnchorDiagnostics() {
+                        printXRAnchorDiagnostics(message: "XR world tracking recovery suppressed by cooldown")
+                    }
                     return
                 }
 
                 lastWorldTrackingRecoveryAttemptTime = now
 
                 guard worldTracking.state != .running else { return }
-                startARKitProviders()
-                print("✓ XR ARKit providers recovery scheduled")
+                startARKitProviders(reason: "worldTrackingState=\(String(describing: worldTracking.state))")
+                print("✓ XR ARKit providers recovery scheduled: worldTrackingState=\(String(describing: worldTracking.state)), missingAnchorFrameCount=\(missingAnchorFrameCount)")
             #endif
         }
 
@@ -746,7 +832,7 @@
         public func setXRLightingMode(_ mode: RuntimeEnvironmentLightingMode) {
             RuntimeEnvironmentLightingStore.shared.mode = mode
             applyXRLightingMode(mode)
-            startARKitProviders()
+            startARKitProviders(reason: "setXRLightingMode(\(mode))")
         }
 
         public func setXRLightingContribution(_ factor: Float) {

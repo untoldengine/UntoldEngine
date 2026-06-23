@@ -2448,6 +2448,7 @@ func removeEntityMesh(entityId: EntityID) {
         renderComponent.cleanUp()
         scene.remove(component: RenderComponent.self, from: entityId)
         removedAnyResourceOwner = true
+        resetLightPortalAreaLightCache()
     }
 
     // deassocate entity to mesh
@@ -2671,6 +2672,7 @@ func registerRenderComponent(entityId: EntityID, meshes: [Mesh], url: URL, asset
     renderComponent.assetName = assetName
     renderComponent.assetURL = url
     entityMeshMap[entityId] = resolvedMeshes
+    resetLightPortalAreaLightCache()
     let entityName = getEntityName(entityId: entityId)
     let channelSourceName = entityName.isEmpty ? assetName : entityName
     setDefaultEntitySceneChannels(entityId: entityId, channels: defaultSceneChannels(forName: channelSourceName))

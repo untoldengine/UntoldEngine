@@ -62,6 +62,14 @@ setSceneChannel(.ceilingGeometry, .renderMode(.wireframe))
 
 New properties can be added to `SceneChannelProperty` in the future without introducing new top-level functions.
 
+Scene channels can also mark selected geometry as light portals for spatial twin window lighting:
+
+```swift
+setSceneChannel(.windowGeometry, .lightPortal(.enabled()))
+```
+
+See [Light Portals](UsingLightPortals.md) for the full workflow.
+
 ## Render Modes
 
 The `.renderMode` property accepts a `SceneChannelRenderMode`:

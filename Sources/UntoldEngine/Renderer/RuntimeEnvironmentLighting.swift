@@ -10,6 +10,7 @@
 
 import Foundation
 import Metal
+import simd
 
 public enum RuntimeEnvironmentLightingMode: Sendable, Equatable {
     case authoredOnly
@@ -23,6 +24,7 @@ public struct RuntimeEnvironmentLighting {
     public var specularMap: MTLTexture?
     public var brdfMap: MTLTexture?
     public var intensityScale: Float
+    public var tintColor: simd_float3
     public var timestamp: CFTimeInterval
     public var isValid: Bool
 
@@ -31,6 +33,7 @@ public struct RuntimeEnvironmentLighting {
         specularMap: MTLTexture?,
         brdfMap: MTLTexture?,
         intensityScale: Float = 1.0,
+        tintColor: simd_float3 = simd_float3(1.0, 1.0, 1.0),
         timestamp: CFTimeInterval = Date().timeIntervalSinceReferenceDate,
         isValid: Bool
     ) {
@@ -38,6 +41,7 @@ public struct RuntimeEnvironmentLighting {
         self.specularMap = specularMap
         self.brdfMap = brdfMap
         self.intensityScale = intensityScale
+        self.tintColor = tintColor
         self.timestamp = timestamp
         self.isValid = isValid
     }
@@ -133,6 +137,7 @@ public final class RuntimeEnvironmentLightingStore: @unchecked Sendable {
             lock.lock()
             modeValue = newValue
             lock.unlock()
+            resetLightPortalAreaLightCache()
         }
     }
 
@@ -147,6 +152,7 @@ public final class RuntimeEnvironmentLightingStore: @unchecked Sendable {
             lock.lock()
             realWorldLightingContributionValue = Self.sanitizedContribution(newValue)
             lock.unlock()
+            resetLightPortalAreaLightCache()
         }
     }
 
@@ -154,6 +160,7 @@ public final class RuntimeEnvironmentLightingStore: @unchecked Sendable {
         lock.lock()
         xrLightingValue = lighting
         lock.unlock()
+        resetLightPortalAreaLightCache()
     }
 
     public func latestXRLighting() -> RuntimeEnvironmentLighting? {
@@ -169,6 +176,7 @@ public final class RuntimeEnvironmentLightingStore: @unchecked Sendable {
         realWorldLightingContributionValue = 1.0
         xrLightingValue = nil
         lock.unlock()
+        resetLightPortalAreaLightCache()
     }
 
     public func resolve(

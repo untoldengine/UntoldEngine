@@ -73,6 +73,8 @@ typedef struct{
     simd_float3 up;
     simd_float2 bounds;
     float intensity;
+    float range;
+    float nearSourceSuppressionRadius;
     bool twoSided;
     
 }AreaLightUniform;

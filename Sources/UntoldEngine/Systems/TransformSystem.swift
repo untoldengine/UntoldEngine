@@ -22,6 +22,8 @@ private func syncCameraTransformIfNeeded(entityId: EntityID, localTransformCompo
 }
 
 func syncWorldTransformAndMarkOctreeDirty(entityId: EntityID) {
+    resetLightPortalAreaLightCache()
+
     // Keep world transforms and octree bounds current for the whole hierarchy.
     // Imported multi-mesh assets usually have renderable children under a non-render root.
     guard scene.get(component: ScenegraphComponent.self, for: entityId) != nil else {

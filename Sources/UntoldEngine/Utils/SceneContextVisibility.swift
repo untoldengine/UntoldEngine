@@ -38,9 +38,21 @@ public enum SceneChannelRenderMode: Equatable, Sendable {
     case passthroughGhost(opacity: Float)
 }
 
+public enum SceneChannelLightPortalMode: Equatable, Sendable {
+    case disabled
+    case enabled(
+        intensity: Float = 1.0,
+        range: Float = 6.0,
+        useRealWorldTint: Bool = true,
+        maxActivePortals: Int = 8,
+        activationDistance: Float = 15.0
+    )
+}
+
 public enum SceneChannelProperty: Sendable {
     case renderMode(SceneChannelRenderMode)
     case pickParticipation(Bool)
+    case lightPortal(SceneChannelLightPortalMode)
 }
 
 private final class SceneChannelVisibilityState: @unchecked Sendable {
@@ -129,6 +141,111 @@ private final class SceneChannelVisibilityState: @unchecked Sendable {
     }
 }
 
+private final class SceneChannelLightPortalState: @unchecked Sendable {
+    static let shared = SceneChannelLightPortalState()
+
+    private let lock = NSLock()
+    private var modesByChannelRawValue: [UInt64: SceneChannelLightPortalMode] = [:]
+
+    func setMode(_ channel: SceneChannel, _ mode: SceneChannelLightPortalMode) {
+        lock.lock()
+        for rawValue in rawChannelValues(in: channel) {
+            switch mode {
+            case .disabled:
+                modesByChannelRawValue.removeValue(forKey: rawValue)
+            case .enabled:
+                modesByChannelRawValue[rawValue] = sanitizedMode(mode)
+            }
+        }
+        lock.unlock()
+    }
+
+    func mode(for channels: SceneChannel) -> SceneChannelLightPortalMode {
+        lock.lock()
+        let rawValues = rawChannelValues(in: channels)
+        let modes = rawValues.compactMap { modesByChannelRawValue[$0] }
+        lock.unlock()
+
+        guard modes.isEmpty == false else { return .disabled }
+
+        var intensity: Float = 0.0
+        var range: Float = 0.0
+        var useRealWorldTint = false
+        var maxActivePortals = 0
+        var activationDistance: Float = 0.0
+
+        for mode in modes {
+            guard case let .enabled(
+                modeIntensity,
+                modeRange,
+                modeUseRealWorldTint,
+                modeMaxActivePortals,
+                modeActivationDistance
+            ) = mode else {
+                continue
+            }
+
+            intensity = max(intensity, modeIntensity)
+            range = max(range, modeRange)
+            useRealWorldTint = useRealWorldTint || modeUseRealWorldTint
+            maxActivePortals = max(maxActivePortals, modeMaxActivePortals)
+            activationDistance = max(activationDistance, modeActivationDistance)
+        }
+
+        return .enabled(
+            intensity: intensity,
+            range: range,
+            useRealWorldTint: useRealWorldTint,
+            maxActivePortals: maxActivePortals,
+            activationDistance: activationDistance
+        )
+    }
+
+    func hasEnabledPortals() -> Bool {
+        lock.lock()
+        let enabled = modesByChannelRawValue.isEmpty == false
+        lock.unlock()
+        return enabled
+    }
+
+    func reset() {
+        lock.lock()
+        modesByChannelRawValue = [:]
+        lock.unlock()
+    }
+
+    private func rawChannelValues(in channels: SceneChannel) -> [UInt64] {
+        var values: [UInt64] = []
+        var remaining = channels.rawValue
+        while remaining != 0 {
+            let rawValue = remaining & (~remaining &+ 1)
+            values.append(rawValue)
+            remaining &= ~rawValue
+        }
+        return values
+    }
+
+    private func sanitizedMode(_ mode: SceneChannelLightPortalMode) -> SceneChannelLightPortalMode {
+        switch mode {
+        case .disabled:
+            return .disabled
+        case let .enabled(intensity, range, useRealWorldTint, maxActivePortals, activationDistance):
+            return .enabled(
+                intensity: sanitizedNonNegativeFinite(intensity, fallback: 1.0),
+                range: max(sanitizedNonNegativeFinite(range, fallback: 6.0), 0.001),
+                useRealWorldTint: useRealWorldTint,
+                maxActivePortals: max(maxActivePortals, 0),
+                activationDistance: sanitizedNonNegativeFinite(activationDistance, fallback: 15.0)
+            )
+        }
+    }
+
+    private func sanitizedNonNegativeFinite(_ value: Float, fallback: Float) -> Float {
+        guard value.isFinite else { return fallback }
+        return max(value, 0.0)
+    }
+}
+
 private final class SceneChannelInteractionState: @unchecked Sendable {
     static let shared = SceneChannelInteractionState()
 
@@ -202,14 +319,17 @@ private final class SceneChannelPrefixRegistry: @unchecked Sendable {
 
 public func registerSceneChannelPrefix(_ prefix: String, channels: SceneChannel) {
     SceneChannelPrefixRegistry.shared.register(prefix: prefix, channels: channels)
+    resetLightPortalAreaLightCache()
 }
 
 public func unregisterSceneChannelPrefix(_ prefix: String) {
     SceneChannelPrefixRegistry.shared.unregister(prefix: prefix)
+    resetLightPortalAreaLightCache()
 }
 
 public func resetSceneChannelPrefixes() {
     SceneChannelPrefixRegistry.shared.reset()
+    resetLightPortalAreaLightCache()
 }
 
 public func defaultSceneChannels(forName name: String, isRenderable: Bool = true) -> SceneChannel {
@@ -237,6 +357,7 @@ private func setEntitySceneChannels(entityId: EntityID, channels: SceneChannel, 
         if scene.get(component: EntitySceneChannelsComponent.self, for: entityId) != nil {
             scene.remove(component: EntitySceneChannelsComponent.self, from: entityId)
             refreshStaticBatchingForSceneChannelChange(entityId: entityId)
+            resetLightPortalAreaLightCache()
         }
         return
     }
@@ -251,6 +372,7 @@ private func setEntitySceneChannels(entityId: EntityID, channels: SceneChannel, 
         component.usesDefaultChannels = usesDefaultChannels
         if oldChannels != channels {
             refreshStaticBatchingForSceneChannelChange(entityId: entityId)
+            resetLightPortalAreaLightCache()
         }
     }
 }
@@ -270,6 +392,7 @@ public func removeEntitySceneChannels(entityId: EntityID, channels: SceneChannel
     }
     if oldChannels != getEntitySceneChannels(entityId: entityId) {
         refreshStaticBatchingForSceneChannelChange(entityId: entityId)
+        resetLightPortalAreaLightCache()
     }
 }
 
@@ -289,9 +412,13 @@ public func setSceneChannel(_ channel: SceneChannel, _ property: SceneChannelPro
     switch property {
     case let .renderMode(mode):
         SceneChannelVisibilityState.shared.setRenderMode(channel, mode)
+        resetLightPortalAreaLightCache()
     case let .pickParticipation(enabled):
         SceneChannelInteractionState.shared.setPickParticipation(channel, enabled: enabled)
         markScenePickingDirty(forChannel: channel)
+    case let .lightPortal(mode):
+        SceneChannelLightPortalState.shared.setMode(channel, mode)
+        resetLightPortalAreaLightCache()
     }
 }
 
@@ -307,6 +434,10 @@ public func getSceneChannelPickParticipation(_ channel: SceneChannel) -> Bool {
     SceneChannelInteractionState.shared.isPickEnabled(for: channel)
 }
 
+public func getSceneChannelLightPortalMode(_ channel: SceneChannel) -> SceneChannelLightPortalMode {
+    SceneChannelLightPortalState.shared.mode(for: channel)
+}
+
 @available(*, deprecated, message: "Use setSceneChannel(_:, .renderMode(_:)) instead")
 public func setSceneChannelRenderMode(_ channel: SceneChannel, _ mode: SceneChannelRenderMode) {
     setSceneChannel(channel, .renderMode(mode))
@@ -320,6 +451,8 @@ public func setSceneChannelVisible(_ channel: SceneChannel, _ visible: Bool) {
 public func resetSceneChannelVisibility() {
     SceneChannelVisibilityState.shared.reset()
     SceneChannelInteractionState.shared.reset()
+    SceneChannelLightPortalState.shared.reset()
+    resetLightPortalAreaLightCache()
 }
 
 public func shouldHideSceneEntity(entityId: EntityID) -> Bool {
@@ -376,6 +509,23 @@ public func passthroughGhostOpacity(for channels: SceneChannel) -> Float? {
     case .normal, .hidden, .wireframe:
         return nil
     }
+}
+
+public func sceneChannelLightPortalMode(for channels: SceneChannel) -> SceneChannelLightPortalMode {
+    SceneChannelLightPortalState.shared.mode(for: channels)
+}
+
+public func shouldUseSceneChannelsAsLightPortals(_ channels: SceneChannel) -> Bool {
+    switch sceneChannelLightPortalMode(for: channels) {
+    case .enabled:
+        return true
+    case .disabled:
+        return false
+    }
+}
+
+public func hasSceneChannelLightPortalsEnabled() -> Bool {
+    SceneChannelLightPortalState.shared.hasEnabledPortals()
 }
 
 public func shouldPreserveSceneEntityIdentity(entityId: EntityID) -> Bool {

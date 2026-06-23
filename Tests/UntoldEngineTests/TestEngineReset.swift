@@ -35,6 +35,10 @@
     scenePickingGPUAvailable = false
     activeEntity = .invalid
     OctreeSystem.shared.clear()
+    LightPortalSystem.shared.resetDiagnostics()
+    resetLightPortalRenderDiagnostics()
+    resetLightPortalAreaLightCache()
+    RuntimeEnvironmentLightingStore.shared.reset()
     resetSceneChannelVisibility()
     resetSceneChannelPrefixes()
     setSceneReady(true)

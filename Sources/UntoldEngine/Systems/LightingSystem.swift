@@ -18,6 +18,10 @@ public final class LightingSystem: @unchecked Sendable {
 
     private let activeDirectionalLightLock = NSLock()
     private var _activeDirectionalLight: EntityID?
+    private let lightPortalRenderDiagnosticsLock = NSLock()
+    private var latestLightPortalRenderDiagnostics = LightPortalRenderDiagnostics.empty
+    private let lightPortalAreaLightCacheLock = NSLock()
+    private var lightPortalAreaLightCache: LightPortalAreaLightCache?
 
     private init() {}
 
@@ -32,6 +36,63 @@ public final class LightingSystem: @unchecked Sendable {
             _activeDirectionalLight = newValue
             activeDirectionalLightLock.unlock()
         }
+    }
+
+    fileprivate func setLightPortalRenderDiagnostics(_ diagnostics: LightPortalRenderDiagnostics) {
+        lightPortalRenderDiagnosticsLock.lock()
+        latestLightPortalRenderDiagnostics = diagnostics
+        lightPortalRenderDiagnosticsLock.unlock()
+    }
+
+    fileprivate func getLightPortalRenderDiagnostics() -> LightPortalRenderDiagnostics {
+        lightPortalRenderDiagnosticsLock.lock()
+        let diagnostics = latestLightPortalRenderDiagnostics
+        lightPortalRenderDiagnosticsLock.unlock()
+        return diagnostics
+    }
+
+    fileprivate func cachedLightPortalAreaLights(
+        frameIndex: Int,
+        authoredAreaLightCount: Int,
+        remainingAreaLightCapacity: Int
+    ) -> (areaLights: [AreaLight], diagnostics: LightPortalRenderDiagnostics)? {
+        lightPortalAreaLightCacheLock.lock()
+        let cache = lightPortalAreaLightCache
+        lightPortalAreaLightCacheLock.unlock()
+
+        guard cache?.frameIndex == frameIndex,
+              cache?.authoredAreaLightCount == authoredAreaLightCount,
+              cache?.remainingAreaLightCapacity == remainingAreaLightCapacity,
+              let cache
+        else {
+            return nil
+        }
+
+        return (cache.areaLights, cache.diagnostics)
+    }
+
+    fileprivate func setCachedLightPortalAreaLights(
+        frameIndex: Int,
+        authoredAreaLightCount: Int,
+        remainingAreaLightCapacity: Int,
+        areaLights: [AreaLight],
+        diagnostics: LightPortalRenderDiagnostics
+    ) {
+        lightPortalAreaLightCacheLock.lock()
+        lightPortalAreaLightCache = LightPortalAreaLightCache(
+            frameIndex: frameIndex,
+            authoredAreaLightCount: authoredAreaLightCount,
+            remainingAreaLightCapacity: remainingAreaLightCapacity,
+            areaLights: areaLights,
+            diagnostics: diagnostics
+        )
+        lightPortalAreaLightCacheLock.unlock()
+    }
+
+    fileprivate func resetLightPortalAreaLightCache() {
+        lightPortalAreaLightCacheLock.lock()
+        lightPortalAreaLightCache = nil
+        lightPortalAreaLightCacheLock.unlock()
     }
 }
 
@@ -67,7 +128,71 @@ public struct AreaLight {
     var up: simd_float3 = .init(0.0, 1.0, 0.0) // Up vector defining the surface orientation
     var bounds: simd_float2 = .one
     var intensity: Float = 1.0 // Light intensity
+    var range: Float = 0.0 // Maximum influence distance; 0 keeps legacy unlimited area-light behavior
+    var nearSourceSuppressionRadius: Float = 0.0 // Radius near the light surface that fades contribution; 0 disables
     var twoSided: Bool = false // Whether the light emits from both sides
+}
+
+private enum LightPortalLightingTuning {
+    static let suppressionFractionOfMinDimension: Float = 0.2
+    static let minSuppressionRadius: Float = 0.15
+    static let maxSuppressionRadius: Float = 0.5
+}
+
+private struct LightPortalAreaLightCache {
+    var frameIndex: Int
+    var authoredAreaLightCount: Int
+    var remainingAreaLightCapacity: Int
+    var areaLights: [AreaLight]
+    var diagnostics: LightPortalRenderDiagnostics
+}
+
+public struct LightPortalRenderDiagnostics: Equatable, Sendable {
+    public var authoredAreaLightCount: Int
+    public var portalAreaLightCount: Int
+    public var remainingAreaLightCapacity: Int
+    public var environmentIntensityScale: Float
+    public var xrIntensityScale: Float?
+    public var environmentTintColor: simd_float3
+    public var realWorldLightingContribution: Float
+    public var xrLightingValid: Bool
+    public var minEffectivePortalIntensity: Float?
+    public var maxEffectivePortalIntensity: Float?
+    public var averageEffectivePortalIntensity: Float?
+    public var totalEffectivePortalIntensity: Float
+    public var fallbackReason: String?
+
+    public static let empty = LightPortalRenderDiagnostics(
+        authoredAreaLightCount: 0,
+        portalAreaLightCount: 0,
+        remainingAreaLightCapacity: 0,
+        environmentIntensityScale: 1.0,
+        xrIntensityScale: nil,
+        environmentTintColor: simd_float3(1.0, 1.0, 1.0),
+        realWorldLightingContribution: 1.0,
+        xrLightingValid: false,
+        minEffectivePortalIntensity: nil,
+        maxEffectivePortalIntensity: nil,
+        averageEffectivePortalIntensity: nil,
+        totalEffectivePortalIntensity: 0.0,
+        fallbackReason: nil
+    )
+}
+
+private func setLightPortalRenderDiagnostics(_ diagnostics: LightPortalRenderDiagnostics) {
+    LightingSystem.shared.setLightPortalRenderDiagnostics(diagnostics)
+}
+
+public func getLightPortalRenderDiagnostics() -> LightPortalRenderDiagnostics {
+    LightingSystem.shared.getLightPortalRenderDiagnostics()
+}
+
+public func resetLightPortalRenderDiagnostics() {
+    setLightPortalRenderDiagnostics(.empty)
+}
+
+public func resetLightPortalAreaLightCache() {
+    LightingSystem.shared.resetLightPortalAreaLightCache()
 }
 
 private func applyDefaultLightOrientation(entityId: EntityID) {
@@ -759,7 +884,177 @@ func getAreaLights() -> [AreaLight] {
         areaLights.append(areaLight)
     }
 
+    appendLightPortalAreaLights(to: &areaLights)
     return areaLights
+}
+
+private func appendLightPortalAreaLights(to areaLights: inout [AreaLight]) {
+    let authoredAreaLightCount = areaLights.count
+    let remainingCapacity = max(maxAreaLights - areaLights.count, 0)
+    let frameIndex = cullFrameIndex
+    guard remainingCapacity > 0 else {
+        let diagnostics = inactiveLightPortalRenderDiagnostics(
+            authoredAreaLightCount: authoredAreaLightCount,
+            remainingAreaLightCapacity: 0,
+            fallbackReason: "No remaining area-light capacity"
+        )
+        setLightPortalRenderDiagnostics(diagnostics)
+        return
+    }
+    guard hasSceneChannelLightPortalsEnabled() else {
+        setLightPortalRenderDiagnostics(.empty)
+        return
+    }
+
+    if let cached = LightingSystem.shared.cachedLightPortalAreaLights(
+        frameIndex: frameIndex,
+        authoredAreaLightCount: authoredAreaLightCount,
+        remainingAreaLightCapacity: remainingCapacity
+    ) {
+        areaLights.append(contentsOf: cached.areaLights)
+        setLightPortalRenderDiagnostics(cached.diagnostics)
+        return
+    }
+
+    let proxyLights = resolveSceneLightPortalProxyLightsForActiveCamera()
+    guard proxyLights.isEmpty == false else {
+        let diagnostics = inactiveLightPortalRenderDiagnostics(
+            authoredAreaLightCount: authoredAreaLightCount,
+            remainingAreaLightCapacity: remainingCapacity,
+            fallbackReason: "No active portal proxy lights"
+        )
+        LightingSystem.shared.setCachedLightPortalAreaLights(
+            frameIndex: frameIndex,
+            authoredAreaLightCount: authoredAreaLightCount,
+            remainingAreaLightCapacity: remainingCapacity,
+            areaLights: [],
+            diagnostics: diagnostics
+        )
+        setLightPortalRenderDiagnostics(diagnostics)
+        return
+    }
+
+    let environment = lightPortalEnvironmentIntensityScale()
+    var effectiveIntensities: [Float] = []
+    var portalAreaLights: [AreaLight] = []
+    for proxyLight in proxyLights.prefix(remainingCapacity) {
+        let effectiveIntensity = proxyLight.intensity * (proxyLight.useRealWorldTint ? environment.scale : 1.0)
+        var areaLight = AreaLight()
+        areaLight.position = proxyLight.position
+        areaLight.color = proxyLight.useRealWorldTint ? environment.tintColor : proxyLight.color
+        areaLight.intensity = effectiveIntensity
+        areaLight.range = proxyLight.range
+        areaLight.forward = proxyLight.forward
+        areaLight.right = proxyLight.right
+        areaLight.up = proxyLight.up
+        areaLight.bounds = proxyLight.bounds
+        areaLight.twoSided = true
+        areaLight.nearSourceSuppressionRadius = lightPortalNearSourceSuppressionRadius(for: proxyLight)
+        portalAreaLights.append(areaLight)
+        effectiveIntensities.append(effectiveIntensity)
+    }
+
+    let totalEffectiveIntensity = effectiveIntensities.reduce(0.0, +)
+    let diagnostics = LightPortalRenderDiagnostics(
+        authoredAreaLightCount: authoredAreaLightCount,
+        portalAreaLightCount: effectiveIntensities.count,
+        remainingAreaLightCapacity: remainingCapacity,
+        environmentIntensityScale: environment.scale,
+        xrIntensityScale: environment.xrIntensityScale,
+        environmentTintColor: environment.tintColor,
+        realWorldLightingContribution: environment.realWorldLightingContribution,
+        xrLightingValid: environment.xrLightingValid,
+        minEffectivePortalIntensity: effectiveIntensities.min(),
+        maxEffectivePortalIntensity: effectiveIntensities.max(),
+        averageEffectivePortalIntensity: effectiveIntensities.isEmpty ? nil : totalEffectiveIntensity / Float(effectiveIntensities.count),
+        totalEffectivePortalIntensity: totalEffectiveIntensity,
+        fallbackReason: environment.fallbackReason
+    )
+    LightingSystem.shared.setCachedLightPortalAreaLights(
+        frameIndex: frameIndex,
+        authoredAreaLightCount: authoredAreaLightCount,
+        remainingAreaLightCapacity: remainingCapacity,
+        areaLights: portalAreaLights,
+        diagnostics: diagnostics
+    )
+    areaLights.append(contentsOf: portalAreaLights)
+    setLightPortalRenderDiagnostics(diagnostics)
+}
+
+private func inactiveLightPortalRenderDiagnostics(
+    authoredAreaLightCount: Int,
+    remainingAreaLightCapacity: Int,
+    fallbackReason: String
+) -> LightPortalRenderDiagnostics {
+    LightPortalRenderDiagnostics(
+        authoredAreaLightCount: authoredAreaLightCount,
+        portalAreaLightCount: 0,
+        remainingAreaLightCapacity: remainingAreaLightCapacity,
+        environmentIntensityScale: 1.0,
+        xrIntensityScale: nil,
+        environmentTintColor: simd_float3(1.0, 1.0, 1.0),
+        realWorldLightingContribution: RuntimeEnvironmentLightingStore.shared.realWorldLightingContribution,
+        xrLightingValid: false,
+        minEffectivePortalIntensity: nil,
+        maxEffectivePortalIntensity: nil,
+        averageEffectivePortalIntensity: nil,
+        totalEffectivePortalIntensity: 0.0,
+        fallbackReason: fallbackReason
+    )
+}
+
+private func lightPortalNearSourceSuppressionRadius(for proxyLight: LightPortalProxyLight) -> Float {
+    let minDimension = max(min(proxyLight.bounds.x, proxyLight.bounds.y), 0.001)
+    return min(
+        max(
+            minDimension * LightPortalLightingTuning.suppressionFractionOfMinDimension,
+            LightPortalLightingTuning.minSuppressionRadius
+        ),
+        LightPortalLightingTuning.maxSuppressionRadius
+    )
+}
+
+private func lightPortalEnvironmentIntensityScale() -> (
+    scale: Float,
+    xrIntensityScale: Float?,
+    tintColor: simd_float3,
+    realWorldLightingContribution: Float,
+    xrLightingValid: Bool,
+    fallbackReason: String?
+) {
+    let realWorldLightingContribution = RuntimeEnvironmentLightingStore.shared.realWorldLightingContribution
+    switch RuntimeEnvironmentLightingStore.shared.mode {
+    case .realWorldEstimate, .authoredPlusRealWorldEstimate:
+        guard let xrLighting = RuntimeEnvironmentLightingStore.shared.latestXRLighting(),
+              xrLighting.isValid
+        else {
+            return (
+                scale: 0.0,
+                xrIntensityScale: nil,
+                tintColor: simd_float3(1.0, 1.0, 1.0),
+                realWorldLightingContribution: realWorldLightingContribution,
+                xrLightingValid: false,
+                fallbackReason: "XR lighting unavailable for real-world portal tint"
+            )
+        }
+        return (
+            scale: xrLighting.intensityScale * realWorldLightingContribution,
+            xrIntensityScale: xrLighting.intensityScale,
+            tintColor: xrLighting.tintColor,
+            realWorldLightingContribution: realWorldLightingContribution,
+            xrLightingValid: true,
+            fallbackReason: nil
+        )
+    case .authoredOnly, .staticIBL:
+        return (
+            scale: 1.0,
+            xrIntensityScale: nil,
+            tintColor: simd_float3(1.0, 1.0, 1.0),
+            realWorldLightingContribution: realWorldLightingContribution,
+            xrLightingValid: false,
+            fallbackReason: "Runtime environment mode is not XR real-world lighting"
+        )
+    }
 }
 
 func getAreaLightCount() -> Int {

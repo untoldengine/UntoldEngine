@@ -9,6 +9,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import CShaderTypes
+import Metal
 import simd
 import UniformTypeIdentifiers
 @testable import UntoldEngine
@@ -543,5 +544,199 @@ final class RendererTests: BaseRenderSetup {
         XCTAssertEqual(tex.height, 64)
         XCTAssertGreaterThan(tex.mipmapLevelCount, 1, "Checker texture should have mipmaps")
         XCTAssertEqual(tex.pixelFormat, .rgba8Unorm_srgb)
+    }
+}
+
+final class LightPortalRendererTests: BaseRenderSetup {
+    private let portalChannel = SceneChannel.userCustom(index: 30)
+
+    override func initializeAssets() {
+        ambientIntensity = 0.0
+        applyIBL = false
+        renderEnvironment = false
+        SSAOParams.shared.enabled = false
+
+        let camera = createEntity()
+        createGameCamera(entityId: camera)
+        CameraSystem.shared.activeCamera = camera
+        cameraLookAt(
+            entityId: camera,
+            eye: simd_float3(0.0, 2.0, 6.0),
+            target: simd_float3(0.0, 0.0, 0.0),
+            up: simd_float3(0.0, 1.0, 0.0)
+        )
+
+        let receiver = createEntity()
+        setEntityMeshDirect(entityId: receiver, meshes: BasicPrimitives.createCube(extent: 1.0), assetName: "PortalReceiver")
+        scaleTo(entityId: receiver, scale: simd_float3(4.0, 0.12, 4.0))
+        translateTo(entityId: receiver, position: simd_float3(0.0, -0.7, 0.0))
+
+        let portal = createEntity()
+        setEntityMeshDirect(entityId: portal, meshes: BasicPrimitives.createCube(extent: 1.0), assetName: "PortalSurface")
+        scene.get(component: LocalTransformComponent.self, for: portal)?.boundingBox = (
+            min: simd_float3(-0.5, -0.5, -0.025),
+            max: simd_float3(0.5, 0.5, 0.025)
+        )
+        scaleTo(entityId: portal, scale: simd_float3(2.0, 2.0, 0.05))
+        translateTo(entityId: portal, position: simd_float3(0.0, 1.1, 2.0))
+        setEntitySceneChannels(entityId: portal, channels: portalChannel)
+        setSceneChannel(portalChannel, .lightPortal(.disabled))
+    }
+
+    func testLightPortalIncreasesRenderedLightPassBrightness() {
+        let disabledLuminance = renderLightPassAverageLuminance()
+
+        setSceneChannel(
+            portalChannel,
+            .lightPortal(.enabled(
+                intensity: 18.0,
+                range: 8.0,
+                useRealWorldTint: false,
+                maxActivePortals: 1,
+                activationDistance: 20.0
+            ))
+        )
+        cullFrameIndex &+= 1
+
+        let enabledLuminance = renderLightPassAverageLuminance()
+        let diagnostics = getLightPortalRenderDiagnostics()
+
+        XCTAssertEqual(diagnostics.portalAreaLightCount, 1)
+        XCTAssertGreaterThan(diagnostics.totalEffectivePortalIntensity, 0.0)
+        XCTAssertGreaterThan(
+            enabledLuminance,
+            disabledLuminance + 0.002,
+            "Portal-enabled render should produce measurably brighter light-pass pixels"
+        )
+    }
+
+    func testLightPortalRangeAttenuationLimitsRenderedContribution() {
+        setSceneChannel(
+            portalChannel,
+            .lightPortal(.enabled(
+                intensity: 18.0,
+                range: 0.25,
+                useRealWorldTint: false,
+                maxActivePortals: 1,
+                activationDistance: 20.0
+            ))
+        )
+        cullFrameIndex &+= 1
+        let shortRangeLuminance = renderLightPassAverageLuminance()
+
+        setSceneChannel(
+            portalChannel,
+            .lightPortal(.enabled(
+                intensity: 18.0,
+                range: 8.0,
+                useRealWorldTint: false,
+                maxActivePortals: 1,
+                activationDistance: 20.0
+            ))
+        )
+        cullFrameIndex &+= 1
+        let normalRangeLuminance = renderLightPassAverageLuminance()
+
+        XCTAssertEqual(getLightPortalRenderDiagnostics().portalAreaLightCount, 1)
+        XCTAssertGreaterThan(
+            normalRangeLuminance,
+            shortRangeLuminance + 0.002,
+            "Portal range attenuation should reduce contribution outside a short range"
+        )
+    }
+
+    func testMeshRegistrationInvalidatesPortalAreaLightCacheWithinFrame() {
+        let meshChannel = SceneChannel.userCustom(index: 31)
+        registerSceneChannelPrefix("WIN_CACHE_", channels: meshChannel)
+        setSceneChannel(meshChannel, .lightPortal(.enabled(
+            intensity: 3.0,
+            range: 8.0,
+            useRealWorldTint: false,
+            maxActivePortals: 1,
+            activationDistance: 20.0
+        )))
+
+        let portal = createEntity()
+        setEntityName(entityId: portal, name: "WIN_CACHE_Portal")
+        setEntityMeshDirect(entityId: portal, meshes: BasicPrimitives.createCube(extent: 1.0), assetName: "WIN_CACHE_Portal")
+        scene.get(component: LocalTransformComponent.self, for: portal)?.boundingBox = (
+            min: simd_float3(-0.5, -0.5, -0.025),
+            max: simd_float3(0.5, 0.5, 0.025)
+        )
+        scaleTo(entityId: portal, scale: simd_float3(2.0, 2.0, 0.05))
+        translateTo(entityId: portal, position: simd_float3(0.0, 1.1, 2.0))
+
+        let initialLights = getAreaLights()
+        setEntityMeshDirect(entityId: portal, meshes: BasicPrimitives.createCube(extent: 1.0), assetName: "WIN_CACHE_Portal")
+        let updatedLights = getAreaLights()
+
+        XCTAssertEqual(initialLights.count, 1)
+        XCTAssertTrue(updatedLights.isEmpty)
+        XCTAssertEqual(getLightPortalDiscoveryDiagnostics().skippedInvalidGeometryCount, 1)
+    }
+
+    private func renderLightPassAverageLuminance(
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) -> Float {
+        renderer.draw(in: renderer.metalView)
+        renderInfo.lastCommandBuffer?.waitUntilCompleted()
+
+        guard let texture = renderInfo.deferredRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)].texture else {
+            XCTFail("Expected light-pass color texture", file: file, line: line)
+            return 0.0
+        }
+
+        return averageLuminance(
+            texture: texture,
+            normalizedRegion: (x: 0.35, y: 0.35, width: 0.3, height: 0.3),
+            file: file,
+            line: line
+        )
+    }
+
+    private func averageLuminance(
+        texture: MTLTexture,
+        normalizedRegion: (x: Float, y: Float, width: Float, height: Float),
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) -> Float {
+        let x = max(0, min(texture.width - 1, Int(Float(texture.width) * normalizedRegion.x)))
+        let y = max(0, min(texture.height - 1, Int(Float(texture.height) * normalizedRegion.y)))
+        let width = max(1, min(texture.width - x, Int(Float(texture.width) * normalizedRegion.width)))
+        let height = max(1, min(texture.height - y, Int(Float(texture.height) * normalizedRegion.height)))
+        let region = MTLRegionMake2D(x, y, width, height)
+
+        switch texture.pixelFormat {
+        case .rgba16Float:
+            let bytesPerPixel = 8
+            let bytesPerRow = width * bytesPerPixel
+            let sampleCount = width * height
+            var data = [UInt16](repeating: 0, count: sampleCount * 4)
+            data.withUnsafeMutableBytes { rawBuffer in
+                texture.getBytes(
+                    rawBuffer.baseAddress!,
+                    bytesPerRow: bytesPerRow,
+                    from: region,
+                    mipmapLevel: 0
+                )
+            }
+
+            var total: Float = 0.0
+            for index in 0 ..< sampleCount {
+                let base = index * 4
+                let rgb = simd_float3(
+                    Float(Float16(bitPattern: data[base])),
+                    Float(Float16(bitPattern: data[base + 1])),
+                    Float(Float16(bitPattern: data[base + 2]))
+                )
+                total += simd_dot(rgb, simd_float3(0.2126, 0.7152, 0.0722))
+            }
+            return total / Float(sampleCount)
+
+        default:
+            XCTFail("Unsupported light-pass pixel format: \(texture.pixelFormat)", file: file, line: line)
+            return 0.0
+        }
     }
 }

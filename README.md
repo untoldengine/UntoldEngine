@@ -154,6 +154,7 @@ Untold Engine is well-suited for:
 - [Camera System](docs/API/UsingCameraSystem.md)
 - [Rendering System](docs/API/UsingRenderingSystem.md)
 - [Lighting System](docs/API/UsingLightingSystem.md)
+- [Light Portals](docs/API/UsingLightPortals.md)
 - [Materials](docs/API/UsingMaterials.md)
 - [Input System](docs/API/UsingInputSystem.md)
 - [Physics System](docs/API/UsingPhysicsSystem.md)
