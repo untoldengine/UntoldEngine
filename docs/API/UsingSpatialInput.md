@@ -1,4 +1,4 @@
-# Spatial Input (vision Pro)
+# Spatial Input (Vision Pro)
 
 Spatial input in Untold Engine follows a simple pipeline:
 
@@ -8,8 +8,7 @@ Spatial input in Untold Engine follows a simple pipeline:
 4. XRSpatialGestureRecognizer processes snapshots each frame.
 5. The engine publishes a single XRSpatialInputState your game reads in handleInput().
 
-That separation keeps the system flexible: the OS-facing code stays in UntoldEngineXR, while gesture classification stays in
-the recognizer.
+That separation keeps the system flexible: the OS-facing code stays in UntoldEngineXR, while gesture classification stays in the recognizer.
 
 ## What You Get in Game Code
 
@@ -27,39 +26,67 @@ So your game logic can stay focused on behavior (select, move, rotate, scale), n
 
 ## Important Setup Step
 
-You must enable XR event ingestion:
+You must enable XR event ingestion in your init:
 
-InputSystem.shared.registerXREvents()
+```swift
+func gameInit() {
+    registerXREvents()
+}
+```
 
 If you skip this, the callback still receives OS events, but the engine ignores them.
+
+## XR Input Configuration
+
+Configure XR input behaviour with `setInput` before the scene starts:
+
+```swift
+// Spatial picking backend
+setInput(.xr(.pickingBackend(.octreeGPUPreferred)))
+
+// Two-hand rotate axis derivation
+setInput(.xr(.twoHandRotateAxisMode(.dynamicSnapped)))
+
+// Signal scene readiness
+setInput(.xr(.sceneReady(true)))
+```
+
+Tune spatial manipulation thresholds with `setSpatialManipulation`:
+
+```swift
+setSpatialManipulation(.intentTranslationThreshold(0.01))
+setSpatialManipulation(.intentRotationThreshold(0.08))
+setSpatialManipulation(.classificationFrames(3))
+setSpatialManipulation(.rotationSmoothing(factor: 0.25, deadzone: 0.002))
+setSpatialManipulation(.zoomScale(min: 0.05, max: 20.0))
+```
 
 ## Typical Frame Usage
 
 In your handleInput():
 
-- Poll InputSystem.shared.xrSpatialInputState.
+- Poll `getXRSpatialInputState()` to get the current frame's input.
 - React to edge-triggered gestures like tap.
 - Apply continuous updates for drag/zoom/rotate while active.
 
-For object manipulation, use SpatialManipulationSystem for robust pinch-driven transforms, then layer custom behavior on top
-when needed.
-  
+For object manipulation, use the spatial manipulation free functions for robust pinch-driven transforms, then layer custom behaviour on top when needed.
+
 ## Quick Example
 
 This example shows how to drag and rotate a mesh using the engine:
 
-``` swift
+```swift
 func handleInput() {
     if gameMode == false { return }
 
-    let state = InputSystem.shared.xrSpatialInputState
+    let state = getXRSpatialInputState()
 
     if state.spatialTapActive, let entityId = state.pickedEntityId {
         Logger.log(message: "Tapped entity: \(entityId)")
     }
 
     // Handles drag-based translate + twist rotation on picked entity
-    SpatialManipulationSystem.shared.processPinchTransformLifecycle(from: state)
+    processPinchTransformLifecycle(from: state)
 }
 ```
 
@@ -82,38 +109,33 @@ This lifecycle model prevents stuck manipulation sessions.
 
 ### Manipulate Parent Instead Of Picked Child
 
-If ray picking hits a child mesh and you want to manipulate the parent
-actor:
+If ray picking hits a child mesh and you want to manipulate the parent actor:
 
-``` swift
-var state = InputSystem.shared.xrSpatialInputState
+```swift
+var state = getXRSpatialInputState()
 
 if let picked = state.pickedEntityId,
    let parent = getEntityParent(entityId: picked) {
     state.pickedEntityId = parent
 }
 
-SpatialManipulationSystem.shared.processPinchTransformLifecycle(from: state)
+processPinchTransformLifecycle(from: state)
 ```
 
 This is useful when:
 
 -   A character has multiple meshes
 -   A building has sub-meshes
--   You want to move the root actor instead of individual geometry
-    pieces
+-   You want to move the root actor instead of individual geometry pieces
 
 ------------------------------------------------------------------------
 
 ### Important Note
 
-Do not early-return only because `pickedEntityId == nil` before calling
-lifecycle processing.
+Do not early-return only because `pickedEntityId == nil` before calling lifecycle processing.
 
-End/cancel phases must still propagate to properly close manipulation
-sessions.\
-Failing to do so can leave the engine in an inconsistent transform
-state.
+End/cancel phases must still propagate to properly close manipulation sessions.
+Failing to do so can leave the engine in an inconsistent transform state.
 
 ------------------------------------------------------------------------
 
@@ -121,7 +143,7 @@ state.
 
 Use these APIs to control whether an entity can be selected by spatial tap/ray picking and what hit representation it uses.
 
-``` swift
+```swift
 setEntityPickParticipation(entityId: entityId, enabled: false) // visible, not pickable
 setEntityPickHitRepresentationMode(entityId: entityId, mode: .bounds) // pick using bounds
 setEntityPickHitRepresentationMode(entityId: entityId, mode: .mesh) // pick using mesh (default)
@@ -136,12 +158,9 @@ Available APIs:
 
 Hit representation modes:
 
--   `.none`\
-    Never pickable.
--   `.bounds`\
-    Pick using bounds intersection.
--   `.mesh`\
-    Pick using mesh-capable path (default behavior).
+-   `.none` — Never pickable.
+-   `.bounds` — Pick using bounds intersection.
+-   `.mesh` — Pick using mesh-capable path (default behavior).
 
 Behavior rules:
 
@@ -154,8 +173,7 @@ Behavior rules:
 
 ## Raw Gesture Examples
 
-It is strongly recommended to use the Spatial Helper functions instead
-of raw gesture access.
+It is strongly recommended to use the spatial free functions instead of raw gesture access.
 
 Raw access is useful when:
 
@@ -169,8 +187,8 @@ Raw access is useful when:
 
 Vision Pro air-tap gesture.
 
-``` swift
-let state = InputSystem.shared.xrSpatialInputState
+```swift
+let state = getXRSpatialInputState()
 if state.spatialTapActive, let entityId = state.pickedEntityId {
     // selectEntity(entityId)
 }
@@ -188,14 +206,13 @@ Use this to:
 
 Single-hand pinch detected.
 
-``` swift
+```swift
 if InputSystem.shared.hasSpatialPinch() {
     // pinch is active
 }
 ```
 
-This does **not** imply dragging yet --- only that a pinch is currently
-held.
+This does **not** imply dragging yet — only that a pinch is currently held.
 
 ------------------------------------------------------------------------
 
@@ -203,7 +220,7 @@ held.
 
 World-space position of pinch.
 
-``` swift
+```swift
 if let pinchPosition = InputSystem.shared.getPinchPosition() {
     // use pinchPosition
 }
@@ -221,8 +238,8 @@ Useful for:
 
 Drag delta while pinch is active.
 
-``` swift
-let state = InputSystem.shared.xrSpatialInputState
+```swift
+let state = getXRSpatialInputState()
 if state.spatialPinchActive {
     let dragDelta = InputSystem.shared.getPinchDragDelta()
     // app-defined translation/scaling response
@@ -239,14 +256,13 @@ Common use cases:
 
 ## Anchored Pinch Drag Helper
 
-For stable translation (no per-frame delta accumulation), use the
-anchored lifecycle helper:
+For stable translation (no per-frame delta accumulation), use the anchored lifecycle helper:
 
-``` swift
+```swift
 func handleInput() {
-    let state = InputSystem.shared.xrSpatialInputState
+    let state = getXRSpatialInputState()
 
-    SpatialManipulationSystem.shared.processAnchoredPinchDragLifecycle(
+    processAnchoredPinchDragLifecycle(
         from: state,
         entityId: sceneRootEntity
     )
@@ -259,8 +275,7 @@ This helper:
 -   Applies absolute displacement from gesture start
 -   Cleans up session state on end/cancel
 
-Use this when moving large roots (buildings/scenes) where incremental
-delta jitter can become visible.
+Use this when moving large roots (buildings/scenes) where incremental delta jitter can become visible.
 
 ------------------------------------------------------------------------
 
@@ -268,11 +283,11 @@ delta jitter can become visible.
 
 For translating the **entire scene root** (rather than a single entity), use the anchored scene drag lifecycle:
 
-``` swift
+```swift
 func handleInput() {
-    let state = InputSystem.shared.xrSpatialInputState
+    let state = getXRSpatialInputState()
 
-    SpatialManipulationSystem.shared.processAnchoredSceneDragLifecycle(from: state)
+    processAnchoredSceneDragLifecycle(from: state)
 }
 ```
 
@@ -284,14 +299,14 @@ This helper:
 
 You can adjust movement speed with the `sensitivity` parameter (defaults to `1.0`):
 
-``` swift
-SpatialManipulationSystem.shared.processAnchoredSceneDragLifecycle(from: state, sensitivity: 0.5)
+```swift
+processAnchoredSceneDragLifecycle(from: state, sensitivity: 0.5)
 ```
 
 To manually end the drag (e.g. on a mode change), call:
 
-``` swift
-SpatialManipulationSystem.shared.endAnchoredSceneDrag()
+```swift
+endAnchoredSceneDrag()
 ```
 
 Use this when panning an entire scene — for example, sliding a map, architectural model, or level layout in world space.
@@ -302,11 +317,11 @@ Use this when panning an entire scene — for example, sliding a map, architectu
 
 For rotating the **entire scene root** around world up (`+Y`) while preserving static batching, use the anchored scene rotate lifecycle. This requires a **two-hand pinch + twist** gesture (`spatialRotateActive` with both hands pinching):
 
-``` swift
+```swift
 func handleInput() {
-    let state = InputSystem.shared.xrSpatialInputState
+    let state = getXRSpatialInputState()
 
-    SpatialManipulationSystem.shared.processAnchoredSceneRotateLifecycle(from: state)
+    processAnchoredSceneRotateLifecycle(from: state)
 }
 ```
 
@@ -319,14 +334,14 @@ This helper:
 
 You can adjust rotation speed with the `sensitivity` parameter (defaults to `1.0`):
 
-``` swift
-SpatialManipulationSystem.shared.processAnchoredSceneRotateLifecycle(from: state, sensitivity: 0.5)
+```swift
+processAnchoredSceneRotateLifecycle(from: state, sensitivity: 0.5)
 ```
 
 To manually end rotation (e.g. on a mode change), call:
 
-``` swift
-SpatialManipulationSystem.shared.endAnchoredSceneRotate()
+```swift
+endAnchoredSceneRotate()
 ```
 
 Use this when aligning or calibrating an already-loaded large scene in place without rebatching.
@@ -337,11 +352,11 @@ Use this when aligning or calibrating an already-loaded large scene in place wit
 
 To avoid drag/rotate gesture fighting, use the unified scene-root manipulation lifecycle:
 
-``` swift
+```swift
 func handleInput() {
-    let state = InputSystem.shared.xrSpatialInputState
+    let state = getXRSpatialInputState()
 
-    SpatialManipulationSystem.shared.processAnchoredSceneManipulationLifecycle(
+    processAnchoredSceneManipulationLifecycle(
         from: state,
         dragSensitivity: 1.0,
         rotateSensitivity: 0.5
@@ -351,22 +366,22 @@ func handleInput() {
 
 Arbitration rules:
 
--   When a pinch is first detected, classification is deferred for a few frames (`manipulationClassificationFrames`, default 3) so the second hand has time to arrive
+-   When a pinch is first detected, classification is deferred for a few frames so the second hand has time to arrive
 -   Two-hand pinch + twist (`spatialRotateActive` + both hands pinching) routes to scene rotate
 -   Otherwise, after the deferral window expires, pinch drag routes to scene drag
 -   The non-winning session is ended automatically
--   Once a mode is chosen, it stays latched (`drag` or `rotate`) until the gesture ends/release happens
+-   Once a mode is chosen, it stays latched (`drag` or `rotate`) until the gesture ends
 
-You can tune the deferral window (set to 0 to commit immediately):
+You can tune the deferral window:
 
-``` swift
-SpatialManipulationSystem.shared.manipulationClassificationFrames = 4  // ~44ms at 90 Hz
+```swift
+setSpatialManipulation(.classificationFrames(4))  // ~44ms at 90 Hz
 ```
 
 To manually end the unified lifecycle (e.g. on a mode change), call:
 
-``` swift
-SpatialManipulationSystem.shared.endAnchoredSceneManipulation()
+```swift
+endAnchoredSceneManipulation()
 ```
 
 Use this as the default scene-root helper when your app supports both panning and rotation.
@@ -377,39 +392,39 @@ Use this as the default scene-root helper when your app supports both panning an
 
 All three scene-level gestures can live in the same input loop — they gate on different input conditions so they don't conflict:
 
-``` swift
+```swift
 func handleInput() {
-    let state = InputSystem.shared.xrSpatialInputState
+    let state = getXRSpatialInputState()
 
     // Single-hand pinch + drag → pan the scene
-    SpatialManipulationSystem.shared.processAnchoredSceneDragLifecycle(from: state)
+    processAnchoredSceneDragLifecycle(from: state)
 
     // Two-hand pinch + twist → rotate the scene (yaw)
-    SpatialManipulationSystem.shared.processAnchoredSceneRotateLifecycle(from: state)
+    processAnchoredSceneRotateLifecycle(from: state)
 
     // Two-hand pinch + spread/pinch → zoom an entity
-    SpatialManipulationSystem.shared.applyTwoHandZoomIfNeeded(from: state)
+    applyTwoHandZoomIfNeeded(from: state)
 }
 ```
 
 For context-based entity vs. scene rotation — route two-hand twist to entity rotate when something is picked, and to scene rotate otherwise:
 
-``` swift
+```swift
 func handleInput() {
-    let state = InputSystem.shared.xrSpatialInputState
+    let state = getXRSpatialInputState()
 
     // Scene-level drag (always active)
-    SpatialManipulationSystem.shared.processAnchoredSceneDragLifecycle(from: state)
+    processAnchoredSceneDragLifecycle(from: state)
 
     if state.pickedEntityId != nil {
         // Entity is picked → two-hand twist rotates the entity
-        SpatialManipulationSystem.shared.applyTwoHandRotateIfNeeded(from: state)
+        applyTwoHandRotateIfNeeded(from: state)
     } else {
         // Nothing picked → two-hand twist rotates the scene
-        SpatialManipulationSystem.shared.processAnchoredSceneRotateLifecycle(from: state)
+        processAnchoredSceneRotateLifecycle(from: state)
     }
 
-    SpatialManipulationSystem.shared.applyTwoHandZoomIfNeeded(from: state)
+    applyTwoHandZoomIfNeeded(from: state)
 }
 ```
 
@@ -420,35 +435,23 @@ func handleInput() {
 Apply the built-in zoom response:
 
 ```swift
-let state = InputSystem.shared.xrSpatialInputState
+let state = getXRSpatialInputState()
 
-SpatialManipulationSystem.shared.applyTwoHandZoomIfNeeded(
-    from: state,
-    sensitivity: 1.0
-)
+applyTwoHandZoomIfNeeded(from: state, sensitivity: 1.0)
 ```
 
-By default, the helper scales the parent of the picked entity when available.
-If you want to choose the exact target, pass `entityId`:
+By default, the helper scales the parent of the picked entity when available. If you want to choose the exact target, pass `entityId`:
 
 ```swift
-let state = InputSystem.shared.xrSpatialInputState
+let state = getXRSpatialInputState()
 
 if let picked = state.pickedEntityId {
     // Scale exactly what was hit
-    SpatialManipulationSystem.shared.applyTwoHandZoomIfNeeded(
-        from: state,
-        entityId: picked,
-        sensitivity: 1.0
-    )
+    applyTwoHandZoomIfNeeded(from: state, entityId: picked, sensitivity: 1.0)
 
     // Or scale its parent explicitly
     if let parent = getEntityParent(entityId: picked) {
-        SpatialManipulationSystem.shared.applyTwoHandZoomIfNeeded(
-            from: state,
-            entityId: parent,
-            sensitivity: 1.0
-        )
+        applyTwoHandZoomIfNeeded(from: state, entityId: parent, sensitivity: 1.0)
     }
 }
 ```
@@ -457,50 +460,38 @@ if let picked = state.pickedEntityId {
 
 ## Two-Hand Rotate
 
-Use `setXRTwoHandRotateAxisMode` to control how the rotation axis is derived:
+Configure how the rotation axis is derived:
 
 ```swift
-InputSystem.shared.setXRTwoHandRotateAxisMode(.dynamicSnapped)
+setInput(.xr(.twoHandRotateAxisMode(.dynamicSnapped)))
 ```
 
 Available modes:
 
--   `.cameraForward`: rotates around camera-forward axis (screen-style twist)
--   `.dynamic`: derives axis from actual two-hand motion
--   `.dynamicSnapped`: dynamic axis snapped to dominant world axis (`x`, `y`, or `z`)
+-   `.cameraForward` — rotates around camera-forward axis (screen-style twist)
+-   `.dynamic` — derives axis from actual two-hand motion
+-   `.dynamicSnapped` — dynamic axis snapped to dominant world axis (`x`, `y`, or `z`)
 
 Apply the built-in rotate response:
 
 ```swift
-let state = InputSystem.shared.xrSpatialInputState
+let state = getXRSpatialInputState()
 
-SpatialManipulationSystem.shared.applyTwoHandRotateIfNeeded(
-    from: state,
-    sensitivity: 1.5
-)
+applyTwoHandRotateIfNeeded(from: state, sensitivity: 1.5)
 ```
 
-By default, the helper rotates the parent of the picked entity when available.
-If you want to choose the exact target, pass `entityId`:
+By default, the helper rotates the parent of the picked entity when available. If you want to choose the exact target, pass `entityId`:
 
 ```swift
-let state = InputSystem.shared.xrSpatialInputState
+let state = getXRSpatialInputState()
 
 if let picked = state.pickedEntityId {
     // Rotate exactly what was hit
-    SpatialManipulationSystem.shared.applyTwoHandRotateIfNeeded(
-        from: state,
-        entityId: picked,
-        sensitivity: 1.5
-    )
+    applyTwoHandRotateIfNeeded(from: state, entityId: picked, sensitivity: 1.5)
 
     // Or rotate its parent explicitly
     if let parent = getEntityParent(entityId: picked) {
-        SpatialManipulationSystem.shared.applyTwoHandRotateIfNeeded(
-            from: state,
-            entityId: parent,
-            sensitivity: 1.5
-        )
+        applyTwoHandRotateIfNeeded(from: state, entityId: parent, sensitivity: 1.5)
     }
 }
 ```
@@ -510,10 +501,8 @@ if let picked = state.pickedEntityId {
 To get the distance to an entity use the following:
 
 ```swift
-// Get distance to hit-entity
-let state = InputSystem.shared.xrSpatialInputState
+let state = getXRSpatialInputState()
 if state.spatialTapActive, let entityId = state.pickedEntityId {
-    // get distance
     let distance = state.pickedEntityDistance
     print("Object distance: \(distance) meters")
 }
@@ -544,7 +533,7 @@ The `filter` parameter controls which planes are considered by **alignment** and
 When your app needs to respond to floor or table (whichever the user taps), use a **single call** with a multi-kind filter and inspect `surfaceKind` in the result. Because the function returns the closest qualifying hit, this correctly returns the table when pointing at the table and the floor when pointing at the floor.
 
 ```swift
-let state = InputSystem.shared.xrSpatialInputState
+let state = getXRSpatialInputState()
 
 if state.spatialTapActive {
     let filter = RealSurfaceFilter(alignment: .horizontal, kinds: [.floor, .table])
@@ -571,7 +560,7 @@ if state.spatialTapActive {
 ### Other filter examples
 
 ```swift
-let state = InputSystem.shared.xrSpatialInputState
+let state = getXRSpatialInputState()
 
 if state.spatialTapActive {
     // Floor only — always ignores tables, seats, and ceilings
@@ -639,7 +628,7 @@ When ARKit does not classify a desk or table correctly, use the `hitYRange` para
 Floor is always near Y≈0. A standard desk or table is typically between 0.5m and 1.1m:
 
 ```swift
-let state = InputSystem.shared.xrSpatialInputState
+let state = getXRSpatialInputState()
 
 if state.spatialTapActive {
     // Floor — accept hits within ±20 cm of ground level
@@ -681,39 +670,107 @@ ARKit can initially report a newly-detected horizontal plane as `.unknown` befor
 
 ------------------------------------------------------------------------
 
+## Get Virtual Plane Hit Position
+
+Virtual planes are purely mathematical — no ARKit scanning required. Use them when you want to cast a ray against a plane you define in code rather than one detected from the real environment. Common cases: snapping objects to the engine's ground level (`Y = 0`), placing content on a wall you defined, or constraining drag to an arbitrary surface.
+
+Two functions are available, both returning a `PlanePickHit` with `worldPosition` and `distance`:
+
+### Horizontal ground plane
+
+`pickGroundPosition` casts against a horizontal plane at a given Y height. `planeY` defaults to `0`.
+
+```swift
+let state = getXRSpatialInputState()
+
+if state.spatialTapActive {
+    if let hit = pickGroundPosition(
+        rayOrigin: state.rayOriginWorld,
+        rayDirection: state.rayDirectionWorld,
+        planeY: 0.0
+    ) {
+        Logger.log(message: "Virtual ground hit", vector: hit.worldPosition)
+    }
+}
+```
+
+Use `planeY` to match a raised or sunken surface — for example `planeY: 0.75` for a table-height virtual plane.
+
+### Arbitrary virtual plane
+
+`pickPlanePosition` casts against any plane defined by a world-space point and normal.
+
+```swift
+let state = getXRSpatialInputState()
+
+if state.spatialTapActive {
+    // Vertical plane facing +Z, passing through the origin
+    if let hit = pickPlanePosition(
+        rayOrigin: state.rayOriginWorld,
+        rayDirection: state.rayDirectionWorld,
+        planePoint: simd_float3(0, 0, 0),
+        planeNormal: simd_float3(0, 0, 1)
+    ) {
+        Logger.log(message: "Virtual wall hit", vector: hit.worldPosition)
+    }
+}
+```
+
+`planePoint` can be any point that lies on the plane — the normal does not need to be pre-normalized.
+
+### Choosing between virtual and real
+
+| Goal | Function to use |
+|---|---|
+| Snap to engine ground (`Y = 0`) | `pickGroundPosition` |
+| Snap to a raised virtual surface | `pickGroundPosition(planeY:)` |
+| Cast against a wall or angled surface you defined | `pickPlanePosition` |
+| Cast against an ARKit-detected physical surface | `pickRealSurfacePosition` |
+
+Both `pickGroundPosition` and `pickPlanePosition` automatically account for scene root transforms, so the math stays correct even when the scene has been translated or rotated.
+
+------------------------------------------------------------------------
+
 ## Spatial Helper Functions
 
-Use these helpers from `SpatialManipulationSystem.shared`:
+Use these free functions for spatial manipulation. They all delegate to `SpatialManipulationSystem` internally so you never need to reference the shared singleton directly.
 
--   `processPinchTransformLifecycle(from:)`\
-    Recommended default. Handles translation + twist rotation lifecycle
-    safely.
+-   `processPinchTransformLifecycle(from:)`
+    Recommended default. Handles translation + twist rotation lifecycle safely.
 
--   `applyPinchDragIfNeeded(from:entityId:sensitivity:)`\
+-   `applyPinchDragIfNeeded(from:entityId:sensitivity:)`
     Lower-level translation helper if you want full control.
 
--   `processAnchoredSceneDragLifecycle(from:sensitivity:)`\
-    Anchored drag for the entire scene root. Applies absolute
-    displacement via `translateSceneTo`.
+-   `processAnchoredPinchDragLifecycle(from:entityId:sensitivity:)`
+    Anchored drag for a single entity. Applies absolute displacement from gesture start.
 
--   `endAnchoredSceneDrag()`\
+-   `processAnchoredSceneDragLifecycle(from:sensitivity:)`
+    Anchored drag for the entire scene root. Applies absolute displacement via `translateSceneTo`.
+
+-   `endAnchoredSceneDrag()`
     Manually ends an in-progress anchored scene drag session.
 
--   `processAnchoredSceneRotateLifecycle(from:sensitivity:)`\
+-   `processAnchoredSceneRotateLifecycle(from:sensitivity:)`
     Anchored rotate for the entire scene root using two-hand pinch + twist.
     Applies absolute yaw via `rotateSceneToYaw`.
 
--   `endAnchoredSceneRotate()`\
+-   `endAnchoredSceneRotate()`
     Manually ends an in-progress anchored scene rotate session.
 
--   `processAnchoredSceneManipulationLifecycle(from:dragSensitivity:rotateSensitivity:)`\
-    Unified scene-root helper with drag/rotate arbitration to prevent
-    gesture-fighting. Uses a deferral window (`manipulationClassificationFrames`) before
-    committing to drag so the second hand has time to arrive for rotate.
+-   `processAnchoredSceneManipulationLifecycle(from:dragSensitivity:rotateSensitivity:)`
+    Unified scene-root helper with drag/rotate arbitration to prevent gesture-fighting.
 
--   `endAnchoredSceneManipulation()`\
+-   `endAnchoredSceneManipulation()`
     Ends any in-progress unified scene manipulation (drag, rotate, or pending classification).
 
--   `applyTwoHandZoomIfNeeded(from:sensitivity:)`\
-    Provides zoom delta signal. You must define what zoom means in your
-    app.
+-   `applyTwoHandZoomIfNeeded(from:entityId:sensitivity:)`
+    Scales the picked entity (or its parent) using the two-hand spread/pinch gesture.
+
+-   `applyTwoHandRotateIfNeeded(from:entityId:sensitivity:axisOverrideWorld:)`
+    Rotates the picked entity (or its parent) using the two-hand twist gesture.
+
+-   `endSpatialManipulation()`
+    Ends the current pinch-transform manipulation session.
+
+-   `resetSpatialManipulation()`
+    Resets all manipulation session state (use when changing modes or reloading scenes).

@@ -186,6 +186,118 @@ setCamera(.defaultFOV(70.0))
 setCamera(.clipPlanes(near: 0.1, far: 1000.0))
 ```
 
+## Input (XR)
+
+```swift
+// Register / unregister XR spatial event handling
+registerXREvents()
+unregisterXREvents()
+
+// Config
+setInput(.xr(.pickingBackend(.octreeGPUPreferred)))
+setInput(.xr(.twoHandRotateAxisMode(.dynamicSnapped)))
+setInput(.xr(.sceneReady(true)))
+
+// Query
+let state = getXRSpatialInputState()
+let ready = isXRSceneReady()
+```
+
+## Spatial Manipulation (visionOS)
+
+Use `setSpatialManipulation` for tuning thresholds and behaviour:
+
+```swift
+setSpatialManipulation(.intentTranslationThreshold(0.01))
+setSpatialManipulation(.intentRotationThreshold(0.08))
+setSpatialManipulation(.intentDominanceRatio(1.15))
+setSpatialManipulation(.zoomScale(min: 0.05, max: 20.0))
+setSpatialManipulation(.rotationDeltaLimit(perFrame: 0.12, twoHand: 0.35))
+setSpatialManipulation(.twoHandRotationDeadzone(0.001))
+setSpatialManipulation(.rotationSmoothing(factor: 0.25, deadzone: 0.002))
+setSpatialManipulation(.classificationFrames(3))
+setSpatialManipulation(.inputEpsilon(0.0001))
+```
+
+Per-frame lifecycle calls use free functions so callers do not need the shared instance:
+
+```swift
+let state = getXRSpatialInputState()
+
+// Full pinch-drag + rotate arbitration for a single entity
+processPinchTransformLifecycle(from: state)
+
+// Simpler per-delta drag (call each frame while pinch is active)
+applyPinchDragIfNeeded(from: state, entityId: myEntity, sensitivity: 1.0)
+
+// Anchored drag / rotate for individual entities
+processAnchoredPinchDragLifecycle(from: state, entityId: myEntity)
+
+// Anchored drag / rotate for the entire scene root
+processAnchoredSceneDragLifecycle(from: state)
+processAnchoredSceneRotateLifecycle(from: state)
+
+// Unified scene-root manipulation with drag/rotate arbitration
+processAnchoredSceneManipulationLifecycle(from: state, dragSensitivity: 1.0, rotateSensitivity: 1.0)
+
+// Two-hand zoom and rotate for a single entity
+applyTwoHandZoomIfNeeded(from: state, entityId: myEntity)
+applyTwoHandRotateIfNeeded(from: state, entityId: myEntity)
+```
+
+Session control:
+
+```swift
+resetSpatialManipulation()
+endSpatialManipulation()
+endAnchoredPinchDrag()
+endAnchoredSceneDrag()
+endAnchoredSceneManipulation()
+endAnchoredSceneRotate()
+```
+
+## Lighting
+
+Use `setLight(entityId:, _:)` for all per-entity light configuration. Light-type-specific properties are grouped under sub-domains that follow the `setDomain(.group(.property(value)))` shape:
+
+```swift
+// Shared across all light types
+setLight(entityId: light, .color(simd_float3(1.0, 0.85, 0.7)))
+setLight(entityId: light, .intensity(2.5))
+
+// Directional light
+setLight(entityId: light, .directional(.active))
+
+// Point light
+setLight(entityId: light, .point(.radius(5.0)))
+setLight(entityId: light, .point(.falloff(0.7)))
+setLight(entityId: light, .point(.attenuation(simd_float3(1, 0.5, 0.1))))
+
+// Spot light
+setLight(entityId: light, .spot(.coneAngle(30.0)))
+setLight(entityId: light, .spot(.falloff(0.5)))
+setLight(entityId: light, .spot(.radius(3.0)))
+setLight(entityId: light, .spot(.attenuation(simd_float3(1, 0.5, 0.1))))
+
+// Area light
+setLight(entityId: light, .area(.twoSided(true)))
+```
+
+Light creation and query functions remain explicit:
+
+```swift
+createDirLight(entityId: entity)
+createPointLight(entityId: entity)
+createSpotLight(entityId: entity)
+createAreaLight(entityId: entity)
+
+getLightColor(entityId: entity)
+getLightIntensity(entityId: entity)
+getLightRadius(entityId: entity)
+getLightFalloff(entityId: entity)
+getLightConeAngle(entityId: entity)
+```
+
 ## Style Rule
 
 For Contributors, when adding new public settings, prefer one of these forms:
@@ -200,6 +312,9 @@ setBatching(.newProperty(value))
 setSpatialDebug(.newProperty(value))
 setLogger(.newProperty(value))
 setCamera(.newProperty(value))
+setInput(.xr(.newProperty(value)))
+setSpatialManipulation(.newProperty(value))
+setLight(entityId: entity, .lightType(.newProperty(value)))
 setSceneChannel(.contextGeometry, .renderMode(.wireframe))
 ```
 
