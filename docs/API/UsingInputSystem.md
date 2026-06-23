@@ -51,7 +51,7 @@ if inputSystem.keyState.dPressed == true {
 
 ###Step 2: Using Input to Control Entities
 
-Here’s an example function that moves a car entity based on keyboard inputs:
+Here's an example function that moves a car entity based on keyboard inputs:
 
 ```swift
 func moveCar(entityId: EntityID, dt: Float) {
@@ -118,8 +118,62 @@ func handleInput() {
 
 ---
 
+## XR Input Configuration (visionOS)
+
+When developing for visionOS, use the `setInput` facade and free functions to configure XR input without touching the shared singleton directly.
+
+### Registering XR events
+
+Before any spatial input is received, register the XR event pipeline in your init:
+
+```swift
+func gameInit() {
+    registerXREvents()
+}
+```
+
+Call `unregisterXREvents()` to stop receiving spatial events when leaving XR mode.
+
+### Configuring XR behaviour
+
+```swift
+// Choose the spatial picking backend
+setInput(.xr(.pickingBackend(.octreeGPUPreferred)))
+
+// Set how the two-hand rotate axis is derived
+setInput(.xr(.twoHandRotateAxisMode(.dynamicSnapped)))
+
+// Signal that the XR scene is ready to receive input
+setInput(.xr(.sceneReady(true)))
+```
+
+Available two-hand rotate axis modes:
+
+- `.cameraForward` — rotates around the camera-forward axis (screen-style twist)
+- `.dynamic` — derives the axis from actual two-hand motion
+- `.dynamicSnapped` — dynamic axis snapped to the dominant world axis (`x`, `y`, or `z`)
+
+### Reading XR input state
+
+```swift
+func handleInput() {
+    let state = getXRSpatialInputState()
+
+    if state.spatialTapActive, let entityId = state.pickedEntityId {
+        Logger.log(message: "Tapped entity: \(entityId)")
+    }
+}
+```
+
+### Querying scene readiness
+
+```swift
+let ready = isXRSceneReady()
+```
+
+---
+
 ## Tips and Best Practices
 - Debouncing: If you want to execute an action only once per key press, track the key's previous state to avoid repeated triggers.
 - Game Mode Check: Always ensure the game is in the appropriate mode (e.g., Game Mode) before processing inputs.
 - Smooth Movement: Use dt (delta time) to ensure frame-rate-independent movement.
-

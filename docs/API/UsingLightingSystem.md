@@ -47,3 +47,109 @@ let panel = createEntity()
 createAreaLight(entityId: panel)
 ```
 
+---
+
+## Configuring Light Properties
+
+Use `setLight(entityId:, _:)` to configure any light after creation. The call shape follows the standard engine pattern — shared properties sit at the top level, and type-specific properties are grouped under a sub-domain:
+
+```swift
+setLight(entityId: light, .property(value))               // shared
+setLight(entityId: light, .lightType(.property(value)))   // type-specific
+```
+
+### Shared properties (all light types)
+
+Color and intensity apply to every light type:
+
+```swift
+setLight(entityId: light, .color(simd_float3(1.0, 0.85, 0.7)))
+setLight(entityId: light, .intensity(2.5))
+```
+
+### Directional light
+
+The `.directional(.active)` case designates the entity as the scene's active directional light — the one the renderer uses for shadows and directional shading. Only one entity can be active at a time; calling this again on a different entity replaces the previous one.
+
+```swift
+let sun = createEntity()
+createDirLight(entityId: sun)
+rotateTo(entityId: sun, angle: -45.0, axis: simd_float3(1, 0, 0))
+
+setLight(entityId: sun, .color(simd_float3(1.0, 0.95, 0.8)))
+setLight(entityId: sun, .intensity(1.2))
+setLight(entityId: sun, .directional(.active))
+```
+
+### Point light
+
+Point lights have a `radius` (effective influence range) and a `falloff` (0 = linear, 1 = physically-based quadratic). You can also override the raw attenuation coefficients if you need exact control:
+
+```swift
+let bulb = createEntity()
+createPointLight(entityId: bulb)
+translateTo(entityId: bulb, position: simd_float3(0, 2, 0))
+
+setLight(entityId: bulb, .color(simd_float3(1, 0.6, 0.2)))
+setLight(entityId: bulb, .intensity(3.0))
+setLight(entityId: bulb, .point(.radius(8.0)))
+setLight(entityId: bulb, .point(.falloff(0.7)))
+setLight(entityId: bulb, .point(.attenuation(simd_float3(1, 0.5, 0.1))))
+```
+
+### Spot light
+
+Spot lights add a cone. `coneAngle` controls the outer cone in degrees; `falloff` softens the inner edge:
+
+```swift
+let spot = createEntity()
+createSpotLight(entityId: spot)
+
+setLight(entityId: spot, .color(simd_float3(1, 1, 0.9)))
+setLight(entityId: spot, .intensity(4.0))
+setLight(entityId: spot, .spot(.coneAngle(25.0)))
+setLight(entityId: spot, .spot(.falloff(0.6)))
+setLight(entityId: spot, .spot(.radius(6.0)))
+setLight(entityId: spot, .spot(.attenuation(simd_float3(1, 0.4, 0.08))))
+```
+
+### Area light
+
+Area lights derive their bounds from the entity's scale and orientation. The one configurable flag is `twoSided`, which controls whether the light emits from both faces of the rectangle:
+
+```swift
+let panel = createEntity()
+createAreaLight(entityId: panel)
+
+setLight(entityId: panel, .color(simd_float3(0.9, 0.95, 1.0)))
+setLight(entityId: panel, .intensity(5.0))
+setLight(entityId: panel, .area(.twoSided(true)))
+```
+
+---
+
+## Querying Light Properties
+
+```swift
+let color     = getLightColor(entityId: light)
+let intensity = getLightIntensity(entityId: light)
+let radius    = getLightRadius(entityId: light)
+let falloff   = getLightFalloff(entityId: light)
+let coneAngle = getLightConeAngle(entityId: light)
+```
+
+---
+
+## Light Direction Queries
+
+```swift
+// World-space semantic emission/travel direction (away from the light)
+let emission = getLightEmissionDirection(entityId: light)
+
+// Local +Z in world space (transform axis, not emission)
+let forward = getLightTransformForwardAxis(entityId: light)
+
+// Direction from shaded point toward the light (BRDF input convention)
+let shader = getDirectionalLightShaderDirection(entityId: light)
+```
+
