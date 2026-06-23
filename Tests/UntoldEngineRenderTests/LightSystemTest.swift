@@ -107,6 +107,43 @@ final class LightSystemTest: BaseRenderSetup {
         assertVector(getLightTransformForwardAxis(entityId: area), equals: simd_float3(0.0, 1.0, 0.0))
         assertVector(getLightEmissionDirection(entityId: area), equals: simd_float3(0.0, -1.0, 0.0))
         assertVector(getAreaLights().first?.forward ?? .zero, equals: simd_float3(0.0, 1.0, 0.0))
+        XCTAssertEqual(getAreaLights().first?.nearSourceSuppressionRadius ?? -1.0, 0.0)
+    }
+
+    func testAreaLightShaderUniformLayoutIncludesPortalFields() {
+        XCTAssertEqual(MemoryLayout<AreaLight>.stride, MemoryLayout<AreaLightUniform>.stride)
+        XCTAssertEqual(MemoryLayout<AreaLight>.alignment, MemoryLayout<AreaLightUniform>.alignment)
+
+        var light = AreaLight()
+        light.position = simd_float3(1.0, 2.0, 3.0)
+        light.color = simd_float3(0.75, 0.5, 0.25)
+        light.forward = simd_float3(0.0, 0.0, 1.0)
+        light.right = simd_float3(1.0, 0.0, 0.0)
+        light.up = simd_float3(0.0, 1.0, 0.0)
+        light.bounds = simd_float2(4.0, 2.0)
+        light.intensity = 1.5
+        light.range = 6.0
+        light.nearSourceSuppressionRadius = 0.35
+        light.twoSided = true
+
+        let uniform = [light].withUnsafeBufferPointer { buffer in
+            UnsafeRawBufferPointer(
+                start: buffer.baseAddress,
+                count: MemoryLayout<AreaLight>.stride
+            ).load(as: AreaLightUniform.self)
+        }
+
+        assertVector(uniform.position, equals: light.position)
+        assertVector(uniform.color, equals: light.color)
+        assertVector(uniform.forward, equals: light.forward)
+        assertVector(uniform.right, equals: light.right)
+        assertVector(uniform.up, equals: light.up)
+        XCTAssertEqual(uniform.bounds.x, light.bounds.x, accuracy: 0.0001)
+        XCTAssertEqual(uniform.bounds.y, light.bounds.y, accuracy: 0.0001)
+        XCTAssertEqual(uniform.intensity, light.intensity, accuracy: 0.0001)
+        XCTAssertEqual(uniform.range, light.range, accuracy: 0.0001)
+        XCTAssertEqual(uniform.nearSourceSuppressionRadius, light.nearSourceSuppressionRadius, accuracy: 0.0001)
+        XCTAssertTrue(uniform.twoSided)
     }
 
     func testGetDirLightParameters() {

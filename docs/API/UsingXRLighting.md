@@ -101,6 +101,9 @@ Important fields:
 | `providerRunning` | Whether the ARKit provider is currently running. |
 | `latestProbeTimestamp` | Timestamp of the latest accepted probe update. |
 | `latestProbeTextureValid` | Whether the latest accepted probe contained a usable texture. |
+| `latestCameraScaleReference` | Raw camera exposure reference reported with the latest accepted probe, when available. |
+| `latestIntensityScale` | Engine-normalized brightness scale derived from the probe camera scale reference. This is applied before `realWorldLightingContribution`. |
+| `latestTintColor` | Normalized RGB tint sampled from the latest accepted environment probe. Light portals use this for warm/cool real-world color. |
 | `prefilterInFlight` | Whether the engine is currently converting a probe into runtime IBL textures. |
 | `lastPrefilterDurationMs` | GPU command duration for the most recent prefilter pass. |
 | `realWorldLightingContribution` | Current real-world lighting contribution multiplier. |
@@ -109,6 +112,8 @@ Important fields:
 | `fallbackReason` | Reason XR lighting is unavailable, if the renderer is falling back. |
 
 Probe updates are not expected every frame. ARKit publishes updates opportunistically as the real-world estimate changes. The engine throttles accepted probe work to avoid unnecessary GPU prefiltering.
+
+When testing room-light changes, watch `acceptedProbeUpdateCount`, `latestProbeTimestamp`, and `latestIntensityScale`. The visual result only changes after the engine accepts and prefilters a new probe update.
 
 ## Passthrough
 
@@ -120,3 +125,16 @@ xr.setXRLightingMode(.realWorldEstimate)
 ```
 
 Mixed passthrough controls whether the real camera view is visible. XR lighting controls how virtual content is shaded. They can be used together or independently.
+
+## Light Portals
+
+For spatial twin scenes, selected window geometry can be configured as light portals. A portal emits a bounded proxy area light from the window surface, and can scale its intensity using the current XR lighting estimate:
+
+```swift
+setSceneChannel(
+    .windowGeometry,
+    .lightPortal(.enabled(useRealWorldTint: true))
+)
+```
+
+See [Light Portals](UsingLightPortals.md) for setup details, diagnostics, performance notes, and limitations.

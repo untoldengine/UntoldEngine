@@ -130,6 +130,97 @@ final class SceneContextVisibilityTests: XCTestCase {
         XCTAssertEqual(getSceneChannelRenderMode([.contextGeometry, .selectableGeometry, .preserveIdentity]), .hidden)
     }
 
+    func testSceneChannelLightPortalDefaultsToDisabled() {
+        XCTAssertEqual(getSceneChannelLightPortalMode(.contextGeometry), .disabled)
+        XCTAssertFalse(shouldUseSceneChannelsAsLightPortals(.contextGeometry))
+        XCTAssertFalse(hasSceneChannelLightPortalsEnabled())
+    }
+
+    func testSceneChannelLightPortalCanBeEnabledAndDisabled() {
+        let windowChannel = SceneChannel.userCustom(index: 1)
+
+        setSceneChannel(windowChannel, .lightPortal(.enabled(
+            intensity: 1.25,
+            range: 7.5,
+            useRealWorldTint: true,
+            maxActivePortals: 6,
+            activationDistance: 18.0
+        )))
+
+        XCTAssertEqual(
+            getSceneChannelLightPortalMode(windowChannel),
+            .enabled(
+                intensity: 1.25,
+                range: 7.5,
+                useRealWorldTint: true,
+                maxActivePortals: 6,
+                activationDistance: 18.0
+            )
+        )
+        XCTAssertTrue(shouldUseSceneChannelsAsLightPortals(windowChannel))
+        XCTAssertTrue(hasSceneChannelLightPortalsEnabled())
+
+        setSceneChannel(windowChannel, .lightPortal(.disabled))
+
+        XCTAssertEqual(getSceneChannelLightPortalMode(windowChannel), .disabled)
+        XCTAssertFalse(shouldUseSceneChannelsAsLightPortals(windowChannel))
+        XCTAssertFalse(hasSceneChannelLightPortalsEnabled())
+    }
+
+    func testSceneChannelLightPortalValuesAreClamped() {
+        let windowChannel = SceneChannel.userCustom(index: 1)
+
+        setSceneChannel(windowChannel, .lightPortal(.enabled(
+            intensity: -1.0,
+            range: -5.0,
+            useRealWorldTint: false,
+            maxActivePortals: -4,
+            activationDistance: -.infinity
+        )))
+
+        XCTAssertEqual(
+            getSceneChannelLightPortalMode(windowChannel),
+            .enabled(
+                intensity: 0.0,
+                range: 0.001,
+                useRealWorldTint: false,
+                maxActivePortals: 0,
+                activationDistance: 15.0
+            )
+        )
+    }
+
+    func testCombinedSceneChannelLightPortalUsesMostPermissiveValues() {
+        let broadChannel = SceneChannel.userCustom(index: 1)
+        let specificChannel = SceneChannel.userCustom(index: 2)
+
+        setSceneChannel(broadChannel, .lightPortal(.enabled(
+            intensity: 0.75,
+            range: 4.0,
+            useRealWorldTint: false,
+            maxActivePortals: 4,
+            activationDistance: 10.0
+        )))
+        setSceneChannel(specificChannel, .lightPortal(.enabled(
+            intensity: 1.5,
+            range: 8.0,
+            useRealWorldTint: true,
+            maxActivePortals: 2,
+            activationDistance: 20.0
+        )))
+
+        XCTAssertEqual(
+            sceneChannelLightPortalMode(for: [broadChannel, specificChannel]),
+            .enabled(
+                intensity: 1.5,
+                range: 8.0,
+                useRealWorldTint: true,
+                maxActivePortals: 4,
+                activationDistance: 20.0
+            )
+        )
+    }
+
     func testNMNamedEntityIsSelectableSceneEntity() {
         let entityId = createEntity()
         setEntityName(entityId: entityId, name: "NM_Pipe_001")

@@ -11,6 +11,7 @@
 #if os(visionOS)
     import Foundation
     import Metal
+    import simd
     import UntoldEngine
     #if canImport(ARKit)
         import ARKit
@@ -23,6 +24,8 @@
         public var latestProbeTimestamp: CFTimeInterval?
         public var latestProbeTextureValid: Bool
         public var latestCameraScaleReference: Float?
+        public var latestIntensityScale: Float
+        public var latestTintColor: simd_float3
         public var prefilterInFlight: Bool
         public var lastPrefilterDurationMs: Double?
         public var realWorldLightingContribution: Float
@@ -38,6 +41,8 @@
         private var latestProbeTimestampValue: CFTimeInterval?
         private var latestProbeTextureValidValue = false
         private var latestCameraScaleReferenceValue: Float?
+        private var latestIntensityScaleValue: Float = 1.0
+        private var latestTintColorValue = simd_float3(1.0, 1.0, 1.0)
         private var prefilterInFlightValue = false
         private var lastPrefilterDurationMsValue: Double?
         private var acceptedProbeUpdateCountValue = 0
@@ -48,6 +53,7 @@
         private var textureSets: [RuntimeEnvironmentLightingTextureSet] = []
         private var currentReadTextureSetIndex = 0
         private var prefilterGeneration: UInt64 = 0
+        private let cameraScaleReferenceWhitePoint: Float = 5000.0
 
         #if canImport(ARKit)
             private let environmentLightEstimationProvider: EnvironmentLightEstimationProvider?
@@ -99,6 +105,8 @@
                 latestProbeTimestampValue = nil
                 latestProbeTextureValidValue = false
                 latestCameraScaleReferenceValue = nil
+                latestIntensityScaleValue = 1.0
+                latestTintColorValue = simd_float3(1.0, 1.0, 1.0)
                 providerRunningValue = false
                 prefilterInFlightValue = false
                 lastPrefilterDurationMsValue = nil
@@ -148,6 +156,7 @@
             latestProbeTextureValidValue = false
             fallbackReasonValue = reason
             lock.unlock()
+            RuntimeEnvironmentLightingStore.shared.publishXRLighting(nil)
         }
 
         #if canImport(ARKit)
@@ -178,18 +187,16 @@
                     guard shouldAcceptProbeUpdate(timestamp: anchor.timestamp) else { return }
 
                     let hasTexture = anchor.environmentTexture != nil
-                    lock.lock()
-                    latestProbeTextureValidValue = hasTexture
-                    latestCameraScaleReferenceValue = anchor.cameraScaleReference
-                    if !hasTexture {
-                        fallbackReasonValue = "XR probe texture unavailable"
-                    }
-                    lock.unlock()
+                    let intensityScale = updateProbeCameraScaleReference(
+                        anchor.cameraScaleReference,
+                        hasTexture: hasTexture
+                    )
 
                     if let environmentTexture = anchor.environmentTexture {
                         scheduleProbePrefilter(
                             environmentTexture: environmentTexture,
                             timestamp: anchor.timestamp,
+                            intensityScale: intensityScale,
                             retainedAnchor: anchor
                         )
                     }
@@ -253,6 +260,8 @@
             textureSetIndex: Int,
             generation: UInt64,
             timestamp: CFTimeInterval,
+            intensityScale: Float,
+            tintColor: simd_float3,
             durationMs: Double
         ) {
             lock.lock()
@@ -268,11 +277,13 @@
             guard succeeded, textureSets.indices.contains(textureSetIndex) else {
                 fallbackReasonValue = "XR probe prefilter failed"
                 lock.unlock()
+                RuntimeEnvironmentLightingStore.shared.publishXRLighting(nil)
                 return
             }
 
             currentReadTextureSetIndex = textureSetIndex
             let textureSet = textureSets[textureSetIndex]
+            latestTintColorValue = tintColor
             fallbackReasonValue = nil
             lock.unlock()
 
@@ -281,16 +292,54 @@
                     irradianceMap: textureSet.irradianceMap,
                     specularMap: textureSet.specularMap,
                     brdfMap: textureSet.brdfMap,
-                    intensityScale: 1.0,
+                    intensityScale: intensityScale,
+                    tintColor: tintColor,
                     timestamp: timestamp,
                     isValid: true
                 )
             )
         }
 
+        private func updateProbeCameraScaleReference(_ cameraScaleReference: Float?, hasTexture: Bool) -> Float {
+            lock.lock()
+            defer { lock.unlock() }
+
+            latestProbeTextureValidValue = hasTexture
+            latestCameraScaleReferenceValue = cameraScaleReference
+            if !hasTexture {
+                fallbackReasonValue = "XR probe texture unavailable"
+                latestIntensityScaleValue = 0.0
+                latestTintColorValue = simd_float3(1.0, 1.0, 1.0)
+                RuntimeEnvironmentLightingStore.shared.publishXRLighting(nil)
+            }
+
+            guard let cameraScaleReference,
+                  cameraScaleReference.isFinite,
+                  cameraScaleReference > 0.0001
+            else {
+                latestIntensityScaleValue = hasTexture ? 1.0 : 0.0
+                return latestIntensityScaleValue
+            }
+
+            let intensityScale = min(max(cameraScaleReference / cameraScaleReferenceWhitePoint, 0.0), 8.0)
+            latestIntensityScaleValue = intensityScale
+            return intensityScale
+        }
+
+        private struct EnvironmentTintReadback {
+            var buffer: MTLBuffer
+            var pixelFormat: MTLPixelFormat
+            var width: Int
+            var height: Int
+            var bytesPerRow: Int
+            var faceBytes: Int
+            var faceCount: Int
+        }
+
         private func scheduleProbePrefilter(
             environmentTexture: MTLTexture,
             timestamp: CFTimeInterval,
+            intensityScale: Float,
             retainedAnchor: Any
         ) {
             guard environmentTexture.textureType == .typeCube else {
@@ -309,6 +358,8 @@
                     textureSetIndex: textureSetIndex,
                     generation: generation,
                     timestamp: timestamp,
+                    intensityScale: intensityScale,
+                    tintColor: simd_float3(1.0, 1.0, 1.0),
                     durationMs: 0
                 )
                 return
@@ -316,6 +367,10 @@
 
             commandBuffer.label = "XR Environment Probe IBL Prefilter"
             let startTime = Date().timeIntervalSinceReferenceDate
+            let tintReadback = encodeEnvironmentTintReadback(
+                commandBuffer: commandBuffer,
+                environmentTexture: environmentTexture
+            )
             let encoded = executeXRIBLCubePreFilterPass(
                 commandBuffer: commandBuffer,
                 environmentCubeTexture: environmentTexture,
@@ -328,6 +383,8 @@
                     textureSetIndex: textureSetIndex,
                     generation: generation,
                     timestamp: timestamp,
+                    intensityScale: intensityScale,
+                    tintColor: simd_float3(1.0, 1.0, 1.0),
                     durationMs: 0
                 )
                 return
@@ -336,15 +393,129 @@
             commandBuffer.addCompletedHandler { [weak self, retainedAnchor] commandBuffer in
                 _ = retainedAnchor
                 let durationMs = (Date().timeIntervalSinceReferenceDate - startTime) * 1000.0
+                let tintColor = tintReadback.map { self?.environmentTint(from: $0) ?? simd_float3(1.0, 1.0, 1.0) }
+                    ?? simd_float3(1.0, 1.0, 1.0)
                 self?.finishPrefilter(
                     succeeded: commandBuffer.status == .completed,
                     textureSetIndex: textureSetIndex,
                     generation: generation,
                     timestamp: timestamp,
+                    intensityScale: intensityScale,
+                    tintColor: tintColor,
                     durationMs: durationMs
                 )
             }
             commandBuffer.commit()
+        }
+
+        private func encodeEnvironmentTintReadback(
+            commandBuffer: MTLCommandBuffer,
+            environmentTexture: MTLTexture
+        ) -> EnvironmentTintReadback? {
+            guard let bytesPerPixel = environmentTintBytesPerPixel(for: environmentTexture.pixelFormat),
+                  let blit = commandBuffer.makeBlitCommandEncoder()
+            else { return nil }
+
+            let mipLevel = max(environmentTexture.mipmapLevelCount - 1, 0)
+            let width = max(environmentTexture.width >> mipLevel, 1)
+            let height = max(environmentTexture.height >> mipLevel, 1)
+            let bytesPerRow = width * bytesPerPixel
+            let faceBytes = bytesPerRow * height
+            let faceCount = 6
+            let bufferLength = faceBytes * faceCount
+
+            guard let buffer = renderInfo.device.makeBuffer(length: bufferLength, options: .storageModeShared) else {
+                blit.endEncoding()
+                return nil
+            }
+            buffer.label = "XR Environment Probe Tint Readback"
+
+            for face in 0 ..< faceCount {
+                blit.copy(
+                    from: environmentTexture,
+                    sourceSlice: face,
+                    sourceLevel: mipLevel,
+                    sourceOrigin: MTLOrigin(x: 0, y: 0, z: 0),
+                    sourceSize: MTLSize(width: width, height: height, depth: 1),
+                    to: buffer,
+                    destinationOffset: face * faceBytes,
+                    destinationBytesPerRow: bytesPerRow,
+                    destinationBytesPerImage: faceBytes
+                )
+            }
+            blit.endEncoding()
+
+            return EnvironmentTintReadback(
+                buffer: buffer,
+                pixelFormat: environmentTexture.pixelFormat,
+                width: width,
+                height: height,
+                bytesPerRow: bytesPerRow,
+                faceBytes: faceBytes,
+                faceCount: faceCount
+            )
+        }
+
+        private func environmentTintBytesPerPixel(for pixelFormat: MTLPixelFormat) -> Int? {
+            switch pixelFormat {
+            case .rgba16Float:
+                return 8
+            case .rgba32Float:
+                return 16
+            case .rgba8Unorm, .rgba8Unorm_srgb, .bgra8Unorm, .bgra8Unorm_srgb:
+                return 4
+            default:
+                return nil
+            }
+        }
+
+        private func environmentTint(from readback: EnvironmentTintReadback) -> simd_float3 {
+            let contents = readback.buffer.contents()
+            var total = simd_float3(0.0, 0.0, 0.0)
+            var sampleCount: Float = 0.0
+
+            for face in 0 ..< readback.faceCount {
+                let faceBase = face * readback.faceBytes
+                for y in 0 ..< readback.height {
+                    let rowBase = faceBase + y * readback.bytesPerRow
+                    for x in 0 ..< readback.width {
+                        let offset = rowBase + x * environmentTintBytesPerPixel(for: readback.pixelFormat)!
+                        total += environmentTintPixel(contents: contents, offset: offset, pixelFormat: readback.pixelFormat)
+                        sampleCount += 1.0
+                    }
+                }
+            }
+
+            guard sampleCount > 0.0 else { return simd_float3(1.0, 1.0, 1.0) }
+            let average = total / sampleCount
+            let luminance = simd_dot(average, simd_float3(0.2126, 0.7152, 0.0722))
+            guard luminance.isFinite, luminance > 0.0001 else { return simd_float3(1.0, 1.0, 1.0) }
+
+            let tint = average / luminance
+            return simd_clamp(tint, simd_float3(0.25, 0.25, 0.25), simd_float3(2.5, 2.5, 2.5))
+        }
+
+        private func environmentTintPixel(contents: UnsafeMutableRawPointer, offset: Int, pixelFormat: MTLPixelFormat) -> simd_float3 {
+            switch pixelFormat {
+            case .rgba16Float:
+                let pointer = contents.advanced(by: offset).assumingMemoryBound(to: UInt16.self)
+                return simd_float3(
+                    Float(Float16(bitPattern: pointer[0])),
+                    Float(Float16(bitPattern: pointer[1])),
+                    Float(Float16(bitPattern: pointer[2]))
+                )
+            case .rgba32Float:
+                let pointer = contents.advanced(by: offset).assumingMemoryBound(to: Float.self)
+                return simd_float3(pointer[0], pointer[1], pointer[2])
+            case .rgba8Unorm, .rgba8Unorm_srgb:
+                let pointer = contents.advanced(by: offset).assumingMemoryBound(to: UInt8.self)
+                return simd_float3(Float(pointer[0]), Float(pointer[1]), Float(pointer[2])) / 255.0
+            case .bgra8Unorm, .bgra8Unorm_srgb:
+                let pointer = contents.advanced(by: offset).assumingMemoryBound(to: UInt8.self)
+                return simd_float3(Float(pointer[2]), Float(pointer[1]), Float(pointer[0])) / 255.0
+            default:
+                return simd_float3(1.0, 1.0, 1.0)
+            }
         }
 
         public func diagnostics() -> XREnvironmentLightingDiagnostics {
@@ -361,6 +532,8 @@
                 latestProbeTimestamp: latestProbeTimestampValue,
                 latestProbeTextureValid: latestProbeTextureValidValue,
                 latestCameraScaleReference: latestCameraScaleReferenceValue,
+                latestIntensityScale: latestIntensityScaleValue,
+                latestTintColor: latestTintColorValue,
                 prefilterInFlight: prefilterInFlightValue,
                 lastPrefilterDurationMs: lastPrefilterDurationMsValue,
                 realWorldLightingContribution: RuntimeEnvironmentLightingStore.shared.realWorldLightingContribution,
