@@ -121,9 +121,15 @@ public func isXRSceneReady() -> Bool {
     public func processAnchoredPinchDragLifecycle(
         from state: XRSpatialInputState,
         entityId: EntityID? = nil,
-        sensitivity: Float = 1.0
+        sensitivity: Float = 1.0,
+        dragPlane: SpatialDragPlane = .unconstrained
     ) {
-        SpatialManipulationSystem.shared.processAnchoredPinchDragLifecycle(from: state, entityId: entityId, sensitivity: sensitivity)
+        SpatialManipulationSystem.shared.processAnchoredPinchDragLifecycle(
+            from: state,
+            entityId: entityId,
+            sensitivity: sensitivity,
+            dragPlane: dragPlane
+        )
     }
 
     public func processAnchoredSceneDragLifecycle(from state: XRSpatialInputState, sensitivity: Float = 1.0) {
@@ -178,8 +184,16 @@ public func isXRSceneReady() -> Bool {
         SpatialManipulationSystem.shared.endSpatialManipulation()
     }
 
-    public func beginAnchoredPinchDragIfNeeded(from state: XRSpatialInputState, entityId: EntityID? = nil) {
-        SpatialManipulationSystem.shared.beginAnchoredPinchDragIfNeeded(from: state, entityId: entityId)
+    public func beginAnchoredPinchDragIfNeeded(
+        from state: XRSpatialInputState,
+        entityId: EntityID? = nil,
+        dragPlane: SpatialDragPlane = .unconstrained
+    ) {
+        SpatialManipulationSystem.shared.beginAnchoredPinchDragIfNeeded(
+            from: state,
+            entityId: entityId,
+            dragPlane: dragPlane
+        )
     }
 
     public func endAnchoredPinchDrag() {
