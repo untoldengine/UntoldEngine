@@ -953,7 +953,26 @@ public func getMaterialEmmissive(entityId: EntityID, meshIndex: Int = 0, submesh
     getMaterial(entityId: entityId, meshIndex: meshIndex, submeshIndex: submeshIndex)?.emissiveValue ?? .zero
 }
 
-public func updateMaterialEmmisive(entityId: EntityID, emmissive: simd_float3, meshIndex: Int = 0, submeshIndex: Int = 0) {
+public func updateMaterialEmmisive(
+    entityId: EntityID,
+    emmissive: simd_float3,
+    recursive: Bool = false,
+    meshIndex: Int = 0,
+    submeshIndex: Int = 0
+) {
+    if recursive {
+        for targetEntityId in entityAndDescendantIds(entityId) {
+            updateMaterialEmmisive(
+                entityId: targetEntityId,
+                emmissive: emmissive,
+                recursive: false,
+                meshIndex: meshIndex,
+                submeshIndex: submeshIndex
+            )
+        }
+        return
+    }
+
     guard updateMaterial(entityId: entityId, meshIndex: meshIndex, submeshIndex: submeshIndex, mutate: { $0.emissiveValue = emmissive }) else {
         return
     }
@@ -990,8 +1009,21 @@ public func getMaterialOpacity(entityId: EntityID, meshIndex: Int = 0, submeshIn
 public func updateMaterialOpacity(
     entityId: EntityID,
     opacity: Float,
-    applyToAllSubmeshes: Bool = true
+    applyToAllSubmeshes: Bool = true,
+    recursive: Bool = false
 ) {
+    if recursive {
+        for targetEntityId in entityAndDescendantIds(entityId) {
+            updateMaterialOpacity(
+                entityId: targetEntityId,
+                opacity: opacity,
+                applyToAllSubmeshes: applyToAllSubmeshes,
+                recursive: false
+            )
+        }
+        return
+    }
+
     let clampedOpacity = max(0.0, min(1.0, opacity))
     guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
         return
@@ -1046,6 +1078,24 @@ public func updateMaterialOpacity(
         return
     }
     refreshStaticBatchingForMaterialChange(entityId: entityId)
+}
+
+private func entityAndDescendantIds(_ entityId: EntityID) -> [EntityID] {
+    var entityIds: [EntityID] = [entityId]
+    var index = 0
+
+    while index < entityIds.count {
+        let currentEntityId = entityIds[index]
+        index += 1
+
+        guard let scenegraphComponent = scene.get(component: ScenegraphComponent.self, for: currentEntityId) else {
+            continue
+        }
+
+        entityIds.append(contentsOf: scenegraphComponent.children)
+    }
+
+    return entityIds
 }
 
 func makeFloat4Texture(data: [simd_float4],

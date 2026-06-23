@@ -85,6 +85,12 @@ let emissive = getMaterialEmmissive(entityId: entity)
 updateMaterialEmmisive(entityId: entity, emmissive: simd_float3(1.0, 0.5, 0.0))
 ```
 
+To apply the same emissive value to an entity and all of its scenegraph descendants:
+
+```swift
+updateMaterialEmmisive(entityId: rootEntity, emmissive: simd_float3(1.0, 0.5, 0.0), recursive: true)
+```
+
 > **Spelling note:** The API currently uses `getMaterialEmmissive` / `updateMaterialEmmisive` (with double-m). Use these exact names when calling the functions.
 
 ---
@@ -153,6 +159,12 @@ By default this applies to **every submesh** on the entity. To target a single s
 updateMaterialOpacity(entityId: entity, opacity: 0.5, applyToAllSubmeshes: false)
 ```
 
+To apply opacity to an entity and all of its scenegraph descendants:
+
+```swift
+updateMaterialOpacity(entityId: rootEntity, opacity: 0.5, recursive: true)
+```
+
 Or specify exact indices:
 
 ```swift
@@ -170,11 +182,11 @@ updateMaterialOpacity(entityId: entity, opacity: 0.5, meshIndex: 0, submeshIndex
 - `getMaterialMetallic(entityId:meshIndex:submeshIndex:)` → `Float`
 - `updateMaterialMetallic(entityId:metallic:meshIndex:submeshIndex:)`
 - `getMaterialEmmissive(entityId:meshIndex:submeshIndex:)` → `simd_float3`
-- `updateMaterialEmmisive(entityId:emmissive:meshIndex:submeshIndex:)`
+- `updateMaterialEmmisive(entityId:emmissive:recursive:meshIndex:submeshIndex:)`
 - `getMaterialAlphaMode(entityId:meshIndex:submeshIndex:)` → `MaterialAlphaMode`
 - `updateMaterialAlphaMode(entityId:mode:meshIndex:submeshIndex:)`
 - `getMaterialAlphaCutoff(entityId:meshIndex:submeshIndex:)` → `Float`
 - `updateMaterialAlphaCutoff(entityId:cutoff:meshIndex:submeshIndex:)`
 - `getMaterialOpacity(entityId:meshIndex:submeshIndex:)` → `Float`
-- `updateMaterialOpacity(entityId:opacity:applyToAllSubmeshes:)`
+- `updateMaterialOpacity(entityId:opacity:applyToAllSubmeshes:recursive:)`
 - `updateMaterialOpacity(entityId:opacity:meshIndex:submeshIndex:)`
