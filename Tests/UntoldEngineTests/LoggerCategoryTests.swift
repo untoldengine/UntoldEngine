@@ -34,6 +34,7 @@ final class LoggerCategoryTests: XCTestCase {
         XCTAssertFalse(Logger.isEnabled(category: .streamingHeartbeat))
         XCTAssertFalse(Logger.isEnabled(category: .textureStreaming))
         XCTAssertFalse(Logger.isEnabled(category: .textureLoading))
+        XCTAssertFalse(Logger.isEnabled(category: .lightPortal))
     }
 
     func testStreamingCategoriesCanBeEnabledIndividually() {
@@ -45,6 +46,7 @@ final class LoggerCategoryTests: XCTestCase {
         XCTAssertFalse(Logger.isEnabled(category: .textureStreaming))
         XCTAssertFalse(Logger.isEnabled(category: .textureLoading))
         XCTAssertFalse(Logger.isEnabled(category: .streamingHeartbeat))
+        XCTAssertFalse(Logger.isEnabled(category: .lightPortal))
     }
 
     func testWarningsRespectCategoryToggles() {

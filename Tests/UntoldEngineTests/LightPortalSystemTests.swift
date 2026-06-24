@@ -118,6 +118,36 @@ final class LightPortalSystemTests: XCTestCase {
         XCTAssertTrue(areaLights.isEmpty)
         XCTAssertEqual(getLightPortalDiscoveryDiagnostics(), .empty)
         XCTAssertEqual(getLightPortalResolutionDiagnostics(), .empty)
+        XCTAssertEqual(getLightPortalPerformanceDiagnostics(), .empty)
+    }
+
+    func testPerformanceDiagnosticsRecordDiscoveryAndResolutionCost() {
+        let windowChannel = SceneChannel.userCustom(index: 23)
+        setSceneChannel(windowChannel, .lightPortal(.enabled(maxActivePortals: 2, activationDistance: 20.0)))
+        _ = makePortalEntity(channels: windowChannel, position: simd_float3(1.0, 0.0, 0.0))
+        _ = makePortalEntity(channels: windowChannel, position: simd_float3(3.0, 0.0, 0.0))
+
+        _ = resolveSceneLightPortalProxyLights(cameraPosition: .zero)
+
+        let diagnostics = getLightPortalPerformanceDiagnostics()
+        XCTAssertNotNil(diagnostics.lastDiscoveryDurationMs)
+        XCTAssertNotNil(diagnostics.lastResolutionDurationMs)
+        XCTAssertGreaterThanOrEqual(diagnostics.lastDiscoveryDurationMs ?? -1.0, 0.0)
+        XCTAssertGreaterThanOrEqual(diagnostics.lastResolutionDurationMs ?? -1.0, 0.0)
+        XCTAssertEqual(diagnostics.lastScannedRenderableEntityCount, 2)
+        XCTAssertEqual(diagnostics.lastDiscoveredCandidateCount, 2)
+        XCTAssertEqual(diagnostics.lastResolvedProxyLightCount, 2)
+    }
+
+    func testDiagnosticsLoggingRequiresLightPortalCategory() {
+        Logger.resetCategoryToggles()
+        XCTAssertFalse(Logger.isEnabled(category: .lightPortal))
+
+        LightPortalSystem.shared.logDiagnosticsNow()
+
+        Logger.enable(category: .lightPortal)
+        XCTAssertTrue(Logger.isEnabled(category: .lightPortal))
+        LightPortalSystem.shared.logDiagnosticsNow()
     }
 
     func testResolveProxyLightsDerivesShapeFromPortalTransform() {

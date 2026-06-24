@@ -384,3 +384,4 @@ Profiler hooks are already integrated into:
 - `UntoldEngineXR.swift` (`executeXRSystemPass`)
 - `UntoldEngineAR.swift` (`draw`)
 - `BatchingSystem.swift` (`logMaterialDiagnosticsIfDue` — fires automatically every 30 s when the `.batching` category is enabled)
+- `LightPortalSystem.swift` (`logDiagnosticsIfDue` — fires automatically every 1 s when the `.lightPortal` category is enabled)
