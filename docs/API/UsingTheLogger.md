@@ -79,6 +79,7 @@ Categories let you silence or focus specific subsystems without changing the glo
 | `.engineStats`        | `"EngineStats"`        | enabled       |
 | `.integration`        | `"Integration"`        | enabled       |
 | `.xrCamera`           | `"XRCamera"`           | disabled      |
+| `.lightPortal`        | `"LightPortal"`        | disabled      |
 | `.oocTiming`          | `"OOCTiming"`          | disabled      |
 | `.oocStatus`          | `"OOCStatus"`          | disabled      |
 | `.assetLoader`        | `"AssetLoader"`        | disabled      |

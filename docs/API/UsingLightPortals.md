@@ -87,9 +87,11 @@ Resolution diagnostics report which portals become active proxy lights:
 ```swift
 let proxies = resolveSceneLightPortalProxyLightsForActiveCamera()
 let resolution = getLightPortalResolutionDiagnostics()
+let performance = getLightPortalPerformanceDiagnostics()
 let render = getLightPortalRenderDiagnostics()
 print(proxies)
 print(resolution)
+print(performance)
 print(render)
 ```
 
@@ -107,6 +109,10 @@ Important fields:
 | `activePortalCount` | Portal proxy lights emitted after distance filtering and active-count capping. |
 | `skippedByActivationDistanceCount` | Candidates outside `activationDistance`. |
 | `maxActivePortals` | Active portal cap used for the current resolved list. |
+| `lastDiscoveryDurationMs` | Time spent scanning renderable entities and building portal candidates during the latest discovery pass. |
+| `lastResolutionDurationMs` | Time spent distance-filtering, sorting, and selecting active portal proxy lights during the latest resolution pass. |
+| `lastScannedRenderableEntityCount` | Renderable entity count from the latest discovery pass, useful for spotting broad scans in large scenes. |
+| `lastResolvedProxyLightCount` | Active proxy-light count from the latest resolution pass. |
 | `environmentIntensityScale` | Final XR/environment multiplier used for real-world-tinted portal proxy lights. |
 | `xrIntensityScale` | XR probe intensity scale before the user contribution multiplier. |
 | `environmentTintColor` | RGB tint applied to real-world-tinted portal proxy lights. |
@@ -126,6 +132,36 @@ The feature is designed to be bounded:
 - Portal lights fade down near their own source plane to avoid making the window frame itself look like an emissive object.
 
 For large spatial twins, keep the portal channel narrow. Assign only actual window/opening surfaces to the portal channel, not full walls or entire room shells.
+
+### Collecting Performance Data
+
+Light portal diagnostics follow the same category-log pattern described in [Profiler](UsingProfiler.md). Enable the `.lightPortal` category once, and the engine logs a throttled diagnostics summary automatically from the frame monitor path. No code is needed inside your app or game `update()` function.
+
+```swift
+setLogger(.category(.lightPortal, true))
+// Reproduce the issue. The engine logs light portal diagnostics about once per second.
+setLogger(.category(.lightPortal, false))
+```
+
+The automatic log emits the latest discovery, resolution, performance, and render snapshots. The snapshots are updated by the normal portal discovery/resolution/render paths; the one-second interval only controls log emission.
+
+For a one-shot snapshot:
+
+```swift
+setLogger(.category(.lightPortal, true))
+LightPortalSystem.shared.logDiagnosticsNow()
+setLogger(.category(.lightPortal, false))
+```
+
+For scale checks, focus on:
+
+| Field | Why it matters |
+|---|---|
+| `lastScannedRenderableEntityCount` | How broad the portal discovery scan is. |
+| `lastDiscoveryDurationMs` | CPU time spent finding portal candidates. |
+| `lastResolutionDurationMs` | CPU time spent selecting active proxy lights. |
+| `activePortalCount` | Number of portal candidates selected after distance and cap filtering. |
+| `portalAreaLightCount` | Number of portal proxy lights uploaded into the area-light path. |
 
 Recommended starting values:
 

@@ -434,6 +434,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         // Integration/HZB monitors remain runtime-driven and are available in all build configs.
         SystemIntegrationMonitor.shared.tick()
         HZBDebugMonitor.shared.tick()
+        LightPortalSystem.shared.logDiagnosticsIfDue()
         #if ENGINE_STATS_ENABLED
             EngineStatsMonitor.shared.tick()
         #endif

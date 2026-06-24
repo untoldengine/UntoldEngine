@@ -67,6 +67,22 @@ public struct LightPortalResolutionDiagnostics: Equatable, Sendable {
     )
 }
 
+public struct LightPortalPerformanceDiagnostics: Equatable, Sendable {
+    public var lastDiscoveryDurationMs: Double?
+    public var lastResolutionDurationMs: Double?
+    public var lastScannedRenderableEntityCount: Int
+    public var lastDiscoveredCandidateCount: Int
+    public var lastResolvedProxyLightCount: Int
+
+    public static let empty = LightPortalPerformanceDiagnostics(
+        lastDiscoveryDurationMs: nil,
+        lastResolutionDurationMs: nil,
+        lastScannedRenderableEntityCount: 0,
+        lastDiscoveredCandidateCount: 0,
+        lastResolvedProxyLightCount: 0
+    )
+}
+
 public final class LightPortalSystem: @unchecked Sendable {
     public static let shared = LightPortalSystem()
 
@@ -75,12 +91,16 @@ public final class LightPortalSystem: @unchecked Sendable {
     private let lock = NSLock()
     private var lastDiagnostics: LightPortalDiscoveryDiagnostics = .empty
     private var lastResolutionDiagnostics: LightPortalResolutionDiagnostics = .empty
+    private var lastPerformanceDiagnostics: LightPortalPerformanceDiagnostics = .empty
+    private var lastDiagnosticsLogTime: Double = 0
 
     private init() {}
 
     public func discoverCandidates() -> [LightPortalCandidate] {
+        let startTime = Date().timeIntervalSinceReferenceDate
         guard hasSceneChannelLightPortalsEnabled() else {
             setDiagnostics(.empty)
+            setPerformanceDiagnostics(.empty)
             return []
         }
 
@@ -143,6 +163,11 @@ public final class LightPortalSystem: @unchecked Sendable {
 
         diagnostics.candidateCount = candidates.count
         setDiagnostics(diagnostics)
+        updatePerformanceDiagnostics { performance in
+            performance.lastDiscoveryDurationMs = Self.elapsedMilliseconds(since: startTime)
+            performance.lastScannedRenderableEntityCount = diagnostics.scannedRenderableEntityCount
+            performance.lastDiscoveredCandidateCount = diagnostics.candidateCount
+        }
         return candidates
     }
 
@@ -180,9 +205,56 @@ public final class LightPortalSystem: @unchecked Sendable {
         return diagnostics
     }
 
+    public func performanceDiagnostics() -> LightPortalPerformanceDiagnostics {
+        lock.lock()
+        let diagnostics = lastPerformanceDiagnostics
+        lock.unlock()
+        return diagnostics
+    }
+
     func resetDiagnostics() {
         setDiagnostics(.empty)
         setResolutionDiagnostics(.empty)
+        setPerformanceDiagnostics(.empty)
+        lock.lock()
+        lastDiagnosticsLogTime = 0
+        lock.unlock()
+    }
+
+    /// Logs light portal diagnostics at most once per `interval` seconds.
+    ///
+    /// No-op when the LightPortal log category is disabled. Enable with
+    /// `setLogger(.category(.lightPortal, true))`.
+    public func logDiagnosticsIfDue(interval: Double = 1.0) {
+        guard Logger.isEnabled(category: .lightPortal) else { return }
+        let now = CFAbsoluteTimeGetCurrent()
+        lock.lock()
+        guard now - lastDiagnosticsLogTime >= interval else {
+            lock.unlock()
+            return
+        }
+        lastDiagnosticsLogTime = now
+        let discovery = lastDiagnostics
+        let resolution = lastResolutionDiagnostics
+        let performance = lastPerformanceDiagnostics
+        lock.unlock()
+
+        emitDiagnostics(discovery: discovery, resolution: resolution, performance: performance)
+    }
+
+    /// Emits light portal diagnostics immediately, bypassing the rate-limit timer.
+    ///
+    /// No-op when the LightPortal log category is disabled.
+    public func logDiagnosticsNow() {
+        guard Logger.isEnabled(category: .lightPortal) else { return }
+        lock.lock()
+        lastDiagnosticsLogTime = CFAbsoluteTimeGetCurrent()
+        let discovery = lastDiagnostics
+        let resolution = lastResolutionDiagnostics
+        let performance = lastPerformanceDiagnostics
+        lock.unlock()
+
+        emitDiagnostics(discovery: discovery, resolution: resolution, performance: performance)
     }
 
     private func setDiagnostics(_ diagnostics: LightPortalDiscoveryDiagnostics) {
@@ -197,12 +269,68 @@ public final class LightPortalSystem: @unchecked Sendable {
         lock.unlock()
     }
 
+    private func setPerformanceDiagnostics(_ diagnostics: LightPortalPerformanceDiagnostics) {
+        lock.lock()
+        lastPerformanceDiagnostics = diagnostics
+        lock.unlock()
+    }
+
+    private func updatePerformanceDiagnostics(_ update: (inout LightPortalPerformanceDiagnostics) -> Void) {
+        lock.lock()
+        update(&lastPerformanceDiagnostics)
+        lock.unlock()
+    }
+
+    private func emitDiagnostics(
+        discovery: LightPortalDiscoveryDiagnostics,
+        resolution: LightPortalResolutionDiagnostics,
+        performance: LightPortalPerformanceDiagnostics
+    ) {
+        let render = getLightPortalRenderDiagnostics()
+        Logger.log(
+            message: "[LightPortal] scanned=\(discovery.scannedRenderableEntityCount)"
+                + " candidates=\(discovery.candidateCount)"
+                + " active=\(resolution.activePortalCount)/\(resolution.maxActivePortals)"
+                + " portalLights=\(render.portalAreaLightCount)"
+                + " authoredAreaLights=\(render.authoredAreaLightCount)"
+                + " remainingAreaLightCapacity=\(render.remainingAreaLightCapacity)",
+            category: LogCategory.lightPortal.rawValue
+        )
+        Logger.log(
+            message: "[LightPortal] discoveryMs=\(Self.formattedMilliseconds(performance.lastDiscoveryDurationMs))"
+                + " resolutionMs=\(Self.formattedMilliseconds(performance.lastResolutionDurationMs))"
+                + " skippedHidden=\(discovery.skippedHiddenCount)"
+                + " skippedInvisible=\(discovery.skippedInvisibleRenderComponentCount)"
+                + " skippedDisabled=\(discovery.skippedDisabledPortalCount)"
+                + " skippedInvalidGeometry=\(discovery.skippedInvalidGeometryCount)"
+                + " skippedByDistance=\(resolution.skippedByActivationDistanceCount)",
+            category: LogCategory.lightPortal.rawValue
+        )
+        Logger.log(
+            message: "[LightPortal] envScale=\(String(format: "%.3f", render.environmentIntensityScale))"
+                + " contribution=\(String(format: "%.3f", render.realWorldLightingContribution))"
+                + " xrValid=\(render.xrLightingValid)"
+                + " intensityMax=\(Self.formattedFloat(render.maxEffectivePortalIntensity))"
+                + " fallback=\(render.fallbackReason ?? "none")",
+            category: LogCategory.lightPortal.rawValue
+        )
+    }
+
     private func resolveProxyLights(
         from candidates: [LightPortalCandidate],
         cameraPosition: simd_float3?
     ) -> (proxyLights: [LightPortalProxyLight], diagnostics: LightPortalResolutionDiagnostics) {
+        let startTime = Date().timeIntervalSinceReferenceDate
         var diagnostics = LightPortalResolutionDiagnostics.empty
         diagnostics.discoveredCandidateCount = candidates.count
+
+        defer {
+            updatePerformanceDiagnostics { performance in
+                performance.lastResolutionDurationMs = Self.elapsedMilliseconds(since: startTime)
+                performance.lastDiscoveredCandidateCount = diagnostics.discoveredCandidateCount
+                performance.lastResolvedProxyLightCount = diagnostics.activePortalCount
+            }
+        }
 
         var maxActivePortals = 0
         var activeChannelCapsByRawValue: [UInt64: Int] = [:]
@@ -299,6 +427,20 @@ public final class LightPortalSystem: @unchecked Sendable {
         }
         diagnostics.activePortalCount = selectedProxyLights.count
         return (selectedProxyLights, diagnostics)
+    }
+
+    private static func elapsedMilliseconds(since startTime: TimeInterval) -> Double {
+        (Date().timeIntervalSinceReferenceDate - startTime) * 1000.0
+    }
+
+    private static func formattedMilliseconds(_ value: Double?) -> String {
+        guard let value else { return "n/a" }
+        return String(format: "%.3f", value)
+    }
+
+    private static func formattedFloat(_ value: Float?) -> String {
+        guard let value else { return "n/a" }
+        return String(format: "%.3f", value)
     }
 
     private func portalCenter(_ candidate: LightPortalCandidate) -> simd_float3 {
@@ -446,4 +588,8 @@ public func resolveSceneLightPortalProxyLightsForActiveCamera() -> [LightPortalP
 
 public func getLightPortalResolutionDiagnostics() -> LightPortalResolutionDiagnostics {
     LightPortalSystem.shared.resolutionDiagnostics()
+}
+
+public func getLightPortalPerformanceDiagnostics() -> LightPortalPerformanceDiagnostics {
+    LightPortalSystem.shared.performanceDiagnostics()
 }
