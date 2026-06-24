@@ -684,6 +684,72 @@ import XCTest
             XCTAssertEqual(rotatedForward.z, 0.0, accuracy: 0.0001)
         }
 
+        func test_processAnchoredPinchDragLifecycle_appliesPositionTransformContinuously() {
+            translateTo(entityId: standaloneEntity, position: .zero)
+
+            let startState = makeAnchoredPinchDragState(
+                pickedEntityId: standaloneEntity,
+                inputDevicePositionWorld: .zero,
+                spatialDragActive: false
+            )
+            SpatialManipulationSystem.shared.processAnchoredPinchDragLifecycle(
+                from: startState,
+                entityId: standaloneEntity,
+                dragPlane: .xz,
+                positionTransform: { position in
+                    simd_float3(position.x.rounded(), position.y, position.z.rounded())
+                }
+            )
+
+            let dragState = makeAnchoredPinchDragState(
+                pickedEntityId: standaloneEntity,
+                inputDevicePositionWorld: simd_float3(0.76, 0.25, 1.1),
+                spatialDragActive: true
+            )
+            SpatialManipulationSystem.shared.processAnchoredPinchDragLifecycle(
+                from: dragState,
+                entityId: standaloneEntity,
+                dragPlane: .xz,
+                positionTransform: { position in
+                    simd_float3(position.x.rounded(), position.y, position.z.rounded())
+                }
+            )
+
+            let position = getPosition(entityId: standaloneEntity)
+            XCTAssertEqual(position.x, 1.0, accuracy: 0.0001)
+            XCTAssertEqual(position.y, 0.0, accuracy: 0.0001)
+            XCTAssertEqual(position.z, 1.0, accuracy: 0.0001)
+        }
+
+        func test_processAnchoredPinchDragLifecycle_ignoresNonFinitePositionTransformOutput() {
+            translateTo(entityId: standaloneEntity, position: .zero)
+
+            let startState = makeAnchoredPinchDragState(
+                pickedEntityId: standaloneEntity,
+                inputDevicePositionWorld: .zero,
+                spatialDragActive: false
+            )
+            SpatialManipulationSystem.shared.processAnchoredPinchDragLifecycle(from: startState, entityId: standaloneEntity)
+
+            let dragState = makeAnchoredPinchDragState(
+                pickedEntityId: standaloneEntity,
+                inputDevicePositionWorld: simd_float3(1.0, 0.0, 1.0),
+                spatialDragActive: true
+            )
+            SpatialManipulationSystem.shared.processAnchoredPinchDragLifecycle(
+                from: dragState,
+                entityId: standaloneEntity,
+                positionTransform: { _ in
+                    simd_float3(.nan, 0.0, 0.0)
+                }
+            )
+
+            let position = getPosition(entityId: standaloneEntity)
+            XCTAssertEqual(position.x, 0.0, accuracy: 0.0001)
+            XCTAssertEqual(position.y, 0.0, accuracy: 0.0001)
+            XCTAssertEqual(position.z, 0.0, accuracy: 0.0001)
+        }
+
         private func registerManipulationEntity(_ entityId: EntityID) {
             registerComponent(entityId: entityId, componentType: LocalTransformComponent.self)
             registerComponent(entityId: entityId, componentType: WorldTransformComponent.self)
@@ -761,6 +827,21 @@ import XCTest
             state.spatialRotateActive = spatialRotateActive
             state.leftHandPinching = leftHandPinching
             state.rightHandPinching = rightHandPinching
+            return state
+        }
+
+        private func makeAnchoredPinchDragState(
+            pickedEntityId: EntityID,
+            inputDevicePositionWorld: simd_float3,
+            spatialPinchActive: Bool = true,
+            spatialDragActive: Bool = true
+        ) -> XRSpatialInputState {
+            var state = XRSpatialInputState()
+            state.currentPhase = .changed
+            state.pickedEntityId = pickedEntityId
+            state.inputDevicePositionWorld = inputDevicePositionWorld
+            state.spatialPinchActive = spatialPinchActive
+            state.spatialDragActive = spatialDragActive
             return state
         }
 

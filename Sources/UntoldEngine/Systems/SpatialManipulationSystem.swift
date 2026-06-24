@@ -331,7 +331,8 @@
             from state: XRSpatialInputState,
             entityId: EntityID? = nil,
             sensitivity: Float = 1.0,
-            dragPlane: SpatialDragPlane = .unconstrained
+            dragPlane: SpatialDragPlane = .unconstrained,
+            positionTransform: ((simd_float3) -> simd_float3)? = nil
         ) {
             if state.currentPhase == .ended || state.currentPhase == .cancelled {
                 endAnchoredPinchDrag()
@@ -373,7 +374,12 @@
             )
             guard delta.x.isFinite, delta.y.isFinite, delta.z.isFinite else { return }
 
-            let targetWorldPosition = session.initialEntityWorldPosition + delta
+            let rawTargetWorldPosition = session.initialEntityWorldPosition + delta
+            let targetWorldPosition = positionTransform?(rawTargetWorldPosition) ?? rawTargetWorldPosition
+            guard targetWorldPosition.x.isFinite,
+                  targetWorldPosition.y.isFinite,
+                  targetWorldPosition.z.isFinite
+            else { return }
             let targetLocalPosition = worldPositionToLocal(entityId: session.entityId, worldPosition: targetWorldPosition)
             translateTo(entityId: session.entityId, position: targetLocalPosition)
         }
