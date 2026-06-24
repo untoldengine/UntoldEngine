@@ -6,41 +6,33 @@ This is independent of passthrough visibility. A scene can use real-world lighti
 
 ## Startup Setup
 
-Enable XR lighting when the `UntoldEngineXR` instance is created, before starting the XR render loop:
+Enable XR lighting through the normal rendering settings API. This can be done during scene setup, such as from `GameScene`, after the `UntoldEngineXR` instance exists:
 
 ```swift
-if let xr = UntoldEngineXR(layerRenderer: layerRenderer) {
-    XRHolder.shared.xr = xr
-
-    xr.setImmersionMode(xrImmersionMode: .mixed)
-    xr.setXRLightingMode(.realWorldEstimate)
-    xr.setXRLightingContribution(1.0)
-
-    xr.start()
-    xr.runLoop()
-}
+setRendering(.environment(.lightingMode(.realWorldEstimate)))
+setRendering(.environment(.realWorldLightingContribution(1.0)))
 ```
 
-`setXRLightingMode(_:)` owns the Vision Pro provider lifecycle. It enables or disables ARKit environment light estimation and restarts the ARKit provider set when needed.
+When an `UntoldEngineXR` instance is active, changing the rendering lighting mode owns the Vision Pro provider lifecycle. The XR layer observes the runtime lighting mode, enables or disables ARKit environment light estimation, and restarts the ARKit provider set when needed.
 
 Practical rule:
 
 ```swift
-// Startup/session setup
-xr.setXRLightingMode(.realWorldEstimate)
+// Scene or renderer setup
+setRendering(.environment(.lightingMode(.realWorldEstimate)))
 
 // Runtime tuning
-xr.setXRLightingContribution(0.75)
+setRendering(.environment(.realWorldLightingContribution(0.75)))
 ```
 
-Set the lighting mode during XR startup. Change the contribution factor whenever the app needs to tune the strength of real-world lighting.
+Change the contribution factor whenever the app needs to tune the strength of real-world lighting.
 
 ## Lighting Modes
 
 ```swift
-xr.setXRLightingMode(.authoredOnly)
-xr.setXRLightingMode(.staticIBL)
-xr.setXRLightingMode(.realWorldEstimate)
+setRendering(.environment(.lightingMode(.authoredOnly)))
+setRendering(.environment(.lightingMode(.staticIBL)))
+setRendering(.environment(.lightingMode(.realWorldEstimate)))
 ```
 
 | Mode | Effect |
@@ -56,7 +48,7 @@ If real-world lighting is enabled but no valid probe is available yet, the rende
 Use the contribution factor to tune how strongly the Vision Pro lighting probe affects the scene:
 
 ```swift
-xr.setXRLightingContribution(0.75)
+setRendering(.environment(.realWorldLightingContribution(0.75)))
 ```
 
 The value is a non-negative multiplier:
@@ -78,9 +70,9 @@ The same multiplier can be set through the rendering settings API:
 setRendering(.environment(.realWorldLightingContribution(0.75)))
 ```
 
-This only changes the contribution factor. Use `xr.setXRLightingMode(_:)` to enable or disable the Vision Pro provider.
+This only changes the contribution factor. Use `setRendering(.environment(.lightingMode(...)))` to enable or disable the Vision Pro provider through the runtime lighting mode.
 
-Unlike `setXRLightingMode(_:)`, the contribution factor can be changed at runtime. It does not start, stop, or restart ARKit providers.
+Unlike the lighting mode, the contribution factor can be changed at runtime without starting, stopping, or restarting ARKit providers.
 
 ## Diagnostics
 
@@ -119,7 +111,7 @@ XR lighting and passthrough are separate controls:
 
 ```swift
 xr.setImmersionMode(xrImmersionMode: .mixed)
-xr.setXRLightingMode(.realWorldEstimate)
+setRendering(.environment(.lightingMode(.realWorldEstimate)))
 ```
 
 Mixed passthrough controls whether the real camera view is visible. XR lighting controls how virtual content is shaded. They can be used together or independently.

@@ -122,6 +122,7 @@ public final class RuntimeEnvironmentLightingStore: @unchecked Sendable {
     private var modeValue: RuntimeEnvironmentLightingMode = .staticIBL
     private var realWorldLightingContributionValue: Float = 1.0
     private var xrLightingValue: RuntimeEnvironmentLighting?
+    private var modeObservers: [UUID: @Sendable (RuntimeEnvironmentLightingMode) -> Void] = [:]
 
     private init() {}
 
@@ -133,11 +134,40 @@ public final class RuntimeEnvironmentLightingStore: @unchecked Sendable {
             return value
         }
         set {
-            lock.lock()
-            modeValue = newValue
-            lock.unlock()
-            resetLightPortalAreaLightCache()
+            setMode(newValue)
         }
+    }
+
+    public func setMode(_ mode: RuntimeEnvironmentLightingMode, notifyIfUnchanged: Bool = false) {
+        lock.lock()
+        let oldMode = modeValue
+        modeValue = mode
+        let shouldNotify = notifyIfUnchanged || oldMode != mode
+        let observers = shouldNotify ? Array(modeObservers.values) : []
+        lock.unlock()
+
+        resetLightPortalAreaLightCache()
+
+        for observer in observers {
+            observer(mode)
+        }
+    }
+
+    @discardableResult
+    public func observeLightingModeChanges(
+        _ observer: @escaping @Sendable (RuntimeEnvironmentLightingMode) -> Void
+    ) -> UUID {
+        let id = UUID()
+        lock.lock()
+        modeObservers[id] = observer
+        lock.unlock()
+        return id
+    }
+
+    public func removeLightingModeChangeObserver(_ id: UUID) {
+        lock.lock()
+        modeObservers.removeValue(forKey: id)
+        lock.unlock()
     }
 
     public var realWorldLightingContribution: Float {
@@ -171,11 +201,18 @@ public final class RuntimeEnvironmentLightingStore: @unchecked Sendable {
 
     public func reset() {
         lock.lock()
+        let oldMode = modeValue
         modeValue = .staticIBL
         realWorldLightingContributionValue = 1.0
         xrLightingValue = nil
+        let observers = oldMode == .staticIBL ? [] : Array(modeObservers.values)
         lock.unlock()
+
         resetLightPortalAreaLightCache()
+
+        for observer in observers {
+            observer(.staticIBL)
+        }
     }
 
     public func resolve(

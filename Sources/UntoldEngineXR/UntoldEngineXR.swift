@@ -24,7 +24,7 @@
         case full
     }
 
-    public final class UntoldEngineXR {
+    public final class UntoldEngineXR: @unchecked Sendable {
         private var renderer: UntoldRenderer?
         private var _isRunning = false
         private let lock = NSLock()
@@ -48,6 +48,7 @@
         private let passDescriptorRight = MTLRenderPassDescriptor()
         private let spatialGestureRecognizer = XRSpatialGestureRecognizer()
         private let xrEnvironmentLightingSystem = XREnvironmentLightingSystem()
+        private var runtimeLightingModeObserverId: UUID?
 
         /// Task handle for the plane-update monitor so we can cancel it on shutdown.
         private var planeMonitorTask: Task<Void, Never>?
@@ -70,9 +71,16 @@
             initUntoldXR(device: device, commandQueue: commandQueue, layerRenderer: layerRenderer)
         }
 
+        deinit {
+            if let runtimeLightingModeObserverId {
+                RuntimeEnvironmentLightingStore.shared.removeLightingModeChangeObserver(runtimeLightingModeObserverId)
+            }
+        }
+
         @MainActor
         public func initUntoldXR(device: MTLDevice, commandQueue: MTLCommandQueue, layerRenderer: LayerRenderer) {
             configureSpatialEventBridge()
+            registerRuntimeLightingModeObserverIfNeeded()
             applyXRLightingMode(RuntimeEnvironmentLightingStore.shared.mode)
 
             startARKitProviders(reason: "startup")
@@ -830,9 +838,7 @@
         }
 
         public func setXRLightingMode(_ mode: RuntimeEnvironmentLightingMode) {
-            RuntimeEnvironmentLightingStore.shared.mode = mode
-            applyXRLightingMode(mode)
-            startARKitProviders(reason: "setXRLightingMode(\(mode))")
+            RuntimeEnvironmentLightingStore.shared.setMode(mode, notifyIfUnchanged: true)
         }
 
         public func setXRLightingContribution(_ factor: Float) {
@@ -846,6 +852,19 @@
             case .authoredOnly, .staticIBL:
                 xrEnvironmentLightingSystem.setEnabled(false)
             }
+        }
+
+        private func registerRuntimeLightingModeObserverIfNeeded() {
+            guard runtimeLightingModeObserverId == nil else { return }
+
+            runtimeLightingModeObserverId = RuntimeEnvironmentLightingStore.shared.observeLightingModeChanges { [weak self] mode in
+                self?.handleRuntimeLightingModeChanged(mode)
+            }
+        }
+
+        private func handleRuntimeLightingModeChanged(_ mode: RuntimeEnvironmentLightingMode) {
+            applyXRLightingMode(mode)
+            startARKitProviders(reason: "RuntimeEnvironmentLightingStore.mode=\(mode)")
         }
 
         public func xrEnvironmentLightingDiagnostics() -> XREnvironmentLightingDiagnostics {

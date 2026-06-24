@@ -100,6 +100,36 @@ final class RuntimeEnvironmentLightingTests: XCTestCase {
         XCTAssertEqual(RuntimeEnvironmentLightingStore.shared.mode, .realWorldEstimate)
     }
 
+    func testRenderingEnvironmentLightingModeNotifiesObservers() {
+        let recorder = LightingModeRecorder()
+        let observerId = RuntimeEnvironmentLightingStore.shared.observeLightingModeChanges { mode in
+            recorder.append(mode)
+        }
+        defer {
+            RuntimeEnvironmentLightingStore.shared.removeLightingModeChangeObserver(observerId)
+        }
+
+        setRendering(.environment(.lightingMode(.realWorldEstimate)))
+
+        XCTAssertEqual(recorder.values, [.realWorldEstimate])
+    }
+
+    func testLightingModeCanNotifyObserversWhenSetToSameValueForLifecycleRefresh() {
+        RuntimeEnvironmentLightingStore.shared.mode = .realWorldEstimate
+
+        let recorder = LightingModeRecorder()
+        let observerId = RuntimeEnvironmentLightingStore.shared.observeLightingModeChanges { mode in
+            recorder.append(mode)
+        }
+        defer {
+            RuntimeEnvironmentLightingStore.shared.removeLightingModeChangeObserver(observerId)
+        }
+
+        RuntimeEnvironmentLightingStore.shared.setMode(.realWorldEstimate, notifyIfUnchanged: true)
+
+        XCTAssertEqual(recorder.values, [.realWorldEstimate])
+    }
+
     func testRenderingEnvironmentSettingUpdatesRealWorldLightingContribution() {
         setRendering(.environment(.realWorldLightingContribution(0.35)))
 
@@ -221,5 +251,23 @@ final class RuntimeEnvironmentLightingTests: XCTestCase {
 
         texture.label = label
         return texture
+    }
+}
+
+private final class LightingModeRecorder: @unchecked Sendable {
+    private let lock = NSLock()
+    private var storedValues: [RuntimeEnvironmentLightingMode] = []
+
+    var values: [RuntimeEnvironmentLightingMode] {
+        lock.lock()
+        let values = storedValues
+        lock.unlock()
+        return values
+    }
+
+    func append(_ mode: RuntimeEnvironmentLightingMode) {
+        lock.lock()
+        storedValues.append(mode)
+        lock.unlock()
     }
 }
