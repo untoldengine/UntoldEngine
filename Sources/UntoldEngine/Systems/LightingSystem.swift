@@ -1024,7 +1024,7 @@ private func lightPortalEnvironmentIntensityScale() -> (
 ) {
     let realWorldLightingContribution = RuntimeEnvironmentLightingStore.shared.realWorldLightingContribution
     switch RuntimeEnvironmentLightingStore.shared.mode {
-    case .realWorldEstimate, .authoredPlusRealWorldEstimate:
+    case .realWorldEstimate:
         guard let xrLighting = RuntimeEnvironmentLightingStore.shared.latestXRLighting(),
               xrLighting.isValid
         else {

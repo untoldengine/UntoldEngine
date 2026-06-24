@@ -69,7 +69,7 @@ final class RuntimeEnvironmentLightingTests: XCTestCase {
     }
 
     func testInvalidXRLightingFallsBackToStaticIBL() {
-        RuntimeEnvironmentLightingStore.shared.mode = .authoredPlusRealWorldEstimate
+        RuntimeEnvironmentLightingStore.shared.mode = .realWorldEstimate
         RuntimeEnvironmentLightingStore.shared.publishXRLighting(
             RuntimeEnvironmentLighting(
                 irradianceMap: nil,

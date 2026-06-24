@@ -16,7 +16,6 @@ public enum RuntimeEnvironmentLightingMode: Sendable, Equatable {
     case authoredOnly
     case staticIBL
     case realWorldEstimate
-    case authoredPlusRealWorldEstimate
 }
 
 public struct RuntimeEnvironmentLighting {
@@ -217,7 +216,7 @@ public final class RuntimeEnvironmentLightingStore: @unchecked Sendable {
         case .staticIBL:
             return staticLighting
 
-        case .realWorldEstimate, .authoredPlusRealWorldEstimate:
+        case .realWorldEstimate:
             guard let xrLighting,
                   xrLighting.isValid,
                   let irradianceMap = xrLighting.irradianceMap,
