@@ -110,10 +110,46 @@ final class LightSystemTest: BaseRenderSetup {
         XCTAssertEqual(getAreaLights().first?.nearSourceSuppressionRadius ?? -1.0, 0.0)
     }
 
-    func testAreaLightShaderUniformLayoutIncludesPortalFields() {
+    func testLightShaderUniformABIStaysStable() {
+        XCTAssertEqual(MemoryLayout<PointLight>.stride, MemoryLayout<PointLightUniform>.stride)
+        XCTAssertEqual(MemoryLayout<PointLight>.alignment, MemoryLayout<PointLightUniform>.alignment)
+        XCTAssertEqual(MemoryLayout<PointLightUniform>.stride, 64)
+        XCTAssertEqual(MemoryLayout<PointLightUniform>.alignment, 16)
+        XCTAssertEqual(MemoryLayout.offset(of: \PointLightUniform.attenuation), 0)
+        XCTAssertEqual(MemoryLayout.offset(of: \PointLightUniform.position), 16)
+        XCTAssertEqual(MemoryLayout.offset(of: \PointLightUniform.color), 32)
+        XCTAssertEqual(MemoryLayout.offset(of: \PointLightUniform.intensity), 48)
+        XCTAssertEqual(MemoryLayout.offset(of: \PointLightUniform.radius), 52)
+
+        XCTAssertEqual(MemoryLayout<SpotLight>.stride, MemoryLayout<SpotLightUniform>.stride)
+        XCTAssertEqual(MemoryLayout<SpotLight>.alignment, MemoryLayout<SpotLightUniform>.alignment)
+        XCTAssertEqual(MemoryLayout<SpotLightUniform>.stride, 80)
+        XCTAssertEqual(MemoryLayout<SpotLightUniform>.alignment, 16)
+        XCTAssertEqual(MemoryLayout.offset(of: \SpotLightUniform.attenuation), 0)
+        XCTAssertEqual(MemoryLayout.offset(of: \SpotLightUniform.direction), 16)
+        XCTAssertEqual(MemoryLayout.offset(of: \SpotLightUniform.position), 32)
+        XCTAssertEqual(MemoryLayout.offset(of: \SpotLightUniform.color), 48)
+        XCTAssertEqual(MemoryLayout.offset(of: \SpotLightUniform.intensity), 64)
+        XCTAssertEqual(MemoryLayout.offset(of: \SpotLightUniform.innerCone), 68)
+        XCTAssertEqual(MemoryLayout.offset(of: \SpotLightUniform.outerCone), 72)
+
         XCTAssertEqual(MemoryLayout<AreaLight>.stride, MemoryLayout<AreaLightUniform>.stride)
         XCTAssertEqual(MemoryLayout<AreaLight>.alignment, MemoryLayout<AreaLightUniform>.alignment)
+        XCTAssertEqual(MemoryLayout<AreaLightUniform>.stride, 112)
+        XCTAssertEqual(MemoryLayout<AreaLightUniform>.alignment, 16)
+        XCTAssertEqual(MemoryLayout.offset(of: \AreaLightUniform.position), 0)
+        XCTAssertEqual(MemoryLayout.offset(of: \AreaLightUniform.color), 16)
+        XCTAssertEqual(MemoryLayout.offset(of: \AreaLightUniform.forward), 32)
+        XCTAssertEqual(MemoryLayout.offset(of: \AreaLightUniform.right), 48)
+        XCTAssertEqual(MemoryLayout.offset(of: \AreaLightUniform.up), 64)
+        XCTAssertEqual(MemoryLayout.offset(of: \AreaLightUniform.bounds), 80)
+        XCTAssertEqual(MemoryLayout.offset(of: \AreaLightUniform.intensity), 88)
+        XCTAssertEqual(MemoryLayout.offset(of: \AreaLightUniform.range), 92)
+        XCTAssertEqual(MemoryLayout.offset(of: \AreaLightUniform.nearSourceSuppressionRadius), 96)
+        XCTAssertEqual(MemoryLayout.offset(of: \AreaLightUniform.twoSided), 100)
+    }
 
+    func testAreaLightShaderUniformLayoutIncludesPortalFields() {
         var light = AreaLight()
         light.position = simd_float3(1.0, 2.0, 3.0)
         light.color = simd_float3(0.75, 0.5, 0.25)
