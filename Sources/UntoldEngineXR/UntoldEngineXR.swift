@@ -841,7 +841,7 @@
 
         private func applyXRLightingMode(_ mode: RuntimeEnvironmentLightingMode) {
             switch mode {
-            case .realWorldEstimate, .authoredPlusRealWorldEstimate:
+            case .realWorldEstimate:
                 xrEnvironmentLightingSystem.setEnabled(true)
             case .authoredOnly, .staticIBL:
                 xrEnvironmentLightingSystem.setEnabled(false)

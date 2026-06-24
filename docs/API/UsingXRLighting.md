@@ -41,7 +41,6 @@ Set the lighting mode during XR startup. Change the contribution factor whenever
 xr.setXRLightingMode(.authoredOnly)
 xr.setXRLightingMode(.staticIBL)
 xr.setXRLightingMode(.realWorldEstimate)
-xr.setXRLightingMode(.authoredPlusRealWorldEstimate)
 ```
 
 | Mode | Effect |
@@ -49,7 +48,6 @@ xr.setXRLightingMode(.authoredPlusRealWorldEstimate)
 | `.authoredOnly` | Disables IBL contribution and uses authored lights only. |
 | `.staticIBL` | Uses the engine's loaded/static HDR IBL path. |
 | `.realWorldEstimate` | Uses Vision Pro environment light probes when available. |
-| `.authoredPlusRealWorldEstimate` | Uses authored lights plus Vision Pro environment light probes. |
 
 If real-world lighting is enabled but no valid probe is available yet, the renderer falls back to the static IBL path.
 
