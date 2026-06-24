@@ -941,15 +941,17 @@ private func registerUntoldRuntimeAsset(
     }
 
     // Register animation clips embedded in the asset (e.g. redplayer.untold walk/run cycles).
-    // Resolve to the skinned descendant if the root is a container (skeleton hierarchy).
+    // Resolve to every skinned descendant so split characters animate all meshes.
     let animClips = runtimeAsset.animationClips
     if !animClips.isEmpty {
-        let animTarget = resolveEntityForAnimationBinding(entityId: entityId) ?? entityId
-        if let animComp = ensureAnimationComponent(entityId: animTarget, errorEntityId: entityId) {
-            let registeredNames = registerRuntimeAnimationClips(animClips, preferredName: animClips.first?.name ?? "", to: animComp)
-            appendAnimationSourceURLIfNeeded(url, to: animComp)
-            if animComp.currentAnimation == nil, let first = registeredNames.first {
-                animComp.currentAnimation = animComp.animationClips[first]
+        let animTargets = resolveAnimationBindingTargetEntities(entityId: entityId)
+        for animTarget in animTargets {
+            if let animComp = ensureAnimationComponent(entityId: animTarget, errorEntityId: entityId) {
+                let registeredNames = registerRuntimeAnimationClips(animClips, preferredName: animClips.first?.name ?? "", to: animComp)
+                appendAnimationSourceURLIfNeeded(url, to: animComp)
+                if animComp.currentAnimation == nil, let first = registeredNames.first {
+                    animComp.currentAnimation = animComp.animationClips[first]
+                }
             }
         }
     }
@@ -2471,8 +2473,8 @@ func removeEntityMesh(entityId: EntityID) {
 }
 
 public func setEntityAnimations(entityId: EntityID, filename: String, withExtension: String, name: String) {
-    let targetEntityId = resolveEntityForAnimationBinding(entityId: entityId) ?? entityId
-    guard scene.get(component: SkeletonComponent.self, for: targetEntityId) != nil else {
+    let targetEntityIds = resolveAnimationBindingTargetEntities(entityId: entityId)
+    guard targetEntityIds.contains(where: { scene.get(component: SkeletonComponent.self, for: $0) != nil }) else {
         handleError(.noSkeletonComponent, entityId)
         return
     }
@@ -2495,17 +2497,23 @@ public func setEntityAnimations(entityId: EntityID, filename: String, withExtens
         }
 
         withWorldMutationGate {
-            guard let animationComponent = ensureAnimationComponent(entityId: targetEntityId, errorEntityId: entityId) else {
-                return
-            }
+            for targetEntityId in targetEntityIds {
+                guard scene.get(component: SkeletonComponent.self, for: targetEntityId) != nil else {
+                    continue
+                }
 
-            let registeredNames = registerRuntimeAnimationClips(runtimeClips, preferredName: name, to: animationComponent)
-            appendAnimationSourceURLIfNeeded(url, to: animationComponent)
+                guard let animationComponent = ensureAnimationComponent(entityId: targetEntityId, errorEntityId: entityId) else {
+                    continue
+                }
 
-            if animationComponent.currentAnimation == nil,
-               let selectedName = registeredNames.first(where: { $0 == name }) ?? registeredNames.first
-            {
-                animationComponent.currentAnimation = animationComponent.animationClips[selectedName]
+                let registeredNames = registerRuntimeAnimationClips(runtimeClips, preferredName: name, to: animationComponent)
+                appendAnimationSourceURLIfNeeded(url, to: animationComponent)
+
+                if animationComponent.currentAnimation == nil,
+                   let selectedName = registeredNames.first(where: { $0 == name }) ?? registeredNames.first
+                {
+                    animationComponent.currentAnimation = animationComponent.animationClips[selectedName]
+                }
             }
         }
         return

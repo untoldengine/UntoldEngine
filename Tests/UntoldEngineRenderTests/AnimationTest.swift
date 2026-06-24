@@ -77,6 +77,56 @@ final class AnimationTests: BaseRenderSetup {
         XCTAssertEqual(animationComponent.currentTime, 0.5, accuracy: 0.0001)
     }
 
+    func test_rotationOnlyClipPreservesRestTranslation() throws {
+        let restTransform = matrix4x4Translation(0.25, 1.5, -0.75)
+
+        let runtimeClip = RuntimeAnimationClip(
+            name: "rotationOnly",
+            duration: 1.0,
+            channels: [
+                RuntimeAnimationChannel(
+                    jointPath: "/Hips/Spine",
+                    rotations: [
+                        RuntimeRotationKeyframe(time: 0.0, value: SIMD4<Float>(0.0, 0.0, 0.0, 1.0)),
+                    ]
+                ),
+            ]
+        )
+        let clip = AnimationClip(runtimeClip: runtimeClip)
+        let pose = try XCTUnwrap(clip.getPose(at: 0.0, jointPath: "/Hips/Spine", fallback: restTransform))
+
+        XCTAssertEqual(pose.columns.3.x, restTransform.columns.3.x, accuracy: 0.0001)
+        XCTAssertEqual(pose.columns.3.y, restTransform.columns.3.y, accuracy: 0.0001)
+        XCTAssertEqual(pose.columns.3.z, restTransform.columns.3.z, accuracy: 0.0001)
+    }
+
+    func test_animationPosePreservesRestScale() throws {
+        let restScale = SIMD3<Float>(0.01, 0.02, 0.03)
+        let restTransform = matrix4x4Translation(0.25, 1.5, -0.75) * matrix4x4Scale(restScale.x, restScale.y, restScale.z)
+        let runtimeClip = RuntimeAnimationClip(
+            name: "rotationWithScaledRestPose",
+            duration: 1.0,
+            channels: [
+                RuntimeAnimationChannel(
+                    jointPath: "/Hips",
+                    translations: [
+                        RuntimeTranslationKeyframe(time: 0.0, value: SIMD3<Float>(0.5, 1.0, 1.5)),
+                    ],
+                    rotations: [
+                        RuntimeRotationKeyframe(time: 0.0, value: SIMD4<Float>(0.0, 0.0, 0.0, 1.0)),
+                    ]
+                ),
+            ]
+        )
+
+        let clip = AnimationClip(runtimeClip: runtimeClip)
+        let pose = try XCTUnwrap(clip.getPose(at: 0.0, jointPath: "/Hips", fallback: restTransform))
+
+        XCTAssertEqual(simd_length(SIMD3<Float>(pose.columns.0.x, pose.columns.0.y, pose.columns.0.z)), restScale.x, accuracy: 0.0001)
+        XCTAssertEqual(simd_length(SIMD3<Float>(pose.columns.1.x, pose.columns.1.y, pose.columns.1.z)), restScale.y, accuracy: 0.0001)
+        XCTAssertEqual(simd_length(SIMD3<Float>(pose.columns.2.x, pose.columns.2.y, pose.columns.2.z)), restScale.z, accuracy: 0.0001)
+    }
+
     private func runSamples(save: (_ tex: MTLTexture, _ name: String) -> Void) throws {
         resetAnimationPlaybackState()
 

@@ -247,8 +247,66 @@ final class NativeFormatRegistrationTests: BaseRenderSetup {
         XCTAssertNotNil(animationComponent.currentAnimation)
     }
 
+    func testSetEntityAnimationsRegistersEverySkinnedDescendant() {
+        guard let animationURL = Bundle.module.url(forResource: "running", withExtension: "untold") else {
+            XCTFail("Failed to locate running.untold")
+            return
+        }
+
+        let originalResourceURLFn = LoadingSystem.shared.resourceURLFn
+        LoadingSystem.shared.resourceURLFn = { name, ext, subName in
+            if name == "running", ext == "untold" {
+                return animationURL
+            }
+            return getResourceURL(resourceName: name, ext: ext, subName: subName)
+        }
+        defer { LoadingSystem.shared.resourceURLFn = originalResourceURLFn }
+
+        let rootEntity = createEntity()
+        registerTransformComponent(entityId: rootEntity)
+        registerSceneGraphComponent(entityId: rootEntity)
+
+        let shirtEntity = makeSkinnedRenderChild(named: "CH38_Shirt", parent: rootEntity)
+        let bodyEntity = makeSkinnedRenderChild(named: "CH38_Body", parent: rootEntity)
+
+        let bindingEntities = resolveEntitiesForAnimationBinding(entityId: rootEntity)
+        XCTAssertEqual(Set(bindingEntities), Set([shirtEntity, bodyEntity]))
+
+        setEntityAnimations(entityId: rootEntity, filename: "running", withExtension: "untold", name: "running")
+
+        for entityId in [shirtEntity, bodyEntity] {
+            guard let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) else {
+                XCTFail("Expected AnimationComponent on skinned child \(entityId)")
+                continue
+            }
+
+            XCTAssertNotNil(animationComponent.animationClips["running"])
+            XCTAssertNotNil(animationComponent.currentAnimation)
+        }
+
+        changeAnimation(entityId: rootEntity, name: "running", withPause: true)
+        XCTAssertTrue(isAnimationComponentPaused(entityId: rootEntity))
+
+        setAnimationPlaybackSpeed(entityId: rootEntity, speed: 0.5)
+        XCTAssertEqual(getAnimationPlaybackSpeed(entityId: rootEntity), 0.5, accuracy: 0.0001)
+
+        removeAnimationClip(entityId: rootEntity, animationClip: "running")
+        XCTAssertFalse(getAllAnimationClips(entityId: rootEntity).contains("running"))
+    }
+
     private func findEntity(named name: String) -> EntityID? {
         reverseEntityNameMap[name]?.first(where: { scene.exists($0) && getEntityName(entityId: $0) == name })
+    }
+
+    private func makeSkinnedRenderChild(named name: String, parent: EntityID) -> EntityID {
+        let entityId = createEntity()
+        setEntityName(entityId: entityId, name: name)
+        registerTransformComponent(entityId: entityId)
+        registerSceneGraphComponent(entityId: entityId)
+        registerComponent(entityId: entityId, componentType: RenderComponent.self)
+        registerComponent(entityId: entityId, componentType: SkeletonComponent.self)
+        setParent(childId: entityId, parentId: parent)
+        return entityId
     }
 }
 
