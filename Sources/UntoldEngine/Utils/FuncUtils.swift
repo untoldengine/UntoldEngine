@@ -1082,6 +1082,7 @@ public func updateMaterialOpacity(
 
 private func entityAndDescendantIds(_ entityId: EntityID) -> [EntityID] {
     var entityIds: [EntityID] = [entityId]
+    var visited: Set<EntityID> = [entityId]
     var index = 0
 
     while index < entityIds.count {
@@ -1092,7 +1093,9 @@ private func entityAndDescendantIds(_ entityId: EntityID) -> [EntityID] {
             continue
         }
 
-        entityIds.append(contentsOf: scenegraphComponent.children)
+        for childId in scenegraphComponent.children where visited.insert(childId).inserted {
+            entityIds.append(childId)
+        }
     }
 
     return entityIds

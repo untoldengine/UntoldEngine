@@ -1820,6 +1820,45 @@ final class StaticBatchingTest: BaseRenderSetup {
                        "❌ Alpha mode should revert to .opaque when opacity is restored to 1.0")
     }
 
+    func testRecursiveOpacityUpdatesRenderableDescendants() {
+        let root = createStaticCubeEntity(position: .zero, markStatic: false)
+        let child = createStaticCubeEntity(position: simd_float3(1.0, 0.0, 0.0), markStatic: false)
+        let grandchild = createStaticCubeEntity(position: simd_float3(2.0, 0.0, 0.0), markStatic: false)
+        let sibling = createStaticCubeEntity(position: simd_float3(3.0, 0.0, 0.0), markStatic: false)
+        setParent(childId: child, parentId: root)
+        setParent(childId: grandchild, parentId: child)
+
+        updateMaterialOpacity(entityId: root, opacity: 0.35, recursive: true)
+
+        XCTAssertEqual(getMaterialOpacity(entityId: root), 0.35, accuracy: 0.0001)
+        XCTAssertEqual(getMaterialOpacity(entityId: child), 0.35, accuracy: 0.0001)
+        XCTAssertEqual(getMaterialOpacity(entityId: grandchild), 0.35, accuracy: 0.0001)
+        XCTAssertEqual(getMaterialOpacity(entityId: sibling), 1.0, accuracy: 0.0001)
+        XCTAssertEqual(getMaterialAlphaMode(entityId: root), .blend)
+        XCTAssertEqual(getMaterialAlphaMode(entityId: child), .blend)
+        XCTAssertEqual(getMaterialAlphaMode(entityId: grandchild), .blend)
+        XCTAssertEqual(getMaterialAlphaMode(entityId: sibling), .opaque)
+    }
+
+    func testRecursiveEmissiveUpdatesRenderableDescendantsOnce() {
+        let root = createStaticCubeEntity(position: .zero, markStatic: false)
+        let child = createStaticCubeEntity(position: simd_float3(1.0, 0.0, 0.0), markStatic: false)
+        let grandchild = createStaticCubeEntity(position: simd_float3(2.0, 0.0, 0.0), markStatic: false)
+        setParent(childId: child, parentId: root)
+        setParent(childId: grandchild, parentId: child)
+
+        if let rootScenegraph = scene.get(component: ScenegraphComponent.self, for: root) {
+            rootScenegraph.children.append(child)
+        }
+
+        let emissive = simd_float3(0.25, 0.5, 1.0)
+        updateMaterialEmmisive(entityId: root, emmissive: emissive, recursive: true)
+
+        XCTAssertEqual(getMaterialEmmissive(entityId: root), emissive)
+        XCTAssertEqual(getMaterialEmmissive(entityId: child), emissive)
+        XCTAssertEqual(getMaterialEmmissive(entityId: grandchild), emissive)
+    }
+
     func testLegacyEmbeddedPseudoURLsDoNotSplitBatching() throws {
         // Legacy embedded pseudo-URLs were mesh-scoped:
         // usdz-embedded://<meshName>/embedded_Basecolor_map
