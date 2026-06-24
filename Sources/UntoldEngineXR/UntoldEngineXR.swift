@@ -40,6 +40,11 @@
         private var lastAnchorDiagnosticsLogTime: CFTimeInterval = 0
         private let anchorDiagnosticsLogIntervalSeconds: CFTimeInterval = 1.0
         private var arKitProviderRunAttemptCount: Int = 0
+        private let arKitProviderRunLock = NSLock()
+        private var arKitProviderRunInProgress = false
+        private var pendingARKitProviderRunReason: String?
+        private var lastARKitProviderRunFailureTime: CFTimeInterval = -.infinity
+        private let arKitProviderFailureCooldownSeconds: CFTimeInterval = 2.0
         private var lastXRStallDiagnosticsLogTime: CFTimeInterval = 0
         private let xrStallDiagnosticsLogIntervalSeconds: CFTimeInterval = 1.0
 
@@ -240,55 +245,141 @@
 
         private func startARKitProviders(reason: String = "unspecified") {
             #if canImport(ARKit)
+                scheduleARKitProviderRun(reason: reason)
+            #endif
+        }
+
+        private func scheduleARKitProviderRun(reason: String) {
+            #if canImport(ARKit)
+                let now = CACurrentMediaTime()
+                let delaySeconds: CFTimeInterval
+
+                arKitProviderRunLock.lock()
+                if arKitProviderRunInProgress {
+                    pendingARKitProviderRunReason = reason
+                    arKitProviderRunLock.unlock()
+                    print("XR ARKit providers run coalesced: reason=\(reason)")
+                    return
+                }
+
+                let timeSinceFailure = now - lastARKitProviderRunFailureTime
+                delaySeconds = max(arKitProviderFailureCooldownSeconds - timeSinceFailure, 0.0)
+                arKitProviderRunInProgress = true
+                arKitProviderRunLock.unlock()
+
+                launchARKitProviderRunTask(reason: reason, delaySeconds: delaySeconds)
+            #endif
+        }
+
+        private func launchARKitProviderRunTask(reason: String, delaySeconds: CFTimeInterval) {
+            #if canImport(ARKit)
+                Task { [weak self] in
+                    guard let self else { return }
+
+                    if delaySeconds > 0.0 {
+                        let delayText = String(format: "%.2f", delaySeconds * 1000.0)
+                        print("XR ARKit providers run delayed by failure cooldown: delayMs=\(delayText), reason=\(reason)")
+                        try? await Task.sleep(nanoseconds: UInt64(delaySeconds * 1_000_000_000.0))
+                        if Task.isCancelled {
+                            finishARKitProviderRun(succeeded: false)
+                            return
+                        }
+                    }
+
+                    let effectiveReason = consumePendingARKitProviderRunReason(defaultReason: reason)
+                    let succeeded = await runARKitProvidersOnce(reason: effectiveReason)
+                    finishARKitProviderRun(succeeded: succeeded)
+                }
+            #endif
+        }
+
+        private func consumePendingARKitProviderRunReason(defaultReason: String) -> String {
+            arKitProviderRunLock.lock()
+            let reason = pendingARKitProviderRunReason ?? defaultReason
+            pendingARKitProviderRunReason = nil
+            arKitProviderRunLock.unlock()
+            return reason
+        }
+
+        private func finishARKitProviderRun(succeeded: Bool) {
+            #if canImport(ARKit)
+                let pendingReason: String?
+                arKitProviderRunLock.lock()
+                if !succeeded {
+                    lastARKitProviderRunFailureTime = CACurrentMediaTime()
+                }
+                pendingReason = pendingARKitProviderRunReason
+                pendingARKitProviderRunReason = nil
+                arKitProviderRunInProgress = false
+                arKitProviderRunLock.unlock()
+
+                if let pendingReason {
+                    scheduleARKitProviderRun(reason: pendingReason)
+                }
+            #else
+                _ = succeeded
+            #endif
+        }
+
+        #if canImport(ARKit)
+            private func runARKitProvidersOnce(reason: String) async -> Bool {
                 let worldTracking = worldTracking
                 let arSession = arSession
                 let planeDetection = planeDetection
                 let xrEnvironmentLightingSystem = xrEnvironmentLightingSystem
-                arKitProviderRunAttemptCount += 1
-                let attempt = arKitProviderRunAttemptCount
+
+                let attempt = nextARKitProviderRunAttempt()
                 let startTime = CACurrentMediaTime()
 
-                Task {
-                    do {
-                        // Check world sensing authorization before attempting plane detection.
-                        let authStatus = await arSession.queryAuthorization(for: [.worldSensing])
-                        let worldSensingAllowed = authStatus[.worldSensing] != .denied
+                do {
+                    // Check world sensing authorization before attempting plane detection.
+                    let authStatus = await arSession.queryAuthorization(for: [.worldSensing])
+                    let worldSensingAllowed = authStatus[.worldSensing] != .denied
 
-                        var providers: [any DataProvider] = [worldTracking]
-                        var providerNames = ["WorldTrackingProvider"]
+                    var providers: [any DataProvider] = [worldTracking]
+                    var providerNames = ["WorldTrackingProvider"]
 
-                        if worldSensingAllowed {
-                            if PlaneDetectionProvider.isSupported {
-                                providers.append(planeDetection)
-                                providerNames.append("PlaneDetectionProvider")
-                            } else {
-                                print("⚠️ PlaneDetectionProvider is not supported on this device")
-                            }
+                    if worldSensingAllowed {
+                        if PlaneDetectionProvider.isSupported {
+                            providers.append(planeDetection)
+                            providerNames.append("PlaneDetectionProvider")
                         } else {
-                            print("⚠️ World sensing authorization denied — plane detection disabled. Grant permission in Settings > Privacy > World Sensing.")
+                            print("⚠️ PlaneDetectionProvider is not supported on this device")
                         }
-
-                        if let lightingProvider = xrEnvironmentLightingSystem.providerForSession {
-                            providers.append(lightingProvider)
-                            providerNames.append("EnvironmentLightingProvider")
-                        }
-
-                        let providerList = providerNames.joined(separator: ",")
-                        print("XR ARKit providers run starting: attempt=\(attempt), reason=\(reason), providers=\(providerList), worldSensingAllowed=\(worldSensingAllowed)")
-                        try await arSession.run(providers)
-                        xrEnvironmentLightingSystem.markProviderRunning(xrEnvironmentLightingSystem.providerForSession != nil)
-                        let durationMs = (CACurrentMediaTime() - startTime) * 1000.0
-                        let durationText = String(format: "%.2f", durationMs)
-                        print("XR ARKit providers run completed: attempt=\(attempt), durationMs=\(durationText), worldTrackingState=\(String(describing: worldTracking.state))")
-                    } catch {
-                        xrEnvironmentLightingSystem.markProviderRunning(false)
-                        let durationMs = (CACurrentMediaTime() - startTime) * 1000.0
-                        let durationText = String(format: "%.2f", durationMs)
-                        print("XR ARKit providers run failed: attempt=\(attempt), durationMs=\(durationText), worldTrackingState=\(String(describing: worldTracking.state)), error=\(error)")
-                        print("⚠️ Failed to start ARKit providers: \(error)")
+                    } else {
+                        print("⚠️ World sensing authorization denied — plane detection disabled. Grant permission in Settings > Privacy > World Sensing.")
                     }
+
+                    if let lightingProvider = xrEnvironmentLightingSystem.providerForSession {
+                        providers.append(lightingProvider)
+                        providerNames.append("EnvironmentLightingProvider")
+                    }
+
+                    let providerList = providerNames.joined(separator: ",")
+                    print("XR ARKit providers run starting: attempt=\(attempt), reason=\(reason), providers=\(providerList), worldSensingAllowed=\(worldSensingAllowed)")
+                    try await arSession.run(providers)
+                    xrEnvironmentLightingSystem.markProviderRunning(xrEnvironmentLightingSystem.providerForSession != nil)
+                    let durationMs = (CACurrentMediaTime() - startTime) * 1000.0
+                    let durationText = String(format: "%.2f", durationMs)
+                    print("XR ARKit providers run completed: attempt=\(attempt), durationMs=\(durationText), worldTrackingState=\(String(describing: worldTracking.state))")
+                    return true
+                } catch {
+                    xrEnvironmentLightingSystem.markProviderRunning(false)
+                    let durationMs = (CACurrentMediaTime() - startTime) * 1000.0
+                    let durationText = String(format: "%.2f", durationMs)
+                    print("XR ARKit providers run failed: attempt=\(attempt), durationMs=\(durationText), worldTrackingState=\(String(describing: worldTracking.state)), error=\(error)")
+                    print("⚠️ Failed to start ARKit providers: \(error)")
+                    return false
                 }
-            #endif
+            }
+        #endif
+
+        private func nextARKitProviderRunAttempt() -> Int {
+            arKitProviderRunLock.lock()
+            arKitProviderRunAttemptCount += 1
+            let attempt = arKitProviderRunAttemptCount
+            arKitProviderRunLock.unlock()
+            return attempt
         }
 
         private func isRunning() -> Bool {
