@@ -232,6 +232,14 @@ applyPinchDragIfNeeded(from: state, entityId: myEntity, sensitivity: 1.0)
 
 // Anchored drag / rotate for individual entities
 processAnchoredPinchDragLifecycle(from: state, entityId: myEntity, dragPlane: .xz)
+processAnchoredPinchDragLifecycle(
+    from: state,
+    entityId: myEntity,
+    dragPlane: .xz,
+    positionTransform: { worldPosition in
+        simd_float3(worldPosition.x.rounded(), worldPosition.y, worldPosition.z.rounded())
+    }
+)
 
 // Anchored drag / rotate for the entire scene root
 processAnchoredSceneDragLifecycle(from: state)

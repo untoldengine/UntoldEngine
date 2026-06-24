@@ -122,13 +122,15 @@ public func isXRSceneReady() -> Bool {
         from state: XRSpatialInputState,
         entityId: EntityID? = nil,
         sensitivity: Float = 1.0,
-        dragPlane: SpatialDragPlane = .unconstrained
+        dragPlane: SpatialDragPlane = .unconstrained,
+        positionTransform: ((simd_float3) -> simd_float3)? = nil
     ) {
         SpatialManipulationSystem.shared.processAnchoredPinchDragLifecycle(
             from: state,
             entityId: entityId,
             sensitivity: sensitivity,
-            dragPlane: dragPlane
+            dragPlane: dragPlane,
+            positionTransform: positionTransform
         )
     }
 

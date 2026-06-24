@@ -275,10 +275,31 @@ This helper:
 -   Captures initial hand + entity world positions
 -   Applies absolute displacement from gesture start
 -   Optionally constrains movement to `.xy`, `.xz`, or `.yz`
+-   Optionally transforms the final world position before it is written
 -   Cleans up session state on end/cancel
 
 Use this when moving large roots (buildings/scenes) where incremental delta jitter can become visible.
 Use `.xz` for floor-plane dragging, `.xy` for wall-plane dragging, and `.unconstrained` for free 3D movement.
+
+Use `positionTransform` for continuous snapping, clamping, or custom placement rules:
+
+```swift
+processAnchoredPinchDragLifecycle(
+    from: state,
+    entityId: sceneRootEntity,
+    dragPlane: .xz,
+    positionTransform: { worldPosition in
+        let gridSize: Float = 0.25
+        return simd_float3(
+            (worldPosition.x / gridSize).rounded() * gridSize,
+            worldPosition.y,
+            (worldPosition.z / gridSize).rounded() * gridSize
+        )
+    }
+)
+```
+
+The closure receives and returns **world-space** position after sensitivity and `dragPlane` have been applied. If it returns a non-finite value, the engine skips that frame's position write.
 
 ------------------------------------------------------------------------
 
@@ -744,7 +765,7 @@ Use these free functions for spatial manipulation. They all delegate to `Spatial
 -   `applyPinchDragIfNeeded(from:entityId:sensitivity:)`
     Lower-level translation helper if you want full control.
 
--   `processAnchoredPinchDragLifecycle(from:entityId:sensitivity:dragPlane:)`
+-   `processAnchoredPinchDragLifecycle(from:entityId:sensitivity:dragPlane:positionTransform:)`
     Anchored drag for a single entity. Applies absolute displacement from gesture start, optionally constrained to a world-axis plane.
 
 -   `processAnchoredSceneDragLifecycle(from:sensitivity:)`
