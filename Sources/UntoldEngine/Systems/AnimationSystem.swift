@@ -45,38 +45,95 @@ public final class AnimationSystem: @unchecked Sendable {
 /// instead of add an ifelse conditional jump.
 private func updateAnimationSystemDummy(deltaTime _: Float) {}
 
+private func collectDescendantEntities(
+    entityId: EntityID,
+    matches: (EntityID) -> Bool,
+    visited: inout Set<EntityID>
+) -> [EntityID] {
+    guard visited.insert(entityId).inserted else {
+        return []
+    }
+
+    var result: [EntityID] = []
+    if matches(entityId) {
+        result.append(entityId)
+    }
+
+    guard let scenegraph = scene.get(component: ScenegraphComponent.self, for: entityId) else {
+        return result
+    }
+
+    for childId in scenegraph.children {
+        result.append(contentsOf: collectDescendantEntities(entityId: childId, matches: matches, visited: &visited))
+    }
+
+    return result
+}
+
+private func resolveDescendantEntities(
+    entityId: EntityID,
+    matches: (EntityID) -> Bool
+) -> [EntityID] {
+    var visited: Set<EntityID> = []
+    return collectDescendantEntities(entityId: entityId, matches: matches, visited: &visited)
+}
+
 private func resolveDescendantEntity(
     entityId: EntityID,
     matches: (EntityID) -> Bool
 ) -> EntityID? {
-    if matches(entityId) {
-        return entityId
-    }
-
-    guard let scenegraph = scene.get(component: ScenegraphComponent.self, for: entityId) else {
-        return nil
-    }
-
-    for childId in scenegraph.children {
-        if let resolved = resolveDescendantEntity(entityId: childId, matches: matches) {
-            return resolved
-        }
-    }
-
-    return nil
+    resolveDescendantEntities(entityId: entityId, matches: matches).first
 }
 
-func resolveEntityWithAnimationComponent(entityId: EntityID) -> EntityID? {
-    resolveDescendantEntity(entityId: entityId) {
+func resolveEntitiesWithAnimationComponent(entityId: EntityID) -> [EntityID] {
+    resolveDescendantEntities(entityId: entityId) {
         scene.get(component: AnimationComponent.self, for: $0) != nil
     }
 }
 
-func resolveEntityForAnimationBinding(entityId: EntityID) -> EntityID? {
-    resolveDescendantEntity(entityId: entityId) {
+func resolveEntityWithAnimationComponent(entityId: EntityID) -> EntityID? {
+    resolveEntitiesWithAnimationComponent(entityId: entityId).first
+}
+
+func resolveEntitiesForAnimationBinding(entityId: EntityID) -> [EntityID] {
+    resolveDescendantEntities(entityId: entityId) {
         scene.get(component: SkeletonComponent.self, for: $0) != nil &&
             scene.get(component: RenderComponent.self, for: $0) != nil
     }
+}
+
+func resolveEntityForAnimationBinding(entityId: EntityID) -> EntityID? {
+    resolveEntitiesForAnimationBinding(entityId: entityId).first
+}
+
+private func animationComponentsForEntityOrDescendants(entityId: EntityID) -> [(EntityID, AnimationComponent)] {
+    let targetEntityIds = resolveEntitiesWithAnimationComponent(entityId: entityId)
+    return targetEntityIds.compactMap { targetEntityId in
+        guard let animationComponent = scene.get(component: AnimationComponent.self, for: targetEntityId) else {
+            return nil
+        }
+        return (targetEntityId, animationComponent)
+    }
+}
+
+private func animationComponentsContainingClip(entityId: EntityID, name: String) -> [(EntityID, AnimationComponent, AnimationClip)] {
+    animationComponentsForEntityOrDescendants(entityId: entityId).compactMap { targetEntityId, animationComponent in
+        guard let animationClip = animationComponent.animationClips[name] else {
+            return nil
+        }
+        return (targetEntityId, animationComponent, animationClip)
+    }
+}
+
+func resolveAnimationBindingTargetEntities(entityId: EntityID) -> [EntityID] {
+    let targetEntityIds = resolveEntitiesForAnimationBinding(entityId: entityId)
+    return targetEntityIds.isEmpty ? [entityId] : targetEntityIds
+}
+
+private func hasAnyAnimationComponent(entityId: EntityID) -> Bool {
+    resolveDescendantEntity(entityId: entityId) {
+        scene.get(component: AnimationComponent.self, for: $0) != nil
+    } != nil
 }
 
 private func updateAnimationSystem(deltaTime: Float) {
@@ -123,49 +180,58 @@ private func updateAnimationSystem(deltaTime: Float) {
 }
 
 public func pauseAnimationComponent(entityId: EntityID, isPaused: Bool) {
-    let targetEntityId = resolveEntityWithAnimationComponent(entityId: entityId) ?? entityId
-    guard let animationComponent = scene.get(component: AnimationComponent.self, for: targetEntityId) else {
+    let animationComponents = animationComponentsForEntityOrDescendants(entityId: entityId)
+    guard animationComponents.isEmpty == false else {
         handleError(.noAnimationComponent, entityId)
         return
     }
 
-    animationComponent.pause = isPaused
+    for (_, animationComponent) in animationComponents {
+        animationComponent.pause = isPaused
+    }
 }
 
 public func isAnimationComponentPaused(entityId: EntityID) -> Bool {
-    let targetEntityId = resolveEntityWithAnimationComponent(entityId: entityId) ?? entityId
-    guard let animationComponent = scene.get(component: AnimationComponent.self, for: targetEntityId) else {
+    let animationComponents = animationComponentsForEntityOrDescendants(entityId: entityId)
+    guard animationComponents.isEmpty == false else {
         handleError(.noAnimationComponent, entityId)
         return true
     }
 
-    return animationComponent.pause
+    return animationComponents.allSatisfy { _, animationComponent in
+        animationComponent.pause
+    }
 }
 
 public func changeAnimation(entityId: EntityID, name: String, withPause: Bool = false) {
-    let targetEntityId = resolveEntityWithAnimationComponent(entityId: entityId) ?? entityId
-    guard let animationComponent = scene.get(component: AnimationComponent.self, for: targetEntityId) else {
+    guard hasAnyAnimationComponent(entityId: entityId) else {
         handleError(.noAnimationComponent, entityId)
         return
     }
 
-    guard let animationClip = animationComponent.animationClips[name] else {
+    let matchingComponents = animationComponentsContainingClip(entityId: entityId, name: name)
+    guard matchingComponents.isEmpty == false else {
         handleError(.noAnimationClip, name, entityId)
         return
     }
 
-    animationComponent.currentAnimation = animationClip
-    animationComponent.pause = withPause
+    for (_, animationComponent, animationClip) in matchingComponents {
+        animationComponent.currentAnimation = animationClip
+        animationComponent.pause = withPause
+    }
 }
 
 public func setAnimationPlaybackSpeed(entityId: EntityID, speed: Float) {
-    let targetEntityId = resolveEntityWithAnimationComponent(entityId: entityId) ?? entityId
-    guard let animationComponent = scene.get(component: AnimationComponent.self, for: targetEntityId) else {
+    let animationComponents = animationComponentsForEntityOrDescendants(entityId: entityId)
+    guard animationComponents.isEmpty == false else {
         handleError(.noAnimationComponent, entityId)
         return
     }
 
-    animationComponent.playbackSpeed = max(0.0, speed)
+    let clampedSpeed = max(0.0, speed)
+    for (_, animationComponent) in animationComponents {
+        animationComponent.playbackSpeed = clampedSpeed
+    }
 }
 
 public func getAnimationPlaybackSpeed(entityId: EntityID) -> Float {
@@ -179,20 +245,19 @@ public func getAnimationPlaybackSpeed(entityId: EntityID) -> Float {
 }
 
 public func getAllAnimationClips(entityId: EntityID) -> [String] {
-    let targetEntityId = resolveEntityWithAnimationComponent(entityId: entityId) ?? entityId
-    guard let animationComponent = scene.get(component: AnimationComponent.self, for: targetEntityId) else {
-        return []
-    }
-
-    return animationComponent.getAllAnimationClips()
+    let clipNames = animationComponentsForEntityOrDescendants(entityId: entityId)
+        .flatMap { _, animationComponent in animationComponent.getAllAnimationClips() }
+    return Array(Set(clipNames)).sorted()
 }
 
 public func removeAnimationClip(entityId: EntityID, animationClip: String) {
-    let targetEntityId = resolveEntityWithAnimationComponent(entityId: entityId) ?? entityId
-    guard let animationComponent = scene.get(component: AnimationComponent.self, for: targetEntityId) else {
+    let animationComponents = animationComponentsForEntityOrDescendants(entityId: entityId)
+    guard animationComponents.isEmpty == false else {
         handleError(.noAnimationComponent, entityId)
         return
     }
 
-    animationComponent.removeAnimationClip(animationClip: animationClip)
+    for (_, animationComponent) in animationComponents {
+        animationComponent.removeAnimationClip(animationClip: animationClip)
+    }
 }

@@ -76,7 +76,11 @@ class Skeleton {
     /// Computes local joint transforms based on an animation clip
     private func computeLocalPose(at time: Float, with animationClip: AnimationClip) -> [simd_float4x4] {
         jointPaths.indices.map { index in
-            animationClip.getPose(at: time * animationClip.speed, jointPath: jointPaths[index])
+            animationClip.getPose(
+                at: time * animationClip.speed,
+                jointPath: jointPaths[index],
+                fallback: restTransform[index]
+            )
                 ?? restTransform[index]
         }
     }
@@ -300,10 +304,45 @@ class AnimationClip {
 
     /// Retrieves the interpolated pose for a joint at a specific time
     func getPose(at time: Float, jointPath: String) -> float4x4? {
+        getPose(at: time, jointPath: jointPath, fallback: .identity)
+    }
+
+    /// Retrieves the interpolated pose while preserving rest-pose channels that are
+    /// not authored by the clip. Many skeletal clips animate rotation only for most
+    /// joints; those joints must keep their rest translation offsets. The runtime
+    /// format does not store scale animation, so keep the rest-pose local scale too.
+    func getPose(at time: Float, jointPath: String, fallback: float4x4) -> float4x4? {
         guard let animation = jointAnimation[jointPath] else { return nil }
-        let rotation = animation.getRotation(at: time) ?? simd_quatf(simd_float4x4.identity)
-        let translation = animation.getTranslation(at: time) ?? simd_float3(repeating: 0)
-        return float4x4(translation: translation) * float4x4(rotation)
+        let fallbackScale = Self.localScale(from: fallback)
+        let fallbackRotation = Self.localRotation(from: fallback, scale: fallbackScale)
+        let rotation = animation.getRotation(at: time) ?? fallbackRotation
+        let translation = animation.getTranslation(at: time) ?? simd_float3(
+            fallback.columns.3.x,
+            fallback.columns.3.y,
+            fallback.columns.3.z
+        )
+        return float4x4(translation: translation) * float4x4(rotation) * float4x4(scale: fallbackScale)
+    }
+
+    private static func localScale(from matrix: float4x4) -> SIMD3<Float> {
+        SIMD3<Float>(
+            simd_length(SIMD3<Float>(matrix.columns.0.x, matrix.columns.0.y, matrix.columns.0.z)),
+            simd_length(SIMD3<Float>(matrix.columns.1.x, matrix.columns.1.y, matrix.columns.1.z)),
+            simd_length(SIMD3<Float>(matrix.columns.2.x, matrix.columns.2.y, matrix.columns.2.z))
+        )
+    }
+
+    private static func localRotation(from matrix: float4x4, scale: SIMD3<Float>) -> simd_quatf {
+        let epsilon: Float = 0.000001
+        let sx = max(scale.x, epsilon)
+        let sy = max(scale.y, epsilon)
+        let sz = max(scale.z, epsilon)
+        let rotationMatrix = matrix_float3x3(columns: (
+            SIMD3<Float>(matrix.columns.0.x, matrix.columns.0.y, matrix.columns.0.z) / sx,
+            SIMD3<Float>(matrix.columns.1.x, matrix.columns.1.y, matrix.columns.1.z) / sy,
+            SIMD3<Float>(matrix.columns.2.x, matrix.columns.2.y, matrix.columns.2.z) / sz
+        ))
+        return simd_normalize(simd_quatf(rotationMatrix))
     }
 
     // MARK: - Private Helpers
