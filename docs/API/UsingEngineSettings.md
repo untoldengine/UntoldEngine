@@ -231,6 +231,7 @@ processPinchTransformLifecycle(from: state)
 applyPinchDragIfNeeded(from: state, entityId: myEntity, sensitivity: 1.0)
 
 // Anchored drag / rotate for individual entities
+// dragPlane filters world-axis displacement; it is not ray-plane picking.
 processAnchoredPinchDragLifecycle(from: state, entityId: myEntity, dragPlane: .xz)
 processAnchoredPinchDragLifecycle(
     from: state,

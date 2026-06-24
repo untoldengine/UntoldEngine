@@ -274,12 +274,14 @@ This helper:
 
 -   Captures initial hand + entity world positions
 -   Applies absolute displacement from gesture start
--   Optionally constrains movement to `.xy`, `.xz`, or `.yz`
+-   Optionally constrains world-axis movement to `.xy`, `.xz`, or `.yz`
 -   Optionally transforms the final world position before it is written
 -   Cleans up session state on end/cancel
 
 Use this when moving large roots (buildings/scenes) where incremental delta jitter can become visible.
-Use `.xz` for floor-plane dragging, `.xy` for wall-plane dragging, and `.unconstrained` for free 3D movement.
+Use `.xz` to preserve height while dragging across the floor axes, `.xy` to preserve depth for wall-style movement, and `.unconstrained` for free 3D movement.
+
+`dragPlane` filters the hand displacement in world axes. It does not raycast the input ray against a mathematical plane. For ray-plane picking, use `pickGroundPosition` or `pickPlanePosition`.
 
 Use `positionTransform` for continuous snapping, clamping, or custom placement rules:
 
@@ -299,7 +301,7 @@ processAnchoredPinchDragLifecycle(
 )
 ```
 
-The closure receives and returns **world-space** position after sensitivity and `dragPlane` have been applied. If it returns a non-finite value, the engine skips that frame's position write.
+The closure receives and returns **world-space** position after sensitivity and `dragPlane` have been applied. Its return value is the final position, so it can intentionally override the constrained axis. If it returns a non-finite value, the engine skips that frame's position write.
 
 ------------------------------------------------------------------------
 
@@ -766,7 +768,7 @@ Use these free functions for spatial manipulation. They all delegate to `Spatial
     Lower-level translation helper if you want full control.
 
 -   `processAnchoredPinchDragLifecycle(from:entityId:sensitivity:dragPlane:positionTransform:)`
-    Anchored drag for a single entity. Applies absolute displacement from gesture start, optionally constrained to a world-axis plane.
+    Anchored drag for a single entity. Applies absolute displacement from gesture start, optionally constrained by world-axis displacement filtering.
 
 -   `processAnchoredSceneDragLifecycle(from:sensitivity:)`
     Anchored drag for the entire scene root. Applies absolute displacement via `translateSceneTo`.
