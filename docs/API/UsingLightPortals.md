@@ -59,16 +59,7 @@ setSceneChannel(.windowGeometry, .lightPortal(.disabled))
 
 If an entity belongs to multiple portal-enabled channels, the engine combines the channel settings using the most permissive intensity, range, and activation distance. `useRealWorldTint` is enabled if any channel requests it. Active portal limits are enforced per portal-enabled channel.
 
-## XR Lighting
-
-For Vision Pro real-world lighting, enable XR lighting during app startup:
-
-```swift
-xr.setXRLightingMode(.realWorldEstimate)
-xr.setXRLightingContribution(1.0)
-```
-
-Light portals are independent of passthrough visibility. You can use them with mixed passthrough, without passthrough, or with normal authored virtual rendering.
+## Real-World Tint
 
 `useRealWorldTint: true` applies the XR probe's normalized intensity scale and the engine's real-world lighting contribution multiplier:
 
@@ -76,7 +67,9 @@ Light portals are independent of passthrough visibility. You can use them with m
 portal intensity = portal intensity * xr intensity scale * real-world contribution
 ```
 
-If no valid XR probe is available while XR real-world lighting is enabled, real-world-tinted portals emit no light. When XR lighting is valid, changing `xr.setXRLightingContribution(...)` or `setRendering(.environment(.realWorldLightingContribution(...)))` affects portal strength immediately.
+If no valid XR probe is available while XR real-world lighting is enabled, real-world-tinted portals emit no light. When XR lighting is valid, changing `setRendering(.environment(.realWorldLightingContribution(...)))` affects portal strength immediately.
+
+Light portals do not enable XR lighting by themselves. Configure XR real-world probe lighting separately with `setRendering(.environment(.lightingMode(.realWorldEstimate)))`. See [XR Lighting](UsingXRLighting.md) for probe setup, provider lifecycle, diagnostics, and passthrough behavior.
 
 ## Diagnostics
 
@@ -117,7 +110,7 @@ Important fields:
 | `environmentIntensityScale` | Final XR/environment multiplier used for real-world-tinted portal proxy lights. |
 | `xrIntensityScale` | XR probe intensity scale before the user contribution multiplier. |
 | `environmentTintColor` | RGB tint applied to real-world-tinted portal proxy lights. |
-| `realWorldLightingContribution` | User contribution multiplier from `xr.setXRLightingContribution(...)` or the rendering settings API. |
+| `realWorldLightingContribution` | User contribution multiplier from the rendering settings API. |
 | `maxEffectivePortalIntensity` | Brightest portal intensity emitted into the area-light buffer for the latest frame. |
 
 ## Performance

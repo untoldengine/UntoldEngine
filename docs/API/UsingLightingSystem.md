@@ -11,6 +11,21 @@ Directional shader uniforms use the opposite vector because the BRDF expects the
 
 Area-light shader uniforms keep a separate `forward` value for the LTC rectangle polygon/front normal used to choose winding. Use `getLightEmissionDirection(entityId:)` for editor handles and authored light travel direction; do not treat `AreaLight.forward` as the semantic travel vector.
 
+## Runtime Environment Lighting
+
+Use rendering environment settings to choose how indirect/environment lighting is resolved:
+
+```swift
+setRendering(.environment(.lightingMode(.authoredOnly)))
+setRendering(.environment(.lightingMode(.staticIBL)))
+setRendering(.environment(.lightingMode(.realWorldEstimate)))
+setRendering(.environment(.realWorldLightingContribution(0.75)))
+```
+
+`realWorldEstimate` uses Vision Pro environment light probes when an `UntoldEngineXR` instance is active. The XR layer observes the runtime lighting mode, starts or stops the ARKit environment-light provider as needed, and feeds prefiltered probe textures into the normal PBR lighting path.
+
+See [XR Lighting](UsingXRLighting.md) for Vision Pro probe setup and diagnostics. See [Light Portals](UsingLightPortals.md) for proxy area lights emitted from selected window/opening geometry.
+
 ## Creating Each Light Type
 ### Directional Light
 
@@ -152,4 +167,3 @@ let forward = getLightTransformForwardAxis(entityId: light)
 // Direction from shaded point toward the light (BRDF input convention)
 let shader = getDirectionalLightShaderDirection(entityId: light)
 ```
-
