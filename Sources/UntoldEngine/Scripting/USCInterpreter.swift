@@ -1120,6 +1120,21 @@ public class USCInterpreter: @unchecked Sendable {
         case "D": return InputSystem.shared.keyState.dPressed
         case "Q": return InputSystem.shared.keyState.qPressed
         case "E": return InputSystem.shared.keyState.ePressed
+        case "H": return InputSystem.shared.keyState.hPressed
+        case "TAB": return InputSystem.shared.keyState.tabPressed
+        case "F": return InputSystem.shared.keyState.fPressed
+        case "F1": return InputSystem.shared.keyState.f1Pressed
+        case "F2": return InputSystem.shared.keyState.f2Pressed
+        case "F3": return InputSystem.shared.keyState.f3Pressed
+        case "F4": return InputSystem.shared.keyState.f4Pressed
+        case "F5": return InputSystem.shared.keyState.f5Pressed
+        case "F6": return InputSystem.shared.keyState.f6Pressed
+        case "F7": return InputSystem.shared.keyState.f7Pressed
+        case "F8": return InputSystem.shared.keyState.f8Pressed
+        case "F9": return InputSystem.shared.keyState.f9Pressed
+        case "F10": return InputSystem.shared.keyState.f10Pressed
+        case "F11": return InputSystem.shared.keyState.f11Pressed
+        case "F12": return InputSystem.shared.keyState.f12Pressed
         case "SPACE": return InputSystem.shared.keyState.spacePressed
         case "SHIFT": return InputSystem.shared.keyState.shiftPressed
         case "CTRL": return InputSystem.shared.keyState.ctrlPressed

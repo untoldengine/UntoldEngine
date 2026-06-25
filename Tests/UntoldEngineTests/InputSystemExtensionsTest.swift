@@ -60,6 +60,31 @@ final class InputSystemExtensionsTests: XCTestCase {
 
     // MARK: - Mouse Input Tests
 
+    func test_keyboardStates_includeHFAndTab() {
+        let input = InputSystem.shared
+
+        XCTAssertFalse(input.keyState.hPressed)
+        XCTAssertFalse(input.keyState.tabPressed)
+        XCTAssertFalse(input.keyState.fPressed)
+        XCTAssertFalse(input.keyState.f1Pressed)
+        XCTAssertFalse(input.keyState.f6Pressed)
+        XCTAssertFalse(input.keyState.f12Pressed)
+
+        input.keyState.hPressed = true
+        input.keyState.tabPressed = true
+        input.keyState.fPressed = true
+        input.keyState.f1Pressed = true
+        input.keyState.f6Pressed = true
+        input.keyState.f12Pressed = true
+
+        XCTAssertTrue(input.keyState.hPressed)
+        XCTAssertTrue(input.keyState.tabPressed)
+        XCTAssertTrue(input.keyState.fPressed)
+        XCTAssertTrue(input.keyState.f1Pressed)
+        XCTAssertTrue(input.keyState.f6Pressed)
+        XCTAssertTrue(input.keyState.f12Pressed)
+    }
+
     func test_mouseButtonStates_inKeyState() {
         let input = InputSystem.shared
 
