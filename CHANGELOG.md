@@ -1,4 +1,19 @@
 # Changelog
+## v0.13.3 - 2026-06-25
+### 🐞 Fixes
+- [Patch] Add vision light probes (b2d1ff9…)
+- [Patch] Added xr light probe contribution factor (708c22d…)
+- [Patch] Add virtual light (c1cf311…)
+- [Patch] Updated Engine API v2 (d9c6e57…)
+- [Patch] processAnchoredPinchDragLifecycle now supports dragPlane (be493f2…)
+- [Patch] Implemented the recursive material opacicty fix (adea187…)
+- [Patch] Added support for drag-snapping (f4f4647…)
+- [Patch] Route XR lighting through rendering settings (9bfe031…)
+- [Patch] Serialize XR ARKit provider runs (7b5f115…)
+- [Patch] Added light portal diagnostics (c0176bc…)
+- [Patch] Harden recursive material updates and clarify drag constraints (76d4ecc…)
+- [Patch] Fixed animations linkage with multiple meshes (cf4ce4a…)
+- [Patch] Added support for additional input keys (cc8cf09…)
 ## v0.13.2 - 2026-06-18
 ### 🐞 Fixes
 - [Patch] Added tile preview overlay for blender (4a31132…)
