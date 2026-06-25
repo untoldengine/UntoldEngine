@@ -1483,6 +1483,12 @@ final class USCScriptingAPITest: XCTestCase {
             s.onUpdate()
                 .getKeyState("w", as: "wPressed")
                 .getKeyState("a", as: "aPressed")
+                .getKeyState("h", as: "hPressed")
+                .getKeyState("tab", as: "tabPressed")
+                .getKeyState("f", as: "fPressed")
+                .getKeyState("f1", as: "f1Pressed")
+                .getKeyState("f6", as: "f6Pressed")
+                .getKeyState("f12", as: "f12Pressed")
         }
 
         let entityId = createEntity()
@@ -1492,6 +1498,12 @@ final class USCScriptingAPITest: XCTestCase {
         // Simulate W key pressed
         InputSystem.shared.keyState.wPressed = true
         InputSystem.shared.keyState.aPressed = false
+        InputSystem.shared.keyState.hPressed = true
+        InputSystem.shared.keyState.tabPressed = true
+        InputSystem.shared.keyState.fPressed = false
+        InputSystem.shared.keyState.f1Pressed = true
+        InputSystem.shared.keyState.f6Pressed = false
+        InputSystem.shared.keyState.f12Pressed = true
 
         interpreter.execute(script: script, context: context, forEvent: "OnUpdate")
 
@@ -1501,12 +1513,40 @@ final class USCScriptingAPITest: XCTestCase {
         guard case let .bool(aPressed) = context.variables["aPressed"] else {
             return XCTFail("aPressed should be a bool")
         }
+        guard case let .bool(hPressed) = context.variables["hPressed"] else {
+            return XCTFail("hPressed should be a bool")
+        }
+        guard case let .bool(tabPressed) = context.variables["tabPressed"] else {
+            return XCTFail("tabPressed should be a bool")
+        }
+        guard case let .bool(fPressed) = context.variables["fPressed"] else {
+            return XCTFail("fPressed should be a bool")
+        }
+        guard case let .bool(f1Pressed) = context.variables["f1Pressed"] else {
+            return XCTFail("f1Pressed should be a bool")
+        }
+        guard case let .bool(f6Pressed) = context.variables["f6Pressed"] else {
+            return XCTFail("f6Pressed should be a bool")
+        }
+        guard case let .bool(f12Pressed) = context.variables["f12Pressed"] else {
+            return XCTFail("f12Pressed should be a bool")
+        }
 
         XCTAssertEqual(wPressed, true, "W key should be pressed")
         XCTAssertEqual(aPressed, false, "A key should not be pressed")
+        XCTAssertEqual(hPressed, true, "H key should be pressed")
+        XCTAssertEqual(tabPressed, true, "Tab key should be pressed")
+        XCTAssertEqual(fPressed, false, "F key should not be pressed")
+        XCTAssertEqual(f1Pressed, true, "F1 key should be pressed")
+        XCTAssertEqual(f6Pressed, false, "F6 key should not be pressed")
+        XCTAssertEqual(f12Pressed, true, "F12 key should be pressed")
 
         // Reset
         InputSystem.shared.keyState.wPressed = false
+        InputSystem.shared.keyState.hPressed = false
+        InputSystem.shared.keyState.tabPressed = false
+        InputSystem.shared.keyState.f1Pressed = false
+        InputSystem.shared.keyState.f12Pressed = false
     }
 
     func testOrBool_Scripted() {
