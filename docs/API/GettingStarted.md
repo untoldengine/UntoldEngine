@@ -184,7 +184,7 @@ setEntityName(entityId: entity, name: "robot")
 
 setEntityMeshAsync(entityId: entity, filename: "robot", withExtension: "untold") { success in
     if success {
-        translateBy(entityId: entity, position: simd_float3(0.0, 0.0, 0.0))
+        translateTo(entityId: entity, position: simd_float3(0.0, 0.0, 0.0))
         setEntityKinetics(entityId: entity)
     }
     setSceneReady(success)
@@ -260,7 +260,7 @@ if let url = URL(string: "https://cdn.example.com/dungeon/dungeon.json") {
 `setEntityStreamScene` registers lightweight stub entities for every tile in the
 manifest, all parented under `sceneRoot` (no geometry is parsed at this point).
 `GeometryStreamingSystem` then loads and unloads tile geometry as the camera moves.
-See [Tile-Based Streaming](../Architecture/tilebasedstreaming) for the full streaming
+See [Tile-Based Streaming](../Architecture/tilebasedstreaming.md) for the full streaming
 architecture.
 
 > **Legacy overloads** — `loadTiledScene(manifest:)` and `loadTiledScene(url:)` remain

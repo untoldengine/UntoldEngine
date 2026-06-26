@@ -54,9 +54,8 @@ setEntityStreamScene(entityId: sceneRoot, manifest: "city", withExtension: "json
 
 In this mode:
 
-- `registerTiledScene(...)` enables batching automatically
-- full-load tiles notify batching through `notifyTileEntitiesResident(_:)`
-- OCC sub-mesh uploads join batching incrementally through normal residency events
+- `setEntityStreamScene(...)` registers tiled-scene entities with batching automatically
+- full-load tiles and OCC sub-mesh uploads notify batching through internal residency events
 - per-tile LOD and HLOD representations can also participate when enabled
 
 You do **not** call `generateBatches()` every time a tile loads. The batching system rebuilds dirty cells incrementally based on residency changes.
@@ -76,12 +75,12 @@ setEntityStreamScene(entityId: sceneRoot, manifest: "city", withExtension: "json
 }
 ```
 
-For non-streamed scenes (single `.untold`), call `setEntityStaticBatchComponent`, `generateBatches()`, and `setBatching(.enabled(true))` as normal. The same applies to any operation that mutates material state (color, opacity) — wrap it with `setBatching(.enabled(false))` before and `generateBatches()` + `setBatching(.enabled(true))` after, but only for non-streamed scenes:
+For non-streamed scenes (single `.untold`), call `setEntityStaticBatchComponent`, `generateBatches()`, and `setBatching(.enabled(true))` as normal. Material updates such as opacity automatically notify batching, but if you want a deterministic manual rebuild in an always-resident scene, wrap the edit with `setBatching(.enabled(false))` before and `generateBatches()` + `setBatching(.enabled(true))` after. Do not use this pattern in streamed scenes:
 
 ```swift
 // Non-streamed only — do not use this pattern in tiled/streamed scenes
 setBatching(.enabled(false))
-setEntityColor(entityId: prop, color: simd_float4(1, 0, 0, 1))
+updateMaterialOpacity(entityId: prop, opacity: 0.5)
 generateBatches()
 setBatching(.enabled(true))
 ```
@@ -154,4 +153,4 @@ clearSceneBatches()
 - `TileLODTagComponent` lets batching treat per-tile LODs and HLODs as distinct LOD groups even though they are not entity-level `LODComponent` assets.
 - Scene channels separate context geometry from selectable geometry. Entities marked `.preserveIdentity` are excluded from batching, and batch groups are separated by channel mask so channel visibility can be toggled without rebuilding batches.
 
-For architectural details, see [Batching System](../Architecture/batchingSystem).
+For architectural details, see [Batching System](../Architecture/batchingSystem.md).

@@ -53,12 +53,12 @@ applyForce(entityId: redPlayer, force: simd_float3(0.0, 0.0, 5.0))
 ---
 
 #### Step 6: Use the Steering System
-For advanced movement behaviors, leverage the Steering System to steer entities toward or away from targets. This system automatically calculates the required forces.
+For advanced movement behaviors, use the Steering System helpers to steer entities toward or away from targets. The high-level helpers calculate steering forces and apply them through the physics system.
 
 Example: Steering Toward a Position
 
 ```swift
-steerTo(entityId: redPlayer, targetPosition: simd_float3(0.0, 0.0, 5.0), maxSpeed: 2.0, deltaTime: deltaTime)
+steerSeek(entityId: redPlayer, targetPosition: simd_float3(0.0, 0.0, 5.0), maxSpeed: 2.0, deltaTime: deltaTime)
 ```
 
 ---
@@ -67,9 +67,11 @@ steerTo(entityId: redPlayer, targetPosition: simd_float3(0.0, 0.0, 5.0), maxSpee
 
 The Steering System includes other useful behaviors, such as:
 
-- steerAway()
-- steerPursuit()
-- followPath()
+- `steerFlee(entityId:threatPosition:maxSpeed:deltaTime:)`
+- `steerArrive(entityId:targetPosition:maxSpeed:slowingRadius:deltaTime:)`
+- `steerPursuit(entityId:targetEntity:maxSpeed:deltaTime:)`
+- `steerFollowPath(entityId:path:maxSpeed:deltaTime:)`
+- `steerAvoidObstacles(entityId:obstacles:avoidanceRadius:maxSpeed:deltaTime:)`
 
 These functions simplify complex movement patterns, making them easy to implement.
 

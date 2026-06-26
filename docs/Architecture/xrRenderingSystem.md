@@ -24,6 +24,8 @@ At init time, three things happen in parallel:
 
 **ARKit session startup** (async Task): Queries world sensing authorization, then launches `WorldTrackingProvider` and `PlaneDetectionProvider`. World tracking is what gives you the device anchor — the head pose needed to render correctly in the user's space. If world sensing is denied (e.g., the user blocked it in Settings), the engine still runs with world tracking only so rendering doesn't break, it just has no plane data.
 
+**Environment lighting provider ownership**: The XR layer observes the runtime rendering lighting mode. When the app sets `setRendering(.environment(.lightingMode(.realWorldEstimate)))`, the XR runtime includes ARKit environment light estimation in the provider set and feeds accepted probe updates into the engine's IBL path. Switching back to `.authoredOnly` or `.staticIBL` disables that provider path. `realWorldLightingContribution` is a rendering multiplier and can change at runtime without restarting ARKit providers.
+
 **Plane monitor** (background Task): A long-running Swift structured concurrency task that consumes the `planeDetection.anchorUpdates` async stream. Every time the system detects, updates, or removes a real-world surface (floor, wall, table, etc.), it maps the ARKit classification to the engine's `RealSurfaceKind` enum and forwards it to `RealSurfacePlaneStore`. Game code queries this store to snap objects to real surfaces.
 
 **Renderer creation**: `UntoldRenderer.createXR(...)` initializes the Metal device, command queue, G-Buffer textures, pipeline states, and all other GPU resources at the fixed visionOS viewport size (2048 × 1984 per eye).
@@ -78,6 +80,8 @@ Everything between `startUpdate` and `endUpdate` is CPU-side frame preparation:
 - **Spatial input processing**: `updateSpatialInputState()` drains the queued `XRSpatialInputSnapshot` events and updates the `InputSystem`. If assets are loading or the scene isn't ready, input is cleared instead to avoid acting on stale state.
 
 - **Game update**: `renderer.updateXR()` calls the user's `gameUpdate` and `handleInput` callbacks. This is where game logic runs — entity movement, animation state machines, physics steps. It is skipped entirely while `AssetLoadingGate.shared.isLoadingAny` is true.
+
+- **XR lighting probe processing**: When real-world lighting mode is active, accepted environment-light probe updates are prefiltered into runtime IBL textures. The renderer uses the latest valid probe plus `realWorldLightingContribution`; if no valid probe is available, it falls back to the configured static environment path.
 
 ### 2c. Wait for Optimal Input Time
 
@@ -255,3 +259,4 @@ The snapshot is processed on the next frame's update phase by `spatialGestureRec
 | HZB build | After the single render graph | After both eyes, once |
 | Base pass | Environment or grid | Environment (full immersion) or none (mixed/passthrough) |
 | Game update thread | Main thread (MTKView delegate) | Compositor thread, with main-thread dispatch for restricted APIs |
+| Environment lighting | Static/authored settings | Runtime mode can own ARKit environment-light provider lifecycle |

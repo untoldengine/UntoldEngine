@@ -46,6 +46,7 @@ nav:
   - API:
     - Getting Started: API/GettingStarted.md
     - Usage Examples: API/UsageExamples.md
+    - Engine Settings: API/UsingEngineSettings.md
     - Registration System: API/UsingRegistrationSystem.md
     - Rendering System: API/UsingRenderingSystem.md
     - Transform System: API/UsingTransformSystem.md
@@ -53,6 +54,9 @@ nav:
     - Input System: API/UsingInputSystem.md
     - Spatial Input: API/UsingSpatialInput.md
     - Lighting System: API/UsingLightingSystem.md
+    - XR Lighting: API/UsingXRLighting.md
+    - Scene Channels: API/UsingSceneChannels.md
+    - Light Portals: API/UsingLightPortals.md
     - Materials: API/UsingMaterials.md
     - Animation System: API/UsingAnimationSystem.md
     - Physics System: API/UsingPhysicsSystem.md
@@ -75,6 +79,7 @@ nav:
   - Architecture:
     - Rendering System: Architecture/renderingSystem.md
     - XR Rendering System: Architecture/xrRenderingSystem.md
+    - Scene Channels: Architecture/sceneChannels.md
     - Out-of-Core Geometry: Architecture/outOfCore.md
     - Batching System: Architecture/batchingSystem.md
     - LOD System: Architecture/lodSystem.md

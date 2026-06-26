@@ -173,7 +173,7 @@ if geometry pressure is high:
 
 If `evictLRU` cannot clear geometry pressure, the system runs `evictTileGeometry(...)` as a second-stage pass. This reaches representations that do not live in `loadedStreamingEntities`: full-load tiles, HLODs, and per-tile LODs. It evicts farthest first, protects tiles inside their own `streamingRadius`, and does not evict parsed full tiles until `minimumParsedTileResidentSeconds` has elapsed.
 
-For explicit session transitions, call `GeometryStreamingSystem.shared.forceUnloadAllParsedTiles()` instead — see [`tilebasedstreaming.md`](tilebasedstreaming.md#forceunloadallparsedtiles----explicit-session-transition).
+For explicit session transitions, call `GeometryStreamingSystem.shared.forceUnloadAllParsedTiles()` instead; see [`tilebasedstreaming.md`](tilebasedstreaming.md).
 
 The `sizeFactor` in the eviction score is normalized against `geometryBudget` (not the combined budget), so a mesh consuming 80% of the geometry pool scores correctly rather than appearing to consume only ~48% of a combined total.
 

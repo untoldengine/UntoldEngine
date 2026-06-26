@@ -43,7 +43,7 @@ Console output is prefixed with `Log:`.
 Logger.logWarning(message: "Mesh has no UV channel", category: LogCategory.general.rawValue)
 ```
 
-Requires `logLevel >= .warning`. Always emits regardless of category state.
+Requires `logLevel >= .warning` and an enabled category.
 
 Console output is prefixed with `Warning:`.
 
@@ -213,5 +213,6 @@ Sinks are held weakly — the logger will not extend their lifetime.
 ## Category Toggle Notes
 
 - `Logger.log(...)` respects both `logLevel` and category state.
-- `Logger.logWarning(...)` and `Logger.logError(...)` respect `logLevel` only — they are never suppressed by category.
+- `Logger.logWarning(...)` respects both `logLevel` and category state.
+- `Logger.logError(...)` respects `logLevel` only and is not suppressed by category.
 - Category overrides layer on top of the built-in defaults. Call `setLogger(.resetCategories)` to restore defaults without restarting.

@@ -129,4 +129,4 @@ For a full description of every tuning parameter, see [Batching System Architect
 - [Geometry Streaming System](./UsingGeometryStreamingSystem.md)
 - [Static Batching System](./UsingStaticBatchingSystem.md)
 - [LOD System](./UsingLODSystem.md)
-- [Tile-Based Streaming Architecture](../Architecture/tilebasedstreaming)
+- [Tile-Based Streaming Architecture](../Architecture/tilebasedstreaming.md)
