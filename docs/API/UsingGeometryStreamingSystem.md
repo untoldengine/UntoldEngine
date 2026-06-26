@@ -12,7 +12,7 @@ The public rule is simple:
 
 `GeometryStreamingSystem` manages the runtime once a streamed scene is loaded. It is not a public component-authoring workflow for standalone entities.
 
-> For handcrafted zone streaming without a manifest (e.g. dungeon rooms, level sectors), use `StreamingRegionManager.shared`. See the [StreamingRegionManager architecture doc](../Architecture/streamingRegionManager) for the full API.
+> For handcrafted zone streaming without a manifest (e.g. dungeon rooms, level sectors), use `StreamingRegionManager.shared`. See the [StreamingRegionManager architecture doc](../Architecture/streamingRegionManager.md) for the full API.
 
 ## Public Workflow
 
@@ -223,7 +223,7 @@ The rule of thumb: **call it whenever you know a new tile-streaming session is a
 
 ## Related Docs
 
-- [Tile-Based Streaming](../Architecture/tilebasedstreaming)
-- [Geometry Streaming Architecture](../Architecture/geometryStreamingSystem)
-- [Texture Streaming](../Architecture/textureStreamingSystem)
-- [Remote Asset Streaming](../Architecture/asset_remote_streaming)
+- [Tile-Based Streaming](../Architecture/tilebasedstreaming.md)
+- [Geometry Streaming Architecture](../Architecture/geometryStreamingSystem.md)
+- [Texture Streaming](../Architecture/textureStreamingSystem.md)
+- [Remote Asset Streaming](../Architecture/asset_remote_streaming.md)

@@ -76,6 +76,29 @@ For `.untold` assets, the exporter writes optional architectural edge index buff
 
 `WireframeRenderParams` controls visual density. `distanceFadeEnabled`, `fadeStartDistance`, `fadeEndDistance`, and `minimumAlpha` reduce line opacity for distant geometry without changing the scene-channel API. The fragment shader uses `color.a` as the near opacity and fades to `color.a * minimumAlpha` between `fadeStartDistance` and `fadeEndDistance`.
 
+## Light Portals
+
+Scene channels also own light portal configuration:
+
+```swift
+setSceneChannel(
+    .userCustom(index: 1),
+    .lightPortal(.enabled(
+        intensity: 1.0,
+        range: 6.0,
+        useRealWorldTint: true,
+        maxActivePortals: 8,
+        activationDistance: 15.0
+    ))
+)
+```
+
+`LightPortalSystem` discovers visible render entities whose channel mask resolves to an enabled light-portal mode. Discovery rejects hidden entities, invisible render components, disabled portal channels, and geometry whose local bounds are not thin enough to infer a portal plane. Resolution then filters candidates by camera distance and emits the nearest proxy area lights up to the channel cap.
+
+The renderer does not create persistent ECS light entities for portals. Instead, each active portal becomes a temporary area-light entry for the current frame. Authored area lights keep priority, and portal proxy lights fill only the remaining area-light capacity. When `useRealWorldTint` is enabled, portal intensity and tint come from the current XR environment lighting estimate and `realWorldLightingContribution`; if XR real-world lighting is requested but invalid, real-world-tinted portals intentionally emit at zero.
+
+Portal discovery, resolution, performance, and render diagnostics are exposed through the light portal API and can be logged through the `.lightPortal` logger category.
+
 ## Picking
 
 `SceneChannelInteractionState` (in `SceneContextVisibility.swift`) tracks a bitmask of channels with picking disabled via:

@@ -34,7 +34,7 @@ setEngineStatsLogging(
 
 ### Verbose output format
 
-With `profile: .verbose`, the engine logs 8 lines every interval:
+With `profile: .verbose`, the engine logs a multi-line snapshot every interval:
 
 ```
 Frame 1234 | CPU 12.34ms (81.0 fps, smoothed)  GPU 8.45ms exec / 90.0 fps cadence  [GPU-bound]

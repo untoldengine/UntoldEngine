@@ -49,7 +49,20 @@ if inputSystem.keyState.dPressed == true {
 }
 ```
 
-###Step 2: Using Input to Control Entities
+### Available Key State Fields
+
+`KeyState` currently exposes:
+
+| Group | Fields |
+|---|---|
+| Movement/common letters | `wPressed`, `aPressed`, `sPressed`, `dPressed`, `qPressed`, `ePressed`, `fPressed`, `hPressed`, `jPressed`, `kPressed`, `lPressed` |
+| Function keys | `f1Pressed` through `f12Pressed` |
+| Navigation/modifier keys | `tabPressed`, `spacePressed`, `shiftPressed`, `ctrlPressed`, `altPressed` |
+| Mouse buttons | `leftMousePressed`, `rightMousePressed`, `middleMousePressed` |
+
+On macOS, keyboard events are ignored while an `NSText` field is focused, so typing into editor text controls does not leak into game input. Modifier flags update from system flag-change events.
+
+### Step 2: Using Input to Control Entities
 
 Here's an example function that moves a car entity based on keyboard inputs:
 

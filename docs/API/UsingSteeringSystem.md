@@ -1,6 +1,6 @@
 # Using the Steering System in Untold Engine
 
-The Steering System in the Untold Engine enables entities to move dynamically and intelligently within the scene. It provides both low-level steering behaviors (e.g., seek, flee, arrive) for granular control and high-level behaviors (e.g., steerTo, steerAway, followPath) that integrate seamlessly with the Physics System.
+The Steering System in the Untold Engine enables entities to move dynamically and intelligently within the scene. It provides both low-level steering behaviors (`flee`, `arrive`, `pursuit`, `evade`) for granular control and high-level behaviors (`steerSeek`, `steerFlee`, `steerArrive`, `steerFollowPath`) that integrate with the Physics System.
 
 ## Why Use the Steering System?
 
@@ -49,8 +49,10 @@ steerAvoidObstacles(entityId: entity, obstacles: obstacleEntities, avoidanceRadi
 6. Steer Toward a Target Position (with Arrive):
 
 ```swift
-steerArrive(entityId: entity, targetPosition: targetPosition, maxSpeed: 5.0, deltaTime: 0.016)
+steerArrive(entityId: entity, targetPosition: targetPosition, maxSpeed: 5.0, slowingRadius: 2.0, deltaTime: 0.016)
 ```
+
+`slowingRadius` controls how early the entity starts braking as it approaches the target.
 
 7. Steer using WASD keys
 
@@ -98,4 +100,3 @@ steerWithWASD(entityId: entity, maxSpeed: 5.0, deltaTime: 0.016)
 
 - Cause: Avoidance radius is too small or obstacles are not registered.
 - Solution: Increase the avoidanceRadius and verify obstacle entities.
-
