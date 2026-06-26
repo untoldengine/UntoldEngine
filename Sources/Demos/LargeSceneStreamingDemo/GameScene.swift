@@ -50,7 +50,7 @@
             configureEngine()
             createCamera()
             createLight()
-            setSceneReady(true)
+            setSceneReady(false)
         }
 
         func loadPreset(_ preset: RemoteScenePreset) {

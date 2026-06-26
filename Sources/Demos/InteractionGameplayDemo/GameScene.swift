@@ -14,7 +14,7 @@
             static let cameraTarget = simd_float3(0.0, 0.0, 0.0)
             static let playerStart = simd_float3(0.0, 0.0, 0.0)
             static let ballLocalOffset = simd_float3(0.0, 0.6, 1.0)
-            static let maxPlayerSpeed: Float = 2.0
+            static let maxPlayerSpeed: Float = 5.0
             static let turnSpeed: Float = 5.0
             static let ballRollDegreesPerSecond: Float = 240.0
         }
