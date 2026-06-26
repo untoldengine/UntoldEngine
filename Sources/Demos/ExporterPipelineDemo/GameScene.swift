@@ -9,11 +9,13 @@
     import UntoldEngine
 
     enum ExportedAssetOption: String, CaseIterable, Identifiable {
-        case stadium = "stadium"
-        case redplayer = "redplayer"
-        case ball = "ball"
+        case stadium
+        case redplayer
+        case ball
 
-        var id: String { rawValue }
+        var id: String {
+            rawValue
+        }
 
         var title: String {
             switch self {
@@ -39,11 +41,16 @@
         case idle
         case running
 
-        var id: String { rawValue }
-        var title: String { rawValue.capitalized }
+        var id: String {
+            rawValue
+        }
+
+        var title: String {
+            rawValue.capitalized
+        }
     }
 
-    struct ValidationSummary: Sendable {
+    struct ValidationSummary {
         var assetName: String = "-"
         var meshCount: Int = 0
         var totalVertices: Int = 0
@@ -51,7 +58,7 @@
         var found = false
     }
 
-    struct PipelineStatus: Sendable {
+    struct PipelineStatus {
         var loadedEntity = "None"
         var assetPath = "-"
         var assetExists = false

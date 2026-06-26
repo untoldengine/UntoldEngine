@@ -54,7 +54,9 @@
         case cinematic = "Cinematic"
         case inspection = "Inspection"
 
-        var id: String { rawValue }
+        var id: String {
+            rawValue
+        }
     }
 
     enum AntiAliasingOption: String, CaseIterable, Identifiable {
@@ -63,7 +65,9 @@
         case smaa = "SMAA"
         case msaa = "MSAA"
 
-        var id: String { rawValue }
+        var id: String {
+            rawValue
+        }
 
         var mode: AntiAliasingMode {
             switch self {
@@ -80,7 +84,9 @@
         case balanced = "Balanced"
         case high = "High"
 
-        var id: String { rawValue }
+        var id: String {
+            rawValue
+        }
 
         var quality: SSAOQuality {
             switch self {
@@ -102,7 +108,9 @@
         case smaaBlend = "SMAA Blend"
         case smaaDifference = "SMAA Diff"
 
-        var id: String { rawValue }
+        var id: String {
+            rawValue
+        }
 
         var mode: RenderDebugViewMode {
             switch self {
