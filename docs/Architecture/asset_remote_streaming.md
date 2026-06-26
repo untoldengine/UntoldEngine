@@ -269,9 +269,9 @@ For a typical scene with `streamingRadius = 80 m` and `unloadRadius = 120 m`, `e
 
 ---
 
-## Demo Game Configuration
+## Showcase Demo Configuration
 
-`Sources/DemoGame/DemoState.swift` registers two remote scenes:
+`Sources/Demos/ShowcaseDemo/DemoState.swift` registers two remote scenes:
 
 ```swift
 let remoteScenes: [RemoteSceneOption] = [

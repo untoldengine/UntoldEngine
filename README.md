@@ -65,22 +65,36 @@ http://www.haroldserrano.com
 
 ## 🚀 Try the Engine Right Now
 
-The fastest way to experience Untold Engine is to run the demo project.
+The best first step is to run the Starter Demo. It is intentionally small and
+shows the basic shape of an Untold Engine app without the extra systems used by
+the larger showcase.
 
 > **Recommendation:** Use the latest stable release instead of the `develop`
 > branch. The `develop` branch is the bleeding-edge version of Untold Engine and
 > is updated frequently, so it may contain unstable changes or regressions.
 
-Clone the repository and launch the demo:
+Clone the repository and launch the Starter Demo:
 
 ```bash
 git clone https://github.com/untoldengine/UntoldEngine.git
 cd UntoldEngine
 git checkout v0.13.3
-swift run untolddemo
+swift run starterdemo
 ```
 
-The demo UI lets you see the engine in action right away. Using the `Remote Scene` drop-down menu, you can choose a scene to stream directly into the demo through the engine's **Asset Remote Streaming** support.
+After that, run the focused demos based on what you want to learn:
+
+| Demo | Command | Start here when you want to learn |
+| --- | --- | --- |
+| Starter Demo | `swift run starterdemo` | The minimal app structure: renderer setup, camera, light, input, and a simple scene. |
+| Interaction / Gameplay Demo | `swift run interactiongameplaydemo` | Gameplay-style movement, input handling, animation switching, physics pause/resume, and parented entities. |
+| Rendering Quality Demo | `swift run renderingqualitydemo` | Post-processing controls such as color grading, SSAO, bloom, vignette, depth of field, anti-aliasing, and debug views. |
+| Large Scene Streaming Demo | `swift run largescenestreamingdemo` | Manifest-driven tiled scene streaming, LOD, batching, streaming stats, and large-world traversal. |
+| Exporter Pipeline Demo | `swift run exporterpipelinedemo` | Loading exported `.untold` assets, applying exported animation clips, and checking validation metadata. |
+| Showcase Demo | `swift run showcasedemo` | A broader engine showcase that combines many systems in one app. Use this after the focused demos. |
+
+The demos live under `Sources/Demos`. The older `swift run untolddemo` command
+still works as a compatibility alias for the Showcase Demo.
 
 ![untoldengine-image-2](/docs/images/engine-highlight-2.png)
 

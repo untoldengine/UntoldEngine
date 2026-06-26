@@ -55,10 +55,41 @@ let package = Package(
 
         .library(name: "UntoldEngineAR", targets: ["UntoldEngineAR"]),
 
-        // Executable for the demo app (primary name)
+        // Executable for the showcase demo app (primary name)
+        .executable(
+            name: "showcasedemo",
+            targets: ["ShowcaseDemo"]
+        ),
+
+        // Backward-compatible executable alias
         .executable(
             name: "untolddemo",
-            targets: ["DemoGame"]
+            targets: ["ShowcaseDemo"]
+        ),
+
+        .executable(
+            name: "starterdemo",
+            targets: ["StarterDemo"]
+        ),
+
+        .executable(
+            name: "largescenestreamingdemo",
+            targets: ["LargeSceneStreamingDemo"]
+        ),
+
+        .executable(
+            name: "interactiongameplaydemo",
+            targets: ["InteractionGameplayDemo"]
+        ),
+
+        .executable(
+            name: "renderingqualitydemo",
+            targets: ["RenderingQualityDemo"]
+        ),
+
+        .executable(
+            name: "exporterpipelinedemo",
+            targets: ["ExporterPipelineDemo"]
         ),
 
         .executable(
@@ -69,7 +100,7 @@ let package = Package(
         // Backward-compatible executable alias
         .executable(
             name: "DemoGame",
-            targets: ["DemoGame"]
+            targets: ["ShowcaseDemo"]
         ),
     ],
     dependencies: [],
@@ -148,9 +179,69 @@ let package = Package(
         ),
         // These executables are macOS-only
         .executableTarget(
-            name: "DemoGame",
+            name: "ShowcaseDemo",
             dependencies: ["UntoldEngine"],
-            path: "Sources/DemoGame",
+            path: "Sources/Demos/ShowcaseDemo",
+            swiftSettings: [.swiftLanguageMode(.v6)],
+            linkerSettings: [
+                .linkedFramework("Metal"),
+                .linkedFramework("QuartzCore", .when(platforms: [.macOS, .iOS])),
+                .linkedFramework("AppKit", .when(platforms: [.macOS])),
+            ]
+        ),
+        .executableTarget(
+            name: "StarterDemo",
+            dependencies: ["UntoldEngine"],
+            path: "Sources/Demos/StarterDemo",
+            exclude: ["README.md"],
+            swiftSettings: [.swiftLanguageMode(.v6)],
+            linkerSettings: [
+                .linkedFramework("Metal"),
+                .linkedFramework("QuartzCore", .when(platforms: [.macOS, .iOS])),
+                .linkedFramework("AppKit", .when(platforms: [.macOS])),
+            ]
+        ),
+        .executableTarget(
+            name: "LargeSceneStreamingDemo",
+            dependencies: ["UntoldEngine"],
+            path: "Sources/Demos/LargeSceneStreamingDemo",
+            exclude: ["README.md"],
+            swiftSettings: [.swiftLanguageMode(.v6)],
+            linkerSettings: [
+                .linkedFramework("Metal"),
+                .linkedFramework("QuartzCore", .when(platforms: [.macOS, .iOS])),
+                .linkedFramework("AppKit", .when(platforms: [.macOS])),
+            ]
+        ),
+        .executableTarget(
+            name: "InteractionGameplayDemo",
+            dependencies: ["UntoldEngine"],
+            path: "Sources/Demos/InteractionGameplayDemo",
+            exclude: ["README.md"],
+            swiftSettings: [.swiftLanguageMode(.v6)],
+            linkerSettings: [
+                .linkedFramework("Metal"),
+                .linkedFramework("QuartzCore", .when(platforms: [.macOS, .iOS])),
+                .linkedFramework("AppKit", .when(platforms: [.macOS])),
+            ]
+        ),
+        .executableTarget(
+            name: "RenderingQualityDemo",
+            dependencies: ["UntoldEngine"],
+            path: "Sources/Demos/RenderingQualityDemo",
+            exclude: ["README.md"],
+            swiftSettings: [.swiftLanguageMode(.v6)],
+            linkerSettings: [
+                .linkedFramework("Metal"),
+                .linkedFramework("QuartzCore", .when(platforms: [.macOS, .iOS])),
+                .linkedFramework("AppKit", .when(platforms: [.macOS])),
+            ]
+        ),
+        .executableTarget(
+            name: "ExporterPipelineDemo",
+            dependencies: ["UntoldEngine"],
+            path: "Sources/Demos/ExporterPipelineDemo",
+            exclude: ["README.md"],
             swiftSettings: [.swiftLanguageMode(.v6)],
             linkerSettings: [
                 .linkedFramework("Metal"),

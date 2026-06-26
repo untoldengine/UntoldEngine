@@ -118,11 +118,11 @@ if [[ "${DO_CLIFF}" == "true" ]]; then
   RANGE="${BASE_REF}..HEAD"
   git cliff "${RANGE}" --tag "${TAG}" --prepend CHANGELOG.md
 
-  # Update appVersion in DemoGame and Sandbox
+  # Update appVersion in ShowcaseDemo and Sandbox
   sed -i '' 's/static let appVersion = "[^"]*"/static let appVersion = "'"${NEXT}"'"/' \
-    Sources/DemoGame/AppDelegate.swift \
+    Sources/Demos/ShowcaseDemo/AppDelegate.swift \
     Sources/Sandbox/AppDelegate.swift
-  echo "Updated appVersion to ${NEXT} in DemoGame and Sandbox."
+  echo "Updated appVersion to ${NEXT} in ShowcaseDemo and Sandbox."
 
   # Update engine startup log in UntoldEngine
   sed -i '' 's/Logger\.log(message: "Untold Engine Starting[^"]*")/Logger.log(message: "Untold Engine Starting. Version '"${NEXT}"'")/' \
