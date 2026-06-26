@@ -8,7 +8,7 @@
 
     let executableName = URL(fileURLWithPath: CommandLine.arguments.first ?? "").lastPathComponent
     if executableName == "DemoGame" {
-        fputs("[DEPRECATED] DemoGame is deprecated. Please use: swift run untolddemo\n", stderr)
+        fputs("[DEPRECATED] DemoGame is deprecated. Please use: swift run showcasedemo\n", stderr)
     }
 
     let app = NSApplication.shared

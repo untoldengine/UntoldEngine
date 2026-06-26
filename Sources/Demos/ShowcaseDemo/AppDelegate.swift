@@ -118,7 +118,7 @@
 
         private func printUsage() {
             print("""
-            Usage: swift run untolddemo [--resolution WIDTHxHEIGHT]
+            Usage: swift run showcasedemo [--resolution WIDTHxHEIGHT]
 
             Options:
               --resolution WIDTHxHEIGHT  Start the demo at a specific window size, for example 800x600.
