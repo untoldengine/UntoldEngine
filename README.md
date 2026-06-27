@@ -167,6 +167,8 @@ Untold Engine is well-suited for:
 - [Transform System](docs/API/UsingTransformSystem.md)
 - [Camera System](docs/API/UsingCameraSystem.md)
 - [Rendering System](docs/API/UsingRenderingSystem.md)
+- [Rendering Extensions](docs/API/UsingRenderingExtensions.md)
+- [Rendering Extension Examples](Examples/RenderingExtensions/README.md)
 - [Lighting System](docs/API/UsingLightingSystem.md)
 - [Light Portals](docs/API/UsingLightPortals.md)
 - [Materials](docs/API/UsingMaterials.md)
@@ -193,6 +195,7 @@ Untold Engine is well-suited for:
 # Engine Architecture
 
 - [Rendering System](docs/Architecture/renderingSystem.md)
+- [Rendering Extensions](docs/Architecture/RenderingExtensions.md)
 - [XR Rendering System](docs/Architecture/xrRenderingSystem.md)
 - [Static Batching System](docs/Architecture/batchingSystem.md)
 - [Geometry Streaming System](docs/Architecture/geometryStreamingSystem.md)

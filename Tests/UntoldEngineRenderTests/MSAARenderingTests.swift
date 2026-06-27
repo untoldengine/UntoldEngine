@@ -208,7 +208,7 @@ final class MSAARenderingTests: BaseRenderSetup {
             updateOpaqueSampleCountForCurrentState()
         }
 
-        _ = buildGameModeGraph()
+        _ = try buildGameModeGraph()
 
         XCTAssertEqual(renderInfo.opaqueSampleCount, 4)
         XCTAssertEqual(textureResources.ssaoBlurTexture?.storageMode, .shared)

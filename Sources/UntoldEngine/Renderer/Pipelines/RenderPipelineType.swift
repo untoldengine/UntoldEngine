@@ -9,7 +9,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 public struct RenderPipelineType: Hashable, ExpressibleByStringLiteral, Sendable {
-    let rawValue: String
+    public let rawValue: String
 
     public init(_ rawValue: String) {
         self.rawValue = rawValue

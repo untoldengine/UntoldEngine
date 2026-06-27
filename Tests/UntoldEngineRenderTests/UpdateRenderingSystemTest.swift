@@ -32,7 +32,7 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
         defer { DepthOfFieldParams.shared.enabled = false }
 
         // Build the render graph using the same logic as UpdateRenderingSystem
-        let (graph, finalPassID) = buildGameModeGraph()
+        let (graph, finalPassID) = try buildGameModeGraph()
 
         // Verify that environment mode creates the environment pass
         XCTAssertNotNil(graph["environment"], "Environment mode should create environment pass")
@@ -71,12 +71,12 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
         ])
     }
 
-    func testUpdateRenderingSystem_EnvironmentModeUsesEnvironmentPass() {
+    func testUpdateRenderingSystem_EnvironmentModeUsesEnvironmentPass() throws {
         // Set up for environment rendering
         renderInfo.immersionStyle = .none
         renderEnvironment = true
 
-        let (graph, _) = buildGameModeGraph()
+        let (graph, _) = try buildGameModeGraph()
 
         // Verify that environment mode uses environment, not grid
         XCTAssertNotNil(graph["environment"], "Environment mode should use environment pass")
@@ -97,7 +97,7 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
         defer { DepthOfFieldParams.shared.enabled = false }
 
         // Build the render graph using the same logic as UpdateRenderingSystem
-        let (graph, finalPassID) = buildGameModeGraph()
+        let (graph, finalPassID) = try buildGameModeGraph()
 
         // Verify that grid mode creates the grid pass
         XCTAssertNotNil(graph["grid"], "Grid mode should create grid pass")
@@ -136,12 +136,12 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
         ])
     }
 
-    func testUpdateRenderingSystem_GridModeUsesGridPass() {
+    func testUpdateRenderingSystem_GridModeUsesGridPass() throws {
         // Set up for grid rendering
         renderInfo.immersionStyle = .none
         renderEnvironment = false
 
-        let (graph, _) = buildGameModeGraph()
+        let (graph, _) = try buildGameModeGraph()
 
         // Verify that grid mode uses grid, not environment
         XCTAssertNotNil(graph["grid"], "Grid mode should use grid pass")
@@ -159,7 +159,7 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
         renderInfo.immersionStyle = .none
         renderEnvironment = true
 
-        let (graph, finalPassID) = buildGameModeGraph()
+        let (graph, finalPassID) = try buildGameModeGraph()
 
         // Verify final pass is outputTransform
         XCTAssertEqual(finalPassID, "outputTransform", "buildGameModeGraph should return 'outputTransform' as final pass ID")
@@ -178,7 +178,7 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
         renderInfo.immersionStyle = .none
         renderEnvironment = false
 
-        let (graph, _) = buildGameModeGraph()
+        let (graph, _) = try buildGameModeGraph()
 
         // Sort the graph
         let sortedPasses = try topologicalSortGraph(graph: graph)
@@ -200,7 +200,7 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
             renderInfo.immersionStyle = .none
             renderEnvironment = useEnvironment
 
-            let (graph, finalPassID) = buildGameModeGraph()
+            let (graph, finalPassID) = try buildGameModeGraph()
 
             // Verify outputTransform is the final pass
             XCTAssertEqual(finalPassID, "outputTransform",
@@ -216,34 +216,34 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
 
     // MARK: - Render Mode Selection Tests
 
-    func testUpdateRenderingSystem_ImmersionStyleNoneDeterminesCorrectBasePass() {
+    func testUpdateRenderingSystem_ImmersionStyleNoneDeterminesCorrectBasePass() throws {
         // Test that immersionStyle .none correctly selects between environment and grid
 
         // Test environment selection
         renderInfo.immersionStyle = .none
         renderEnvironment = true
-        let (envGraph, _) = buildGameModeGraph()
+        let (envGraph, _) = try buildGameModeGraph()
         XCTAssertNotNil(envGraph["environment"], "Should use environment when renderEnvironment is true")
         XCTAssertNil(envGraph["grid"], "Should not use grid when renderEnvironment is true")
 
         // Test grid selection
         renderEnvironment = false
-        let (gridGraph, _) = buildGameModeGraph()
+        let (gridGraph, _) = try buildGameModeGraph()
         XCTAssertNotNil(gridGraph["grid"], "Should use grid when renderEnvironment is false")
         XCTAssertNil(gridGraph["environment"], "Should not use environment when renderEnvironment is false")
     }
 
-    func testUpdateRenderingSystem_EnvironmentAndGridModesHaveDifferentDependencies() {
+    func testUpdateRenderingSystem_EnvironmentAndGridModesHaveDifferentDependencies() throws {
         // Verify that environment and grid modes create different dependency chains
 
         // Environment mode
         renderInfo.immersionStyle = .none
         renderEnvironment = true
-        let (envGraph, _) = buildGameModeGraph()
+        let (envGraph, _) = try buildGameModeGraph()
 
         // Grid mode
         renderEnvironment = false
-        let (gridGraph, _) = buildGameModeGraph()
+        let (gridGraph, _) = try buildGameModeGraph()
 
         // Both should have shadow pass, but with different dependencies
         XCTAssertNotNil(envGraph["shadow"], "Environment graph should have shadow pass")
@@ -263,7 +263,7 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
         renderEnvironment = true
 
         // This simulates what UpdateRenderingSystem does
-        let (graph, _) = buildGameModeGraph()
+        let (graph, _) = try buildGameModeGraph()
 
         // Verify the entire graph is valid
         let sortedPasses = try topologicalSortGraph(graph: graph)
@@ -285,7 +285,7 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
         renderEnvironment = false
 
         // This simulates what UpdateRenderingSystem does
-        let (graph, _) = buildGameModeGraph()
+        let (graph, _) = try buildGameModeGraph()
 
         // Verify the entire graph is valid
         let sortedPasses = try topologicalSortGraph(graph: graph)
@@ -307,8 +307,8 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
         renderInfo.immersionStyle = .none
         renderEnvironment = true
 
-        let (graph1, _) = buildGameModeGraph()
-        let (graph2, _) = buildGameModeGraph()
+        let (graph1, _) = try buildGameModeGraph()
+        let (graph2, _) = try buildGameModeGraph()
 
         let sorted1 = try topologicalSortGraph(graph: graph1)
         let sorted2 = try topologicalSortGraph(graph: graph2)

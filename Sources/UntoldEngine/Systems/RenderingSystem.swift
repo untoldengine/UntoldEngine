@@ -86,30 +86,29 @@ func UpdateRenderingSystem(in view: MTKView) {
 
             commandBuffer.label = "Rendering Command Buffer"
 
-            // build a render graph
-            let (graph, _) = buildGameModeGraph()
+            do {
+                let graph = try buildExecutableGameModeGraph()
 
-            // sorted it
-            let sortedPasses = try! topologicalSortGraph(graph: graph)
-
-            // execute it
-            #if ENGINE_STATS_ENABLED
-                let encodeStart = CACurrentMediaTime()
-            #endif
-            EngineProfiler.shared.beginScope(.encode)
-            executeGraph(graph, sortedPasses, commandBuffer)
-            // Temporal HZB schedule:
-            // 1) current frame renders depth
-            // 2) build HZB from that depth
-            // 3) next frame culling consumes HZB
-            buildHZBDepthPyramid(commandBuffer)
-            EngineProfiler.shared.endScope(.encode)
-            #if ENGINE_STATS_ENABLED
-                let encodeMs = (CACurrentMediaTime() - encodeStart) * 1000.0
-                EngineStatsMonitor.shared.update { snapshot in
-                    snapshot.timing.encodeMs += encodeMs
-                }
-            #endif
+                #if ENGINE_STATS_ENABLED
+                    let encodeStart = CACurrentMediaTime()
+                #endif
+                EngineProfiler.shared.beginScope(.encode)
+                executeGraph(graph, commandBuffer)
+                // Temporal HZB schedule:
+                // 1) current frame renders depth
+                // 2) build HZB from that depth
+                // 3) next frame culling consumes HZB
+                buildHZBDepthPyramid(commandBuffer)
+                EngineProfiler.shared.endScope(.encode)
+                #if ENGINE_STATS_ENABLED
+                    let encodeMs = (CACurrentMediaTime() - encodeStart) * 1000.0
+                    EngineStatsMonitor.shared.update { snapshot in
+                        snapshot.timing.encodeMs += encodeMs
+                    }
+                #endif
+            } catch {
+                Logger.logError(message: "[RenderGraph] Skipping frame: \(error)")
+            }
         }
 
         if let drawable = view.currentDrawable {
@@ -161,33 +160,32 @@ func UpdateXRRenderingSystem(commandBuffer: MTLCommandBuffer, passDescriptor: MT
 
     commandBuffer.label = "XR Rendering Command Buffer"
 
-    // build a render graph
-    let (graph, _) = buildGameModeGraph()
+    do {
+        let graph = try buildExecutableGameModeGraph()
 
-    // sorted it
-    let sortedPasses = try! topologicalSortGraph(graph: graph)
+        #if ENGINE_STATS_ENABLED
+            let encodeStart = shouldRecordStatsInThisCallback ? CACurrentMediaTime() : 0.0
+        #endif
+        executeGraph(graph, commandBuffer)
 
-    // execute it
-    #if ENGINE_STATS_ENABLED
-        let encodeStart = shouldRecordStatsInThisCallback ? CACurrentMediaTime() : 0.0
-    #endif
-    executeGraph(graph, sortedPasses, commandBuffer)
-
-    // AR path renders a single eye through this callback, so build HZB here.
-    // XR stereo path builds once after both eyes in UntoldEngineXR.executeXRSystemPass.
-    if renderInfo.immersionStyle == .ar {
-        buildHZBDepthPyramid(commandBuffer)
-    }
-    #if ENGINE_STATS_ENABLED
-        if shouldRecordStatsInThisCallback {
-            let encodeMs = (CACurrentMediaTime() - encodeStart) * 1000.0
-            let renderTotalMs = (CACurrentMediaTime() - renderTotalStart) * 1000.0
-            EngineStatsMonitor.shared.update { snapshot in
-                snapshot.timing.encodeMs += encodeMs
-                snapshot.timing.renderTotalMs += renderTotalMs
-            }
+        // AR path renders a single eye through this callback, so build HZB here.
+        // XR stereo path builds once after both eyes in UntoldEngineXR.executeXRSystemPass.
+        if renderInfo.immersionStyle == .ar {
+            buildHZBDepthPyramid(commandBuffer)
         }
-    #endif
+        #if ENGINE_STATS_ENABLED
+            if shouldRecordStatsInThisCallback {
+                let encodeMs = (CACurrentMediaTime() - encodeStart) * 1000.0
+                let renderTotalMs = (CACurrentMediaTime() - renderTotalStart) * 1000.0
+                EngineStatsMonitor.shared.update { snapshot in
+                    snapshot.timing.encodeMs += encodeMs
+                    snapshot.timing.renderTotalMs += renderTotalMs
+                }
+            }
+        #endif
+    } catch {
+        Logger.logError(message: "[RenderGraph] Skipping XR frame: \(error)")
+    }
 
     // Note: Semaphore signaling is handled by executeXRSystemPass completion handler
     let visibleEntityIdsAtSubmission = visibleEntityIds
@@ -205,7 +203,52 @@ func UpdateXRRenderingSystem(commandBuffer: MTLCommandBuffer, passDescriptor: MT
 
 // graphs
 
-public typealias RenderGraphResult = (graph: [String: RenderPass], finalPassID: String)
+typealias RenderGraphResult = (graph: [String: RenderPass], finalPassID: String)
+private typealias CompiledRenderGraphResult = (
+    graph: [String: RenderPass],
+    finalPassID: String,
+    compiledGraph: CompiledRenderGraph
+)
+
+let gameModeReservedPassIDs: Set<String> = [
+    "environment",
+    "grid",
+    "shadow",
+    "batchedShadow",
+    "model",
+    "batchedModel",
+    "hzbDepthSource",
+    "ssao",
+    "lightPass",
+    "transparency",
+    "wireframe",
+    "spatialDebug",
+    "gaussian",
+    "postProcessBypass",
+    "postProcessDisabledBypass",
+    "depthOfField",
+    "chromatic",
+    "bloomThreshold",
+    "blur_pass_hor_pass1",
+    "blur_pass_ver_pass1",
+    "blur_pass_hor_pass2",
+    "blur_pass_ver_pass2",
+    "blur_pass_hor_pass3",
+    "blur_pass_ver_pass3",
+    "blur_pass_hor_pass4",
+    "blur_pass_ver_pass4",
+    "bloomComposite",
+    "vignette",
+    "precomp",
+    "look",
+    "fxaa",
+    "fxaaEdgeDebug",
+    "smaaEdges",
+    "smaaBlendWeights",
+    "smaaNeighborhood",
+    "smaaDifference",
+    "outputTransform",
+]
 
 enum BasePassMode {
     case environment
@@ -236,11 +279,11 @@ func addSceneBackgroundPass(
     }
 }
 
-public func buildGameModeGraph() -> RenderGraphResult {
+private func buildGameModeGraphWithCompilation() throws -> CompiledRenderGraphResult {
     updateGBufferStorageForCurrentDebugMode()
     updateOpaqueSampleCountForCurrentState()
 
-    var builder = RenderGraphBuilder()
+    var builder = RenderGraphBuilder(reservedPassIDs: gameModeReservedPassIDs)
     let buildContext = makeRenderGraphBuildContext()
     RenderExtensionRegistry.shared.buildGraph(&builder, context: buildContext)
 
@@ -262,21 +305,33 @@ public func buildGameModeGraph() -> RenderGraphResult {
         mode = renderEnvironment ? .environment : .grid
     }
 
-    let basePassID = addSceneBackgroundPass(to: &builder.graph, mode: mode)
+    var backgroundGraph: [String: RenderPass] = [:]
+    let basePassID = addSceneBackgroundPass(to: &backgroundGraph, mode: mode)
+    for passID in backgroundGraph.keys.sorted() {
+        if let pass = backgroundGraph[passID] {
+            builder.addPass(pass)
+        }
+    }
     let shadowDependency = basePassID.map { [$0] } ?? []
 
     let shadowPass = RenderPass(
         id: "shadow", dependencies: shadowDependency, execute: RenderPasses.shadowExecution
     )
-    builder.graph[shadowPass.id] = shadowPass
+    builder.addPass(shadowPass)
 
     // Add batched shadow pass (runs after regular shadow pass)
     let batchedShadowPass = RenderPass(
         id: "batchedShadow", dependencies: [shadowPass.id], execute: RenderPasses.batchedShadowExecution
     )
-    builder.graph[batchedShadowPass.id] = batchedShadowPass
+    builder.addPass(batchedShadowPass)
 
-    gBufferPass(graph: &builder.graph, shadowPass: batchedShadowPass)
+    var opaqueGraph: [String: RenderPass] = [:]
+    gBufferPass(graph: &opaqueGraph, shadowPass: batchedShadowPass)
+    for passID in opaqueGraph.keys.sorted() {
+        if let pass = opaqueGraph[passID] {
+            builder.addPass(pass)
+        }
+    }
 
     let afterOpaqueLightingID = builder.resolveStage(.afterOpaqueLighting, after: "lightPass") ?? "lightPass"
     let beforeTransparencyID = builder.resolveStage(.beforeTransparency, after: afterOpaqueLightingID) ?? afterOpaqueLightingID
@@ -287,7 +342,7 @@ public func buildGameModeGraph() -> RenderGraphResult {
         dependencies: [beforeTransparencyID],
         execute: RenderPasses.transparencyExecution
     )
-    builder.graph[transparencyPass.id] = transparencyPass
+    builder.addPass(transparencyPass)
 
     let afterTransparencyID = builder.resolveStage(.afterTransparency, after: transparencyPass.id) ?? transparencyPass.id
 
@@ -296,7 +351,7 @@ public func buildGameModeGraph() -> RenderGraphResult {
         dependencies: [afterTransparencyID],
         execute: RenderPasses.wireframeExecution
     )
-    builder.graph[wireframePass.id] = wireframePass
+    builder.addPass(wireframePass)
 
     // Spatial debug overlays are rendered on top of lit scene color.
     let spatialDebugPass = RenderPass(
@@ -304,11 +359,11 @@ public func buildGameModeGraph() -> RenderGraphResult {
         dependencies: [wireframePass.id],
         execute: RenderPasses.spatialDebugBoundsExecution
     )
-    builder.graph[spatialDebugPass.id] = spatialDebugPass
+    builder.addPass(spatialDebugPass)
 
     // Gaussian pass depends on model pass - needs depth buffer from 3D models
     let gaussianPass = RenderPass(id: "gaussian", dependencies: ["model"], execute: RenderPasses.gaussianExecution)
-    builder.graph[gaussianPass.id] = gaussianPass
+    builder.addPass(gaussianPass)
 
     let beforePostProcessID = builder.resolveStage(.beforePostProcess, after: spatialDebugPass.id) ?? spatialDebugPass.id
 
@@ -325,10 +380,19 @@ public func buildGameModeGraph() -> RenderGraphResult {
                     deferredDescriptor.colorAttachments[0].texture
             }
         )
-        builder.graph[bypassPass.id] = bypassPass
+        builder.addPass(bypassPass)
         postProcessID = bypassPass.id
     } else {
-        let postProcess = postProcessingEffects(graph: &builder.graph, deferredPassId: beforePostProcessID)
+        var postProcessGraph: [String: RenderPass] = [:]
+        let postProcess = postProcessingEffects(
+            graph: &postProcessGraph,
+            deferredPassId: beforePostProcessID
+        )
+        for passID in postProcessGraph.keys.sorted() {
+            if let pass = postProcessGraph[passID] {
+                builder.addPass(pass)
+            }
+        }
         postProcessID = postProcess.id
     }
 
@@ -341,7 +405,7 @@ public func buildGameModeGraph() -> RenderGraphResult {
         dependencies: [beforeCompositeID, gaussianPass.id],
         execute: RenderPasses.preCompositeExecution
     )
-    builder.graph[preCompPass.id] = preCompPass
+    builder.addPass(preCompPass)
 
     let beforeLookID = builder.resolveStage(.beforeLook, after: preCompPass.id) ?? preCompPass.id
 
@@ -350,76 +414,76 @@ public func buildGameModeGraph() -> RenderGraphResult {
         dependencies: [beforeLookID],
         execute: lookRenderPass
     )
-    builder.graph[lookPass.id] = lookPass
+    builder.addPass(lookPass)
 
     let outputDependency: String
     if renderDebugViewMode == .fxaaEdgeDebug {
         let fxaaEdgeDebugPass = RenderPass(id: "fxaaEdgeDebug", dependencies: [lookPass.id], execute: fxaaEdgeDebugRenderPass)
-        builder.graph[fxaaEdgeDebugPass.id] = fxaaEdgeDebugPass
+        builder.addPass(fxaaEdgeDebugPass)
         outputDependency = fxaaEdgeDebugPass.id
     } else if renderDebugViewMode == .smaaEdges {
         let smaaEdgesPass = RenderPass(id: "smaaEdges", dependencies: [lookPass.id], execute: smaaEdgesRenderPass)
-        builder.graph[smaaEdgesPass.id] = smaaEdgesPass
+        builder.addPass(smaaEdgesPass)
         outputDependency = smaaEdgesPass.id
     } else if renderDebugViewMode == .smaaBlend {
         let smaaEdgesPass = RenderPass(id: "smaaEdges", dependencies: [lookPass.id], execute: smaaEdgesRenderPass)
-        builder.graph[smaaEdgesPass.id] = smaaEdgesPass
+        builder.addPass(smaaEdgesPass)
 
         let smaaBlendWeightsPass = RenderPass(
             id: "smaaBlendWeights",
             dependencies: [smaaEdgesPass.id],
             execute: smaaBlendWeightsRenderPass
         )
-        builder.graph[smaaBlendWeightsPass.id] = smaaBlendWeightsPass
+        builder.addPass(smaaBlendWeightsPass)
         outputDependency = smaaBlendWeightsPass.id
     } else if renderDebugViewMode == .smaaDifference {
         let smaaEdgesPass = RenderPass(id: "smaaEdges", dependencies: [lookPass.id], execute: smaaEdgesRenderPass)
-        builder.graph[smaaEdgesPass.id] = smaaEdgesPass
+        builder.addPass(smaaEdgesPass)
 
         let smaaBlendWeightsPass = RenderPass(
             id: "smaaBlendWeights",
             dependencies: [smaaEdgesPass.id],
             execute: smaaBlendWeightsRenderPass
         )
-        builder.graph[smaaBlendWeightsPass.id] = smaaBlendWeightsPass
+        builder.addPass(smaaBlendWeightsPass)
 
         let smaaNeighborhoodPass = RenderPass(
             id: "smaaNeighborhood",
             dependencies: [smaaBlendWeightsPass.id],
             execute: smaaNeighborhoodRenderPass
         )
-        builder.graph[smaaNeighborhoodPass.id] = smaaNeighborhoodPass
+        builder.addPass(smaaNeighborhoodPass)
 
         let smaaDifferencePass = RenderPass(
             id: "smaaDifference",
             dependencies: [smaaNeighborhoodPass.id],
             execute: smaaDifferenceRenderPass
         )
-        builder.graph[smaaDifferencePass.id] = smaaDifferencePass
+        builder.addPass(smaaDifferencePass)
         outputDependency = smaaDifferencePass.id
     } else {
         switch antiAliasingMode {
         case .fxaa:
             let fxaaPass = RenderPass(id: "fxaa", dependencies: [lookPass.id], execute: fxaaRenderPass)
-            builder.graph[fxaaPass.id] = fxaaPass
+            builder.addPass(fxaaPass)
             outputDependency = fxaaPass.id
         case .smaa:
             let smaaEdgesPass = RenderPass(id: "smaaEdges", dependencies: [lookPass.id], execute: smaaEdgesRenderPass)
-            builder.graph[smaaEdgesPass.id] = smaaEdgesPass
+            builder.addPass(smaaEdgesPass)
 
             let smaaBlendWeightsPass = RenderPass(
                 id: "smaaBlendWeights",
                 dependencies: [smaaEdgesPass.id],
                 execute: smaaBlendWeightsRenderPass
             )
-            builder.graph[smaaBlendWeightsPass.id] = smaaBlendWeightsPass
+            builder.addPass(smaaBlendWeightsPass)
 
             let smaaNeighborhoodPass = RenderPass(
                 id: "smaaNeighborhood",
                 dependencies: [smaaBlendWeightsPass.id],
                 execute: smaaNeighborhoodRenderPass
             )
-            builder.graph[smaaNeighborhoodPass.id] = smaaNeighborhoodPass
+            builder.addPass(smaaNeighborhoodPass)
             outputDependency = smaaNeighborhoodPass.id
         case .none, .msaa:
             outputDependency = lookPass.id
@@ -433,9 +497,29 @@ public func buildGameModeGraph() -> RenderGraphResult {
         dependencies: [beforeOutputID],
         execute: outputTransformRenderPass
     )
-    builder.graph[outputPass.id] = outputPass
+    builder.addPass(outputPass)
 
-    return (builder.graph, outputPass.id)
+    let analysis = try builder.analyzeForCompilation()
+    if let compiledGraph = analysis.compiledGraph {
+        return (analysis.scheduledGraph, outputPass.id, compiledGraph)
+    }
+
+    let removedExtensionIDs = RenderExtensionRegistry.shared.rejectGraphValidationFailures(
+        analysis.validationReport
+    )
+    if !removedExtensionIDs.isEmpty {
+        return try buildGameModeGraphWithCompilation()
+    }
+    throw analysis.validationReport.errors[0]
+}
+
+func buildGameModeGraph() throws -> RenderGraphResult {
+    let result = try buildGameModeGraphWithCompilation()
+    return (result.graph, result.finalPassID)
+}
+
+func buildExecutableGameModeGraph() throws -> CompiledRenderGraph {
+    try buildGameModeGraphWithCompilation().compiledGraph
 }
 
 /// G-Buffer Pass (TBDR)
@@ -573,7 +657,7 @@ func postProcessingEffects(graph: inout [String: RenderPass], deferredPassId: St
 }
 
 /// Gaussian render graph
-public func buildGaussianGraph() -> RenderGraphResult {
+func buildGaussianGraph() -> RenderGraphResult {
     var graph = [String: RenderPass]()
 
     let gaussianPass = RenderPass(id: "gaussian", dependencies: [], execute: RenderPasses.gaussianExecution)

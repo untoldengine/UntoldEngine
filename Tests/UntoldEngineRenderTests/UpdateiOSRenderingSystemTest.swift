@@ -29,7 +29,7 @@ final class UpdateiOSRenderingSystemTest: BaseRenderSetup {
         renderInfo.immersionStyle = .none
 
         // Build the render graph
-        let (graph, finalPassID) = buildGameModeGraph()
+        let (graph, finalPassID) = try buildGameModeGraph()
 
         // Verify essential passes exist
         XCTAssertNotNil(graph["shadow"], "Shadow pass should exist")
@@ -51,12 +51,12 @@ final class UpdateiOSRenderingSystemTest: BaseRenderSetup {
                        "outputTransform should be the last pass in the sorted order")
     }
 
-    func testUpdateiOSRenderingSystem_iOSModeHasBasePass() {
+    func testUpdateiOSRenderingSystem_iOSModeHasBasePass() throws {
         // Set up iOS mode
         renderInfo.immersionStyle = .none
         renderEnvironment = false
 
-        let (graph, _) = buildGameModeGraph()
+        let (graph, _) = try buildGameModeGraph()
 
         // iOS mode should have a base pass (grid when environment is disabled)
         XCTAssertNotNil(graph["grid"], "iOS mode should have grid pass when environment is disabled")
@@ -67,12 +67,12 @@ final class UpdateiOSRenderingSystemTest: BaseRenderSetup {
                        "Shadow pass should depend on grid in iOS mode")
     }
 
-    func testUpdateiOSRenderingSystem_iOSModeWithEnvironment() {
+    func testUpdateiOSRenderingSystem_iOSModeWithEnvironment() throws {
         // Set up iOS mode with environment
         renderInfo.immersionStyle = .none
         renderEnvironment = true
 
-        let (graph, _) = buildGameModeGraph()
+        let (graph, _) = try buildGameModeGraph()
 
         // Should have environment pass
         XCTAssertNotNil(graph["environment"], "iOS mode with environment should have environment pass")
@@ -88,7 +88,7 @@ final class UpdateiOSRenderingSystemTest: BaseRenderSetup {
         // Test with iOS mode
         renderInfo.immersionStyle = .none
 
-        let (graph, finalPassID) = buildGameModeGraph()
+        let (graph, finalPassID) = try buildGameModeGraph()
 
         // Verify final pass is outputTransform
         XCTAssertEqual(finalPassID, "outputTransform", "buildGameModeGraph should return 'outputTransform' as final pass ID")
@@ -105,7 +105,7 @@ final class UpdateiOSRenderingSystemTest: BaseRenderSetup {
         // Test with iOS mode
         renderInfo.immersionStyle = .none
 
-        let (graph, _) = buildGameModeGraph()
+        let (graph, _) = try buildGameModeGraph()
 
         // Sort the graph
         let sortedPasses = try topologicalSortGraph(graph: graph)
@@ -121,7 +121,7 @@ final class UpdateiOSRenderingSystemTest: BaseRenderSetup {
         DepthOfFieldParams.shared.enabled = true
         defer { DepthOfFieldParams.shared.enabled = false }
 
-        let (graph, _) = buildGameModeGraph()
+        let (graph, _) = try buildGameModeGraph()
 
         // Verify post-processing passes exist
         XCTAssertNotNil(graph["depthOfField"], "Depth of field pass should exist")
@@ -153,7 +153,7 @@ final class UpdateiOSRenderingSystemTest: BaseRenderSetup {
         DepthOfFieldParams.shared.enabled = true
         defer { DepthOfFieldParams.shared.enabled = false }
 
-        let (graph, _) = buildGameModeGraph()
+        let (graph, _) = try buildGameModeGraph()
 
         // Sort the graph
         let sortedPasses = try topologicalSortGraph(graph: graph)
@@ -182,7 +182,7 @@ final class UpdateiOSRenderingSystemTest: BaseRenderSetup {
         renderPassDescriptor.colorAttachments[0].texture = renderer.metalView.currentDrawable?.texture
         renderPassDescriptor.colorAttachments[0].loadAction = .clear
 
-        let (graph, _) = buildGameModeGraph()
+        let (graph, _) = try buildGameModeGraph()
 
         // Verify the entire graph is valid
         let sortedPasses = try topologicalSortGraph(graph: graph)
@@ -193,15 +193,15 @@ final class UpdateiOSRenderingSystemTest: BaseRenderSetup {
 
     // MARK: - Comparison Tests
 
-    func testUpdateiOSRenderingSystem_iOSVsARModeDifference() {
+    func testUpdateiOSRenderingSystem_iOSVsARModeDifference() throws {
         // Test iOS mode
         renderInfo.immersionStyle = .none
         renderEnvironment = false
-        let (iosGraph, _) = buildGameModeGraph()
+        let (iosGraph, _) = try buildGameModeGraph()
 
         // Test AR mode
         renderInfo.immersionStyle = .ar
-        let (arGraph, _) = buildGameModeGraph()
+        let (arGraph, _) = try buildGameModeGraph()
 
         // iOS should have base pass (grid)
         XCTAssertNotNil(iosGraph["grid"], "iOS mode should have grid pass")
@@ -217,14 +217,14 @@ final class UpdateiOSRenderingSystemTest: BaseRenderSetup {
                        "AR shadow should have no dependencies")
     }
 
-    func testUpdateiOSRenderingSystem_iOSVsMacOSModeSimilarity() {
+    func testUpdateiOSRenderingSystem_iOSVsMacOSModeSimilarity() throws {
         // Test iOS mode (.none)
         renderInfo.immersionStyle = .none
         renderEnvironment = true
-        let (iosGraph, iosPreCompID) = buildGameModeGraph()
+        let (iosGraph, iosPreCompID) = try buildGameModeGraph()
 
         // macOS typically also uses .none, so they should be similar
-        let (macosGraph, macosPreCompID) = buildGameModeGraph()
+        let (macosGraph, macosPreCompID) = try buildGameModeGraph()
 
         // Both should have the same structure
         XCTAssertEqual(iosGraph.count, macosGraph.count,

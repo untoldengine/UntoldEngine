@@ -115,6 +115,14 @@ public func getRenderResource(_ query: RenderResourceQuery) -> MTLTexture? {
     }
 }
 
+public func getRenderResource(_ id: RenderTextureResourceID) -> MTLTexture? {
+    RenderResourceRegistry.shared.texture(id)
+}
+
+public func getRenderResource(_ id: RenderBufferResourceID) -> MTLBuffer? {
+    RenderResourceRegistry.shared.buffer(id)
+}
+
 private func applyRenderExtensionProperty(_ property: RenderExtensionProperty) {
     switch property {
     case let .register(renderExtension):

@@ -40,7 +40,7 @@ final class UpdateARRenderingSystemTest: BaseRenderSetup {
         renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 0)
 
         // Build the render graph using the same logic as UpdateARRenderingSystem
-        let (graph, finalPassID) = buildGameModeGraph()
+        let (graph, finalPassID) = try buildGameModeGraph()
 
         // Verify that AR mode does not create environment or grid passes
         XCTAssertNil(graph["environment"], "AR mode should not create environment pass")
@@ -70,11 +70,11 @@ final class UpdateARRenderingSystemTest: BaseRenderSetup {
                        "outputTransform should be the last pass in the sorted order")
     }
 
-    func testUpdateARRenderingSystem_ARModeHasNoBasePass() {
+    func testUpdateARRenderingSystem_ARModeHasNoBasePass() throws {
         // Set up AR mode
         renderInfo.immersionStyle = .ar
 
-        let (graph, _) = buildGameModeGraph()
+        let (graph, _) = try buildGameModeGraph()
 
         // Verify that AR mode has no base pass (no environment, no grid)
         XCTAssertNil(graph["environment"], "AR mode should not create environment pass")
@@ -86,16 +86,16 @@ final class UpdateARRenderingSystemTest: BaseRenderSetup {
                        "Shadow pass should have no dependencies in AR mode")
     }
 
-    func testUpdateARRenderingSystem_ARModeBehavesLikePassthrough() {
+    func testUpdateARRenderingSystem_ARModeBehavesLikePassthrough() throws {
         // Set up AR mode
         renderInfo.immersionStyle = .ar
 
-        let (arGraph, arFinalPassID) = buildGameModeGraph()
+        let (arGraph, arFinalPassID) = try buildGameModeGraph()
 
         // Set up passthrough mode for comparison
         renderInfo.immersionStyle = .mixed
 
-        let (passthroughGraph, passthroughFinalPassID) = buildGameModeGraph()
+        let (passthroughGraph, passthroughFinalPassID) = try buildGameModeGraph()
 
         // Verify both modes produce the same graph structure
         XCTAssertEqual(arGraph.count, passthroughGraph.count,
@@ -122,7 +122,7 @@ final class UpdateARRenderingSystemTest: BaseRenderSetup {
         // Test with AR mode
         renderInfo.immersionStyle = .ar
 
-        let (graph, finalPassID) = buildGameModeGraph()
+        let (graph, finalPassID) = try buildGameModeGraph()
 
         // Verify final pass is outputTransform
         XCTAssertEqual(finalPassID, "outputTransform", "buildGameModeGraph should return 'outputTransform' as final pass ID")
@@ -139,7 +139,7 @@ final class UpdateARRenderingSystemTest: BaseRenderSetup {
         // Test with AR mode
         renderInfo.immersionStyle = .ar
 
-        let (graph, _) = buildGameModeGraph()
+        let (graph, _) = try buildGameModeGraph()
 
         // Sort the graph
         let sortedPasses = try topologicalSortGraph(graph: graph)
@@ -162,7 +162,7 @@ final class UpdateARRenderingSystemTest: BaseRenderSetup {
         for (mode, description) in modes {
             renderInfo.immersionStyle = mode
 
-            let (graph, finalPassID) = buildGameModeGraph()
+            let (graph, finalPassID) = try buildGameModeGraph()
 
             // Verify outputTransform is the final pass for all modes
             XCTAssertEqual(finalPassID, "outputTransform",
@@ -192,7 +192,7 @@ final class UpdateARRenderingSystemTest: BaseRenderSetup {
         renderPassDescriptor.colorAttachments[0].loadAction = .clear
 
         // This simulates what UpdateARRenderingSystem does
-        let (graph, _) = buildGameModeGraph()
+        let (graph, _) = try buildGameModeGraph()
 
         // Verify the entire graph is valid
         let sortedPasses = try topologicalSortGraph(graph: graph)
@@ -209,7 +209,7 @@ final class UpdateARRenderingSystemTest: BaseRenderSetup {
         DepthOfFieldParams.shared.enabled = true
         defer { DepthOfFieldParams.shared.enabled = false }
 
-        let (graph, _) = buildGameModeGraph()
+        let (graph, _) = try buildGameModeGraph()
 
         // Sort the graph
         let sortedPasses = try topologicalSortGraph(graph: graph)
@@ -229,7 +229,7 @@ final class UpdateARRenderingSystemTest: BaseRenderSetup {
         DepthOfFieldParams.shared.enabled = true
         defer { DepthOfFieldParams.shared.enabled = false }
 
-        let (graph, _) = buildGameModeGraph()
+        let (graph, _) = try buildGameModeGraph()
 
         // Verify post-processing passes exist
         XCTAssertNotNil(graph["depthOfField"], "Depth of field pass should exist")
@@ -257,15 +257,15 @@ final class UpdateARRenderingSystemTest: BaseRenderSetup {
 
     // MARK: - Comparison Tests
 
-    func testUpdateARRenderingSystem_ARVsNoneModeBasePassDifference() {
+    func testUpdateARRenderingSystem_ARVsNoneModeBasePassDifference() throws {
         // Test AR mode
         renderInfo.immersionStyle = .ar
-        let (arGraph, _) = buildGameModeGraph()
+        let (arGraph, _) = try buildGameModeGraph()
 
         // Test none mode (should have environment or grid)
         renderInfo.immersionStyle = .none
         renderEnvironment = false
-        let (noneGraph, _) = buildGameModeGraph()
+        let (noneGraph, _) = try buildGameModeGraph()
 
         // AR should have no base pass
         XCTAssertNil(arGraph["environment"], "AR mode should not have environment pass")
@@ -285,7 +285,7 @@ final class UpdateARRenderingSystemTest: BaseRenderSetup {
         // Verify BasePassMode correctly identifies AR mode
 
         renderInfo.immersionStyle = .ar
-        let (graph, _) = buildGameModeGraph()
+        let (graph, _) = try buildGameModeGraph()
 
         // In AR mode, no base pass should be created
         XCTAssertNil(graph["environment"], "BasePassMode.ar should not create environment pass")
