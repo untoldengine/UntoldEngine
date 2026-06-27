@@ -1838,7 +1838,7 @@ public final class SSAOParams: ObservableObject, @unchecked Sendable {
     public var avgBlurTime: Double = 0.0
 }
 
-public enum UntoldImmersionMode {
+public enum UntoldImmersionMode: Sendable {
     case none
     case mixed
     case full

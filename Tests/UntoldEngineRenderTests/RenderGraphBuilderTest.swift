@@ -9,8 +9,213 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import Foundation
+import Metal
+import simd
 @testable import UntoldEngine
 import XCTest
+
+private final class TestStageRenderExtension: RenderExtension, @unchecked Sendable {
+    let id = "test.stage.extension"
+    let passID: String
+    let stage: RenderStage
+
+    init(passID: String, stage: RenderStage) {
+        self.passID = passID
+        self.stage = stage
+    }
+
+    func buildGraph(
+        _ builder: inout RenderGraphBuilder,
+        context _: RenderGraphBuildContext
+    ) {
+        builder.addPass(id: passID, stage: stage, execute: { _ in })
+    }
+}
+
+private final class TestResourceRenderExtension: RenderExtension, @unchecked Sendable {
+    let id = "test.resource.extension"
+    let textureID: String
+    let passID: String
+    let size: RenderExtensionResourceSize
+    var observedTextureSize: SIMD2<Int>?
+
+    init(
+        textureID: String,
+        passID: String = "test.resource.pass",
+        size: RenderExtensionResourceSize
+    ) {
+        self.textureID = textureID
+        self.passID = passID
+        self.size = size
+    }
+
+    func registerResources(_ registry: RenderResourceRegistry) {
+        registry.registerTexture(
+            RenderExtensionTextureDescriptor(
+                id: textureID,
+                size: size,
+                pixelFormat: .rgba16Float,
+                usage: [.renderTarget, .shaderRead]
+            )
+        )
+    }
+
+    func buildGraph(
+        _ builder: inout RenderGraphBuilder,
+        context _: RenderGraphBuildContext
+    ) {
+        builder.addPass(id: passID, stage: .beforeOutput, execute: { [weak self] context in
+            guard let self, let texture = context.resources.texture(textureID) else { return }
+            observedTextureSize = SIMD2<Int>(texture.width, texture.height)
+        })
+    }
+}
+
+private final class TestComputeRenderExtension: RenderExtension, @unchecked Sendable {
+    let id = "test.compute.extension"
+    let computeType: ComputePipelineType
+    let passID: String
+    var observedPipelineName: String?
+
+    init(
+        computeType: ComputePipelineType,
+        passID: String = "test.compute.pass"
+    ) {
+        self.computeType = computeType
+        self.passID = passID
+    }
+
+    func registerComputePipelines(_ registry: ComputePipelineRegistry) {
+        registry.registerComputePipeline(computeType) {
+            var pipeline = ComputePipeline()
+            pipeline.name = "Test Compute Pipeline"
+            pipeline.success = true
+            return pipeline
+        }
+    }
+
+    func buildGraph(
+        _ builder: inout RenderGraphBuilder,
+        context _: RenderGraphBuildContext
+    ) {
+        builder.addPass(id: passID, stage: .beforeOutput, execute: { [weak self] context in
+            guard let self else { return }
+            observedPipelineName = context.computePipelines.pipeline(computeType)?.name
+        })
+    }
+}
+
+private final class TestShaderLibraryRenderExtension: RenderExtension, @unchecked Sendable {
+    let id = "test.shader.library.extension"
+    let libraryID: RenderShaderLibraryID
+    let library: MTLLibrary
+
+    init(libraryID: RenderShaderLibraryID, library: MTLLibrary) {
+        self.libraryID = libraryID
+        self.library = library
+    }
+
+    func registerShaderLibraries(_ registry: RenderShaderLibraryRegistry) {
+        registry.registerLibrary(libraryID, library: library)
+    }
+
+    func buildGraph(
+        _: inout RenderGraphBuilder,
+        context _: RenderGraphBuildContext
+    ) {}
+}
+
+private final class TestRegisteredShaderPipelineRenderExtension: RenderExtension, @unchecked Sendable {
+    let id = "test.registered.shader.pipeline.extension"
+    let libraryID: RenderShaderLibraryID
+    let renderPipelineType: RenderPipelineType
+    let computePipelineType: ComputePipelineType
+    let library: MTLLibrary
+
+    init(
+        libraryID: RenderShaderLibraryID,
+        renderPipelineType: RenderPipelineType,
+        computePipelineType: ComputePipelineType,
+        library: MTLLibrary
+    ) {
+        self.libraryID = libraryID
+        self.renderPipelineType = renderPipelineType
+        self.computePipelineType = computePipelineType
+        self.library = library
+    }
+
+    func registerShaderLibraries(_ registry: RenderShaderLibraryRegistry) {
+        registry.registerLibrary(libraryID, library: library)
+    }
+
+    func registerPipelines(_ registry: RenderPipelineRegistry) {
+        registry.registerRenderPipeline(
+            renderPipelineType,
+            vertexShader: "vertexCompositeShader",
+            fragmentShader: "fragmentCompositeShader",
+            vertexShaderLibrary: .registered(libraryID),
+            fragmentShaderLibrary: .registered(libraryID),
+            vertexDescriptor: createCompositeVertexDescriptor(),
+            colorFormats: [renderInfo.presentColorPixelFormat],
+            depthFormat: renderInfo.presentDepthPixelFormat,
+            depthEnabled: false,
+            name: "Test Registered Shader Render Pipeline"
+        )
+    }
+
+    func registerComputePipelines(_ registry: ComputePipelineRegistry) {
+        registry.registerComputePipeline(
+            computePipelineType,
+            functionName: "hzbBuildDepthPyramid",
+            shaderLibrary: .registered(libraryID),
+            pipelineName: "Test Registered Shader Compute Pipeline"
+        )
+    }
+
+    func buildGraph(
+        _: inout RenderGraphBuilder,
+        context _: RenderGraphBuildContext
+    ) {}
+}
+
+private final class TestModelSurfaceDrawRenderExtension: RenderExtension, @unchecked Sendable {
+    let id = "test.model.surface.draw.extension"
+    let pipelineType: RenderPipelineType
+    let passID: String
+    var boundEntityIDs: [EntityID] = []
+
+    init(
+        pipelineType: RenderPipelineType,
+        passID: String = "test.model.surface.draw.pass"
+    ) {
+        self.pipelineType = pipelineType
+        self.passID = passID
+    }
+
+    func registerPipelines(_ registry: RenderPipelineRegistry) {
+        registry.registerModelSurfacePipeline(
+            pipelineType,
+            fragmentShader: "fragmentGeometryShader",
+            depthEnabled: true,
+            name: "Test Model Surface Pipeline"
+        )
+    }
+
+    func buildGraph(
+        _ builder: inout RenderGraphBuilder,
+        context _: RenderGraphBuildContext
+    ) {
+        builder.addPass(id: passID, stage: .beforePostProcess) { [weak self] context in
+            guard let self else { return }
+            context.drawModelSurfaceEntities(
+                pipeline: pipelineType,
+                label: "Test Model Surface Draw"
+            ) { _, entityId, _ in
+                self.boundEntityIDs.append(entityId)
+            }
+        }
+    }
+}
 
 final class RenderGraphBuilderTest: BaseRenderSetup {
     override func setUp() async throws {
@@ -639,6 +844,326 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
 
         XCTAssertTrue(gaussianIndex < precompIndex,
                       "Gaussian pass must come before pre-composite pass")
+    }
+
+    func testRenderExtensionRegisteredThroughRenderingAPIInsertsAfterTransparency() throws {
+        renderInfo.immersionStyle = .none
+        renderEnvironment = true
+        setRendering(.extensions(.register(
+            TestStageRenderExtension(passID: "test.afterTransparency", stage: .afterTransparency)
+        )))
+
+        let (graph, _) = buildGameModeGraph()
+
+        XCTAssertNotNil(graph["test.afterTransparency"], "Extension pass should be added to the graph")
+        XCTAssertEqual(graph["test.afterTransparency"]?.dependencies, ["transparency"])
+        XCTAssertEqual(graph["wireframe"]?.dependencies, ["test.afterTransparency"],
+                       "Wireframe should wait for afterTransparency extension passes")
+
+        let sorted = try topologicalSortGraph(graph: graph)
+        let order = sorted.map(\.id)
+        assertTopologicalConstraints(order: order, constraints: [
+            ("transparency", "test.afterTransparency"),
+            ("test.afterTransparency", "wireframe"),
+        ])
+    }
+
+    func testRenderExtensionBeforePostProcessRewiresPostProcessEntry() throws {
+        renderInfo.immersionStyle = .none
+        renderEnvironment = true
+        DepthOfFieldParams.shared.enabled = true
+        defer { DepthOfFieldParams.shared.enabled = false }
+
+        setRendering(.extensions(.register(
+            TestStageRenderExtension(passID: "test.beforePostProcess", stage: .beforePostProcess)
+        )))
+
+        let (graph, _) = buildGameModeGraph()
+
+        XCTAssertEqual(graph["test.beforePostProcess"]?.dependencies, ["spatialDebug"])
+        XCTAssertEqual(graph["depthOfField"]?.dependencies, ["test.beforePostProcess"],
+                       "Post-processing should start after beforePostProcess extension passes")
+
+        let sorted = try topologicalSortGraph(graph: graph)
+        let order = sorted.map(\.id)
+        assertTopologicalConstraints(order: order, constraints: [
+            ("spatialDebug", "test.beforePostProcess"),
+            ("test.beforePostProcess", "depthOfField"),
+        ])
+    }
+
+    func testRenderExtensionBeforeOutputRewiresOutputTransform() throws {
+        renderInfo.immersionStyle = .none
+        renderEnvironment = true
+        antiAliasingMode = .none
+        defer { antiAliasingMode = .fxaa }
+
+        setRendering(.extensions(.register(
+            TestStageRenderExtension(passID: "test.beforeOutput", stage: .beforeOutput)
+        )))
+
+        let (graph, _) = buildGameModeGraph()
+
+        XCTAssertEqual(graph["test.beforeOutput"]?.dependencies, ["look"])
+        XCTAssertEqual(graph["outputTransform"]?.dependencies, ["test.beforeOutput"],
+                       "Output transform should wait for beforeOutput extension passes")
+
+        let sorted = try topologicalSortGraph(graph: graph)
+        let order = sorted.map(\.id)
+        assertTopologicalConstraints(order: order, constraints: [
+            ("look", "test.beforeOutput"),
+            ("test.beforeOutput", "outputTransform"),
+        ])
+    }
+
+    func testRenderExtensionRegistersFixedTextureResource() {
+        let textureID = "test.fixed.texture"
+
+        setRendering(.extensions(.register(
+            TestResourceRenderExtension(
+                textureID: textureID,
+                size: .fixed(width: 128, height: 64)
+            )
+        )))
+
+        let texture = getRenderResource(.texture(textureID))
+        XCTAssertNotNil(texture, "Extension texture should be created when registered after renderer initialization")
+        XCTAssertEqual(texture?.width, 128)
+        XCTAssertEqual(texture?.height, 64)
+        XCTAssertEqual(texture?.pixelFormat, .rgba16Float)
+    }
+
+    func testRenderExtensionViewportTextureResourceRecreatesOnResize() {
+        let textureID = "test.viewport.texture"
+
+        setRendering(.extensions(.register(
+            TestResourceRenderExtension(
+                textureID: textureID,
+                size: .viewportScale(0.5)
+            )
+        )))
+
+        var texture = getRenderResource(.texture(textureID))
+        XCTAssertEqual(texture?.width, windowWidth / 2)
+        XCTAssertEqual(texture?.height, windowHeight / 2)
+
+        renderInfo.viewPort = simd_float2(640, 360)
+        renderer.initSizeableResources()
+
+        texture = getRenderResource(.texture(textureID))
+        XCTAssertEqual(texture?.width, 320)
+        XCTAssertEqual(texture?.height, 180)
+    }
+
+    func testRenderPassContextExposesExtensionResources() {
+        let extensionInstance = TestResourceRenderExtension(
+            textureID: "test.context.texture",
+            passID: "test.context.pass",
+            size: .fixed(width: 32, height: 16)
+        )
+        setRendering(.extensions(.register(extensionInstance)))
+        antiAliasingMode = .none
+        defer { antiAliasingMode = .fxaa }
+
+        let (graph, _) = buildGameModeGraph()
+        guard let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() else {
+            XCTFail("Expected command buffer")
+            return
+        }
+
+        graph["test.context.pass"]?.execute?(commandBuffer)
+
+        XCTAssertEqual(extensionInstance.observedTextureSize, SIMD2<Int>(32, 16))
+    }
+
+    func testRenderExtensionUnregisterRemovesOwnedTextureResources() {
+        let textureID = "test.unregister.texture"
+        let extensionInstance = TestResourceRenderExtension(
+            textureID: textureID,
+            size: .fixed(width: 8, height: 8)
+        )
+
+        setRendering(.extensions(.register(extensionInstance)))
+        XCTAssertNotNil(getRenderResource(.texture(textureID)))
+
+        setRendering(.extensions(.unregister(extensionInstance.id)))
+        XCTAssertNil(getRenderResource(.texture(textureID)),
+                     "Unregistering an extension should remove its owned texture resources")
+    }
+
+    func testRenderExtensionRegistersComputePipeline() {
+        let computeType: ComputePipelineType = "test.compute.pipeline"
+
+        setRendering(.extensions(.register(
+            TestComputeRenderExtension(computeType: computeType)
+        )))
+
+        let pipeline = ComputePipelineManager.shared.pipeline(for: computeType)
+        XCTAssertNotNil(pipeline)
+        XCTAssertTrue(pipeline?.success == true)
+        XCTAssertEqual(pipeline?.name, "Test Compute Pipeline")
+    }
+
+    func testRenderPassContextExposesExtensionComputePipelines() {
+        let computeType: ComputePipelineType = "test.context.compute.pipeline"
+        let extensionInstance = TestComputeRenderExtension(
+            computeType: computeType,
+            passID: "test.context.compute.pass"
+        )
+
+        setRendering(.extensions(.register(extensionInstance)))
+        antiAliasingMode = .none
+        defer { antiAliasingMode = .fxaa }
+
+        let (graph, _) = buildGameModeGraph()
+        guard let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() else {
+            XCTFail("Expected command buffer")
+            return
+        }
+
+        graph["test.context.compute.pass"]?.execute?(commandBuffer)
+
+        XCTAssertEqual(extensionInstance.observedPipelineName, "Test Compute Pipeline")
+    }
+
+    func testRenderExtensionUnregisterRemovesOwnedComputePipelines() {
+        let computeType: ComputePipelineType = "test.unregister.compute.pipeline"
+        let extensionInstance = TestComputeRenderExtension(computeType: computeType)
+
+        setRendering(.extensions(.register(extensionInstance)))
+        XCTAssertNotNil(ComputePipelineManager.shared.pipeline(for: computeType))
+
+        setRendering(.extensions(.unregister(extensionInstance.id)))
+        XCTAssertNil(ComputePipelineManager.shared.pipeline(for: computeType),
+                     "Unregistering an extension should remove its owned compute pipelines")
+    }
+
+    func testRenderExtensionRegistersShaderLibrary() {
+        let libraryID: RenderShaderLibraryID = "test.shader.library"
+        let extensionInstance = TestShaderLibraryRenderExtension(
+            libraryID: libraryID,
+            library: renderInfo.library
+        )
+
+        setRendering(.extensions(.register(extensionInstance)))
+
+        XCTAssertNotNil(RenderShaderLibraryManager.shared.library(libraryID),
+                        "Render extension should register its shader library after renderer initialization")
+    }
+
+    func testRenderExtensionUnregisterRemovesOwnedShaderLibraries() {
+        let libraryID: RenderShaderLibraryID = "test.unregister.shader.library"
+        let extensionInstance = TestShaderLibraryRenderExtension(
+            libraryID: libraryID,
+            library: renderInfo.library
+        )
+
+        setRendering(.extensions(.register(extensionInstance)))
+        XCTAssertNotNil(RenderShaderLibraryManager.shared.library(libraryID))
+
+        setRendering(.extensions(.unregister(extensionInstance.id)))
+        XCTAssertNil(RenderShaderLibraryManager.shared.library(libraryID),
+                     "Unregistering an extension should remove its owned shader libraries")
+    }
+
+    func testRenderExtensionRenderPipelineUsesRegisteredShaderLibrary() {
+        let pipelineType: RenderPipelineType = "test.registered.shader.render.pipeline"
+        let extensionInstance = TestRegisteredShaderPipelineRenderExtension(
+            libraryID: "test.registered.render.shader.library",
+            renderPipelineType: pipelineType,
+            computePipelineType: "test.unused.compute.pipeline",
+            library: renderInfo.library
+        )
+
+        setRendering(.extensions(.register(extensionInstance)))
+
+        let pipeline = PipelineManager.shared.renderPipelinesByType[pipelineType]
+        XCTAssertNotNil(pipeline)
+        XCTAssertTrue(pipeline?.success == true)
+        XCTAssertEqual(pipeline?.name, "Test Registered Shader Render Pipeline")
+    }
+
+    func testRenderExtensionComputePipelineUsesRegisteredShaderLibrary() {
+        let computeType: ComputePipelineType = "test.registered.shader.compute.pipeline"
+        let extensionInstance = TestRegisteredShaderPipelineRenderExtension(
+            libraryID: "test.registered.compute.shader.library",
+            renderPipelineType: "test.unused.render.pipeline",
+            computePipelineType: computeType,
+            library: renderInfo.library
+        )
+
+        setRendering(.extensions(.register(extensionInstance)))
+
+        let pipeline = ComputePipelineManager.shared.pipeline(for: computeType)
+        XCTAssertNotNil(pipeline)
+        XCTAssertTrue(pipeline?.success == true)
+        XCTAssertEqual(pipeline?.name, "Test Registered Shader Compute Pipeline")
+    }
+
+    func testRenderPassContextDrawsModelSurfaceEntities() {
+        let entity = createEntity()
+        setEntityMeshDirect(
+            entityId: entity,
+            meshes: BasicPrimitives.createCube(extent: 1.0),
+            assetName: "test_model_surface_cube"
+        )
+        visibleEntityIds = [entity]
+
+        let extensionInstance = TestModelSurfaceDrawRenderExtension(
+            pipelineType: "test.model.surface.pipeline"
+        )
+        setRendering(.extensions(.register(extensionInstance)))
+        antiAliasingMode = .none
+        defer { antiAliasingMode = .fxaa }
+
+        let (graph, _) = buildGameModeGraph()
+        guard let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() else {
+            XCTFail("Expected command buffer")
+            return
+        }
+
+        graph[extensionInstance.passID]?.execute?(commandBuffer)
+
+        XCTAssertEqual(extensionInstance.boundEntityIDs, [entity])
+    }
+
+    func testSampleRenderExtensionRegistersScratchTextureAndGraphPass() throws {
+        let sample = SampleRenderExtension()
+
+        setRendering(.extensions(.register(sample)))
+
+        let texture = getRenderResource(.texture(sample.scratchTextureID))
+        XCTAssertNotNil(texture)
+        XCTAssertEqual(texture?.width, windowWidth)
+        XCTAssertEqual(texture?.height, windowHeight)
+
+        let (graph, _) = buildGameModeGraph()
+        XCTAssertNotNil(graph[sample.passID])
+        XCTAssertEqual(graph["outputTransform"]?.dependencies, [sample.passID])
+
+        let sorted = try topologicalSortGraph(graph: graph)
+        let order = sorted.map(\.id)
+        assertTopologicalConstraints(order: order, constraints: [
+            ("look", sample.passID),
+            (sample.passID, "outputTransform"),
+        ])
+    }
+
+    func testSampleRenderExtensionPassExecutes() {
+        let sample = SampleRenderExtension()
+        setRendering(.extensions(.register(sample)))
+
+        let (graph, _) = buildGameModeGraph()
+        guard let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() else {
+            XCTFail("Expected command buffer")
+            return
+        }
+
+        graph[sample.passID]?.execute?(commandBuffer)
+        commandBuffer.commit()
+        commandBuffer.waitUntilCompleted()
+
+        XCTAssertEqual(commandBuffer.status, .completed)
     }
 
     // MARK: - Helper Methods

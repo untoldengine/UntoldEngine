@@ -51,6 +51,11 @@ let package = Package(
             targets: ["UntoldEngine"]
         ),
 
+        .library(
+            name: "UntoldEngineShaderSupport",
+            targets: ["UntoldEngineShaderSupport"]
+        ),
+
         .library(name: "UntoldEngineXR", targets: ["UntoldEngineXR"]),
 
         .library(name: "UntoldEngineAR", targets: ["UntoldEngineAR"]),
@@ -111,6 +116,14 @@ let package = Package(
             publicHeadersPath: ".",
             cSettings: [
                 .headerSearchPath("."),
+            ]
+        ),
+        .target(
+            name: "UntoldEngineShaderSupport",
+            path: "Sources/UntoldEngineShaderSupport",
+            publicHeadersPath: "include",
+            cSettings: [
+                .headerSearchPath("include"),
             ]
         ),
         .target(

@@ -41,6 +41,8 @@ public enum PipelineBlendMode {
 public func CreatePipeline(
     vertexShader: String,
     fragmentShader: String?,
+    vertexShaderLibrary: RenderShaderLibraryReference = .engine,
+    fragmentShaderLibrary: RenderShaderLibraryReference = .engine,
     vertexDescriptor: MTLVertexDescriptor?,
     colorFormats: [MTLPixelFormat],
     depthFormat: MTLPixelFormat,
@@ -53,20 +55,29 @@ public func CreatePipeline(
     let pipelineDescriptor = MTLRenderPipelineDescriptor()
     let depthStateDescriptor = MTLDepthStencilDescriptor()
 
-    guard renderInfo.library != nil else {
-        handleError(.metalLibraryNotFound)
+    guard let vertexLibrary = resolveRenderShaderLibrary(
+        vertexShaderLibrary,
+        usage: "vertex shader '\(vertexShader)'"
+    ) else {
         return nil
     }
 
     do {
-        guard let vertexFunction = renderInfo.library.makeFunction(name: vertexShader) else {
+        guard let vertexFunction = vertexLibrary.makeFunction(name: vertexShader) else {
             handleError(.shaderCreationFailed, vertexShader)
             return nil
         }
         pipelineDescriptor.vertexFunction = vertexFunction
 
         if let fragmentShader {
-            guard let fragmentFunction = renderInfo.library.makeFunction(name: fragmentShader) else {
+            guard let fragmentLibrary = resolveRenderShaderLibrary(
+                fragmentShaderLibrary,
+                usage: "fragment shader '\(fragmentShader)'"
+            ) else {
+                return nil
+            }
+
+            guard let fragmentFunction = fragmentLibrary.makeFunction(name: fragmentShader) else {
                 handleError(.shaderCreationFailed, fragmentShader)
                 return nil
             }
@@ -141,18 +152,21 @@ public func CreatePipeline(
 
 public func CreateTilePipeline(
     tileShader: String,
+    tileShaderLibrary: RenderShaderLibraryReference = .engine,
     colorFormats: [MTLPixelFormat],
     name: String
 ) -> RenderPipeline? {
     let pipelineDescriptor = MTLTileRenderPipelineDescriptor()
 
-    guard renderInfo.library != nil else {
-        handleError(.metalLibraryNotFound)
+    guard let tileLibrary = resolveRenderShaderLibrary(
+        tileShaderLibrary,
+        usage: "tile shader '\(tileShader)'"
+    ) else {
         return nil
     }
 
     do {
-        guard let tileFunction = renderInfo.library.makeFunction(name: tileShader) else {
+        guard let tileFunction = tileLibrary.makeFunction(name: tileShader) else {
             handleError(.shaderCreationFailed, tileShader)
             return nil
         }

@@ -11,6 +11,12 @@
 @testable import UntoldEngine
 import XCTest
 
+private final class TestExtensionComponent: Component {
+    var value: Float = 0.0
+
+    required init() {}
+}
+
 @MainActor
 final class ECSTests: XCTestCase {
     override func setUp() async throws {
@@ -268,5 +274,52 @@ final class ECSTests: XCTestCase {
 
         XCTAssertFalse(results.contains(entityId),
                        "Pending-destroy entity should not appear in query results")
+    }
+
+    func testGenericComponentHelpersSupportExtensionComponents() {
+        let entityA = createEntity()
+        let entityB = createEntity()
+
+        registerComponent(entityId: entityA, componentType: TestExtensionComponent.self)
+        registerComponent(entityId: entityA, componentType: RenderComponent.self)
+        registerComponent(entityId: entityB, componentType: RenderComponent.self)
+
+        let component = getEntityComponent(entityId: entityA, componentType: TestExtensionComponent.self)
+        component?.value = 42.0
+
+        XCTAssertEqual(
+            getEntityComponent(entityId: entityA, componentType: TestExtensionComponent.self)?.value,
+            42.0
+        )
+
+        let queried = queryEntities(with: [TestExtensionComponent.self, RenderComponent.self])
+        XCTAssertTrue(queried.contains(entityA))
+        XCTAssertFalse(queried.contains(entityB))
+    }
+
+    func testGenericRemoveEntityComponentUpdatesMaskAndQueryIndex() {
+        let entityId = createEntity()
+
+        registerComponent(entityId: entityId, componentType: TestExtensionComponent.self)
+        XCTAssertTrue(hasComponent(entityId: entityId, componentType: TestExtensionComponent.self))
+
+        removeEntityComponent(entityId: entityId, componentType: TestExtensionComponent.self)
+
+        XCTAssertFalse(hasComponent(entityId: entityId, componentType: TestExtensionComponent.self))
+        XCTAssertNil(getEntityComponent(entityId: entityId, componentType: TestExtensionComponent.self))
+        XCTAssertFalse(queryEntities(with: [TestExtensionComponent.self]).contains(entityId))
+    }
+
+    func testGenericRegisteredComponentIsCleanedUpOnDestroy() {
+        let entityId = createEntity()
+
+        registerComponent(entityId: entityId, componentType: TestExtensionComponent.self)
+        XCTAssertTrue(ComponentRegistry.hasCleanupHandler(for: TestExtensionComponent.self))
+
+        destroyEntity(entityId: entityId)
+        finalizePendingDestroys()
+
+        XCTAssertFalse(queryEntities(with: [TestExtensionComponent.self]).contains(entityId))
+        XCTAssertNil(getEntityComponent(entityId: entityId, componentType: TestExtensionComponent.self))
     }
 }

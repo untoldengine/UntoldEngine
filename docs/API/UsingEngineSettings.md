@@ -28,6 +28,84 @@ setRendering(.postProcessing(.enabled))
 setRendering(.postProcessing(.disabled))
 ```
 
+Renderer extensions use the same rendering domain:
+
+```swift
+setRendering(.extensions(.register(WaterRenderExtension())))
+setRendering(.extensions(.unregister("water")))
+setRendering(.extensions(.removeAll))
+```
+
+The engine includes a minimal opt-in sample extension:
+
+```swift
+setRendering(.extensions(.register(SampleRenderExtension())))
+```
+
+`SampleRenderExtension` allocates a viewport-sized scratch texture and clears it
+from a staged pass without changing the final frame. It is intended as a compact
+reference implementation for extension authors.
+
+For a full extension authoring guide, see
+[Rendering Extensions](UsingRenderingExtensions.md).
+
+Phase 1 render extensions can register custom render pipelines, custom compute
+pipelines, staged render graph passes, and render textures that are recreated
+with the renderer viewport. Stable stage anchors currently include:
+
+```swift
+.afterOpaqueLighting
+.beforeTransparency
+.afterTransparency
+.beforePostProcess
+.afterPostProcess
+.beforeComposite
+.beforeLook
+.beforeOutput
+```
+
+Extensions should target these stages instead of depending on internal pass names
+such as `"lightPass"` or `"precomp"`.
+
+Texture resources are declared by the extension:
+
+```swift
+final class WaterRenderExtension: RenderExtension {
+    let id = "water"
+
+    func registerComputePipelines(_ registry: ComputePipelineRegistry) {
+        registry.registerComputePipeline(
+            "water.simulation",
+            functionName: "waterSimulationKernel",
+            pipelineName: "Water Simulation"
+        )
+    }
+
+    func registerResources(_ registry: RenderResourceRegistry) {
+        registry.registerTexture(RenderExtensionTextureDescriptor(
+            id: "water.reflection",
+            size: .viewportScale(1.0),
+            pixelFormat: .rgba16Float,
+            usage: [.renderTarget, .shaderRead]
+        ))
+    }
+
+    func buildGraph(_ builder: inout RenderGraphBuilder, context: RenderGraphBuildContext) {
+        builder.addPass(id: "water.surface", stage: .beforePostProcess) { context in
+            let reflection = context.resources.texture("water.reflection")
+            let simulation = context.computePipelines.pipeline("water.simulation")
+            // Encode water rendering commands.
+        }
+    }
+}
+```
+
+Outside a render pass, query extension resources through the public resource API:
+
+```swift
+let reflection = getRenderResource(.texture("water.reflection"))
+```
+
 Wireframe parameters can also be configured through the same domain:
 
 ```swift

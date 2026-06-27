@@ -288,6 +288,32 @@ final class BuildSystemTests: XCTestCase {
                       "GameViewController.swift should initialize GameScene")
     }
 
+    func testMacOSPackageSwiftIncludesShaderSupportDependency() {
+        // Given: Build settings for a macOS project
+        let settings = BuildSettings(
+            projectName: "MyGameProject",
+            bundleIdentifier: "com.test.game",
+            outputPath: tempDirectory,
+            target: .macOS(deployment: .v14)
+        )
+
+        // When: Getting template files
+        let templateFiles = BuildTemplates.getTemplateFiles(for: settings.target)
+
+        // Then: Package.swift should include both the engine and shader support products
+        guard let packageContent = templateFiles["Package.swift"] else {
+            XCTFail("macOS template should include Package.swift")
+            return
+        }
+
+        XCTAssertTrue(packageContent.contains(".product(name: \"UntoldEngine\", package: \"UntoldEngine\")"),
+                      "Package.swift should depend on UntoldEngine")
+        XCTAssertTrue(packageContent.contains(".product(name: \"UntoldEngineShaderSupport\", package: \"UntoldEngine\")"),
+                      "Package.swift should depend on UntoldEngineShaderSupport for extension shader includes")
+        XCTAssertTrue(packageContent.contains("defaultLocalization: \"en\""),
+                      "Package.swift should set a default localization because the template includes Base.lproj")
+    }
+
     func testMainStoryboardGeneratedCorrectly() {
         // Given: Build settings for a project
         let projectName = "MyGameProject"
@@ -383,11 +409,12 @@ final class BuildSystemTests: XCTestCase {
         // When: Generating XcodeGen YAML spec
         let yamlContent = try XcodeGenProjectSpec.generateYAML(settings: settings)
 
-        // Then: Verify the YAML includes Base.lproj as a resource
-        XCTAssertTrue(yamlContent.contains("path: Sources/\(projectName)/Base.lproj"),
-                      "XcodeGen spec should include Base.lproj path")
+        // Then: Verify the YAML does not add Base.lproj as a raw folder resource.
+        // Storyboards are compiled from the Sources tree.
+        XCTAssertFalse(yamlContent.contains("path: Sources/\(projectName)/Base.lproj"),
+                       "XcodeGen spec should not add Base.lproj as a raw folder resource")
         XCTAssertTrue(yamlContent.contains("type: folder"),
-                      "XcodeGen spec should specify folder type for resources")
+                      "XcodeGen spec should still specify folder type for GameData resources")
         XCTAssertTrue(yamlContent.contains("buildPhase: resources"),
                       "XcodeGen spec should include buildPhase: resources")
 
@@ -408,6 +435,29 @@ final class BuildSystemTests: XCTestCase {
                       "XcodeGen spec should include project name")
         XCTAssertTrue(yamlContent.contains("type: application"),
                       "XcodeGen spec should specify application type")
+    }
+
+    func testXcodeProjectSpecIncludesShaderSupportDependency() throws {
+        // Given: Build settings for a standard app target
+        let settings = BuildSettings(
+            projectName: "MyGameProject",
+            bundleIdentifier: "com.test.game",
+            outputPath: tempDirectory,
+            target: .macOS(deployment: .v14)
+        )
+
+        // When: Generating XcodeGen YAML spec
+        let yamlContent = try XcodeGenProjectSpec.generateYAML(settings: settings)
+
+        // Then: The app target should depend on shader support alongside UntoldEngine
+        XCTAssertTrue(yamlContent.contains("product: UntoldEngine"),
+                      "XcodeGen spec should depend on UntoldEngine")
+        XCTAssertTrue(yamlContent.contains("product: UntoldEngineShaderSupport"),
+                      "XcodeGen spec should depend on UntoldEngineShaderSupport for extension shader includes")
+        XCTAssertTrue(yamlContent.contains("UNTOLD_ENGINE_PACKAGE_ROOT: \"$(BUILD_DIR)/../../SourcePackages/checkouts/UntoldEngine\""),
+                      "XcodeGen spec should expose the engine package root as an overridable build setting")
+        XCTAssertTrue(yamlContent.contains("MTL_HEADER_SEARCH_PATHS: \"$(inherited) $(UNTOLD_ENGINE_PACKAGE_ROOT)/Sources/UntoldEngineShaderSupport/include\""),
+                      "XcodeGen spec should expose shader support headers to Metal shaders without absolute paths")
     }
 
     // MARK: - iOS Template Tests
@@ -1008,6 +1058,8 @@ final class BuildSystemTests: XCTestCase {
                       "visionOS single-platform should depend on UntoldEngineXR product")
         XCTAssertTrue(yamlContent.contains("product: UntoldEngineAR"),
                       "visionOS single-platform should depend on UntoldEngineAR product")
+        XCTAssertFalse(yamlContent.contains("product: UntoldEngineShaderSupport"),
+                       "visionOS single-platform should not add shader support unless it depends on the base UntoldEngine product")
     }
 
     // MARK: - Multi-Platform Tests
@@ -1232,6 +1284,8 @@ final class BuildSystemTests: XCTestCase {
         var foundVisionXR = false
         var foundMacOSEngine = false
         var foundIOSEngine = false
+        var foundMacOSShaderSupport = false
+        var foundIOSShaderSupport = false
 
         for line in lines {
             let trimmedLine = line.trimmingCharacters(in: .whitespaces)
@@ -1269,6 +1323,12 @@ final class BuildSystemTests: XCTestCase {
                 if inMacOSTarget { foundMacOSEngine = true }
                 if inIOSTarget { foundIOSEngine = true }
             }
+            if trimmedLine == "product: UntoldEngineShaderSupport" {
+                XCTAssertTrue(inMacOSTarget || inIOSTarget,
+                              "UntoldEngineShaderSupport product should only be in base macOS or iOS targets")
+                if inMacOSTarget { foundMacOSShaderSupport = true }
+                if inIOSTarget { foundIOSShaderSupport = true }
+            }
             if trimmedLine == "product: UntoldEngineAR" {
                 XCTAssertTrue(inIOSARTarget || inVisionOSTarget,
                               "UntoldEngineAR product should only be in iOS AR or visionOS targets")
@@ -1283,6 +1343,8 @@ final class BuildSystemTests: XCTestCase {
 
         XCTAssertTrue(foundMacOSEngine, "macOS target should include UntoldEngine product")
         XCTAssertTrue(foundIOSEngine, "iOS target should include UntoldEngine product")
+        XCTAssertTrue(foundMacOSShaderSupport, "macOS target should include UntoldEngineShaderSupport product")
+        XCTAssertTrue(foundIOSShaderSupport, "iOS target should include UntoldEngineShaderSupport product")
         XCTAssertTrue(foundIOSARAR, "iOS AR target should include UntoldEngineAR")
         XCTAssertTrue(foundVisionXR, "visionOS target should include UntoldEngineXR")
         XCTAssertTrue(foundVisionAR, "visionOS target should include UntoldEngineAR")

@@ -268,6 +268,11 @@ public func queryEntitiesWithComponentIds(_ componentTypes: [Int], in scene: Sce
     return candidates.filter { scene.exists($0) }
 }
 
+public func queryEntities(with componentTypes: [any Component.Type]) -> [EntityID] {
+    let componentIds = componentTypes.map { getComponentId(for: $0) }
+    return queryEntitiesWithComponentIds(componentIds, in: scene)
+}
+
 public func hasComponent(entityId: EntityID, componentType: (some Any).Type) -> Bool {
     let entityIndex: EntityIndex = getEntityIndex(entityId)
     guard entityIndex < scene.entities.count else { return false }
@@ -277,6 +282,26 @@ public func hasComponent(entityId: EntityID, componentType: (some Any).Type) -> 
     let componentId = getComponentId(for: componentType)
 
     return entityMask.test(componentId)
+}
+
+public func getEntityComponent<T: Component>(
+    entityId: EntityID,
+    componentType: T.Type = T.self
+) -> T? {
+    guard scene.exists(entityId) else {
+        return nil
+    }
+    return scene.get(component: componentType, for: entityId)
+}
+
+public func removeEntityComponent(
+    entityId: EntityID,
+    componentType: (some Component).Type
+) {
+    guard scene.exists(entityId), hasComponent(entityId: entityId, componentType: componentType) else {
+        return
+    }
+    scene.remove(component: componentType, from: entityId)
 }
 
 func getAllEntityComponentsTypes(entityId: EntityID) -> [Any.Type] {
