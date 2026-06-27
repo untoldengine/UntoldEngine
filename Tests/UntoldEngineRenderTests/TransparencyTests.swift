@@ -214,36 +214,36 @@ final class TransparencyRenderGraphTests: BaseRenderSetup {
         XCTAssertTrue(pipeline?.success ?? false, "Wireframe pipeline should be successfully initialized")
     }
 
-    func testTransparencyPass_existsInGameModeGraph() {
+    func testTransparencyPass_existsInGameModeGraph() throws {
         renderInfo.immersionStyle = .none
         renderEnvironment = true
 
-        let (graph, _) = buildGameModeGraph()
+        let (graph, _) = try buildGameModeGraph()
 
         XCTAssertNotNil(graph["transparency"], "Transparency pass should exist in the game mode graph")
     }
 
-    func testTransparencyPass_dependsOnLightPass() {
+    func testTransparencyPass_dependsOnLightPass() throws {
         renderInfo.immersionStyle = .none
         renderEnvironment = true
 
-        let (graph, _) = buildGameModeGraph()
+        let (graph, _) = try buildGameModeGraph()
 
         XCTAssertEqual(graph["transparency"]?.dependencies, ["lightPass"],
                        "Transparency pass should depend on lightPass")
     }
 
-    func testTransparencyPass_hasExecutionFunction() {
+    func testTransparencyPass_hasExecutionFunction() throws {
         renderInfo.immersionStyle = .none
         renderEnvironment = true
 
-        let (graph, _) = buildGameModeGraph()
+        let (graph, _) = try buildGameModeGraph()
 
         XCTAssertNotNil(graph["transparency"]?.execute,
                         "Transparency pass should have an execution function")
     }
 
-    func testTransparencyPass_existsInAllRenderModes() {
+    func testTransparencyPass_existsInAllRenderModes() throws {
         let modes: [(UntoldImmersionMode, Bool, String)] = [
             (.none, true, "environment"),
             (.none, false, "grid"),
@@ -255,7 +255,7 @@ final class TransparencyRenderGraphTests: BaseRenderSetup {
             renderInfo.immersionStyle = immersionStyle
             renderEnvironment = useEnvironment
 
-            let (graph, _) = buildGameModeGraph()
+            let (graph, _) = try buildGameModeGraph()
 
             XCTAssertNotNil(graph["transparency"],
                             "Transparency pass should exist in \(description) mode")
@@ -275,7 +275,7 @@ final class TransparencyRenderGraphTests: BaseRenderSetup {
         DepthOfFieldParams.shared.enabled = true
         defer { DepthOfFieldParams.shared.enabled = false }
 
-        let (graph, _) = buildGameModeGraph()
+        let (graph, _) = try buildGameModeGraph()
         let sorted = try topologicalSortGraph(graph: graph)
         let order = sorted.map(\.id)
 
@@ -301,13 +301,13 @@ final class TransparencyRenderGraphTests: BaseRenderSetup {
                       "Wireframe pass must come before post-processing (depthOfField)")
     }
 
-    func testTransparencyPass_bypassModeDepends() {
+    func testTransparencyPass_bypassModeDepends() throws {
         renderInfo.immersionStyle = .none
         renderEnvironment = true
         bypassPostProcessing = true
         defer { bypassPostProcessing = false }
 
-        let (graph, _) = buildGameModeGraph()
+        let (graph, _) = try buildGameModeGraph()
 
         XCTAssertNotNil(graph["transparency"],
                         "Transparency pass should exist when bypassing post-processing")

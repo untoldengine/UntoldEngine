@@ -52,7 +52,13 @@ public final class SampleRenderExtension: RenderExtension, @unchecked Sendable {
         _ builder: inout RenderGraphBuilder,
         context _: RenderGraphBuildContext
     ) {
-        builder.addPass(id: passID, stage: stage) { [scratchTextureID, clearColor] context in
+        builder.addPass(
+            id: passID,
+            stage: stage,
+            resources: [
+                .texture(RenderTextureResourceID(scratchTextureID), access: .renderTarget),
+            ]
+        ) { [scratchTextureID, clearColor] context in
             guard let scratchTexture = context.resources.texture(scratchTextureID) else {
                 return
             }

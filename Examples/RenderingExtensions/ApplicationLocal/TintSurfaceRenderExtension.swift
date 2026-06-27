@@ -31,8 +31,9 @@ public final class TintSurfaceRenderExtension: RenderExtension, @unchecked Senda
     private let pipelineID: RenderPipelineType = "sample.tintSurface.pipeline"
     private let argumentLayoutID = "sample.tintSurface.arguments"
     private let passID = "sample.tintSurface.draw"
-    private let shaderBundle: Bundle?
-    private let shaderLibraryURL: URL?
+    private let shaderBundle: Bundle
+    private let metallibResource: String?
+    private let metallibSubdirectory: String?
 
     /// Creates an extension that loads a bundle's default Metal library.
     ///
@@ -40,15 +41,21 @@ public final class TintSurfaceRenderExtension: RenderExtension, @unchecked Senda
     /// its framework bundle explicitly.
     public init(shaderBundle: Bundle = .main) {
         self.shaderBundle = shaderBundle
-        shaderLibraryURL = nil
+        metallibResource = nil
+        metallibSubdirectory = nil
     }
 
-    /// Creates an extension that loads a precompiled Metal library.
+    /// Creates an extension that loads a bundled precompiled Metal library.
     ///
     /// Use this initializer when a Swift package bundles a `.metallib` resource.
-    public init(shaderLibraryURL: URL) {
-        shaderBundle = nil
-        self.shaderLibraryURL = shaderLibraryURL
+    public init(
+        shaderBundle: Bundle,
+        metallibResource: String,
+        metallibSubdirectory: String? = nil
+    ) {
+        self.shaderBundle = shaderBundle
+        self.metallibResource = metallibResource
+        self.metallibSubdirectory = metallibSubdirectory
     }
 
     /// Registers the library containing `tintSurfaceFragment`.
@@ -56,9 +63,14 @@ public final class TintSurfaceRenderExtension: RenderExtension, @unchecked Senda
     /// This hook is optional for extensions that use only engine shaders. This
     /// sample implements it because its fragment function is extension-owned.
     public func registerShaderLibraries(_ registry: RenderShaderLibraryRegistry) {
-        if let shaderLibraryURL {
-            registry.registerLibrary(shaderLibraryID, url: shaderLibraryURL)
-        } else if let shaderBundle {
+        if let metallibResource {
+            registry.registerLibrary(
+                shaderLibraryID,
+                bundle: shaderBundle,
+                resource: metallibResource,
+                subdirectory: metallibSubdirectory
+            )
+        } else {
             registry.registerDefaultLibrary(shaderLibraryID, bundle: shaderBundle)
         }
     }

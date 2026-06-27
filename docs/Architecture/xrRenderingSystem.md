@@ -162,7 +162,7 @@ The compositor provides the exact asymmetric projection for each eye. This accou
 
 **Pass descriptor**: Pre-allocated (`passDescriptorLeft`, `passDescriptorRight`) and reused every frame to avoid 180 allocations/second (2 eyes × 90 FPS). The color and depth textures are swapped in from `drawable.colorTextures[viewIndex]` and `drawable.depthTextures[viewIndex]`.
 
-**`renderer.renderXR(...)`** calls `buildGameModeGraph()` + `topologicalSortGraph()` + `executeGraph()` — the exact same render graph pipeline as macOS. The only thing that changes is:
+**`renderer.renderXR(...)`** calls `buildExecutableGameModeGraph()` + `executeGraph()` — the same validated render graph pipeline as macOS. Invalid graphs skip encoding for the affected frame. The only thing that changes is:
 - `renderInfo.currentEye = viewIndex` — tells uniform uploads which eye's matrices to use
 - The base pass mode: `.mixed` immersion omits the base pass (camera passthrough is the background), `.full` immersion renders the skybox
 

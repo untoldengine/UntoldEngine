@@ -49,7 +49,7 @@ reference implementation for extension authors.
 For a full extension authoring guide, see
 [Rendering Extensions](UsingRenderingExtensions.md).
 
-Phase 1 render extensions can register custom render pipelines, custom compute
+Rendering extensions can register custom render pipelines, custom compute
 pipelines, staged render graph passes, and render textures that are recreated
 with the renderer viewport. Stable stage anchors currently include:
 
@@ -91,7 +91,11 @@ final class WaterRenderExtension: RenderExtension {
     }
 
     func buildGraph(_ builder: inout RenderGraphBuilder, context: RenderGraphBuildContext) {
-        builder.addPass(id: "water.surface", stage: .beforePostProcess) { context in
+        builder.addPass(
+            id: "water.surface",
+            stage: .beforePostProcess,
+            resources: [.texture("water.reflection", access: .read)]
+        ) { context in
             let reflection = context.resources.texture("water.reflection")
             let simulation = context.computePipelines.pipeline("water.simulation")
             // Encode water rendering commands.

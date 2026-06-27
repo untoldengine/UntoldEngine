@@ -81,7 +81,17 @@ struct RenderPass {
 }
 ```
 
-Each pass declares which other passes must complete before it can run. `buildGameModeGraph()` assembles these nodes into a dictionary and returns it. Nothing executes yet — this is purely declarative.
+Each engine pass declares which other passes must complete before it can run.
+Before encoding, `buildExecutableGameModeGraph()` validates and compiles the
+mutable builder output into an immutable `CompiledRenderGraph` with one
+deterministic execution order. Frame encoding walks that snapshot rather than
+sorting or reinterpreting mutable graph state.
+
+Rendering Extensions contribute owner-scoped passes through stable stage anchors
+before this compilation step. Their registration lifecycle, plugin transactions,
+resource validation, hazard scheduling, argument-buffer isolation, lifetime
+planning, and failure recovery are documented separately in
+[Rendering Extensions Architecture](RenderingExtensions.md).
 
 The full graph for a typical frame looks like this:
 

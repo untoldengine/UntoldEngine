@@ -107,13 +107,44 @@ final class GraphTest: XCTestCase {
         let graph = [nodeA.id: nodeA, nodeB.id: nodeB, nodeC.id: nodeC]
 
         XCTAssertThrowsError(try topologicalSortGraph(graph: graph)) { error in
-            XCTAssertTrue(error is GraphError)
-            if case let GraphError.cycleDetected(node) = error {
+            XCTAssertTrue(error is RenderGraphError)
+            if case let RenderGraphError.cycleDetected(node) = error {
                 print("Cycle correctly detected at: \(node)")
             } else {
                 XCTFail("Expected a cycleDetected error")
             }
         }
+    }
+
+    func testMissingDependencyDetection() {
+        let graph = [
+            "dependent": RenderPass(
+                id: "dependent",
+                dependencies: ["missing"],
+                execute: nil
+            ),
+        ]
+
+        XCTAssertThrowsError(try topologicalSortGraph(graph: graph)) { error in
+            XCTAssertEqual(
+                error as? RenderGraphError,
+                .missingDependency(passID: "dependent", dependencyID: "missing")
+            )
+        }
+    }
+
+    func testGraphErrorDescriptionsContainActionablePassIDs() {
+        XCTAssertEqual(
+            RenderGraphError.duplicatePassID("duplicate").description,
+            "Duplicate render pass id: duplicate"
+        )
+        XCTAssertEqual(
+            RenderGraphError.missingDependency(
+                passID: "dependent",
+                dependencyID: "missing"
+            ).description,
+            "Render pass 'dependent' depends on missing pass 'missing'"
+        )
     }
 
     func testGraphWithSharedDependency_usingHelper() throws {

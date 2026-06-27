@@ -150,7 +150,6 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         RenderExtensionRegistry.shared.registerPipelines()
 
         initSizeableResources() // TODO: Find a better name function
-        RenderExtensionRegistry.shared.registerResources()
 
         shadowSystem = ShadowSystem()
 

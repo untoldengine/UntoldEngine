@@ -45,6 +45,7 @@
     @MainActor
     public func shutdownUntoldEngineXR(_ xr: UntoldEngineXR, completion: (() -> Void)? = nil) {
         resetUntoldWorldForXR {
+            setRendering(.extensions(.removeAll))
             xr.clearSpatialInput()
             xr.stop()
             completion?()

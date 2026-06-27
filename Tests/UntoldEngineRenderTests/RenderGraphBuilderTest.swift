@@ -15,11 +15,12 @@ import simd
 import XCTest
 
 private final class TestStageRenderExtension: RenderExtension, @unchecked Sendable {
-    let id = "test.stage.extension"
+    let id: String
     let passID: String
     let stage: RenderStage
 
-    init(passID: String, stage: RenderStage) {
+    init(id: String? = nil, passID: String, stage: RenderStage) {
+        self.id = id ?? "test.stage.extension.\(passID)"
         self.passID = passID
         self.stage = stage
     }
@@ -29,6 +30,187 @@ private final class TestStageRenderExtension: RenderExtension, @unchecked Sendab
         context _: RenderGraphBuildContext
     ) {
         builder.addPass(id: passID, stage: stage, execute: { _ in })
+    }
+}
+
+private final class TestMultiPassConflictRenderExtension: RenderExtension, @unchecked Sendable {
+    let id: String
+    let uniquePassID: String
+    let conflictingPassID: String
+
+    init(id: String, uniquePassID: String, conflictingPassID: String) {
+        self.id = id
+        self.uniquePassID = uniquePassID
+        self.conflictingPassID = conflictingPassID
+    }
+
+    func buildGraph(
+        _ builder: inout RenderGraphBuilder,
+        context _: RenderGraphBuildContext
+    ) {
+        builder.addPass(id: uniquePassID, stage: .afterTransparency, execute: nil)
+        builder.addPass(id: conflictingPassID, stage: .afterTransparency, execute: nil)
+    }
+}
+
+private final class TestInvalidResourceThenConflictRenderExtension: RenderExtension, @unchecked Sendable {
+    let id: String
+    let uniquePassID: String
+    let conflictingPassID: String
+    let missingTextureID: RenderTextureResourceID
+
+    init(
+        id: String,
+        uniquePassID: String,
+        conflictingPassID: String,
+        missingTextureID: RenderTextureResourceID
+    ) {
+        self.id = id
+        self.uniquePassID = uniquePassID
+        self.conflictingPassID = conflictingPassID
+        self.missingTextureID = missingTextureID
+    }
+
+    func buildGraph(
+        _ builder: inout RenderGraphBuilder,
+        context _: RenderGraphBuildContext
+    ) {
+        builder.addPass(
+            id: uniquePassID,
+            stage: .afterTransparency,
+            resources: [.texture(missingTextureID, access: .read)],
+            execute: nil
+        )
+        builder.addPass(id: conflictingPassID, stage: .afterTransparency, execute: nil)
+    }
+}
+
+private final class TestInvalidDependencyRenderExtension: RenderExtension, @unchecked Sendable {
+    let id = "test.invalid.dependency.extension"
+    let passID = "test.invalid.dependency.pass"
+    let dependencyID = "test.missing.dependency"
+
+    func buildGraph(
+        _ builder: inout RenderGraphBuilder,
+        context _: RenderGraphBuildContext
+    ) {
+        builder.addPass(
+            id: passID,
+            stage: .beforeOutput,
+            dependencies: [dependencyID],
+            execute: nil
+        )
+    }
+}
+
+private final class TestLifecycleRenderExtension: RenderExtension, @unchecked Sendable {
+    let id: String
+    let passID: String
+    let textureID: String
+    let bufferID: RenderBufferResourceID
+    let shaderLibraryID: RenderShaderLibraryID
+    let renderPipelineType: RenderPipelineType
+    let computePipelineType: ComputePipelineType
+    let argumentLayoutID: String
+    let shaderLibrary: MTLLibrary
+
+    init(
+        id: String = "test.lifecycle.extension",
+        artifactSuffix: String,
+        passID: String? = nil,
+        renderPipelineType: RenderPipelineType? = nil,
+        shaderLibrary: MTLLibrary
+    ) {
+        self.id = id
+        self.passID = passID ?? "test.lifecycle.\(artifactSuffix).pass"
+        textureID = "test.lifecycle.\(artifactSuffix).texture"
+        bufferID = RenderBufferResourceID("test.lifecycle.\(artifactSuffix).buffer")
+        shaderLibraryID = RenderShaderLibraryID("test.lifecycle.\(artifactSuffix).library")
+        self.renderPipelineType = renderPipelineType ?? RenderPipelineType("test.lifecycle.\(artifactSuffix).render")
+        computePipelineType = ComputePipelineType("test.lifecycle.\(artifactSuffix).compute")
+        argumentLayoutID = "test.lifecycle.\(artifactSuffix).arguments"
+        self.shaderLibrary = shaderLibrary
+    }
+
+    func registerShaderLibraries(_ registry: RenderShaderLibraryRegistry) {
+        registry.registerLibrary(shaderLibraryID, library: shaderLibrary)
+    }
+
+    func registerPipelines(_ registry: RenderPipelineRegistry) {
+        registry.registerRenderPipeline(renderPipelineType) {
+            RenderPipeline(success: true, name: self.renderPipelineType.rawValue)
+        }
+    }
+
+    func registerComputePipelines(_ registry: ComputePipelineRegistry) {
+        registry.registerComputePipeline(computePipelineType) {
+            var pipeline = ComputePipeline()
+            pipeline.name = self.computePipelineType.rawValue
+            pipeline.success = true
+            return pipeline
+        }
+    }
+
+    func registerResources(_ registry: RenderResourceRegistry) {
+        registry.registerTexture(
+            RenderExtensionTextureDescriptor(
+                id: textureID,
+                size: .fixed(width: 8, height: 8),
+                pixelFormat: .rgba16Float,
+                usage: [.renderTarget, .shaderRead]
+            )
+        )
+        registry.registerBuffer(
+            RenderExtensionBufferDescriptor(
+                id: bufferID,
+                length: 64
+            )
+        )
+    }
+
+    func registerArgumentBuffers(_ registry: RenderExtensionArgumentBufferRegistry) {
+        registry.registerArgumentBuffer(
+            RenderExtensionArgumentBufferDescriptor(
+                id: argumentLayoutID,
+                buffers: [
+                    RenderExtensionArgumentBuffer(
+                        id: RenderExtensionModelSurfaceArgument.buffer0
+                    ),
+                ]
+            )
+        )
+    }
+
+    func buildGraph(
+        _ builder: inout RenderGraphBuilder,
+        context _: RenderGraphBuildContext
+    ) {
+        builder.addPass(id: passID, stage: .afterTransparency, execute: nil)
+    }
+}
+
+private final class TestRenderPipelineOnlyExtension: RenderExtension, @unchecked Sendable {
+    let id: String
+    let pipelineType: RenderPipelineType
+    let passID: String
+
+    init(id: String, pipelineType: RenderPipelineType, passID: String) {
+        self.id = id
+        self.pipelineType = pipelineType
+        self.passID = passID
+    }
+
+    func registerPipelines(_ registry: RenderPipelineRegistry) {
+        registry.registerRenderPipeline(pipelineType) {
+            RenderPipeline(success: true, name: self.id)
+        }
+    }
+
+    func buildGraph(
+        _ builder: inout RenderGraphBuilder,
+        context _: RenderGraphBuildContext
+    ) {
+        builder.addPass(id: passID, stage: .afterTransparency, execute: nil)
     }
 }
 
@@ -64,10 +246,191 @@ private final class TestResourceRenderExtension: RenderExtension, @unchecked Sen
         _ builder: inout RenderGraphBuilder,
         context _: RenderGraphBuildContext
     ) {
-        builder.addPass(id: passID, stage: .beforeOutput, execute: { [weak self] context in
-            guard let self, let texture = context.resources.texture(textureID) else { return }
-            observedTextureSize = SIMD2<Int>(texture.width, texture.height)
-        })
+        builder.addPass(
+            id: passID,
+            stage: .beforeOutput,
+            resources: [
+                .texture(RenderTextureResourceID(textureID), access: .read),
+            ],
+            execute: { [weak self] context in
+                guard let self, let texture = context.resources.texture(textureID) else { return }
+                observedTextureSize = SIMD2<Int>(texture.width, texture.height)
+            }
+        )
+    }
+}
+
+private final class TestBufferResourceRenderExtension: RenderExtension, @unchecked Sendable {
+    let id: String
+    let bufferID: RenderBufferResourceID
+    let passID: String
+    let length: Int
+    var observedBufferLength: Int?
+
+    init(
+        id: String = "test.buffer-resource.extension",
+        bufferID: RenderBufferResourceID,
+        passID: String = "test.buffer-resource.pass",
+        length: Int
+    ) {
+        self.id = id
+        self.bufferID = bufferID
+        self.passID = passID
+        self.length = length
+    }
+
+    func registerResources(_ registry: RenderResourceRegistry) {
+        registry.registerBuffer(
+            RenderExtensionBufferDescriptor(
+                id: bufferID,
+                length: length
+            )
+        )
+    }
+
+    func buildGraph(
+        _ builder: inout RenderGraphBuilder,
+        context _: RenderGraphBuildContext
+    ) {
+        builder.addPass(
+            id: passID,
+            stage: .beforeOutput,
+            resources: [
+                .buffer(bufferID, access: .read),
+            ]
+        ) { [weak self] context in
+            guard let self else { return }
+            observedBufferLength = context.resources.buffer(bufferID)?.length
+        }
+    }
+}
+
+private final class TestTransactionalResourceRenderExtension: RenderExtension, @unchecked Sendable {
+    let id: String
+    let textureDescriptors: [RenderExtensionTextureDescriptor]
+    let bufferDescriptors: [RenderExtensionBufferDescriptor]
+    private(set) var resourceRegistrationCount = 0
+
+    init(
+        id: String,
+        textureDescriptors: [RenderExtensionTextureDescriptor] = [],
+        bufferDescriptors: [RenderExtensionBufferDescriptor] = []
+    ) {
+        self.id = id
+        self.textureDescriptors = textureDescriptors
+        self.bufferDescriptors = bufferDescriptors
+    }
+
+    func registerResources(_ registry: RenderResourceRegistry) {
+        resourceRegistrationCount += 1
+        for descriptor in textureDescriptors {
+            registry.registerTexture(descriptor)
+        }
+        for descriptor in bufferDescriptors {
+            registry.registerBuffer(descriptor)
+        }
+    }
+
+    func buildGraph(
+        _: inout RenderGraphBuilder,
+        context _: RenderGraphBuildContext
+    ) {}
+}
+
+private final class TestResourceUsageRenderExtension: RenderExtension, @unchecked Sendable {
+    let id: String
+    let passID: String?
+    let textureDescriptors: [RenderExtensionTextureDescriptor]
+    let bufferDescriptors: [RenderExtensionBufferDescriptor]
+    let usages: [RenderGraphResourceUsage]
+    let observedTextureIDs: [RenderTextureResourceID]
+    let observedBufferIDs: [RenderBufferResourceID]
+    private(set) var observedTextures: [RenderTextureResourceID: Bool] = [:]
+    private(set) var observedBuffers: [RenderBufferResourceID: Bool] = [:]
+
+    init(
+        id: String,
+        passID: String? = nil,
+        textureDescriptors: [RenderExtensionTextureDescriptor] = [],
+        bufferDescriptors: [RenderExtensionBufferDescriptor] = [],
+        usages: [RenderGraphResourceUsage] = [],
+        observedTextureIDs: [RenderTextureResourceID] = [],
+        observedBufferIDs: [RenderBufferResourceID] = []
+    ) {
+        self.id = id
+        self.passID = passID
+        self.textureDescriptors = textureDescriptors
+        self.bufferDescriptors = bufferDescriptors
+        self.usages = usages
+        self.observedTextureIDs = observedTextureIDs
+        self.observedBufferIDs = observedBufferIDs
+    }
+
+    func registerResources(_ registry: RenderResourceRegistry) {
+        for descriptor in textureDescriptors {
+            registry.registerTexture(descriptor)
+        }
+        for descriptor in bufferDescriptors {
+            registry.registerBuffer(descriptor)
+        }
+    }
+
+    func buildGraph(
+        _ builder: inout RenderGraphBuilder,
+        context _: RenderGraphBuildContext
+    ) {
+        guard let passID else { return }
+        builder.addPass(id: passID, stage: .beforeOutput, resources: usages) { [weak self] context in
+            guard let self else { return }
+            for id in observedTextureIDs {
+                observedTextures[id] = context.resources.texture(id) != nil
+            }
+            for id in observedBufferIDs {
+                observedBuffers[id] = context.resources.buffer(id) != nil
+            }
+        }
+    }
+}
+
+private final class TestRenderExtensionResourceAllocator: RenderExtensionResourceAllocating {
+    var failingTextureIDs: Set<RenderTextureResourceID> = []
+    var failingBufferIDs: Set<RenderBufferResourceID> = []
+    private(set) var textureAllocationCounts: [RenderTextureResourceID: Int] = [:]
+    private(set) var bufferAllocationCounts: [RenderBufferResourceID: Int] = [:]
+
+    func makeTexture(
+        device: MTLDevice,
+        descriptor: RenderExtensionTextureDescriptor,
+        width: Int,
+        height: Int
+    ) -> MTLTexture? {
+        textureAllocationCounts[descriptor.id, default: 0] += 1
+        guard !failingTextureIDs.contains(descriptor.id) else { return nil }
+        return createTexture(
+            device: device,
+            label: descriptor.label,
+            pixelFormat: descriptor.pixelFormat,
+            width: width,
+            height: height,
+            usage: descriptor.usage,
+            storageMode: descriptor.storageMode,
+            mipMapLevels: descriptor.mipMapLevels,
+            sampleCount: descriptor.sampleCount
+        )
+    }
+
+    func makeBuffer(
+        device: MTLDevice,
+        descriptor: RenderExtensionBufferDescriptor
+    ) -> MTLBuffer? {
+        bufferAllocationCounts[descriptor.id, default: 0] += 1
+        guard !failingBufferIDs.contains(descriptor.id) else { return nil }
+        return createEmptyBuffer(
+            device: device,
+            length: descriptor.length,
+            options: descriptor.options,
+            label: descriptor.label
+        )
     }
 }
 
@@ -436,7 +799,8 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
     }
 
     func testPostProcessingEffects_TopologicalOrder() throws {
-        var graph = [String: RenderPass]()
+        let lightPass = RenderPass(id: "lightPass", dependencies: [], execute: nil)
+        var graph = [lightPass.id: lightPass]
 
         BloomThresholdParams.shared.enabled = true
 
@@ -464,12 +828,12 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
 
     // MARK: - buildGameModeGraph Integration Tests
 
-    func testBuildGameModeGraph_CreatesCompleteGraph() {
+    func testBuildGameModeGraph_CreatesCompleteGraph() throws {
         // Set up environment for non-XR rendering
         renderInfo.immersionStyle = .none
         renderEnvironment = true
 
-        let (graph, finalPassID) = buildGameModeGraph()
+        let (graph, finalPassID) = try buildGameModeGraph()
 
         // Verify essential passes exist
         XCTAssertNotNil(graph["environment"], "Environment pass should exist")
@@ -488,11 +852,11 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
         XCTAssertEqual(finalPassID, "outputTransform", "Final pass should be outputTransform")
     }
 
-    func testBuildGameModeGraph_GridMode() {
+    func testBuildGameModeGraph_GridMode() throws {
         renderInfo.immersionStyle = .none
         renderEnvironment = false // Should use grid instead
 
-        let (graph, _) = buildGameModeGraph()
+        let (graph, _) = try buildGameModeGraph()
 
         XCTAssertNotNil(graph["grid"], "Grid pass should exist when renderEnvironment is false")
         XCTAssertNil(graph["environment"], "Environment pass should not exist")
@@ -502,10 +866,10 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
                        "Shadow should depend on grid in grid mode")
     }
 
-    func testBuildGameModeGraph_XRPassthroughMode() {
+    func testBuildGameModeGraph_XRPassthroughMode() throws {
         renderInfo.immersionStyle = .mixed
 
-        let (graph, _) = buildGameModeGraph()
+        let (graph, _) = try buildGameModeGraph()
 
         XCTAssertNil(graph["environment"], "Environment pass should not exist in passthrough mode")
         XCTAssertNil(graph["grid"], "Grid pass should not exist in passthrough mode")
@@ -515,10 +879,10 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
                        "Shadow should have no dependencies in passthrough mode")
     }
 
-    func testBuildGameModeGraph_XRFullImmersionMode() {
+    func testBuildGameModeGraph_XRFullImmersionMode() throws {
         renderInfo.immersionStyle = .full
 
-        let (graph, _) = buildGameModeGraph()
+        let (graph, _) = try buildGameModeGraph()
 
         XCTAssertNotNil(graph["environment"], "Environment pass should exist in full immersion mode")
         XCTAssertNil(graph["grid"], "Grid pass should not exist in full immersion mode")
@@ -534,7 +898,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
         DepthOfFieldParams.shared.enabled = true
         defer { DepthOfFieldParams.shared.enabled = false }
 
-        let (graph, _) = buildGameModeGraph()
+        let (graph, _) = try buildGameModeGraph()
 
         let sorted = try topologicalSortGraph(graph: graph)
         let order = sorted.map(\.id)
@@ -558,13 +922,13 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
         ])
     }
 
-    func testBuildGameModeGraph_BypassPostProcessing_UsesBypassPass() {
+    func testBuildGameModeGraph_BypassPostProcessing_UsesBypassPass() throws {
         renderInfo.immersionStyle = .none
         renderEnvironment = true
         bypassPostProcessing = true
         defer { bypassPostProcessing = false }
 
-        let (graph, finalPassID) = buildGameModeGraph()
+        let (graph, finalPassID) = try buildGameModeGraph()
 
         XCTAssertEqual(finalPassID, "outputTransform", "Final pass should be outputTransform")
         XCTAssertNotNil(graph["wireframe"], "Wireframe pass should exist")
@@ -598,7 +962,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
                        "Output transform should depend on fxaa when bypassing post-processing")
     }
 
-    func testBuildGameModeGraph_FXAAEdgeDebugUsesDiagnosticPass() {
+    func testBuildGameModeGraph_FXAAEdgeDebugUsesDiagnosticPass() throws {
         renderInfo.immersionStyle = .none
         renderEnvironment = true
         antiAliasingMode = .none
@@ -608,7 +972,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
             renderDebugViewMode = .lit
         }
 
-        let (graph, finalPassID) = buildGameModeGraph()
+        let (graph, finalPassID) = try buildGameModeGraph()
 
         XCTAssertEqual(finalPassID, "outputTransform", "Final pass should be outputTransform")
         XCTAssertNotNil(graph["look"], "Look pass should exist")
@@ -620,13 +984,13 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
                        "Output transform should read the FXAA edge debug output")
     }
 
-    func testBuildGameModeGraph_SMAAUsesThreePassChain() {
+    func testBuildGameModeGraph_SMAAUsesThreePassChain() throws {
         renderInfo.immersionStyle = .none
         renderEnvironment = true
         antiAliasingMode = .smaa
         defer { antiAliasingMode = .fxaa }
 
-        let (graph, finalPassID) = buildGameModeGraph()
+        let (graph, finalPassID) = try buildGameModeGraph()
 
         XCTAssertEqual(finalPassID, "outputTransform", "Final pass should be outputTransform")
         XCTAssertNotNil(graph["look"], "Look pass should exist")
@@ -644,7 +1008,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
                        "Output transform should read the SMAA neighborhood output")
     }
 
-    func testBuildGameModeGraph_SMAAEdgesDebugStopsAfterEdgePass() {
+    func testBuildGameModeGraph_SMAAEdgesDebugStopsAfterEdgePass() throws {
         renderInfo.immersionStyle = .none
         renderEnvironment = true
         antiAliasingMode = .none
@@ -654,7 +1018,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
             renderDebugViewMode = .lit
         }
 
-        let (graph, finalPassID) = buildGameModeGraph()
+        let (graph, finalPassID) = try buildGameModeGraph()
 
         XCTAssertEqual(finalPassID, "outputTransform", "Final pass should be outputTransform")
         XCTAssertNotNil(graph["smaaEdges"], "SMAA edge pass should exist for edge debug")
@@ -666,7 +1030,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
                        "Output transform should read the SMAA edge texture")
     }
 
-    func testBuildGameModeGraph_SMAABlendDebugStopsAfterBlendPass() {
+    func testBuildGameModeGraph_SMAABlendDebugStopsAfterBlendPass() throws {
         renderInfo.immersionStyle = .none
         renderEnvironment = true
         antiAliasingMode = .none
@@ -676,7 +1040,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
             renderDebugViewMode = .lit
         }
 
-        let (graph, finalPassID) = buildGameModeGraph()
+        let (graph, finalPassID) = try buildGameModeGraph()
 
         XCTAssertEqual(finalPassID, "outputTransform", "Final pass should be outputTransform")
         XCTAssertNotNil(graph["smaaEdges"], "SMAA edge pass should exist for blend debug")
@@ -690,7 +1054,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
                        "Output transform should read the SMAA blend texture")
     }
 
-    func testBuildGameModeGraph_SMAADifferenceDebugRunsFullChain() {
+    func testBuildGameModeGraph_SMAADifferenceDebugRunsFullChain() throws {
         renderInfo.immersionStyle = .none
         renderEnvironment = true
         antiAliasingMode = .none
@@ -700,7 +1064,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
             renderDebugViewMode = .lit
         }
 
-        let (graph, finalPassID) = buildGameModeGraph()
+        let (graph, finalPassID) = try buildGameModeGraph()
 
         XCTAssertEqual(finalPassID, "outputTransform", "Final pass should be outputTransform")
         XCTAssertNotNil(graph["smaaEdges"], "SMAA edge pass should exist for difference debug")
@@ -723,7 +1087,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
 
     /// When antiAliasingMode is .none, no AA pass of any kind should appear in the graph
     /// and outputTransform must depend directly on look rather than on an AA pass.
-    func testBuildGameModeGraph_NoAAMode_HasNoAAPassAndConnectsDirectlyToOutput() {
+    func testBuildGameModeGraph_NoAAMode_HasNoAAPassAndConnectsDirectlyToOutput() throws {
         renderInfo.immersionStyle = .none
         renderEnvironment = true
         antiAliasingMode = .none
@@ -733,7 +1097,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
             renderDebugViewMode = .lit
         }
 
-        let (graph, finalPassID) = buildGameModeGraph()
+        let (graph, finalPassID) = try buildGameModeGraph()
 
         XCTAssertEqual(finalPassID, "outputTransform")
         XCTAssertNil(graph["fxaa"], "No FXAA pass when antiAliasingMode is .none")
@@ -744,7 +1108,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
                        "outputTransform must depend directly on look when no AA is active")
     }
 
-    func testBuildGameModeGraph_MSAAMode_UsesOpaqueResolveAndNoPostAAPass() {
+    func testBuildGameModeGraph_MSAAMode_UsesOpaqueResolveAndNoPostAAPass() throws {
         guard renderInfo.device.supportsTextureSampleCount(4) else {
             return
         }
@@ -759,7 +1123,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
             updateOpaqueSampleCountForCurrentState()
         }
 
-        let (graph, finalPassID) = buildGameModeGraph()
+        let (graph, finalPassID) = try buildGameModeGraph()
 
         XCTAssertEqual(renderInfo.opaqueSampleCount, 4,
                        "buildGameModeGraph must reconcile MSAA mode changes from DemoHUD")
@@ -780,19 +1144,19 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
     /// Switching renderDebugViewMode to any G-Buffer visualization mode must not change the
     /// set of passes in the render graph. The routing change is inside the look pass execution
     /// closure, not in the graph topology.
-    func testBuildGameModeGraph_GBufferDebugModes_ProduceSamePassSetAsLitMode() {
+    func testBuildGameModeGraph_GBufferDebugModes_ProduceSamePassSetAsLitMode() throws {
         renderInfo.immersionStyle = .none
         renderEnvironment = true
         antiAliasingMode = .fxaa
         defer { renderDebugViewMode = .lit }
 
         renderDebugViewMode = .lit
-        let (baseGraph, _) = buildGameModeGraph()
+        let (baseGraph, _) = try buildGameModeGraph()
         let baseKeys = Set(baseGraph.keys)
 
         for mode in [RenderDebugViewMode.albedo, .normal, .depth, .ssaoBlurred] {
             renderDebugViewMode = mode
-            let (graph, finalPassID) = buildGameModeGraph()
+            let (graph, finalPassID) = try buildGameModeGraph()
             XCTAssertEqual(Set(graph.keys), baseKeys,
                            "Graph pass set must equal .lit mode for .\(mode) debug mode")
             XCTAssertEqual(finalPassID, "outputTransform",
@@ -809,7 +1173,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
     /// Note: when ALL effects are disabled, postProcessingEffects() short-circuits to a
     /// lightweight bypass pass (postProcessDisabledBypass) — bloomComposite never appears.
     /// This test enables vignette to keep the full chain alive while isolating bloom state.
-    func testBuildGameModeGraph_BloomDisabled_BlurPassesAbsent() {
+    func testBuildGameModeGraph_BloomDisabled_BlurPassesAbsent() throws {
         renderInfo.immersionStyle = .none
         renderEnvironment = true
 
@@ -822,7 +1186,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
             VignetteParams.shared.enabled = wasVignette
         }
 
-        let (graph, _) = buildGameModeGraph()
+        let (graph, _) = try buildGameModeGraph()
 
         // No blur passes should exist when bloom is disabled.
         XCTAssertNil(graph["blur_pass_hor_pass1"], "Horizontal blur pass 1 must not exist when bloom is disabled")
@@ -837,47 +1201,47 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
 
     // MARK: - Gaussian Pass Integration Tests
 
-    func testBuildGameModeGraph_GaussianPassExists() {
+    func testBuildGameModeGraph_GaussianPassExists() throws {
         renderInfo.immersionStyle = .none
         renderEnvironment = true
 
-        let (graph, _) = buildGameModeGraph()
+        let (graph, _) = try buildGameModeGraph()
 
         XCTAssertNotNil(graph["gaussian"], "Gaussian pass should exist in game mode graph")
     }
 
-    func testBuildGameModeGraph_GaussianDependsOnModel() {
+    func testBuildGameModeGraph_GaussianDependsOnModel() throws {
         renderInfo.immersionStyle = .none
         renderEnvironment = true
 
-        let (graph, _) = buildGameModeGraph()
+        let (graph, _) = try buildGameModeGraph()
 
         XCTAssertEqual(graph["gaussian"]?.dependencies, ["model"],
                        "Gaussian pass should depend on model pass to access depth buffer")
     }
 
-    func testBuildGameModeGraph_PreCompDependsOnGaussian() {
+    func testBuildGameModeGraph_PreCompDependsOnGaussian() throws {
         renderInfo.immersionStyle = .none
         renderEnvironment = true
 
-        let (graph, _) = buildGameModeGraph()
+        let (graph, _) = try buildGameModeGraph()
 
         let precompDeps = graph["precomp"]?.dependencies.sorted() ?? []
         XCTAssertTrue(precompDeps.contains("gaussian"),
                       "Pre-composite pass should depend on gaussian pass")
     }
 
-    func testBuildGameModeGraph_GaussianHasExecutionFunction() {
+    func testBuildGameModeGraph_GaussianHasExecutionFunction() throws {
         renderInfo.immersionStyle = .none
         renderEnvironment = true
 
-        let (graph, _) = buildGameModeGraph()
+        let (graph, _) = try buildGameModeGraph()
 
         XCTAssertNotNil(graph["gaussian"]?.execute,
                         "Gaussian pass should have an execution function")
     }
 
-    func testBuildGameModeGraph_GaussianInAllRenderModes() {
+    func testBuildGameModeGraph_GaussianInAllRenderModes() throws {
         // Test that gaussian pass exists in all render modes
         let modes: [(UntoldImmersionMode, Bool, String)] = [
             (.none, true, "environment"),
@@ -890,7 +1254,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
             renderInfo.immersionStyle = immersionStyle
             renderEnvironment = useEnvironment
 
-            let (graph, _) = buildGameModeGraph()
+            let (graph, _) = try buildGameModeGraph()
 
             XCTAssertNotNil(graph["gaussian"],
                             "Gaussian pass should exist in \(description) mode")
@@ -903,7 +1267,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
         renderInfo.immersionStyle = .none
         renderEnvironment = true
 
-        let (graph, _) = buildGameModeGraph()
+        let (graph, _) = try buildGameModeGraph()
 
         let sorted = try topologicalSortGraph(graph: graph)
         let order = sorted.map(\.id)
@@ -936,7 +1300,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
             TestStageRenderExtension(passID: "test.afterTransparency", stage: .afterTransparency)
         )))
 
-        let (graph, _) = buildGameModeGraph()
+        let (graph, _) = try buildGameModeGraph()
 
         XCTAssertNotNil(graph["test.afterTransparency"], "Extension pass should be added to the graph")
         XCTAssertEqual(graph["test.afterTransparency"]?.dependencies, ["transparency"])
@@ -961,7 +1325,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
             TestStageRenderExtension(passID: "test.beforePostProcess", stage: .beforePostProcess)
         )))
 
-        let (graph, _) = buildGameModeGraph()
+        let (graph, _) = try buildGameModeGraph()
 
         XCTAssertEqual(graph["test.beforePostProcess"]?.dependencies, ["spatialDebug"])
         XCTAssertEqual(graph["depthOfField"]?.dependencies, ["test.beforePostProcess"],
@@ -985,7 +1349,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
             TestStageRenderExtension(passID: "test.beforeOutput", stage: .beforeOutput)
         )))
 
-        let (graph, _) = buildGameModeGraph()
+        let (graph, _) = try buildGameModeGraph()
 
         XCTAssertEqual(graph["test.beforeOutput"]?.dependencies, ["look"])
         XCTAssertEqual(graph["outputTransform"]?.dependencies, ["test.beforeOutput"],
@@ -999,17 +1363,656 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
         ])
     }
 
+    func testRenderStageContractContainsOnlyResolvedStages() {
+        XCTAssertEqual(RenderStage.allCases, [
+            .afterOpaqueLighting,
+            .beforeTransparency,
+            .afterTransparency,
+            .beforePostProcess,
+            .afterPostProcess,
+            .beforeComposite,
+            .beforeLook,
+            .beforeOutput,
+        ])
+    }
+
+    func testReservedPassIDsCoverEveryGameModeGraphVariant() throws {
+        let originalEnvironment = renderEnvironment
+        let originalBypass = bypassPostProcessing
+        let originalAA = antiAliasingMode
+        let originalDebugMode = renderDebugViewMode
+        let originalBloom = BloomThresholdParams.shared.enabled
+        let originalVignette = VignetteParams.shared.enabled
+        let originalChromatic = ChromaticAberrationParams.shared.enabled
+        let originalDepthOfField = DepthOfFieldParams.shared.enabled
+        defer {
+            renderEnvironment = originalEnvironment
+            bypassPostProcessing = originalBypass
+            antiAliasingMode = originalAA
+            renderDebugViewMode = originalDebugMode
+            BloomThresholdParams.shared.enabled = originalBloom
+            VignetteParams.shared.enabled = originalVignette
+            ChromaticAberrationParams.shared.enabled = originalChromatic
+            DepthOfFieldParams.shared.enabled = originalDepthOfField
+        }
+
+        var observedPassIDs = Set<String>()
+        func captureGraphPassIDs() throws {
+            let (graph, _) = try buildGameModeGraph()
+            observedPassIDs.formUnion(graph.keys)
+        }
+
+        bypassPostProcessing = false
+        BloomThresholdParams.shared.enabled = true
+        VignetteParams.shared.enabled = true
+        ChromaticAberrationParams.shared.enabled = true
+        DepthOfFieldParams.shared.enabled = true
+        renderDebugViewMode = .lit
+
+        for environmentEnabled in [false, true] {
+            renderEnvironment = environmentEnabled
+            for mode in [AntiAliasingMode.none, .fxaa, .smaa, .msaa] {
+                antiAliasingMode = mode
+                try captureGraphPassIDs()
+            }
+        }
+
+        antiAliasingMode = .none
+        for mode in [
+            RenderDebugViewMode.fxaaEdgeDebug,
+            .smaaEdges,
+            .smaaBlend,
+            .smaaDifference,
+        ] {
+            renderDebugViewMode = mode
+            try captureGraphPassIDs()
+        }
+
+        renderDebugViewMode = .lit
+        bypassPostProcessing = true
+        try captureGraphPassIDs()
+
+        bypassPostProcessing = false
+        BloomThresholdParams.shared.enabled = false
+        VignetteParams.shared.enabled = false
+        ChromaticAberrationParams.shared.enabled = false
+        DepthOfFieldParams.shared.enabled = false
+        try captureGraphPassIDs()
+
+        XCTAssertEqual(observedPassIDs, gameModeReservedPassIDs)
+    }
+
+    func testEverySupportedRenderExtensionStageParticipatesInGraphOrder() throws {
+        renderInfo.immersionStyle = .none
+        renderEnvironment = true
+        bypassPostProcessing = true
+        antiAliasingMode = .none
+        defer {
+            bypassPostProcessing = false
+            antiAliasingMode = .fxaa
+        }
+
+        let stagedPasses: [(id: String, stage: RenderStage)] = [
+            ("test.stage.afterOpaqueLighting", .afterOpaqueLighting),
+            ("test.stage.beforeTransparency", .beforeTransparency),
+            ("test.stage.afterTransparency", .afterTransparency),
+            ("test.stage.beforePostProcess", .beforePostProcess),
+            ("test.stage.afterPostProcess", .afterPostProcess),
+            ("test.stage.beforeComposite", .beforeComposite),
+            ("test.stage.beforeLook", .beforeLook),
+            ("test.stage.beforeOutput", .beforeOutput),
+        ]
+        for stagedPass in stagedPasses {
+            setRendering(.extensions(.register(
+                TestStageRenderExtension(passID: stagedPass.id, stage: stagedPass.stage)
+            )))
+        }
+
+        let (graph, _) = try buildGameModeGraph()
+        for stagedPass in stagedPasses {
+            XCTAssertNotNil(graph[stagedPass.id], "Missing pass for \(stagedPass.stage.rawValue)")
+        }
+
+        let order = try topologicalSortGraph(graph: graph).map(\.id)
+        assertTopologicalConstraints(order: order, constraints: [
+            ("lightPass", "test.stage.afterOpaqueLighting"),
+            ("test.stage.afterOpaqueLighting", "test.stage.beforeTransparency"),
+            ("test.stage.beforeTransparency", "transparency"),
+            ("transparency", "test.stage.afterTransparency"),
+            ("test.stage.afterTransparency", "wireframe"),
+            ("spatialDebug", "test.stage.beforePostProcess"),
+            ("test.stage.beforePostProcess", "postProcessBypass"),
+            ("postProcessBypass", "test.stage.afterPostProcess"),
+            ("test.stage.afterPostProcess", "test.stage.beforeComposite"),
+            ("test.stage.beforeComposite", "precomp"),
+            ("precomp", "test.stage.beforeLook"),
+            ("test.stage.beforeLook", "look"),
+            ("look", "test.stage.beforeOutput"),
+            ("test.stage.beforeOutput", "outputTransform"),
+        ])
+    }
+
+    func testSupportedRenderExtensionStagesResolveAcrossImmersionModes() throws {
+        let immersionModes: [UntoldImmersionMode] = [.none, .mixed, .full, .ar]
+        bypassPostProcessing = true
+        antiAliasingMode = .none
+        defer {
+            bypassPostProcessing = false
+            antiAliasingMode = .fxaa
+        }
+
+        for (modeIndex, immersionMode) in immersionModes.enumerated() {
+            RenderExtensionRegistry.shared.removeAll()
+            renderInfo.immersionStyle = immersionMode
+
+            let passIDs = RenderStage.allCases.map { stage in
+                "test.mode\(modeIndex).\(stage.rawValue)"
+            }
+            for (stage, passID) in zip(RenderStage.allCases, passIDs) {
+                setRendering(.extensions(.register(
+                    TestStageRenderExtension(passID: passID, stage: stage)
+                )))
+            }
+
+            let (graph, _) = try buildGameModeGraph()
+            for (stage, passID) in zip(RenderStage.allCases, passIDs) {
+                XCTAssertNotNil(
+                    graph[passID],
+                    "Missing \(stage.rawValue) pass in immersion mode \(immersionMode)"
+                )
+            }
+        }
+    }
+
+    func testRenderExtensionsPreserveRegistrationOrderWithinStage() throws {
+        let firstPassID = "test.sameStage.first"
+        let secondPassID = "test.sameStage.second"
+        setRendering(.extensions(.register(
+            TestStageRenderExtension(passID: firstPassID, stage: .afterTransparency)
+        )))
+        setRendering(.extensions(.register(
+            TestStageRenderExtension(passID: secondPassID, stage: .afterTransparency)
+        )))
+
+        let (graph, _) = try buildGameModeGraph()
+
+        XCTAssertEqual(graph[firstPassID]?.dependencies, ["transparency"])
+        XCTAssertEqual(graph[secondPassID]?.dependencies, [firstPassID])
+        XCTAssertEqual(graph["wireframe"]?.dependencies, [secondPassID])
+    }
+
+    func testRenderGraphBuildRejectsUnresolvedStagePasses() {
+        var builder = RenderGraphBuilder()
+        XCTAssertTrue(builder.addPass(
+            id: "test.unresolved.stage",
+            stage: .beforeOutput,
+            execute: nil
+        ))
+
+        XCTAssertThrowsError(try builder.build()) { error in
+            XCTAssertEqual(
+                error as? RenderGraphError,
+                .unresolvedStages([.beforeOutput])
+            )
+        }
+    }
+
+    func testRenderGraphBuilderRejectsDuplicatePendingStagePassID() {
+        var builder = RenderGraphBuilder()
+
+        XCTAssertTrue(builder.addPass(
+            id: "test.duplicate.stage",
+            stage: .afterTransparency,
+            execute: nil
+        ))
+        XCTAssertFalse(builder.addPass(
+            id: "test.duplicate.stage",
+            stage: .beforeOutput,
+            execute: nil
+        ))
+
+        XCTAssertThrowsError(try builder.build()) { error in
+            XCTAssertEqual(
+                error as? RenderGraphError,
+                .duplicatePassID("test.duplicate.stage")
+            )
+        }
+    }
+
+    func testRenderGraphBuilderRejectsDuplicateImmediatePassID() {
+        var builder = RenderGraphBuilder()
+        XCTAssertTrue(builder.addPass(id: "test.duplicate", dependencies: [], execute: nil))
+        XCTAssertFalse(builder.addPass(id: "test.duplicate", dependencies: [], execute: nil))
+
+        XCTAssertThrowsError(try builder.build()) { error in
+            XCTAssertEqual(
+                error as? RenderGraphError,
+                .duplicatePassID("test.duplicate")
+            )
+        }
+    }
+
+    func testRenderGraphBuilderRejectsMissingDependency() {
+        var builder = RenderGraphBuilder()
+        builder.addPass(
+            id: "test.dependent",
+            dependencies: ["test.missing"],
+            execute: nil
+        )
+
+        XCTAssertThrowsError(try builder.build()) { error in
+            XCTAssertEqual(
+                error as? RenderGraphError,
+                .missingDependency(
+                    passID: "test.dependent",
+                    dependencyID: "test.missing"
+                )
+            )
+        }
+    }
+
+    func testDirectRenderGraphBuilderStillRejectsMissingResourceUsage() {
+        let textureID: RenderTextureResourceID = "test.usage.direct.missing"
+        var builder = RenderGraphBuilder()
+        builder.addPass(
+            id: "test.usage.direct.pass",
+            stage: .beforeOutput,
+            resources: [.texture(textureID, access: .read)],
+            execute: nil
+        )
+
+        XCTAssertThrowsError(try builder.build()) { error in
+            XCTAssertEqual(
+                error as? RenderGraphError,
+                .missingResource(
+                    passID: "test.usage.direct.pass",
+                    kind: .texture,
+                    resourceID: textureID.rawValue
+                )
+            )
+        }
+    }
+
+    func testGameModeGraphRejectsExtensionWithInvalidDependencyAndRebuilds() throws {
+        let renderExtension = TestInvalidDependencyRenderExtension()
+        setRendering(.extensions(.register(renderExtension)))
+
+        let (graph, _) = try buildGameModeGraph()
+
+        XCTAssertNil(graph[renderExtension.passID])
+        XCTAssertFalse(RenderExtensionRegistry.shared.registeredIDs().contains(renderExtension.id))
+        XCTAssertEqual(
+            RenderExtensionRegistry.shared.graphValidationErrors(
+                forExtensionID: renderExtension.id
+            ),
+            [
+                .missingDependency(
+                    passID: renderExtension.passID,
+                    dependencyID: renderExtension.dependencyID
+                ),
+            ]
+        )
+    }
+
+    func testReservedEnginePassIDRejectsOnlyConflictingExtension() throws {
+        let renderExtension = TestLifecycleRenderExtension(
+            id: "test.pass.reserved.extension",
+            artifactSuffix: "reserved.pass",
+            passID: "transparency",
+            shaderLibrary: renderInfo.library
+        )
+        setRendering(.extensions(.register(renderExtension)))
+        assertLifecycleArtifactsPresent(renderExtension)
+
+        let graph = try buildExecutableGameModeGraph()
+
+        XCTAssertNotNil(graph.passesByID["transparency"])
+        XCTAssertFalse(RenderExtensionRegistry.shared.registeredIDs().contains(renderExtension.id))
+        assertLifecycleArtifactsAbsent(renderExtension)
+        XCTAssertEqual(
+            RenderExtensionRegistry.shared.registrationConflicts(forExtensionID: renderExtension.id),
+            [
+                RenderExtensionArtifactConflict(
+                    kind: .renderPass,
+                    artifactID: "transparency",
+                    requestedOwnerID: renderExtension.id,
+                    existingOwnerID: nil
+                ),
+            ]
+        )
+    }
+
+    func testDuplicateProviderPassIDRollsBackRejectedExtensionPasses() throws {
+        let first = TestStageRenderExtension(
+            id: "test.pass.owner.first",
+            passID: "test.pass.shared",
+            stage: .afterTransparency
+        )
+        let second = TestMultiPassConflictRenderExtension(
+            id: "test.pass.owner.second",
+            uniquePassID: "test.pass.second.unique",
+            conflictingPassID: first.passID
+        )
+        setRendering(.extensions(.register(first)))
+        setRendering(.extensions(.register(second)))
+
+        let (graph, _) = try buildGameModeGraph()
+
+        XCTAssertNotNil(graph[first.passID])
+        XCTAssertNil(graph[second.uniquePassID])
+        XCTAssertEqual(RenderExtensionRegistry.shared.registeredIDs(), [first.id])
+        XCTAssertEqual(
+            RenderExtensionRegistry.shared.registrationConflicts(forExtensionID: second.id),
+            [
+                RenderExtensionArtifactConflict(
+                    kind: .renderPass,
+                    artifactID: first.passID,
+                    requestedOwnerID: second.id,
+                    existingOwnerID: first.id
+                ),
+            ]
+        )
+    }
+
+    func testPassCollisionRollsBackOwnedResourceValidationErrors() throws {
+        let first = TestStageRenderExtension(
+            id: "test.usage.rollback.first",
+            passID: "test.usage.rollback.shared",
+            stage: .afterTransparency
+        )
+        let second = TestInvalidResourceThenConflictRenderExtension(
+            id: "test.usage.rollback.second",
+            uniquePassID: "test.usage.rollback.unique",
+            conflictingPassID: first.passID,
+            missingTextureID: "test.usage.rollback.missing"
+        )
+        setRendering(.extensions(.register(first)))
+        setRendering(.extensions(.register(second)))
+
+        let (graph, _) = try buildGameModeGraph()
+
+        XCTAssertNotNil(graph[first.passID])
+        XCTAssertNil(graph[second.uniquePassID])
+        XCTAssertEqual(RenderExtensionRegistry.shared.registeredIDs(), [first.id])
+    }
+
+    func testRenderGraphIsolatesMissingExtensionResourceUsage() throws {
+        let textureID: RenderTextureResourceID = "test.usage.missing.texture"
+        let renderExtension = TestResourceUsageRenderExtension(
+            id: "test.usage.missing",
+            passID: "test.usage.missing.pass",
+            usages: [.texture(textureID, access: .read)]
+        )
+        setRendering(.extensions(.register(renderExtension)))
+
+        let (graph, _) = try buildGameModeGraph()
+
+        XCTAssertNil(graph["test.usage.missing.pass"])
+        XCTAssertFalse(RenderExtensionRegistry.shared.registeredIDs().contains(renderExtension.id))
+        XCTAssertEqual(
+            RenderExtensionRegistry.shared.graphValidationErrors(forExtensionID: renderExtension.id),
+            [
+                .missingResource(
+                    passID: "test.usage.missing.pass",
+                    kind: .texture,
+                    resourceID: textureID.rawValue
+                ),
+            ]
+        )
+    }
+
+    func testRenderGraphIsolatesCrossExtensionResourceUsage() throws {
+        let textureID: RenderTextureResourceID = "test.usage.provider.texture"
+        let provider = TestResourceUsageRenderExtension(
+            id: "test.usage.provider",
+            textureDescriptors: [
+                RenderExtensionTextureDescriptor(
+                    id: textureID,
+                    size: .fixed(width: 8, height: 8),
+                    pixelFormat: .rgba16Float,
+                    usage: .shaderRead
+                ),
+            ]
+        )
+        let consumer = TestResourceUsageRenderExtension(
+            id: "test.usage.consumer",
+            passID: "test.usage.consumer.pass",
+            usages: [.texture(textureID, access: .read)]
+        )
+        setRendering(.extensions(.register(provider)))
+        setRendering(.extensions(.register(consumer)))
+
+        let (graph, _) = try buildGameModeGraph()
+
+        XCTAssertNil(graph["test.usage.consumer.pass"])
+        XCTAssertEqual(RenderExtensionRegistry.shared.registeredIDs(), [provider.id])
+        XCTAssertNotNil(getRenderResource(textureID))
+        XCTAssertEqual(
+            RenderExtensionRegistry.shared.graphValidationErrors(forExtensionID: consumer.id),
+            [
+                .inaccessibleResource(
+                    passID: "test.usage.consumer.pass",
+                    kind: .texture,
+                    resourceID: textureID.rawValue,
+                    requestedOwnerID: consumer.id,
+                    existingOwnerID: provider.id
+                ),
+            ]
+        )
+    }
+
+    func testRenderGraphIsolatesIncompatibleTextureUsageAndReleasesArtifacts() throws {
+        let textureID: RenderTextureResourceID = "test.usage.incompatible.texture"
+        let renderExtension = TestResourceUsageRenderExtension(
+            id: "test.usage.incompatible.texture",
+            passID: "test.usage.incompatible.texture.pass",
+            textureDescriptors: [
+                RenderExtensionTextureDescriptor(
+                    id: textureID,
+                    size: .fixed(width: 8, height: 8),
+                    pixelFormat: .rgba16Float,
+                    usage: .shaderRead
+                ),
+            ],
+            usages: [.texture(textureID, access: [.write, .renderTarget])]
+        )
+        setRendering(.extensions(.register(renderExtension)))
+
+        XCTAssertNotNil(getRenderResource(textureID))
+        let (graph, _) = try buildGameModeGraph()
+
+        XCTAssertNil(graph["test.usage.incompatible.texture.pass"])
+        XCTAssertNil(getRenderResource(textureID))
+        XCTAssertEqual(RenderResourceRegistry.shared.textureState(textureID), .released)
+        XCTAssertEqual(
+            RenderExtensionRegistry.shared.graphValidationErrors(forExtensionID: renderExtension.id),
+            [
+                .incompatibleResourceUsage(
+                    passID: "test.usage.incompatible.texture.pass",
+                    kind: .texture,
+                    resourceID: textureID.rawValue,
+                    access: [.write, .renderTarget]
+                ),
+            ]
+        )
+    }
+
+    func testRenderGraphIsolatesRenderTargetBufferUsage() throws {
+        let bufferID: RenderBufferResourceID = "test.usage.incompatible.buffer"
+        let renderExtension = TestResourceUsageRenderExtension(
+            id: "test.usage.incompatible.buffer",
+            passID: "test.usage.incompatible.buffer.pass",
+            bufferDescriptors: [
+                RenderExtensionBufferDescriptor(id: bufferID, length: 64),
+            ],
+            usages: [.buffer(bufferID, access: .renderTarget)]
+        )
+        setRendering(.extensions(.register(renderExtension)))
+
+        let (graph, _) = try buildGameModeGraph()
+
+        XCTAssertNil(graph["test.usage.incompatible.buffer.pass"])
+        XCTAssertNil(getRenderResource(bufferID))
+        XCTAssertEqual(
+            RenderExtensionRegistry.shared.graphValidationErrors(forExtensionID: renderExtension.id),
+            [
+                .incompatibleResourceUsage(
+                    passID: "test.usage.incompatible.buffer.pass",
+                    kind: .buffer,
+                    resourceID: bufferID.rawValue,
+                    access: .renderTarget
+                ),
+            ]
+        )
+    }
+
+    func testGraphValidationFailureDoesNotRemoveHealthyExtensionPasses() throws {
+        let healthy = TestStageRenderExtension(
+            id: "test.usage.isolation.healthy",
+            passID: "test.usage.isolation.healthy.pass",
+            stage: .beforeOutput
+        )
+        let invalid = TestResourceUsageRenderExtension(
+            id: "test.usage.isolation.invalid",
+            passID: "test.usage.isolation.invalid.pass",
+            usages: [.buffer("test.usage.isolation.missing", access: .read)]
+        )
+        setRendering(.extensions(.register(healthy)))
+        setRendering(.extensions(.register(invalid)))
+
+        let (graph, _) = try buildGameModeGraph()
+
+        XCTAssertNotNil(graph[healthy.passID])
+        XCTAssertNil(graph["test.usage.isolation.invalid.pass"])
+        XCTAssertEqual(RenderExtensionRegistry.shared.registeredIDs(), [healthy.id])
+    }
+
+    func testGraphValidationReportsAllErrorsAndRollsBackAllExtensionPasses() throws {
+        let firstTextureID: RenderTextureResourceID = "test.usage.multiple.first"
+        let secondBufferID: RenderBufferResourceID = "test.usage.multiple.second"
+        let firstInvalidExtension = TestResourceUsageRenderExtension(
+            id: "test.usage.multiple",
+            passID: "test.usage.multiple.first.pass",
+            usages: [.texture(firstTextureID, access: .read)]
+        )
+        let secondInvalidExtension = TestResourceUsageRenderExtension(
+            id: firstInvalidExtension.id,
+            passID: "test.usage.multiple.second.pass",
+            usages: [.buffer(secondBufferID, access: .read)]
+        )
+
+        var builder = RenderGraphBuilder()
+        builder.beginExtensionRegistration(id: firstInvalidExtension.id)
+        firstInvalidExtension.buildGraph(&builder, context: makeRenderGraphBuildContext())
+        secondInvalidExtension.buildGraph(&builder, context: makeRenderGraphBuildContext())
+        let report = builder.endExtensionRegistration()
+
+        XCTAssertEqual(
+            report.validationErrors,
+            [
+                .missingResource(
+                    passID: "test.usage.multiple.first.pass",
+                    kind: .texture,
+                    resourceID: firstTextureID.rawValue
+                ),
+                .missingResource(
+                    passID: "test.usage.multiple.second.pass",
+                    kind: .buffer,
+                    resourceID: secondBufferID.rawValue
+                ),
+            ]
+        )
+        XCTAssertTrue(report.conflicts.isEmpty)
+        XCTAssertTrue(try builder.build().isEmpty)
+    }
+
+    func testSuccessfulReregistrationClearsGraphValidationErrors() throws {
+        let extensionID = "test.usage.diagnostics.reregister"
+        let invalid = TestResourceUsageRenderExtension(
+            id: extensionID,
+            passID: "test.usage.diagnostics.invalid.pass",
+            usages: [.texture("test.usage.diagnostics.missing", access: .read)]
+        )
+        setRendering(.extensions(.register(invalid)))
+        _ = try buildGameModeGraph()
+        XCTAssertFalse(
+            RenderExtensionRegistry.shared.graphValidationErrors(forExtensionID: extensionID).isEmpty
+        )
+
+        let valid = TestStageRenderExtension(
+            id: extensionID,
+            passID: "test.usage.diagnostics.valid.pass",
+            stage: .beforeOutput
+        )
+        XCTAssertEqual(RenderExtensionRegistry.shared.register(valid), .registered)
+
+        XCTAssertTrue(
+            RenderExtensionRegistry.shared.graphValidationErrors(forExtensionID: extensionID).isEmpty
+        )
+    }
+
+    func testRenderPassContextExposesOnlyDeclaredResourceUsages() throws {
+        let declaredTextureID: RenderTextureResourceID = "test.usage.declared.texture"
+        let undeclaredTextureID: RenderTextureResourceID = "test.usage.undeclared.texture"
+        let declaredBufferID: RenderBufferResourceID = "test.usage.declared.buffer"
+        let undeclaredBufferID: RenderBufferResourceID = "test.usage.undeclared.buffer"
+        let usages: [RenderGraphResourceUsage] = [
+            .texture(declaredTextureID, access: [.read, .renderTarget]),
+            .buffer(declaredBufferID, access: .write),
+        ]
+        let renderExtension = TestResourceUsageRenderExtension(
+            id: "test.usage.scoped",
+            passID: "test.usage.scoped.pass",
+            textureDescriptors: [
+                RenderExtensionTextureDescriptor(
+                    id: declaredTextureID,
+                    size: .fixed(width: 8, height: 8),
+                    pixelFormat: .rgba16Float,
+                    usage: [.shaderRead, .renderTarget]
+                ),
+                RenderExtensionTextureDescriptor(
+                    id: undeclaredTextureID,
+                    size: .fixed(width: 8, height: 8),
+                    pixelFormat: .rgba16Float,
+                    usage: .shaderRead
+                ),
+            ],
+            bufferDescriptors: [
+                RenderExtensionBufferDescriptor(id: declaredBufferID, length: 64),
+                RenderExtensionBufferDescriptor(id: undeclaredBufferID, length: 64),
+            ],
+            usages: usages,
+            observedTextureIDs: [declaredTextureID, undeclaredTextureID],
+            observedBufferIDs: [declaredBufferID, undeclaredBufferID]
+        )
+        setRendering(.extensions(.register(renderExtension)))
+
+        let (graph, _) = try buildGameModeGraph()
+        XCTAssertEqual(graph["test.usage.scoped.pass"]?.resourceUsages, usages)
+        guard let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() else {
+            XCTFail("Expected command buffer")
+            return
+        }
+
+        graph["test.usage.scoped.pass"]?.execute?(commandBuffer)
+
+        XCTAssertEqual(renderExtension.observedTextures[declaredTextureID], true)
+        XCTAssertEqual(renderExtension.observedTextures[undeclaredTextureID], false)
+        XCTAssertEqual(renderExtension.observedBuffers[declaredBufferID], true)
+        XCTAssertEqual(renderExtension.observedBuffers[undeclaredBufferID], false)
+    }
+
     func testRenderExtensionRegistersFixedTextureResource() {
-        let textureID = "test.fixed.texture"
+        let textureID: RenderTextureResourceID = "test.fixed.texture"
 
         setRendering(.extensions(.register(
             TestResourceRenderExtension(
-                textureID: textureID,
+                textureID: textureID.rawValue,
                 size: .fixed(width: 128, height: 64)
             )
         )))
 
-        let texture = getRenderResource(.texture(textureID))
+        let texture = getRenderResource(textureID)
         XCTAssertNotNil(texture, "Extension texture should be created when registered after renderer initialization")
         XCTAssertEqual(texture?.width, 128)
         XCTAssertEqual(texture?.height, 64)
@@ -1038,7 +2041,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
         XCTAssertEqual(texture?.height, 180)
     }
 
-    func testRenderPassContextExposesExtensionResources() {
+    func testRenderPassContextExposesExtensionResources() throws {
         let extensionInstance = TestResourceRenderExtension(
             textureID: "test.context.texture",
             passID: "test.context.pass",
@@ -1048,7 +2051,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
         antiAliasingMode = .none
         defer { antiAliasingMode = .fxaa }
 
-        let (graph, _) = buildGameModeGraph()
+        let (graph, _) = try buildGameModeGraph()
         guard let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() else {
             XCTFail("Expected command buffer")
             return
@@ -1072,6 +2075,417 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
         setRendering(.extensions(.unregister(extensionInstance.id)))
         XCTAssertNil(getRenderResource(.texture(textureID)),
                      "Unregistering an extension should remove its owned texture resources")
+        XCTAssertEqual(
+            RenderResourceRegistry.shared.textureState(RenderTextureResourceID(textureID)),
+            .released
+        )
+    }
+
+    func testRenderExtensionRegistersTypedBufferResource() throws {
+        let bufferID: RenderBufferResourceID = "test.typed.buffer"
+        let extensionInstance = TestBufferResourceRenderExtension(
+            bufferID: bufferID,
+            length: 256
+        )
+
+        setRendering(.extensions(.register(extensionInstance)))
+
+        let buffer = getRenderResource(bufferID)
+        XCTAssertEqual(buffer?.length, 256)
+        XCTAssertEqual(buffer?.label, bufferID.rawValue)
+
+        antiAliasingMode = .none
+        defer { antiAliasingMode = .fxaa }
+        let (graph, _) = try buildGameModeGraph()
+        guard let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() else {
+            XCTFail("Expected command buffer")
+            return
+        }
+
+        graph[extensionInstance.passID]?.execute?(commandBuffer)
+        XCTAssertEqual(extensionInstance.observedBufferLength, 256)
+    }
+
+    func testRenderExtensionUnregisterRemovesOwnedBufferResources() {
+        let bufferID: RenderBufferResourceID = "test.unregister.buffer"
+        let extensionInstance = TestBufferResourceRenderExtension(
+            bufferID: bufferID,
+            length: 64
+        )
+
+        setRendering(.extensions(.register(extensionInstance)))
+        XCTAssertNotNil(getRenderResource(bufferID))
+
+        setRendering(.extensions(.unregister(extensionInstance.id)))
+        XCTAssertNil(getRenderResource(bufferID))
+        XCTAssertEqual(RenderResourceRegistry.shared.bufferState(bufferID), .released)
+    }
+
+    func testInvalidResourceDeclarationRejectsEntireTransaction() {
+        let textureID: RenderTextureResourceID = "test.transaction.valid.texture"
+        let invalidBufferID: RenderBufferResourceID = "test.transaction.invalid.buffer"
+        let renderExtension = TestTransactionalResourceRenderExtension(
+            id: "test.transaction.invalid",
+            textureDescriptors: [
+                RenderExtensionTextureDescriptor(
+                    id: textureID,
+                    size: .fixed(width: 16, height: 16),
+                    pixelFormat: .rgba16Float,
+                    usage: .shaderRead
+                ),
+            ],
+            bufferDescriptors: [
+                RenderExtensionBufferDescriptor(id: invalidBufferID, length: 0),
+            ]
+        )
+
+        let result = RenderExtensionRegistry.shared.register(renderExtension)
+        let expectedError = RenderExtensionResourceValidationError.invalidBufferLength(
+            id: invalidBufferID.rawValue,
+            length: 0
+        )
+
+        XCTAssertEqual(
+            result,
+            .rejectedResources(conflicts: [], validationErrors: [expectedError])
+        )
+        XCTAssertNil(getRenderResource(textureID))
+        XCTAssertNil(getRenderResource(invalidBufferID))
+        XCTAssertFalse(RenderExtensionRegistry.shared.registeredIDs().contains(renderExtension.id))
+        XCTAssertEqual(
+            RenderExtensionRegistry.shared.resourceValidationErrors(forExtensionID: renderExtension.id),
+            [expectedError]
+        )
+    }
+
+    func testDuplicateResourceIDRejectsEntireTransaction() {
+        let textureID: RenderTextureResourceID = "test.transaction.unique.texture"
+        let bufferID: RenderBufferResourceID = "test.transaction.duplicate.buffer"
+        let renderExtension = TestTransactionalResourceRenderExtension(
+            id: "test.transaction.duplicate",
+            textureDescriptors: [
+                RenderExtensionTextureDescriptor(
+                    id: textureID,
+                    size: .fixed(width: 8, height: 8),
+                    pixelFormat: .rgba16Float,
+                    usage: .shaderRead
+                ),
+            ],
+            bufferDescriptors: [
+                RenderExtensionBufferDescriptor(id: bufferID, length: 64),
+                RenderExtensionBufferDescriptor(id: bufferID, length: 128),
+            ]
+        )
+        let expectedConflict = RenderExtensionArtifactConflict(
+            kind: .buffer,
+            artifactID: bufferID.rawValue,
+            requestedOwnerID: renderExtension.id,
+            existingOwnerID: renderExtension.id
+        )
+
+        XCTAssertEqual(
+            RenderExtensionRegistry.shared.register(renderExtension),
+            .rejected([expectedConflict])
+        )
+        XCTAssertNil(getRenderResource(textureID))
+        XCTAssertNil(getRenderResource(bufferID))
+        XCTAssertEqual(
+            RenderExtensionRegistry.shared.registrationConflicts(forExtensionID: renderExtension.id),
+            [expectedConflict]
+        )
+    }
+
+    func testResourceCollisionDoesNotCommitEarlierDeclarations() {
+        let sharedTextureID: RenderTextureResourceID = "test.transaction.shared.texture"
+        let uniqueBufferID: RenderBufferResourceID = "test.transaction.second.unique.buffer"
+        let first = TestTransactionalResourceRenderExtension(
+            id: "test.transaction.first",
+            textureDescriptors: [
+                RenderExtensionTextureDescriptor(
+                    id: sharedTextureID,
+                    size: .fixed(width: 8, height: 8),
+                    pixelFormat: .rgba16Float,
+                    usage: .shaderRead
+                ),
+            ]
+        )
+        let second = TestTransactionalResourceRenderExtension(
+            id: "test.transaction.second",
+            textureDescriptors: [
+                RenderExtensionTextureDescriptor(
+                    id: sharedTextureID,
+                    size: .fixed(width: 32, height: 32),
+                    pixelFormat: .rgba16Float,
+                    usage: .shaderRead
+                ),
+            ],
+            bufferDescriptors: [
+                RenderExtensionBufferDescriptor(id: uniqueBufferID, length: 64),
+            ]
+        )
+
+        XCTAssertEqual(RenderExtensionRegistry.shared.register(first), .registered)
+        let originalTexture = getRenderResource(sharedTextureID)
+        let result = RenderExtensionRegistry.shared.register(second)
+
+        XCTAssertEqual(
+            result,
+            .rejected([
+                RenderExtensionArtifactConflict(
+                    kind: .texture,
+                    artifactID: sharedTextureID.rawValue,
+                    requestedOwnerID: second.id,
+                    existingOwnerID: first.id
+                ),
+            ])
+        )
+        XCTAssertTrue(getRenderResource(sharedTextureID) === originalTexture)
+        XCTAssertNil(getRenderResource(uniqueBufferID))
+        XCTAssertEqual(RenderExtensionRegistry.shared.registeredIDs(), [first.id])
+    }
+
+    func testInvalidReplacementPreservesPreviousResourceObjects() {
+        let ownerID = "test.transaction.replacement"
+        let originalTextureID: RenderTextureResourceID = "test.transaction.original.texture"
+        let originalBufferID: RenderBufferResourceID = "test.transaction.original.buffer"
+        let replacementTextureID: RenderTextureResourceID = "test.transaction.replacement.texture"
+        let invalidBufferID: RenderBufferResourceID = "test.transaction.replacement.invalid"
+        let original = TestTransactionalResourceRenderExtension(
+            id: ownerID,
+            textureDescriptors: [
+                RenderExtensionTextureDescriptor(
+                    id: originalTextureID,
+                    size: .fixed(width: 8, height: 8),
+                    pixelFormat: .rgba16Float,
+                    usage: .shaderRead
+                ),
+            ],
+            bufferDescriptors: [
+                RenderExtensionBufferDescriptor(id: originalBufferID, length: 64),
+            ]
+        )
+        let replacement = TestTransactionalResourceRenderExtension(
+            id: ownerID,
+            textureDescriptors: [
+                RenderExtensionTextureDescriptor(
+                    id: replacementTextureID,
+                    size: .fixed(width: 16, height: 16),
+                    pixelFormat: .rgba16Float,
+                    usage: .shaderRead
+                ),
+            ],
+            bufferDescriptors: [
+                RenderExtensionBufferDescriptor(id: invalidBufferID, length: -1),
+            ]
+        )
+
+        XCTAssertEqual(RenderExtensionRegistry.shared.register(original), .registered)
+        let originalTexture = getRenderResource(originalTextureID)
+        let originalBuffer = getRenderResource(originalBufferID)
+
+        guard case .rejectedResources = RenderExtensionRegistry.shared.register(replacement) else {
+            XCTFail("Expected invalid replacement resources to be rejected")
+            return
+        }
+
+        XCTAssertEqual(RenderExtensionRegistry.shared.registeredIDs(), [ownerID])
+        XCTAssertTrue(getRenderResource(originalTextureID) === originalTexture)
+        XCTAssertTrue(getRenderResource(originalBufferID) === originalBuffer)
+        XCTAssertNil(getRenderResource(replacementTextureID))
+        XCTAssertNil(getRenderResource(invalidBufferID))
+        XCTAssertEqual(original.resourceRegistrationCount, 1)
+    }
+
+    func testResourceDeclarationsCommitBeforeMetalAllocation() {
+        let bufferID: RenderBufferResourceID = "test.transaction.deferred.buffer"
+        let renderExtension = TestTransactionalResourceRenderExtension(
+            id: "test.transaction.deferred",
+            bufferDescriptors: [
+                RenderExtensionBufferDescriptor(id: bufferID, length: 96),
+            ]
+        )
+        let device = renderInfo.device
+        renderInfo.device = nil
+        defer { renderInfo.device = device }
+
+        XCTAssertEqual(RenderExtensionRegistry.shared.register(renderExtension), .registered)
+        XCTAssertNil(getRenderResource(bufferID))
+        XCTAssertEqual(RenderResourceRegistry.shared.bufferState(bufferID), .declared)
+        XCTAssertEqual(renderExtension.resourceRegistrationCount, 1)
+
+        renderInfo.device = device
+        RenderResourceRegistry.shared.recreateResources()
+
+        XCTAssertEqual(getRenderResource(bufferID)?.length, 96)
+        XCTAssertEqual(RenderResourceRegistry.shared.bufferState(bufferID), .allocated)
+        XCTAssertEqual(renderExtension.resourceRegistrationCount, 1)
+    }
+
+    func testViewportTextureRemainsDeclaredUntilViewportIsValid() {
+        let textureID: RenderTextureResourceID = "test.lifecycle.deferred-viewport.texture"
+        let renderExtension = TestTransactionalResourceRenderExtension(
+            id: "test.lifecycle.deferred-viewport",
+            textureDescriptors: [
+                RenderExtensionTextureDescriptor(
+                    id: textureID,
+                    size: .viewportScale(0.5),
+                    pixelFormat: .rgba16Float,
+                    usage: .shaderRead
+                ),
+            ]
+        )
+        let viewport = renderInfo.viewPort
+        renderInfo.viewPort = .zero
+        defer { renderInfo.viewPort = viewport }
+
+        XCTAssertEqual(RenderExtensionRegistry.shared.register(renderExtension), .registered)
+        XCTAssertNil(getRenderResource(textureID))
+        XCTAssertEqual(RenderResourceRegistry.shared.textureState(textureID), .declared)
+
+        renderInfo.viewPort = viewport
+        RenderResourceRegistry.shared.recreateResources()
+
+        XCTAssertNotNil(getRenderResource(textureID))
+        XCTAssertEqual(RenderResourceRegistry.shared.textureState(textureID), .allocated)
+    }
+
+    func testViewportResizeReallocatesOnlyAffectedExtensionResources() {
+        let fixedTextureID: RenderTextureResourceID = "test.lifecycle.fixed.texture"
+        let viewportTextureID: RenderTextureResourceID = "test.lifecycle.viewport.texture"
+        let bufferID: RenderBufferResourceID = "test.lifecycle.buffer"
+        let allocator = TestRenderExtensionResourceAllocator()
+        let previousAllocator = RenderResourceRegistry.shared.replaceAllocatorForTesting(allocator)
+        defer {
+            _ = RenderResourceRegistry.shared.replaceAllocatorForTesting(previousAllocator)
+        }
+        let renderExtension = TestTransactionalResourceRenderExtension(
+            id: "test.lifecycle.selective-resize",
+            textureDescriptors: [
+                RenderExtensionTextureDescriptor(
+                    id: fixedTextureID,
+                    size: .fixed(width: 32, height: 16),
+                    pixelFormat: .rgba16Float,
+                    usage: .shaderRead
+                ),
+                RenderExtensionTextureDescriptor(
+                    id: viewportTextureID,
+                    size: .viewportScale(0.5),
+                    pixelFormat: .rgba16Float,
+                    usage: .shaderRead
+                ),
+            ],
+            bufferDescriptors: [
+                RenderExtensionBufferDescriptor(id: bufferID, length: 64),
+            ]
+        )
+
+        XCTAssertEqual(RenderExtensionRegistry.shared.register(renderExtension), .registered)
+        let fixedTexture = getRenderResource(fixedTextureID)
+        let viewportTexture = getRenderResource(viewportTextureID)
+        let buffer = getRenderResource(bufferID)
+
+        renderInfo.viewPort = simd_float2(640, 360)
+        RenderResourceRegistry.shared.recreateResources()
+
+        XCTAssertTrue(getRenderResource(fixedTextureID) === fixedTexture)
+        XCTAssertFalse(getRenderResource(viewportTextureID) === viewportTexture)
+        XCTAssertTrue(getRenderResource(bufferID) === buffer)
+        XCTAssertEqual(getRenderResource(viewportTextureID)?.width, 320)
+        XCTAssertEqual(getRenderResource(viewportTextureID)?.height, 180)
+        XCTAssertEqual(allocator.textureAllocationCounts[fixedTextureID], 1)
+        XCTAssertEqual(allocator.textureAllocationCounts[viewportTextureID], 2)
+        XCTAssertEqual(allocator.bufferAllocationCounts[bufferID], 1)
+    }
+
+    func testAllocationFailuresAreStructuredAndRetryable() {
+        let textureID: RenderTextureResourceID = "test.lifecycle.failed.texture"
+        let bufferID: RenderBufferResourceID = "test.lifecycle.failed.buffer"
+        let ownerID = "test.lifecycle.failed"
+        let allocator = TestRenderExtensionResourceAllocator()
+        allocator.failingTextureIDs = [textureID]
+        allocator.failingBufferIDs = [bufferID]
+        let previousAllocator = RenderResourceRegistry.shared.replaceAllocatorForTesting(allocator)
+        defer {
+            _ = RenderResourceRegistry.shared.replaceAllocatorForTesting(previousAllocator)
+        }
+        let renderExtension = TestTransactionalResourceRenderExtension(
+            id: ownerID,
+            textureDescriptors: [
+                RenderExtensionTextureDescriptor(
+                    id: textureID,
+                    size: .fixed(width: 16, height: 8),
+                    pixelFormat: .rgba16Float,
+                    usage: .shaderRead
+                ),
+            ],
+            bufferDescriptors: [
+                RenderExtensionBufferDescriptor(id: bufferID, length: 128),
+            ]
+        )
+
+        XCTAssertEqual(RenderExtensionRegistry.shared.register(renderExtension), .registered)
+        XCTAssertNil(getRenderResource(textureID))
+        XCTAssertNil(getRenderResource(bufferID))
+        XCTAssertEqual(RenderResourceRegistry.shared.textureState(textureID), .invalidated)
+        XCTAssertEqual(RenderResourceRegistry.shared.bufferState(bufferID), .invalidated)
+        XCTAssertEqual(
+            RenderExtensionRegistry.shared.resourceAllocationErrors(forExtensionID: ownerID),
+            [
+                RenderExtensionResourceAllocationError(
+                    kind: .buffer,
+                    resourceID: bufferID.rawValue,
+                    ownerID: ownerID,
+                    failure: .bufferCreationFailed(length: 128)
+                ),
+                RenderExtensionResourceAllocationError(
+                    kind: .texture,
+                    resourceID: textureID.rawValue,
+                    ownerID: ownerID,
+                    failure: .textureCreationFailed(width: 16, height: 8)
+                ),
+            ]
+        )
+
+        allocator.failingTextureIDs = []
+        allocator.failingBufferIDs = []
+        RenderResourceRegistry.shared.recreateResources()
+
+        XCTAssertNotNil(getRenderResource(textureID))
+        XCTAssertNotNil(getRenderResource(bufferID))
+        XCTAssertEqual(RenderResourceRegistry.shared.textureState(textureID), .allocated)
+        XCTAssertEqual(RenderResourceRegistry.shared.bufferState(bufferID), .allocated)
+        XCTAssertTrue(
+            RenderExtensionRegistry.shared.resourceAllocationErrors(forExtensionID: ownerID).isEmpty
+        )
+        XCTAssertEqual(allocator.textureAllocationCounts[textureID], 2)
+        XCTAssertEqual(allocator.bufferAllocationCounts[bufferID], 2)
+    }
+
+    func testRemovingAllExtensionsReleasesResourceLifecycleState() {
+        let textureID: RenderTextureResourceID = "test.lifecycle.remove-all.texture"
+        let bufferID: RenderBufferResourceID = "test.lifecycle.remove-all.buffer"
+        let renderExtension = TestTransactionalResourceRenderExtension(
+            id: "test.lifecycle.remove-all",
+            textureDescriptors: [
+                RenderExtensionTextureDescriptor(
+                    id: textureID,
+                    size: .fixed(width: 8, height: 8),
+                    pixelFormat: .rgba16Float,
+                    usage: .shaderRead
+                ),
+            ],
+            bufferDescriptors: [
+                RenderExtensionBufferDescriptor(id: bufferID, length: 32),
+            ]
+        )
+
+        XCTAssertEqual(RenderExtensionRegistry.shared.register(renderExtension), .registered)
+        RenderExtensionRegistry.shared.removeAll()
+
+        XCTAssertEqual(RenderResourceRegistry.shared.textureState(textureID), .released)
+        XCTAssertEqual(RenderResourceRegistry.shared.bufferState(bufferID), .released)
+        XCTAssertNil(getRenderResource(textureID))
+        XCTAssertNil(getRenderResource(bufferID))
     }
 
     func testRenderExtensionRegistersComputePipeline() {
@@ -1087,7 +2501,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
         XCTAssertEqual(pipeline?.name, "Test Compute Pipeline")
     }
 
-    func testRenderPassContextExposesExtensionComputePipelines() {
+    func testRenderPassContextExposesExtensionComputePipelines() throws {
         let computeType: ComputePipelineType = "test.context.compute.pipeline"
         let extensionInstance = TestComputeRenderExtension(
             computeType: computeType,
@@ -1098,7 +2512,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
         antiAliasingMode = .none
         defer { antiAliasingMode = .fxaa }
 
-        let (graph, _) = buildGameModeGraph()
+        let (graph, _) = try buildGameModeGraph()
         guard let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() else {
             XCTFail("Expected command buffer")
             return
@@ -1149,6 +2563,290 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
                      "Unregistering an extension should remove its owned shader libraries")
     }
 
+    func testReplacingRenderExtensionRemovesStaleOwnedArtifactsAndPreservesOrder() throws {
+        let original = TestLifecycleRenderExtension(
+            artifactSuffix: "original",
+            shaderLibrary: renderInfo.library
+        )
+        let replacement = TestLifecycleRenderExtension(
+            artifactSuffix: "replacement",
+            shaderLibrary: renderInfo.library
+        )
+        let trailing = TestStageRenderExtension(
+            passID: "test.lifecycle.trailing.pass",
+            stage: .afterTransparency
+        )
+
+        setRendering(.extensions(.register(original)))
+        setRendering(.extensions(.register(trailing)))
+        assertLifecycleArtifactsPresent(original)
+
+        setRendering(.extensions(.register(replacement)))
+
+        XCTAssertEqual(
+            RenderExtensionRegistry.shared.registeredIDs(),
+            [replacement.id, trailing.id]
+        )
+        assertLifecycleArtifactsAbsent(original)
+        assertLifecycleArtifactsPresent(replacement)
+
+        let (graph, _) = try buildGameModeGraph()
+        XCTAssertNil(graph[original.passID])
+        XCTAssertEqual(graph[replacement.passID]?.dependencies, ["transparency"])
+        XCTAssertEqual(graph[trailing.passID]?.dependencies, [replacement.passID])
+    }
+
+    func testUnregisterRenderExtensionRemovesEveryOwnedArtifact() {
+        let renderExtension = TestLifecycleRenderExtension(
+            artifactSuffix: "unregister",
+            shaderLibrary: renderInfo.library
+        )
+
+        setRendering(.extensions(.register(renderExtension)))
+        assertLifecycleArtifactsPresent(renderExtension)
+
+        setRendering(.extensions(.unregister(renderExtension.id)))
+
+        XCTAssertFalse(RenderExtensionRegistry.shared.registeredIDs().contains(renderExtension.id))
+        assertLifecycleArtifactsAbsent(renderExtension)
+    }
+
+    func testUnregisterUnknownExtensionLeavesRegisteredArtifactsUntouched() {
+        let renderExtension = TestLifecycleRenderExtension(
+            artifactSuffix: "unknown.unregister",
+            shaderLibrary: renderInfo.library
+        )
+        setRendering(.extensions(.register(renderExtension)))
+
+        setRendering(.extensions(.unregister("test.lifecycle.unknown")))
+
+        XCTAssertTrue(RenderExtensionRegistry.shared.registeredIDs().contains(renderExtension.id))
+        assertLifecycleArtifactsPresent(renderExtension)
+    }
+
+    func testArtifactCollisionsRejectSecondProviderWithoutOverwritingFirst() {
+        let first = TestLifecycleRenderExtension(
+            id: "test.collision.first",
+            artifactSuffix: "shared",
+            shaderLibrary: renderInfo.library
+        )
+        let second = TestLifecycleRenderExtension(
+            id: "test.collision.second",
+            artifactSuffix: "shared",
+            shaderLibrary: renderInfo.library
+        )
+
+        XCTAssertEqual(RenderExtensionRegistry.shared.register(first), .registered)
+        let result = RenderExtensionRegistry.shared.register(second)
+
+        guard case let .rejected(conflicts) = result else {
+            XCTFail("Expected the second provider to be rejected")
+            return
+        }
+        XCTAssertEqual(
+            Set(conflicts.map(\.kind)),
+            Set([
+                .shaderLibrary,
+                .renderPipeline,
+                .computePipeline,
+                .texture,
+                .buffer,
+                .argumentBuffer,
+            ])
+        )
+        XCTAssertTrue(conflicts.allSatisfy { $0.requestedOwnerID == second.id })
+        XCTAssertTrue(conflicts.allSatisfy { $0.existingOwnerID == first.id })
+        XCTAssertEqual(RenderExtensionRegistry.shared.registeredIDs(), [first.id])
+        XCTAssertEqual(
+            RenderExtensionRegistry.shared.registrationConflicts(forExtensionID: second.id),
+            conflicts
+        )
+        assertLifecycleArtifactsPresent(first)
+    }
+
+    func testExtensionCannotOverwriteBuiltInRenderPipeline() {
+        let builtInPipeline = PipelineManager.shared.renderPipelinesByType[.model]
+        let renderExtension = TestLifecycleRenderExtension(
+            id: "test.collision.builtin",
+            artifactSuffix: "builtin",
+            renderPipelineType: .model,
+            shaderLibrary: renderInfo.library
+        )
+
+        let result = RenderExtensionRegistry.shared.register(renderExtension)
+
+        XCTAssertEqual(
+            result,
+            .rejected([
+                RenderExtensionArtifactConflict(
+                    kind: .renderPipeline,
+                    artifactID: RenderPipelineType.model.rawValue,
+                    requestedOwnerID: renderExtension.id,
+                    existingOwnerID: nil
+                ),
+            ])
+        )
+        XCTAssertFalse(RenderExtensionRegistry.shared.registeredIDs().contains(renderExtension.id))
+        XCTAssertEqual(
+            PipelineManager.shared.renderPipelinesByType[.model]?.name,
+            builtInPipeline?.name
+        )
+        XCTAssertNil(getRenderResource(.texture(renderExtension.textureID)))
+        XCTAssertNil(getRenderResource(renderExtension.bufferID))
+        XCTAssertNil(RenderShaderLibraryManager.shared.library(renderExtension.shaderLibraryID))
+        XCTAssertNil(ComputePipelineManager.shared.pipeline(for: renderExtension.computePipelineType))
+        XCTAssertNil(
+            RenderExtensionArgumentBufferRegistry.shared.descriptor(renderExtension.argumentLayoutID)
+        )
+    }
+
+    func testRejectedReplacementRestoresPreviousExtension() throws {
+        let original = TestLifecycleRenderExtension(
+            id: "test.collision.replacement",
+            artifactSuffix: "replacement.original",
+            shaderLibrary: renderInfo.library
+        )
+        let blocker = TestLifecycleRenderExtension(
+            id: "test.collision.blocker",
+            artifactSuffix: "replacement.blocked",
+            shaderLibrary: renderInfo.library
+        )
+        let rejectedReplacement = TestLifecycleRenderExtension(
+            id: original.id,
+            artifactSuffix: "replacement.blocked",
+            shaderLibrary: renderInfo.library
+        )
+        XCTAssertEqual(RenderExtensionRegistry.shared.register(original), .registered)
+        XCTAssertEqual(RenderExtensionRegistry.shared.register(blocker), .registered)
+
+        let result = RenderExtensionRegistry.shared.register(rejectedReplacement)
+
+        guard case .rejected = result else {
+            XCTFail("Expected replacement registration to be rejected")
+            return
+        }
+        XCTAssertEqual(
+            RenderExtensionRegistry.shared.registeredIDs(),
+            [original.id, blocker.id]
+        )
+        assertLifecycleArtifactsPresent(original)
+        assertLifecycleArtifactsPresent(blocker)
+
+        let (graph, _) = try buildGameModeGraph()
+        XCTAssertNotNil(graph[original.passID])
+        XCTAssertNotNil(graph[blocker.passID])
+    }
+
+    func testDeferredPipelineCollisionRemovesRejectedExtensionBeforeGraphBuild() throws {
+        let pipelineType: RenderPipelineType = "test.collision.deferred.pipeline"
+        let first = TestRenderPipelineOnlyExtension(
+            id: "test.collision.deferred.first",
+            pipelineType: pipelineType,
+            passID: "test.collision.deferred.first.pass"
+        )
+        let second = TestRenderPipelineOnlyExtension(
+            id: "test.collision.deferred.second",
+            pipelineType: pipelineType,
+            passID: "test.collision.deferred.second.pass"
+        )
+        let device = renderInfo.device
+        let library = renderInfo.library
+
+        renderInfo.device = nil
+        renderInfo.library = nil
+        XCTAssertEqual(RenderExtensionRegistry.shared.register(first), .registered)
+        XCTAssertEqual(RenderExtensionRegistry.shared.register(second), .registered)
+        renderInfo.device = device
+        renderInfo.library = library
+
+        RenderExtensionRegistry.shared.registerPipelines()
+
+        XCTAssertEqual(RenderExtensionRegistry.shared.registeredIDs(), [first.id])
+        XCTAssertEqual(
+            PipelineManager.shared.renderPipelinesByType[pipelineType]?.name,
+            first.id
+        )
+        XCTAssertEqual(
+            RenderExtensionRegistry.shared.registrationConflicts(forExtensionID: second.id),
+            [
+                RenderExtensionArtifactConflict(
+                    kind: .renderPipeline,
+                    artifactID: pipelineType.rawValue,
+                    requestedOwnerID: second.id,
+                    existingOwnerID: first.id
+                ),
+            ]
+        )
+
+        let (graph, _) = try buildGameModeGraph()
+        XCTAssertNotNil(graph[first.passID])
+        XCTAssertNil(graph[second.passID])
+    }
+
+    func testUnownedRenderPipelineUpdateSurvivesExtensionUnregister() {
+        let renderExtension = TestLifecycleRenderExtension(
+            artifactSuffix: "pipeline.override",
+            shaderLibrary: renderInfo.library
+        )
+        setRendering(.extensions(.register(renderExtension)))
+
+        PipelineManager.shared.update(
+            rendererPipeLine: RenderPipeline(success: true, name: "Engine Replacement"),
+            forType: renderExtension.renderPipelineType
+        )
+        setRendering(.extensions(.unregister(renderExtension.id)))
+
+        XCTAssertEqual(
+            PipelineManager.shared.renderPipelinesByType[renderExtension.renderPipelineType]?.name,
+            "Engine Replacement"
+        )
+    }
+
+    func testRemovingAllExtensionsPreservesBuiltInRenderPipelines() {
+        let builtInModelPipeline = PipelineManager.shared.renderPipelinesByType[.model]
+        XCTAssertNotNil(builtInModelPipeline)
+
+        setRendering(.extensions(.register(
+            TestLifecycleRenderExtension(
+                artifactSuffix: "remove.all",
+                shaderLibrary: renderInfo.library
+            )
+        )))
+        setRendering(.extensions(.removeAll))
+
+        XCTAssertNotNil(PipelineManager.shared.renderPipelinesByType[.model])
+    }
+
+    func testNestedRenderPipelineRegistrationRestoresOuterOwnerScope() {
+        let outerOwnerID = "test.lifecycle.outer.owner"
+        let innerOwnerID = "test.lifecycle.inner.owner"
+        let outerFirstType: RenderPipelineType = "test.lifecycle.outer.first"
+        let outerSecondType: RenderPipelineType = "test.lifecycle.outer.second"
+        let innerType: RenderPipelineType = "test.lifecycle.inner"
+
+        PipelineManager.shared.registerPipelines(ownerID: outerOwnerID) { outerRegistry in
+            outerRegistry.registerRenderPipeline(outerFirstType) {
+                RenderPipeline(success: true, name: "Outer First")
+            }
+            PipelineManager.shared.registerPipelines(ownerID: innerOwnerID) { innerRegistry in
+                innerRegistry.registerRenderPipeline(innerType) {
+                    RenderPipeline(success: true, name: "Inner")
+                }
+            }
+            outerRegistry.registerRenderPipeline(outerSecondType) {
+                RenderPipeline(success: true, name: "Outer Second")
+            }
+        }
+
+        PipelineManager.shared.removePipelines(ownerID: outerOwnerID)
+
+        XCTAssertNil(PipelineManager.shared.renderPipelinesByType[outerFirstType])
+        XCTAssertNil(PipelineManager.shared.renderPipelinesByType[outerSecondType])
+        XCTAssertNotNil(PipelineManager.shared.renderPipelinesByType[innerType])
+
+        PipelineManager.shared.removePipelines(ownerID: innerOwnerID)
+    }
+
     func testRenderExtensionRenderPipelineUsesRegisteredShaderLibrary() {
         let pipelineType: RenderPipelineType = "test.registered.shader.render.pipeline"
         let extensionInstance = TestRegisteredShaderPipelineRenderExtension(
@@ -1183,7 +2881,81 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
         XCTAssertEqual(pipeline?.name, "Test Registered Shader Compute Pipeline")
     }
 
-    func testRenderPassContextDrawsModelSurfaceEntities() {
+    private func assertLifecycleArtifactsPresent(
+        _ renderExtension: TestLifecycleRenderExtension,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        XCTAssertNotNil(
+            getRenderResource(.texture(renderExtension.textureID)),
+            file: file,
+            line: line
+        )
+        XCTAssertNotNil(
+            getRenderResource(renderExtension.bufferID),
+            file: file,
+            line: line
+        )
+        XCTAssertNotNil(
+            RenderShaderLibraryManager.shared.library(renderExtension.shaderLibraryID),
+            file: file,
+            line: line
+        )
+        XCTAssertNotNil(
+            PipelineManager.shared.renderPipelinesByType[renderExtension.renderPipelineType],
+            file: file,
+            line: line
+        )
+        XCTAssertNotNil(
+            ComputePipelineManager.shared.pipeline(for: renderExtension.computePipelineType),
+            file: file,
+            line: line
+        )
+        XCTAssertNotNil(
+            RenderExtensionArgumentBufferRegistry.shared.descriptor(renderExtension.argumentLayoutID),
+            file: file,
+            line: line
+        )
+    }
+
+    private func assertLifecycleArtifactsAbsent(
+        _ renderExtension: TestLifecycleRenderExtension,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        XCTAssertNil(
+            getRenderResource(.texture(renderExtension.textureID)),
+            file: file,
+            line: line
+        )
+        XCTAssertNil(
+            getRenderResource(renderExtension.bufferID),
+            file: file,
+            line: line
+        )
+        XCTAssertNil(
+            RenderShaderLibraryManager.shared.library(renderExtension.shaderLibraryID),
+            file: file,
+            line: line
+        )
+        XCTAssertNil(
+            PipelineManager.shared.renderPipelinesByType[renderExtension.renderPipelineType],
+            file: file,
+            line: line
+        )
+        XCTAssertNil(
+            ComputePipelineManager.shared.pipeline(for: renderExtension.computePipelineType),
+            file: file,
+            line: line
+        )
+        XCTAssertNil(
+            RenderExtensionArgumentBufferRegistry.shared.descriptor(renderExtension.argumentLayoutID),
+            file: file,
+            line: line
+        )
+    }
+
+    func testRenderPassContextDrawsModelSurfaceEntities() throws {
         let entity = createEntity()
         setEntityMeshDirect(
             entityId: entity,
@@ -1199,7 +2971,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
         antiAliasingMode = .none
         defer { antiAliasingMode = .fxaa }
 
-        let (graph, _) = buildGameModeGraph()
+        let (graph, _) = try buildGameModeGraph()
         guard let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() else {
             XCTFail("Expected command buffer")
             return
@@ -1210,7 +2982,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
         XCTAssertEqual(extensionInstance.boundEntityIDs, [entity])
     }
 
-    func testRenderPassContextDrawsModelSurfaceEntitiesWithArgumentBufferBinding() {
+    func testRenderPassContextDrawsModelSurfaceEntitiesWithArgumentBufferBinding() throws {
         let entity = createEntity()
         setEntityMeshDirect(
             entityId: entity,
@@ -1226,7 +2998,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
         antiAliasingMode = .none
         defer { antiAliasingMode = .fxaa }
 
-        let (graph, _) = buildGameModeGraph()
+        let (graph, _) = try buildGameModeGraph()
         guard let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() else {
             XCTFail("Expected command buffer")
             return
@@ -1304,7 +3076,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
         antiAliasingMode = .none
         defer { antiAliasingMode = .fxaa }
 
-        let (graph, _) = buildGameModeGraph()
+        let (graph, _) = try buildGameModeGraph()
         guard let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() else {
             XCTFail("Expected command buffer")
             return
@@ -1318,7 +3090,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
         XCTAssertNil(commandBuffer.error)
     }
 
-    func testRenderExtensionsOwnIndependentArgumentLayoutsWithSharedLocalIDs() {
+    func testRenderExtensionsOwnIndependentArgumentLayoutsWithSharedLocalIDs() throws {
         let entity = createEntity()
         setEntityMeshDirect(
             entityId: entity,
@@ -1358,7 +3130,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
             RenderExtensionModelSurfaceArgument.buffer0
         )
 
-        let (graph, _) = buildGameModeGraph()
+        let (graph, _) = try buildGameModeGraph()
         guard let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() else {
             XCTFail("Expected command buffer")
             return
@@ -1463,7 +3235,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
         XCTAssertEqual(texture?.width, windowWidth)
         XCTAssertEqual(texture?.height, windowHeight)
 
-        let (graph, _) = buildGameModeGraph()
+        let (graph, _) = try buildGameModeGraph()
         XCTAssertNotNil(graph[sample.passID])
         XCTAssertEqual(graph["outputTransform"]?.dependencies, [sample.passID])
 
@@ -1475,11 +3247,11 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
         ])
     }
 
-    func testSampleRenderExtensionPassExecutes() {
+    func testSampleRenderExtensionPassExecutes() throws {
         let sample = SampleRenderExtension()
         setRendering(.extensions(.register(sample)))
 
-        let (graph, _) = buildGameModeGraph()
+        let (graph, _) = try buildGameModeGraph()
         guard let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() else {
             XCTFail("Expected command buffer")
             return

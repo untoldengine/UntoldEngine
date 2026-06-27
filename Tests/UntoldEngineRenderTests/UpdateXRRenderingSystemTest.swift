@@ -42,7 +42,7 @@ final class UpdateXRRenderingSystemTest: BaseRenderSetup {
         renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 1)
 
         // Build the render graph using the same logic as UpdateXRRenderingSystem
-        let (graph, finalPassID) = buildGameModeGraph()
+        let (graph, finalPassID) = try buildGameModeGraph()
 
         // Verify that full immersion mode creates the environment pass
         XCTAssertNotNil(graph["environment"], "Full immersion mode should create environment pass")
@@ -81,11 +81,11 @@ final class UpdateXRRenderingSystemTest: BaseRenderSetup {
         ])
     }
 
-    func testUpdateXRRenderingSystem_FullImmersionUsesEnvironmentPass() {
+    func testUpdateXRRenderingSystem_FullImmersionUsesEnvironmentPass() throws {
         // Set up XR full immersion mode
         renderInfo.immersionStyle = .full
 
-        let (graph, _) = buildGameModeGraph()
+        let (graph, _) = try buildGameModeGraph()
 
         // Verify that full immersion uses environment, not grid or none
         XCTAssertNotNil(graph["environment"], "Full immersion should use environment pass")
@@ -114,7 +114,7 @@ final class UpdateXRRenderingSystemTest: BaseRenderSetup {
         renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 0)
 
         // Build the render graph using the same logic as UpdateXRRenderingSystem
-        let (graph, finalPassID) = buildGameModeGraph()
+        let (graph, finalPassID) = try buildGameModeGraph()
 
         // Verify that passthrough mode does not create environment or grid passes
         XCTAssertNil(graph["environment"], "Passthrough mode should not create environment pass")
@@ -144,11 +144,11 @@ final class UpdateXRRenderingSystemTest: BaseRenderSetup {
                        "outputTransform should be the last pass in the sorted order")
     }
 
-    func testUpdateXRRenderingSystem_PassthroughHasNoBasePass() {
+    func testUpdateXRRenderingSystem_PassthroughHasNoBasePass() throws {
         // Set up XR passthrough mode
         renderInfo.immersionStyle = .mixed
 
-        let (graph, _) = buildGameModeGraph()
+        let (graph, _) = try buildGameModeGraph()
 
         // Verify that passthrough mode has no base pass (no environment, no grid)
         XCTAssertNil(graph["environment"], "Passthrough mode should not create environment pass")
@@ -166,7 +166,7 @@ final class UpdateXRRenderingSystemTest: BaseRenderSetup {
         // Test with full immersion
         renderInfo.immersionStyle = .full
 
-        let (graph, finalPassID) = buildGameModeGraph()
+        let (graph, finalPassID) = try buildGameModeGraph()
 
         // Verify final pass is outputTransform
         XCTAssertEqual(finalPassID, "outputTransform", "buildGameModeGraph should return 'outputTransform' as final pass ID")
@@ -183,7 +183,7 @@ final class UpdateXRRenderingSystemTest: BaseRenderSetup {
         // Test with passthrough mode
         renderInfo.immersionStyle = .mixed
 
-        let (graph, _) = buildGameModeGraph()
+        let (graph, _) = try buildGameModeGraph()
 
         // Sort the graph
         let sortedPasses = try topologicalSortGraph(graph: graph)
@@ -205,7 +205,7 @@ final class UpdateXRRenderingSystemTest: BaseRenderSetup {
         for (mode, description) in modes {
             renderInfo.immersionStyle = mode
 
-            let (graph, finalPassID) = buildGameModeGraph()
+            let (graph, finalPassID) = try buildGameModeGraph()
 
             // Verify outputTransform is the final pass
             XCTAssertEqual(finalPassID, "outputTransform",
@@ -235,7 +235,7 @@ final class UpdateXRRenderingSystemTest: BaseRenderSetup {
         renderPassDescriptor.colorAttachments[0].loadAction = .clear
 
         // This simulates what UpdateXRRenderingSystem does
-        let (graph, _) = buildGameModeGraph()
+        let (graph, _) = try buildGameModeGraph()
 
         // Verify the entire graph is valid
         let sortedPasses = try topologicalSortGraph(graph: graph)
@@ -259,7 +259,7 @@ final class UpdateXRRenderingSystemTest: BaseRenderSetup {
         renderPassDescriptor.colorAttachments[0].loadAction = .clear
 
         // This simulates what UpdateXRRenderingSystem does
-        let (graph, _) = buildGameModeGraph()
+        let (graph, _) = try buildGameModeGraph()
 
         // Verify the entire graph is valid
         let sortedPasses = try topologicalSortGraph(graph: graph)
