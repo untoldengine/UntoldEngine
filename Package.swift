@@ -276,7 +276,7 @@ let package = Package(
         // Test target for unit tests
         .testTarget(
             name: "UntoldEngineTests",
-            dependencies: ["UntoldEngine"],
+            dependencies: ["UntoldEngine", "UntoldEngineShaderSupport"],
             path: "Tests/UntoldEngineTests",
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),

@@ -217,6 +217,89 @@ private final class TestModelSurfaceDrawRenderExtension: RenderExtension, @unche
     }
 }
 
+private final class TestModelSurfaceArgumentDrawRenderExtension: RenderExtension, @unchecked Sendable {
+    let id: String
+    let pipelineType: RenderPipelineType
+    let passID: String
+    let argumentLayoutID: String?
+    let fragmentShader: String
+    let fragmentLibraryID: RenderShaderLibraryID?
+    let fragmentLibrary: MTLLibrary?
+    var boundEntityIDs: [EntityID] = []
+    var encodedValues: [Float] = []
+
+    init(
+        id: String = "test.model.surface.argument.draw.extension",
+        pipelineType: RenderPipelineType,
+        passID: String = "test.model.surface.argument.draw.pass",
+        argumentLayoutID: String? = nil,
+        fragmentShader: String = "fragmentGeometryShader",
+        fragmentLibraryID: RenderShaderLibraryID? = nil,
+        fragmentLibrary: MTLLibrary? = nil
+    ) {
+        self.id = id
+        self.pipelineType = pipelineType
+        self.passID = passID
+        self.argumentLayoutID = argumentLayoutID
+        self.fragmentShader = fragmentShader
+        self.fragmentLibraryID = fragmentLibraryID
+        self.fragmentLibrary = fragmentLibrary
+    }
+
+    func registerShaderLibraries(_ registry: RenderShaderLibraryRegistry) {
+        guard let fragmentLibraryID, let fragmentLibrary else { return }
+        registry.registerLibrary(fragmentLibraryID, library: fragmentLibrary)
+    }
+
+    func registerPipelines(_ registry: RenderPipelineRegistry) {
+        registry.registerModelSurfacePipeline(
+            pipelineType,
+            fragmentShader: fragmentShader,
+            fragmentShaderLibrary: fragmentLibraryID.map(RenderShaderLibraryReference.registered) ?? .engine,
+            depthEnabled: true,
+            name: "Test Model Surface Argument Pipeline"
+        )
+    }
+
+    func registerArgumentBuffers(_ registry: RenderExtensionArgumentBufferRegistry) {
+        guard let argumentLayoutID else { return }
+
+        registry.registerArgumentBuffer(
+            RenderExtensionArgumentBufferDescriptor(
+                id: argumentLayoutID,
+                buffers: [
+                    RenderExtensionArgumentBuffer(
+                        id: RenderExtensionModelSurfaceArgument.buffer0
+                    ),
+                ]
+            )
+        )
+    }
+
+    func buildGraph(
+        _ builder: inout RenderGraphBuilder,
+        context _: RenderGraphBuildContext
+    ) {
+        builder.addPass(id: passID, stage: .beforePostProcess) { [weak self] context in
+            guard let self else { return }
+            context.drawModelSurfaceEntities(
+                pipeline: pipelineType,
+                label: "Test Model Surface Argument Draw",
+                argumentLayoutID: argumentLayoutID,
+                bindArguments: { arguments, entityId, _ in
+                    var value = Float(self.boundEntityIDs.count + 1)
+                    arguments.setBytes(
+                        &value,
+                        id: RenderExtensionModelSurfaceArgument.buffer0
+                    )
+                    self.boundEntityIDs.append(entityId)
+                    self.encodedValues.append(value)
+                }
+            )
+        }
+    }
+}
+
 final class RenderGraphBuilderTest: BaseRenderSetup {
     override func setUp() async throws {
         try await super.setUp()
@@ -1125,6 +1208,249 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
         graph[extensionInstance.passID]?.execute?(commandBuffer)
 
         XCTAssertEqual(extensionInstance.boundEntityIDs, [entity])
+    }
+
+    func testRenderPassContextDrawsModelSurfaceEntitiesWithArgumentBufferBinding() {
+        let entity = createEntity()
+        setEntityMeshDirect(
+            entityId: entity,
+            meshes: BasicPrimitives.createCube(extent: 1.0),
+            assetName: "test_model_surface_argument_cube"
+        )
+        visibleEntityIds = [entity]
+
+        let extensionInstance = TestModelSurfaceArgumentDrawRenderExtension(
+            pipelineType: "test.model.surface.argument.pipeline"
+        )
+        setRendering(.extensions(.register(extensionInstance)))
+        antiAliasingMode = .none
+        defer { antiAliasingMode = .fxaa }
+
+        let (graph, _) = buildGameModeGraph()
+        guard let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() else {
+            XCTFail("Expected command buffer")
+            return
+        }
+
+        graph[extensionInstance.passID]?.execute?(commandBuffer)
+
+        XCTAssertEqual(extensionInstance.boundEntityIDs, [entity])
+        XCTAssertEqual(extensionInstance.encodedValues, [1.0])
+    }
+
+    func testRenderPassContextMakesArgumentBufferResourcesResident() throws {
+        let shaderSource = """
+        #include <metal_stdlib>
+        using namespace metal;
+
+        struct TestArguments {
+            texture2d<float> texture0 [[id(0)]];
+            texture2d<float> texture1 [[id(1)]];
+            texture2d<float> texture2 [[id(2)]];
+            texture2d<float> texture3 [[id(3)]];
+            texture2d<float> texture4 [[id(4)]];
+            texture2d<float> texture5 [[id(5)]];
+            texture2d<float> texture6 [[id(6)]];
+            texture2d<float> texture7 [[id(7)]];
+            sampler sampler0 [[id(8)]];
+            sampler sampler1 [[id(9)]];
+            sampler sampler2 [[id(10)]];
+            sampler sampler3 [[id(11)]];
+            sampler sampler4 [[id(12)]];
+            sampler sampler5 [[id(13)]];
+            sampler sampler6 [[id(14)]];
+            sampler sampler7 [[id(15)]];
+            constant uchar *buffer0 [[id(16)]];
+            constant uchar *buffer1 [[id(17)]];
+            constant uchar *buffer2 [[id(18)]];
+            constant uchar *buffer3 [[id(19)]];
+            constant uchar *buffer4 [[id(20)]];
+            constant uchar *buffer5 [[id(21)]];
+            constant uchar *buffer6 [[id(22)]];
+            constant uchar *buffer7 [[id(23)]];
+            constant uchar *buffer8 [[id(24)]];
+            constant uchar *buffer9 [[id(25)]];
+            constant uchar *buffer10 [[id(26)]];
+            constant uchar *buffer11 [[id(27)]];
+            constant uchar *buffer12 [[id(28)]];
+            constant uchar *buffer13 [[id(29)]];
+            constant uchar *buffer14 [[id(30)]];
+            constant uchar *buffer15 [[id(31)]];
+        };
+
+        fragment float4 testArgumentBufferFragment(
+            constant TestArguments &arguments [[buffer(10)]])
+        {
+            return *reinterpret_cast<constant float4 *>(arguments.buffer0);
+        }
+        """
+        let fragmentLibrary = try renderInfo.device.makeLibrary(source: shaderSource, options: nil)
+        let entity = createEntity()
+        setEntityMeshDirect(
+            entityId: entity,
+            meshes: BasicPrimitives.createPlane(),
+            assetName: "test_argument_buffer_residency_plane"
+        )
+        visibleEntityIds = [entity]
+
+        let extensionInstance = TestModelSurfaceArgumentDrawRenderExtension(
+            pipelineType: "test.argument.buffer.residency.pipeline",
+            argumentLayoutID: "test.argument.buffer.residency.layout",
+            fragmentShader: "testArgumentBufferFragment",
+            fragmentLibraryID: "test.argument.buffer.residency.shaders",
+            fragmentLibrary: fragmentLibrary
+        )
+        setRendering(.extensions(.register(extensionInstance)))
+        antiAliasingMode = .none
+        defer { antiAliasingMode = .fxaa }
+
+        let (graph, _) = buildGameModeGraph()
+        guard let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() else {
+            XCTFail("Expected command buffer")
+            return
+        }
+
+        graph[extensionInstance.passID]?.execute?(commandBuffer)
+        commandBuffer.commit()
+        commandBuffer.waitUntilCompleted()
+
+        XCTAssertEqual(commandBuffer.status, .completed)
+        XCTAssertNil(commandBuffer.error)
+    }
+
+    func testRenderExtensionsOwnIndependentArgumentLayoutsWithSharedLocalIDs() {
+        let entity = createEntity()
+        setEntityMeshDirect(
+            entityId: entity,
+            meshes: BasicPrimitives.createCube(extent: 1.0),
+            assetName: "test_model_surface_argument_layout_cube"
+        )
+        visibleEntityIds = [entity]
+
+        let waterLayoutID = "test.water.argument.layout"
+        let grassLayoutID = "test.grass.argument.layout"
+        let waterExtension = TestModelSurfaceArgumentDrawRenderExtension(
+            id: "test.water.argument.extension",
+            pipelineType: "test.water.argument.pipeline",
+            passID: "test.water.argument.pass",
+            argumentLayoutID: waterLayoutID
+        )
+        let grassExtension = TestModelSurfaceArgumentDrawRenderExtension(
+            id: "test.grass.argument.extension",
+            pipelineType: "test.grass.argument.pipeline",
+            passID: "test.grass.argument.pass",
+            argumentLayoutID: grassLayoutID
+        )
+
+        setRendering(.extensions(.register(waterExtension)))
+        setRendering(.extensions(.register(grassExtension)))
+        antiAliasingMode = .none
+        defer { antiAliasingMode = .fxaa }
+
+        XCTAssertNotNil(RenderExtensionArgumentBufferRegistry.shared.descriptor(waterLayoutID))
+        XCTAssertNotNil(RenderExtensionArgumentBufferRegistry.shared.descriptor(grassLayoutID))
+        XCTAssertEqual(
+            RenderExtensionArgumentBufferRegistry.shared.descriptor(waterLayoutID)?.buffers.first?.id,
+            RenderExtensionModelSurfaceArgument.buffer0
+        )
+        XCTAssertEqual(
+            RenderExtensionArgumentBufferRegistry.shared.descriptor(grassLayoutID)?.buffers.first?.id,
+            RenderExtensionModelSurfaceArgument.buffer0
+        )
+
+        let (graph, _) = buildGameModeGraph()
+        guard let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() else {
+            XCTFail("Expected command buffer")
+            return
+        }
+
+        graph[waterExtension.passID]?.execute?(commandBuffer)
+        graph[grassExtension.passID]?.execute?(commandBuffer)
+
+        XCTAssertEqual(waterExtension.boundEntityIDs, [entity])
+        XCTAssertEqual(grassExtension.boundEntityIDs, [entity])
+        XCTAssertEqual(waterExtension.encodedValues, [1.0])
+        XCTAssertEqual(grassExtension.encodedValues, [1.0])
+
+        setRendering(.extensions(.unregister(waterExtension.id)))
+
+        XCTAssertNil(RenderExtensionArgumentBufferRegistry.shared.descriptor(waterLayoutID))
+        XCTAssertNotNil(RenderExtensionArgumentBufferRegistry.shared.descriptor(grassLayoutID))
+    }
+
+    func testModelSurfaceExtensionPipelineValidationAcceptsArgumentBufferSlot() {
+        let isValid = validateModelSurfaceExtensionPipelineArguments(
+            [
+                RenderExtensionShaderArgument(
+                    name: "arguments",
+                    index: RenderExtensionModelSurfaceArgument.argumentBufferIndex,
+                    type: .buffer
+                ),
+            ],
+            argumentLayoutID: nil,
+            pipelineName: "Test Valid Model Surface Pipeline",
+            fragmentShader: "validFragment"
+        )
+
+        XCTAssertTrue(isValid)
+    }
+
+    func testModelSurfaceExtensionPipelineValidationRejectsMissingArgumentBuffer() {
+        let isValid = validateModelSurfaceExtensionPipelineArguments(
+            [],
+            argumentLayoutID: nil,
+            pipelineName: "Test Missing Argument Buffer Pipeline",
+            fragmentShader: "missingArgumentFragment"
+        )
+
+        XCTAssertFalse(isValid)
+    }
+
+    func testModelSurfaceExtensionPipelineValidationRejectsLegacyRawSlots() {
+        let isValid = validateModelSurfaceExtensionPipelineArguments(
+            [
+                RenderExtensionShaderArgument(
+                    name: "arguments",
+                    index: RenderExtensionModelSurfaceArgument.argumentBufferIndex,
+                    type: .buffer
+                ),
+                RenderExtensionShaderArgument(
+                    name: "legacyTexture",
+                    index: 10,
+                    type: .texture
+                ),
+                RenderExtensionShaderArgument(
+                    name: "legacyBuffer",
+                    index: 11,
+                    type: .buffer
+                ),
+            ],
+            argumentLayoutID: nil,
+            pipelineName: "Test Legacy Raw Slot Pipeline",
+            fragmentShader: "legacyRawSlotFragment"
+        )
+
+        XCTAssertFalse(isValid)
+    }
+
+    func testModelSurfaceExtensionPipelineValidationRejectsMissingLayout() {
+        let missingLayoutID = "test.missing.argument.layout"
+        RenderExtensionArgumentBufferRegistry.shared.removeAll()
+
+        let isValid = validateModelSurfaceExtensionPipelineArguments(
+            [
+                RenderExtensionShaderArgument(
+                    name: "arguments",
+                    index: RenderExtensionModelSurfaceArgument.argumentBufferIndex,
+                    type: .buffer
+                ),
+            ],
+            argumentLayoutID: missingLayoutID,
+            pipelineName: "Test Missing Layout Pipeline",
+            fragmentShader: "missingLayoutFragment"
+        )
+
+        XCTAssertFalse(isValid)
     }
 
     func testSampleRenderExtensionRegistersScratchTextureAndGraphPass() throws {

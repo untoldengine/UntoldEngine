@@ -27,6 +27,27 @@ setEntityWaterComponent(entityId: water)
 Use extensions when a rendering feature needs its own pass, pipeline, compute
 pipeline, or render texture, but should remain optional for the application.
 
+## Extension Lifecycle
+
+Every extension provides a stable `id` and implements `buildGraph`. The
+registration hooks have default no-op implementations, so implement only the
+capabilities the extension uses.
+
+| Extension member | When to implement it |
+| --- | --- |
+| `id` | Always. It identifies the extension and scopes lifecycle-managed registrations; it must be globally unique. |
+| `registerShaderLibraries` | When the extension supplies custom Metal functions. |
+| `registerPipelines` | When the extension uses a custom render pipeline. |
+| `registerComputePipelines` | When the extension dispatches compute work. |
+| `registerResources` | When the extension owns render textures. |
+| `registerArgumentBuffers` | When a model-surface shader reads extension arguments. |
+| `buildGraph` | Always. Add the passes that perform the extension's work. |
+
+Register extensions before renderer creation. The engine retains the extension,
+registers its argument layouts, initializes its Metal-backed objects when the
+renderer is ready, and calls `buildGraph` when constructing a render graph. A
+pass closure added by `buildGraph` executes later during rendering.
+
 ## Minimal Extension
 
 Create a type that conforms to `RenderExtension`.
@@ -140,16 +161,38 @@ let reflection = getRenderResource(.texture("water.reflection"))
 Resource IDs should be namespaced by feature or package, such as
 `"water.reflection"` or `"myStudio.fog.history"`, to avoid collisions.
 
+## Shader Libraries
+
+Custom shader functions must be registered before a render or compute pipeline
+can reference them. An Xcode application target can load the default Metal
+library compiled into `Bundle.main`:
+
+```swift
+import Foundation
+
+let waterShaderLibrary: RenderShaderLibraryID = "water.shaders"
+
+func registerShaderLibraries(_ registry: RenderShaderLibraryRegistry) {
+    registry.registerDefaultLibrary(waterShaderLibrary, bundle: .main)
+}
+```
+
+Frameworks should pass their framework bundle. Swift packages can register a
+bundled precompiled metallib with `registerLibrary(_:url:)`; see the
+[complete sample](../Samples/ModelSurfaceArgumentBuffer/README.md) for both
+packaging flows.
+
 ## Compute Pipelines
 
-Extensions can register compute pipelines by function name when the engine Metal
-library is available.
+Extensions can register compute pipelines from the engine library or a
+registered extension library.
 
 ```swift
 func registerComputePipelines(_ registry: ComputePipelineRegistry) {
     registry.registerComputePipeline(
         "water.simulation",
         functionName: "waterSimulationKernel",
+        shaderLibrary: .registered("water.shaders"),
         pipelineName: "Water Simulation"
     )
 }
@@ -177,6 +220,8 @@ func registerPipelines(_ registry: RenderPipelineRegistry) {
         CreatePipeline(
             vertexShader: "waterVertex",
             fragmentShader: "waterFragment",
+            vertexShaderLibrary: .registered("water.shaders"),
+            fragmentShaderLibrary: .registered("water.shaders"),
             vertexDescriptor: nil,
             colorFormats: [.rgba16Float],
             depthFormat: .depth32Float,
@@ -190,6 +235,26 @@ This is an advanced hook. Prefer extension-owned pipeline IDs instead of
 replacing built-in pipeline IDs unless the feature is intentionally overriding
 engine behavior.
 
+Model-surface extensions should use the model-surface pipeline helper and can
+enable argument-buffer diagnostics during registration:
+
+```swift
+func registerPipelines(_ registry: RenderPipelineRegistry) {
+    registry.registerModelSurfacePipeline(
+        "water.surface",
+        fragmentShader: "waterFragment",
+        fragmentShaderLibrary: .registered("water.shaders"),
+        name: "Water Surface",
+        validation: .warn(argumentLayoutID: "water.surface.arguments")
+    )
+}
+```
+
+Validation warns when the fragment shader does not declare the extension
+argument buffer at the engine-owned slot, when it still uses raw legacy
+extension texture or buffer slots, or when the referenced argument layout has
+not been registered.
+
 ## Model Surface Draws
 
 Extensions that draw normal engine meshes can use the model-surface helper:
@@ -198,27 +263,32 @@ Extensions that draw normal engine meshes can use the model-surface helper:
 context.drawModelSurfaceEntities(
     pipeline: "water.surface",
     matching: [WaterComponent.self],
-    label: "Water Surface"
-) { encoder, entityId, resources in
-    guard let water = getEntityComponent(
-        entityId: entityId,
-        componentType: WaterComponent.self
-    ) else {
-        return
+    label: "Water Surface",
+    argumentLayoutID: "water.surface.arguments",
+    bindArguments: { arguments, entityId, resources in
+        guard let water = getEntityComponent(
+            entityId: entityId,
+            componentType: WaterComponent.self
+        ) else {
+            return
+        }
+
+        arguments.setTexture(
+            resources.texture(water.colorTextureID),
+            id: RenderExtensionModelSurfaceArgument.texture0
+        )
+        arguments.setSampler(
+            water.sampler,
+            id: RenderExtensionModelSurfaceArgument.sampler0
+        )
+
+        var uniforms = WaterSurfaceUniforms(component: water)
+        arguments.setBytes(
+            &uniforms,
+            id: RenderExtensionModelSurfaceArgument.buffer0
+        )
     }
-
-    encoder.setFragmentTexture(
-        resources.texture(water.colorTextureID),
-        index: RenderExtensionModelSurfaceSlot.fragmentTexture0
-    )
-
-    var uniforms = WaterSurfaceUniforms(component: water)
-    encoder.setFragmentBytes(
-        &uniforms,
-        length: MemoryLayout<WaterSurfaceUniforms>.stride,
-        index: RenderExtensionModelSurfaceSlot.fragmentBuffer0
-    )
-}
+)
 ```
 
 Extension fragment shaders should use the matching shader support constants:
@@ -226,20 +296,126 @@ Extension fragment shaders should use the matching shader support constants:
 ```metal
 #include <UntoldEngineShaderSupport/UntoldModelSurface.h>
 
+using namespace metal;
+
+struct WaterSurfaceParams {
+    float4 tint;
+};
+
 fragment float4 waterFragment(
     UntoldModelSurfaceVertexOut in [[stage_in]],
-    texture2d<float> waterColor
-        [[texture(UntoldModelSurfaceExtensionFragmentTexture0)]],
-    constant WaterSurfaceParams &params
-        [[buffer(UntoldModelSurfaceExtensionFragmentBuffer0)]]
+    constant UntoldModelSurfaceExtensionArguments &arguments
+        [[buffer(UntoldModelSurfaceExtensionArgumentBufferIndex)]]
 ) {
-    // Shade the model surface.
+    constant WaterSurfaceParams &params =
+        *reinterpret_cast<constant WaterSurfaceParams *>(arguments.buffer0);
+    float4 waterColor = arguments.texture0.sample(
+        arguments.sampler0,
+        in.uvCoords
+    );
+
+    float alpha = waterColor.a * params.tint.a;
+    return float4(waterColor.rgb * params.tint.rgb * alpha, alpha);
 }
 ```
 
-Do not bind extension model-surface resources to low fragment slots such as
-`[[buffer(0)]]` or `[[texture(0)]]`. Those slots are used by the engine's model
-draw helper for camera, material, and built-in texture state.
+The model-surface extension argument buffer is bound at one engine-owned
+fragment buffer slot. Texture, sampler, and buffer IDs inside that argument
+buffer are local to the extension shader, so two extensions can both use
+`texture0` or `buffer0` without colliding.
+
+Extensions can register an owned argument layout and select it when drawing:
+
+```swift
+func registerArgumentBuffers(_ registry: RenderExtensionArgumentBufferRegistry) {
+    registry.registerArgumentBuffer(
+        RenderExtensionArgumentBufferDescriptor(
+            id: "water.surface.arguments",
+            textures: [
+                RenderExtensionArgumentTexture(
+                    id: RenderExtensionModelSurfaceArgument.texture0
+                ),
+            ],
+            samplers: [
+                RenderExtensionArgumentSampler(
+                    id: RenderExtensionModelSurfaceArgument.sampler0
+                ),
+            ],
+            buffers: [
+                RenderExtensionArgumentBuffer(
+                    id: RenderExtensionModelSurfaceArgument.buffer0
+                ),
+            ]
+        )
+    )
+}
+```
+
+Then pass that layout ID to the draw helper:
+
+```swift
+context.drawModelSurfaceEntities(
+    pipeline: "water.surface",
+    matching: [WaterComponent.self],
+    label: "Water Surface",
+    argumentLayoutID: "water.surface.arguments",
+    bindArguments: { arguments, entityId, resources in
+        // Bind texture0, sampler0, and buffer0 here.
+    }
+)
+```
+
+Registered argument layouts are owned by the extension ID. Unregistering an
+extension removes only that extension's layouts, so independently developed
+water and grass extensions can both use local IDs like `buffer0`.
+
+The registered entries identify the members an extension uses and their access
+requirements. They do not shrink `UntoldModelSurfaceExtensionArguments`; the
+engine always encodes the complete fixed ABI declared by the shader-support
+header.
+
+The fixed local ID ranges are textures `0...7`, samplers `8...15`, and buffers
+`16...31`. Use the named Swift and shader-support constants instead of numeric
+literals. `setBytes` is convenient for small per-entity values; use `setBuffer`
+for existing or larger buffers.
+
+The complete [model-surface argument buffer sample](../Samples/ModelSurfaceArgumentBuffer/README.md)
+includes the extension implementation, shader, package setup, and entity setup.
+
+### Argument Isolation and Namespacing
+
+Every model-surface extension pipeline uses the same engine-owned outer
+fragment buffer slot, but only one pipeline and its argument buffer are active
+for a draw. The IDs inside that buffer describe its local layout; they are not
+global Metal texture or buffer slots. A water extension and a grass extension
+can therefore both declare `texture0`, `sampler0`, and `buffer0` safely.
+
+IDs used by engine registries are global and still need namespacing. Give each
+extension, shader library, pipeline, argument layout, resource, and pass a
+provider-specific prefix such as `com.example.water.surface`.
+
+### Migrating a Raw-Slot Extension
+
+1. Include `UntoldModelSurface.h` and accept
+   `UntoldModelSurfaceExtensionArguments` at
+   `UntoldModelSurfaceExtensionArgumentBufferIndex` in the fragment shader.
+2. Move each raw `[[texture(n)]]`, `[[sampler(n)]]`, or `[[buffer(n)]]`
+   declaration into a local argument ID from
+   `RenderExtensionModelSurfaceArgument` and its matching shader constant.
+3. Register the local IDs with `registerArgumentBuffers(_:)` under a namespaced
+   layout ID.
+4. Pass that layout ID to both pipeline validation and
+   `drawModelSurfaceEntities`.
+5. Encode per-entity values through `bindArguments:` and remove the equivalent
+   raw `MTLRenderCommandEncoder` bindings from `bindEntity:`.
+6. Run with `.warn(argumentLayoutID:)` enabled and resolve every extension
+   argument warning before release.
+
+The older raw-slot model-surface API remains available during migration, but
+new extensions should prefer `bindArguments:`. Do not bind extension
+model-surface resources to low fragment slots such as `[[buffer(0)]]` or
+`[[texture(0)]]`; those slots are used by the engine's model draw helper for
+camera, material, and built-in texture state.
 
 ## Cleanup
 
@@ -250,17 +426,19 @@ setRendering(.extensions(.unregister("water")))
 setRendering(.extensions(.removeAll))
 ```
 
-Unregistering an extension removes the textures and compute pipelines owned by
-that extension. Render pipelines can be registered by extensions, but Phase 1
-does not yet track render pipeline ownership for automatic removal.
+Unregistering an extension removes its shader libraries, textures, compute
+pipelines, and argument layouts. Render pipelines can be registered by
+extensions, but Phase 1 does not yet track render pipeline ownership for
+automatic removal.
 
 ## Current Limits
 
 Phase 1 provides stable extension points for the current graph. It is not a
 fully dynamic render graph API yet.
 
-- Extensions can add staged passes, textures, render pipelines, and compute
-  pipelines.
+- Extensions can add staged passes, shader libraries, textures, argument
+  layouts, render pipelines, and compute pipelines.
+- Argument-buffer helpers currently target model-surface fragment shaders.
 - Extensions cannot yet declare typed read/write resource dependencies.
 - Extensions cannot reorder arbitrary built-in passes.
 - Extensions should not assume pass execution beyond the stable stage anchors.

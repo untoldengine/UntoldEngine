@@ -50,7 +50,8 @@ public func CreatePipeline(
     depthEnabled: Bool = true,
     reverseZCompatible: Bool = true,
     blendMode: PipelineBlendMode = .none,
-    name: String
+    name: String,
+    reflectionHandler: ((MTLRenderPipelineReflection) -> Void)? = nil
 ) -> RenderPipeline? {
     let pipelineDescriptor = MTLRenderPipelineDescriptor()
     let depthStateDescriptor = MTLDepthStencilDescriptor()
@@ -134,7 +135,20 @@ public func CreatePipeline(
         )
         depthStateDescriptor.isDepthWriteEnabled = depthEnabled
 
-        let pipelineState = try renderInfo.device.makeRenderPipelineState(descriptor: pipelineDescriptor)
+        let pipelineState: MTLRenderPipelineState
+        if let reflectionHandler {
+            var reflection: MTLAutoreleasedRenderPipelineReflection?
+            pipelineState = try renderInfo.device.makeRenderPipelineState(
+                descriptor: pipelineDescriptor,
+                options: [.bindingInfo],
+                reflection: &reflection
+            )
+            if let reflection {
+                reflectionHandler(reflection)
+            }
+        } else {
+            pipelineState = try renderInfo.device.makeRenderPipelineState(descriptor: pipelineDescriptor)
+        }
         let depthState = renderInfo.device.makeDepthStencilState(descriptor: depthStateDescriptor)
 
         return RenderPipeline(
