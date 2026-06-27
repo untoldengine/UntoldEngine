@@ -22,6 +22,8 @@ public protocol RenderExtension: AnyObject, Sendable {
 
     func registerResources(_ registry: RenderResourceRegistry)
 
+    func registerArgumentBuffers(_ registry: RenderExtensionArgumentBufferRegistry)
+
     func buildGraph(
         _ builder: inout RenderGraphBuilder,
         context: RenderGraphBuildContext
@@ -33,6 +35,7 @@ public extension RenderExtension {
     func registerPipelines(_: RenderPipelineRegistry) {}
     func registerComputePipelines(_: ComputePipelineRegistry) {}
     func registerResources(_: RenderResourceRegistry) {}
+    func registerArgumentBuffers(_: RenderExtensionArgumentBufferRegistry) {}
 }
 
 public struct RenderShaderLibraryID: Hashable, ExpressibleByStringLiteral, Sendable {
@@ -50,6 +53,17 @@ public struct RenderShaderLibraryID: Hashable, ExpressibleByStringLiteral, Senda
 public enum RenderShaderLibraryReference: Sendable {
     case engine
     case registered(RenderShaderLibraryID)
+}
+
+public enum RenderExtensionModelSurfacePipelineValidation: Sendable {
+    case disabled
+    case warn(argumentLayoutID: String? = nil)
+}
+
+struct RenderExtensionShaderArgument {
+    let name: String
+    let index: Int
+    let type: MTLBindingType
 }
 
 func resolveRenderShaderLibrary(
@@ -234,7 +248,8 @@ public struct RenderPipelineRegistry {
         depthCompareFunction: MTLCompareFunction = .lessEqual,
         depthEnabled: Bool = false,
         blendMode: PipelineBlendMode = .alphaPremultiplied,
-        name: String
+        name: String,
+        validation: RenderExtensionModelSurfacePipelineValidation = .disabled
     ) {
         registerRenderPipeline(type) {
             CreatePipeline(
@@ -247,10 +262,98 @@ public struct RenderPipelineRegistry {
                 depthCompareFunction: depthCompareFunction,
                 depthEnabled: depthEnabled,
                 blendMode: blendMode,
-                name: name
+                name: name,
+                reflectionHandler: modelSurfacePipelineReflectionHandler(
+                    validation: validation,
+                    pipelineName: name,
+                    fragmentShader: fragmentShader
+                )
             )
         }
     }
+}
+
+private func modelSurfacePipelineReflectionHandler(
+    validation: RenderExtensionModelSurfacePipelineValidation,
+    pipelineName: String,
+    fragmentShader: String
+) -> ((MTLRenderPipelineReflection) -> Void)? {
+    switch validation {
+    case .disabled:
+        return nil
+    case let .warn(argumentLayoutID):
+        return { reflection in
+            let arguments = reflection.fragmentBindings.map {
+                RenderExtensionShaderArgument(
+                    name: $0.name,
+                    index: $0.index,
+                    type: $0.type
+                )
+            }
+            validateModelSurfaceExtensionPipelineArguments(
+                arguments,
+                argumentLayoutID: argumentLayoutID,
+                pipelineName: pipelineName,
+                fragmentShader: fragmentShader
+            )
+        }
+    }
+}
+
+@discardableResult
+func validateModelSurfaceExtensionPipelineArguments(
+    _ arguments: [RenderExtensionShaderArgument],
+    argumentLayoutID: String?,
+    pipelineName: String,
+    fragmentShader: String
+) -> Bool {
+    let expectedArgumentBufferIndex = RenderExtensionModelSurfaceArgument.argumentBufferIndex
+    let hasExpectedArgumentBuffer = arguments.contains {
+        $0.type == .buffer && $0.index == expectedArgumentBufferIndex
+    }
+    var isValid = true
+
+    if !hasExpectedArgumentBuffer {
+        isValid = false
+        Logger.logWarning(
+            message: "[RenderExtension] Model-surface pipeline '\(pipelineName)' fragment '\(fragmentShader)' does not declare an extension argument buffer at [[buffer(\(expectedArgumentBufferIndex))]]"
+        )
+    }
+
+    let misplacedExtensionBuffers = arguments.filter {
+        $0.type == .buffer
+            && (11 ... 13).contains($0.index)
+    }
+    if !misplacedExtensionBuffers.isEmpty {
+        isValid = false
+        let slots = misplacedExtensionBuffers.map { "\($0.index)" }.joined(separator: ", ")
+        Logger.logWarning(
+            message: "[RenderExtension] Model-surface pipeline '\(pipelineName)' uses fragment buffer slot(s) \(slots) in the legacy extension range; use the argument buffer at [[buffer(\(expectedArgumentBufferIndex))]] instead"
+        )
+    }
+
+    let rawExtensionTextures = arguments.filter {
+        $0.type == .texture
+            && (10 ... 13).contains($0.index)
+    }
+    if !rawExtensionTextures.isEmpty {
+        isValid = false
+        let slots = rawExtensionTextures.map { "\($0.index)" }.joined(separator: ", ")
+        Logger.logWarning(
+            message: "[RenderExtension] Model-surface pipeline '\(pipelineName)' uses raw fragment texture slot(s) \(slots) in the legacy extension range; move them into the extension argument buffer"
+        )
+    }
+
+    if let argumentLayoutID,
+       RenderExtensionArgumentBufferRegistry.shared.descriptor(argumentLayoutID) == nil
+    {
+        isValid = false
+        Logger.logWarning(
+            message: "[RenderExtension] Model-surface pipeline '\(pipelineName)' references missing argument layout '\(argumentLayoutID)'"
+        )
+    }
+
+    return isValid
 }
 
 public struct ComputePipelineType: Hashable, ExpressibleByStringLiteral, Sendable {
@@ -429,6 +532,130 @@ public struct RenderResourceAccess {
     }
 }
 
+public struct RenderExtensionArgumentTexture {
+    public let id: Int
+    public let textureType: MTLTextureType
+    public let access: MTLBindingAccess
+
+    public init(
+        id: Int,
+        textureType: MTLTextureType = .type2D,
+        access: MTLBindingAccess = .readOnly
+    ) {
+        self.id = id
+        self.textureType = textureType
+        self.access = access
+    }
+}
+
+public struct RenderExtensionArgumentSampler {
+    public let id: Int
+
+    public init(id: Int) {
+        self.id = id
+    }
+}
+
+public struct RenderExtensionArgumentBuffer {
+    public let id: Int
+    public let access: MTLBindingAccess
+
+    public init(
+        id: Int,
+        access: MTLBindingAccess = .readOnly
+    ) {
+        self.id = id
+        self.access = access
+    }
+}
+
+public struct RenderExtensionArgumentBufferDescriptor {
+    public let id: String
+    public let textures: [RenderExtensionArgumentTexture]
+    public let samplers: [RenderExtensionArgumentSampler]
+    public let buffers: [RenderExtensionArgumentBuffer]
+
+    public init(
+        id: String,
+        textures: [RenderExtensionArgumentTexture] = [],
+        samplers: [RenderExtensionArgumentSampler] = [],
+        buffers: [RenderExtensionArgumentBuffer] = []
+    ) {
+        self.id = id
+        self.textures = textures
+        self.samplers = samplers
+        self.buffers = buffers
+    }
+}
+
+public final class RenderExtensionArgumentBufferRegistry: @unchecked Sendable {
+    public static let shared = RenderExtensionArgumentBufferRegistry()
+
+    private let lock = NSLock()
+    private var descriptorsByID: [String: RenderExtensionArgumentBufferDescriptor] = [:]
+    private var descriptorOwners: [String: String] = [:]
+    private var currentRegistrationOwnerID: String?
+
+    private init() {}
+
+    public func registerArgumentBuffer(_ descriptor: RenderExtensionArgumentBufferDescriptor) {
+        lock.lock()
+        descriptorsByID[descriptor.id] = descriptor
+        if let currentRegistrationOwnerID {
+            descriptorOwners[descriptor.id] = currentRegistrationOwnerID
+        }
+        lock.unlock()
+    }
+
+    public func descriptor(_ id: String) -> RenderExtensionArgumentBufferDescriptor? {
+        lock.lock()
+        let descriptor = descriptorsByID[id]
+        lock.unlock()
+        return descriptor
+    }
+
+    public func registeredIDs() -> [String] {
+        lock.lock()
+        let ids = Array(descriptorsByID.keys)
+        lock.unlock()
+        return ids
+    }
+
+    public func removeAll() {
+        lock.lock()
+        descriptorsByID.removeAll()
+        descriptorOwners.removeAll()
+        lock.unlock()
+    }
+
+    func removeArgumentBuffers(ownerID: String) {
+        lock.lock()
+        let ownedIDs = descriptorOwners.compactMap { id, owner in
+            owner == ownerID ? id : nil
+        }
+        for id in ownedIDs {
+            descriptorsByID.removeValue(forKey: id)
+            descriptorOwners.removeValue(forKey: id)
+        }
+        lock.unlock()
+    }
+
+    func registerArgumentBuffers(
+        ownerID: String,
+        _ registerBlock: (RenderExtensionArgumentBufferRegistry) -> Void
+    ) {
+        lock.lock()
+        currentRegistrationOwnerID = ownerID
+        lock.unlock()
+
+        registerBlock(self)
+
+        lock.lock()
+        currentRegistrationOwnerID = nil
+        lock.unlock()
+    }
+}
+
 public final class RenderResourceRegistry: @unchecked Sendable {
     public static let shared = RenderResourceRegistry()
 
@@ -568,6 +795,11 @@ public final class RenderExtensionRegistry: @unchecked Sendable {
         extensionsByID[renderExtension.id] = renderExtension
         lock.unlock()
 
+        RenderExtensionArgumentBufferRegistry.shared.removeArgumentBuffers(ownerID: renderExtension.id)
+        RenderExtensionArgumentBufferRegistry.shared.registerArgumentBuffers(ownerID: renderExtension.id) { registry in
+            renderExtension.registerArgumentBuffers(registry)
+        }
+
         if renderInfo.device != nil {
             RenderShaderLibraryManager.shared.registerLibraries(ownerID: renderExtension.id) { registry in
                 renderExtension.registerShaderLibraries(registry)
@@ -595,6 +827,7 @@ public final class RenderExtensionRegistry: @unchecked Sendable {
         RenderShaderLibraryManager.shared.removeLibraries(ownerID: id)
         RenderResourceRegistry.shared.removeResources(ownerID: id)
         ComputePipelineManager.shared.removePipelines(ownerID: id)
+        RenderExtensionArgumentBufferRegistry.shared.removeArgumentBuffers(ownerID: id)
     }
 
     public func removeAll() {
@@ -605,6 +838,7 @@ public final class RenderExtensionRegistry: @unchecked Sendable {
         RenderShaderLibraryManager.shared.removeAll()
         RenderResourceRegistry.shared.removeAll()
         ComputePipelineManager.shared.removeAll()
+        RenderExtensionArgumentBufferRegistry.shared.removeAll()
     }
 
     public func registeredIDs() -> [String] {
@@ -634,6 +868,10 @@ public final class RenderExtensionRegistry: @unchecked Sendable {
 
         let registry = RenderPipelineRegistry()
         for renderExtension in orderedExtensions {
+            RenderExtensionArgumentBufferRegistry.shared.removeArgumentBuffers(ownerID: renderExtension.id)
+            RenderExtensionArgumentBufferRegistry.shared.registerArgumentBuffers(ownerID: renderExtension.id) { registry in
+                renderExtension.registerArgumentBuffers(registry)
+            }
             RenderShaderLibraryManager.shared.registerLibraries(ownerID: renderExtension.id) { registry in
                 renderExtension.registerShaderLibraries(registry)
             }
