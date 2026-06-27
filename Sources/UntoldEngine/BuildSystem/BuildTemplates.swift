@@ -31,6 +31,7 @@ import Foundation
 
         let package = Package(
             name: "{{PROJECT_NAME}}",
+            defaultLocalization: "en",
             platforms: [
                 .macOS(.v{{MACOS_VERSION}})
             ],
@@ -48,7 +49,8 @@ import Foundation
                 .executableTarget(
                     name: "{{PROJECT_NAME}}",
                     dependencies: [
-                        .product(name: "UntoldEngine", package: "UntoldEngine")
+                        .product(name: "UntoldEngine", package: "UntoldEngine"),
+                        .product(name: "UntoldEngineShaderSupport", package: "UntoldEngine")
                     ],
                     resources: [
                         .process("GameData")

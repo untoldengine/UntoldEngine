@@ -9,6 +9,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import Foundation
+import Metal
 import simd
 
 public enum LODFadeTransitionSetting: Sendable {
@@ -57,11 +58,18 @@ public enum RenderingProperty: Sendable {
     case postProcessing(RenderingToggle)
     case wireframe(WireframeProperty)
     case environment(RenderingEnvironmentProperty)
+    case extensions(RenderExtensionProperty)
 }
 
 public enum RenderingToggle: Sendable {
     case enabled
     case disabled
+}
+
+public enum RenderExtensionProperty: Sendable {
+    case register(any RenderExtension)
+    case unregister(String)
+    case removeAll
 }
 
 public enum RenderingEnvironmentProperty: Sendable {
@@ -91,6 +99,30 @@ public func setRendering(_ property: RenderingProperty) {
         applyWireframeProperty(property)
     case let .environment(property):
         applyRenderingEnvironmentProperty(property)
+    case let .extensions(property):
+        applyRenderExtensionProperty(property)
+    }
+}
+
+public enum RenderResourceQuery {
+    case texture(String)
+}
+
+public func getRenderResource(_ query: RenderResourceQuery) -> MTLTexture? {
+    switch query {
+    case let .texture(id):
+        RenderResourceRegistry.shared.texture(id)
+    }
+}
+
+private func applyRenderExtensionProperty(_ property: RenderExtensionProperty) {
+    switch property {
+    case let .register(renderExtension):
+        RenderExtensionRegistry.shared.register(renderExtension)
+    case let .unregister(id):
+        RenderExtensionRegistry.shared.unregister(id: id)
+    case .removeAll:
+        RenderExtensionRegistry.shared.removeAll()
     }
 }
 

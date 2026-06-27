@@ -147,8 +147,10 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         initBufferResources()
 
         PipelineManager.shared.initRenderPipelines(configuration.initRenderPipelineBlocks)
+        RenderExtensionRegistry.shared.registerPipelines()
 
         initSizeableResources() // TODO: Find a better name function
+        RenderExtensionRegistry.shared.registerResources()
 
         shadowSystem = ShadowSystem()
 
@@ -192,6 +194,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
 
         let previousOpaqueSampleCount = renderInfo.opaqueSampleCount
         initTextureResources()
+        RenderResourceRegistry.shared.recreateResources()
         initRenderPassDescriptors()
         if previousOpaqueSampleCount != renderInfo.opaqueSampleCount {
             updateOpaquePipelinesForSampleCount()

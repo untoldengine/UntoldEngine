@@ -27,6 +27,7 @@
     needsFinalizeDestroys = false
     hasPendingDestroys = false
     clearCustomSystems()
+    RenderExtensionRegistry.shared.removeAll()
     for frame in 0 ..< 3 {
         tripleVisibleEntities.setWrite(frame: frame, with: [])
     }

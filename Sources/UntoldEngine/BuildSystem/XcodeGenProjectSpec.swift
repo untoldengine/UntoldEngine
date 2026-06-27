@@ -29,6 +29,8 @@ import Foundation
             MARKETING_VERSION: "1.0"
             CURRENT_PROJECT_VERSION: "1"
             INFOPLIST_FILE: Sources/\(settings.projectName)/Info.plist
+            UNTOLD_ENGINE_PACKAGE_ROOT: "$(BUILD_DIR)/../../SourcePackages/checkouts/UntoldEngine"
+            MTL_HEADER_SEARCH_PATHS: "$(inherited) $(UNTOLD_ENGINE_PACKAGE_ROOT)/Sources/UntoldEngineShaderSupport/include"
             """
 
             // Add iOS and visionOS code signing settings
@@ -81,8 +83,10 @@ import Foundation
                     .joined(separator: "\n")
             }
 
-            // Build sources section - visionOS doesn't use Base.lproj
-            var sourcesSection = """
+            // Build sources section. Storyboards under Base.lproj are compiled
+            // from the Sources tree; do not add Base.lproj as a raw folder
+            // resource or the app bundle will contain an uncompiled storyboard.
+            let sourcesSection = """
                 sources:
                   - path: Sources
                     excludes:
@@ -91,23 +95,6 @@ import Foundation
                     type: folder
                     buildPhase: resources
             """
-
-            // Only add Base.lproj for platforms that use storyboards (macOS, iOS)
-            if case .macOS = settings.target {
-                sourcesSection += """
-
-                      - path: Sources/\(settings.projectName)/Base.lproj
-                        type: folder
-                        buildPhase: resources
-                """
-            } else if case .iOS = settings.target {
-                sourcesSection += """
-
-                      - path: Sources/\(settings.projectName)/Base.lproj
-                        type: folder
-                        buildPhase: resources
-                """
-            }
 
             // Packages section
             let packagesSection: String
@@ -155,6 +142,8 @@ import Foundation
                     dependencies:
                       - package: UntoldEngine
                         product: UntoldEngine
+                      - package: UntoldEngine
+                        product: UntoldEngineShaderSupport
                 """
             }
 
@@ -202,7 +191,9 @@ import Foundation
                         SWIFT_VERSION: 5.0
                         MARKETING_VERSION: "1.0"
                         CURRENT_PROJECT_VERSION: "1"
-                        INFOPLIST_FILE: \(settings.projectName) macOS/Info.plist\(teamIDLine)
+                        INFOPLIST_FILE: \(settings.projectName) macOS/Info.plist
+                        UNTOLD_ENGINE_PACKAGE_ROOT: "$(BUILD_DIR)/../../SourcePackages/checkouts/UntoldEngine"
+                        MTL_HEADER_SEARCH_PATHS: "$(inherited) $(UNTOLD_ENGINE_PACKAGE_ROOT)/Sources/UntoldEngineShaderSupport/include"\(teamIDLine)
                       configs:
                         Debug:
                           SWIFT_OPTIMIZATION_LEVEL: -Onone
@@ -225,6 +216,8 @@ import Foundation
                     dependencies:
                       - package: UntoldEngine
                         product: UntoldEngine
+                      - package: UntoldEngine
+                        product: UntoldEngineShaderSupport
                     settings:
                       base:
                         PRODUCT_BUNDLE_IDENTIFIER: \(settings.bundleIdentifier)
@@ -232,6 +225,8 @@ import Foundation
                         MARKETING_VERSION: "1.0"
                         CURRENT_PROJECT_VERSION: "1"
                         INFOPLIST_FILE: \(settings.projectName) iOS/Info.plist
+                        UNTOLD_ENGINE_PACKAGE_ROOT: "$(BUILD_DIR)/../../SourcePackages/checkouts/UntoldEngine"
+                        MTL_HEADER_SEARCH_PATHS: "$(inherited) $(UNTOLD_ENGINE_PACKAGE_ROOT)/Sources/UntoldEngineShaderSupport/include"
                         CODE_SIGN_STYLE: Automatic\(teamIDLine)
                       configs:
                         Debug:
