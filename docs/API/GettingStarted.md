@@ -4,14 +4,9 @@ This guide takes you from a fresh Untold Engine checkout to a working game
 project. You will run the demo, create an Xcode project, export assets into the
 engine's `.untold` runtime format, and load those assets from a `GameScene`.
 
-You can create projects and export assets in two ways:
+You can create projects using the Untold Engine Commannd Line Interface.
 
-- Use the CLI if you prefer terminal commands or want a repeatable workflow.
-- Use Untold Engine Studio if you prefer a visual editor for project setup,
-  asset import, and scene preparation.
-
-After your project is created, both workflows lead to the same place: an Xcode
-project with a `GameData` folder that contains the assets your game loads at
+After your project is created, an Xcode project with a `GameData` folder that contains the assets your game loads at
 runtime.
 
 ---
@@ -32,31 +27,6 @@ swift run untolddemo
 ```
 
 ## Create an Xcode Project
-
-You can create a project with either Untold Engine Studio or the CLI. If you are
-new to Untold Engine, start with the Editor. If you prefer terminal workflows or
-want repeatable project setup, use the CLI.
-
-### Option 1: Editor
-
-Use **Untold Engine Studio** for a visual workflow. It is a standalone editor for
-creating projects, preparing assets, composing scenes, and generating scene files
-used inside your game.
-
-[Download Untold Engine Studio](https://github.com/untoldengine/UntoldEditor/releases)
-
-![untoldeditor-image-1](../images/editor-highlight-1.png)
-
-To set up a project:
-1. Click on "New".
-2. Provide a Project name
-3. Provide a Bundle name
-4. Select the Target Platform
-5. Provide an output path
-
-Untold Engine Studio will create an Xcode project ready to be used with Untold Engine.
-
-### Option 2: CLI
 
 Use `untoldengine-create` to generate a ready-to-run Xcode project with Untold Engine wired in.
 
@@ -117,13 +87,7 @@ You can convert assets with either the Untold Engine Blender addon or the CLI.
 
 To convert a USDZ file into the `.untold` format using the add-on, follow the directions in [Using Blender Addon](UsingBlenderAddon.md).
 
-After the model has been converted to `.untold` format:
-
-1. Click on "Import" in the Asset Browser View in the Editor.
-2. Click on "Import Models"
-3. When the import has completed, you will see your new `.untold` model under the Model Category.
-
-At this point, head over to your Xcode project. You will also notice that your `.untold` model is under `Sources/<ProjectName>/GameData/Models`.
+After the model has been converted to `.untold` format, copy it into your Xcode project under `Sources/<ProjectName>/GameData/Models/<assetname>/`.
 
 ### Option 2: CLI
 
@@ -193,34 +157,6 @@ setEntityMeshAsync(entityId: entity, filename: "robot", withExtension: "untold")
 
 `setEntityMeshAsync` is non-blocking. The completion block fires on the main thread
 once the mesh is parsed and uploaded to GPU memory.
-
----
-
-## Loading an Untold Scene File
-
-Untold Engine Studio can save a composed scene as a `.untoldscene` file. A saved
-scene can include model placement, light properties, post-processing settings,
-and other scene data configured in the editor.
-
-Use `loadUntoldScene` to load that scene in your Xcode project. Place the
-`.untoldscene` file in `Sources/<ProjectName>/GameData/Scenes`, then pass the
-scene name without an extension, or with the `.untoldscene` extension.
-
-```swift
-
-//...After configureEngineSystems()
-
-loadUntoldScene(named: "LevelOne") { success in
-    if success {
-        moveCameraTo(entityId: findGameCamera(), 0.0, 3.0, 10.0)
-        ambientIntensity = 0.4
-    }
-    setSceneReady(success)
-}
-```
-
-By default, scene meshes load asynchronously. For tests or tools that need a
-blocking load, pass `meshLoadingMode: .sync`.
 
 ---
 

@@ -195,7 +195,6 @@ Untold Engine is well-suited for:
 # Engine Architecture
 
 - [Rendering System](docs/Architecture/renderingSystem.md)
-- [Rendering Extensions](docs/Architecture/RenderingExtensions.md)
 - [XR Rendering System](docs/Architecture/xrRenderingSystem.md)
 - [Static Batching System](docs/Architecture/batchingSystem.md)
 - [Geometry Streaming System](docs/Architecture/geometryStreamingSystem.md)
@@ -205,6 +204,7 @@ Untold Engine is well-suited for:
 - [Texture Streaming System](docs/Architecture/textureStreamingSystem.md)
 - [Out of Core](docs/Architecture/outOfCore.md)
 - [Asset Remote Streaming](docs/Architecture/asset_remote_streaming.md)
+- [Rendering Extensions](docs/Architecture/RenderingExtensions.md)
 
 ---
 

@@ -10,40 +10,6 @@ The LOD system allows you to:
 - Customize distance thresholds for each LOD level
 - Configure LOD behavior (bias, hysteresis, fade transitions)
 
-> **Choose Your Path:** You can set up LOD via the **Editor** (no code required) or **programmatically** in Swift.
-
----
-
-## Using the Editor
-
-### Adding LOD Support to an Entity
-
-1. **Select your entity** in the Scene Hierarchy
-2. **Open the Inspector** and click **"Add Components"**
-3. **Select "LOD Component"** from the list
-4. An LOD Levels panel will appear in the Inspector
-
-### Adding LOD Levels
-
-1. **Select a model** from the Asset Browser (Models folder)
-2. In the LOD Levels panel, click **"Add LOD Level"**
-3. The selected model will be added as the next LOD level with a default distance:
-   - LOD0: 50 units
-   - LOD1: 100 units
-   - LOD2: 150 units, etc.
-
-### Adjusting LOD Distances
-
-1. Click the **distance value** next to any LOD level
-2. Enter a new distance and press **Enter**
-3. Objects will switch to this LOD when the camera is within this distance
-
-### Removing LOD Levels
-
-Click the **trash icon** next to any LOD level to remove it.
-
----
-
 ## Using Code
 
 ### Quick Start
