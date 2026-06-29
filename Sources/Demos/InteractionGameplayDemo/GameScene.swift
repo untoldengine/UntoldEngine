@@ -4,6 +4,7 @@
 //
 
 #if os(macOS)
+    import DemoUtils
     import Foundation
     import simd
     import UntoldEngine
@@ -27,9 +28,9 @@
         private var ballAttached = false
 
         init() {
-            configureEngine()
-            createCamera()
-            createLight()
+            configureDemoEngine(assetBasePath: demoResourcesURL(), registerKeyboard: true, registerMouse: false)
+            makeDemoCamera(name: "Gameplay Camera", eye: Constants.cameraEye, target: Constants.cameraTarget)
+            makeDemoSunLight(name: "Sun", pitch: -55.0, color: simd_float3(1.0, 0.94, 0.86), intensity: 1.6)
             loadScene()
         }
 
@@ -71,53 +72,6 @@
 
             let input = InputSystem.shared.keyState
             startMoving = input.wPressed || input.aPressed || input.sPressed || input.dPressed
-        }
-
-        private func configureEngine() {
-            gameMode = true
-            setSceneReady(false)
-            setEngine(.assetBasePath(Self.resourcesURL()))
-            setRendering(.postProcessing(.enabled))
-            setRendering(.antiAliasing(.fxaa))
-            setRendering(.environment(.ibl(true)))
-            setRendering(.environment(.visible(false)))
-            InputSystem.shared.registerKeyboardEvents()
-        }
-
-        private static func resourcesURL() -> URL {
-            let sourceURL = URL(fileURLWithPath: #filePath)
-            let repoRoot = sourceURL
-                .deletingLastPathComponent()
-                .deletingLastPathComponent()
-                .deletingLastPathComponent()
-                .deletingLastPathComponent()
-            return repoRoot
-                .appendingPathComponent("Tests")
-                .appendingPathComponent("UntoldEngineRenderTests")
-                .appendingPathComponent("Resources")
-        }
-
-        private func createCamera() {
-            let camera = createEntity()
-            setEntityName(entityId: camera, name: "Gameplay Camera")
-            createGameCamera(entityId: camera)
-            cameraLookAt(
-                entityId: camera,
-                eye: Constants.cameraEye,
-                target: Constants.cameraTarget,
-                up: simd_float3(0.0, 1.0, 0.0)
-            )
-            setCamera(.active(camera))
-        }
-
-        private func createLight() {
-            let sun = createEntity()
-            setEntityName(entityId: sun, name: "Sun")
-            createDirLight(entityId: sun)
-            rotateTo(entityId: sun, angle: -55.0, axis: simd_float3(1.0, 0.0, 0.0))
-            setLight(entityId: sun, .color(simd_float3(1.0, 0.94, 0.86)))
-            setLight(entityId: sun, .intensity(1.6))
-            setLight(entityId: sun, .directional(.active))
         }
 
         private func loadScene() {
