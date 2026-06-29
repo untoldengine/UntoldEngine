@@ -88,6 +88,7 @@ After that, run the focused demos based on what you want to learn:
 | --- | --- | --- |
 | Starter Demo | `swift run starterdemo` | The minimal app structure: renderer setup, camera, light, input, and a simple scene. |
 | Interaction / Gameplay Demo | `swift run interactiongameplaydemo` | Gameplay-style movement, input handling, animation switching, physics pause/resume, and parented entities. |
+| Lighting Demo | `swift run lightingdemo` | All four light types — directional, point, spot, and area — with live intensity and cone-angle controls. |
 | Rendering Quality Demo | `swift run renderingqualitydemo` | Post-processing controls such as color grading, SSAO, bloom, vignette, depth of field, anti-aliasing, and debug views. |
 | Large Scene Streaming Demo | `swift run largescenestreamingdemo` | Manifest-driven tiled scene streaming, LOD, batching, streaming stats, and large-world traversal. |
 | Exporter Pipeline Demo | `swift run exporterpipelinedemo` | Loading exported `.untold` assets, applying exported animation clips, and checking validation metadata. |

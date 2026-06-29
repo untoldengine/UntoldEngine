@@ -98,6 +98,11 @@ let package = Package(
         ),
 
         .executable(
+            name: "lightingdemo",
+            targets: ["LightingDemo"]
+        ),
+
+        .executable(
             name: "sandbox",
             targets: ["Sandbox"]
         ),
@@ -261,6 +266,17 @@ let package = Package(
             dependencies: ["UntoldEngine", "DemoUtils"],
             path: "Sources/Demos/ExporterPipelineDemo",
             exclude: ["README.md"],
+            swiftSettings: [.swiftLanguageMode(.v6)],
+            linkerSettings: [
+                .linkedFramework("Metal"),
+                .linkedFramework("QuartzCore", .when(platforms: [.macOS, .iOS])),
+                .linkedFramework("AppKit", .when(platforms: [.macOS])),
+            ]
+        ),
+        .executableTarget(
+            name: "LightingDemo",
+            dependencies: ["UntoldEngine", "DemoUtils"],
+            path: "Sources/Demos/LightingDemo",
             swiftSettings: [.swiftLanguageMode(.v6)],
             linkerSettings: [
                 .linkedFramework("Metal"),
