@@ -4,6 +4,7 @@
 //
 
 #if os(macOS)
+    import DemoUtils
     import Foundation
     import simd
     import SwiftUI
@@ -195,21 +196,11 @@
         }
 
         private func createCamera() {
-            let camera = createEntity()
-            setEntityName(entityId: camera, name: "Streaming Camera")
-            createGameCamera(entityId: camera)
-            setCamera(.active(camera))
-            placeCamera(eye: RemoteScenePreset.dungeon.cameraEye)
+            makeDemoCamera(name: "Streaming Camera", eye: RemoteScenePreset.dungeon.cameraEye, orbitOffset: Constants.orbitTargetOffset)
         }
 
         private func createLight() {
-            let sun = createEntity()
-            setEntityName(entityId: sun, name: "Key Light")
-            createDirLight(entityId: sun)
-            rotateTo(entityId: sun, angle: -45.0, axis: simd_float3(1.0, 0.0, 0.0))
-            setLight(entityId: sun, .color(simd_float3(1.0, 0.94, 0.86)))
-            setLight(entityId: sun, .intensity(1.4))
-            setLight(entityId: sun, .directional(.active))
+            makeDemoSunLight(name: "Key Light", pitch: -45.0, intensity: 1.4)
         }
 
         private func placeCamera(eye: simd_float3) {

@@ -190,6 +190,12 @@ let package = Package(
                 .linkedFramework("ARKit", .when(platforms: [.iOS])),
             ]
         ),
+        .target(
+            name: "DemoUtils",
+            dependencies: ["UntoldEngine"],
+            path: "Sources/Demos/DemoUtils",
+            swiftSettings: [.swiftLanguageMode(.v6)]
+        ),
         // These executables are macOS-only
         .executableTarget(
             name: "ShowcaseDemo",
@@ -204,7 +210,7 @@ let package = Package(
         ),
         .executableTarget(
             name: "StarterDemo",
-            dependencies: ["UntoldEngine"],
+            dependencies: ["UntoldEngine", "DemoUtils"],
             path: "Sources/Demos/StarterDemo",
             exclude: ["README.md"],
             swiftSettings: [.swiftLanguageMode(.v6)],
@@ -216,7 +222,7 @@ let package = Package(
         ),
         .executableTarget(
             name: "LargeSceneStreamingDemo",
-            dependencies: ["UntoldEngine"],
+            dependencies: ["UntoldEngine", "DemoUtils"],
             path: "Sources/Demos/LargeSceneStreamingDemo",
             exclude: ["README.md"],
             swiftSettings: [.swiftLanguageMode(.v6)],
@@ -228,7 +234,7 @@ let package = Package(
         ),
         .executableTarget(
             name: "InteractionGameplayDemo",
-            dependencies: ["UntoldEngine"],
+            dependencies: ["UntoldEngine", "DemoUtils"],
             path: "Sources/Demos/InteractionGameplayDemo",
             exclude: ["README.md"],
             swiftSettings: [.swiftLanguageMode(.v6)],
@@ -240,7 +246,7 @@ let package = Package(
         ),
         .executableTarget(
             name: "RenderingQualityDemo",
-            dependencies: ["UntoldEngine"],
+            dependencies: ["UntoldEngine", "DemoUtils"],
             path: "Sources/Demos/RenderingQualityDemo",
             exclude: ["README.md"],
             swiftSettings: [.swiftLanguageMode(.v6)],
@@ -252,7 +258,7 @@ let package = Package(
         ),
         .executableTarget(
             name: "ExporterPipelineDemo",
-            dependencies: ["UntoldEngine"],
+            dependencies: ["UntoldEngine", "DemoUtils"],
             path: "Sources/Demos/ExporterPipelineDemo",
             exclude: ["README.md"],
             swiftSettings: [.swiftLanguageMode(.v6)],

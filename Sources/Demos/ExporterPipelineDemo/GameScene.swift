@@ -4,6 +4,7 @@
 //
 
 #if os(macOS)
+    import DemoUtils
     import Foundation
     import simd
     import UntoldEngine
@@ -82,9 +83,9 @@
         private var wasRightMousePressed = false
 
         init() {
-            configureEngine()
-            createCamera()
-            createLight()
+            configureDemoEngine(assetBasePath: demoResourcesURL())
+            makeDemoCamera(name: "Pipeline Camera", eye: Constants.cameraEye, target: Constants.cameraTarget, orbitOffset: Constants.orbitOffset)
+            makeDemoSunLight(name: "Pipeline Key Light", pitch: -50.0, intensity: 1.5)
             loadAsset(.redplayer)
         }
 
@@ -171,54 +172,6 @@
             }
         }
 
-        private func configureEngine() {
-            gameMode = true
-            setSceneReady(false)
-            setEngine(.assetBasePath(Self.resourcesURL()))
-            setRendering(.postProcessing(.enabled))
-            setRendering(.antiAliasing(.fxaa))
-            setRendering(.environment(.ibl(true)))
-            setRendering(.environment(.visible(false)))
-            InputSystem.shared.registerMouseEvents()
-        }
-
-        static func resourcesURL() -> URL {
-            let sourceURL = URL(fileURLWithPath: #filePath)
-            let repoRoot = sourceURL
-                .deletingLastPathComponent()
-                .deletingLastPathComponent()
-                .deletingLastPathComponent()
-                .deletingLastPathComponent()
-            return repoRoot
-                .appendingPathComponent("Tests")
-                .appendingPathComponent("UntoldEngineRenderTests")
-                .appendingPathComponent("Resources")
-        }
-
-        private func createCamera() {
-            let camera = createEntity()
-            setEntityName(entityId: camera, name: "Pipeline Camera")
-            createGameCamera(entityId: camera)
-            cameraLookAt(
-                entityId: camera,
-                eye: Constants.cameraEye,
-                target: Constants.cameraTarget,
-                up: simd_float3(0.0, 1.0, 0.0)
-            )
-            setOrbitOffset(entityId: camera, uTargetOffset: Constants.orbitOffset)
-            setCamera(.active(camera))
-        }
-
-        private func createLight() {
-            let sun = createEntity()
-            setEntityName(entityId: sun, name: "Pipeline Key Light")
-            createDirLight(entityId: sun)
-            rotateTo(entityId: sun, angle: -50.0, axis: simd_float3(1.0, 0.0, 0.0))
-            setLight(entityId: sun, .color(simd_float3(1.0, 0.94, 0.86)))
-            setLight(entityId: sun, .intensity(1.5))
-            setLight(entityId: sun, .directional(.active))
-        }
-
         private func makeStatus(for option: ExportedAssetOption, message: String) -> PipelineStatus {
             let assetURL = assetURL(for: option)
             return PipelineStatus(
@@ -232,14 +185,14 @@
         }
 
         private func assetURL(for option: ExportedAssetOption) -> URL {
-            Self.resourcesURL()
+            demoResourcesURL()
                 .appendingPathComponent("Models")
                 .appendingPathComponent(option.rawValue)
                 .appendingPathComponent("\(option.rawValue).untold")
         }
 
         private func validationURL(for option: ExportedAssetOption) -> URL {
-            Self.resourcesURL()
+            demoResourcesURL()
                 .appendingPathComponent("Models")
                 .appendingPathComponent(option.rawValue)
                 .appendingPathComponent("\(option.rawValue).validation.json")

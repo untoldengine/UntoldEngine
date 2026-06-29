@@ -4,6 +4,7 @@
 //
 
 #if os(macOS)
+    import DemoUtils
     import Foundation
     import simd
     import UntoldEngine
@@ -164,47 +165,18 @@
         private func configureEngine() {
             gameMode = true
             setSceneReady(false)
-            setEngine(.assetBasePath(Self.resourcesURL()))
+            setEngine(.assetBasePath(demoResourcesURL()))
             setRendering(.environment(.ibl(true)))
             setRendering(.environment(.visible(false)))
             InputSystem.shared.registerMouseEvents()
         }
 
-        private static func resourcesURL() -> URL {
-            let sourceURL = URL(fileURLWithPath: #filePath)
-            let repoRoot = sourceURL
-                .deletingLastPathComponent()
-                .deletingLastPathComponent()
-                .deletingLastPathComponent()
-                .deletingLastPathComponent()
-            return repoRoot
-                .appendingPathComponent("Tests")
-                .appendingPathComponent("UntoldEngineRenderTests")
-                .appendingPathComponent("Resources")
-        }
-
         private func createCamera() {
-            let camera = createEntity()
-            setEntityName(entityId: camera, name: "Quality Camera")
-            createGameCamera(entityId: camera)
-            cameraLookAt(
-                entityId: camera,
-                eye: Constants.cameraEye,
-                target: Constants.cameraTarget,
-                up: simd_float3(0.0, 1.0, 0.0)
-            )
-            setOrbitOffset(entityId: camera, uTargetOffset: Constants.orbitOffset)
-            setCamera(.active(camera))
+            makeDemoCamera(name: "Quality Camera", eye: Constants.cameraEye, target: Constants.cameraTarget, orbitOffset: Constants.orbitOffset)
         }
 
         private func createLights() {
-            let sun = createEntity()
-            setEntityName(entityId: sun, name: "Key Light")
-            createDirLight(entityId: sun)
-            rotateTo(entityId: sun, angle: -50.0, axis: simd_float3(1.0, 0.0, 0.0))
-            setLight(entityId: sun, .color(simd_float3(1.0, 0.94, 0.86)))
-            setLight(entityId: sun, .intensity(1.55))
-            setLight(entityId: sun, .directional(.active))
+            makeDemoSunLight(name: "Key Light", pitch: -50.0, intensity: 1.55)
 
             let fill = createEntity()
             setEntityName(entityId: fill, name: "Fill Light")

@@ -4,6 +4,7 @@
 //
 
 #if os(macOS)
+    import DemoUtils
     import Foundation
     import simd
     import SwiftUI
@@ -21,9 +22,9 @@
         private var wasRightMousePressed = false
 
         init() {
-            configureEngine()
-            createCamera()
-            createLight()
+            configureDemoEngine(registerKeyboard: true)
+            makeDemoCamera(name: "Main Camera", eye: Constants.cameraStart, target: Constants.worldOrigin, orbitOffset: Constants.orbitTargetOffset)
+            makeDemoSunLight(name: "Key Light", pitch: -45.0, color: simd_float3(1.0, 0.92, 0.82), intensity: 1.4)
             createStarterObject()
             setSceneReady(false)
         }
@@ -70,42 +71,6 @@
             }
 
             wasRightMousePressed = input.keyState.rightMousePressed
-        }
-
-        private func configureEngine() {
-            gameMode = true
-            setSceneReady(false)
-            setRendering(.postProcessing(.enabled))
-            setRendering(.antiAliasing(.fxaa))
-            setRendering(.environment(.ibl(true)))
-            setRendering(.environment(.visible(false)))
-
-            InputSystem.shared.registerKeyboardEvents()
-            InputSystem.shared.registerMouseEvents()
-        }
-
-        private func createCamera() {
-            let camera = createEntity()
-            setEntityName(entityId: camera, name: "Main Camera")
-            createGameCamera(entityId: camera)
-            cameraLookAt(
-                entityId: camera,
-                eye: Constants.cameraStart,
-                target: Constants.worldOrigin,
-                up: simd_float3(0.0, 1.0, 0.0)
-            )
-            setOrbitOffset(entityId: camera, uTargetOffset: Constants.orbitTargetOffset)
-            setCamera(.active(camera))
-        }
-
-        private func createLight() {
-            let sun = createEntity()
-            setEntityName(entityId: sun, name: "Key Light")
-            createDirLight(entityId: sun)
-            rotateTo(entityId: sun, angle: -45.0, axis: simd_float3(1.0, 0.0, 0.0))
-            setLight(entityId: sun, .color(simd_float3(1.0, 0.92, 0.82)))
-            setLight(entityId: sun, .intensity(1.4))
-            setLight(entityId: sun, .directional(.active))
         }
 
         private func createStarterObject() {
