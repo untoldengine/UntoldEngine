@@ -194,6 +194,30 @@ setCamera(.defaultFOV(70.0))
 setCamera(.clipPlanes(near: 0.1, far: 1000.0))
 ```
 
+## Input (macOS)
+
+```swift
+// Registration
+registerKeyboardEvents()
+unregisterKeyboardEvents()
+registerMouseEvents()
+
+// Query
+let keys = getKeyboardState()
+let controller = getGameControllerState()
+```
+
+## Input (iOS)
+
+```swift
+// Registration
+registerTouchEvents(view: view)
+unregisterTouchEvents()
+
+// Query (game controller detection is automatic)
+let controller = getGameControllerState()
+```
+
 ## Input (XR)
 
 ```swift
@@ -348,6 +372,9 @@ setBatching(.newProperty(value))
 setSpatialDebug(.newProperty(value))
 setLogger(.newProperty(value))
 setCamera(.newProperty(value))
+registerKeyboardEvents()
+registerMouseEvents()
+registerTouchEvents(view: view)
 setInput(.xr(.newProperty(value)))
 setInput(.psvr2(.newProperty(value)))
 setSpatialManipulation(.newProperty(value))
