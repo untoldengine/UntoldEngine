@@ -13,8 +13,8 @@ Example: Detecting the 'W' Key
 
 ```swift
 func init(){
-// Make sure that you have enabled keyevents in your init function:
-InputSystem.shared.registerKeyboardEvents()
+    // Register keyboard events once in your init function
+    registerKeyboardEvents()
 }
 
 // Then in the handleInput callback, you can do this:
@@ -22,11 +22,10 @@ InputSystem.shared.registerKeyboardEvents()
 func handleInput() {
     // Skip logic if not in game mode
     if gameMode == false { return }
-    
-    let inputSystem = InputSystem.shared
 
-    // Handle input here
-    if inputSystem.keyState.wPressed{
+    let keyState = getKeyboardState()
+
+    if keyState.wPressed {
         Logger.log(message: "w pressed")
     }
 }
@@ -34,17 +33,17 @@ func handleInput() {
 You can use the same logic for other keys like A, S, and D:
 
 ```swift
-let inputSystem = InputSystem.shared
-    
-if inputSystem.keyState.aPressed == true {
+let keyState = getKeyboardState()
+
+if keyState.aPressed {
     // Move left
 }
 
-if inputSystem.keyState.sPressed == true {
+if keyState.sPressed {
     // Move backward
 }
 
-if inputSystem.keyState.dPressed == true {
+if keyState.dPressed {
     // Move right
 }
 ```
@@ -68,64 +67,130 @@ Here's an example function that moves a car entity based on keyboard inputs:
 
 ```swift
 func moveCar(entityId: EntityID, dt: Float) {
-    
-    let inputSystem = InputSystem.shared
-        
-    // Ensure we are in game mode
-    if gameMode == false {
-        return
-    }
+    if gameMode == false { return }
 
+    let keyState = getKeyboardState()
     var position = simd_float3(0.0, 0.0, 0.0)
 
-    // Move forward
-    if inputSystem.keyState.wPressed == true {
-        position.z += 1.0 * dt
-    }
+    if keyState.wPressed { position.z += 1.0 * dt }
+    if keyState.sPressed { position.z -= 1.0 * dt }
+    if keyState.aPressed { position.x -= 1.0 * dt }
+    if keyState.dPressed { position.x += 1.0 * dt }
 
-    // Move backward
-    if inputSystem.keyState.sPressed == true {
-        position.z -= 1.0 * dt
-    }
-
-    // Move left
-    if inputSystem.keyState.aPressed == true {
-        position.x -= 1.0 * dt
-    }
-
-    // Move right
-    if inputSystem.keyState.dPressed == true {
-        position.x += 1.0 * dt
-    }
-
-    // Apply the translation to the entity
     translateTo(entityId: entityId, position: position)
 }
 ```
 
 ## How to Use the Input System with a Game Controller
 
-To detect if a specific button is pressed, use the gameControllerState object from the Input System.
+Game controller detection is automatic — no registration call is needed.
 
 Example: Detecting the 'A' button
 
 ```swift
-func init(){
-// Make sure that you have enabled game controller events in your init function:
-    InputSystem.shared.registerGameControllerEvents()
-}
-
-// Then in the handleInput callback, you can do this:
-
 func handleInput() {
-    // Skip logic if not in game mode
     if gameMode == false { return }
-    let inputSystem = InputSystem.shared
 
-    // Handle input here
-    if inputSystem.gameControllerState.aPressed {
-        Logger.log(message: "Pressed A key")
+    let controller = getGameControllerState()
+
+    if controller.aPressed {
+        Logger.log(message: "Pressed A button")
     }
+}
+```
+
+---
+
+## Input Registration (macOS)
+
+Register keyboard and mouse event handling once in your init function:
+
+```swift
+func gameInit() {
+    registerKeyboardEvents()
+    registerMouseEvents()
+}
+```
+
+Call `unregisterKeyboardEvents()` to stop receiving keyboard events (e.g. when leaving game mode).
+
+---
+
+## How to Use the Input System (iOS)
+
+On iOS, the engine maps standard UIKit gesture recognizers to the same shared input state used on other platforms, so your `handleInput` code stays familiar regardless of target.
+
+### Step 1: Register touch events
+
+Pass in your game view once during setup:
+
+```swift
+func gameInit(view: UIView) {
+    registerTouchEvents(view: view)
+}
+```
+
+Call `unregisterTouchEvents()` to remove the gesture recognizers when no longer needed.
+
+### Step 2: Read gesture state per frame
+
+The engine registers five gesture recognizers and writes their output into shared input fields:
+
+| Gesture | What it maps to |
+|---|---|
+| Single-finger drag | `mouseX`, `mouseY`, `mouseDeltaX`, `mouseDeltaY`, `mouseActive` |
+| Tap | `keyState.leftMousePressed` (brief pulse) |
+| Two-finger pan | `panDelta.x / .y`, `cameraControlMode` (`.orbiting` while active) |
+| Pinch | `pinchDelta.z` (scale delta per frame), `currentPinchGestureState` |
+| Double tap | position updated in `mouseX` / `mouseY` — add custom logic as needed |
+
+```swift
+func handleInput() {
+    if gameMode == false { return }
+
+    let input = InputSystem.shared
+
+    // Single-finger drag — equivalent to a mouse drag on macOS
+    if input.mouseActive {
+        Logger.log(message: "Touch dragging at (\(input.mouseX), \(input.mouseY))")
+        Logger.log(message: "Delta: (\(input.mouseDeltaX), \(input.mouseDeltaY))")
+    }
+
+    // Pinch to zoom
+    if input.currentPinchGestureState == .changed {
+        let zoomDelta = input.pinchDelta.z
+        // apply zoom using zoomDelta...
+    }
+
+    // Two-finger pan — camera orbit
+    if input.cameraControlMode == .orbiting {
+        let delta = input.panDelta
+        // apply orbit using delta.x / delta.y...
+    }
+
+    // Tap — brief leftMousePressed pulse, same as a mouse click
+    let keys = getKeyboardState()
+    if keys.leftMousePressed {
+        Logger.log(message: "Tapped at (\(input.mouseX), \(input.mouseY))")
+    }
+}
+```
+
+### Step 3: Using touch input to move entities
+
+```swift
+func handleInput() {
+    if gameMode == false { return }
+
+    let input = InputSystem.shared
+
+    guard input.mouseActive else { return }
+
+    var position = simd_float3(0, 0, 0)
+    position.x += input.mouseDeltaX * 0.01
+    position.z += input.mouseDeltaY * 0.01
+
+    translateTo(entityId: myEntity, position: position)
 }
 ```
 

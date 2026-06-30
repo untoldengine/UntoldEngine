@@ -72,6 +72,30 @@ public func unregisterXREvents() {
     InputSystem.shared.unregisterXREvents()
 }
 
+public func registerKeyboardEvents() {
+    InputSystem.shared.registerKeyboardEvents()
+}
+
+public func unregisterKeyboardEvents() {
+    InputSystem.shared.unregisterKeyboardEvents()
+}
+
+public func registerMouseEvents() {
+    InputSystem.shared.registerMouseEvents()
+}
+
+#if os(iOS)
+    import UIKit
+
+    public func registerTouchEvents(view: UIView) {
+        InputSystem.shared.registerTouchEvents(view: view)
+    }
+
+    public func unregisterTouchEvents() {
+        InputSystem.shared.unregisterTouchEvents()
+    }
+#endif
+
 // MARK: - Input Queries
 
 public func getXRSpatialInputState() -> XRSpatialInputState {
@@ -88,6 +112,14 @@ public func getPSVR2SenseState() -> PSVR2SenseControllerState {
 
 public func isPSVR2SenseConnected() -> Bool {
     InputSystem.shared.psvr2SenseControllerState.isConnected
+}
+
+public func getKeyboardState() -> KeyState {
+    InputSystem.shared.keyState
+}
+
+public func getGameControllerState() -> GameControllerState {
+    InputSystem.shared.gameControllerState
 }
 
 // MARK: - Spatial Manipulation Config (visionOS)
