@@ -253,6 +253,10 @@ final class RenderExtensionPluginLifecycleTest: BaseRenderSetup {
         )
         XCTAssertEqual(RenderExtensionPluginRegistry.shared.install(plugin), .installed)
 
+        let pipelineAccess = RenderPipelineAccess()
+        XCTAssertNotNil(pipelineAccess.pipeline(first.pipelineID))
+        XCTAssertNotNil(pipelineAccess.pipeline(second.pipelineID))
+
         RenderExtensionPluginRegistry.shared.uninstall(id: plugin.manifest.id)
 
         XCTAssertTrue(RenderExtensionPluginRegistry.shared.installedPluginIDs().isEmpty)
@@ -261,6 +265,8 @@ final class RenderExtensionPluginLifecycleTest: BaseRenderSetup {
         XCTAssertNil(getRenderResource(second.bufferID))
         XCTAssertNil(PipelineManager.shared.renderPipelinesByType[first.pipelineID])
         XCTAssertNil(PipelineManager.shared.renderPipelinesByType[second.pipelineID])
+        XCTAssertNil(pipelineAccess.pipeline(first.pipelineID))
+        XCTAssertNil(pipelineAccess.pipeline(second.pipelineID))
     }
 
     func testLegacyExtensionUnregisterRemovesWholeOwningPlugin() {

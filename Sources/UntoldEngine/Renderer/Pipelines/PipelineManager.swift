@@ -30,6 +30,13 @@ public final class PipelineManager: @unchecked Sendable {
         return snapshot
     }
 
+    public func pipeline(for type: RenderPipelineType) -> RenderPipeline? {
+        lock.lock()
+        let pipeline = _renderPipelinesByType[type]
+        lock.unlock()
+        return pipeline
+    }
+
     func initRenderPipelines(_ pipelines: [(RenderPipelineType, RenderPipelineInitBlock)]) {
         registrationLock.lock()
         defer { registrationLock.unlock() }

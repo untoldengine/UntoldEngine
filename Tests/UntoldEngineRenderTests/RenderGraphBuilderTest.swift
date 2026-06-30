@@ -33,6 +33,21 @@ private final class TestStageRenderExtension: RenderExtension, @unchecked Sendab
     }
 }
 
+private final class TestContextStageRenderExtension: RenderExtension, @unchecked Sendable {
+    let id = "test.context.stage.extension"
+    let passID = "test.context.stage.pass"
+    private(set) var observedStage: RenderStage?
+
+    func buildGraph(
+        _ builder: inout RenderGraphBuilder,
+        context _: RenderGraphBuildContext
+    ) {
+        builder.addPass(id: passID, stage: .beforePostProcess) { [weak self] context in
+            self?.observedStage = context.stage
+        }
+    }
+}
+
 private final class TestMultiPassConflictRenderExtension: RenderExtension, @unchecked Sendable {
     let id: String
     let uniquePassID: String
@@ -211,6 +226,32 @@ private final class TestRenderPipelineOnlyExtension: RenderExtension, @unchecked
         context _: RenderGraphBuildContext
     ) {
         builder.addPass(id: passID, stage: .afterTransparency, execute: nil)
+    }
+}
+
+private final class TestRenderPipelineContextExtension: RenderExtension, @unchecked Sendable {
+    let id = "test.context.render.pipeline.extension"
+    let pipelineType: RenderPipelineType = "test.context.render.pipeline"
+    let missingPipelineType: RenderPipelineType = "test.context.render.pipeline.missing"
+    let passID = "test.context.render.pipeline.pass"
+    private(set) var observedPipelineName: String?
+    private(set) var observedMissingPipeline = false
+
+    func registerPipelines(_ registry: RenderPipelineRegistry) {
+        registry.registerRenderPipeline(pipelineType) {
+            RenderPipeline(success: true, name: "Context Render Pipeline")
+        }
+    }
+
+    func buildGraph(
+        _ builder: inout RenderGraphBuilder,
+        context _: RenderGraphBuildContext
+    ) {
+        builder.addPass(id: passID, stage: .beforePostProcess) { [weak self] context in
+            guard let self else { return }
+            observedPipelineName = context.renderPipelines.pipeline(pipelineType)?.name
+            observedMissingPipeline = context.renderPipelines.pipeline(missingPipelineType) == nil
+        }
     }
 }
 
@@ -2002,6 +2043,17 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
         XCTAssertEqual(renderExtension.observedBuffers[undeclaredBufferID], false)
     }
 
+    func testRenderPassContextExposesResolvedStage() throws {
+        let renderExtension = TestContextStageRenderExtension()
+        setRendering(.extensions(.register(renderExtension)))
+
+        let (graph, _) = try buildGameModeGraph()
+        let commandBuffer = try XCTUnwrap(renderInfo.commandQueue.makeCommandBuffer())
+        graph[renderExtension.passID]?.execute?(commandBuffer)
+
+        XCTAssertEqual(renderExtension.observedStage, .beforePostProcess)
+    }
+
     func testRenderExtensionRegistersFixedTextureResource() {
         let textureID: RenderTextureResourceID = "test.fixed.texture"
 
@@ -2521,6 +2573,30 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
         graph["test.context.compute.pass"]?.execute?(commandBuffer)
 
         XCTAssertEqual(extensionInstance.observedPipelineName, "Test Compute Pipeline")
+    }
+
+    func testRenderPassContextExposesExtensionRenderPipelines() throws {
+        let extensionInstance = TestRenderPipelineContextExtension()
+        setRendering(.extensions(.register(extensionInstance)))
+
+        let (graph, _) = try buildGameModeGraph()
+        let commandBuffer = try XCTUnwrap(renderInfo.commandQueue.makeCommandBuffer())
+        graph[extensionInstance.passID]?.execute?(commandBuffer)
+
+        XCTAssertEqual(extensionInstance.observedPipelineName, "Context Render Pipeline")
+        XCTAssertTrue(extensionInstance.observedMissingPipeline)
+    }
+
+    func testRenderExtensionUnregisterRemovesPipelineFromRenderPipelineAccess() {
+        let extensionInstance = TestRenderPipelineContextExtension()
+        setRendering(.extensions(.register(extensionInstance)))
+        let access = RenderPipelineAccess()
+
+        XCTAssertNotNil(access.pipeline(extensionInstance.pipelineType))
+
+        setRendering(.extensions(.unregister(extensionInstance.id)))
+
+        XCTAssertNil(access.pipeline(extensionInstance.pipelineType))
     }
 
     func testRenderExtensionUnregisterRemovesOwnedComputePipelines() {

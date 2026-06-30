@@ -634,6 +634,38 @@ public struct RenderPipelineRegistry {
             )
         }
     }
+
+    /// Registers a pipeline for custom geometry drawn into the working scene targets.
+    /// The engine-owned scene color and depth formats are resolved at registration time.
+    public func registerScenePipeline(
+        _ type: RenderPipelineType,
+        vertexShader: String,
+        fragmentShader: String?,
+        vertexShaderLibrary: RenderShaderLibraryReference = .engine,
+        fragmentShaderLibrary: RenderShaderLibraryReference = .engine,
+        vertexDescriptor: MTLVertexDescriptor? = nil,
+        depthCompareFunction: MTLCompareFunction = .lessEqual,
+        depthEnabled: Bool = true,
+        reverseZCompatible: Bool = true,
+        blendMode: PipelineBlendMode = .none,
+        name: String
+    ) {
+        registerRenderPipeline(
+            type,
+            vertexShader: vertexShader,
+            fragmentShader: fragmentShader,
+            vertexShaderLibrary: vertexShaderLibrary,
+            fragmentShaderLibrary: fragmentShaderLibrary,
+            vertexDescriptor: vertexDescriptor,
+            colorFormats: [renderInfo.colorPipeline.working.sceneColor],
+            depthFormat: renderInfo.depthPixelFormat,
+            depthCompareFunction: depthCompareFunction,
+            depthEnabled: depthEnabled,
+            reverseZCompatible: reverseZCompatible,
+            blendMode: blendMode,
+            name: name
+        )
+    }
 }
 
 private func modelSurfacePipelineReflectionHandler(
@@ -927,6 +959,15 @@ public struct ComputePipelineAccess {
 
     public func pipeline(_ type: ComputePipelineType) -> ComputePipeline? {
         ComputePipelineManager.shared.pipeline(for: type)
+    }
+}
+
+/// Read-only access to render pipelines available to an executing extension pass.
+public struct RenderPipelineAccess {
+    public init() {}
+
+    public func pipeline(_ type: RenderPipelineType) -> RenderPipeline? {
+        PipelineManager.shared.pipeline(for: type)
     }
 }
 

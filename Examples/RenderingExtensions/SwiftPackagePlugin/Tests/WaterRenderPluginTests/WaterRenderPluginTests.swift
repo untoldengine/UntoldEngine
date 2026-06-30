@@ -23,6 +23,8 @@ final class WaterRenderPluginTests: XCTestCase {
 
         XCTAssertNotNil(library.makeFunction(name: "waterFixtureTextureKernel"))
         XCTAssertNotNil(library.makeFunction(name: "waterFixtureSurfaceFragment"))
+        XCTAssertNotNil(library.makeFunction(name: "waterFixtureProceduralVertex"))
+        XCTAssertNotNil(library.makeFunction(name: "waterFixtureProceduralFragment"))
     }
 
     func testPublicRegistrationEntryPointHasPluginInstallationSignature() {

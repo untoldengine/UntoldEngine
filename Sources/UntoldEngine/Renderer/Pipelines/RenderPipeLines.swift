@@ -31,7 +31,7 @@ public struct RenderPipeline {
     }
 }
 
-public enum PipelineBlendMode {
+public enum PipelineBlendMode: Equatable, Sendable {
     case none
     case alphaStraight
     case alphaPremultiplied

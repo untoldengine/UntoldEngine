@@ -170,6 +170,7 @@ Untold Engine is well-suited for:
 - [Rendering System](docs/API/UsingRenderingSystem.md)
 - [Rendering Extensions](docs/API/UsingRenderingExtensions.md)
 - [Rendering Extension Examples](Examples/RenderingExtensions/README.md)
+- [Create a Rendering Extension Plugin](docs/Extensions/CreatingRenderingExtensionPlugin.md)
 - [Lighting System](docs/API/UsingLightingSystem.md)
 - [Light Portals](docs/API/UsingLightPortals.md)
 - [Materials](docs/API/UsingMaterials.md)

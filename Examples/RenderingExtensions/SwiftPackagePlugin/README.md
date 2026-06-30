@@ -5,15 +5,27 @@
 > used to demonstrate and test how a third-party Rendering Extension is packaged,
 > registered, validated, and distributed with Swift Package Manager.
 
+For a clean-room, step-by-step authoring workflow, start with
+[Creating a Rendering Extension Plugin](../../../docs/API/CreatingRenderingExtensionPlugin.md).
+This README documents the concrete fixture and its consumer integration.
+
 This nested package is the acceptance fixture for distributing an Untold Engine
 rendering extension independently from the engine package. It contains:
 
 - a `RenderExtensionPlugin` manifest and public registration entry point;
-- compute and model-surface extension implementations;
+- compute, model-surface, and procedural custom-geometry implementations;
 - declared texture resources and compute/render pipelines;
 - a model-surface argument-buffer layout;
 - Metal source plus a bundled, precompiled macOS `.metallib`;
 - consumer-side tests that import only public engine and plugin APIs.
+
+The procedural pass is the acceptance fixture for general scene drawing. Its
+vertex shader generates a triangle from `vertex_id`, so it does not use an
+engine mesh or model-surface helper. The pass obtains the current eye's
+view-projection matrix from `context.camera`, looks up its package-owned pipeline
+through `context.renderPipelines`, creates an encoder through
+`context.sceneRenderTargets`, binds the pipeline depth state, and issues a direct
+draw into the working scene color and depth targets.
 
 ## Opening in Xcode
 
@@ -111,6 +123,11 @@ if installWaterRendering() {
 Do not also register `WaterSurfaceRenderExtension` through `setRendering`. The
 plugin entry point already creates it with the package-only `Bundle.module` and
 registers it under plugin lifecycle management.
+
+The procedural geometry is installed automatically with the same extension; no
+entity or component is required. Its pipeline uses the engine-resolved scene
+attachment formats and remains compatible with reverse-Z and per-eye XR graph
+execution.
 
 ## Package Plugin Versus Application-Local Extension
 
