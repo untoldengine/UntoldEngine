@@ -186,6 +186,100 @@ let ready = isXRSceneReady()
 
 ---
 
+## How to Use the Input System (PlayStation VR2 Sense Controller)
+
+The PSVR2 Sense controller is detected automatically — no registration call is needed. The moment `InputSystem.shared` is first accessed, the engine begins listening for controller connect and disconnect events. When a PSVR2 Sense controller pairs, it is configured automatically.
+
+### Step 1: Read controller state per frame
+
+```swift
+func handleInput() {
+    let state = getPSVR2SenseState()
+
+    // Buttons unique to the PSVR2 Sense
+    if state.createButtonPressed {
+        Logger.log(message: "Create button pressed")
+    }
+
+    if state.touchpadButtonPressed {
+        Logger.log(message: "Touchpad clicked")
+    }
+
+    // Touchpad surface position (−1…1 per axis)
+    if state.touchpadTouched {
+        Logger.log(message: "Finger at (\(state.touchpadX), \(state.touchpadY))")
+    }
+
+    // Adaptive trigger pull depth (0…1)
+    if state.leftAdaptiveTriggerValue > 0.5 {
+        Logger.log(message: "Left trigger more than half pulled")
+    }
+}
+```
+
+### Step 2: Check connection status
+
+```swift
+if isPSVR2SenseConnected() {
+    Logger.log(message: "PSVR2 Sense is connected")
+}
+```
+
+### Step 3: Apply adaptive trigger effects
+
+Trigger effects can be set at any time. Calls are silently ignored when no controller is paired.
+
+```swift
+// Simulate weapon resistance — builds from 20% to 80% of travel, then releases
+setInput(.psvr2(.leftTriggerEffect(.weapon(startPosition: 0.2, endPosition: 0.8, strength: 1.0))))
+
+// Constant resistance from 30% travel onwards
+setInput(.psvr2(.rightTriggerEffect(.feedback(startPosition: 0.3, strength: 0.7))))
+
+// Repeating vibration strike
+setInput(.psvr2(.leftTriggerEffect(.vibration(startPosition: 0.0, amplitude: 0.5, frequency: 15.0))))
+
+// Linearly interpolated resistance between two positions
+setInput(.psvr2(.leftTriggerEffect(.slopeFeedback(startPosition: 0.1, endPosition: 0.9, startStrength: 0.2, endStrength: 1.0))))
+
+// Clear all effects
+setInput(.psvr2(.leftTriggerEffect(.off)))
+setInput(.psvr2(.rightTriggerEffect(.off)))
+```
+
+All position and strength values are normalized to `[0, 1]`. For `.weapon` and `.slopeFeedback`, `endPosition` must be greater than `startPosition`.
+
+### Step 4: Enable motion sensing (optional)
+
+Motion is disabled by default to avoid unnecessary sensor activation. Enable it when your game needs gravity or rotation rate data:
+
+```swift
+// Enable once (e.g. in gameInit)
+setInput(.psvr2(.motionEnabled(true)))
+
+// Then read per frame
+func handleInput() {
+    let state = getPSVR2SenseState()
+    let gravity = simd_float3(state.motionGravityX, state.motionGravityY, state.motionGravityZ)
+    let rotationRate = simd_float3(state.motionRotationRateX, state.motionRotationRateY, state.motionRotationRateZ)
+}
+```
+
+You can toggle motion off again at any time with `setInput(.psvr2(.motionEnabled(false)))`.
+
+### Available PSVR2SenseControllerState fields
+
+| Group | Fields |
+|---|---|
+| Connection | `isConnected` |
+| Buttons | `createButtonPressed`, `homeButtonPressed`, `touchpadButtonPressed` |
+| Touchpad surface | `touchpadX`, `touchpadY`, `touchpadTouched` |
+| Adaptive triggers | `leftAdaptiveTriggerValue`, `rightAdaptiveTriggerValue` |
+| Motion (gravity) | `motionGravityX`, `motionGravityY`, `motionGravityZ` |
+| Motion (rotation rate) | `motionRotationRateX`, `motionRotationRateY`, `motionRotationRateZ` |
+
+---
+
 ## Tips and Best Practices
 - Debouncing: If you want to execute an action only once per key press, track the key's previous state to avoid repeated triggers.
 - Game Mode Check: Always ensure the game is in the appropriate mode (e.g., Game Mode) before processing inputs.
