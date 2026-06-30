@@ -35,7 +35,9 @@ Use it to learn:
 - precompiled metallib bundling;
 - plugin manifests and public installation entry points;
 - atomic installation of package-owned extensions;
-- consumer-side component configuration.
+- consumer-side component configuration;
+- camera-aware procedural scene drawing;
+- render-pipeline lookup and safe scene color/depth encoding.
 
 > The package fixture uses water-themed names and placeholder shaders to exercise
 > the complete API. It is not a real or production-ready water renderer.
@@ -45,6 +47,8 @@ use application-local extensions and package plugins at the same time as long as
 their globally registered artifact IDs are unique.
 
 For the authoring guide, see
+[Creating a Rendering Extension Plugin](../../docs/Extensions/CreatingRenderingExtensionPlugin.md).
+For the complete API reference, see
 [Using Rendering Extensions](../../docs/API/UsingRenderingExtensions.md). For
 internal behavior, see
 [Rendering Extensions Architecture](../../docs/Architecture/RenderingExtensions.md).

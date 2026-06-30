@@ -11,6 +11,7 @@
 
 import Foundation
 import Metal
+import simd
 
 public enum RenderGraphError: Error, Equatable, CustomStringConvertible, Sendable {
     case cycleDetected(String)
@@ -108,6 +109,94 @@ public enum RenderStage: String, CaseIterable, Sendable {
     case beforeOutput
 }
 
+/// Camera transforms captured for the eye currently executing a render-extension pass.
+public struct RenderExtensionCameraState: Sendable {
+    public let viewMatrix: simd_float4x4
+    public let projectionMatrix: simd_float4x4
+    public let viewProjectionMatrix: simd_float4x4
+    public let worldPosition: simd_float3
+
+    public init(
+        viewMatrix: simd_float4x4,
+        projectionMatrix: simd_float4x4,
+        viewProjectionMatrix: simd_float4x4,
+        worldPosition: simd_float3
+    ) {
+        self.viewMatrix = viewMatrix
+        self.projectionMatrix = projectionMatrix
+        self.viewProjectionMatrix = viewProjectionMatrix
+        self.worldPosition = worldPosition
+    }
+
+    public static let identity = RenderExtensionCameraState(
+        viewMatrix: matrix_identity_float4x4,
+        projectionMatrix: matrix_identity_float4x4,
+        viewProjectionMatrix: matrix_identity_float4x4,
+        worldPosition: .zero
+    )
+}
+
+/// Load, store, and clear behavior for an extension draw into the engine scene targets.
+public struct SceneRenderPassActions {
+    public var colorLoadAction: MTLLoadAction
+    public var colorStoreAction: MTLStoreAction
+    public var colorClearValue: MTLClearColor
+    public var depthLoadAction: MTLLoadAction
+    public var depthStoreAction: MTLStoreAction
+    public var depthClearValue: Double
+
+    public init(
+        colorLoadAction: MTLLoadAction = .load,
+        colorStoreAction: MTLStoreAction = .store,
+        colorClearValue: MTLClearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 0),
+        depthLoadAction: MTLLoadAction = .load,
+        depthStoreAction: MTLStoreAction = .store,
+        depthClearValue: Double = sceneDepthClearValue()
+    ) {
+        self.colorLoadAction = colorLoadAction
+        self.colorStoreAction = colorStoreAction
+        self.colorClearValue = colorClearValue
+        self.depthLoadAction = depthLoadAction
+        self.depthStoreAction = depthStoreAction
+        self.depthClearValue = depthClearValue
+    }
+
+    public static var loadAndStore: SceneRenderPassActions {
+        SceneRenderPassActions()
+    }
+}
+
+/// Capability for encoding extension geometry into the active engine scene color and depth targets.
+public struct SceneRenderTargetAccess {
+    private let makeEncoder: (SceneRenderPassActions, String?) -> MTLRenderCommandEncoder?
+
+    /// Creates unavailable access. Engine-created pass contexts provide the active capability.
+    public init() {
+        makeEncoder = { _, _ in nil }
+    }
+
+    init(makeEncoder: @escaping (SceneRenderPassActions, String?) -> MTLRenderCommandEncoder?) {
+        self.makeEncoder = makeEncoder
+    }
+
+    public func makeRenderCommandEncoder(
+        actions: SceneRenderPassActions = .loadAndStore,
+        label: String? = nil
+    ) -> MTLRenderCommandEncoder? {
+        makeEncoder(actions, label)
+    }
+
+    /// Stages whose render products are the working scene color and depth targets.
+    public static func supports(_ stage: RenderStage) -> Bool {
+        switch stage {
+        case .afterOpaqueLighting, .beforeTransparency, .afterTransparency, .beforePostProcess:
+            return true
+        case .afterPostProcess, .beforeComposite, .beforeLook, .beforeOutput:
+            return false
+        }
+    }
+}
+
 public struct RenderGraphBuildContext: Sendable {
     public let viewport: SIMD2<Int>
     public let immersionStyle: UntoldImmersionMode
@@ -132,8 +221,12 @@ public struct RenderPassContext {
     public let depthFormat: MTLPixelFormat
     public let immersionStyle: UntoldImmersionMode
     public let currentEye: Int
+    public let stage: RenderStage?
+    public let camera: RenderExtensionCameraState
     public let resources: RenderResourceAccess
     public let computePipelines: ComputePipelineAccess
+    public let renderPipelines: RenderPipelineAccess
+    public let sceneRenderTargets: SceneRenderTargetAccess
 
     public init(
         commandBuffer: MTLCommandBuffer,
@@ -143,8 +236,12 @@ public struct RenderPassContext {
         depthFormat: MTLPixelFormat,
         immersionStyle: UntoldImmersionMode,
         currentEye: Int,
+        stage: RenderStage? = nil,
+        camera: RenderExtensionCameraState = .identity,
         resources: RenderResourceAccess = RenderResourceAccess(),
-        computePipelines: ComputePipelineAccess = ComputePipelineAccess()
+        computePipelines: ComputePipelineAccess = ComputePipelineAccess(),
+        renderPipelines: RenderPipelineAccess = RenderPipelineAccess(),
+        sceneRenderTargets: SceneRenderTargetAccess = SceneRenderTargetAccess()
     ) {
         self.commandBuffer = commandBuffer
         self.device = device
@@ -153,8 +250,12 @@ public struct RenderPassContext {
         self.depthFormat = depthFormat
         self.immersionStyle = immersionStyle
         self.currentEye = currentEye
+        self.stage = stage
+        self.camera = camera
         self.resources = resources
         self.computePipelines = computePipelines
+        self.renderPipelines = renderPipelines
+        self.sceneRenderTargets = sceneRenderTargets
     }
 }
 
@@ -492,7 +593,11 @@ public struct RenderGraphBuilder {
             let execution = pass.execute.map { execute in
                 let resources = RenderResourceAccess(resourceUsages: pass.resourceUsages)
                 return { commandBuffer in
-                    execute(makeRenderPassContext(commandBuffer: commandBuffer, resources: resources))
+                    execute(makeRenderPassContext(
+                        commandBuffer: commandBuffer,
+                        resources: resources,
+                        stage: stage
+                    ))
                 }
             }
 
@@ -668,9 +773,30 @@ func makeRenderGraphBuildContext() -> RenderGraphBuildContext {
 
 func makeRenderPassContext(
     commandBuffer: MTLCommandBuffer,
-    resources: RenderResourceAccess = RenderResourceAccess()
+    resources: RenderResourceAccess = RenderResourceAccess(),
+    stage: RenderStage? = nil
 ) -> RenderPassContext {
-    RenderPassContext(
+    let cameraState: RenderExtensionCameraState
+    if let camera = CameraSystem.shared.activeCamera,
+       let cameraComponent = scene.get(component: CameraComponent.self, for: camera)
+    {
+        cameraState = makeRenderExtensionCameraState(
+            cameraViewMatrix: cameraComponent.viewSpace,
+            projectionMatrix: renderInfo.perspectiveSpace
+        )
+    } else {
+        cameraState = makeRenderExtensionCameraState(
+            cameraViewMatrix: matrix_identity_float4x4,
+            projectionMatrix: renderInfo.perspectiveSpace
+        )
+    }
+    let sceneRenderTargets = makeSceneRenderTargetAccess(
+        commandBuffer: commandBuffer,
+        stage: stage,
+        descriptor: renderInfo.deferredRenderPassDescriptor
+    )
+
+    return RenderPassContext(
         commandBuffer: commandBuffer,
         device: renderInfo.device,
         viewport: SIMD2<Int>(
@@ -681,8 +807,83 @@ func makeRenderPassContext(
         depthFormat: renderInfo.depthPixelFormat,
         immersionStyle: renderInfo.immersionStyle,
         currentEye: renderInfo.currentEye,
+        stage: stage,
+        camera: cameraState,
         resources: resources,
-        computePipelines: ComputePipelineAccess()
+        computePipelines: ComputePipelineAccess(),
+        renderPipelines: RenderPipelineAccess(),
+        sceneRenderTargets: sceneRenderTargets
+    )
+}
+
+func makeSceneRenderTargetAccess(
+    commandBuffer: MTLCommandBuffer,
+    stage: RenderStage?,
+    descriptor: MTLRenderPassDescriptor?
+) -> SceneRenderTargetAccess {
+    guard let stage, SceneRenderTargetAccess.supports(stage), let descriptor else {
+        return SceneRenderTargetAccess()
+    }
+
+    return SceneRenderTargetAccess { actions, label in
+        guard let encoderDescriptor = makeSceneRenderPassDescriptor(
+            copying: descriptor,
+            actions: actions
+        ), let encoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor)
+        else {
+            return nil
+        }
+        encoder.label = label
+        return encoder
+    }
+}
+
+func makeSceneRenderPassDescriptor(
+    copying source: MTLRenderPassDescriptor,
+    actions: SceneRenderPassActions
+) -> MTLRenderPassDescriptor? {
+    let supportedLoadActions: [MTLLoadAction] = [.load, .clear, .dontCare]
+    let supportedStoreActions: [MTLStoreAction] = [.store, .dontCare]
+    guard supportedLoadActions.contains(actions.colorLoadAction),
+          supportedLoadActions.contains(actions.depthLoadAction),
+          supportedStoreActions.contains(actions.colorStoreAction),
+          supportedStoreActions.contains(actions.depthStoreAction),
+          let colorTexture = source.colorAttachments[0].texture,
+          let depthTexture = source.depthAttachment.texture,
+          colorTexture.width == depthTexture.width,
+          colorTexture.height == depthTexture.height,
+          colorTexture.sampleCount == depthTexture.sampleCount,
+          let descriptor = source.copy() as? MTLRenderPassDescriptor
+    else {
+        return nil
+    }
+
+    descriptor.colorAttachments[0].loadAction = actions.colorLoadAction
+    descriptor.colorAttachments[0].storeAction = actions.colorStoreAction
+    descriptor.colorAttachments[0].clearColor = actions.colorClearValue
+    descriptor.depthAttachment.loadAction = actions.depthLoadAction
+    descriptor.depthAttachment.storeAction = actions.depthStoreAction
+    descriptor.depthAttachment.clearDepth = actions.depthClearValue
+    return descriptor
+}
+
+func makeRenderExtensionCameraState(
+    cameraViewMatrix: simd_float4x4,
+    projectionMatrix: simd_float4x4
+) -> RenderExtensionCameraState {
+    let viewMatrix = SceneRootTransform.shared.effectiveViewMatrix(cameraViewMatrix)
+    let inverseView = simd_inverse(viewMatrix)
+    let homogeneousPosition = inverseView.columns.3
+    let inverseW: Float = homogeneousPosition.w == 0 ? 1 : 1 / homogeneousPosition.w
+    return RenderExtensionCameraState(
+        viewMatrix: viewMatrix,
+        projectionMatrix: projectionMatrix,
+        viewProjectionMatrix: simd_mul(projectionMatrix, viewMatrix),
+        worldPosition: simd_float3(
+            homogeneousPosition.x * inverseW,
+            homogeneousPosition.y * inverseW,
+            homogeneousPosition.z * inverseW
+        )
     )
 }
 

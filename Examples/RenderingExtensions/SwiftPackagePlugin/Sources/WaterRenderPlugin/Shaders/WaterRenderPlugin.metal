@@ -53,3 +53,36 @@ fragment float4 waterFixtureSurfaceFragment(
     float alpha = clamp(uniforms.tint.a, 0.0, 1.0);
     return float4(tinted * alpha, alpha);
 }
+
+struct WaterFixtureProceduralVertexOut {
+    float4 position [[position]];
+    float3 color;
+};
+
+vertex WaterFixtureProceduralVertexOut waterFixtureProceduralVertex(
+    uint vertexID [[vertex_id]],
+    constant float4x4 &viewProjection [[buffer(0)]]
+) {
+    constexpr float3 positions[] = {
+        float3(-0.8, 0.15, 0.0),
+        float3( 0.8, 0.15, 0.0),
+        float3( 0.0, 1.35, 0.0),
+    };
+    constexpr float3 colors[] = {
+        float3(0.02, 0.20, 0.38),
+        float3(0.04, 0.55, 0.72),
+        float3(0.20, 0.82, 0.88),
+    };
+
+    WaterFixtureProceduralVertexOut out;
+    out.position = viewProjection * float4(positions[vertexID], 1.0);
+    out.color = colors[vertexID];
+    return out;
+}
+
+fragment float4 waterFixtureProceduralFragment(
+    WaterFixtureProceduralVertexOut in [[stage_in]]
+) {
+    float alpha = 0.82;
+    return float4(in.color * alpha, alpha);
+}

@@ -1,5 +1,6 @@
 import Foundation
 import Metal
+import simd
 import UntoldEngine
 
 /// Stable IDs shared by plugin registration, graph declarations, and shaders.
@@ -12,6 +13,7 @@ public enum WaterRenderPluginContract {
     public static let shaderLibraryID: RenderShaderLibraryID = "com.untold.fixture.water.shaders"
     public static let computePipelineID: ComputePipelineType = "com.untold.fixture.water.generate"
     public static let surfacePipelineID: RenderPipelineType = "com.untold.fixture.water.surface"
+    public static let proceduralPipelineID: RenderPipelineType = "com.untold.fixture.water.procedural"
     public static let argumentLayoutID = "com.untold.fixture.water.surface.arguments"
     public static let colorTextureID: RenderTextureResourceID = "com.untold.fixture.water.color"
     public static let normalTextureID: RenderTextureResourceID = "com.untold.fixture.water.normal"
@@ -101,6 +103,7 @@ public final class WaterSurfaceRenderExtension: RenderExtension, @unchecked Send
     private let shaderBundle: Bundle
     private let generatePassID = "com.untold.fixture.water.generate-pass"
     private let surfacePassID = "com.untold.fixture.water.surface-pass"
+    private let proceduralPassID = "com.untold.fixture.water.procedural-pass"
 
     /// Creates the extension with the bundle containing its precompiled metallib.
     ///
@@ -191,6 +194,18 @@ public final class WaterSurfaceRenderExtension: RenderExtension, @unchecked Send
             name: "Fixture Water Surface",
             validation: .warn(argumentLayoutID: WaterRenderPluginContract.argumentLayoutID)
         )
+        registry.registerScenePipeline(
+            WaterRenderPluginContract.proceduralPipelineID,
+            vertexShader: "waterFixtureProceduralVertex",
+            fragmentShader: "waterFixtureProceduralFragment",
+            vertexShaderLibrary: .registered(WaterRenderPluginContract.shaderLibraryID),
+            fragmentShaderLibrary: .registered(WaterRenderPluginContract.shaderLibraryID),
+            depthCompareFunction: .lessEqual,
+            depthEnabled: true,
+            reverseZCompatible: true,
+            blendMode: .alphaPremultiplied,
+            name: "Fixture Procedural Geometry"
+        )
     }
 
     /// Adds generation and drawing work to the render graph.
@@ -278,6 +293,35 @@ public final class WaterSurfaceRenderExtension: RenderExtension, @unchecked Send
                     )
                 }
             )
+        }
+
+        builder.addPass(
+            id: proceduralPassID,
+            stage: .beforePostProcess
+        ) { context in
+            guard let pipeline = context.renderPipelines.pipeline(
+                WaterRenderPluginContract.proceduralPipelineID
+            ), let pipelineState = pipeline.pipelineState,
+            let encoder = context.sceneRenderTargets.makeRenderCommandEncoder(
+                actions: .loadAndStore,
+                label: "Fixture Procedural Geometry"
+            )
+            else {
+                return
+            }
+            defer { encoder.endEncoding() }
+
+            var viewProjection = context.camera.viewProjectionMatrix
+            encoder.setRenderPipelineState(pipelineState)
+            if let depthState = pipeline.depthState {
+                encoder.setDepthStencilState(depthState)
+            }
+            encoder.setVertexBytes(
+                &viewProjection,
+                length: MemoryLayout<simd_float4x4>.stride,
+                index: 0
+            )
+            encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
         }
     }
 }

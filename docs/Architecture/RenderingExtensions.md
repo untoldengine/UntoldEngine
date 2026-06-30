@@ -3,6 +3,8 @@
 This document explains how Rendering Extensions are represented, registered,
 compiled, validated, and executed inside Untold Engine. For authoring and
 consumer examples, see [Using Rendering Extensions](../API/UsingRenderingExtensions.md).
+For a task-oriented introduction, see
+[Creating a Rendering Extension Plugin](../API/CreatingRenderingExtensionPlugin.md).
 
 ## Design Goals
 
@@ -139,6 +141,13 @@ errors participate in the same extension or plugin transaction.
 Pipeline materialization may be deferred until the renderer has a Metal device.
 A deferred failure removes the owning standalone extension or complete plugin.
 
+Scene pipelines are a specialization of the same descriptor and ownership
+path. `registerScenePipeline` supplies the current working scene-color and depth
+formats internally, while leaving shader libraries, vertex layout, depth
+comparison and writes, reverse-Z conversion, and blending under extension
+control. This prevents package code from coupling itself to platform drawable
+or engine attachment formats.
+
 ## Model-Surface Argument Isolation
 
 Engine model drawing already occupies low Metal texture, sampler, and buffer
@@ -196,6 +205,27 @@ explicit dependency chain.
 
 Pass closures do not execute during registration or graph construction. They are
 captured for later command encoding.
+
+The executable pass context retains its stable stage and supplies read-only
+camera and pipeline capabilities. Camera state is captured when each pass
+executes, after the renderer has installed the current eye's view and projection
+matrices. The view includes the scene-root transform, view-projection uses
+`projection * view`, and world position is derived from the inverse effective
+view. Render and compute pipeline accessors are lookup-only and preserve the
+existing owner-controlled registration and cleanup lifecycle.
+
+Scene render-target access is a capability rather than a public render-pass
+descriptor. It is defined only for the scene-color portion of the graph:
+`afterOpaqueLighting`, `beforeTransparency`, `afterTransparency`, and
+`beforePostProcess`. Encoder creation at later post-processing, composite, look,
+or output stages is rejected because those stages do not guarantee compatible
+working scene color and depth targets. The capability copies and configures the
+engine descriptor; mutable `renderInfo` state is never exposed. Only ordinary
+load actions and store-or-discard actions are accepted. Resolve actions are
+rejected because the capability operates on the resolved, single-sample scene
+attachments. Missing or mismatched color/depth targets also reject encoder
+creation. A new context is built during each eye's graph execution, so the
+copied attachments follow the active XR eye without exposing compositor targets.
 
 ## Resource Access Declarations
 
@@ -339,5 +369,8 @@ the extension contract.
 ## Reference Implementations
 
 - [Application-local argument-buffer sample](../../Examples/RenderingExtensions/ApplicationLocal/README.md)
-- [External package acceptance fixture](../../Examples/RenderingExtensions/SwiftPackagePlugin/README.md)
+- [External package acceptance fixture](../../Examples/RenderingExtensions/SwiftPackagePlugin/README.md),
+  including a vertex-ID-driven custom-geometry draw that exercises camera context,
+  pipeline lookup, scene color/depth access, depth state, staged graph execution,
+  plugin ownership, and cleanup.
 - [Rendering System architecture](renderingSystem.md)

@@ -13,6 +13,12 @@ Both styles use the same `RenderExtension` API and can be active in the same
 application. Choose the package plugin when another project or developer should
 consume the extension as a dependency.
 
+If you are creating your first distributable extension, follow
+[Creating a Rendering Extension Plugin](CreatingRenderingExtensionPlugin.md)
+first. This document is the API reference for capabilities and advanced
+integration choices.
+
+- [Step-by-step plugin tutorial](CreatingRenderingExtensionPlugin.md)
 - [Rendering Extension examples](../../Examples/RenderingExtensions/README.md)
 - [Application-local model-surface example](../../Examples/RenderingExtensions/ApplicationLocal/README.md)
 - [Swift package plugin example](../../Examples/RenderingExtensions/SwiftPackagePlugin/README.md)
@@ -132,7 +138,12 @@ Swift Package Manager or a framework dependency.
 The complete buildable reference is
 [`Examples/RenderingExtensions/SwiftPackagePlugin`](../../Examples/RenderingExtensions/SwiftPackagePlugin/README.md).
 It contains the Swift extension, manifest, registration entry point, argument
-buffer shader, declarations, tests, and bundled precompiled metallib.
+buffer shader, declarations, tests, and bundled precompiled metallib. It also
+contains a procedural triangle pass that uses no engine mesh: the package vertex
+shader generates positions from `vertex_id`, while the pass consumes
+`context.camera`, `context.renderPipelines`, and `context.sceneRenderTargets`
+before issuing a depth-tested draw. This is the acceptance reference for custom
+scene geometry and per-eye graph execution.
 
 ### 1. Declare the Engine Dependency
 
@@ -407,9 +418,88 @@ guard let pipeline = context.computePipelines.pipeline(
 }
 ```
 
-Register a custom render pipeline with
-`RenderExtensionRenderPipelineDescriptor`, or use the model-surface helper when
-drawing normal engine meshes:
+Render pipelines use the symmetric lookup API:
+
+```swift
+guard let pipeline = context.renderPipelines.pipeline(
+    "com.example.water.surface"
+) else {
+    return
+}
+```
+
+Lookup returns `nil` for unknown IDs and after the owning extension or plugin is
+removed. Access is read-only; registration, conflict handling, and cleanup stay
+within the extension lifecycle.
+
+`RenderPassContext` also identifies its stable `stage` and exposes a `camera`
+snapshot containing the current eye's view, projection, view-projection, and
+world position. On visionOS these values describe the eye whose graph is
+currently executing.
+
+The scene-target capability is available as `context.sceneRenderTargets`.
+Scene geometry is compatible with `.afterOpaqueLighting`,
+`.beforeTransparency`, `.afterTransparency`, and `.beforePostProcess`. Later
+stages operate on post-processed or composite products and do not guarantee a
+matching scene depth target; requesting a scene encoder there returns `nil`.
+
+Create an encoder for custom scene geometry and always end it before returning
+from the pass closure:
+
+```swift
+guard let encoder = context.sceneRenderTargets.makeRenderCommandEncoder(
+    actions: .loadAndStore,
+    label: "Custom Scene Geometry"
+) else {
+    return
+}
+defer { encoder.endEncoding() }
+
+encoder.setRenderPipelineState(pipeline.pipelineState!)
+encoder.setDepthStencilState(pipeline.depthState)
+// Bind extension-owned buffers and issue draw calls.
+```
+
+The default actions load and store both scene color and depth. Custom actions
+may use `.load`, `.clear`, or `.dontCare` and `.store` or `.dontCare`.
+Multisample resolve store actions are rejected because this API targets the
+resolved working scene attachments. Color and depth must both exist and have
+matching dimensions and sample counts. The engine copies its descriptor before
+applying these actions, so extension code cannot mutate engine descriptor state.
+
+Register a custom-geometry pipeline without hard-coding platform attachment
+formats:
+
+```swift
+func registerPipelines(_ registry: RenderPipelineRegistry) {
+    registry.registerScenePipeline(
+        "com.example.water.pool",
+        vertexShader: "poolVertex",
+        fragmentShader: "poolFragment",
+        vertexShaderLibrary: .registered("com.example.water.shaders"),
+        fragmentShaderLibrary: .registered("com.example.water.shaders"),
+        vertexDescriptor: poolVertexDescriptor,
+        depthCompareFunction: .lessEqual,
+        depthEnabled: true,
+        reverseZCompatible: true,
+        blendMode: .none,
+        name: "Pool Geometry"
+    )
+}
+```
+
+`registerScenePipeline` resolves the engine's working scene-color and depth
+formats internally. Its vertex descriptor is optional, vertex and fragment
+functions may come from different registered libraries, and the existing
+extension ownership and cleanup rules apply. With `reverseZCompatible` enabled,
+the engine reverses ordered depth comparisons when reverse-Z rendering is active.
+`depthEnabled` controls depth writes; use `.always` when depth testing itself is
+not required. Blend modes include none, straight alpha, premultiplied alpha, and
+additive.
+
+The lower-level `RenderExtensionRenderPipelineDescriptor` remains available for
+pipelines targeting extension-owned attachments. Use the model-surface helper
+when drawing normal engine meshes:
 
 ```swift
 func registerPipelines(_ registry: RenderPipelineRegistry) {

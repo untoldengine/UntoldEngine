@@ -15,10 +15,12 @@ import XCTest
 private final class TestRenderExtensionPipelineCreator: RenderExtensionPipelineCreating {
     var failRenderPipelineIDs: Set<RenderPipelineType> = []
     var failComputePipelineIDs: Set<ComputePipelineType> = []
+    private(set) var renderDescriptors: [RenderExtensionRenderPipelineDescriptor] = []
 
     func makeRenderPipeline(
         _ descriptor: RenderExtensionRenderPipelineDescriptor
     ) -> RenderPipeline? {
+        renderDescriptors.append(descriptor)
         guard !failRenderPipelineIDs.contains(descriptor.id) else { return nil }
         return RenderPipeline(success: true, name: descriptor.name)
     }
@@ -33,6 +35,44 @@ private final class TestRenderExtensionPipelineCreator: RenderExtensionPipelineC
         pipeline.success = true
         return pipeline
     }
+}
+
+private final class TestScenePipelineExtension: RenderExtension, @unchecked Sendable {
+    let id = "com.untold.scene-pipeline"
+    let pipelineID: RenderPipelineType = "com.untold.scene-pipeline.custom"
+    let libraryID: RenderShaderLibraryID = "com.untold.scene-pipeline.shaders"
+    let library: MTLLibrary
+    let vertexDescriptor: MTLVertexDescriptor
+
+    init(library: MTLLibrary) {
+        self.library = library
+        vertexDescriptor = createCompositeVertexDescriptor()
+    }
+
+    func registerShaderLibraries(_ registry: RenderShaderLibraryRegistry) {
+        registry.registerLibrary(libraryID, source: .library(library))
+    }
+
+    func registerPipelines(_ registry: RenderPipelineRegistry) {
+        registry.registerScenePipeline(
+            pipelineID,
+            vertexShader: "vertexCompositeShader",
+            fragmentShader: "fragmentCompositeShader",
+            vertexShaderLibrary: .registered(libraryID),
+            fragmentShaderLibrary: .registered(libraryID),
+            vertexDescriptor: vertexDescriptor,
+            depthCompareFunction: .greater,
+            depthEnabled: false,
+            reverseZCompatible: false,
+            blendMode: .additive,
+            name: "Custom Scene Pipeline"
+        )
+    }
+
+    func buildGraph(
+        _: inout RenderGraphBuilder,
+        context _: RenderGraphBuildContext
+    ) {}
 }
 
 private final class TestDeclarativePipelineExtension: RenderExtension, @unchecked Sendable {
@@ -93,6 +133,73 @@ private final class TestFailedCallbackPipelineExtension: RenderExtension, @unche
 }
 
 final class RenderExtensionPipelineDescriptorTest: BaseRenderSetup {
+    func testScenePipelineResolvesEngineFormatsAndForwardsConfiguration() throws {
+        let creator = TestRenderExtensionPipelineCreator()
+        let previousCreator = RenderExtensionPipelineCreator.shared.replaceForTesting(creator)
+        defer { _ = RenderExtensionPipelineCreator.shared.replaceForTesting(previousCreator) }
+        let renderExtension = TestScenePipelineExtension(library: renderInfo.library)
+
+        XCTAssertEqual(RenderExtensionRegistry.shared.register(renderExtension), .registered)
+
+        let descriptor = try XCTUnwrap(creator.renderDescriptors.last)
+        XCTAssertEqual(descriptor.id, renderExtension.pipelineID)
+        XCTAssertEqual(descriptor.vertexFunction, "vertexCompositeShader")
+        XCTAssertEqual(descriptor.fragmentFunction, "fragmentCompositeShader")
+        XCTAssertEqual(descriptor.colorFormats, [renderInfo.colorPipeline.working.sceneColor])
+        XCTAssertEqual(descriptor.depthFormat, renderInfo.depthPixelFormat)
+        XCTAssertTrue(descriptor.vertexDescriptor === renderExtension.vertexDescriptor)
+        XCTAssertEqual(descriptor.depthCompareFunction, .greater)
+        XCTAssertFalse(descriptor.depthEnabled)
+        XCTAssertFalse(descriptor.reverseZCompatible)
+        XCTAssertEqual(descriptor.blendMode, .additive)
+        XCTAssertEqual(descriptor.name, "Custom Scene Pipeline")
+        if case let .registered(id) = descriptor.vertexShaderLibrary {
+            XCTAssertEqual(id, renderExtension.libraryID)
+        } else {
+            XCTFail("Expected the registered vertex shader library")
+        }
+        if case let .registered(id) = descriptor.fragmentShaderLibrary {
+            XCTAssertEqual(id, renderExtension.libraryID)
+        } else {
+            XCTFail("Expected the registered fragment shader library")
+        }
+        XCTAssertNotNil(RenderPipelineAccess().pipeline(renderExtension.pipelineID))
+
+        setRendering(.extensions(.unregister(renderExtension.id)))
+
+        XCTAssertNil(RenderPipelineAccess().pipeline(renderExtension.pipelineID))
+        XCTAssertNil(RenderShaderLibraryManager.shared.library(renderExtension.libraryID))
+    }
+
+    func testScenePipelineDefaultsSupportDepthAndReverseZWithoutVertexDescriptor() throws {
+        let creator = TestRenderExtensionPipelineCreator()
+        let previousCreator = RenderExtensionPipelineCreator.shared.replaceForTesting(creator)
+        defer { _ = RenderExtensionPipelineCreator.shared.replaceForTesting(previousCreator) }
+        let pipelineID: RenderPipelineType = "com.untold.scene-pipeline.defaults"
+        let ownerID = "com.untold.scene-pipeline.defaults-owner"
+        defer { PipelineManager.shared.removePipelines(ownerID: ownerID) }
+
+        let report = PipelineManager.shared.registerPipelines(ownerID: ownerID) { registry in
+            registry.registerScenePipeline(
+                pipelineID,
+                vertexShader: "vertexCompositeShader",
+                fragmentShader: "fragmentCompositeShader",
+                name: "Default Scene Pipeline"
+            )
+        }
+
+        XCTAssertTrue(report.conflicts.isEmpty)
+        XCTAssertTrue(report.errors.isEmpty)
+        let descriptor = try XCTUnwrap(creator.renderDescriptors.last)
+        XCTAssertNil(descriptor.vertexDescriptor)
+        XCTAssertEqual(descriptor.depthCompareFunction, .lessEqual)
+        XCTAssertTrue(descriptor.depthEnabled)
+        XCTAssertTrue(descriptor.reverseZCompatible)
+        XCTAssertEqual(descriptor.blendMode, .none)
+        XCTAssertEqual(descriptor.colorFormats, [renderInfo.colorPipeline.working.sceneColor])
+        XCTAssertEqual(descriptor.depthFormat, renderInfo.depthPixelFormat)
+    }
+
     func testValidDeclarativeRenderAndComputePipelinesRegister() {
         let creator = TestRenderExtensionPipelineCreator()
         let previousCreator = RenderExtensionPipelineCreator.shared.replaceForTesting(creator)
