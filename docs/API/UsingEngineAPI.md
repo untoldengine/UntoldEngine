@@ -214,8 +214,9 @@ let controller = getGameControllerState()
 registerTouchEvents(view: view)
 unregisterTouchEvents()
 
-// Query (game controller detection is automatic)
-let controller = getGameControllerState()
+// Query
+let touch = getIOSTouchState()
+let controller = getGameControllerState()   // game controller detection is automatic
 ```
 
 ## Input (XR)

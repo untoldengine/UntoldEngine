@@ -13,6 +13,9 @@ import simd
 #if os(macOS)
     import AppKit
 #endif
+#if os(iOS)
+    import UIKit
+#endif
 
 public struct GameControllerState {
     public var aPressed = false
@@ -69,6 +72,13 @@ public final class InputSystem: @unchecked Sendable {
     var psvr2LeftTrigger: GCDualSenseAdaptiveTrigger?
     var psvr2RightTrigger: GCDualSenseAdaptiveTrigger?
     var psvr2Motion: GCMotion?
+
+    public var iosTouchState = IOSTouchState()
+
+    #if os(iOS)
+        var iosTouchGestureRecognizers: [UIGestureRecognizer] = []
+        weak var iosTouchView: UIView?
+    #endif
 
     // Shared state
     public var currentPanGestureState: PanGestureState?

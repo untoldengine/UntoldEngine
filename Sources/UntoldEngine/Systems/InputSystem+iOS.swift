@@ -12,138 +12,168 @@
     import UIKit
 #endif
 
+// MARK: - iOS Touch State
+
+/// Dedicated state for iOS touch gestures. Populated only when running on iOS;
+/// all fields stay at their default values on other platforms.
+public struct IOSTouchState {
+    // Single-finger drag
+    public var isDragging = false
+    public var dragX: Float = 0
+    public var dragY: Float = 0
+    public var dragDeltaX: Float = 0
+    public var dragDeltaY: Float = 0
+    public var dragGestureState: PanGestureState?
+
+    // Tap — brief pulse; auto-clears after ~0.1 s
+    public var tapped = false
+    public var tapX: Float = 0
+    public var tapY: Float = 0
+
+    // Double tap — brief pulse; auto-clears after ~0.1 s
+    public var doubleTapped = false
+    public var doubleTapX: Float = 0
+    public var doubleTapY: Float = 0
+
+    // Two-finger pan
+    public var twoFingerPanning = false
+    public var twoFingerDeltaX: Float = 0
+    public var twoFingerDeltaY: Float = 0
+
+    // Pinch — pinchScaleDelta is the change in scale per frame (positive = spreading)
+    public var isPinching = false
+    public var pinchScaleDelta: Float = 0
+
+    public init() {}
+}
+
+// MARK: - InputSystem iOS Extension
+
 public extension InputSystem {
     #if !os(iOS)
         func registerTouchEvents(view _: Any) {}
         func unregisterTouchEvents() {}
     #else
         func registerTouchEvents(view: UIView) {
-            // Pan gesture (single finger drag - equivalent to mouse drag)
-            let panGesture = UIPanGestureRecognizer(target: self, action: #selector(handlePanGesture(_:)))
-            panGesture.minimumNumberOfTouches = 1
-            panGesture.maximumNumberOfTouches = 1
-            view.addGestureRecognizer(panGesture)
+            iosTouchView = view
 
-            // Two-finger pan (for camera movement/orbiting)
+            let pan = UIPanGestureRecognizer(target: self, action: #selector(handlePanGesture(_:)))
+            pan.minimumNumberOfTouches = 1
+            pan.maximumNumberOfTouches = 1
+            view.addGestureRecognizer(pan)
+            iosTouchGestureRecognizers.append(pan)
+
             let twoFingerPan = UIPanGestureRecognizer(target: self, action: #selector(handleTwoFingerPan(_:)))
             twoFingerPan.minimumNumberOfTouches = 2
             twoFingerPan.maximumNumberOfTouches = 2
             view.addGestureRecognizer(twoFingerPan)
+            iosTouchGestureRecognizers.append(twoFingerPan)
 
-            // Pinch gesture (for zooming)
-            let pinchGesture = UIPinchGestureRecognizer(target: self, action: #selector(handlePinchGesture(_:)))
-            view.addGestureRecognizer(pinchGesture)
+            let pinch = UIPinchGestureRecognizer(target: self, action: #selector(handlePinchGesture(_:)))
+            view.addGestureRecognizer(pinch)
+            iosTouchGestureRecognizers.append(pinch)
 
-            // Tap gesture (for selection/interaction)
-            let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTapGesture(_:)))
-            view.addGestureRecognizer(tapGesture)
+            let tap = UITapGestureRecognizer(target: self, action: #selector(handleTapGesture(_:)))
+            view.addGestureRecognizer(tap)
+            iosTouchGestureRecognizers.append(tap)
 
-            // Double tap gesture
-            let doubleTapGesture = UITapGestureRecognizer(target: self, action: #selector(handleDoubleTapGesture(_:)))
-            doubleTapGesture.numberOfTapsRequired = 2
-            view.addGestureRecognizer(doubleTapGesture)
+            let doubleTap = UITapGestureRecognizer(target: self, action: #selector(handleDoubleTapGesture(_:)))
+            doubleTap.numberOfTapsRequired = 2
+            view.addGestureRecognizer(doubleTap)
+            iosTouchGestureRecognizers.append(doubleTap)
 
-            // Make sure single tap doesn't conflict with double tap
-            tapGesture.require(toFail: doubleTapGesture)
+            // Single tap must wait for the double-tap recognizer to fail first
+            tap.require(toFail: doubleTap)
         }
 
-        // MARK: - Pan Gesture (Single Finger)
+        func unregisterTouchEvents() {
+            for recognizer in iosTouchGestureRecognizers {
+                iosTouchView?.removeGestureRecognizer(recognizer)
+            }
+            iosTouchGestureRecognizers.removeAll()
+            iosTouchView = nil
+            iosTouchState = IOSTouchState()
+        }
+
+        // MARK: - Single-finger drag
 
         @objc private func handlePanGesture(_ gesture: UIPanGestureRecognizer) {
             guard let view = gesture.view else { return }
-
             let location = gesture.location(in: view)
-            let translation = gesture.translation(in: view)
 
             switch gesture.state {
             case .began:
-                currentPanGestureState = .began
-                initialPanLocation = location
-                lastMouseX = Float(location.x)
-                lastMouseY = Float(location.y)
-                mouseX = lastMouseX
-                mouseY = lastMouseY
-                mouseActive = true
+                iosTouchState.isDragging = true
+                iosTouchState.dragGestureState = .began
+                iosTouchState.dragX = Float(location.x)
+                iosTouchState.dragY = Float(location.y)
+                iosTouchState.dragDeltaX = 0
+                iosTouchState.dragDeltaY = 0
 
             case .changed:
-                currentPanGestureState = .changed
-                lastMouseX = mouseX
-                lastMouseY = mouseY
-                mouseX = Float(location.x)
-                mouseY = Float(location.y)
-
-                mouseDeltaX = Float(translation.x)
-                mouseDeltaY = Float(translation.y)
-
-                panDelta.x = Float(translation.x)
-                panDelta.y = Float(translation.y)
-
-                // Reset translation to get delta for next frame
+                let translation = gesture.translation(in: view)
+                iosTouchState.dragGestureState = .changed
+                iosTouchState.dragX = Float(location.x)
+                iosTouchState.dragY = Float(location.y)
+                iosTouchState.dragDeltaX = Float(translation.x)
+                iosTouchState.dragDeltaY = Float(translation.y)
                 gesture.setTranslation(.zero, in: view)
 
             case .ended, .cancelled:
-                currentPanGestureState = .ended
-                mouseActive = false
-                mouseDeltaX = 0
-                mouseDeltaY = 0
-                panDelta = .init(0, 0)
+                iosTouchState.isDragging = false
+                iosTouchState.dragGestureState = .ended
+                iosTouchState.dragDeltaX = 0
+                iosTouchState.dragDeltaY = 0
 
             default:
                 break
             }
         }
 
-        // MARK: - Two-Finger Pan (Camera Orbit)
+        // MARK: - Two-finger pan
 
         @objc private func handleTwoFingerPan(_ gesture: UIPanGestureRecognizer) {
             guard let view = gesture.view else { return }
 
-            let translation = gesture.translation(in: view)
-
             switch gesture.state {
             case .began:
-                cameraControlMode = .orbiting
-                currentPanGestureState = .began
+                iosTouchState.twoFingerPanning = true
+                iosTouchState.twoFingerDeltaX = 0
+                iosTouchState.twoFingerDeltaY = 0
 
             case .changed:
-                currentPanGestureState = .changed
-                panDelta.x = Float(translation.x)
-                panDelta.y = Float(translation.y)
-
-                // Reset translation for next frame
+                let translation = gesture.translation(in: view)
+                iosTouchState.twoFingerDeltaX = Float(translation.x)
+                iosTouchState.twoFingerDeltaY = Float(translation.y)
                 gesture.setTranslation(.zero, in: view)
 
             case .ended, .cancelled:
-                currentPanGestureState = .ended
-                cameraControlMode = .idle
-                panDelta = .init(0, 0)
+                iosTouchState.twoFingerPanning = false
+                iosTouchState.twoFingerDeltaX = 0
+                iosTouchState.twoFingerDeltaY = 0
 
             default:
                 break
             }
         }
 
-        // MARK: - Pinch Gesture (Zoom)
+        // MARK: - Pinch
 
         @objc private func handlePinchGesture(_ gesture: UIPinchGestureRecognizer) {
             switch gesture.state {
             case .began:
-                currentPinchGestureState = .began
+                iosTouchState.isPinching = true
+                iosTouchState.pinchScaleDelta = 0
                 previousScale = gesture.scale
 
             case .changed:
-                currentPinchGestureState = .changed
-                let currentScale = gesture.scale
-                let scaleDelta = currentScale - previousScale
-
-                // Update pinch delta for zoom
-                pinchDelta.z = Float(scaleDelta)
-
-                previousScale = currentScale
+                let current = gesture.scale
+                iosTouchState.pinchScaleDelta = Float(current - previousScale)
+                previousScale = current
 
             case .ended, .cancelled:
-                currentPinchGestureState = .ended
-                pinchDelta = .init(0, 0, 0)
+                iosTouchState.isPinching = false
+                iosTouchState.pinchScaleDelta = 0
                 previousScale = 1.0
 
             default:
@@ -151,32 +181,30 @@ public extension InputSystem {
             }
         }
 
-        // MARK: - Tap Gestures
+        // MARK: - Tap
 
         @objc private func handleTapGesture(_ gesture: UITapGestureRecognizer) {
             guard let view = gesture.view else { return }
             let location = gesture.location(in: view)
-
-            mouseX = Float(location.x)
-            mouseY = Float(location.y)
-
-            // Simulate a quick mouse press/release
-            keyState.leftMousePressed = true
-            // You might want to add a delegate method here to notify about tap
+            iosTouchState.tapX = Float(location.x)
+            iosTouchState.tapY = Float(location.y)
+            iosTouchState.tapped = true
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-                self?.keyState.leftMousePressed = false
+                self?.iosTouchState.tapped = false
             }
         }
+
+        // MARK: - Double tap
 
         @objc private func handleDoubleTapGesture(_ gesture: UITapGestureRecognizer) {
             guard let view = gesture.view else { return }
             let location = gesture.location(in: view)
-
-            mouseX = Float(location.x)
-            mouseY = Float(location.y)
-
-            // You can add custom double-tap handling here
-            // For example, reset camera or select entity
+            iosTouchState.doubleTapX = Float(location.x)
+            iosTouchState.doubleTapY = Float(location.y)
+            iosTouchState.doubleTapped = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+                self?.iosTouchState.doubleTapped = false
+            }
         }
     #endif
 }
