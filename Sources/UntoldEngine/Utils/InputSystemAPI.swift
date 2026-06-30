@@ -122,6 +122,10 @@ public func getGameControllerState() -> GameControllerState {
     InputSystem.shared.gameControllerState
 }
 
+public func getIOSTouchState() -> IOSTouchState {
+    InputSystem.shared.iosTouchState
+}
+
 // MARK: - Spatial Manipulation Config (visionOS)
 
 #if os(visionOS)

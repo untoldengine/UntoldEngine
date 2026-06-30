@@ -118,11 +118,11 @@ Call `unregisterKeyboardEvents()` to stop receiving keyboard events (e.g. when l
 
 ## How to Use the Input System (iOS)
 
-On iOS, the engine maps standard UIKit gesture recognizers to the same shared input state used on other platforms, so your `handleInput` code stays familiar regardless of target.
+On iOS, the engine registers UIKit gesture recognizers against your game view and writes all touch output into a dedicated `IOSTouchState` struct. This keeps iOS input separate from keyboard and mouse state and gives each gesture its own clearly named fields.
 
 ### Step 1: Register touch events
 
-Pass in your game view once during setup:
+Pass your game view once during setup:
 
 ```swift
 func gameInit(view: UIView) {
@@ -130,48 +130,51 @@ func gameInit(view: UIView) {
 }
 ```
 
-Call `unregisterTouchEvents()` to remove the gesture recognizers when no longer needed.
+Call `unregisterTouchEvents()` to remove the gesture recognizers when no longer needed (e.g. when leaving the game scene).
 
 ### Step 2: Read gesture state per frame
 
-The engine registers five gesture recognizers and writes their output into shared input fields:
+Call `getIOSTouchState()` each frame to get a snapshot of all active gestures:
 
-| Gesture | What it maps to |
+| Gesture | Fields populated |
 |---|---|
-| Single-finger drag | `mouseX`, `mouseY`, `mouseDeltaX`, `mouseDeltaY`, `mouseActive` |
-| Tap | `keyState.leftMousePressed` (brief pulse) |
-| Two-finger pan | `panDelta.x / .y`, `cameraControlMode` (`.orbiting` while active) |
-| Pinch | `pinchDelta.z` (scale delta per frame), `currentPinchGestureState` |
-| Double tap | position updated in `mouseX` / `mouseY` — add custom logic as needed |
+| Single-finger drag | `isDragging`, `dragX`, `dragY`, `dragDeltaX`, `dragDeltaY`, `dragGestureState` |
+| Tap (single) | `tapped` (brief pulse), `tapX`, `tapY` |
+| Double tap | `doubleTapped` (brief pulse), `doubleTapX`, `doubleTapY` |
+| Two-finger pan | `twoFingerPanning`, `twoFingerDeltaX`, `twoFingerDeltaY` |
+| Pinch | `isPinching`, `pinchScaleDelta` (change in scale per frame; positive = spreading) |
 
 ```swift
 func handleInput() {
     if gameMode == false { return }
 
-    let input = InputSystem.shared
+    let touch = getIOSTouchState()
 
-    // Single-finger drag — equivalent to a mouse drag on macOS
-    if input.mouseActive {
-        Logger.log(message: "Touch dragging at (\(input.mouseX), \(input.mouseY))")
-        Logger.log(message: "Delta: (\(input.mouseDeltaX), \(input.mouseDeltaY))")
+    // Single-finger drag
+    if touch.isDragging {
+        Logger.log(message: "Dragging at (\(touch.dragX), \(touch.dragY))")
+        Logger.log(message: "Delta: (\(touch.dragDeltaX), \(touch.dragDeltaY))")
+    }
+
+    // Tap
+    if touch.tapped {
+        Logger.log(message: "Tapped at (\(touch.tapX), \(touch.tapY))")
+    }
+
+    // Double tap
+    if touch.doubleTapped {
+        Logger.log(message: "Double-tapped at (\(touch.doubleTapX), \(touch.doubleTapY))")
+    }
+
+    // Two-finger pan
+    if touch.twoFingerPanning {
+        Logger.log(message: "Two-finger pan delta: (\(touch.twoFingerDeltaX), \(touch.twoFingerDeltaY))")
     }
 
     // Pinch to zoom
-    if input.currentPinchGestureState == .changed {
-        let zoomDelta = input.pinchDelta.z
-        // apply zoom using zoomDelta...
-    }
-
-    // Two-finger pan — camera orbit
-    if input.cameraControlMode == .orbiting {
-        let delta = input.panDelta
-        // apply orbit using delta.x / delta.y...
-    }
-
-    // Tap — brief leftMousePressed pulse, same as a mouse click
-    let keys = getKeyboardState()
-    if keys.leftMousePressed {
-        Logger.log(message: "Tapped at (\(input.mouseX), \(input.mouseY))")
+    if touch.isPinching {
+        let zoom = touch.pinchScaleDelta
+        // apply zoom...
     }
 }
 ```
@@ -182,17 +185,29 @@ func handleInput() {
 func handleInput() {
     if gameMode == false { return }
 
-    let input = InputSystem.shared
+    let touch = getIOSTouchState()
 
-    guard input.mouseActive else { return }
+    guard touch.isDragging else { return }
 
     var position = simd_float3(0, 0, 0)
-    position.x += input.mouseDeltaX * 0.01
-    position.z += input.mouseDeltaY * 0.01
+    position.x += touch.dragDeltaX * 0.01
+    position.z += touch.dragDeltaY * 0.01
 
     translateTo(entityId: myEntity, position: position)
 }
 ```
+
+### Available IOSTouchState fields
+
+| Group | Fields |
+|---|---|
+| Single-finger drag | `isDragging`, `dragX`, `dragY`, `dragDeltaX`, `dragDeltaY`, `dragGestureState` |
+| Tap | `tapped`, `tapX`, `tapY` |
+| Double tap | `doubleTapped`, `doubleTapX`, `doubleTapY` |
+| Two-finger pan | `twoFingerPanning`, `twoFingerDeltaX`, `twoFingerDeltaY` |
+| Pinch | `isPinching`, `pinchScaleDelta` |
+
+`tapped` and `doubleTapped` are brief pulses — they auto-clear after ~0.1 s so you don't need to reset them manually. `dragDeltaX/Y` and `twoFingerDeltaX/Y` are reset to zero at the end of each gesture, so no manual reset is needed there either.
 
 ---
 
