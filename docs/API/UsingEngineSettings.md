@@ -36,80 +36,6 @@ setRendering(.extensions(.unregister("water")))
 setRendering(.extensions(.removeAll))
 ```
 
-The engine includes a minimal opt-in sample extension:
-
-```swift
-setRendering(.extensions(.register(SampleRenderExtension())))
-```
-
-`SampleRenderExtension` allocates a viewport-sized scratch texture and clears it
-from a staged pass without changing the final frame. It is intended as a compact
-reference implementation for extension authors.
-
-For a full extension authoring guide, see
-[Rendering Extensions](UsingRenderingExtensions.md).
-
-Rendering extensions can register custom render pipelines, custom compute
-pipelines, staged render graph passes, and render textures that are recreated
-with the renderer viewport. Stable stage anchors currently include:
-
-```swift
-.afterOpaqueLighting
-.beforeTransparency
-.afterTransparency
-.beforePostProcess
-.afterPostProcess
-.beforeComposite
-.beforeLook
-.beforeOutput
-```
-
-Extensions should target these stages instead of depending on internal pass names
-such as `"lightPass"` or `"precomp"`.
-
-Texture resources are declared by the extension:
-
-```swift
-final class WaterRenderExtension: RenderExtension {
-    let id = "water"
-
-    func registerComputePipelines(_ registry: ComputePipelineRegistry) {
-        registry.registerComputePipeline(
-            "water.simulation",
-            functionName: "waterSimulationKernel",
-            pipelineName: "Water Simulation"
-        )
-    }
-
-    func registerResources(_ registry: RenderResourceRegistry) {
-        registry.registerTexture(RenderExtensionTextureDescriptor(
-            id: "water.reflection",
-            size: .viewportScale(1.0),
-            pixelFormat: .rgba16Float,
-            usage: [.renderTarget, .shaderRead]
-        ))
-    }
-
-    func buildGraph(_ builder: inout RenderGraphBuilder, context: RenderGraphBuildContext) {
-        builder.addPass(
-            id: "water.surface",
-            stage: .beforePostProcess,
-            resources: [.texture("water.reflection", access: .read)]
-        ) { context in
-            let reflection = context.resources.texture("water.reflection")
-            let simulation = context.computePipelines.pipeline("water.simulation")
-            // Encode water rendering commands.
-        }
-    }
-}
-```
-
-Outside a render pass, query extension resources through the public resource API:
-
-```swift
-let reflection = getRenderResource(.texture("water.reflection"))
-```
-
 Wireframe parameters can also be configured through the same domain:
 
 ```swift
@@ -285,6 +211,25 @@ let state = getXRSpatialInputState()
 let ready = isXRSceneReady()
 ```
 
+## Input (PSVR2 Sense)
+
+```swift
+// Config
+setInput(.psvr2(.motionEnabled(true)))
+setInput(.psvr2(.leftTriggerEffect(.weapon(startPosition: 0.2, endPosition: 0.8, strength: 1.0))))
+setInput(.psvr2(.leftTriggerEffect(.feedback(startPosition: 0.3, strength: 0.7))))
+setInput(.psvr2(.leftTriggerEffect(.vibration(startPosition: 0.0, amplitude: 0.5, frequency: 15.0))))
+setInput(.psvr2(.leftTriggerEffect(.slopeFeedback(startPosition: 0.1, endPosition: 0.9, startStrength: 0.2, endStrength: 1.0))))
+setInput(.psvr2(.leftTriggerEffect(.off)))
+setInput(.psvr2(.rightTriggerEffect(.weapon(startPosition: 0.2, endPosition: 0.8, strength: 1.0))))
+
+// Query
+let state = getPSVR2SenseState()
+let connected = isPSVR2SenseConnected()
+```
+
+All position and strength values in `PSVR2TriggerEffect` are normalized to `[0, 1]`. Effects take effect immediately when a controller is connected; calls are silently ignored when no controller is paired. Motion data (`state.motionGravityX/Y/Z`, `state.motionRotationRateX/Y/Z`) is only populated when `motionEnabled` is `true`.
+
 ## Spatial Manipulation (visionOS)
 
 Use `setSpatialManipulation` for tuning thresholds and behaviour:
@@ -404,6 +349,7 @@ setSpatialDebug(.newProperty(value))
 setLogger(.newProperty(value))
 setCamera(.newProperty(value))
 setInput(.xr(.newProperty(value)))
+setInput(.psvr2(.newProperty(value)))
 setSpatialManipulation(.newProperty(value))
 setLight(entityId: entity, .lightType(.newProperty(value)))
 setSceneChannel(.contextGeometry, .renderMode(.wireframe))

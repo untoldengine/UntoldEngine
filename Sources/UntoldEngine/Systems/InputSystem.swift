@@ -64,6 +64,11 @@ public final class InputSystem: @unchecked Sendable {
     public var keyState = KeyState()
     public var gameControllerState = GameControllerState()
     public var currentGameController: GCExtendedGamepad?
+    public var psvr2SenseControllerState = PSVR2SenseControllerState()
+    public var psvr2MotionEnabled = false
+    var psvr2LeftTrigger: GCDualSenseAdaptiveTrigger?
+    var psvr2RightTrigger: GCDualSenseAdaptiveTrigger?
+    var psvr2Motion: GCMotion?
 
     // Shared state
     public var currentPanGestureState: PanGestureState?
@@ -106,12 +111,14 @@ public final class InputSystem: @unchecked Sendable {
         guard let controller = note.object as? GCController, let gameController = controller.extendedGamepad else { return }
         currentGameController = gameController
         configureGameControllerHandlers(gameController)
+        configurePSVR2IfNeeded(controller)
         Logger.log(message: "Game Controller \(controller.vendorName ?? "unknown vendor") connected and Configured")
     }
 
     @objc private func controllerDidDisconnect(_ note: Notification) {
         guard let controller = note.object as? GCController else { return }
         if currentGameController === controller.extendedGamepad { currentGameController = nil }
+        clearPSVR2IfNeeded(controller)
         Logger.log(message: "Game Controller \(controller.vendorName ?? "unknown vendor") disconnected")
     }
 
