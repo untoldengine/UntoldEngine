@@ -54,25 +54,25 @@ untoldengine-create --help
 # Create a macOS project
 cd ~/anywhere
 mkdir MyGame && cd MyGame
-untoldengine-create create MyGame
+untoldengine-create MyGame
 
 # Create an iOS project
 mkdir MobileGame && cd MobileGame
-untoldengine-create create MobileGame --platform ios --bundle-id com.company.game
+untoldengine-create MobileGame --platform ios --bundle-id com.company.game
 
 # Create a visionOS project
-untoldengine-create create VRGame --platform visionos
+untoldengine-create VRGame --platform visionos
 
 # Create a multi-platform project (macOS, iOS, visionOS)
 mkdir CrossPlatformGame && cd CrossPlatformGame
-untoldengine-create create CrossPlatformGame --platform multi --team-id YOUR_TEAM_ID
+untoldengine-create CrossPlatformGame --platform multi --team-id YOUR_TEAM_ID
 ```
 
 ## Commands
 
-### `create` - Create a new project
+### Project creation (root command)
 
-Creates a new UntoldEngine game project with the specified configuration.
+Pass the project name as the first argument to create a new UntoldEngine game project.
 
 **Arguments:**
 - `projectName` - Name of the project to create
@@ -93,18 +93,18 @@ Creates a new UntoldEngine game project with the specified configuration.
 ```bash
 # Create macOS project in current directory
 mkdir MyGame && cd MyGame
-untoldengine-create create MyGame
+untoldengine-create MyGame
 
 # Create iOS AR project
 mkdir ARGame && cd ARGame
-untoldengine-create create ARGame --platform ios-ar --bundle-id com.company.argame
+untoldengine-create ARGame --platform ios-ar --bundle-id com.company.argame
 
 # Create visionOS project with custom output
-untoldengine-create create VRGame --platform visionos --output ~/Projects
+untoldengine-create VRGame --platform visionos --output ~/Projects
 
 # Create multi-platform project
 mkdir MultiGame && cd MultiGame
-untoldengine-create create MultiGame --platform multi --team-id ABCD1234EF
+untoldengine-create MultiGame --platform multi --team-id ABCD1234EF
 ```
 
 ### `update` - Update an existing project

@@ -43,7 +43,7 @@ create a Vision Pro project.
 
 ```bash
 cd ~/Projects
-untoldengine-create create VisionGame --platform visionos
+untoldengine-create VisionGame --platform visionos
 open VisionGame/VisionGame.xcodeproj
 ```
 
@@ -53,16 +53,16 @@ If you want to create a project for other platforms, you can use the flags below
 
 ```bash
 # visionOS (Apple Vision Pro)
-untoldengine-create create MyGame --platform visionos
+untoldengine-create MyGame --platform visionos
 
 # macOS (default)
-untoldengine-create create MyGame --platform macos
+untoldengine-create MyGame --platform macos
 
 # iOS with ARKit
-untoldengine-create create MyGame --platform ios-ar
+untoldengine-create MyGame --platform ios-ar
 
 # iOS
-untoldengine-create create MyGame --platform ios
+untoldengine-create MyGame --platform ios
 ```
 
 Dependency behavior by platform:

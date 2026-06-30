@@ -52,7 +52,7 @@ Run from the parent directory — the CLI creates the project folder for you:
 
 ```bash
 cd ~/Downloads
-untoldengine-create create MyGame
+untoldengine-create MyGame
 ```
 
 ### Platform Options
@@ -67,19 +67,19 @@ untoldengine-create create MyGame
 
 ```bash
 # macOS project (default)
-untoldengine-create create MyGame --platform macos
+untoldengine-create MyGame --platform macos
 
 # iOS project
-untoldengine-create create MyGame --platform ios --bundle-id com.company.mygame
+untoldengine-create MyGame --platform ios --bundle-id com.company.mygame
 
 # iOS with ARKit
-untoldengine-create create ARGame --platform ios-ar --bundle-id com.company.argame
+untoldengine-create ARGame --platform ios-ar --bundle-id com.company.argame
 
 # visionOS / Apple Vision Pro
-untoldengine-create create VisionGame --platform visionos
+untoldengine-create VisionGame --platform visionos
 
 # Multi-platform (macOS, iOS, visionOS) — Team ID required for signing
-untoldengine-create create CrossGame --platform multi --team-id ABCD1234EF
+untoldengine-create CrossGame --platform multi --team-id ABCD1234EF
 ```
 
 ### All Options
