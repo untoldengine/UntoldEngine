@@ -71,6 +71,23 @@ Dependency behavior by platform:
 - `ios-ar`: `UntoldEngineAR`
 - `ios` and `macos`: `UntoldEngine`
 
+## Get Starter Assets
+
+Once your project is created, install the Starter Asset Pack directly from the CLI:
+
+```bash
+cd MyGame
+untoldengine assets install starter
+```
+
+The Starter Pack includes a stadium, a ball, and two soccer players — enough to have something running immediately. The CLI downloads the pack and merges its contents into your project's `GameData` folder automatically. If a file already exists you will be prompted before it is overwritten.
+
+To see all available asset packs:
+
+```bash
+untoldengine assets list
+```
+
 ## Native Asset Format: `.untold`
 
 Untold Engine uses `.untold` as its native runtime asset format. USDZ/USD remains

@@ -1,0 +1,13 @@
+{
+  "version": "1.0.0",
+  "assets": [
+    {
+      "id": "starter",
+      "name": "Starter Assets",
+      "description": "Soccer field, goals, ball, and a sample scene.",
+      "version": "1.0.0",
+      "downloadURL": "https://d8pyi1c08k1w.cloudfront.net/StarterPack.zip",
+      "size": "108 MB"
+    }
+  ]
+}
