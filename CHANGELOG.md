@@ -1,4 +1,20 @@
 # Changelog
+## v0.14.0 - 2026-07-01
+### 🐞 Fixes
+- [Patch] Implemented rendering extensions v1 (84465de…)
+- [Patch] Implemented argument buffers for rendering extensions (884bf2c…)
+- [Patch] Complete rendering extension graph and plugin architecture (1dafc3b…)
+- [Patch] Updated the create project cli (45fa19b…)
+- [Patch] Added helper functions to input system (3001cb2…)
+- [Patch] Fixed ios input system (cd0acce…)
+- [Patch] Fixed Rendering Extensions (2f0531c…)
+- [Patch] Fixed PSVR2 API (7772952…)
+- [Patch] Modified the CLI create command (86a6a3b…)
+### 📚 Docs
+- [Docs] Updated architecture documentation (7699900…)
+- [Docs] Cleaning up the docs (9fdddb0…)
+### 🚀 Features
+- [Feature] Added psvr2 support (69d927e…)
 ## v0.13.3 - 2026-06-25
 ### 🐞 Fixes
 - [Patch] Add vision light probes (b2d1ff9…)
