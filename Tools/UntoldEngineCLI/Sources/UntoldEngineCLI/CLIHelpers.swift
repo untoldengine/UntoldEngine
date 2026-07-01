@@ -162,6 +162,36 @@ func generateBundleIdentifier(projectName: String) -> String {
     return "com.untoldengine.\(sanitized)"
 }
 
+// MARK: - GameData Discovery
+
+/// Searches `startingAt` and up to `depth` levels of subdirectories for a `GameData` folder.
+/// Skips hidden directories and `.build` to avoid slow traversal of tooling artifacts.
+func findGameDataDirectory(startingAt url: URL, depth: Int = 3) -> [URL] {
+    let fm = FileManager.default
+
+    let candidate = url.appendingPathComponent("GameData")
+    var isDir: ObjCBool = false
+    if fm.fileExists(atPath: candidate.path, isDirectory: &isDir), isDir.boolValue {
+        return [candidate]
+    }
+
+    guard depth > 0,
+          let contents = try? fm.contentsOfDirectory(at: url, includingPropertiesForKeys: [.isDirectoryKey])
+    else { return [] }
+
+    var results: [URL] = []
+    for item in contents {
+        let name = item.lastPathComponent
+        guard !name.hasPrefix("."), name != "build" else { continue }
+        var itemIsDir: ObjCBool = false
+        fm.fileExists(atPath: item.path, isDirectory: &itemIsDir)
+        if itemIsDir.boolValue {
+            results += findGameDataDirectory(startingAt: item, depth: depth - 1)
+        }
+    }
+    return results
+}
+
 // MARK: - Interactive Prompts
 
 /// Prompts the user for input with a default value
