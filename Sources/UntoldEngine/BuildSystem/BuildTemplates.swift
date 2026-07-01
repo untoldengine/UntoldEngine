@@ -1422,6 +1422,21 @@ import Foundation
             </array>
             <key>NSWorldSensingUsageDescription</key>
             <string>{{PROJECT_NAME}} uses world sensing to provide immersive AR experiences.</string>
+            <key>NSAccessoryTrackingUsageDescription</key>
+            <string>{{PROJECT_NAME}} tracks spatial game controllers for immersive gameplay.</string>
+            <key>GCSupportsControllerUserInteraction</key>
+            <true/>
+            <key>GCSupportedGameControllers</key>
+            <array>
+                <dict>
+                    <key>ProfileName</key>
+                    <string>SpatialGamepad</string>
+                </dict>
+                <dict>
+                    <key>ProfileName</key>
+                    <string>ExtendedGamepad</string>
+                </dict>
+            </array>
         </dict>
         </plist>
         """

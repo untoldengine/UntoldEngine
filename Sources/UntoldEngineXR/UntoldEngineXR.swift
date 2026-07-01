@@ -54,6 +54,7 @@
         private let spatialGestureRecognizer = XRSpatialGestureRecognizer()
         private let xrEnvironmentLightingSystem = XREnvironmentLightingSystem()
         private var runtimeLightingModeObserverId: UUID?
+        private var psvr2TrackingObserver: NSObjectProtocol?
 
         /// Task handle for the plane-update monitor so we can cancel it on shutdown.
         private var planeMonitorTask: Task<Void, Never>?
@@ -80,11 +81,15 @@
             if let runtimeLightingModeObserverId {
                 RuntimeEnvironmentLightingStore.shared.removeLightingModeChangeObserver(runtimeLightingModeObserverId)
             }
+            if let psvr2TrackingObserver {
+                NotificationCenter.default.removeObserver(psvr2TrackingObserver)
+            }
         }
 
         @MainActor
         public func initUntoldXR(device: MTLDevice, commandQueue: MTLCommandQueue, layerRenderer: LayerRenderer) {
             configureSpatialEventBridge()
+            configurePSVR2TrackingObserver()
             registerRuntimeLightingModeObserverIfNeeded()
             applyXRLightingMode(RuntimeEnvironmentLightingStore.shared.mode)
 
@@ -224,6 +229,17 @@
             }
         }
 
+        private func configurePSVR2TrackingObserver() {
+            guard psvr2TrackingObserver == nil else { return }
+            psvr2TrackingObserver = NotificationCenter.default.addObserver(
+                forName: .psvr2AccessoryTrackingConfigurationDidChange,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                self?.scheduleARKitProviderRun(reason: "PSVR2 accessory configuration changed")
+            }
+        }
+
         public func start() {
             if renderer == nil {
                 return
@@ -353,6 +369,13 @@
                     if let lightingProvider = xrEnvironmentLightingSystem.providerForSession {
                         providers.append(lightingProvider)
                         providerNames.append("EnvironmentLightingProvider")
+                    }
+
+                    if #available(visionOS 26.0, *),
+                       let accessoryProvider = InputSystem.shared.psvr2AccessoryTrackingProvider
+                    {
+                        providers.append(accessoryProvider)
+                        providerNames.append("PSVR2 AccessoryTrackingProvider")
                     }
 
                     let providerList = providerNames.joined(separator: ",")
