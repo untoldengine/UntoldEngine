@@ -21,7 +21,7 @@ let package = Package(
     products: [
         // CLI executable for project creation
         .executable(
-            name: "untoldengine-create",
+            name: "untoldengine",
             targets: ["UntoldEngineCLI"]
         ),
     ],

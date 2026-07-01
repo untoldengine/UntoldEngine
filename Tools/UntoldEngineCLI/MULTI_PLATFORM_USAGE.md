@@ -1,6 +1,6 @@
 # Multi-Platform CLI Usage
 
-The `untoldengine-create` CLI tool now supports creating multi-platform game projects that target macOS, iOS, and visionOS simultaneously.
+The `untoldengine` CLI tool supports creating multi-platform game projects that target macOS, iOS, and visionOS simultaneously.
 
 ## Quick Start
 
@@ -8,7 +8,7 @@ Create a multi-platform project in one command:
 
 ```bash
 mkdir MyGame && cd MyGame
-untoldengine-create MyGame --platform multi --team-id YOUR_TEAM_ID
+untoldengine create MyGame --platform multi --team-id YOUR_TEAM_ID
 ```
 
 This creates a single Xcode project that can be built for macOS, iOS, and visionOS.
@@ -18,12 +18,12 @@ This creates a single Xcode project that can be built for macOS, iOS, and vision
 ### Basic Multi-Platform Project
 
 ```bash
-untoldengine-create <project-name> --platform multi
+untoldengine create <project-name> --platform multi
 ```
 
 **Required for iOS/visionOS builds:**
 ```bash
-untoldengine-create MyGame --platform multi --team-id ABCD1234EF
+untoldengine create MyGame --platform multi --team-id ABCD1234EF
 ```
 
 The `--team-id` is your Apple Developer Team ID, required for code signing iOS and visionOS apps.
@@ -33,7 +33,7 @@ The `--team-id` is your Apple Developer Team ID, required for code signing iOS a
 Specify deployment versions for each platform:
 
 ```bash
-untoldengine-create MyGame \
+untoldengine create MyGame \
   --platform multi \
   --macos-version 14 \
   --ios-version 17 \
@@ -49,7 +49,7 @@ untoldengine-create MyGame \
 ### Full Options
 
 ```bash
-untoldengine-create MyGame \
+untoldengine create MyGame \
   --platform multi \
   --bundle-id com.mycompany.mygame \
   --output ~/Projects \
@@ -135,9 +135,9 @@ Press `Cmd+R` or click the Play button to build and run for the selected platfor
 
 ```bash
 # Create three separate projects
-untoldengine-create MyGame --platform macos
-untoldengine-create MyGame --platform ios
-untoldengine-create MyGame --platform visionos
+untoldengine create MyGame --platform macos
+untoldengine create MyGame --platform ios
+untoldengine create MyGame --platform visionos
 ```
 
 **Result:** 3 separate Xcode projects to maintain
@@ -146,7 +146,7 @@ untoldengine-create MyGame --platform visionos
 
 ```bash
 # Create one unified project
-untoldengine-create MyGame --platform multi --team-id YOUR_TEAM_ID
+untoldengine create MyGame --platform multi --team-id YOUR_TEAM_ID
 ```
 
 **Result:** 1 Xcode project that targets all platforms
@@ -231,7 +231,7 @@ Your Team ID is required for iOS and visionOS code signing. Find it:
 
 ```bash
 mkdir SpaceGame && cd SpaceGame
-untoldengine-create SpaceGame \
+untoldengine create SpaceGame \
   --platform multi \
   --bundle-id com.studio.spacegame \
   --team-id ABCD1234EF
@@ -241,7 +241,7 @@ untoldengine-create SpaceGame \
 
 ```bash
 mkdir ReleaseGame && cd ReleaseGame
-untoldengine-create ReleaseGame \
+untoldengine create ReleaseGame \
   --platform multi \
   --bundle-id com.studio.releasegame \
   --team-id ABCD1234EF \
@@ -253,7 +253,7 @@ untoldengine-create ReleaseGame \
 
 ```bash
 mkdir ModernGame && cd ModernGame
-untoldengine-create ModernGame \
+untoldengine create ModernGame \
   --platform multi \
   --macos-version 15 \
   --ios-version 18 \

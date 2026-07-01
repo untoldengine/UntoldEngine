@@ -1,6 +1,6 @@
 # Using the UntoldEngine CLI
 
-The `untoldengine-create` CLI tool scaffolds ready-to-run Xcode projects with UntoldEngine pre-configured. Instead of setting up package dependencies and boilerplate by hand, you run one command and get a fully wired project for your target platform.
+The `untoldengine` CLI tool scaffolds ready-to-run Xcode projects with UntoldEngine pre-configured. Instead of setting up package dependencies and boilerplate by hand, you run one command and get a fully wired project for your target platform.
 
 The install script (`scripts/install-untoldengine-create.sh`) builds the CLI from source and places it in `/usr/local/bin` so it is available globally in your shell.
 
@@ -26,12 +26,12 @@ cd UntoldEngine
 
 The script will:
 
-1. Build `untoldengine-create` in release mode using Swift Package Manager.
+1. Build `untoldengine` in release mode using Swift Package Manager.
 2. Copy the binary to `/usr/local/bin` (prompts for admin privileges if needed).
 3. Mark it executable.
 4. Verify that the tool is reachable on your `PATH`.
 
-If the final verification step warns that `untoldengine-create` is not found in `PATH`, add `/usr/local/bin` to your shell profile:
+If the final verification step warns that `untoldengine` is not found in `PATH`, add `/usr/local/bin` to your shell profile:
 
 ```bash
 # Add to ~/.zshrc or ~/.bashrc
@@ -52,7 +52,7 @@ Run from the parent directory — the CLI creates the project folder for you:
 
 ```bash
 cd ~/Downloads
-untoldengine-create MyGame
+untoldengine create MyGame
 ```
 
 ### Platform Options
@@ -67,19 +67,19 @@ untoldengine-create MyGame
 
 ```bash
 # macOS project (default)
-untoldengine-create MyGame --platform macos
+untoldengine create MyGame --platform macos
 
 # iOS project
-untoldengine-create MyGame --platform ios --bundle-id com.company.mygame
+untoldengine create MyGame --platform ios --bundle-id com.company.mygame
 
 # iOS with ARKit
-untoldengine-create ARGame --platform ios-ar --bundle-id com.company.argame
+untoldengine create ARGame --platform ios-ar --bundle-id com.company.argame
 
 # visionOS / Apple Vision Pro
-untoldengine-create VisionGame --platform visionos
+untoldengine create VisionGame --platform visionos
 
 # Multi-platform (macOS, iOS, visionOS) — Team ID required for signing
-untoldengine-create CrossGame --platform multi --team-id ABCD1234EF
+untoldengine create CrossGame --platform multi --team-id ABCD1234EF
 ```
 
 ### All Options
@@ -103,10 +103,10 @@ untoldengine-create CrossGame --platform multi --team-id ABCD1234EF
 The `update` command refreshes only the `GameData` folder in an existing project, leaving your custom code untouched:
 
 ```bash
-untoldengine-create update MyGame --asset-path ~/GameAssets
+untoldengine update MyGame --asset-path ~/GameAssets
 
 # Or point to an absolute project path
-untoldengine-create update ~/Projects/MyGame --asset-path ~/GameAssets
+untoldengine update ~/Projects/MyGame --asset-path ~/GameAssets
 ```
 
 ---

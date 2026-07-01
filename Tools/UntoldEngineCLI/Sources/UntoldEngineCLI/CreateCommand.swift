@@ -1,0 +1,290 @@
+//
+//  CreateCommand.swift
+//  UntoldEngine
+//
+// Copyright (C) Untold Engine Studios
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+import AppKit
+import ArgumentParser
+import Foundation
+import UntoldEngine
+
+struct CreateCommand: AsyncParsableCommand {
+    static let configuration = CommandConfiguration(
+        commandName: "create",
+        abstract: "Create a new game project using UntoldEngine build templates",
+        discussion: """
+        Creates a new game project with the specified platform and configuration.
+        The project structure will be created in the current directory.
+
+        Examples:
+          # Create macOS project (in current directory)
+          mkdir MyGame && cd MyGame
+          untoldengine create MyGame
+
+          # Create iOS project with custom bundle ID
+          mkdir MobileGame && cd MobileGame
+          untoldengine create MobileGame --platform ios --bundle-id com.company.game
+
+          # Create visionOS project with custom output location
+          untoldengine create VRGame --platform visionos --output ~/Projects
+
+          # Create multi-platform project (macOS, iOS, visionOS)
+          mkdir CrossPlatformGame && cd CrossPlatformGame
+          untoldengine create CrossPlatformGame --platform multi --team-id YOUR_TEAM_ID
+
+          # Create multi-platform with custom deployment targets
+          untoldengine create MyGame --platform multi --macos-version 14 --ios-version 17 --visionos-version 2
+        """
+    )
+
+    // MARK: - Arguments
+
+    @Argument(help: "Name of the project to create")
+    var projectName: String
+
+    // MARK: - Options
+
+    @Option(name: .shortAndLong, help: "Target platform (macos, ios, ios-ar, visionos, multi)")
+    var platform: String = "macos"
+
+    @Option(name: .long, help: "Bundle identifier (e.g., com.company.game)")
+    var bundleId: String?
+
+    @Option(name: .shortAndLong, help: "Output directory (default: current directory)")
+    var output: String?
+
+    @Option(name: .long, help: "macOS deployment version (13, 14, 15)")
+    var macosVersion: String = "15"
+
+    @Option(name: .long, help: "iOS deployment version (16, 17, 18)")
+    var iosVersion: String = "17"
+
+    @Option(name: .long, help: "visionOS deployment version (1, 2)")
+    var visionosVersion: String = "2"
+
+    @Option(name: .long, help: "Apple Developer Team ID for code signing")
+    var teamId: String?
+
+    @Option(name: .long, help: "Optimization level (none, speed, size)")
+    var optimization: String = "none"
+
+    @Flag(name: .long, inversion: .prefixedNo, help: "Include debug information")
+    var debug: Bool = true
+
+    // MARK: - Execution
+
+    func run() async throws {
+        printInfo("🎮 UntoldEngine Project Creator")
+        printInfo("Creating project: \(projectName)")
+        print("")
+
+        let outputURL = resolveOutputDirectory()
+
+        let finalBundleId = bundleId ?? generateBundleIdentifier(projectName: projectName)
+        guard validateBundleIdentifier(finalBundleId) else {
+            throw CLIError.invalidBundleIdentifier(finalBundleId)
+        }
+
+        let settings = try createBuildSettings(
+            outputURL: outputURL,
+            bundleId: finalBundleId
+        )
+
+        let projectDir = outputURL.appendingPathComponent(projectName)
+        let gameDataPath = projectDir
+            .appendingPathComponent("Sources")
+            .appendingPathComponent(projectName)
+            .appendingPathComponent("GameData")
+
+        assetBasePath = gameDataPath
+
+        printConfigurationSummary(settings: settings, projectDir: projectDir, gameDataPath: gameDataPath)
+
+        try await runBuild(settings: settings, gameDataPath: gameDataPath)
+    }
+
+    // MARK: - Helper Methods
+
+    private func resolveOutputDirectory() -> URL {
+        if let outputStr = output {
+            return resolvePath(outputStr)
+        }
+
+        let currentDir = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        if currentDir.lastPathComponent == projectName {
+            return currentDir.deletingLastPathComponent()
+        }
+        return currentDir
+    }
+
+    private func createBuildSettings(outputURL: URL, bundleId: String) throws -> BuildSettings {
+        let buildTarget: BuildTarget
+        var isIOSAR = false
+
+        switch platform.lowercased() {
+        case "macos":
+            let version = parseMacOSVersion(macosVersion)
+            buildTarget = .macOS(deployment: version)
+
+        case "ios":
+            let version = parseIOSVersion(iosVersion)
+            buildTarget = .iOS(deployment: version)
+
+        case "ios-ar":
+            let version = parseIOSVersion(iosVersion)
+            buildTarget = .iOS(deployment: version)
+            isIOSAR = true
+
+        case "visionos":
+            let version = parseVisionOSVersion(visionosVersion)
+            buildTarget = .visionOS(deployment: version)
+
+        case "multi":
+            let macOS = parseMacOSVersion(macosVersion)
+            let iOS = parseIOSVersion(iosVersion)
+            let visionOS = parseVisionOSVersion(visionosVersion)
+            buildTarget = .multi(macOS: macOS, iOS: iOS, visionOS: visionOS)
+
+        default:
+            throw CLIError.invalidPlatform(platform)
+        }
+
+        let optimizationLevel: OptimizationLevel
+        switch optimization.lowercased() {
+        case "none":
+            optimizationLevel = .none
+        case "speed":
+            optimizationLevel = .speed
+        case "size":
+            optimizationLevel = .size
+        default:
+            throw CLIError.invalidOptimization(optimization)
+        }
+
+        return BuildSettings(
+            projectName: projectName,
+            bundleIdentifier: bundleId,
+            outputPath: outputURL,
+            target: buildTarget,
+            scenes: [],
+            includeDebugInfo: debug,
+            optimizationLevel: optimizationLevel,
+            teamID: teamId,
+            isIOSAR: isIOSAR
+        )
+    }
+
+    private func parseMacOSVersion(_ version: String) -> MacOSVersion {
+        switch version {
+        case "13", "13.0": return .v13
+        case "14", "14.0": return .v14
+        case "15", "15.0": return .v15
+        default: return .v15
+        }
+    }
+
+    private func parseIOSVersion(_ version: String) -> IOSVersion {
+        switch version {
+        case "16", "16.0": return .v16
+        case "17", "17.0": return .v17
+        case "18", "18.0": return .v18
+        default: return .v17
+        }
+    }
+
+    private func parseVisionOSVersion(_ version: String) -> VisionOSVersion {
+        switch version {
+        case "1", "1.0": return .v1
+        case "2", "2.0": return .v2
+        case "26", "26.0": return .v26
+        default: return .v26
+        }
+    }
+
+    private func printConfigurationSummary(settings: BuildSettings, projectDir: URL, gameDataPath: URL) {
+        print("📋 Configuration:")
+        print("   Project Name:    \(settings.projectName)")
+        print("   Bundle ID:       \(settings.bundleIdentifier)")
+
+        if case .multi = settings.target {
+            print("   Platform:        Multi-Platform")
+            if let macOSVersion = settings.target.deploymentTarget(for: "macOS") {
+                print("     - macOS:       \(macOSVersion)")
+            }
+            if let iOSVersion = settings.target.deploymentTarget(for: "iOS") {
+                print("     - iOS:         \(iOSVersion)")
+            }
+            if let visionOSVersion = settings.target.deploymentTarget(for: "visionOS") {
+                print("     - visionOS:    \(visionOSVersion)")
+            }
+        } else {
+            print("   Platform:        \(settings.target.platformName) \(settings.target.deploymentTarget)")
+        }
+
+        if settings.isIOSAR {
+            print("   AR Support:      Enabled")
+        }
+        print("   Project Dir:     \(projectDir.path)")
+        print("   GameData Path:   \(gameDataPath.path)")
+        print("   Optimization:    \(settings.optimizationLevel.rawValue)")
+        print("   Debug Info:      \(settings.includeDebugInfo ? "Yes" : "No")")
+        if let teamID = settings.teamID {
+            print("   Team ID:         \(teamID)")
+        }
+        print("")
+    }
+
+    private func runBuild(settings: BuildSettings, gameDataPath: URL) async throws {
+        printInfo("🔨 Starting build process...")
+        print("")
+
+        do {
+            let result = try await BuildSystem.shared.build(settings: settings) { progress in
+                printProgress(progress)
+            }
+
+            print("")
+            printSuccess("Build completed in \(String(format: "%.2f", result.buildTime))s")
+            printSuccess("Project created at: \(result.xcodeProjectPath.deletingLastPathComponent().path)")
+            printInfo("Bundled \(result.bundledAssets.count) assets")
+            print("")
+            printInfo("📁 Add your game assets to: \(gameDataPath.path)")
+            print("")
+
+            if confirm("Open project in Xcode?", default: true) {
+                NSWorkspace.shared.open(result.xcodeProjectPath)
+            }
+
+        } catch {
+            print("")
+            throw CLIError.buildFailed(error.localizedDescription)
+        }
+    }
+}
+
+// MARK: - CLI Errors
+
+enum CLIError: LocalizedError {
+    case invalidBundleIdentifier(String)
+    case invalidPlatform(String)
+    case invalidOptimization(String)
+    case buildFailed(String)
+
+    var errorDescription: String? {
+        switch self {
+        case let .invalidBundleIdentifier(bundleId):
+            return "Invalid bundle identifier: \(bundleId). Use format: com.company.app"
+        case let .invalidPlatform(platform):
+            return "Invalid platform: \(platform). Valid options: macos, ios, ios-ar, visionos, multi"
+        case let .invalidOptimization(opt):
+            return "Invalid optimization: \(opt). Valid options: none, speed, size"
+        case let .buildFailed(message):
+            return "Build failed: \(message)"
+        }
+    }
+}
