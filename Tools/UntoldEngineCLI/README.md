@@ -4,7 +4,7 @@ Command-line tool for creating UntoldEngine game projects.
 
 ## Overview
 
-The `untoldengine-create` CLI tool allows you to scaffold new game projects using UntoldEngine from the terminal. This is an optional tool - you can also create projects using the Untold Editor GUI.
+The `untoldengine` CLI tool allows you to scaffold new game projects using UntoldEngine from the terminal. This is an optional tool - you can also create projects using the Untold Editor GUI.
 
 ## Requirements
 
@@ -45,34 +45,34 @@ swift build -c release
 
 ### After Installation
 
-Once installed using the script, you can use `untoldengine-create` from anywhere:
+Once installed using the script, you can use `untoldengine` from anywhere:
 
 ```bash
 # Show help
-untoldengine-create --help
+untoldengine --help
 
 # Create a macOS project
 cd ~/anywhere
 mkdir MyGame && cd MyGame
-untoldengine-create MyGame
+untoldengine create MyGame
 
 # Create an iOS project
 mkdir MobileGame && cd MobileGame
-untoldengine-create MobileGame --platform ios --bundle-id com.company.game
+untoldengine create MobileGame --platform ios --bundle-id com.company.game
 
 # Create a visionOS project
-untoldengine-create VRGame --platform visionos
+untoldengine create VRGame --platform visionos
 
 # Create a multi-platform project (macOS, iOS, visionOS)
 mkdir CrossPlatformGame && cd CrossPlatformGame
-untoldengine-create CrossPlatformGame --platform multi --team-id YOUR_TEAM_ID
+untoldengine create CrossPlatformGame --platform multi --team-id YOUR_TEAM_ID
 ```
 
 ## Commands
 
-### Project creation (root command)
+### `create` - Create a new project
 
-Pass the project name as the first argument to create a new UntoldEngine game project.
+Creates a new UntoldEngine game project.
 
 **Arguments:**
 - `projectName` - Name of the project to create
@@ -93,18 +93,18 @@ Pass the project name as the first argument to create a new UntoldEngine game pr
 ```bash
 # Create macOS project in current directory
 mkdir MyGame && cd MyGame
-untoldengine-create MyGame
+untoldengine create MyGame
 
 # Create iOS AR project
 mkdir ARGame && cd ARGame
-untoldengine-create ARGame --platform ios-ar --bundle-id com.company.argame
+untoldengine create ARGame --platform ios-ar --bundle-id com.company.argame
 
 # Create visionOS project with custom output
-untoldengine-create VRGame --platform visionos --output ~/Projects
+untoldengine create VRGame --platform visionos --output ~/Projects
 
 # Create multi-platform project
 mkdir MultiGame && cd MultiGame
-untoldengine-create MultiGame --platform multi --team-id ABCD1234EF
+untoldengine create MultiGame --platform multi --team-id ABCD1234EF
 ```
 
 ### `update` - Update an existing project
@@ -121,10 +121,10 @@ Updates only the GameData folder in an existing project, preserving custom code 
 
 ```bash
 # Update project in default location
-untoldengine-create update MyGame --asset-path ~/GameAssets
+untoldengine update MyGame --asset-path ~/GameAssets
 
 # Update project at specific path
-untoldengine-create update ~/Projects/MyGame --asset-path ~/GameAssets
+untoldengine update ~/Projects/MyGame --asset-path ~/GameAssets
 ```
 
 ## Project Structure
@@ -167,7 +167,7 @@ When making changes to the CLI:
 
 1. Make your changes in `Tools/UntoldEngineCLI/Sources/UntoldEngineCLI/`
 2. Test by running `swift build` from this directory
-3. Verify the CLI works: `swift run untoldengine-create --help`
+3. Verify the CLI works: `swift run untoldengine --help`
 4. Ensure the main engine package still builds without the CLI
 
 ## License

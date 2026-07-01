@@ -13,7 +13,7 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Configuration
-CLI_NAME="untoldengine-create"
+CLI_NAME="untoldengine"
 INSTALL_DIR="/usr/local/bin"
 BUILD_CONFIG="release"
 
@@ -99,13 +99,13 @@ if command -v $CLI_NAME &> /dev/null; then
     echo ""
     echo "Examples:"
     echo -e "  ${CYAN}# Create a macOS project${NC}"
-    echo -e "  ${CYAN}$CLI_NAME MyGame${NC}"
+    echo -e "  ${CYAN}$CLI_NAME create MyGame${NC}"
     echo ""
     echo -e "  ${CYAN}# Create iOS project${NC}"
-    echo -e "  ${CYAN}$CLI_NAME MyGame --platform ios --team-id YOUR_TEAM_ID${NC}"
+    echo -e "  ${CYAN}$CLI_NAME create MyGame --platform ios --team-id YOUR_TEAM_ID${NC}"
     echo ""
     echo -e "  ${CYAN}# Create multi-platform project (macOS, iOS, visionOS)${NC}"
-    echo -e "  ${CYAN}$CLI_NAME MyGame --platform multi --team-id YOUR_TEAM_ID${NC}"
+    echo -e "  ${CYAN}$CLI_NAME create MyGame --platform multi --team-id YOUR_TEAM_ID${NC}"
     echo ""
 else
     echo -e "${YELLOW}⚠️  Warning: $CLI_NAME not found in PATH${NC}"

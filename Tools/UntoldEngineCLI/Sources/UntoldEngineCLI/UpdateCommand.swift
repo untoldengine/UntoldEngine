@@ -30,10 +30,10 @@ struct UpdateCommand: AsyncParsableCommand {
 
         Examples:
           # Update project in default location
-          untoldengine-create update MyGame --asset-path ~/GameAssets
+          untoldengine update MyGame --asset-path ~/GameAssets
 
           # Update project at specific path
-          untoldengine-create update ~/Projects/MyGame --asset-path ~/GameAssets
+          untoldengine update ~/Projects/MyGame --asset-path ~/GameAssets
         """
     )
 

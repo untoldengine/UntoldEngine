@@ -28,7 +28,7 @@ swift run untolddemo
 
 ## Create an Xcode Project
 
-Use `untoldengine-create` to generate a ready-to-run Xcode project with Untold Engine wired in.
+Use `untoldengine` to generate a ready-to-run Xcode project with Untold Engine wired in.
 
 Install it from the repository:
 
@@ -43,7 +43,7 @@ create a Vision Pro project.
 
 ```bash
 cd ~/Projects
-untoldengine-create VisionGame --platform visionos
+untoldengine create VisionGame --platform visionos
 open VisionGame/VisionGame.xcodeproj
 ```
 
@@ -53,16 +53,16 @@ If you want to create a project for other platforms, you can use the flags below
 
 ```bash
 # visionOS (Apple Vision Pro)
-untoldengine-create MyGame --platform visionos
+untoldengine create MyGame --platform visionos
 
 # macOS (default)
-untoldengine-create MyGame --platform macos
+untoldengine create MyGame --platform macos
 
 # iOS with ARKit
-untoldengine-create MyGame --platform ios-ar
+untoldengine create MyGame --platform ios-ar
 
 # iOS
-untoldengine-create MyGame --platform ios
+untoldengine create MyGame --platform ios
 ```
 
 Dependency behavior by platform:
