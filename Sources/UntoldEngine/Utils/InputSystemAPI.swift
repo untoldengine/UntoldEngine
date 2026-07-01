@@ -19,23 +19,14 @@ public enum XRInputProperty: Sendable {
     case sceneReady(Bool)
 }
 
-public enum PSVR2InputProperty: Sendable {
-    case motionEnabled(Bool)
-    case leftTriggerEffect(PSVR2TriggerEffect)
-    case rightTriggerEffect(PSVR2TriggerEffect)
-}
-
 public enum InputProperty: Sendable {
     case xr(XRInputProperty)
-    case psvr2(PSVR2InputProperty)
 }
 
 public func setInput(_ property: InputProperty) {
     switch property {
     case let .xr(xrProperty):
         applyXRInputProperty(xrProperty)
-    case let .psvr2(psvr2Property):
-        applyPSVR2InputProperty(psvr2Property)
     }
 }
 
@@ -47,18 +38,6 @@ private func applyXRInputProperty(_ property: XRInputProperty) {
         InputSystem.shared.setXRTwoHandRotateAxisMode(mode)
     case let .sceneReady(ready):
         InputSystem.shared.setXRSceneReady(ready)
-    }
-}
-
-private func applyPSVR2InputProperty(_ property: PSVR2InputProperty) {
-    let input = InputSystem.shared
-    switch property {
-    case let .motionEnabled(enabled):
-        input.psvr2MotionEnabled = enabled
-    case let .leftTriggerEffect(effect):
-        input.setLeftTriggerEffect(effect)
-    case let .rightTriggerEffect(effect):
-        input.setRightTriggerEffect(effect)
     }
 }
 

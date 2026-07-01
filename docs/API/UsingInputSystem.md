@@ -266,97 +266,97 @@ let ready = isXRSceneReady()
 
 ---
 
-## How to Use the Input System (PlayStation VR2 Sense Controller)
+## PlayStation VR2 Sense Controllers on Apple Vision Pro
 
-The PSVR2 Sense controller is detected automatically — no registration call is needed. The moment `InputSystem.shared` is first accessed, the engine begins listening for controller connect and disconnect events. When a PSVR2 Sense controller pairs, it is configured automatically.
+PSVR2 spatial tracking requires Apple Vision Pro running visionOS 26 or later. The generated visionOS app declares both the `SpatialGamepad` controller profile and `NSAccessoryTrackingUsageDescription`; the system asks the user for accessory-tracking permission on first use.
 
-### Step 1: Read controller state per frame
+The engine uses two coordinated APIs:
+
+- GameController provides face buttons, sticks, shoulders, and analog triggers through `getGameControllerState()`.
+- ARKit's `AccessoryTrackingProvider` provides independent world-space 6-DoF poses for the left and right controllers through `getPSVR2SenseState()`.
+
+### Required visionOS project configuration
+
+Set the visionOS deployment target to `26.0` or later. The application target's `Info.plist` must declare controller interaction, both controller profiles, and why the app tracks accessories:
+
+```xml
+<key>GCSupportsControllerUserInteraction</key>
+<true/>
+
+<key>GCSupportedGameControllers</key>
+<array>
+    <dict>
+        <key>ProfileName</key>
+        <string>SpatialGamepad</string>
+    </dict>
+    <dict>
+        <key>ProfileName</key>
+        <string>ExtendedGamepad</string>
+    </dict>
+</array>
+
+<key>NSAccessoryTrackingUsageDescription</key>
+<string>This app tracks PSVR2 Sense controller movement for gameplay.</string>
+```
+
+`SpatialGamepad` enables visionOS to expose the left and right PSVR2 Sense controllers as spatial devices. `ExtendedGamepad` declares support for conventional game controllers and their standard controls. `NSAccessoryTrackingUsageDescription` is required before ARKit can provide controller poses.
+
+Add these settings to the executable application's plist, not the UntoldEngine package. After adding or changing the tracking usage description, uninstall and reinstall the app on Apple Vision Pro if the permission prompt does not appear. The user must allow accessory tracking for `left.isTracked` and `right.isTracked` to become true.
+
+### Read buttons and triggers
+
+```swift
+let buttons = getGameControllerState()
+
+if buttons.aPressed { Logger.log(message: "Cross pressed") }
+if buttons.bPressed { Logger.log(message: "Circle pressed") }
+if buttons.xPressed { Logger.log(message: "Square pressed") }
+if buttons.yPressed { Logger.log(message: "Triangle pressed") }
+
+if buttons.leftTriggerValue > 0.5 {
+    Logger.log(message: "Left trigger more than half pulled")
+}
+```
+
+PlayStation face-button mapping uses A = Cross, B = Circle, X = Square, and Y = Triangle.
+
+### Read spatial poses
 
 ```swift
 func handleInput() {
     let state = getPSVR2SenseState()
+    guard state.isConnected else { return }
 
-    // Buttons unique to the PSVR2 Sense
-    if state.createButtonPressed {
-        Logger.log(message: "Create button pressed")
+    if state.left.isTracked {
+        let leftPosition = state.left.position
+        let leftOrientation = state.left.orientation
+        let leftTransform = state.left.originFromControllerTransform
+        // Update the left-hand entity.
     }
 
-    if state.touchpadButtonPressed {
-        Logger.log(message: "Touchpad clicked")
-    }
-
-    // Touchpad surface position (−1…1 per axis)
-    if state.touchpadTouched {
-        Logger.log(message: "Finger at (\(state.touchpadX), \(state.touchpadY))")
-    }
-
-    // Adaptive trigger pull depth (0…1)
-    if state.leftAdaptiveTriggerValue > 0.5 {
-        Logger.log(message: "Left trigger more than half pulled")
+    if state.right.isTracked {
+        let rightPosition = state.right.position
+        let rightOrientation = state.right.orientation
+        // Update the right-hand entity.
     }
 }
 ```
 
-### Step 2: Check connection status
+Each `PSVR2ControllerPose` contains:
 
-```swift
-if isPSVR2SenseConnected() {
-    Logger.log(message: "PSVR2 Sense is connected")
-}
-```
-
-### Step 3: Apply adaptive trigger effects
-
-Trigger effects can be set at any time. Calls are silently ignored when no controller is paired.
-
-```swift
-// Simulate weapon resistance — builds from 20% to 80% of travel, then releases
-setInput(.psvr2(.leftTriggerEffect(.weapon(startPosition: 0.2, endPosition: 0.8, strength: 1.0))))
-
-// Constant resistance from 30% travel onwards
-setInput(.psvr2(.rightTriggerEffect(.feedback(startPosition: 0.3, strength: 0.7))))
-
-// Repeating vibration strike
-setInput(.psvr2(.leftTriggerEffect(.vibration(startPosition: 0.0, amplitude: 0.5, frequency: 15.0))))
-
-// Linearly interpolated resistance between two positions
-setInput(.psvr2(.leftTriggerEffect(.slopeFeedback(startPosition: 0.1, endPosition: 0.9, startStrength: 0.2, endStrength: 1.0))))
-
-// Clear all effects
-setInput(.psvr2(.leftTriggerEffect(.off)))
-setInput(.psvr2(.rightTriggerEffect(.off)))
-```
-
-All position and strength values are normalized to `[0, 1]`. For `.weapon` and `.slopeFeedback`, `endPosition` must be greater than `startPosition`.
-
-### Step 4: Enable motion sensing (optional)
-
-Motion is disabled by default to avoid unnecessary sensor activation. Enable it when your game needs gravity or rotation rate data:
-
-```swift
-// Enable once (e.g. in gameInit)
-setInput(.psvr2(.motionEnabled(true)))
-
-// Then read per frame
-func handleInput() {
-    let state = getPSVR2SenseState()
-    let gravity = simd_float3(state.motionGravityX, state.motionGravityY, state.motionGravityZ)
-    let rotationRate = simd_float3(state.motionRotationRateX, state.motionRotationRateY, state.motionRotationRateZ)
-}
-```
-
-You can toggle motion off again at any time with `setInput(.psvr2(.motionEnabled(false)))`.
-
-### Available PSVR2SenseControllerState fields
-
-| Group | Fields |
+| Field | Meaning |
 |---|---|
-| Connection | `isConnected` |
-| Buttons | `createButtonPressed`, `homeButtonPressed`, `touchpadButtonPressed` |
-| Touchpad surface | `touchpadX`, `touchpadY`, `touchpadTouched` |
-| Adaptive triggers | `leftAdaptiveTriggerValue`, `rightAdaptiveTriggerValue` |
-| Motion (gravity) | `motionGravityX`, `motionGravityY`, `motionGravityZ` |
-| Motion (rotation rate) | `motionRotationRateX`, `motionRotationRateY`, `motionRotationRateZ` |
+| `isTracked` | Whether ARKit currently tracks this controller |
+| `trackingState` | `.unavailable`, `.orientationOnly`, `.positionAndOrientation`, or `.positionAndOrientationLowAccuracy` |
+| `originFromControllerTransform` | Controller transform in the ARKit world coordinate system |
+| `position` | Translation extracted from the transform |
+| `orientation` | Rotation extracted from the transform |
+| `velocity` | Linear velocity in meters per second |
+| `angularVelocity` | Angular velocity in radians per second |
+
+`isConnected` means the spatial controller is connected. It does not guarantee that both controllers are currently visible or position-tracked; check each pose's `isTracked` and `trackingState`.
+
+The old DualSense-specific touchpad, Create/Home button, adaptive-trigger effect, and `GCMotion` APIs are intentionally not part of this visionOS integration. They are not exposed by the PSVR2 `SpatialGamepad` profile. Spatial movement comes from ARKit accessory anchors instead.
 
 ---
 

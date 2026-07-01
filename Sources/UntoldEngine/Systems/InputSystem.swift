@@ -10,6 +10,9 @@
 import Foundation
 import GameController
 import simd
+#if os(visionOS)
+    import ARKit
+#endif
 #if os(macOS)
     import AppKit
 #endif
@@ -68,10 +71,18 @@ public final class InputSystem: @unchecked Sendable {
     public var gameControllerState = GameControllerState()
     public var currentGameController: GCExtendedGamepad?
     public var psvr2SenseControllerState = PSVR2SenseControllerState()
-    public var psvr2MotionEnabled = false
-    var psvr2LeftTrigger: GCDualSenseAdaptiveTrigger?
-    var psvr2RightTrigger: GCDualSenseAdaptiveTrigger?
-    var psvr2Motion: GCMotion?
+    #if os(visionOS)
+        var psvr2SpatialControllers: [GCController] = []
+        var psvr2AccessoryTrackingProviderStorage: AnyObject?
+        var psvr2AccessoryLoadTask: Task<Void, Never>?
+        var psvr2AnchorMonitorTask: Task<Void, Never>?
+        var psvr2AccessoryGeneration = 0
+
+        @available(visionOS 26.0, *)
+        public var psvr2AccessoryTrackingProvider: AccessoryTrackingProvider? {
+            psvr2AccessoryTrackingProviderStorage as? AccessoryTrackingProvider
+        }
+    #endif
 
     public var iosTouchState = IOSTouchState()
 
@@ -114,15 +125,33 @@ public final class InputSystem: @unchecked Sendable {
                                                selector: #selector(controllerDidDisconnect(_:)),
                                                name: .GCControllerDidDisconnect, object: nil)
 
+        // A controller can already be connected before InputSystem.shared is first
+        // accessed. Connection notifications are not replayed to late observers.
+        for controller in GCController.controllers() {
+            configureConnectedController(controller)
+        }
+
         GCController.startWirelessControllerDiscovery { /* done */ }
     }
 
     @objc private func controllerDidConnect(_ note: Notification) {
-        guard let controller = note.object as? GCController, let gameController = controller.extendedGamepad else { return }
-        currentGameController = gameController
-        configureGameControllerHandlers(gameController)
+        guard let controller = note.object as? GCController else { return }
+        configureConnectedController(controller)
+    }
+
+    private func configureConnectedController(_ controller: GCController) {
         configurePSVR2IfNeeded(controller)
-        Logger.log(message: "Game Controller \(controller.vendorName ?? "unknown vendor") connected and Configured")
+
+        if let gameController = controller.extendedGamepad {
+            currentGameController = gameController
+            configureGameControllerHandlers(gameController)
+        } else if isPSVR2SpatialController(controller) {
+            configurePhysicalGameControllerHandlers(controller.physicalInputProfile)
+        } else {
+            Logger.log(message: "Game Controller \(controller.vendorName ?? "unknown vendor") has no supported input profile")
+            return
+        }
+        Logger.log(message: "Game Controller \(controller.vendorName ?? "unknown vendor") connected and configured (category=\(controller.productCategory))")
     }
 
     @objc private func controllerDidDisconnect(_ note: Notification) {
@@ -183,5 +212,38 @@ public final class InputSystem: @unchecked Sendable {
         gameController.rightThumbstickButton?.pressedChangedHandler = { [weak self] _, _, pressed in
             self?.gameControllerState.rightThumbstickPressed = pressed
         }
+    }
+
+    /// Spatial gamepads expose their controls through the physical profile rather
+    /// than GCExtendedGamepad. Each PSVR2 wand contributes only its own elements.
+    private func configurePhysicalGameControllerHandlers(_ profile: GCPhysicalInputProfile) {
+        profile.buttons["Button A"]?.pressedChangedHandler = { [weak self] _, _, pressed in self?.gameControllerState.aPressed = pressed }
+        profile.buttons["Button B"]?.pressedChangedHandler = { [weak self] _, _, pressed in self?.gameControllerState.bPressed = pressed }
+        profile.buttons["Button X"]?.pressedChangedHandler = { [weak self] _, _, pressed in self?.gameControllerState.xPressed = pressed }
+        profile.buttons["Button Y"]?.pressedChangedHandler = { [weak self] _, _, pressed in self?.gameControllerState.yPressed = pressed }
+
+        profile.buttons["Left Shoulder"]?.pressedChangedHandler = { [weak self] _, _, pressed in self?.gameControllerState.leftShoulderPressed = pressed }
+        profile.buttons["Right Shoulder"]?.pressedChangedHandler = { [weak self] _, _, pressed in self?.gameControllerState.rightShoulderPressed = pressed }
+        profile.buttons["Left Trigger"]?.valueChangedHandler = { [weak self] _, value, pressed in
+            self?.gameControllerState.leftTriggerValue = value
+            self?.gameControllerState.leftTriggerPressed = pressed
+        }
+        profile.buttons["Right Trigger"]?.valueChangedHandler = { [weak self] _, value, pressed in
+            self?.gameControllerState.rightTriggerValue = value
+            self?.gameControllerState.rightTriggerPressed = pressed
+        }
+
+        profile.dpads["Left Thumbstick"]?.valueChangedHandler = { [weak self] _, x, y in
+            self?.gameControllerState.leftThumbstickX = x
+            self?.gameControllerState.leftThumbstickY = y
+            self?.gameControllerState.leftThumbStickActive = abs(x) > 0.1 || abs(y) > 0.1
+        }
+        profile.dpads["Right Thumbstick"]?.valueChangedHandler = { [weak self] _, x, y in
+            self?.gameControllerState.rightThumbstickX = x
+            self?.gameControllerState.rightThumbstickY = y
+            self?.gameControllerState.rightThumbStickActive = abs(x) > 0.1 || abs(y) > 0.1
+        }
+        profile.buttons["Left Thumbstick Button"]?.pressedChangedHandler = { [weak self] _, _, pressed in self?.gameControllerState.leftThumbstickPressed = pressed }
+        profile.buttons["Right Thumbstick Button"]?.pressedChangedHandler = { [weak self] _, _, pressed in self?.gameControllerState.rightThumbstickPressed = pressed }
     }
 }
