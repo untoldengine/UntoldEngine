@@ -111,6 +111,23 @@ untoldengine update ~/Projects/MyGame --asset-path ~/GameAssets
 
 ---
 
+## Exporting USD/USDZ Assets
+
+Run the exporter from the game project or any other directory:
+
+```bash
+untoldengine export \
+  --input /path/to/model.usdz \
+  --output /path/to/model.untold \
+  --convert-orientation \
+  --compress-geometry
+```
+
+Use `--blender /path/to/Blender` when Blender is not installed in its standard
+macOS location and is not available on `PATH`.
+
+---
+
 ## Generated Project Structure
 
 ```

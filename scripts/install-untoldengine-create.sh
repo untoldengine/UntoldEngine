@@ -15,6 +15,7 @@ NC='\033[0m' # No Color
 # Configuration
 CLI_NAME="untoldengine"
 INSTALL_DIR="/usr/local/bin"
+SUPPORT_DIR="/usr/local/libexec/untoldengine"
 BUILD_CONFIG="release"
 
 echo -e "${CYAN}🎮 UntoldEngine CLI Installer${NC}"
@@ -87,6 +88,26 @@ else
     sudo chmod +x "$INSTALL_DIR/$CLI_NAME"
 fi
 
+# Install Blender exporter support files used by `untoldengine export`.
+echo -e "${CYAN}📦 Installing exporter support files to $SUPPORT_DIR...${NC}"
+if [ ! -d "$SUPPORT_DIR" ]; then
+    if [ -w "$(dirname "$SUPPORT_DIR")" ]; then
+        mkdir -p "$SUPPORT_DIR"
+    else
+        sudo mkdir -p "$SUPPORT_DIR"
+    fi
+fi
+
+if [ -w "$SUPPORT_DIR" ]; then
+    cp "$REPO_ROOT/scripts/untoldexporter.py" "$SUPPORT_DIR/untoldexporter.py"
+    cp "$REPO_ROOT/scripts/untoldexplorer.py" "$SUPPORT_DIR/untoldexplorer.py"
+    cp "$REPO_ROOT/scripts/texbake.py" "$SUPPORT_DIR/texbake.py"
+else
+    sudo cp "$REPO_ROOT/scripts/untoldexporter.py" "$SUPPORT_DIR/untoldexporter.py"
+    sudo cp "$REPO_ROOT/scripts/untoldexplorer.py" "$SUPPORT_DIR/untoldexplorer.py"
+    sudo cp "$REPO_ROOT/scripts/texbake.py" "$SUPPORT_DIR/texbake.py"
+fi
+
 echo -e "${GREEN}✅ Installation complete${NC}"
 echo ""
 
@@ -106,6 +127,12 @@ if command -v $CLI_NAME &> /dev/null; then
     echo ""
     echo -e "  ${CYAN}# Create multi-platform project (macOS, iOS, visionOS)${NC}"
     echo -e "  ${CYAN}$CLI_NAME create MyGame --platform multi --team-id YOUR_TEAM_ID${NC}"
+    echo ""
+    echo -e "  ${CYAN}# Export USD/USDZ to .untold${NC}"
+    echo -e "  ${CYAN}$CLI_NAME export --input model.usdz --output model.untold --convert-orientation${NC}"
+    echo ""
+    echo -e "  ${CYAN}# Bake textures to .utex${NC}"
+    echo -e "  ${CYAN}$CLI_NAME texbake --dir Textures${NC}"
     echo ""
 else
     echo -e "${YELLOW}⚠️  Warning: $CLI_NAME not found in PATH${NC}"

@@ -70,6 +70,19 @@ untoldengine create CrossPlatformGame --platform multi --team-id YOUR_TEAM_ID
 
 ## Commands
 
+### `export` - Export a runtime asset
+
+Runs Blender in background mode to convert a USD/USDZ asset into the engine's
+`.untold` runtime format. The command can be run from any directory.
+
+```bash
+untoldengine export \
+  --input /path/to/model.usdz \
+  --output /path/to/model.untold \
+  --convert-orientation \
+  --compress-geometry
+```
+
 ### `create` - Create a new project
 
 Creates a new UntoldEngine game project.

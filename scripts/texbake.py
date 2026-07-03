@@ -15,8 +15,8 @@ export-untold-tiles has produced a textures/ directory.
 
 Requirements:
     pip install Pillow
-    brew install astc-encoder   # provides the 'astcenc' binary on macOS
-    or set ASTCENC_BIN=/full/path/to/astcenc
+    Download astcenc from https://github.com/ARM-software/astc-encoder/releases
+    and set ASTCENC_BIN=/full/path/to/astcenc
 
 Usage (single file):
     python scripts/texbake.py --input textures/wall_basecolor.png --slot base_color
@@ -246,8 +246,7 @@ def find_astcenc() -> str:
         "astcenc not found on PATH.\n"
         "Set ASTCENC_BIN=/full/path/to/astcenc\n"
         f"Or place it at:  {shared_tools_candidate}\n"
-        "Install with:  brew install astc-encoder\n"
-        "Or download from:  https://github.com/ARM-software/astc-encoder/releases"
+        "Download it from:  https://github.com/ARM-software/astc-encoder/releases"
     )
 
 

@@ -3959,6 +3959,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--file-type", default="tile", choices=sorted(FILE_TYPES.keys()), help="Untold file type to emit.")
     parser.add_argument("--mesh-name", default=None, help="Optional mesh object name when the USD asset imports multiple meshes.")
     parser.add_argument(
+        "--convert-orientation",
         "--ConvertOrientation",
         action="store_true",
         dest="convert_orientation",

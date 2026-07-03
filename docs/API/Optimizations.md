@@ -11,11 +11,25 @@ For exporter commands, flags, and expected output layout, see
 
 ASTC is a GPU-native block-compression format supported on all Apple Silicon and A-series devices. Converting textures to ASTC reduces texture memory by 4-8x compared to uncompressed RGBA8 and eliminates CPU-side decode. The GPU receives the compressed blocks directly.
 
-ASTC compression is a post-export step run with `texbake.py`, separate from the exporters. This keeps the exporter's Blender Python environment free of extra dependencies.
+ASTC compression is a post-export step run with `untoldengine texbake`, separate from the exporters. This keeps the exporter's Blender Python environment free of extra dependencies.
 
 ### Prerequisites
 
-Install [`astcenc`](https://github.com/ARM-software/astc-encoder/releases). The tool is resolved in this order:
+Download the appropriate macOS build from the
+[`astcenc` releases page](https://github.com/ARM-software/astc-encoder/releases),
+extract it, and ensure the encoder binary is executable:
+
+```bash
+chmod +x /full/path/to/astcenc
+```
+
+Set `ASTCENC_BIN` to its absolute path before running `untoldengine texbake`:
+
+```bash
+export ASTCENC_BIN="/full/path/to/astcenc"
+```
+
+The tool is resolved in this order:
 
 1. `ASTCENC_BIN=/path/to/astcenc`
 2. `Tools/astcenc/astcenc` beside the repo root
@@ -30,10 +44,10 @@ Install [`astcenc`](https://github.com/ARM-software/astc-encoder/releases). The 
   --output GameData/Models/robot/robot.untold
 
 # 2. Bake all textures in the Textures/ directory to .utex
-python3 scripts/texbake.py --dir GameData/Models/robot/Textures/
+untoldengine texbake --dir GameData/Models/robot/Textures/
 
 # 3. Patch the .untold file to reference the .utex files
-python3 scripts/texbake.py --patch-refs GameData/Models/robot/robot.untold
+untoldengine texbake --patch-refs GameData/Models/robot/robot.untold
 ```
 
 ### Tile export workflow
@@ -47,10 +61,10 @@ Tile exports produce many `.untold` files. Pass the tile output directory to `--
   --output-dir GameData/Models/dungeon/tile_exports
 
 # 2. Bake all textures
-python3 scripts/texbake.py --dir GameData/Models/dungeon/tile_exports/Textures/
+untoldengine texbake --dir GameData/Models/dungeon/tile_exports/Textures/
 
 # 3. Patch all .untold files in the tile directory
-python3 scripts/texbake.py --patch-refs GameData/Models/dungeon/tile_exports/
+untoldengine texbake --patch-refs GameData/Models/dungeon/tile_exports/
 ```
 
 ### What the bake step does
@@ -67,7 +81,7 @@ python3 scripts/texbake.py --patch-refs GameData/Models/dungeon/tile_exports/
 For cases where filename-based slot detection is insufficient, pass `--input` and `--slot` directly:
 
 ```bash
-python3 scripts/texbake.py \
+untoldengine texbake \
   --input GameData/Models/robot/Textures/surface_data.png \
   --slot roughness
 ```

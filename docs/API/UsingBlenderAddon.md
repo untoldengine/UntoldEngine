@@ -395,8 +395,7 @@ You can also download `astcenc` from:
 https://github.com/ARM-software/astc-encoder/releases
 ```
 
-Homebrew availability may vary. If `brew install astc-encoder` reports that no
-formula exists, use the downloaded binary and `ASTCENC_BIN`.
+Use the downloaded binary's absolute path for `ASTCENC_BIN`.
 
 ## Texture Quality
 

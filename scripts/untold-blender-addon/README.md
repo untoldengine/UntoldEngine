@@ -36,11 +36,12 @@ Options:
 
 Texture baking requires Pillow in Blender's Python and the `astcenc` binary:
 
-```sh
-brew install astc-encoder
-```
+Download `astcenc` from the
+[ARM astc-encoder releases page](https://github.com/ARM-software/astc-encoder/releases),
+then set `ASTCENC_BIN=/full/path/to/astcenc` before launching Blender.
 
-or set `ASTCENC_BIN=/full/path/to/astcenc` before launching Blender.
+Ensure the downloaded binary is executable with
+`chmod +x /full/path/to/astcenc`.
 
 Use `File > Export > Untold Animation (.untold)` for animation clips.
 
