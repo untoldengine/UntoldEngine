@@ -87,13 +87,16 @@ setBatching(.enabled(true))
 
 ## Core APIs
 
-### `setEntityStaticBatchComponent(entityId:)`
+### `setEntityStaticBatchHierarchy(entityId:)`
 
 Marks an entity hierarchy as eligible for batching.
 
 ```swift
-setEntityStaticBatchComponent(entityId: entity)
+setEntityStaticBatchHierarchy(entityId: entity)
 ```
+
+The older `setEntityStaticBatchComponent(entityId:)` name remains available as a
+backward-compatible alias.
 
 ### `removeEntityStaticBatchComponent(entityId:)`
 

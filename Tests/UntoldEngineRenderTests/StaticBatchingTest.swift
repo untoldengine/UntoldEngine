@@ -250,7 +250,7 @@ final class StaticBatchingTest: BaseRenderSetup {
         setParent(childId: wallB, parentId: tileRoot)
         setParent(childId: selectablePipe, parentId: tileRoot)
 
-        setEntityStaticBatchComponent(entityId: tileRoot)
+        setEntityStaticBatchHierarchy(entityId: tileRoot)
         setSceneChannel(.contextGeometry, .renderMode(.hidden))
         generateBatches()
 

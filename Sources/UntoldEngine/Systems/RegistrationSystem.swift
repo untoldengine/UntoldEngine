@@ -3040,7 +3040,10 @@ public func getEntityPickHitRepresentationMode(entityId: EntityID) -> PickHitRep
     scene.get(component: PickInteractionComponent.self, for: entityId)?.hitRepresentationMode ?? .mesh
 }
 
-public func setEntityStaticBatchComponent(entityId: EntityID) {
+/// Marks every eligible renderable in an entity hierarchy as static-batchable.
+///
+/// Use this for imported models whose root entity may not render geometry directly.
+public func setEntityStaticBatchHierarchy(entityId: EntityID) {
     // XR can render from a dedicated thread while scene data is being mutated here.
     // Gate rendering while we recursively tag the hierarchy as static-batchable.
     withWorldMutationGate {
@@ -3048,7 +3051,12 @@ public func setEntityStaticBatchComponent(entityId: EntityID) {
     }
 }
 
-/// Same behavior as `setEntityStaticBatchComponent(entityId:)`, but assumes the caller is
+/// Backward-compatible name for `setEntityStaticBatchHierarchy(entityId:)`.
+public func setEntityStaticBatchComponent(entityId: EntityID) {
+    setEntityStaticBatchHierarchy(entityId: entityId)
+}
+
+/// Same behavior as `setEntityStaticBatchHierarchy(entityId:)`, but assumes the caller is
 /// already inside a world-mutation critical section and must not re-open the render gate.
 public func setEntityStaticBatchComponentUngated(entityId: EntityID) {
     setEntityStaticBatchComponentRecursive(entityId: entityId)
