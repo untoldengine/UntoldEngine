@@ -1,11 +1,32 @@
 # Using The Exporter
 
-UntoldEngine ships two user-facing exporter commands in the `scripts/` folder at the repo root:
+UntoldEngine ships a global CLI command for exporting individual assets and a
+repository script for tiled scene exports:
 
-- `export-untold`
+- `untoldengine export`
 - `export-untold-tiles`
 
-These wrappers launch Blender in background mode and run the Python exporters for you. Users should run the shell wrappers, not the raw Blender commands.
+Both commands launch Blender in background mode and run the Python exporters
+for you. Users do not need to invoke Blender or the Python scripts directly.
+
+## Install The Export Command
+
+From the UntoldEngine repository root, install the CLI:
+
+```bash
+./scripts/install-untoldengine-create.sh
+```
+
+The installer places `untoldengine` on the system `PATH` and installs its
+exporter support files. After installation, `untoldengine export` works from a
+game project directory or any other directory; it does not depend on the
+current working directory or require navigating back to the engine repository.
+
+Confirm that the command is available:
+
+```bash
+untoldengine export --help
+```
 
 ## Prerequisites
 
@@ -22,14 +43,28 @@ If Blender cannot be found, the wrapper prints an install message and exits.
 
 ## Export A Single Asset
 
-Use `export-untold` (found in `scripts/`) to convert one USD or USDZ asset into one `.untold` runtime file.
+Use `untoldengine export` from any directory to convert one USD or USDZ asset
+into one `.untold` runtime file.
 
 Basic usage:
 
 ```bash
-./scripts/export-untold \
+untoldengine export \
   --input /path/model.usdz \
   --output /path/model.untold
+```
+
+Absolute paths work as shown above. Relative paths are resolved from the
+directory in which the command is run, which is convenient when working from a
+generated game project:
+
+```bash
+cd /path/to/MyGame
+
+untoldengine export \
+  --input Sources/MyGame/GameData/Models/robot/robot.usdz \
+  --output Sources/MyGame/GameData/Models/robot/robot.untold \
+  --convert-orientation
 ```
 
 Common options:
@@ -38,29 +73,98 @@ Common options:
 - `--output <path>`: required destination `.untold`
 - `--file-type <tile|lod|hlod|shared|animation>`: optional, defaults to `tile`
 - `--mesh-name <name>`: optional, export only one mesh from a multi-mesh asset
-- `--ConvertOrientation`: optional, convert the export into engine space
+- `--convert-orientation`: optional, convert the export into engine space
 - `--source-orientation <blender-native|engine-oriented>`: optional, defaults to `blender-native`
 - `--validate`: optional, also writes `<name>.validation.json`
 - `--compress-geometry`: optional, LZ4-compress vertex and index chunks (requires `pip install lz4`)
 - `--animation`: optional, export animation clips only — no mesh geometry is written
-- `--blender <path>`: optional wrapper-level Blender override
+- `--blender <path>`: optional Blender executable override
 
-Example:
+Example using absolute paths and geometry compression:
 
 ```bash
-./scripts/export-untold \
-  --input GameData/Models/robot/robot.usdz \
-  --output GameData/Models/robot/robot.untold \
-  --ConvertOrientation \
-  --source-orientation blender-native \
-  --validate
+untoldengine export \
+  --input /Users/haroldserrano/Downloads/FloorPlanA/floorplanA.usdz \
+  --output /Users/haroldserrano/Downloads/FloorPlanA/floorplanA.untold \
+  --convert-orientation \
+  --compress-geometry
 ```
 
 Expected output:
 
-- `robot.untold`
+- `floorplanA.untold`
 - `Textures/...` beside the `.untold` file if the asset uses textures
-- `robot.validation.json` only when `--validate` is passed
+- `floorplanA.validation.json` only when `--validate` is passed
+
+The older `./scripts/export-untold` repository wrapper remains available for
+engine development and compatibility. Game developers should prefer
+`untoldengine export` because it can be called directly from their project.
+
+## Bake Textures To `.utex`
+
+The CLI also exposes the ASTC texture baker, so it can be used without locating
+`scripts/texbake.py` in the engine repository.
+
+Bake every supported image in a texture directory:
+
+```bash
+untoldengine texbake --dir GameData/Models/robot/Textures
+```
+
+Bake one texture with an explicit material slot:
+
+```bash
+untoldengine texbake \
+  --input GameData/Models/robot/Textures/surface_data.png \
+  --slot roughness
+```
+
+Patch an exported asset to reference the generated `.utex` files:
+
+```bash
+untoldengine texbake --patch-refs GameData/Models/robot/robot.untold
+```
+
+Texture baking requires Python 3 with Pillow and the `astcenc` executable.
+Download the appropriate macOS release from the
+[`astc-encoder` releases page](https://github.com/ARM-software/astc-encoder/releases),
+extract it, and make sure the encoder binary is executable:
+
+```bash
+chmod +x /full/path/to/astcenc
+```
+
+Set `ASTCENC_BIN` to the absolute path of that executable before running the
+texture baker:
+
+```bash
+export ASTCENC_BIN="/full/path/to/astcenc"
+untoldengine texbake --dir /path/to/Textures
+```
+
+For example, an encoder stored in UntoldEngineStudio's shared `Tools` directory
+can be used with:
+
+```bash
+ASTCENC_BIN="/path/to/UntoldEngineStudio/Tools/astcenc/astcenc" \
+  untoldengine texbake --dir /path/to/Textures
+```
+
+Add the `export ASTCENC_BIN=...` line to `~/.zshrc` when that custom location
+should be used for every terminal session. Alternatively, place a binary named
+`astcenc`, `astcenc-native`, `astcenc-avx2`, or `astcenc-sse4.2` on `PATH`. The
+CLI uses `python3` from `PATH`; set `PYTHON3_BIN` only when a different Python
+installation is required.
+
+Available options:
+
+- `--input <path>`: bake one PNG, JPEG, TGA, or BMP image
+- `--output <path>`: destination `.utex` path for a single image
+- `--slot <slot>`: override automatic texture-slot detection
+- `--dir <path>`: bake all supported images in a directory
+- `--quality <level>`: `fastest`, `fast`, `medium`, `thorough`, or `exhaustive`
+- `--keep-temp`: retain intermediate mip and ASTC files
+- `--patch-refs <path>`: patch one `.untold` file or every `.untold` file in a directory
 
 ## Export A Scene Into Tiles
 

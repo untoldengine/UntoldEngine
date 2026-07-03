@@ -16,7 +16,7 @@ Convert one asset:
 ./scripts/export-untold \
   --input GameData/Models/robot/robot.usdz \
   --output GameData/Models/robot/robot.untold \
-  --ConvertOrientation \
+  --convert-orientation \
   --source-orientation blender-native
 ```
 
@@ -26,7 +26,7 @@ Export an animation clip:
 ./scripts/export-untold \
   --input GameData/Models/robot/running.usdz \
   --output GameData/Models/robot/running.untold \
-  --ConvertOrientation \
+  --convert-orientation \
   --source-orientation blender-native \
   --animation
 ```

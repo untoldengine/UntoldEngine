@@ -114,7 +114,7 @@ Use the `export-untold` script to convert a single USDZ asset:
 ./scripts/export-untold \
   --input /path/to/your/model/robot/robot.usdz \
   --output /path/to/your/project/GameData/Models/robot/robot.untold \
-  --ConvertOrientation \
+  --convert-orientation \
   --source-orientation blender-native
 ```
 
@@ -124,7 +124,7 @@ For animation assets, use the `--animation` flag:
 ./scripts/export-untold \
   --input /path/to/your/animation/robot/robot.usdz \
   --output /path/to/your/project/GameData/Animations/robot/robot.untold \
-  --ConvertOrientation \
+  --convert-orientation \
   --source-orientation blender-native \
   --animation
 ```
