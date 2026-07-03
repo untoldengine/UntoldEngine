@@ -127,11 +127,6 @@ fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
     : float4(tint, materialParameter.baseColor.a);
     
     
-    // Avoid black base color while preserving authored alpha.
-    inBaseColor = (computeLuma(inBaseColor.rgb) <= 0.01)
-        ? float4(float3(0.1), inBaseColor.a)
-        : inBaseColor;
-   
     if (materialParameter.alphaMode == 2) {
         discard_fragment();
     }
