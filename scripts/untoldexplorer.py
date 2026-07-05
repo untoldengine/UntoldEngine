@@ -1363,6 +1363,30 @@ def import_usd_asset(asset_path: Path) -> list[object]:
     return imported
 
 
+def load_blend_scene(asset_path: Path) -> list[object]:
+    """Open a .blend file in place of the factory-startup scene and return its objects.
+
+    Unlike import_usd_asset, this replaces the whole scene (equivalent to
+    File > Open) rather than merging into it, so there is no existing-vs-new
+    object bookkeeping to do.
+    """
+    blender_required()
+    result = bpy.ops.wm.open_mainfile(filepath=str(asset_path))
+    if "FINISHED" not in result:
+        raise RuntimeError(f"Blender failed to open {asset_path}")
+    scene_objects = list(bpy.context.scene.objects)
+    if not scene_objects:
+        raise RuntimeError(f"No objects were found in {asset_path}")
+    return scene_objects
+
+
+def load_source_objects(asset_path: Path) -> list[object]:
+    if asset_path.suffix.lower() == ".blend":
+        return load_blend_scene(asset_path)
+    clear_scene()
+    return import_usd_asset(asset_path)
+
+
 def make_export_orientation_matrix(source_orientation: str) -> object:
     blender_required()
     if axis_conversion is None or Matrix is None or Vector is None:
@@ -3007,10 +3031,10 @@ def extract_nodes(
     progress_callback: Optional[ProgressCallback] = None,
 ) -> list[ExportedNode]:
     blender_required()
+    stage_label = "Open .blend" if asset_path.suffix.lower() == ".blend" else "Import USD"
     if progress_callback is not None:
-        progress_callback("Import USD", 0, 1, asset_path.name)
-    clear_scene()
-    imported_objects = import_usd_asset(asset_path)
+        progress_callback(stage_label, 0, 1, asset_path.name)
+    imported_objects = load_source_objects(asset_path)
     if progress_callback is not None:
         progress_callback("Select objects", 0, 1, f"{len(imported_objects)} imported object(s)")
     export_objects = prepare_export_objects_from_blender_objects(imported_objects, mesh_name)
@@ -3629,8 +3653,7 @@ def build_untold_file(
 
 def extract_animation_clips(asset_path: Path, convert_orientation: bool = False, source_orientation: str = "blender-native") -> list[ExportedAnimationClip]:
     blender_required()
-    clear_scene()
-    imported_objects = import_usd_asset(asset_path)
+    imported_objects = load_source_objects(asset_path)
     conversion_matrix = make_export_orientation_matrix(source_orientation) if convert_orientation else None
     armatures = [obj for obj in imported_objects if getattr(obj, "type", None) == "ARMATURE"]
     if not armatures:
@@ -3954,7 +3977,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     else:
         argv = argv[1:]
     parser = argparse.ArgumentParser(description="Cook USD scene or animation data into UntoldEngine's .untold format.")
-    parser.add_argument("--input", required=True, help="Path to a source USD/USDZ asset.")
+    parser.add_argument("--input", required=True, help="Path to a source USD/USDZ asset or a .blend file.")
     parser.add_argument("--output", required=True, help="Path to the output .untold file.")
     parser.add_argument("--file-type", default="tile", choices=sorted(FILE_TYPES.keys()), help="Untold file type to emit.")
     parser.add_argument("--mesh-name", default=None, help="Optional mesh object name when the USD asset imports multiple meshes.")
@@ -3990,16 +4013,16 @@ def main(argv: list[str]) -> int:
     input_path = normalize_blender_path(args.input)
     output_path = normalize_blender_path(args.output)
 
-    if input_path.suffix.lower() not in {".usd", ".usda", ".usdc", ".usdz"}:
+    if input_path.suffix.lower() not in {".usd", ".usda", ".usdc", ".usdz", ".blend"}:
         raise RuntimeError(f"Unsupported source asset type: {input_path.suffix}")
     if not input_path.is_file():
         raise RuntimeError(f"Input asset does not exist: {input_path}")
 
-    print(f"Importing {input_path.name} ...", flush=True)
+    print(f"{'Opening' if input_path.suffix.lower() == '.blend' else 'Importing'} {input_path.name} ...", flush=True)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     if args.animation:
         progress = ProgressReporter("animation export", 4)
-        progress.stage("Import USD", input_path.name)
+        progress.stage("Open .blend" if input_path.suffix.lower() == ".blend" else "Import USD", input_path.name)
         exported_clips = extract_animation_clips(
             input_path,
             convert_orientation=args.convert_orientation,
