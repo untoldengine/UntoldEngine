@@ -755,9 +755,8 @@ class KeyframeQuaternion:
     value: tuple[float, float, float, float]
 
 
-@dataclass
 class UnsupportedTextureFormatError(Exception):
-    """Raised when a texture format is not supported by the engine pipeline (e.g. EXR, HDR)."""
+    """Raised when a texture is not usable by the engine pipeline (e.g. EXR/HDR format, or no pixel data)."""
 
 
 class TextureStagingContext:
@@ -2095,6 +2094,12 @@ def write_blender_image_to_path(image_name: str, destination_path: Path) -> None
     image = bpy.data.images.get(image_name)
     if image is None:
         raise RuntimeError(f"Blender image '{image_name}' is no longer available for export")
+
+    if not getattr(image, "has_data", True) or image.size[0] == 0 or image.size[1] == 0:
+        raise UnsupportedTextureFormatError(
+            f"'{image_name}' has no pixel data (missing source file or an unassigned "
+            f"image reference). Skipping texture."
+        )
 
     destination_path.parent.mkdir(parents=True, exist_ok=True)
 
