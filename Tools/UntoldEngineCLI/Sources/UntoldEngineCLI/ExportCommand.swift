@@ -14,17 +14,18 @@ import Foundation
 struct ExportCommand: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "export",
-        abstract: "Convert a USD/USDZ asset to UntoldEngine's .untold format",
+        abstract: "Convert a USD/USDZ asset or .blend file to UntoldEngine's .untold format",
         discussion: """
         Runs the UntoldEngine exporter through Blender. Input and output paths
         may be absolute or relative to the current directory.
 
         Example:
           untoldengine export --input model.usdz --output model.untold --convert-orientation --compress-geometry
+          untoldengine export --input model.blend --output model.untold --convert-orientation --compress-geometry
         """
     )
 
-    @Option(name: .long, help: "Source .usd, .usda, .usdc, or .usdz asset")
+    @Option(name: .long, help: "Source .usd, .usda, .usdc, .usdz, or .blend asset")
     var input: String
 
     @Option(name: .long, help: "Destination .untold file")
