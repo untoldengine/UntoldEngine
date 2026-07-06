@@ -111,17 +111,38 @@ untoldengine update ~/Projects/MyGame --asset-path ~/GameAssets
 
 ---
 
-## Exporting USD/USDZ Assets
+## Bootstrapping Dependencies
 
-Run the exporter from the game project or any other directory:
+Some optimizations (ASTC texture compression) rely on external native tools.
+Install them once with:
+
+```bash
+untoldengine bootstrap
+```
+
+This downloads and verifies pinned tool versions into `~/.untoldengine/tools`
+so `untoldengine export --optimize` and `untoldengine texbake` find them
+automatically. See [Optimizations](Optimizations.md) for details.
+
+---
+
+## Exporting Assets
+
+Run the exporter from the game project or any other directory. Input can be a
+USD/USDZ asset or a `.blend` file:
 
 ```bash
 untoldengine export \
   --input /path/to/model.usdz \
   --output /path/to/model.untold \
   --convert-orientation \
-  --compress-geometry
+  --optimize
 ```
+
+`--optimize` compresses geometry and, if the asset has textures, bakes and
+patches them to `.utex` — equivalent to running `--compress-geometry`
+followed by `untoldengine texbake --dir` and `--patch-refs`. See
+[Optimizations](Optimizations.md) for what each flag does.
 
 Use `--blender /path/to/Blender` when Blender is not installed in its standard
 macOS location and is not available on `PATH`.

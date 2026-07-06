@@ -15,25 +15,32 @@ ASTC compression is a post-export step run with `untoldengine texbake`, separate
 
 ### Prerequisites
 
-Download the appropriate macOS build from the
+Install `astcenc` with:
+
+```bash
+untoldengine bootstrap
+```
+
+This downloads the pinned, checksum-verified `astcenc` release into
+`~/.untoldengine/tools/astcenc/astcenc`. `untoldengine texbake` finds it there
+automatically — no environment variables to set. Re-running `bootstrap` is a
+no-op once the pinned version is installed; pass `--force` to reinstall.
+
+If you'd rather manage the binary yourself, download the appropriate build from the
 [`astcenc` releases page](https://github.com/ARM-software/astc-encoder/releases),
-extract it, and ensure the encoder binary is executable:
+make it executable, and set `ASTCENC_BIN` to its absolute path:
 
 ```bash
 chmod +x /full/path/to/astcenc
-```
-
-Set `ASTCENC_BIN` to its absolute path before running `untoldengine texbake`:
-
-```bash
 export ASTCENC_BIN="/full/path/to/astcenc"
 ```
 
 The tool is resolved in this order:
 
 1. `ASTCENC_BIN=/path/to/astcenc`
-2. `Tools/astcenc/astcenc` beside the repo root
-3. `astcenc` on `PATH`
+2. `~/.untoldengine/tools/astcenc/astcenc` (where `bootstrap` installs it; override the home directory with `UNTOLDENGINE_HOME`)
+3. `Tools/astcenc/astcenc` beside the repo root
+4. `astcenc` on `PATH`
 
 ### Single asset workflow
 
