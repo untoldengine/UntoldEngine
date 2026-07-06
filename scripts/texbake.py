@@ -14,9 +14,11 @@ using ASTC block compression. Run this as a post-export step after export-untold
 export-untold-tiles has produced a textures/ directory.
 
 Requirements:
-    pip install Pillow
-    Download astcenc from https://github.com/ARM-software/astc-encoder/releases
-    and set ASTCENC_BIN=/full/path/to/astcenc
+    Run `untoldengine bootstrap` to install Pillow, lz4, and astcenc automatically.
+    Or install manually:
+      pip install Pillow lz4
+      Download astcenc from https://github.com/ARM-software/astc-encoder/releases
+      and set ASTCENC_BIN=/full/path/to/astcenc
 
 Usage (single file):
     python scripts/texbake.py --input textures/wall_basecolor.png --slot base_color

@@ -15,18 +15,20 @@ ASTC compression is a post-export step run with `untoldengine texbake`, separate
 
 ### Prerequisites
 
-Install `astcenc` with:
+Install everything `texbake` needs — `astcenc`, and the `Pillow`/`lz4` Python
+packages — with:
 
 ```bash
 untoldengine bootstrap
 ```
 
 This downloads the pinned, checksum-verified `astcenc` release into
-`~/.untoldengine/tools/astcenc/astcenc`. `untoldengine texbake` finds it there
-automatically — no environment variables to set. Re-running `bootstrap` is a
-no-op once the pinned version is installed; pass `--force` to reinstall.
+`~/.untoldengine/tools/astcenc/astcenc` and `pip install`s `Pillow`/`lz4` for
+whichever `python3` `untoldengine texbake` will itself resolve. Nothing to set
+by hand. Re-running `bootstrap` is a no-op once everything is present; pass
+`--force` to reinstall.
 
-If you'd rather manage the binary yourself, download the appropriate build from the
+If you'd rather manage `astcenc` yourself, download the appropriate build from the
 [`astcenc` releases page](https://github.com/ARM-software/astc-encoder/releases),
 make it executable, and set `ASTCENC_BIN` to its absolute path:
 
