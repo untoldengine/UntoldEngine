@@ -16,6 +16,6 @@ struct UntoldEngineCLI: AsyncParsableCommand {
         commandName: "untoldengine",
         abstract: "UntoldEngine command-line tools",
         version: "0.1.0",
-        subcommands: [CreateCommand.self, UpdateCommand.self, AssetsCommand.self, ExportCommand.self, TexbakeCommand.self, BootstrapCommand.self]
+        subcommands: [CreateCommand.self, UpdateCommand.self, AssetsCommand.self, ExportCommand.self, TexbakeCommand.self, BootstrapCommand.self, BlenderAddonCommand.self]
     )
 }
