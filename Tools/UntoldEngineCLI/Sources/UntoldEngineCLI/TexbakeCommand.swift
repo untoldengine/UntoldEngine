@@ -77,44 +77,45 @@ struct TexbakeCommand: ParsableCommand {
             throw TexbakeError.failed(process.terminationStatus)
         }
     }
+}
 
-    private func resolvePython3() throws -> URL {
-        if let override = ProcessInfo.processInfo.environment["PYTHON3_BIN"], !override.isEmpty {
-            let path = resolvePath(override).path
-            guard FileManager.default.isExecutableFile(atPath: path) else {
-                throw TexbakeError.pythonNotExecutable(path)
-            }
-            return URL(fileURLWithPath: path)
+/// Shared with ExportCommand's --optimize, which also needs to run texbake.py.
+func resolvePython3() throws -> URL {
+    if let override = ProcessInfo.processInfo.environment["PYTHON3_BIN"], !override.isEmpty {
+        let path = resolvePath(override).path
+        guard FileManager.default.isExecutableFile(atPath: path) else {
+            throw TexbakeError.pythonNotExecutable(path)
         }
-
-        for directory in ProcessInfo.processInfo.environment["PATH", default: ""].split(separator: ":") {
-            let candidate = URL(fileURLWithPath: String(directory)).appendingPathComponent("python3")
-            if FileManager.default.isExecutableFile(atPath: candidate.path) { return candidate }
-        }
-        throw TexbakeError.pythonNotFound
+        return URL(fileURLWithPath: path)
     }
 
-    private func resolveTexbakeScript() throws -> URL {
-        if let supportDirectory = ProcessInfo.processInfo.environment["UNTOLDENGINE_EXPORTER_DIR"] {
-            let candidate = URL(fileURLWithPath: supportDirectory).appendingPathComponent("texbake.py")
-            if FileManager.default.fileExists(atPath: candidate.path) { return candidate }
-        }
-
-        let executableURL = Bundle.main.executableURL
-            ?? URL(fileURLWithPath: CommandLine.arguments[0]).standardizedFileURL
-        let installedScript = executableURL
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appendingPathComponent("libexec/untoldengine/texbake.py")
-        if FileManager.default.fileExists(atPath: installedScript.path) { return installedScript }
-
-        let developmentScript = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-            .appendingPathComponent("../../scripts/texbake.py")
-            .standardizedFileURL
-        if FileManager.default.fileExists(atPath: developmentScript.path) { return developmentScript }
-
-        throw TexbakeError.notInstalled(installedScript.path)
+    for directory in ProcessInfo.processInfo.environment["PATH", default: ""].split(separator: ":") {
+        let candidate = URL(fileURLWithPath: String(directory)).appendingPathComponent("python3")
+        if FileManager.default.isExecutableFile(atPath: candidate.path) { return candidate }
     }
+    throw TexbakeError.pythonNotFound
+}
+
+func resolveTexbakeScript() throws -> URL {
+    if let supportDirectory = ProcessInfo.processInfo.environment["UNTOLDENGINE_EXPORTER_DIR"] {
+        let candidate = URL(fileURLWithPath: supportDirectory).appendingPathComponent("texbake.py")
+        if FileManager.default.fileExists(atPath: candidate.path) { return candidate }
+    }
+
+    let executableURL = Bundle.main.executableURL
+        ?? URL(fileURLWithPath: CommandLine.arguments[0]).standardizedFileURL
+    let installedScript = executableURL
+        .deletingLastPathComponent()
+        .deletingLastPathComponent()
+        .appendingPathComponent("libexec/untoldengine/texbake.py")
+    if FileManager.default.fileExists(atPath: installedScript.path) { return installedScript }
+
+    let developmentScript = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        .appendingPathComponent("../../scripts/texbake.py")
+        .standardizedFileURL
+    if FileManager.default.fileExists(atPath: developmentScript.path) { return developmentScript }
+
+    throw TexbakeError.notInstalled(installedScript.path)
 }
 
 enum TexbakeError: LocalizedError {

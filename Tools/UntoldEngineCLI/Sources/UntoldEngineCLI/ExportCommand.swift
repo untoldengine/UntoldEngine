@@ -19,9 +19,14 @@ struct ExportCommand: ParsableCommand {
         Runs the UntoldEngine exporter through Blender. Input and output paths
         may be absolute or relative to the current directory.
 
+        --optimize compresses geometry and, if the export produced a Textures
+        directory, bakes those textures to .utex and patches the .untold
+        references — equivalent to running --compress-geometry followed by
+        `untoldengine texbake --dir` and `untoldengine texbake --patch-refs`.
+
         Example:
-          untoldengine export --input model.usdz --output model.untold --convert-orientation --compress-geometry
-          untoldengine export --input model.blend --output model.untold --convert-orientation --compress-geometry
+          untoldengine export --input model.usdz --output model.untold --convert-orientation --optimize
+          untoldengine export --input model.blend --output model.untold --convert-orientation --optimize
         """
     )
 
@@ -55,6 +60,9 @@ struct ExportCommand: ParsableCommand {
     @Flag(name: .long, help: "Export animation clips without mesh geometry")
     var animation = false
 
+    @Flag(name: .long, help: "Compress geometry and bake/patch textures after export (implies --compress-geometry)")
+    var optimize = false
+
     func run() throws {
         let inputURL = resolvePath(input).standardizedFileURL
         let outputURL = resolvePath(output).standardizedFileURL
@@ -75,7 +83,7 @@ struct ExportCommand: ParsableCommand {
         if let meshName { exporterArguments += ["--mesh-name", meshName] }
         if convertOrientation { exporterArguments.append("--convert-orientation") }
         if validate { exporterArguments.append("--validate") }
-        if compressGeometry { exporterArguments.append("--compress-geometry") }
+        if compressGeometry || optimize { exporterArguments.append("--compress-geometry") }
         if animation { exporterArguments.append("--animation") }
 
         printInfo("Using Blender: \(blenderURL.path)")
@@ -99,6 +107,43 @@ struct ExportCommand: ParsableCommand {
             throw ExportError.exportFailed(process.terminationStatus)
         }
         printSuccess("Exported: \(outputURL.path)")
+
+        if optimize {
+            try optimizeTextures(outputURL: outputURL)
+        }
+    }
+
+    private func optimizeTextures(outputURL: URL) throws {
+        let texturesDir = outputURL.deletingLastPathComponent().appendingPathComponent("Textures")
+        guard validateDirectory(texturesDir) else {
+            printInfo("No Textures directory found beside the output; skipping texture optimization.")
+            return
+        }
+
+        let python3URL = try resolvePython3()
+        let texbakeScriptURL = try resolveTexbakeScript()
+
+        printInfo("Baking textures: \(texturesDir.path)")
+        try runPython(python3URL, [texbakeScriptURL.path, "--dir", texturesDir.path])
+
+        printInfo("Patching texture references: \(outputURL.path)")
+        try runPython(python3URL, [texbakeScriptURL.path, "--patch-refs", outputURL.path])
+
+        printSuccess("Optimized textures: \(texturesDir.path)")
+    }
+
+    private func runPython(_ python3URL: URL, _ arguments: [String]) throws {
+        let process = Process()
+        process.executableURL = python3URL
+        process.arguments = arguments
+        process.standardOutput = FileHandle.standardOutput
+        process.standardError = FileHandle.standardError
+
+        try process.run()
+        process.waitUntilExit()
+        guard process.terminationStatus == 0 else {
+            throw ExportError.optimizeFailed(process.terminationStatus)
+        }
     }
 
     private func resolveBlender() throws -> URL {
@@ -167,6 +212,7 @@ enum ExportError: LocalizedError {
     case blenderNotExecutable(String)
     case exporterNotInstalled(String)
     case exportFailed(Int32)
+    case optimizeFailed(Int32)
 
     var errorDescription: String? {
         switch self {
@@ -180,6 +226,8 @@ enum ExportError: LocalizedError {
             return "Exporter support files were not found. Reinstall the CLI. Expected: \(path)"
         case let .exportFailed(status):
             return "Blender exporter failed with exit status \(status)"
+        case let .optimizeFailed(status):
+            return "Texture optimization (texbake) failed with exit status \(status)"
         }
     }
 }
