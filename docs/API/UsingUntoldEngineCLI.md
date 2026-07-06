@@ -113,16 +113,17 @@ untoldengine update ~/Projects/MyGame --asset-path ~/GameAssets
 
 ## Bootstrapping Dependencies
 
-Some optimizations (ASTC texture compression) rely on external native tools.
-Install them once with:
+Some optimizations (ASTC texture compression) rely on external tools and
+Python packages. Install them once with:
 
 ```bash
 untoldengine bootstrap
 ```
 
-This downloads and verifies pinned tool versions into `~/.untoldengine/tools`
-so `untoldengine export --optimize` and `untoldengine texbake` find them
-automatically. See [Optimizations](Optimizations.md) for details.
+This downloads and verifies a pinned `astcenc` into `~/.untoldengine/tools`
+and installs the `Pillow`/`lz4` Python packages, so `untoldengine export
+--optimize` and `untoldengine texbake` find everything automatically. See
+[Optimizations](Optimizations.md) for details.
 
 ---
 

@@ -76,6 +76,24 @@ func validateDirectory(_ url: URL) -> Bool {
     return exists && isDirectory.boolValue
 }
 
+// MARK: - Process Execution
+
+/// Runs a process with stdout/stderr connected to this process's own, so the
+/// child's output streams live (e.g. pip's install progress). Returns the
+/// exit status; callers decide what error to throw on non-zero.
+@discardableResult
+func runInheritedProcess(_ executableURL: URL, _ arguments: [String]) throws -> Int32 {
+    let process = Process()
+    process.executableURL = executableURL
+    process.arguments = arguments
+    process.standardOutput = FileHandle.standardOutput
+    process.standardError = FileHandle.standardError
+
+    try process.run()
+    process.waitUntilExit()
+    return process.terminationStatus
+}
+
 // MARK: - Asset Folder Structure
 
 /// Creates the standard UntoldEngine asset folder structure
