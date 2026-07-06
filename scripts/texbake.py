@@ -223,8 +223,9 @@ def generate_mip_chain(img: "Image.Image") -> list["Image.Image"]:
 
 def find_astcenc() -> str:
     """
-    Locate the astcenc binary. Tries an explicit env var, a shared Tools folder,
-    then common names on PATH.
+    Locate the astcenc binary. Tries an explicit env var, the location
+    `untoldengine bootstrap` installs to, a shared Tools folder, then common
+    names on PATH.
     Returns the binary name/path if found, raises RuntimeError otherwise.
     """
     env_override = os.environ.get("ASTCENC_BIN")
@@ -232,6 +233,12 @@ def find_astcenc() -> str:
         astcenc_path = Path(env_override).expanduser()
         if astcenc_path.is_file() and os.access(astcenc_path, os.X_OK):
             return str(astcenc_path)
+
+    untoldengine_home = os.environ.get("UNTOLDENGINE_HOME")
+    home_root = Path(untoldengine_home).expanduser() if untoldengine_home else Path.home() / ".untoldengine"
+    bootstrap_candidate = home_root / "tools" / "astcenc" / "astcenc"
+    if bootstrap_candidate.is_file() and os.access(bootstrap_candidate, os.X_OK):
+        return str(bootstrap_candidate)
 
     repo_root = Path(__file__).resolve().parents[1]
     shared_tools_candidate = repo_root.parent / "Tools" / "astcenc" / "astcenc"
@@ -243,9 +250,10 @@ def find_astcenc() -> str:
         if shutil.which(name):
             return name
     raise RuntimeError(
-        "astcenc not found on PATH.\n"
-        "Set ASTCENC_BIN=/full/path/to/astcenc\n"
-        f"Or place it at:  {shared_tools_candidate}\n"
+        "astcenc not found.\n"
+        "Run:  untoldengine bootstrap\n"
+        "Or set ASTCENC_BIN=/full/path/to/astcenc\n"
+        f"Or place it at:  {bootstrap_candidate}\n"
         "Download it from:  https://github.com/ARM-software/astc-encoder/releases"
     )
 
