@@ -101,11 +101,13 @@ and tiled streaming scenes from Blender scene objects.
 
 ## Packaging
 
-Run:
+From the repository root, run:
 
 ```sh
-scripts/untold-blender-addon/package.sh
+untoldengine blender-addon
 ```
+
+(equivalent to running `scripts/untold-blender-addon/package.sh` directly.)
 
 The package script creates an installable zip with bundled copies of
 `scripts/untoldexplorer.py`, `scripts/texbake.py`, and
