@@ -88,11 +88,28 @@ To see all available asset packs:
 untoldengine assets list
 ```
 
+## Bootstrap Exporter Dependencies
+
+Before exporting or optimizing assets, install the external tools the CLI
+relies on — the `astcenc` texture compressor and the `Pillow`/`lz4` Python
+packages — in one step:
+
+```bash
+untoldengine bootstrap
+```
+
+This downloads a pinned, checksum-verified `astcenc` release into
+`~/.untoldengine/tools` and `pip install`s the Python packages. Nothing to
+download by hand or wire up with environment variables. Re-running `bootstrap`
+is a no-op once everything is installed; pass `--force` to reinstall. See
+[Optimizations](Optimizations.md) for details.
+
 ## Native Asset Format: `.untold`
 
-Untold Engine uses `.untold` as its native runtime asset format. USDZ/USD remains
-the authoring format — you model assets in your DCC tool, export to USDZ, then
-convert to `.untold` before loading them in the engine.
+Untold Engine uses `.untold` as its native runtime asset format. You author
+assets in Blender (or any DCC tool that exports USD/USDZ), then convert them
+to `.untold` before loading them in the engine. The exporter accepts either a
+`.blend` file directly or a USD/USDZ asset.
 
 The `.untold` format is a binary container optimised for fast runtime parsing with
 no ModelIO dependency. It supports runtime mesh data, PBR materials, texture references,
@@ -108,24 +125,45 @@ After the model has been converted to `.untold` format, copy it into your Xcode 
 
 ### Option 2: CLI
 
-Use the `export-untold` script to convert a single USDZ asset:
+Use `untoldengine export` to convert a single asset — a `.blend` file or a USD/USDZ asset — into `.untold`:
 
 ```bash
-./scripts/export-untold \
+untoldengine export \
+  --input /path/to/your/model/robot/robot.blend \
+  --output /path/to/your/project/GameData/Models/robot/robot.untold \
+  --convert-orientation
+```
+
+USD/USDZ input works the same way:
+
+```bash
+untoldengine export \
   --input /path/to/your/model/robot/robot.usdz \
   --output /path/to/your/project/GameData/Models/robot/robot.untold \
+  --convert-orientation
+```
+
+Add `--optimize` to also LZ4-compress geometry and, if the asset has textures,
+compress them with `astcenc` into `.utex` — equivalent to running
+`--compress-geometry` followed by `untoldengine texbake --dir` and
+`--patch-refs`. Run `untoldengine bootstrap` once beforehand so the tools it
+needs are available:
+
+```bash
+untoldengine export \
+  --input /path/to/your/model/robot/robot.blend \
+  --output /path/to/your/project/GameData/Models/robot/robot.untold \
   --convert-orientation \
-  --source-orientation blender-native
+  --optimize
 ```
 
 For animation assets, use the `--animation` flag:
 
 ```bash
-./scripts/export-untold \
+untoldengine export \
   --input /path/to/your/animation/robot/robot.usdz \
   --output /path/to/your/project/GameData/Animations/robot/robot.untold \
   --convert-orientation \
-  --source-orientation blender-native \
   --animation
 ```
 
