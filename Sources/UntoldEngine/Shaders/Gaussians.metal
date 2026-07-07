@@ -15,8 +15,123 @@
 
 using namespace metal;
 
+constant float GAUSSIAN_SH_C1 = 0.4886025119029199f;
+constant float GAUSSIAN_SH_C2[5] = {
+    1.0925484305920792f,
+   -1.0925484305920792f,
+    0.31539156525252005f,
+   -1.0925484305920792f,
+    0.5462742152960396f
+};
+constant float GAUSSIAN_SH_C3[7] = {
+   -0.5900435899266435f,
+    2.890611442640554f,
+   -0.4570457994644658f,
+    0.3731763325901154f,
+   -0.4570457994644658f,
+    1.445305721320277f,
+   -0.5900435899266435f
+};
+
 inline uint unpackIndex(uint64_t packed)  { return (uint)(packed & 0xffffffffu); }
 inline uint unpackDepthKey(uint64_t packed) { return (uint)(packed >> 32); }
+
+float3 loadGaussianSHCoefficient(
+    const device half *coefficients,
+    constant GaussianSHMetadata &metadata,
+    uint splatIndex,
+    uint coefficientIndex)
+{
+    uint perChannel = metadata.coefficientsPerChannel - 1;
+    uint splatBase = splatIndex * metadata.higherOrderCoefficientsPerSplat;
+    uint offset = coefficientIndex - 1;
+    return float3(
+        coefficients[splatBase + offset],
+        coefficients[splatBase + perChannel + offset],
+        coefficients[splatBase + 2 * perChannel + offset]
+    );
+}
+
+float3 evaluateGaussianSphericalHarmonics(
+    float3 baseColor,
+    const device half *coefficients,
+    constant GaussianSHMetadata &metadata,
+    uint splatIndex,
+    float3 direction)
+{
+    if (metadata.degree == 0 || metadata.higherOrderCoefficientsPerSplat == 0) {
+        return baseColor;
+    }
+
+    float lengthSquared = dot(direction, direction);
+    if (lengthSquared <= 1.0e-8f) {
+        return baseColor;
+    }
+    float3 d = direction * rsqrt(lengthSquared);
+    float x = d.x;
+    float y = d.y;
+    float z = d.z;
+    float3 result = baseColor;
+    result += GAUSSIAN_SH_C1 * (
+        -y * loadGaussianSHCoefficient(coefficients, metadata, splatIndex, 1) +
+         z * loadGaussianSHCoefficient(coefficients, metadata, splatIndex, 2) -
+         x * loadGaussianSHCoefficient(coefficients, metadata, splatIndex, 3)
+    );
+
+    if (metadata.degree > 1) {
+        float xx = x * x;
+        float yy = y * y;
+        float zz = z * z;
+        result += GAUSSIAN_SH_C2[0] * x * y * loadGaussianSHCoefficient(coefficients, metadata, splatIndex, 4);
+        result += GAUSSIAN_SH_C2[1] * y * z * loadGaussianSHCoefficient(coefficients, metadata, splatIndex, 5);
+        result += GAUSSIAN_SH_C2[2] * (2.0f * zz - xx - yy) * loadGaussianSHCoefficient(coefficients, metadata, splatIndex, 6);
+        result += GAUSSIAN_SH_C2[3] * x * z * loadGaussianSHCoefficient(coefficients, metadata, splatIndex, 7);
+        result += GAUSSIAN_SH_C2[4] * (xx - yy) * loadGaussianSHCoefficient(coefficients, metadata, splatIndex, 8);
+
+        if (metadata.degree > 2) {
+            result += GAUSSIAN_SH_C3[0] * y * (3.0f * xx - yy) * loadGaussianSHCoefficient(coefficients, metadata, splatIndex, 9);
+            result += GAUSSIAN_SH_C3[1] * x * y * z * loadGaussianSHCoefficient(coefficients, metadata, splatIndex, 10);
+            result += GAUSSIAN_SH_C3[2] * y * (4.0f * zz - xx - yy) * loadGaussianSHCoefficient(coefficients, metadata, splatIndex, 11);
+            result += GAUSSIAN_SH_C3[3] * z * (2.0f * zz - 3.0f * xx - 3.0f * yy) * loadGaussianSHCoefficient(coefficients, metadata, splatIndex, 12);
+            result += GAUSSIAN_SH_C3[4] * x * (4.0f * zz - xx - yy) * loadGaussianSHCoefficient(coefficients, metadata, splatIndex, 13);
+            result += GAUSSIAN_SH_C3[5] * z * (xx - yy) * loadGaussianSHCoefficient(coefficients, metadata, splatIndex, 14);
+            result += GAUSSIAN_SH_C3[6] * x * (xx - 3.0f * yy) * loadGaussianSHCoefficient(coefficients, metadata, splatIndex, 15);
+        }
+    }
+
+    return max(result, float3(0.0f));
+}
+
+// Standard 3DGS coefficients are fitted to normalized image-code values.
+// Decode those display-referred values before writing to Untold's linear HDR
+// Gaussian target. The final output transform will encode them exactly once.
+float3 gaussianSRGBToLinear(float3 color)
+{
+    color = max(color, float3(0.0f));
+    float3 low = color / 12.92f;
+    float3 high = pow((color + 0.055f) / 1.055f, float3(2.4f));
+    return select(high, low, color <= 0.04045f);
+}
+
+// Diagnostic entry point for validating the packed GPU SH contract against
+// the exact evaluator used by the Gaussian vertex shader.
+kernel void gaussianSphericalHarmonicsDiagnostic(
+    const device half *coefficients       [[buffer(0)]],
+    constant GaussianSHMetadata &metadata [[buffer(1)]],
+    constant float4 &baseColor            [[buffer(2)]],
+    constant float4 &direction            [[buffer(3)]],
+    device float4 *result                 [[buffer(4)]])
+{
+    float3 evaluated = evaluateGaussianSphericalHarmonics(
+        baseColor.xyz,
+        coefficients,
+        metadata,
+        0,
+        direction.xyz
+    );
+    result[0] = float4(evaluated, 1.0f);
+    result[1] = float4(gaussianSRGBToLinear(evaluated), 1.0f);
+}
 
 // Project 3D covariance into 2D screen-pixel space
 float3 computeCov2D(float4      splatCenter,
@@ -165,6 +280,9 @@ vertex GaussianOutData vertexGaussianTBDRShader(
     const device EncodedGaussianSplat *splats     [[buffer(gaussianTBDRRenderSplatIndex)]],
     constant Uniforms                 &uniforms   [[buffer(gaussianTBDRRenderUniformIndex)]],
     constant float2                   &viewport   [[buffer(gaussianTBDRRenderViewPortIndex)]],
+    const device half                 *shCoefficients [[buffer(gaussianTBDRRenderSHIndex)]],
+    constant GaussianSHMetadata       &shMetadata [[buffer(gaussianTBDRRenderSHMetadataIndex)]],
+    constant float3                   &localCameraPosition [[buffer(gaussianTBDRRenderLocalCameraIndex)]],
     uint                               vid        [[vertex_id]],
     uint                               iid        [[instance_id]])
 {
@@ -216,7 +334,13 @@ vertex GaussianOutData vertexGaussianTBDRShader(
     float2 ndcOffset = quad * extent * 2.0f / viewport;
     out.position = centerClip;
     out.position.xy += ndcOffset * centerClip.w;
-    out.color = splat.color;
+    out.color = gaussianSRGBToLinear(evaluateGaussianSphericalHarmonics(
+        splat.color,
+        shCoefficients,
+        shMetadata,
+        splatIndex,
+        centerLocal - localCameraPosition
+    ));
     out.alpha = splat.opacity;
     out.valid = true;
 

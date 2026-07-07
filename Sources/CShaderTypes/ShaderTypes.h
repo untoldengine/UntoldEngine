@@ -445,7 +445,7 @@ typedef enum {
 } ARTextureIndices;
 
 typedef enum{
-    gaussianSplatIndex,
+    gaussianEncodedSplatIndex,
     gaussianUniformIndex,
     gaussianNumberOfSplatsIndex,
     gaussianIndicesIndex,
@@ -470,12 +470,25 @@ typedef struct{
     float _pad2;
 }EncodedGaussianSplat;
 
+// Higher-order SH coefficients are stored in a separate packed half buffer.
+// Layout per splat: R[1...n], G[1...n], B[1...n]. The DC coefficient remains
+// represented by EncodedGaussianSplat.color.
+typedef struct{
+    uint degree;
+    uint coefficientsPerChannel;
+    uint higherOrderCoefficientsPerSplat;
+    uint _pad0;
+}GaussianSHMetadata;
+
 typedef enum{
       gaussianTBDRRenderIndicesIndex = 0,
       gaussianTBDRRenderSplatIndex,
       gaussianTBDRRenderUniformIndex,
       gaussianTBDRRenderViewPortIndex,
       gaussianTBDRRenderReverseZIndex,
+      gaussianTBDRRenderSHIndex,
+      gaussianTBDRRenderSHMetadataIndex,
+      gaussianTBDRRenderLocalCameraIndex,
   }GaussianTBDRRenderBufferIndices;
 
 typedef enum{
