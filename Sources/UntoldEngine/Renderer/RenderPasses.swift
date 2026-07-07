@@ -4135,6 +4135,32 @@ public enum RenderPasses {
             )
             renderEncoder.setVertexBytes(&renderInfo.viewPort, length: MemoryLayout<simd_float2>.stride, index: Int(gaussianTBDRRenderViewPortIndex.rawValue))
 
+            var shMetadata = gaussianComponent.sphericalHarmonicsMetadata ?? GaussianSHMetadata(
+                degree: 0,
+                coefficientsPerChannel: 0,
+                higherOrderCoefficientsPerSplat: 0,
+                _pad0: 0
+            )
+            renderEncoder.setVertexBuffer(
+                gaussianComponent.sphericalHarmonicsData ?? gaussianComponent.encodedSplatData,
+                offset: 0,
+                index: Int(gaussianTBDRRenderSHIndex.rawValue)
+            )
+            renderEncoder.setVertexBytes(
+                &shMetadata,
+                length: MemoryLayout<GaussianSHMetadata>.stride,
+                index: Int(gaussianTBDRRenderSHMetadataIndex.rawValue)
+            )
+            var localCameraPosition = gaussianLocalCameraPosition(
+                cameraWorldPosition: effectiveCameraPosition,
+                modelMatrix: modelMatrix
+            )
+            renderEncoder.setVertexBytes(
+                &localCameraPosition,
+                length: MemoryLayout<simd_float3>.stride,
+                index: Int(gaussianTBDRRenderLocalCameraIndex.rawValue)
+            )
+
             renderEncoder.drawPrimitivesTracked(type: .triangleStrip,
                                                 vertexStart: 0,
                                                 vertexCount: 4,

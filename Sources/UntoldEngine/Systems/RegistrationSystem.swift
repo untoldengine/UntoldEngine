@@ -2911,13 +2911,14 @@ public func setEntityGaussian(entityId: EntityID, filename: String, withExtensio
     }
 
     // Attempt to read Gaussian splats, handling errors internally
-    let splats: [GaussianSplat]
+    let asset: GaussianSplatAsset
     do {
-        splats = try PLYReader.readGaussianSplats(from: url)
+        asset = try PLYReader.readGaussianAsset(from: url)
     } catch {
         handleError(.assetDataMissing, "Failed to read Gaussian splats from \(filename): \(error.localizedDescription)")
         return
     }
+    let splats = asset.splats
 
     // Check if we exceed the buffer capacity
     guard splats.count <= Int(maxNumOfGaussians) else {
@@ -2926,13 +2927,16 @@ public func setEntityGaussian(entityId: EntityID, filename: String, withExtensio
     }
 
     let splatCount = UInt(splats.count)
-    var temSplatCount = splatCount
-    let tempPowerOfTwoSplatCount: UInt = nextPowerOf2(x: &temSplatCount)
+    guard splatCount > 0 else {
+        handleError(.assetDataMissing, "Gaussian splat file contains no vertices: \(filename)")
+        return
+    }
 
-    let gaussianSortedIndices = renderInfo.device.makeBuffer(length: MemoryLayout<UInt64>.stride * Int(tempPowerOfTwoSplatCount), options: .storageModeShared)
-
-    guard let splatBuffer = renderInfo.device.makeBuffer(length: MemoryLayout<GaussianSplat>.stride * Int(splatCount), options: .storageModeShared) else {
-        handleError(.bufferAllocationFailed, "Gaussian splat buffer is nil")
+    guard let gaussianSortedIndices = renderInfo.device.makeBuffer(
+        length: MemoryLayout<UInt64>.stride * Int(splatCount),
+        options: .storageModeShared
+    ) else {
+        handleError(.bufferAllocationFailed, "Gaussian sorted-index buffer is nil")
         return
     }
 
@@ -2941,19 +2945,39 @@ public func setEntityGaussian(entityId: EntityID, filename: String, withExtensio
         return
     }
 
-    let pointer = splatBuffer.contents().bindMemory(
-        to: GaussianSplat.self,
-        capacity: splats.count
-    )
-
     let encodedPointer = encodedSplatBuffer.contents().bindMemory(
         to: EncodedGaussianSplat.self,
         capacity: splats.count
     )
 
     for (index, splat) in splats.enumerated() {
-        pointer[index] = splat
         encodedPointer[index] = encodeGaussianSplatForTBDR(splat)
+    }
+
+    let packedSphericalHarmonics: PackedGaussianSphericalHarmonics?
+    do {
+        packedSphericalHarmonics = try asset.sphericalHarmonics.map {
+            try packGaussianSphericalHarmonics($0, splatCount: splats.count)
+        }
+    } catch {
+        handleError(.assetDataMissing, "Failed to pack spherical harmonics from \(filename): \(error.localizedDescription)")
+        return
+    }
+
+    let sphericalHarmonicsBuffer: MTLBuffer?
+    if let packedSphericalHarmonics, !packedSphericalHarmonics.coefficients.isEmpty {
+        sphericalHarmonicsBuffer = renderInfo.device.makeBuffer(
+            bytes: packedSphericalHarmonics.coefficients,
+            length: packedSphericalHarmonics.coefficients.count * MemoryLayout<Float16>.stride,
+            options: .storageModeShared
+        )
+        guard sphericalHarmonicsBuffer != nil else {
+            handleError(.bufferAllocationFailed, "Gaussian spherical-harmonics buffer is nil")
+            return
+        }
+        sphericalHarmonicsBuffer?.label = "Gaussian Spherical Harmonics"
+    } else {
+        sphericalHarmonicsBuffer = nil
     }
 
     let spaceUniform = (0 ..< totalPerMeshUniformBuffers()).compactMap { _ in
@@ -2971,10 +2995,63 @@ public func setEntityGaussian(entityId: EntityID, filename: String, withExtensio
 
         gaussianComponent.splatCount = splatCount
         gaussianComponent.gaussianSortedIndices = gaussianSortedIndices
-        gaussianComponent.splatData = splatBuffer
         gaussianComponent.encodedSplatData = encodedSplatBuffer
+        gaussianComponent.sphericalHarmonicsData = sphericalHarmonicsBuffer
+        gaussianComponent.sphericalHarmonicsMetadata = packedSphericalHarmonics?.metadata
         gaussianComponent.spaceUniform = spaceUniform
     }
+}
+
+struct PackedGaussianSphericalHarmonics {
+    let coefficients: [Float16]
+    let metadata: GaussianSHMetadata
+}
+
+/// Packs higher-order SH coefficients to the GPU contract while leaving DC
+/// color in `EncodedGaussianSplat`. Input and output are both channel-major.
+func packGaussianSphericalHarmonics(
+    _ sphericalHarmonics: GaussianSphericalHarmonics,
+    splatCount: Int
+) throws -> PackedGaussianSphericalHarmonics {
+    let coefficientsPerChannel = sphericalHarmonics.coefficientsPerChannel
+    let higherOrderPerChannel = coefficientsPerChannel - 1
+    let inputPerSplat = sphericalHarmonics.coefficientsPerSplat
+    let expectedInputCount = splatCount * inputPerSplat
+
+    guard (0 ... 3).contains(sphericalHarmonics.degree),
+          coefficientsPerChannel == (sphericalHarmonics.degree + 1) * (sphericalHarmonics.degree + 1),
+          sphericalHarmonics.coefficients.count == expectedInputCount
+    else {
+        throw PLYError.invalidData("Spherical-harmonic data does not match its degree or splat count")
+    }
+
+    let outputPerSplat = higherOrderPerChannel * 3
+    var packed: [Float16] = []
+    packed.reserveCapacity(splatCount * outputPerSplat)
+
+    for splatIndex in 0 ..< splatCount {
+        let splatBase = splatIndex * inputPerSplat
+        for channel in 0 ..< 3 {
+            let channelBase = splatBase + channel * coefficientsPerChannel
+            for coefficient in 1 ..< coefficientsPerChannel {
+                let value = Float16(sphericalHarmonics.coefficients[channelBase + coefficient])
+                guard value.isFinite else {
+                    throw PLYError.invalidData("Spherical-harmonic coefficient cannot be represented as Float16")
+                }
+                packed.append(value)
+            }
+        }
+    }
+
+    return PackedGaussianSphericalHarmonics(
+        coefficients: packed,
+        metadata: GaussianSHMetadata(
+            degree: UInt32(sphericalHarmonics.degree),
+            coefficientsPerChannel: UInt32(coefficientsPerChannel),
+            higherOrderCoefficientsPerSplat: UInt32(outputPerSplat),
+            _pad0: 0
+        )
+    )
 }
 
 private func encodeGaussianSplatForTBDR(_ splat: GaussianSplat) -> EncodedGaussianSplat {
@@ -3138,8 +3215,9 @@ func removeEntityLOD(entityId: EntityID) {
 func removeEntityGaussian(entityId: EntityID) {
     if let gaussianComponent = scene.get(component: GaussianComponent.self, for: entityId) {
         // Release Metal buffers
-        gaussianComponent.splatData = nil
         gaussianComponent.encodedSplatData = nil
+        gaussianComponent.sphericalHarmonicsData = nil
+        gaussianComponent.sphericalHarmonicsMetadata = nil
         gaussianComponent.gaussianSortedIndices = nil
         gaussianComponent.spaceUniform.removeAll()
         scene.remove(component: GaussianComponent.self, from: entityId)

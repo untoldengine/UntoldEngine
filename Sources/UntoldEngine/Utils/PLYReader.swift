@@ -44,6 +44,27 @@ public struct PLYHeader {
     var comments: [String]
 }
 
+/// Contiguous spherical-harmonic coefficients for a Gaussian asset.
+///
+/// Coefficients are stored per splat in channel-major order:
+/// `R[0 ... n], G[0 ... n], B[0 ... n]`, where coefficient zero is the DC
+/// term and `n + 1 == coefficientsPerChannel`.
+public struct GaussianSphericalHarmonics: Sendable {
+    public let degree: Int
+    public let coefficientsPerChannel: Int
+    public let coefficients: [Float]
+
+    public var coefficientsPerSplat: Int {
+        coefficientsPerChannel * 3
+    }
+}
+
+/// CPU import representation for a Gaussian PLY asset.
+public struct GaussianSplatAsset {
+    public let splats: [GaussianSplat]
+    public let sphericalHarmonics: GaussianSphericalHarmonics?
+}
+
 public class PLYReader {
     // MARK: - Public Methods
 
@@ -52,6 +73,11 @@ public class PLYReader {
     /// - Returns: Array of GaussianSplat structs
     /// - Throws: Error if file cannot be read or parsed
     public static func readGaussianSplats(from url: URL) throws -> [GaussianSplat] {
+        try readGaussianAsset(from: url).splats
+    }
+
+    /// Reads Gaussian geometry and preserves all spherical-harmonic coefficients.
+    public static func readGaussianAsset(from url: URL) throws -> GaussianSplatAsset {
         let data = try Data(contentsOf: url)
         let (header, bodyOffset) = try parseHeader(from: data)
 
@@ -60,15 +86,32 @@ public class PLYReader {
             throw PLYError.missingElement("vertex")
         }
 
+        let shSchema = try sphericalHarmonicSchema(for: vertexElement.properties)
+
         // Parse the body based on format
+        let parsed: ([GaussianSplat], [Float])
         switch header.format {
         case .ascii:
-            return try parseASCIIGaussians(data: data, bodyOffset: bodyOffset, element: vertexElement)
+            parsed = try parseASCIIGaussians(data: data, bodyOffset: bodyOffset, element: vertexElement, shSchema: shSchema)
         case .binaryLittleEndian:
-            return try parseBinaryGaussians(data: data, bodyOffset: bodyOffset, element: vertexElement, bigEndian: false)
+            parsed = try parseBinaryGaussians(data: data, bodyOffset: bodyOffset, element: vertexElement, bigEndian: false, shSchema: shSchema)
         case .binaryBigEndian:
-            return try parseBinaryGaussians(data: data, bodyOffset: bodyOffset, element: vertexElement, bigEndian: true)
+            parsed = try parseBinaryGaussians(data: data, bodyOffset: bodyOffset, element: vertexElement, bigEndian: true, shSchema: shSchema)
         }
+
+        let sphericalHarmonics = shSchema.map {
+            GaussianSphericalHarmonics(
+                degree: $0.degree,
+                coefficientsPerChannel: $0.coefficientsPerChannel,
+                coefficients: parsed.1
+            )
+        }
+        if let shSchema,
+           parsed.1.count != vertexElement.count * shSchema.coefficientsPerSplat
+        {
+            throw PLYError.invalidData("Spherical-harmonic coefficient data is incomplete")
+        }
+        return GaussianSplatAsset(splats: parsed.0, sphericalHarmonics: sphericalHarmonics)
     }
 
     // MARK: - Header Parsing
@@ -197,7 +240,12 @@ public class PLYReader {
 
     // MARK: - ASCII Parsing
 
-    private static func parseASCIIGaussians(data: Data, bodyOffset: Int, element: PLYElement) throws -> [GaussianSplat] {
+    private static func parseASCIIGaussians(
+        data: Data,
+        bodyOffset: Int,
+        element: PLYElement,
+        shSchema: SphericalHarmonicSchema?
+    ) throws -> ([GaussianSplat], [Float]) {
         // Get the body string
         let bodyData = data.suffix(from: bodyOffset)
         guard let bodyString = String(data: bodyData, encoding: .utf8) else {
@@ -207,6 +255,10 @@ public class PLYReader {
         let lines = bodyString.components(separatedBy: .newlines).filter { !$0.isEmpty }
         var splats: [GaussianSplat] = []
         splats.reserveCapacity(element.count)
+        var shCoefficients: [Float] = []
+        if let shSchema {
+            shCoefficients.reserveCapacity(element.count * shSchema.coefficientsPerSplat)
+        }
 
         // Create property index map
         let propertyMap = createPropertyIndexMap(properties: element.properties)
@@ -218,18 +270,36 @@ public class PLYReader {
 
             if values.isEmpty { continue }
 
-            let splat = try parseGaussianFromValues(values: values, propertyMap: propertyMap)
+            let splat = try parseGaussianFromValues(
+                values: values,
+                propertyMap: propertyMap,
+                shSchema: shSchema,
+                shCoefficients: &shCoefficients
+            )
             splats.append(splat)
         }
 
-        return splats
+        guard splats.count == element.count else {
+            throw PLYError.invalidData("Expected \(element.count) Gaussian vertices, found \(splats.count)")
+        }
+        return (splats, shCoefficients)
     }
 
     // MARK: - Binary Parsing
 
-    private static func parseBinaryGaussians(data: Data, bodyOffset: Int, element: PLYElement, bigEndian: Bool) throws -> [GaussianSplat] {
+    private static func parseBinaryGaussians(
+        data: Data,
+        bodyOffset: Int,
+        element: PLYElement,
+        bigEndian: Bool,
+        shSchema: SphericalHarmonicSchema?
+    ) throws -> ([GaussianSplat], [Float]) {
         var splats: [GaussianSplat] = []
         splats.reserveCapacity(element.count)
+        var shCoefficients: [Float] = []
+        if let shSchema {
+            shCoefficients.reserveCapacity(element.count * shSchema.coefficientsPerSplat)
+        }
 
         // Calculate stride for each vertex
         let stride = calculateStride(properties: element.properties)
@@ -249,14 +319,16 @@ public class PLYReader {
                 properties: element.properties,
                 propertyMap: propertyMap,
                 propertyOffsets: propertyOffsets,
-                bigEndian: bigEndian
+                bigEndian: bigEndian,
+                shSchema: shSchema,
+                shCoefficients: &shCoefficients
             )
             splats.append(splat)
 
             offset += stride
         }
 
-        return splats
+        return (splats, shCoefficients)
     }
 
     // MARK: - Gaussian Parsing Helpers
@@ -269,7 +341,59 @@ public class PLYReader {
         return map
     }
 
-    private static func parseGaussianFromValues(values: [String], propertyMap: [String: Int]) throws -> GaussianSplat {
+    private struct SphericalHarmonicSchema {
+        let degree: Int
+        let coefficientsPerChannel: Int
+        let restPropertyNames: [String]
+
+        var coefficientsPerSplat: Int {
+            coefficientsPerChannel * 3
+        }
+    }
+
+    private static func sphericalHarmonicSchema(for properties: [PLYProperty]) throws -> SphericalHarmonicSchema? {
+        let names = Set(properties.map(\.name))
+        let dcNames = (0 ..< 3).map { "f_dc_\($0)" }
+        let dcCount = dcNames.filter(names.contains).count
+        let restProperties = properties.filter { $0.name.hasPrefix("f_rest_") }
+        let parsedRestIndices = restProperties.map { Int($0.name.dropFirst("f_rest_".count)) }
+        guard parsedRestIndices.allSatisfy({ $0 != nil }) else {
+            throw PLYError.invalidData("f_rest_* properties must end in a numeric index")
+        }
+        let restIndices = parsedRestIndices.compactMap { $0 }.sorted()
+
+        guard dcCount == 0 || dcCount == 3 else {
+            throw PLYError.invalidData("Spherical harmonics require f_dc_0, f_dc_1, and f_dc_2")
+        }
+        guard dcCount == 3 || restIndices.isEmpty else {
+            throw PLYError.invalidData("f_rest_* properties require all three f_dc_* properties")
+        }
+        guard dcCount == 3 else { return nil }
+
+        guard restIndices == Array(0 ..< restIndices.count) else {
+            throw PLYError.invalidData("f_rest_* property indices must be contiguous starting at zero")
+        }
+
+        let supportedRestCounts = [0: 0, 9: 1, 24: 2, 45: 3]
+        guard let degree = supportedRestCounts[restIndices.count] else {
+            throw PLYError.invalidData(
+                "Unsupported spherical-harmonic coefficient count: \(restIndices.count) f_rest_* values"
+            )
+        }
+
+        return SphericalHarmonicSchema(
+            degree: degree,
+            coefficientsPerChannel: (degree + 1) * (degree + 1),
+            restPropertyNames: restIndices.map { "f_rest_\($0)" }
+        )
+    }
+
+    private static func parseGaussianFromValues(
+        values: [String],
+        propertyMap: [String: Int],
+        shSchema: SphericalHarmonicSchema?,
+        shCoefficients: inout [Float]
+    ) throws -> GaussianSplat {
         // Extract position
         let x = try getFloat(values: values, propertyMap: propertyMap, key: "x")
         let y = try getFloat(values: values, propertyMap: propertyMap, key: "y")
@@ -287,17 +411,36 @@ public class PLYReader {
 
         // Extract color (from spherical harmonics DC component or direct RGB)
         var r: Float, g: Float, b: Float
-        if let dcR = try? getFloat(values: values, propertyMap: propertyMap, key: "f_dc_0") {
+        if let shSchema {
             // Color from spherical harmonics
+            let dcR = try getFloat(values: values, propertyMap: propertyMap, key: "f_dc_0")
+            let dcG = try getFloat(values: values, propertyMap: propertyMap, key: "f_dc_1")
+            let dcB = try getFloat(values: values, propertyMap: propertyMap, key: "f_dc_2")
             r = dcR
-            g = try getFloat(values: values, propertyMap: propertyMap, key: "f_dc_1")
-            b = try getFloat(values: values, propertyMap: propertyMap, key: "f_dc_2")
+            g = dcG
+            b = dcB
 
             // Convert from SH to RGB (DC component of SH corresponds to RGB / C0 where C0 = 0.28209479177387814)
             let C0: Float = 0.28209479177387814
             r = (r * C0 + 0.5)
             g = (g * C0 + 0.5)
             b = (b * C0 + 0.5)
+
+            let dc = (dcR, dcG, dcB)
+            let restPerChannel = shSchema.coefficientsPerChannel - 1
+            for channel in 0 ..< 3 {
+                shCoefficients.append(channel == 0 ? dc.0 : (channel == 1 ? dc.1 : dc.2))
+                let start = channel * restPerChannel
+                for index in start ..< start + restPerChannel {
+                    try shCoefficients.append(
+                        getFloat(
+                            values: values,
+                            propertyMap: propertyMap,
+                            key: shSchema.restPropertyNames[index]
+                        )
+                    )
+                }
+            }
         } else {
             // Direct RGB
             r = try getFloat(values: values, propertyMap: propertyMap, key: "red", default: 1.0) / 255.0
@@ -387,7 +530,9 @@ public class PLYReader {
         properties: [PLYProperty],
         propertyMap: [String: Int],
         propertyOffsets: [Int],
-        bigEndian: Bool
+        bigEndian: Bool,
+        shSchema: SphericalHarmonicSchema?,
+        shCoefficients: inout [Float]
     ) throws -> GaussianSplat {
         func readFloat(propertyName: String, default defaultValue: Float? = nil) throws -> Float {
             guard let index = propertyMap[propertyName] else {
@@ -405,8 +550,12 @@ public class PLYReader {
                 throw PLYError.invalidData("Buffer overflow reading '\(propertyName)'")
             }
 
-            let bytes = data.subdata(in: offset ..< (offset + size))
-            return try convertToFloat(bytes: bytes, type: property.type, bigEndian: bigEndian)
+            return try convertToFloat(
+                data: data,
+                offset: offset,
+                type: property.type,
+                bigEndian: bigEndian
+            )
         }
 
         // Extract all properties
@@ -423,15 +572,30 @@ public class PLYReader {
         let scaleZ = exp(scale2)
 
         var r: Float, g: Float, b: Float
-        if let dcR = try? readFloat(propertyName: "f_dc_0") {
+        if let shSchema {
+            let dcR = try readFloat(propertyName: "f_dc_0")
+            let dcG = try readFloat(propertyName: "f_dc_1")
+            let dcB = try readFloat(propertyName: "f_dc_2")
             r = dcR
-            g = try readFloat(propertyName: "f_dc_1")
-            b = try readFloat(propertyName: "f_dc_2")
+            g = dcG
+            b = dcB
 
             let C0: Float = 0.28209479177387814
             r = (r * C0 + 0.5)
             g = (g * C0 + 0.5)
             b = (b * C0 + 0.5)
+
+            let dc = (dcR, dcG, dcB)
+            let restPerChannel = shSchema.coefficientsPerChannel - 1
+            for channel in 0 ..< 3 {
+                shCoefficients.append(channel == 0 ? dc.0 : (channel == 1 ? dc.1 : dc.2))
+                let start = channel * restPerChannel
+                for index in start ..< start + restPerChannel {
+                    try shCoefficients.append(
+                        readFloat(propertyName: shSchema.restPropertyNames[index])
+                    )
+                }
+            }
         } else {
             r = try readFloat(propertyName: "red", default: 1.0) / 255.0
             g = try readFloat(propertyName: "green", default: 1.0) / 255.0
@@ -457,64 +621,48 @@ public class PLYReader {
         )
     }
 
-    private static func convertToFloat(bytes: Data, type: String, bigEndian: Bool) throws -> Float {
-        switch type {
-        case "float", "float32":
-            var value: Float = 0
-            _ = withUnsafeMutableBytes(of: &value) { bytes.copyBytes(to: $0) }
-            if bigEndian {
-                value = Float(bitPattern: UInt32(bigEndian: value.bitPattern))
+    private static func convertToFloat(data: Data, offset: Int, type: String, bigEndian: Bool) throws -> Float {
+        try data.withUnsafeBytes { bytes in
+            switch type {
+            case "float", "float32":
+                var bits = bytes.loadUnaligned(fromByteOffset: offset, as: UInt32.self)
+                if bigEndian { bits = UInt32(bigEndian: bits) }
+                return Float(bitPattern: bits)
+
+            case "double", "float64":
+                var bits = bytes.loadUnaligned(fromByteOffset: offset, as: UInt64.self)
+                if bigEndian { bits = UInt64(bigEndian: bits) }
+                return Float(Double(bitPattern: bits))
+
+            case "uchar", "uint8":
+                return Float(bytes[offset])
+
+            case "char", "int8":
+                return Float(Int8(bitPattern: bytes[offset]))
+
+            case "ushort", "uint16":
+                var value = bytes.loadUnaligned(fromByteOffset: offset, as: UInt16.self)
+                if bigEndian { value = UInt16(bigEndian: value) }
+                return Float(value)
+
+            case "short", "int16":
+                var value = bytes.loadUnaligned(fromByteOffset: offset, as: Int16.self)
+                if bigEndian { value = Int16(bigEndian: value) }
+                return Float(value)
+
+            case "uint", "uint32":
+                var value = bytes.loadUnaligned(fromByteOffset: offset, as: UInt32.self)
+                if bigEndian { value = UInt32(bigEndian: value) }
+                return Float(value)
+
+            case "int", "int32":
+                var value = bytes.loadUnaligned(fromByteOffset: offset, as: Int32.self)
+                if bigEndian { value = Int32(bigEndian: value) }
+                return Float(value)
+
+            default:
+                throw PLYError.unsupportedType(type)
             }
-            return value
-
-        case "double", "float64":
-            var value: Double = 0
-            _ = withUnsafeMutableBytes(of: &value) { bytes.copyBytes(to: $0) }
-            if bigEndian {
-                value = Double(bitPattern: UInt64(bigEndian: value.bitPattern))
-            }
-            return Float(value)
-
-        case "uchar", "uint8":
-            return Float(bytes[0])
-
-        case "char", "int8":
-            return Float(Int8(bitPattern: bytes[0]))
-
-        case "ushort", "uint16":
-            var value: UInt16 = 0
-            _ = withUnsafeMutableBytes(of: &value) { bytes.copyBytes(to: $0) }
-            if bigEndian {
-                value = UInt16(bigEndian: value)
-            }
-            return Float(value)
-
-        case "short", "int16":
-            var value: Int16 = 0
-            _ = withUnsafeMutableBytes(of: &value) { bytes.copyBytes(to: $0) }
-            if bigEndian {
-                value = Int16(bigEndian: value)
-            }
-            return Float(value)
-
-        case "uint", "uint32":
-            var value: UInt32 = 0
-            _ = withUnsafeMutableBytes(of: &value) { bytes.copyBytes(to: $0) }
-            if bigEndian {
-                value = UInt32(bigEndian: value)
-            }
-            return Float(value)
-
-        case "int", "int32":
-            var value: Int32 = 0
-            _ = withUnsafeMutableBytes(of: &value) { bytes.copyBytes(to: $0) }
-            if bigEndian {
-                value = Int32(bigEndian: value)
-            }
-            return Float(value)
-
-        default:
-            throw PLYError.unsupportedType(type)
         }
     }
 }

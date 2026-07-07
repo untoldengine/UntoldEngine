@@ -8,6 +8,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+import CShaderTypes
 import Foundation
 import Metal
 import MetalKit
@@ -89,8 +90,9 @@ public class EntitySceneChannelsComponent: Component {
 }
 
 public class GaussianComponent: Component {
-    var splatData: MTLBuffer?
     var encodedSplatData: MTLBuffer?
+    var sphericalHarmonicsData: MTLBuffer?
+    var sphericalHarmonicsMetadata: GaussianSHMetadata?
     var gaussianSortedIndices: MTLBuffer?
     public var spaceUniform: [MTLBuffer?] = Array(repeating: nil, count: totalPerMeshUniformBuffers())
     var splatCount: UInt = 0

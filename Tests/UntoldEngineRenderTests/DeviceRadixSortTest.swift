@@ -846,12 +846,15 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         let numSplats = positions.count
 
         let splats = positions.map { pos in
-            GaussianSplat(
-                center: simd_float4(pos, 1.0),
-                scale: simd_float4(1, 1, 1, 1),
-                color: simd_float4(1, 0, 0, 1),
-                quat: simd_float4(0, 0, 0, 1),
-                opacity: 1.0
+            EncodedGaussianSplat(
+                position: pos,
+                opacity: 1.0,
+                color: simd_float3(1, 0, 0),
+                _pad0: 0.0,
+                covA: simd_float3(1, 0, 0),
+                _pad1: 0.0,
+                covB: simd_float3(1, 0, 1),
+                _pad2: 0.0
             )
         }
 
@@ -876,13 +879,13 @@ final class DeviceRadixSortTest: BaseRenderSetup {
 
         guard let splatBuf = renderInfo.device.makeBuffer(
             bytes: splats,
-            length: numSplats * MemoryLayout<GaussianSplat>.stride,
+            length: numSplats * MemoryLayout<EncodedGaussianSplat>.stride,
             options: .storageModeShared
         ),
             let keyBuf = makeBuffer(count: numSplats, type: UInt64.self)
         else { XCTFail("Buffer allocation failed"); return }
 
-        gc.splatData = splatBuf
+        gc.encodedSplatData = splatBuf
         gc.gaussianSortedIndices = keyBuf
         gc.splatCount = UInt(numSplats)
         gc.spaceUniform = (0 ..< 2).compactMap { _ in

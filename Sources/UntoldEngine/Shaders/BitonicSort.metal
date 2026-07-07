@@ -39,7 +39,7 @@ inline float eye_space_depth(const float4x4 modelView, float3 worldPos) {
 }
 
 kernel void gaussianDepthKeys(device uint64_t *outKeys              [[buffer(gaussianIndicesIndex)]],
-                              const device GaussianSplat *splats     [[buffer(gaussianSplatIndex)]],
+                              const device EncodedGaussianSplat *splats [[buffer(gaussianEncodedSplatIndex)]],
                               constant uint &numOfSplats [[buffer(gaussianNumberOfSplatsIndex)]],
                               constant Uniforms &uniforms     [[buffer(gaussianUniformIndex)]],
                               uint index                              [[thread_position_in_grid]],
@@ -48,7 +48,7 @@ kernel void gaussianDepthKeys(device uint64_t *outKeys              [[buffer(gau
     if (index >= numOfSplats) return;
 
     // 1) Eye-space depth
-    float z = eye_space_depth(uniforms.modelViewMatrix, splats[index].center.xyz);
+    float z = eye_space_depth(uniforms.modelViewMatrix, splats[index].position);
 
     // 2) Convert to lexicographically sortable unsigned int
     uint keyFrontToBack = float_to_sortable_u32(z);
@@ -60,4 +60,3 @@ kernel void gaussianDepthKeys(device uint64_t *outKeys              [[buffer(gau
     uint64_t packed = (uint64_t)keyFrontToBack << 32 | (uint64_t)index;
     outKeys[index] = packed;
 }
-

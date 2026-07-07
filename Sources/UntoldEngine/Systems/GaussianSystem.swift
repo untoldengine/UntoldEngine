@@ -84,7 +84,11 @@ public func executeGaussianDepth(_ commandBuffer: MTLCommandBuffer) {
         }
 
         computeEncoder.setBuffer(gaussianComponent.gaussianSortedIndices, offset: 0, index: Int(gaussianIndicesIndex.rawValue))
-        computeEncoder.setBuffer(gaussianComponent.splatData, offset: 0, index: Int(gaussianSplatIndex.rawValue))
+        computeEncoder.setBuffer(
+            gaussianComponent.encodedSplatData,
+            offset: 0,
+            index: Int(gaussianEncodedSplatIndex.rawValue)
+        )
 
         // update uniforms
         var gaussianUniform = Uniforms()
@@ -287,56 +291,3 @@ public func executeRadixSort(_ commandBuffer: MTLCommandBuffer) {
 
     enc.endEncoding()
 }
-
-// MARK: - PLY Loading Helpers
-
-/*
- /// Loads Gaussian splats from a PLY file into the GPU buffer
- public func loadGaussianSplatsFromPLY(url: URL) throws -> Int {
-     // Load splats from PLY file
-     let splats = try PLYReader.readGaussianSplats(from: url)
-
-     // Check if we exceed the buffer capacity
-     guard splats.count <= Int(maxNumOfGaussians) else {
-         handleError(.bufferAllocationFailed, "Too many Gaussian splats: \(splats.count) exceeds maximum \(maxNumOfGaussians)")
-         throw PLYError.invalidData("Too many Gaussian splats: \(splats.count) exceeds maximum \(maxNumOfGaussians)")
-     }
-
-     // Copy to GPU buffer
-     guard let splatBuffer = bufferResources.splatData else {
-         handleError(.bufferAllocationFailed, "Gaussian splat buffer is nil")
-         throw PLYError.invalidData("Gaussian splat buffer not initialized")
-     }
-
-     let pointer = splatBuffer.contents().bindMemory(
-         to: GaussianSplat.self,
-         capacity: splats.count
-     )
-
-     for (index, splat) in splats.enumerated() {
-         pointer[index] = splat
-     }
-
-     // Update current count
-     currentNumOfGaussians = splats.count
-
-     print("✓ Loaded \(splats.count) Gaussian splats from \(url.lastPathComponent)")
-
-     return splats.count
- }
-
- /// Loads Gaussian splats from a PLY file path
- public func loadGaussianSplatsFromPLY(path: String) throws -> Int {
-     let url = URL(fileURLWithPath: path)
-     return try loadGaussianSplatsFromPLY(url: url)
- }
-
- /// Loads Gaussian splats from a PLY file in the app bundle
- public func loadGaussianSplatsFromBundle(filename: String, bundle: Bundle = .main) throws -> Int {
-     guard let url = bundle.url(forResource: filename, withExtension: "ply") else {
-         handleError(.assetDataMissing, "PLY file '\(filename).ply' not found in bundle")
-         throw PLYError.invalidFormat("PLY file '\(filename).ply' not found in bundle")
-     }
-     return try loadGaussianSplatsFromPLY(url: url)
- }
- */

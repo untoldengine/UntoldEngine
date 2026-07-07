@@ -200,6 +200,219 @@ final class PLYReaderTest: XCTestCase {
         XCTAssertEqual(quatMagnitude, 1.0, accuracy: 0.001)
     }
 
+    // MARK: - Spherical Harmonics
+
+    func test_readGaussianAsset_preservesDegreeZeroThroughThreeSphericalHarmonics() throws {
+        for degree in 0 ... 3 {
+            let coefficientsPerChannel = (degree + 1) * (degree + 1)
+            let restCount = (coefficientsPerChannel - 1) * 3
+            let restValues: [Float] = (0 ..< restCount).map { Float($0) }
+            let restProperties = (0 ..< restCount).map { "property float f_rest_\($0)" }
+
+            var lines: [String] = [
+                "ply",
+                "format ascii 1.0",
+                "element vertex 1",
+                "property float x",
+                "property float y",
+                "property float z",
+                "property float f_dc_0",
+                "property float f_dc_1",
+                "property float f_dc_2",
+            ]
+            lines.append(contentsOf: restProperties)
+            lines.append("end_header")
+            let valueStrings = ["1", "2", "3", "100", "200", "300"] + restValues.map { String($0) }
+            lines.append(valueStrings.joined(separator: " "))
+            let plyContent = lines.joined(separator: "\n")
+
+            let tempURL = createTempFile(content: plyContent)
+            tempFileURL = tempURL
+            let asset = try PLYReader.readGaussianAsset(from: tempURL)
+            let sh = try XCTUnwrap(asset.sphericalHarmonics)
+
+            XCTAssertEqual(sh.degree, degree)
+            XCTAssertEqual(sh.coefficientsPerChannel, coefficientsPerChannel)
+            XCTAssertEqual(sh.coefficientsPerSplat, coefficientsPerChannel * 3)
+
+            var expected: [Float] = []
+            let restPerChannel = coefficientsPerChannel - 1
+            for channel in 0 ..< 3 {
+                expected.append(Float((channel + 1) * 100))
+                let start = channel * restPerChannel
+                expected.append(contentsOf: restValues[start ..< start + restPerChannel])
+            }
+            XCTAssertEqual(sh.coefficients, expected)
+        }
+    }
+
+    func test_externalGaussianDiagnosticAssetPreservesAndPacksDegreeThreeSH() throws {
+        guard let path = ProcessInfo.processInfo.environment["UNTOLD_GAUSSIAN_DIAGNOSTIC_PLY"] else {
+            throw XCTSkip("Set UNTOLD_GAUSSIAN_DIAGNOSTIC_PLY to audit a production Gaussian asset")
+        }
+
+        let asset = try PLYReader.readGaussianAsset(from: URL(fileURLWithPath: path))
+        let sphericalHarmonics = try XCTUnwrap(asset.sphericalHarmonics)
+        XCTAssertEqual(sphericalHarmonics.degree, 3)
+        XCTAssertEqual(sphericalHarmonics.coefficientsPerChannel, 16)
+        XCTAssertEqual(sphericalHarmonics.coefficients.count, asset.splats.count * 48)
+
+        let packed = try packGaussianSphericalHarmonics(
+            sphericalHarmonics,
+            splatCount: asset.splats.count
+        )
+        XCTAssertEqual(packed.metadata.degree, 3)
+        XCTAssertEqual(packed.metadata.coefficientsPerChannel, 16)
+        XCTAssertEqual(packed.metadata.higherOrderCoefficientsPerSplat, 45)
+        XCTAssertEqual(packed.coefficients.count, asset.splats.count * 45)
+
+        let sampleIndices = [0, asset.splats.count / 2, asset.splats.count - 1]
+        var observedDirectionalChange = false
+        for splatIndex in sampleIndices {
+            let sourceBase = splatIndex * 48
+            let packedBase = splatIndex * 45
+            let higherOrder = packed.coefficients[packedBase ..< packedBase + 45].map(Float.init)
+            for channel in 0 ..< 3 {
+                for coefficient in 0 ..< 15 {
+                    XCTAssertEqual(
+                        higherOrder[channel * 15 + coefficient],
+                        Float(Float16(sphericalHarmonics.coefficients[sourceBase + channel * 16 + coefficient + 1]))
+                    )
+                }
+            }
+
+            let splat = asset.splats[splatIndex]
+            let baseColor = simd_float3(splat.color.x, splat.color.y, splat.color.z)
+            let evaluated = evaluateGaussianSphericalHarmonics(
+                baseColor: baseColor,
+                higherOrderCoefficients: higherOrder,
+                degree: 3,
+                direction: simd_float3(0.25, -0.5, 0.75)
+            )
+            observedDirectionalChange = observedDirectionalChange || simd_distance(evaluated, baseColor) > 1e-5
+        }
+        XCTAssertTrue(observedDirectionalChange, "Production SH data must affect evaluated color")
+
+        print("Gaussian diagnostic: splats=\(asset.splats.count), degree=\(sphericalHarmonics.degree), "
+            + "sourceCoefficients=\(sphericalHarmonics.coefficients.count), "
+            + "packedCoefficients=\(packed.coefficients.count), packedBytes=\(packed.coefficients.count * MemoryLayout<Float16>.stride)")
+    }
+
+    func test_readGaussianAsset_binaryAndASCIIHaveIdenticalSphericalHarmonics() throws {
+        let propertyLines = [
+            "property float x", "property float y", "property float z",
+            "property float f_dc_0", "property float f_dc_1", "property float f_dc_2",
+        ] + (0 ..< 9).map { "property float f_rest_\($0)" }
+        let values: [Float] = (1 ... 15).map { Float($0) }
+
+        var asciiLines = ["ply", "format ascii 1.0", "element vertex 1"]
+        asciiLines.append(contentsOf: propertyLines)
+        asciiLines.append("end_header")
+        asciiLines.append(values.map { String($0) }.joined(separator: " "))
+        let ascii = asciiLines.joined(separator: "\n")
+        let asciiURL = createTempFile(content: ascii)
+
+        var binaryHeaderLines = ["ply", "format binary_little_endian 1.0", "element vertex 1"]
+        binaryHeaderLines.append(contentsOf: propertyLines)
+        binaryHeaderLines.append("end_header")
+        let binaryHeader = binaryHeaderLines.joined(separator: "\n") + "\n"
+        let binaryURL = createTempBinaryFile(header: binaryHeader, values: values)
+        defer {
+            try? FileManager.default.removeItem(at: asciiURL)
+            try? FileManager.default.removeItem(at: binaryURL)
+        }
+
+        let asciiAsset = try PLYReader.readGaussianAsset(from: asciiURL)
+        let binaryAsset = try PLYReader.readGaussianAsset(from: binaryURL)
+        XCTAssertEqual(asciiAsset.sphericalHarmonics?.degree, 1)
+        XCTAssertEqual(
+            asciiAsset.sphericalHarmonics?.coefficients,
+            binaryAsset.sphericalHarmonics?.coefficients
+        )
+    }
+
+    func test_readGaussianAsset_rejectsMalformedSphericalHarmonicSchemas() {
+        let malformedPropertySets = [
+            ["property float f_dc_0", "property float f_dc_1"],
+            ["property float f_rest_0"],
+            ["property float f_dc_0", "property float f_dc_1", "property float f_dc_2", "property float f_rest_0", "property float f_rest_2"],
+            ["property float f_dc_0", "property float f_dc_1", "property float f_dc_2", "property float f_rest_bad"],
+        ]
+
+        for properties in malformedPropertySets {
+            let values = Array(repeating: "0", count: 3 + properties.count).joined(separator: " ")
+            let plyContent = ([
+                "ply", "format ascii 1.0", "element vertex 1",
+                "property float x", "property float y", "property float z",
+            ] + properties + ["end_header", values]).joined(separator: "\n")
+            let tempURL = createTempFile(content: plyContent)
+            defer { try? FileManager.default.removeItem(at: tempURL) }
+
+            XCTAssertThrowsError(try PLYReader.readGaussianAsset(from: tempURL)) { error in
+                guard case PLYError.invalidData = error else {
+                    XCTFail("Expected invalidData, got \(error)")
+                    return
+                }
+            }
+        }
+    }
+
+    func test_packGaussianSphericalHarmonics_preservesHigherOrderChannelMajorLayout() throws {
+        XCTAssertEqual(MemoryLayout<Float16>.stride, 2)
+
+        let first = (0 ..< 12).map { Float($0) }
+        let second = (100 ..< 112).map { Float($0) }
+        let sphericalHarmonics = GaussianSphericalHarmonics(
+            degree: 1,
+            coefficientsPerChannel: 4,
+            coefficients: first + second
+        )
+
+        let packed = try packGaussianSphericalHarmonics(sphericalHarmonics, splatCount: 2)
+        let expected = [
+            1, 2, 3, 5, 6, 7, 9, 10, 11,
+            101, 102, 103, 105, 106, 107, 109, 110, 111,
+        ].map(Float16.init)
+
+        XCTAssertEqual(packed.coefficients, expected)
+        XCTAssertEqual(packed.metadata.degree, 1)
+        XCTAssertEqual(packed.metadata.coefficientsPerChannel, 4)
+        XCTAssertEqual(packed.metadata.higherOrderCoefficientsPerSplat, 9)
+    }
+
+    func test_packGaussianSphericalHarmonics_degreeZeroRequiresNoCoefficientBuffer() throws {
+        let sphericalHarmonics = GaussianSphericalHarmonics(
+            degree: 0,
+            coefficientsPerChannel: 1,
+            coefficients: [0.1, 0.2, 0.3]
+        )
+
+        let packed = try packGaussianSphericalHarmonics(sphericalHarmonics, splatCount: 1)
+
+        XCTAssertTrue(packed.coefficients.isEmpty)
+        XCTAssertEqual(packed.metadata.degree, 0)
+        XCTAssertEqual(packed.metadata.coefficientsPerChannel, 1)
+        XCTAssertEqual(packed.metadata.higherOrderCoefficientsPerSplat, 0)
+    }
+
+    func test_packGaussianSphericalHarmonics_rejectsInvalidCountAndFloat16Overflow() {
+        let invalidCount = GaussianSphericalHarmonics(
+            degree: 1,
+            coefficientsPerChannel: 4,
+            coefficients: [0]
+        )
+        XCTAssertThrowsError(try packGaussianSphericalHarmonics(invalidCount, splatCount: 1))
+
+        var overflowCoefficients = [Float](repeating: 0, count: 12)
+        overflowCoefficients[1] = Float.greatestFiniteMagnitude
+        let overflow = GaussianSphericalHarmonics(
+            degree: 1,
+            coefficientsPerChannel: 4,
+            coefficients: overflowCoefficients
+        )
+        XCTAssertThrowsError(try packGaussianSphericalHarmonics(overflow, splatCount: 1))
+    }
+
     // MARK: - Test Error Handling
 
     func test_invalidPLY_missingMagicNumber() {
@@ -344,6 +557,22 @@ final class PLYReaderTest: XCTestCase {
             XCTFail("Failed to create temporary file: \(error)")
         }
 
+        return fileURL
+    }
+
+    private func createTempBinaryFile(header: String, values: [Float]) -> URL {
+        let fileURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("test_\(UUID().uuidString).ply")
+        var data = Data(header.utf8)
+        for value in values {
+            var bits = value.bitPattern.littleEndian
+            withUnsafeBytes(of: &bits) { data.append(contentsOf: $0) }
+        }
+        do {
+            try data.write(to: fileURL)
+        } catch {
+            XCTFail("Failed to create binary temporary file: \(error)")
+        }
         return fileURL
     }
 }
