@@ -219,7 +219,10 @@ enum ExportError: LocalizedError {
         case let .inputNotFound(path):
             return "Input asset does not exist: \(path)"
         case .blenderNotFound:
-            return "Blender was not found. Install Blender, use --blender, or set BLENDER_BIN."
+            return """
+            Blender was not found. Download it from https://www.blender.org/download/ \
+            (tested with Blender 5.1.0), then use --blender /path/to/Blender or set BLENDER_BIN.
+            """
         case let .blenderNotExecutable(path):
             return "Blender is not executable at: \(path)"
         case let .exporterNotInstalled(path):
