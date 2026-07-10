@@ -292,6 +292,9 @@ vertex GaussianOutData vertexGaussianTBDRShader(
 
     uint64_t packed = packedKeys[iid];
     uint splatIndex = unpackIndex(packed);
+    if (splatIndex == 0xffffffffu) {
+        return out;
+    }
     const EncodedGaussianSplat splat = splats[splatIndex];
 
     float2 quad = getCurrentQuadVertex(vid);

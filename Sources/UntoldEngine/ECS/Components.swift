@@ -94,6 +94,9 @@ public class GaussianComponent: Component {
     var sphericalHarmonicsData: MTLBuffer?
     var sphericalHarmonicsMetadata: GaussianSHMetadata?
     var gaussianSortedIndices: MTLBuffer?
+    var gaussianVisibleIndices: MTLBuffer?
+    var gaussianVisibleCount: MTLBuffer?
+    var visibleSplatCountForRendering: UInt = 0
     public var spaceUniform: [MTLBuffer?] = Array(repeating: nil, count: totalPerMeshUniformBuffers())
     var splatCount: UInt = 0
 

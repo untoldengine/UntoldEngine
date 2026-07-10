@@ -70,6 +70,7 @@ func UpdateRenderingSystem(in view: MTKView) {
                 }
             #endif
 
+            executeGaussianFrustumCulling(commandBuffer)
             executeGaussianDepth(commandBuffer)
             executeRadixSort(commandBuffer)
             EngineProfiler.shared.endScope(.renderPrep)

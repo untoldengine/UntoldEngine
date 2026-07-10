@@ -449,6 +449,8 @@ typedef enum{
     gaussianUniformIndex,
     gaussianNumberOfSplatsIndex,
     gaussianIndicesIndex,
+    gaussianVisibleIndicesIndex,
+    gaussianVisibleCountIndex,
 }GaussianDepthBufferIndices;
 
 typedef struct{

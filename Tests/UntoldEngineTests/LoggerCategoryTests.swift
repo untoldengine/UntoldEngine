@@ -35,6 +35,7 @@ final class LoggerCategoryTests: XCTestCase {
         XCTAssertFalse(Logger.isEnabled(category: .textureStreaming))
         XCTAssertFalse(Logger.isEnabled(category: .textureLoading))
         XCTAssertFalse(Logger.isEnabled(category: .lightPortal))
+        XCTAssertFalse(Logger.isEnabled(category: .gaussian))
     }
 
     func testStreamingCategoriesCanBeEnabledIndividually() {
@@ -47,6 +48,17 @@ final class LoggerCategoryTests: XCTestCase {
         XCTAssertFalse(Logger.isEnabled(category: .textureLoading))
         XCTAssertFalse(Logger.isEnabled(category: .streamingHeartbeat))
         XCTAssertFalse(Logger.isEnabled(category: .lightPortal))
+        XCTAssertFalse(Logger.isEnabled(category: .gaussian))
+    }
+
+    func testGaussianCategoryCanBeEnabledIndividually() {
+        Logger.resetCategoryToggles()
+
+        setLogger(.category(.gaussian, true))
+
+        XCTAssertTrue(Logger.isEnabled(category: .gaussian))
+        XCTAssertFalse(Logger.isEnabled(category: .tileStreaming))
+        XCTAssertFalse(Logger.isEnabled(category: .batching))
     }
 
     func testWarningsRespectCategoryToggles() {
