@@ -49,6 +49,8 @@ private final class CoreRuntimeGlobals: @unchecked Sendable {
     var reduceScanScatterCompactedPipeline = ComputePipeline()
     var hzbBuildPyramidPipeline = ComputePipeline()
     var hzbOcclusionCullingPipeline = ComputePipeline()
+    var gaussianResetVisibleCountPipeline = ComputePipeline()
+    var gaussianFrustumCullPipeline = ComputePipeline()
     var gaussianDepthPipeline = ComputePipeline()
     var radixClearHistogramPipeline = ComputePipeline()
     var radixHistogramPipeline = ComputePipeline()
@@ -486,6 +488,48 @@ var gaussianDepthPipeline: ComputePipeline {
         state.lock.lock()
         defer { state.lock.unlock() }
         yield &state.gaussianDepthPipeline
+    }
+}
+
+var gaussianResetVisibleCountPipeline: ComputePipeline {
+    get {
+        let state = CoreRuntimeGlobals.shared
+        state.lock.lock()
+        defer { state.lock.unlock() }
+        return state.gaussianResetVisibleCountPipeline
+    }
+    set {
+        let state = CoreRuntimeGlobals.shared
+        state.lock.lock()
+        state.gaussianResetVisibleCountPipeline = newValue
+        state.lock.unlock()
+    }
+    _modify {
+        let state = CoreRuntimeGlobals.shared
+        state.lock.lock()
+        defer { state.lock.unlock() }
+        yield &state.gaussianResetVisibleCountPipeline
+    }
+}
+
+var gaussianFrustumCullPipeline: ComputePipeline {
+    get {
+        let state = CoreRuntimeGlobals.shared
+        state.lock.lock()
+        defer { state.lock.unlock() }
+        return state.gaussianFrustumCullPipeline
+    }
+    set {
+        let state = CoreRuntimeGlobals.shared
+        state.lock.lock()
+        state.gaussianFrustumCullPipeline = newValue
+        state.lock.unlock()
+    }
+    _modify {
+        let state = CoreRuntimeGlobals.shared
+        state.lock.lock()
+        defer { state.lock.unlock() }
+        yield &state.gaussianFrustumCullPipeline
     }
 }
 

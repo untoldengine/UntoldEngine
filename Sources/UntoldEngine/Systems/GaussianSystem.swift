@@ -22,6 +22,16 @@ import simd
 
 let maxNumOfGaussians: UInt64 = 1024 * 1024 * 5
 
+private func activeGaussianSortCount(_ component: GaussianComponent) -> Int {
+    min(Int(component.visibleSplatCountForRendering), Int(component.splatCount))
+}
+
+private struct GaussianVisibleCountUpdate: @unchecked Sendable {
+    let component: GaussianComponent
+    let visibleCount: MTLBuffer
+    let splatCount: UInt
+}
+
 func initGuassianComputePipelines() {
     if renderInfo.device == nil {
         handleError(.metalDeviceNotFound)
@@ -32,6 +42,10 @@ func initGuassianComputePipelines() {
         handleError(.metalLibraryNotFound)
         return
     }
+
+    createComputePipeline(into: &gaussianResetVisibleCountPipeline, device: renderInfo.device, library: renderInfo.library, functionName: "gaussianResetVisibleCount", pipelineName: "Gaussian Reset Visible Count")
+
+    createComputePipeline(into: &gaussianFrustumCullPipeline, device: renderInfo.device, library: renderInfo.library, functionName: "gaussianFrustumCull", pipelineName: "Gaussian Frustum Cull")
 
     createComputePipeline(into: &gaussianDepthPipeline, device: renderInfo.device, library: renderInfo.library, functionName: "gaussianDepthKeys", pipelineName: "Gaussian Depth")
 
@@ -46,7 +60,130 @@ func initGuassianComputePipelines() {
     createComputePipeline(into: &radixScatterPipeline, device: renderInfo.device, library: renderInfo.library, functionName: "gaussianRadixScatter", pipelineName: "Radix Scatter")
 }
 
+public func executeGaussianFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
+    let profileStart = gaussianProfilingStartTime()
+    var profileTotals = GaussianProfileTotals()
+    var activeSplatTotal = 0
+
+    guard gaussianResetVisibleCountPipeline.success else {
+        handleError(.pipelineStateNulled, gaussianResetVisibleCountPipeline.name!); return
+    }
+    guard gaussianFrustumCullPipeline.success else {
+        handleError(.pipelineStateNulled, gaussianFrustumCullPipeline.name!); return
+    }
+    guard let camera = CameraSystem.shared.activeCamera,
+          let cameraComponent = scene.get(component: CameraComponent.self, for: camera)
+    else {
+        handleError(.noActiveCamera)
+        return
+    }
+    guard let resetPipelineState = gaussianResetVisibleCountPipeline.pipelineState,
+          let cullPipelineState = gaussianFrustumCullPipeline.pipelineState
+    else {
+        handleError(.pipelineStateNulled, "Gaussian culling pipeline state is nil")
+        return
+    }
+
+    let transformId = getComponentId(for: WorldTransformComponent.self)
+    let gaussianId = getComponentId(for: GaussianComponent.self)
+    let entities = queryEntitiesWithComponentIds([transformId, gaussianId], in: scene)
+    guard !entities.isEmpty else { return }
+
+    guard let computeEncoder = commandBuffer.makeComputeCommandEncoder() else { return }
+    computeEncoder.label = "Gaussian Frustum Culling"
+
+    var visibleCountUpdates: [GaussianVisibleCountUpdate] = []
+
+    for entityId in entities {
+        guard let gaussianComponent = scene.get(component: GaussianComponent.self, for: entityId) else {
+            handleError(.noGaussianComponent, entityId)
+            continue
+        }
+        guard let worldTransformComponent = scene.get(component: WorldTransformComponent.self, for: entityId) else {
+            handleError(.noWorldTransformComponent, entityId)
+            continue
+        }
+        guard let encodedSplatData = gaussianComponent.encodedSplatData,
+              let visibleIndices = gaussianComponent.gaussianVisibleIndices,
+              let visibleCount = gaussianComponent.gaussianVisibleCount
+        else {
+            handleError(.bufferAllocationFailed, "Gaussian culling buffers")
+            continue
+        }
+
+        profileTotals.include(component: gaussianComponent)
+        activeSplatTotal += activeGaussianSortCount(gaussianComponent)
+
+        computeEncoder.setComputePipelineState(resetPipelineState)
+        computeEncoder.setBuffer(visibleCount, offset: 0, index: Int(gaussianVisibleCountIndex.rawValue))
+        computeEncoder.dispatchThreadgroups(MTLSizeMake(1, 1, 1), threadsPerThreadgroup: MTLSizeMake(1, 1, 1))
+        profileTotals.dispatchCount += 1
+
+        let modelMatrix = simd_mul(worldTransformComponent.space, .identity)
+        let viewMatrix = cameraComponent.viewSpace
+        let modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
+
+        var gaussianUniform = Uniforms()
+        gaussianUniform.modelViewMatrix = modelViewMatrix
+        gaussianUniform.viewMatrix = viewMatrix
+        gaussianUniform.modelMatrix = modelMatrix
+        gaussianUniform.cameraPosition = cameraComponent.localPosition
+        gaussianUniform.projectionMatrix = renderInfo.perspectiveSpace
+
+        var totalSplats = UInt32(gaussianComponent.splatCount)
+        var clipGuardBand: Float = 0.25
+
+        computeEncoder.setComputePipelineState(cullPipelineState)
+        computeEncoder.setBuffer(encodedSplatData, offset: 0, index: Int(gaussianEncodedSplatIndex.rawValue))
+        computeEncoder.setBytes(&gaussianUniform, length: MemoryLayout<Uniforms>.stride, index: Int(gaussianUniformIndex.rawValue))
+        computeEncoder.setBytes(&totalSplats, length: MemoryLayout<UInt32>.stride, index: Int(gaussianNumberOfSplatsIndex.rawValue))
+        computeEncoder.setBuffer(visibleIndices, offset: 0, index: Int(gaussianVisibleIndicesIndex.rawValue))
+        computeEncoder.setBuffer(visibleCount, offset: 0, index: Int(gaussianVisibleCountIndex.rawValue))
+        computeEncoder.setBytes(&clipGuardBand, length: MemoryLayout<Float>.stride, index: Int(gaussianIndicesIndex.rawValue))
+
+        let tew = cullPipelineState.threadExecutionWidth
+        let maxT = cullPipelineState.maxTotalThreadsPerThreadgroup
+        var block = min(256, maxT)
+        block = max((block / tew) * tew, tew)
+        let numThreadgroups = (Int(gaussianComponent.splatCount) + block - 1) / block
+        computeEncoder.dispatchThreadgroups(
+            MTLSizeMake(numThreadgroups, 1, 1),
+            threadsPerThreadgroup: MTLSizeMake(block, 1, 1)
+        )
+        profileTotals.dispatchCount += 1
+
+        visibleCountUpdates.append(
+            GaussianVisibleCountUpdate(
+                component: gaussianComponent,
+                visibleCount: visibleCount,
+                splatCount: gaussianComponent.splatCount
+            )
+        )
+    }
+
+    computeEncoder.endEncoding()
+
+    let updates = visibleCountUpdates
+    commandBuffer.addCompletedHandler { _ in
+        for update in updates {
+            let count = update.visibleCount.contents().load(as: UInt32.self)
+            update.component.visibleSplatCountForRendering = min(UInt(count), update.splatCount)
+        }
+    }
+
+    logGaussianProfile(
+        stage: "FrustumCull",
+        startTime: profileStart,
+        totals: profileTotals,
+        extra: "previousActiveSplats=\(activeSplatTotal)"
+    )
+}
+
 public func executeGaussianDepth(_ commandBuffer: MTLCommandBuffer) {
+    let profileStart = gaussianProfilingStartTime()
+    var profileTotals = GaussianProfileTotals()
+    var activeSplatTotal = 0
+
     if gaussianDepthPipeline.success == false {
         handleError(.pipelineStateNulled, gaussianDepthPipeline.name!)
         return
@@ -72,6 +209,11 @@ public func executeGaussianDepth(_ commandBuffer: MTLCommandBuffer) {
             handleError(.noGaussianComponent, entityId)
             continue
         }
+        profileTotals.include(component: gaussianComponent)
+
+        let activeCount = activeGaussianSortCount(gaussianComponent)
+        guard activeCount > 0 else { continue }
+        activeSplatTotal += activeCount
 
         guard let worldTransformComponent = scene.get(component: WorldTransformComponent.self, for: entityId) else {
             handleError(.noWorldTransformComponent, entityId)
@@ -84,6 +226,8 @@ public func executeGaussianDepth(_ commandBuffer: MTLCommandBuffer) {
         }
 
         computeEncoder.setBuffer(gaussianComponent.gaussianSortedIndices, offset: 0, index: Int(gaussianIndicesIndex.rawValue))
+        computeEncoder.setBuffer(gaussianComponent.gaussianVisibleIndices, offset: 0, index: Int(gaussianVisibleIndicesIndex.rawValue))
+        computeEncoder.setBuffer(gaussianComponent.gaussianVisibleCount, offset: 0, index: Int(gaussianVisibleCountIndex.rawValue))
         computeEncoder.setBuffer(
             gaussianComponent.encodedSplatData,
             offset: 0,
@@ -136,7 +280,7 @@ public func executeGaussianDepth(_ commandBuffer: MTLCommandBuffer) {
             gaussianComponent.spaceUniform[uniformBufferIndex], offset: 0, index: Int(gaussianUniformIndex.rawValue)
         )
 
-        var localNumGaussians = UInt32(gaussianComponent.splatCount)
+        var localNumGaussians = UInt32(activeCount)
         computeEncoder.setBytes(&localNumGaussians, length: MemoryLayout<UInt32>.stride, index: Int(gaussianNumberOfSplatsIndex.rawValue))
 
         let tew = gaussianDepthPipeline.pipelineState?.threadExecutionWidth ?? 32
@@ -149,13 +293,20 @@ public func executeGaussianDepth(_ commandBuffer: MTLCommandBuffer) {
         let threadsPerThreadgroup: MTLSize = MTLSizeMake(block, 1, 1)
 
         // Use dispatchThreadgroups for broader device compatibility (including Vision Pro)
-        let numThreadgroups = (Int(gaussianComponent.splatCount) + block - 1) / block
+        let numThreadgroups = (activeCount + block - 1) / block
         let threadgroupsPerGrid: MTLSize = MTLSizeMake(numThreadgroups, 1, 1)
 
         computeEncoder.dispatchThreadgroups(threadgroupsPerGrid, threadsPerThreadgroup: threadsPerThreadgroup)
+        profileTotals.dispatchCount += 1
     }
 
     computeEncoder.endEncoding()
+    logGaussianProfile(
+        stage: "DepthKeys",
+        startTime: profileStart,
+        totals: profileTotals,
+        extra: "activeSplats=\(activeSplatTotal)"
+    )
 }
 
 // MARK: - Device Radix Sort
@@ -179,6 +330,10 @@ public func executeGaussianDepth(_ commandBuffer: MTLCommandBuffer) {
 // indexing (perTGStart[groupId * 256 + digit]).
 
 public func executeRadixSort(_ commandBuffer: MTLCommandBuffer) {
+    let profileStart = gaussianProfilingStartTime()
+    var profileTotals = GaussianProfileTotals()
+    var activeSplatTotal = 0
+
     guard radixClearHistogramPipeline.success else {
         handleError(.pipelineStateNulled, radixClearHistogramPipeline.name!); return
     }
@@ -216,8 +371,10 @@ public func executeRadixSort(_ commandBuffer: MTLCommandBuffer) {
         guard let gc = scene.get(component: GaussianComponent.self, for: entityId) else { continue }
         guard let sortedIndices = gc.gaussianSortedIndices else { continue }
 
-        let n = Int(gc.splatCount)
+        let n = activeGaussianSortCount(gc)
         guard n >= 2 else { continue }
+        profileTotals.include(component: gc)
+        activeSplatTotal += n
 
         // Ping-pong temp buffer (CPU alloc before encoding)
         let keyBufLen = n * MemoryLayout<UInt64>.stride
@@ -227,6 +384,7 @@ public func executeRadixSort(_ commandBuffer: MTLCommandBuffer) {
             )
         }
         guard let tempBuffer = radixSortTempBuffer else { continue }
+        profileTotals.scratchBytes = max(profileTotals.scratchBytes, tempBuffer.length)
 
         // Fixed block size: histogram and scatter MUST use the same value so
         // that histGroups == scatterGroups and perTGStart indexing is correct.
@@ -240,6 +398,10 @@ public func executeRadixSort(_ commandBuffer: MTLCommandBuffer) {
             )
         }
         guard let perTGBuf = radixPerTGHistBuffer else { continue }
+        profileTotals.scratchBytes = max(
+            profileTotals.scratchBytes,
+            tempBuffer.length + histBuffer.length + perTGBuf.length
+        )
 
         var numElems = UInt32(n)
         var numBuckets = UInt32(256)
@@ -255,6 +417,7 @@ public func executeRadixSort(_ commandBuffer: MTLCommandBuffer) {
             enc.setComputePipelineState(radixClearHistogramPipeline.pipelineState!)
             enc.setBuffer(histBuffer, offset: 0, index: Int(radixClearHistogramBuffer.rawValue))
             enc.dispatchThreadgroups(MTLSizeMake(1, 1, 1), threadsPerThreadgroup: MTLSizeMake(256, 1, 1))
+            profileTotals.dispatchCount += 1
 
             // ── 1. Histogram + per-TG counts ─────────────────────────────────
             enc.setComputePipelineState(radixHistogramPipeline.pipelineState!)
@@ -264,18 +427,21 @@ public func executeRadixSort(_ commandBuffer: MTLCommandBuffer) {
             enc.setBytes(&numElems, length: MemoryLayout<UInt32>.stride, index: Int(radixHistogramNumElems.rawValue))
             enc.setBytes(&passIdx, length: MemoryLayout<UInt32>.stride, index: Int(radixHistogramPassIndex.rawValue))
             enc.dispatchThreadgroups(MTLSizeMake(numGroups, 1, 1), threadsPerThreadgroup: MTLSizeMake(radixBlock, 1, 1))
+            profileTotals.dispatchCount += 1
 
             // ── 2. Per-TG column scan → per-TG starting offsets ─────────────
             enc.setComputePipelineState(radixScanPerTGPipeline.pipelineState!)
             enc.setBuffer(perTGBuf, offset: 0, index: Int(radixScanPerTGBuffer.rawValue))
             enc.setBytes(&numGroups32, length: MemoryLayout<UInt32>.stride, index: Int(radixScanPerTGNumGroups.rawValue))
             enc.dispatchThreadgroups(MTLSizeMake(1, 1, 1), threadsPerThreadgroup: MTLSizeMake(256, 1, 1))
+            profileTotals.dispatchCount += 1
 
             // ── 3. Global exclusive scan ─────────────────────────────────────
             enc.setComputePipelineState(radixScanPipeline.pipelineState!)
             enc.setBuffer(histBuffer, offset: 0, index: Int(radixScanHistogram.rawValue))
             enc.setBytes(&numBuckets, length: MemoryLayout<UInt32>.stride, index: Int(radixScanNumBuckets.rawValue))
             enc.dispatchThreadgroups(MTLSizeMake(1, 1, 1), threadsPerThreadgroup: MTLSizeMake(256, 1, 1))
+            profileTotals.dispatchCount += 1
 
             // ── 4. Stable scatter ────────────────────────────────────────────
             enc.setComputePipelineState(radixScatterPipeline.pipelineState!)
@@ -286,8 +452,16 @@ public func executeRadixSort(_ commandBuffer: MTLCommandBuffer) {
             enc.setBytes(&numElems, length: MemoryLayout<UInt32>.stride, index: Int(radixScatterNumElems.rawValue))
             enc.setBytes(&passIdx, length: MemoryLayout<UInt32>.stride, index: Int(radixScatterPassIdx.rawValue))
             enc.dispatchThreadgroups(MTLSizeMake(numGroups, 1, 1), threadsPerThreadgroup: MTLSizeMake(radixBlock, 1, 1))
+            profileTotals.dispatchCount += 1
+            profileTotals.radixPassCount += 1
         }
     }
 
     enc.endEncoding()
+    logGaussianProfile(
+        stage: "RadixSort",
+        startTime: profileStart,
+        totals: profileTotals,
+        extra: "activeSplats=\(activeSplatTotal)"
+    )
 }

@@ -3993,6 +3993,10 @@ public enum RenderPasses {
     }
 
     public static let gaussianExecution: RenderPassExecution = { commandBuffer in
+        let profileStart = gaussianProfilingStartTime()
+        var profileTotals = GaussianProfileTotals()
+        var activeSplatTotal = 0
+
         let pipelines = PipelineManager.shared.renderPipelinesByType
         guard let initializePipeline = pipelines[.gaussianTBDRInitialize],
               let drawPipeline = pipelines[.gaussianTBDRDraw],
@@ -4046,6 +4050,7 @@ public enum RenderPasses {
         renderEncoder.pushDebugGroup("Initialize")
         renderEncoder.setRenderPipelineState(initializePipelineState)
         renderEncoder.dispatchThreadsPerTile(MTLSize(width: 32, height: 32, depth: 1))
+        profileTotals.dispatchCount += 1
         renderEncoder.popDebugGroup()
 
         renderEncoder.pushDebugGroup("Draw Splats")
@@ -4063,6 +4068,11 @@ public enum RenderPasses {
                 handleError(.noGaussianComponent, entityId)
                 continue
             }
+            profileTotals.include(component: gaussianComponent)
+
+            let activeSplatCount = min(Int(gaussianComponent.visibleSplatCountForRendering), Int(gaussianComponent.splatCount))
+            guard activeSplatCount > 0 else { continue }
+            activeSplatTotal += activeSplatCount
 
             guard gaussianComponent.encodedSplatData != nil else {
                 handleError(.bufferAllocationFailed, "Encoded Gaussian splat buffer")
@@ -4164,7 +4174,8 @@ public enum RenderPasses {
             renderEncoder.drawPrimitivesTracked(type: .triangleStrip,
                                                 vertexStart: 0,
                                                 vertexCount: 4,
-                                                instanceCount: Int(gaussianComponent.splatCount))
+                                                instanceCount: activeSplatCount)
+            profileTotals.drawCallCount += 1
         }
 
         renderEncoder.popDebugGroup()
@@ -4175,11 +4186,18 @@ public enum RenderPasses {
         var reverseZ = renderInfo.reverseZEnabled
         renderEncoder.setFragmentBytes(&reverseZ, length: MemoryLayout<Bool>.stride, index: Int(gaussianTBDRRenderReverseZIndex.rawValue))
         renderEncoder.drawPrimitivesTracked(type: .triangle, vertexStart: 0, vertexCount: 3)
+        profileTotals.drawCallCount += 1
         renderEncoder.popDebugGroup()
 
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
         renderEncoder.popDebugGroup()
         renderEncoder.endEncoding()
+        logGaussianProfile(
+            stage: "Render",
+            startTime: profileStart,
+            totals: profileTotals,
+            extra: String(format: "activeSplats=%d viewport=%.0fx%.0f tile=32x32", activeSplatTotal, renderInfo.viewPort.x, renderInfo.viewPort.y)
+        )
     }
 
     static func executePostProcess(

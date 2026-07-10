@@ -708,6 +708,7 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         guard let keyBuf = makeBuffer(inputKeys) else { XCTFail("Buffer allocation failed"); return }
         gc.gaussianSortedIndices = keyBuf
         gc.splatCount = UInt(n)
+        gc.visibleSplatCountForRendering = UInt(n)
 
         guard let queue = renderInfo.device.makeCommandQueue(),
               let cmd = queue.makeCommandBuffer()
@@ -731,7 +732,9 @@ final class DeviceRadixSortTest: BaseRenderSetup {
 
     /// Radix sort output must match Swift's sort for 256 random UInt64 values.
     func test_radixSort_matchesCPUSort_256elements() {
-        guard makePipeline(named: "gaussianRadixHistogram") != nil,
+        guard makePipeline(named: "gaussianRadixClearHistogram") != nil,
+              makePipeline(named: "gaussianRadixHistogram") != nil,
+              makePipeline(named: "gaussianRadixScanPerTG") != nil,
               makePipeline(named: "gaussianRadixScan") != nil,
               makePipeline(named: "gaussianRadixScatter") != nil
         else {
@@ -740,7 +743,11 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         }
 
         let n = 256
-        let inputKeys: [UInt64] = (0 ..< n).map { _ in UInt64.random(in: 0 ..< UInt64.max) }
+        let inputKeys: [UInt64] = (0 ..< n).map { i in
+            let high = UInt64((n - 1 - i) * 2 + 1)
+            let low = UInt64((i &* 1_664_525 &+ 1_013_904_223) & 0xFFFF_FFFF)
+            return (high << 32) | low
+        }
         let expectedSorted = inputKeys.sorted()
 
         let entity = createEntity()
@@ -757,6 +764,7 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         guard let keyBuf = makeBuffer(inputKeys) else { XCTFail("Buffer allocation failed"); return }
         gc.gaussianSortedIndices = keyBuf
         gc.splatCount = UInt(n)
+        gc.visibleSplatCountForRendering = UInt(n)
 
         guard let queue = renderInfo.device.makeCommandQueue(),
               let cmd = queue.makeCommandBuffer()
@@ -787,7 +795,11 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         }
 
         let n = 256
-        let inputKeys: [UInt64] = (0 ..< n).map { _ in UInt64.random(in: 0 ..< UInt64.max) }
+        let inputKeys: [UInt64] = (0 ..< n).map { i in
+            let high = UInt64((n - 1 - i) * 2 + 1)
+            let low = UInt64((i &* 1_664_525 &+ 1_013_904_223) & 0xFFFF_FFFF)
+            return (high << 32) | low
+        }
         let expectedSorted = inputKeys.sorted()
 
         // First sort
@@ -804,6 +816,7 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         wt1.space = matrix_identity_float4x4
         gc1.gaussianSortedIndices = buf1
         gc1.splatCount = UInt(n)
+        gc1.visibleSplatCountForRendering = UInt(n)
 
         guard let queue = renderInfo.device.makeCommandQueue(),
               let cmd1 = queue.makeCommandBuffer()
@@ -882,12 +895,25 @@ final class DeviceRadixSortTest: BaseRenderSetup {
             length: numSplats * MemoryLayout<EncodedGaussianSplat>.stride,
             options: .storageModeShared
         ),
-            let keyBuf = makeBuffer(count: numSplats, type: UInt64.self)
+            let keyBuf = makeBuffer(count: numSplats, type: UInt64.self),
+            let visibleIndexBuf = renderInfo.device.makeBuffer(
+                bytes: (0 ..< numSplats).map { UInt32($0) },
+                length: numSplats * MemoryLayout<UInt32>.stride,
+                options: .storageModeShared
+            ),
+            let visibleCountBuf = renderInfo.device.makeBuffer(
+                length: MemoryLayout<UInt32>.stride,
+                options: .storageModeShared
+            )
         else { XCTFail("Buffer allocation failed"); return }
 
+        visibleCountBuf.contents().storeBytes(of: UInt32(numSplats), as: UInt32.self)
         gc.encodedSplatData = splatBuf
         gc.gaussianSortedIndices = keyBuf
+        gc.gaussianVisibleIndices = visibleIndexBuf
+        gc.gaussianVisibleCount = visibleCountBuf
         gc.splatCount = UInt(numSplats)
+        gc.visibleSplatCountForRendering = UInt(numSplats)
         gc.spaceUniform = (0 ..< 2).compactMap { _ in
             renderInfo.device.makeBuffer(
                 length: MemoryLayout<Uniforms>.stride,
@@ -935,7 +961,11 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         }
 
         let n = 1024
-        let inputKeys: [UInt64] = (0 ..< n).map { _ in UInt64.random(in: 0 ..< UInt64.max) }
+        let inputKeys: [UInt64] = (0 ..< n).map { i in
+            let high = UInt64((n - 1 - i) * 2 + 1)
+            let low = UInt64((i &* 1_664_525 &+ 1_013_904_223) & 0xFFFF_FFFF)
+            return (high << 32) | low
+        }
         let expectedSorted = inputKeys.sorted()
 
         let entity = createEntity()
@@ -951,6 +981,7 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         wt.space = matrix_identity_float4x4
         gc.gaussianSortedIndices = keyBuf
         gc.splatCount = UInt(n)
+        gc.visibleSplatCountForRendering = UInt(n)
 
         guard let queue = renderInfo.device.makeCommandQueue(),
               let cmd = queue.makeCommandBuffer()

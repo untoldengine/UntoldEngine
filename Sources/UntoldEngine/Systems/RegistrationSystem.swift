@@ -2940,6 +2940,23 @@ public func setEntityGaussian(entityId: EntityID, filename: String, withExtensio
         return
     }
 
+    guard let gaussianVisibleIndices = renderInfo.device.makeBuffer(
+        length: MemoryLayout<UInt32>.stride * Int(splatCount),
+        options: .storageModeShared
+    ) else {
+        handleError(.bufferAllocationFailed, "Gaussian visible-index buffer is nil")
+        return
+    }
+
+    guard let gaussianVisibleCount = renderInfo.device.makeBuffer(
+        length: MemoryLayout<UInt32>.stride,
+        options: .storageModeShared
+    ) else {
+        handleError(.bufferAllocationFailed, "Gaussian visible-count buffer is nil")
+        return
+    }
+    gaussianVisibleCount.contents().storeBytes(of: UInt32(splatCount), as: UInt32.self)
+
     guard let encodedSplatBuffer = renderInfo.device.makeBuffer(length: MemoryLayout<EncodedGaussianSplat>.stride * Int(splatCount), options: .storageModeShared) else {
         handleError(.bufferAllocationFailed, "Encoded Gaussian splat buffer is nil")
         return
@@ -2994,7 +3011,10 @@ public func setEntityGaussian(entityId: EntityID, filename: String, withExtensio
         }
 
         gaussianComponent.splatCount = splatCount
+        gaussianComponent.visibleSplatCountForRendering = splatCount
         gaussianComponent.gaussianSortedIndices = gaussianSortedIndices
+        gaussianComponent.gaussianVisibleIndices = gaussianVisibleIndices
+        gaussianComponent.gaussianVisibleCount = gaussianVisibleCount
         gaussianComponent.encodedSplatData = encodedSplatBuffer
         gaussianComponent.sphericalHarmonicsData = sphericalHarmonicsBuffer
         gaussianComponent.sphericalHarmonicsMetadata = packedSphericalHarmonics?.metadata
@@ -3219,6 +3239,9 @@ func removeEntityGaussian(entityId: EntityID) {
         gaussianComponent.sphericalHarmonicsData = nil
         gaussianComponent.sphericalHarmonicsMetadata = nil
         gaussianComponent.gaussianSortedIndices = nil
+        gaussianComponent.gaussianVisibleIndices = nil
+        gaussianComponent.gaussianVisibleCount = nil
+        gaussianComponent.visibleSplatCountForRendering = 0
         gaussianComponent.spaceUniform.removeAll()
         scene.remove(component: GaussianComponent.self, from: entityId)
     }
