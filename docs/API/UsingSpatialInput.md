@@ -618,6 +618,24 @@ if state.spatialTapActive {
 }
 ```
 
+`RealSurfaceHit` includes both the tap point and the detected plane normal:
+
+```swift
+if let hit = pickRealSurfacePosition(
+    rayOrigin: state.rayOriginWorld,
+    rayDirection: state.rayDirectionWorld,
+    filter: .wallOnly
+) {
+    let wallPoint = hit.worldPosition
+    let wallNormal = hit.surfaceNormal
+
+    Logger.log(message: "Wall point", vector: wallPoint)
+    Logger.log(message: "Wall normal", vector: wallNormal)
+}
+```
+
+Use `.wallOnly` when the workflow specifically needs an ARKit-classified wall. Use `.verticalAny` when doors, windows, or temporarily unknown vertical planes are acceptable.
+
 ### Choosing the right filter
 
 | Goal | Filter to use |
@@ -626,6 +644,7 @@ if state.spatialTapActive {
 | Always anchor to the table, ignore floor | `.tableOnly` |
 | Whichever surface the user taps | `kinds: [.floor, .table]` + check `surfaceKind` |
 | Any horizontal surface | `.horizontalAny` + check `surfaceKind` |
+| Real wall normal for model alignment | `.wallOnly` + `surfaceNormal` |
 
 ### Diagnosing unexpected classification
 
