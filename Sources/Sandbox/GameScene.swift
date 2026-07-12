@@ -55,11 +55,6 @@
                   setSceneReady(success)
               }
                */
-
-            let splat = createEntity()
-            setEntityGaussian(entityId: splat, filename: "/Users/haroldserrano/Downloads/truck/point_cloud/iteration_7000/point_cloud", withExtension: "ply")
-            rotateBy(entityId: splat, angle: 180.0, axis: simd_float3(0.0, 1.0, 0.0))
-            setSceneReady(true)
         }
 
         private func configureEngineSystems() {
