@@ -69,6 +69,10 @@ public struct RealSurfaceHit: Sendable {
     public let distance: Float
     /// World-space normal of the detected plane at the hit point.
     public let planeNormal: simd_float3
+    /// World-space normal of the detected surface at the hit point.
+    public var surfaceNormal: simd_float3 {
+        planeNormal
+    }
 
     public init(worldPosition: simd_float3, surfaceKind: RealSurfaceKind, distance: Float, planeNormal: simd_float3) {
         self.worldPosition = worldPosition
