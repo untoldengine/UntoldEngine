@@ -1,4 +1,19 @@
 # Changelog
+## v0.14.1 - 2026-07-12
+### 🐞 Fixes
+- [Patch] Add global asset export and texture baking commands (137c102…)
+- [Patch] Remove the luminance fallback from the opaque model shader (63a2147…)
+- [Patch] Export script now accepts blend file (9227a1b…)
+- [Patch] Added a optimize flag to export script (55a2627…)
+- [Patch] added bootstrap command to script (beec2ee…)
+- [Patch] Added bootstrap script (0c65ee1…)
+- [Patch]Added script to update blender addon (8cb1ea4…)
+- [Patch] Added blender error message (699e804…)
+- [Patch] Fixed Gaussian splats color (6ecd93b…)
+- [Patch] Added gaussian profiling (779a033…)
+- [Patch] Added xr surface normal detection (7f3d133…)
+### 📚 Docs
+- [Docs] Added documentation for the script (5c8a69f…)
 ## v0.14.0 - 2026-07-01
 ### 🐞 Fixes
 - [Patch] Implemented rendering extensions v1 (84465de…)
