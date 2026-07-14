@@ -104,6 +104,48 @@ final class ShadowSystemMakeUniformsTests: XCTestCase {
                            "Cascade 1 split must match the value set on the system")
         }
     }
+
+    func testDefaultSoftnessValuesArePackedIntoUniforms() {
+        let sys = ShadowSystem()
+        let u = sys.makeUniforms()
+
+        XCTAssertEqual(u.shadowSoftnessNear, 1.0, accuracy: 1e-6)
+        XCTAssertEqual(u.shadowSoftnessFar, 2.25, accuracy: 1e-6)
+        XCTAssertEqual(u.shadowSoftnessDepthScale, 1.0, accuracy: 1e-6)
+        XCTAssertEqual(u.shadowSoftnessEnabled, 1.0, accuracy: 1e-6)
+    }
+
+    func testCustomSoftnessValuesArePackedIntoUniforms() {
+        var sys = ShadowSystem()
+        sys.setSoftness(ShadowSoftnessSettings(
+            enabled: false,
+            nearRadiusTexels: 2.0,
+            farRadiusTexels: 5.0,
+            depthScale: 0.5
+        ))
+
+        let u = sys.makeUniforms()
+        XCTAssertEqual(u.shadowSoftnessNear, 2.0, accuracy: 1e-6)
+        XCTAssertEqual(u.shadowSoftnessFar, 5.0, accuracy: 1e-6)
+        XCTAssertEqual(u.shadowSoftnessDepthScale, 0.5, accuracy: 1e-6)
+        XCTAssertEqual(u.shadowSoftnessEnabled, 0.0, accuracy: 1e-6)
+    }
+
+    func testSoftnessSettingsAreClampedBeforePacking() {
+        var sys = ShadowSystem()
+        sys.setSoftness(ShadowSoftnessSettings(
+            enabled: true,
+            nearRadiusTexels: -5.0,
+            farRadiusTexels: -1.0,
+            depthScale: 10.0
+        ))
+
+        let u = sys.makeUniforms()
+        XCTAssertEqual(u.shadowSoftnessNear, 0.25, accuracy: 1e-6)
+        XCTAssertEqual(u.shadowSoftnessFar, 0.25, accuracy: 1e-6)
+        XCTAssertEqual(u.shadowSoftnessDepthScale, 2.0, accuracy: 1e-6)
+        XCTAssertEqual(u.shadowSoftnessEnabled, 1.0, accuracy: 1e-6)
+    }
 }
 
 // MARK: - shadowCascadeMaxDistance

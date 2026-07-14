@@ -11,8 +11,28 @@
 import Foundation
 import simd
 
+/// Runtime tuning for CSM shadow filtering.
+public struct ShadowSoftnessSettings: Equatable, Sendable {
+    public var enabled: Bool
+    public var nearRadiusTexels: Float
+    public var farRadiusTexels: Float
+    public var depthScale: Float
+
+    public init(
+        enabled: Bool = true,
+        nearRadiusTexels: Float = 1.0,
+        farRadiusTexels: Float = 2.25,
+        depthScale: Float = 1.0
+    ) {
+        self.enabled = enabled
+        self.nearRadiusTexels = nearRadiusTexels
+        self.farRadiusTexels = farRadiusTexels
+        self.depthScale = depthScale
+    }
+}
+
 /// Swift mirror of the Metal CSMUniforms struct in ShaderStructs.h.
-/// Layout must stay in sync: 3xfloat4x4, camera view matrix, 3xfloat, then int + 3xfloat padding.
+/// Layout must stay in sync with the Metal struct.
 struct CSMUniforms {
     var lightSpaceMatrices: (simd_float4x4, simd_float4x4, simd_float4x4) = (
         matrix_identity_float4x4, matrix_identity_float4x4, matrix_identity_float4x4
@@ -23,12 +43,17 @@ struct CSMUniforms {
     var _pad0: Float = 0
     var _pad1: Float = 0
     var _pad2: Float = 0
+    var shadowSoftnessNear: Float = 1.0
+    var shadowSoftnessFar: Float = 2.25
+    var shadowSoftnessDepthScale: Float = 1.0
+    var shadowSoftnessEnabled: Float = 1.0
 }
 
 struct ShadowSystem {
     // Per-frame cascade outputs
     var cascadeLightSpaceMatrices: [simd_float4x4] = Array(repeating: matrix_identity_float4x4, count: csmCascadeCount)
     var cascadeSplitDistances: [Float] = Array(repeating: 0, count: csmCascadeCount)
+    var softnessSettings: ShadowSoftnessSettings = .init()
     var isActive: Bool = false
 
     /// Legacy accessor used by callers that only need to know "is there a shadow?"
@@ -52,7 +77,28 @@ struct ShadowSystem {
             csmCascadeCount > 2 ? cascadeSplitDistances[2] : 0
         )
         u.cascadeCount = Int32(csmCascadeCount)
+        let softness = Self.sanitizedSoftnessSettings(softnessSettings)
+        u.shadowSoftnessNear = softness.nearRadiusTexels
+        u.shadowSoftnessFar = softness.farRadiusTexels
+        u.shadowSoftnessDepthScale = softness.depthScale
+        u.shadowSoftnessEnabled = softness.enabled ? 1.0 : 0.0
         return u
+    }
+
+    mutating func setSoftness(_ settings: ShadowSoftnessSettings) {
+        softnessSettings = Self.sanitizedSoftnessSettings(settings)
+    }
+
+    private static func sanitizedSoftnessSettings(_ settings: ShadowSoftnessSettings) -> ShadowSoftnessSettings {
+        let nearRadius = simd_clamp(settings.nearRadiusTexels, 0.25, 8.0)
+        let farRadius = simd_clamp(settings.farRadiusTexels, nearRadius, 12.0)
+        let depthScale = simd_clamp(settings.depthScale, 0.0, 2.0)
+        return ShadowSoftnessSettings(
+            enabled: settings.enabled,
+            nearRadiusTexels: nearRadius,
+            farRadiusTexels: farRadius,
+            depthScale: depthScale
+        )
     }
 
     /// Main per-frame update — computes one tight ortho matrix per cascade.
@@ -224,4 +270,12 @@ struct ShadowSystem {
         }
         return corners
     }
+}
+
+public func setShadowSoftness(_ settings: ShadowSoftnessSettings) {
+    shadowSystem.setSoftness(settings)
+}
+
+public func getShadowSoftness() -> ShadowSoftnessSettings {
+    shadowSystem.softnessSettings
 }

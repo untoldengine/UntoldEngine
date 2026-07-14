@@ -204,6 +204,10 @@ struct CSMUniforms {
     float    _pad0;
     float    _pad1;
     float    _pad2;
+    float    shadowSoftnessNear;       // Poisson PCF radius in texels near the camera
+    float    shadowSoftnessFar;        // Poisson PCF radius in texels at the shadow distance
+    float    shadowSoftnessDepthScale; // 0 = fixed near radius, 1 = full near-to-far ramp
+    float    shadowSoftnessEnabled;
 };
 
 #endif /* ShaderStructs_h */
