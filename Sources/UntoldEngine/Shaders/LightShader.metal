@@ -45,18 +45,29 @@ float computeCSMShadow(
         return 1.0;
     }
 
-    constexpr sampler shadowSampler(coord::normalized, filter::linear, address::clamp_to_edge);
+    constexpr sampler shadowSampler(
+        coord::normalized,
+        filter::linear,
+        address::clamp_to_edge,
+        compare_func::less_equal
+    );
     float2 texelSize = 1.0 / float2(shadowArray.get_width(), shadowArray.get_height());
 
     float NoL = clamp(dot(normalize(normal), normalize(lightDir)), 0.0, 1.0);
     float bias = max(0.0011 * (1.0 - NoL), 0.0003);
     float currentDepth = proj.z;
+    float shadowDistance = max(csm.cascadeSplits[max(csm.cascadeCount - 1, 0)], 0.001);
+    float depthFade = clamp(viewDepth / shadowDistance, 0.0, 1.0) * clamp(csm.shadowSoftnessDepthScale, 0.0, 2.0);
+    float nearRadius = max(csm.shadowSoftnessNear, 0.25);
+    float farRadius = max(csm.shadowSoftnessFar, nearRadius);
+    float filterRadius = csm.shadowSoftnessEnabled > 0.5
+        ? mix(nearRadius, farRadius, clamp(depthFade, 0.0, 1.0))
+        : 1.0;
 
     float shadow = 0.0;
     for (int i = 0; i < 16; ++i) {
-        float2 offset = poissonDisk[i] * texelSize;
-        float sampledDepth = shadowArray.sample(shadowSampler, proj.xy + offset, cascade);
-        shadow += (currentDepth - bias) > sampledDepth ? 0.0 : 1.0;
+        float2 offset = poissonDisk[i] * texelSize * filterRadius;
+        shadow += shadowArray.sample_compare(shadowSampler, proj.xy + offset, cascade, currentDepth - bias);
     }
     return shadow / 16.0;
 }
