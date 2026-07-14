@@ -1330,7 +1330,8 @@ public let outputTransformRenderPass: RenderPasses.RenderPassExecution = { comma
 
     renderPassDescriptor.colorAttachments[0].loadAction = .clear
     renderPassDescriptor.colorAttachments[0].storeAction = .store
-    renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 0.0)
+    // Do not override clearColor here: the XR layer sets it per immersion mode
+    // (UntoldEngineXR.swift), and the fullscreen quad overwrites every pixel anyway.
 
     guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
         handleError(.renderPassCreationFailed, "Output Transform Pass: encoder creation failed")

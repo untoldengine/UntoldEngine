@@ -54,6 +54,14 @@ fragment float4 fragmentPreCompositeShader(VertexCompositeOutput vertexOut [[sta
     baseColor.rgb = gaussianColor.rgb + baseColor.rgb * (1.0 - gaussianColor.a);
     baseColor.a = gaussianColor.a + baseColor.a * (1.0 - gaussianColor.a);
 
+    // Non-passthrough modes (full immersion, macOS, AR) present an opaque layer:
+    // the environment already fills every background pixel, so alpha must be 1.0
+    // regardless of what upstream content (HDR alpha, material alpha, Gaussians)
+    // produced. Only mixed passthrough is allowed to punch through via alpha.
+    if (isPassthrough == false) {
+        baseColor.a = 1.0;
+    }
+
     // Sample gizmo
     float3 gizmoColor = gizmoTexture.sample(s, vertexOut.uvCoords).rgb;
     float gizmoLumen = getLuminance(gizmoColor);
