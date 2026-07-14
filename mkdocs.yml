@@ -55,6 +55,7 @@ nav:
     - Spatial Input: API/UsingSpatialInput.md
     - Lighting System: API/UsingLightingSystem.md
     - XR Lighting: API/UsingXRLighting.md
+    - XR Immersion Modes: API/UsingXRImmersionMode.md
     - Scene Channels: API/UsingSceneChannels.md
     - Light Portals: API/UsingLightPortals.md
     - Materials: API/UsingMaterials.md

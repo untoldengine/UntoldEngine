@@ -77,6 +77,14 @@ public enum RenderingEnvironmentProperty: Sendable {
     case visible(Bool)
     case lightingMode(RuntimeEnvironmentLightingMode)
     case realWorldLightingContribution(Float)
+    /// Loads an HDR environment asset and regenerates the IBL textures
+    /// (mipmaps + pre-filtered irradiance/specular).
+    ///
+    /// When `directory` is provided, `name` (including extension) is resolved
+    /// against it. Otherwise the engine's standard asset search is used —
+    /// notably `assetBasePath` (GameData) and its `HDR/` subfolder — trying
+    /// the `.hdr`, `.exr`, and `.png` extensions when `name` has none.
+    case asset(String, directory: URL? = nil)
 }
 
 public enum WireframeProperty: Sendable {
@@ -144,7 +152,39 @@ private func applyRenderingEnvironmentProperty(_ property: RenderingEnvironmentP
         RuntimeEnvironmentLightingStore.shared.mode = value
     case let .realWorldLightingContribution(value):
         RuntimeEnvironmentLightingStore.shared.realWorldLightingContribution = value
+    case let .asset(name, directory):
+        applyEnvironmentAsset(name, directory: directory)
     }
+}
+
+private func applyEnvironmentAsset(_ name: String, directory: URL?) {
+    // Explicit directory: preserve generateHDR's legacy behavior (name must
+    // include the file extension).
+    if let directory {
+        generateHDR(name, from: directory)
+        return
+    }
+
+    // No directory: resolve through the engine's standard asset search
+    // (assetBasePath/GameData incl. the HDR/ subfolder, app bundle, engine bundle).
+    let nsName = name as NSString
+    let providedExtension = nsName.pathExtension
+    let candidates: [(base: String, ext: String)] = providedExtension.isEmpty
+        ? ["hdr", "exr", "png"].map { (name, $0) }
+        : [(nsName.deletingPathExtension, providedExtension)]
+
+    for candidate in candidates {
+        if let url = LoadingSystem.shared.resourceURL(
+            forResource: candidate.base, withExtension: candidate.ext, subResource: nil
+        ) {
+            generateHDR(url.lastPathComponent, from: url.deletingLastPathComponent())
+            return
+        }
+    }
+
+    // Fall back to generateHDR's own resolution (engine bundle) so behavior
+    // degrades to the legacy path and its error reporting.
+    generateHDR(name, from: nil)
 }
 
 private func applyWireframeProperty(_ property: WireframeProperty) {

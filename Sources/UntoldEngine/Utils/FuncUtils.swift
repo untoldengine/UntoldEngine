@@ -105,6 +105,23 @@ public func loadHDR(_ textureName: String, from directory: URL? = nil) throws ->
 
     bitmapContext.draw(cgImage, in: CGRect(x: 0, y: 0, width: cgImage.width, height: cgImage.height))
 
+    // Sanitize the half-float pixels. Radiance RGBE can encode values beyond
+    // Float16 range (e.g. the sun disk in "puresky" HDRIs decodes to Inf).
+    // A single Inf/NaN poisons mip generation and the IBL pre-filter integral,
+    // which turns every IBL-lit object black. Inf -> max finite half (65504),
+    // NaN and negatives -> 0.
+    let componentCount = cgImage.width * cgImage.height * 4
+    let halfBits = bitmapContext.data!.bindMemory(to: UInt16.self, capacity: componentCount)
+    let maxFiniteHalf: UInt16 = 0x7BFF // 65504.0
+    for i in 0 ..< componentCount {
+        let bits = halfBits[i]
+        if bits & 0x8000 != 0 {
+            halfBits[i] = 0 // negative radiance is invalid
+        } else if bits & 0x7C00 == 0x7C00 {
+            halfBits[i] = (bits & 0x03FF) == 0 ? maxFiniteHalf : 0 // Inf : NaN
+        }
+    }
+
     let descriptor = MTLTextureDescriptor()
     descriptor.pixelFormat = .rgba16Float
     descriptor.width = cgImage.width

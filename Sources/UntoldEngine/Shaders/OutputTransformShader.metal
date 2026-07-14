@@ -51,6 +51,11 @@ fragment OutputTransformFragmentOut fragmentOutputTransformShader(
 
   OutputTransformFragmentOut out;
   out.color = c;
-  out.depth = depth;
+  // Reverse-Z: sky pixels carry the clear value 0.0 = infinite distance. The
+  // visionOS compositor reprojects using view distance (near/depth), so exactly
+  // 0.0 divides to infinity and those pixels are discarded (rendered black).
+  // Clamp to a finite far depth (~1km) that is visually indistinguishable from
+  // infinity but valid for the compositor's reprojection.
+  out.depth = max(depth, 1e-4);
   return out;
 }

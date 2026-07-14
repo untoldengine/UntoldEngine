@@ -184,6 +184,7 @@ Untold Engine is well-suited for:
 - [Geometry Streaming System](docs/API/UsingGeometryStreamingSystem.md)
 - [LOD-Batching-Streaming](docs/API/UsingLOD-Batching-Streaming.md)
 - [Spatial Input](docs/API/UsingSpatialInput.md)
+- [XR Immersion Modes](docs/API/UsingXRImmersionMode.md)
 - [Gaussian System](docs/API/UsingGaussianSystem.md)
 - [Spatial Debugger](docs/API/SpatialDebugger.md)
 - [Profiler](docs/API/UsingProfiler.md)
