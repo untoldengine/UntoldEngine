@@ -50,6 +50,16 @@ struct CSMUniforms {
 }
 
 struct ShadowSystem {
+    private struct ShadowCasterBounds {
+        var min: simd_float3
+        var max: simd_float3
+    }
+
+    private struct LightSpaceBounds {
+        var min: simd_float3
+        var max: simd_float3
+    }
+
     // Per-frame cascade outputs
     var cascadeLightSpaceMatrices: [simd_float4x4] = Array(repeating: matrix_identity_float4x4, count: csmCascadeCount)
     var cascadeSplitDistances: [Float] = Array(repeating: 0, count: csmCascadeCount)
@@ -154,6 +164,10 @@ struct ShadowSystem {
         let lightUp: simd_float3 = abs(lightForward.y) < 0.99
             ? simd_float3(0, 1, 0)
             : simd_float3(0, 0, 1)
+        let lightView = matrix_look_at_right_hand(-lightForward * 150.0, simd_float3(0, 0, 0), lightUp)
+        let casterLightSpaceBounds = collectShadowCasterBounds().map {
+            lightSpaceBounds(for: $0, lightView: lightView)
+        }
 
         var prevNear: Float = near
         for i in 0 ..< csmCascadeCount {
@@ -180,8 +194,6 @@ struct ShadowSystem {
             // center to the shadow texel grid in light space. Re-centering the light view
             // directly on the frustum every frame causes sub-texel shadow-map movement
             // during camera rotation.
-            let lightView = matrix_look_at_right_hand(-lightForward * 150.0, simd_float3(0, 0, 0), lightUp)
-
             var radius: Float = 0
             for corner in corners {
                 radius = max(radius, simd_length(corner - center))
@@ -200,8 +212,10 @@ struct ShadowSystem {
             let minY = centerLS.y - halfDiameter
             let maxY = centerLS.y + halfDiameter
 
-            // Keep Z fit to the cascade corners for precision, with a conservative margin
-            // for off-camera casters that still project into the cascade.
+            // Start from the receiver cascade corners, then expand light-space Z
+            // using caster AABBs whose light-space XY overlaps this cascade. Indoor
+            // occluders such as ceilings can sit outside the receiver slice depth
+            // while still blocking light from visible floors/walls.
             var minZ = Float.infinity, maxZ = -Float.infinity
 
             for corner in corners {
@@ -209,10 +223,25 @@ struct ShadowSystem {
                 minZ = min(minZ, lc.z); maxZ = max(maxZ, lc.z)
             }
 
-            // Extend the near (minZ) so nearby off-camera casters can still contribute,
-            // without destroying depth precision for small scenes.
-            let depthMargin: Float = min(10.0, cameraFar * 0.25)
+            let casterXYMargin = max(texelSize * 4.0, diameter * 0.03)
+            for boundsLS in casterLightSpaceBounds {
+                guard lightSpaceXYIntersects(
+                    boundsLS,
+                    minX: minX - casterXYMargin,
+                    maxX: maxX + casterXYMargin,
+                    minY: minY - casterXYMargin,
+                    maxY: maxY + casterXYMargin
+                ) else {
+                    continue
+                }
+
+                minZ = min(minZ, boundsLS.min.z)
+                maxZ = max(maxZ, boundsLS.max.z)
+            }
+
+            let depthMargin: Float = max(0.5, min(8.0, diameter * 0.1))
             minZ -= depthMargin
+            maxZ += depthMargin
 
             // Convert light-space Z extents to positive near/far distances for the ortho matrix.
             // In right-hand view space, scene geometry is at negative Z; nearest geometry has
@@ -269,6 +298,95 @@ struct ShadowSystem {
             }
         }
         return corners
+    }
+
+    private func collectShadowCasterBounds() -> [ShadowCasterBounds] {
+        let transformId = getComponentId(for: WorldTransformComponent.self)
+        let localTransformId = getComponentId(for: LocalTransformComponent.self)
+        let renderId = getComponentId(for: RenderComponent.self)
+        let entities = queryEntitiesWithComponentIds([transformId, localTransformId, renderId], in: scene)
+        let batchingEnabled = BatchingSystem.shared.isEnabled()
+
+        var bounds: [ShadowCasterBounds] = []
+        bounds.reserveCapacity(entities.count)
+
+        for entityId in entities {
+            guard scene.mask(for: entityId) != nil else { continue }
+            if scene.get(component: SceneCameraComponent.self, for: entityId) != nil { continue }
+            if scene.get(component: CameraComponent.self, for: entityId) != nil { continue }
+            if scene.get(component: LightComponent.self, for: entityId) != nil { continue }
+            if scene.get(component: GizmoComponent.self, for: entityId) != nil { continue }
+            if shouldHideSceneEntity(entityId: entityId) { continue }
+            if shouldRenderSceneEntityAsWireframe(entityId: entityId) { continue }
+            if batchingEnabled, scene.get(component: StaticBatchComponent.self, for: entityId) != nil { continue }
+            if batchingEnabled, BatchingSystem.shared.isBatched(entityId: entityId) { continue }
+
+            guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId),
+                  renderComponent.isVisible,
+                  let worldTransformComponent = scene.get(component: WorldTransformComponent.self, for: entityId),
+                  let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId)
+            else {
+                continue
+            }
+
+            let (worldMin, worldMax) = worldAABB_MinMax(
+                localMin: localTransformComponent.boundingBox.min,
+                localMax: localTransformComponent.boundingBox.max,
+                worldMatrix: worldTransformComponent.space
+            )
+            bounds.append(ShadowCasterBounds(min: worldMin, max: worldMax))
+        }
+
+        if batchingEnabled {
+            for group in BatchingSystem.shared.batchGroups where shouldRenderSceneChannelsOpaque(group.sceneChannels) {
+                bounds.append(ShadowCasterBounds(min: group.boundingBox.min, max: group.boundingBox.max))
+            }
+        }
+
+        return bounds
+    }
+
+    private func lightSpaceBounds(
+        for caster: ShadowCasterBounds,
+        lightView: simd_float4x4
+    ) -> LightSpaceBounds {
+        var minPoint = simd_float3(Float.infinity, Float.infinity, Float.infinity)
+        var maxPoint = simd_float3(-Float.infinity, -Float.infinity, -Float.infinity)
+
+        for corner in aabbCorners(min: caster.min, max: caster.max) {
+            let p = lightView * simd_float4(corner, 1.0)
+            let point = simd_float3(p.x, p.y, p.z)
+            minPoint = simd_min(minPoint, point)
+            maxPoint = simd_max(maxPoint, point)
+        }
+
+        return LightSpaceBounds(min: minPoint, max: maxPoint)
+    }
+
+    private func lightSpaceXYIntersects(
+        _ bounds: LightSpaceBounds,
+        minX: Float,
+        maxX: Float,
+        minY: Float,
+        maxY: Float
+    ) -> Bool {
+        bounds.max.x >= minX &&
+            bounds.min.x <= maxX &&
+            bounds.max.y >= minY &&
+            bounds.min.y <= maxY
+    }
+
+    private func aabbCorners(min: simd_float3, max: simd_float3) -> [simd_float3] {
+        [
+            simd_float3(min.x, min.y, min.z),
+            simd_float3(max.x, min.y, min.z),
+            simd_float3(min.x, max.y, min.z),
+            simd_float3(max.x, max.y, min.z),
+            simd_float3(min.x, min.y, max.z),
+            simd_float3(max.x, min.y, max.z),
+            simd_float3(min.x, max.y, max.z),
+            simd_float3(max.x, max.y, max.z),
+        ]
     }
 }
 

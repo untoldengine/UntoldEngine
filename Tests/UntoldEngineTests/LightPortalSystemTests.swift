@@ -317,6 +317,88 @@ final class LightPortalSystemTests: XCTestCase {
         XCTAssertFalse(proxyLights.contains { $0.sourceEntityId == broadOnly })
     }
 
+    func testResolveProxyLightsFadesIntensityNearActivationDistance() {
+        let windowChannel = SceneChannel.userCustom(index: 24)
+        setSceneChannel(windowChannel, .lightPortal(.enabled(intensity: 2.0, maxActivePortals: 1, activationDistance: 10.0)))
+        _ = makePortalEntity(channels: windowChannel, position: simd_float3(0.0, 0.0, 9.5))
+
+        let proxyLights = resolveSceneLightPortalProxyLights(cameraPosition: .zero)
+
+        // distance 9.5 within the fade band [8.5, 10.0]: t = 2/3, smoothstep fade ≈ 0.2593
+        XCTAssertEqual(proxyLights.count, 1)
+        XCTAssertEqual(proxyLights.first?.intensity ?? -1.0, 2.0 * 0.2593, accuracy: 0.001)
+    }
+
+    func testResolveProxyLightsKeepsActivePortalUnderHysteresisMargin() {
+        let windowChannel = SceneChannel.userCustom(index: 25)
+        setSceneChannel(windowChannel, .lightPortal(.enabled(maxActivePortals: 1, activationDistance: 100.0)))
+        let first = makePortalEntity(channels: windowChannel, position: simd_float3(0.0, 0.0, 2.0))
+        let second = makePortalEntity(channels: windowChannel, position: simd_float3(0.0, 0.0, 3.0))
+
+        let initialLights = resolveSceneLightPortalProxyLights(cameraPosition: .zero)
+        XCTAssertEqual(initialLights.map(\.sourceEntityId), [first])
+
+        // Second portal is now marginally closer (0.4 vs 0.6) — inside the 0.75 m
+        // hysteresis margin, so the first portal keeps its slot.
+        let marginalLights = resolveSceneLightPortalProxyLights(cameraPosition: simd_float3(0.0, 0.0, 2.6))
+        XCTAssertEqual(marginalLights.map(\.sourceEntityId), [first])
+        XCTAssertFalse(marginalLights.contains { $0.sourceEntityId == second })
+    }
+
+    func testResolveProxyLightsCrossFadesWhenSelectionChangesDecisively() {
+        let windowChannel = SceneChannel.userCustom(index: 26)
+        setSceneChannel(windowChannel, .lightPortal(.enabled(intensity: 2.0, maxActivePortals: 1, activationDistance: 100.0)))
+        let first = makePortalEntity(channels: windowChannel, position: simd_float3(0.0, 0.0, 2.0))
+        let second = makePortalEntity(channels: windowChannel, position: simd_float3(0.0, 0.0, 3.0))
+
+        let initialLights = resolveSceneLightPortalProxyLights(cameraPosition: .zero)
+        XCTAssertEqual(initialLights.map(\.sourceEntityId), [first])
+        XCTAssertEqual(initialLights.first?.intensity ?? -1.0, 2.0, accuracy: 0.0001)
+
+        // Second portal is decisively closer (0.05 vs 0.95, beyond the 0.75 m margin):
+        // it takes the slot, and both portals are emitted while the swap cross-fades.
+        let switchedLights = resolveSceneLightPortalProxyLights(cameraPosition: simd_float3(0.0, 0.0, 2.95))
+        XCTAssertEqual(switchedLights.map(\.sourceEntityId), [second, first])
+        let fadingOut = tryUnwrap(switchedLights.first { $0.sourceEntityId == first })
+        let fadingIn = tryUnwrap(switchedLights.first { $0.sourceEntityId == second })
+        XCTAssertLessThanOrEqual(fadingIn.intensity, 2.0)
+        XCTAssertGreaterThan(fadingOut.intensity, 0.0)
+
+        // Fade steps are clamped to 0.25 s per resolve; two spaced resolves complete
+        // the 0.4 s fade.
+        Thread.sleep(forTimeInterval: 0.3)
+        _ = resolveSceneLightPortalProxyLights(cameraPosition: simd_float3(0.0, 0.0, 2.95))
+        Thread.sleep(forTimeInterval: 0.3)
+        let settledLights = resolveSceneLightPortalProxyLights(cameraPosition: simd_float3(0.0, 0.0, 2.95))
+
+        XCTAssertEqual(settledLights.map(\.sourceEntityId), [second])
+        XCTAssertEqual(settledLights.first?.intensity ?? -1.0, 2.0, accuracy: 0.0001)
+    }
+
+    func testResolveProxyLightsFadesInPreviouslyTrackedPortal() {
+        let windowChannel = SceneChannel.userCustom(index: 27)
+        setSceneChannel(windowChannel, .lightPortal(.enabled(intensity: 2.0, maxActivePortals: 1, activationDistance: 100.0)))
+        let first = makePortalEntity(channels: windowChannel, position: simd_float3(0.0, 0.0, 2.0))
+        let second = makePortalEntity(channels: windowChannel, position: simd_float3(0.0, 0.0, 3.0))
+
+        let initialLights = resolveSceneLightPortalProxyLights(cameraPosition: .zero)
+        XCTAssertEqual(initialLights.map(\.sourceEntityId), [first])
+
+        // Hiding the active portal removes it immediately; the tracked runner-up
+        // gains the slot and fades in rather than popping to full intensity.
+        scene.get(component: RenderComponent.self, for: first)?.isVisible = false
+        let switchedLights = resolveSceneLightPortalProxyLights(cameraPosition: .zero)
+
+        XCTAssertEqual(switchedLights.map(\.sourceEntityId), [second])
+        XCTAssertLessThan(switchedLights.first?.intensity ?? -1.0, 2.0)
+
+        Thread.sleep(forTimeInterval: 0.3)
+        _ = resolveSceneLightPortalProxyLights(cameraPosition: .zero)
+        Thread.sleep(forTimeInterval: 0.3)
+        let settledLights = resolveSceneLightPortalProxyLights(cameraPosition: .zero)
+        XCTAssertEqual(settledLights.first?.intensity ?? -1.0, 2.0, accuracy: 0.0001)
+    }
+
     func testDiscoverySkipsPortalChannelsWithNonThinGeometry() {
         let windowChannel = SceneChannel.userCustom(index: 17)
         setSceneChannel(windowChannel, .lightPortal(.enabled()))
