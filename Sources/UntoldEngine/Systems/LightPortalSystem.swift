@@ -88,11 +88,28 @@ public final class LightPortalSystem: @unchecked Sendable {
 
     private let minimumPortalSurfaceDimension: Float = 0.01
     private let maximumPortalThicknessFraction: Float = 0.25
+
+    // Portals fade to zero intensity over the outer fraction of their activation
+    // distance so crossing the activation boundary never pops a light on or off.
+    private let activationDistanceFadeStartFraction: Float = 0.85
+    // A currently active portal keeps its slot until a challenger is closer by
+    // this margin (meters), preventing selection churn from small camera moves.
+    private let selectionHysteresisDistance: Float = 0.75
+    // Seconds for a portal to fade in after gaining a slot or out after losing one.
+    private let selectionFadeDuration: Float = 0.4
+
+    private struct PortalSelectionState {
+        var fadeWeight: Float
+        var isSelected: Bool
+    }
+
     private let lock = NSLock()
     private var lastDiagnostics: LightPortalDiscoveryDiagnostics = .empty
     private var lastResolutionDiagnostics: LightPortalResolutionDiagnostics = .empty
     private var lastPerformanceDiagnostics: LightPortalPerformanceDiagnostics = .empty
     private var lastDiagnosticsLogTime: Double = 0
+    private var selectionStatesByEntityId: [EntityID: PortalSelectionState] = [:]
+    private var lastSelectionUpdateTime: Double?
 
     private init() {}
 
@@ -218,6 +235,8 @@ public final class LightPortalSystem: @unchecked Sendable {
         setPerformanceDiagnostics(.empty)
         lock.lock()
         lastDiagnosticsLogTime = 0
+        selectionStatesByEntityId = [:]
+        lastSelectionUpdateTime = nil
         lock.unlock()
     }
 
@@ -316,6 +335,18 @@ public final class LightPortalSystem: @unchecked Sendable {
         )
     }
 
+    private struct ResolvedPortalCandidate {
+        var entityId: EntityID
+        var channels: SceneChannel
+        var position: simd_float3
+        var frame: PortalFrame
+        var intensity: Float
+        var range: Float
+        var useRealWorldTint: Bool
+        var distanceToCamera: Float
+        var distanceFade: Float
+    }
+
     private func resolveProxyLights(
         from candidates: [LightPortalCandidate],
         cameraPosition: simd_float3?
@@ -334,7 +365,7 @@ public final class LightPortalSystem: @unchecked Sendable {
 
         var maxActivePortals = 0
         var activeChannelCapsByRawValue: [UInt64: Int] = [:]
-        var resolvedProxyLights: [LightPortalProxyLight] = []
+        var inRangePortals: [ResolvedPortalCandidate] = []
         var channelRawValuesByEntityId: [EntityID: [UInt64]] = [:]
 
         for candidate in candidates {
@@ -361,55 +392,62 @@ public final class LightPortalSystem: @unchecked Sendable {
             let position = portalCenter(candidate)
             let frame = portalFrame(candidate)
             let distanceToCamera: Float
+            var distanceFade: Float = 1.0
             if let cameraPosition {
                 distanceToCamera = distanceToPortalRectangle(cameraPosition, center: position, frame: frame)
                 if distanceToCamera > activationDistance {
                     diagnostics.skippedByActivationDistanceCount += 1
                     continue
                 }
+                distanceFade = activationDistanceFade(distanceToCamera, activationDistance: activationDistance)
             } else {
                 distanceToCamera = 0.0
             }
 
-            resolvedProxyLights.append(
-                LightPortalProxyLight(
-                    sourceEntityId: candidate.entityId,
+            inRangePortals.append(
+                ResolvedPortalCandidate(
+                    entityId: candidate.entityId,
                     channels: candidate.channels,
                     position: position,
-                    forward: frame.forward,
-                    right: frame.right,
-                    up: frame.up,
-                    bounds: frame.bounds,
-                    color: simd_float3(1.0, 1.0, 1.0),
+                    frame: frame,
                     intensity: intensity,
                     range: range,
+                    useRealWorldTint: useRealWorldTint,
                     distanceToCamera: distanceToCamera,
-                    useRealWorldTint: useRealWorldTint
+                    distanceFade: distanceFade
                 )
             )
-        }
-
-        resolvedProxyLights.sort {
-            if $0.distanceToCamera == $1.distanceToCamera {
-                return $0.sourceEntityId < $1.sourceEntityId
-            }
-            return $0.distanceToCamera < $1.distanceToCamera
         }
 
         diagnostics.maxActivePortals = maxActivePortals
         if maxActivePortals <= 0 {
             diagnostics.activePortalCount = 0
+            updateSelectionStates(inRangePortalIds: [], selectedEntityIds: [])
             return ([], diagnostics)
         }
 
-        var selectedProxyLights: [LightPortalProxyLight] = []
+        // Rank candidates for slot assignment, giving currently active portals a
+        // hysteresis bonus so near-equal distances don't churn the selection.
+        lock.lock()
+        let previousStates = selectionStatesByEntityId
+        lock.unlock()
+        inRangePortals.sort {
+            let lhsDistance = selectionDistance($0, previousStates: previousStates)
+            let rhsDistance = selectionDistance($1, previousStates: previousStates)
+            if lhsDistance == rhsDistance {
+                return $0.entityId < $1.entityId
+            }
+            return lhsDistance < rhsDistance
+        }
+
+        var selectedEntityIds: Set<EntityID> = []
         var activeCountsByRawValue: [UInt64: Int] = [:]
-        for proxyLight in resolvedProxyLights {
-            let rawValues = channelRawValuesByEntityId[proxyLight.sourceEntityId] ?? []
+        for portal in inRangePortals {
+            let rawValues = channelRawValuesByEntityId[portal.entityId] ?? []
             let cappedRawValues = rawValues.filter { activeChannelCapsByRawValue[$0] != nil }
 
             if cappedRawValues.isEmpty {
-                if selectedProxyLights.count >= maxActivePortals {
+                if selectedEntityIds.count >= maxActivePortals {
                     continue
                 }
             } else {
@@ -420,13 +458,116 @@ public final class LightPortalSystem: @unchecked Sendable {
                 guard hasRemainingChannelCapacity else { continue }
             }
 
-            selectedProxyLights.append(proxyLight)
+            selectedEntityIds.insert(portal.entityId)
             for rawValue in cappedRawValues {
                 activeCountsByRawValue[rawValue, default: 0] += 1
             }
         }
-        diagnostics.activePortalCount = selectedProxyLights.count
-        return (selectedProxyLights, diagnostics)
+
+        let fadeWeightsByEntityId = updateSelectionStates(
+            inRangePortalIds: inRangePortals.map(\.entityId),
+            selectedEntityIds: selectedEntityIds
+        )
+
+        // Emit selected portals plus recently deselected ones still fading out,
+        // so slot changes cross-fade instead of popping.
+        var proxyLights: [LightPortalProxyLight] = []
+        for portal in inRangePortals {
+            let fadeWeight = fadeWeightsByEntityId[portal.entityId] ?? 0.0
+            guard selectedEntityIds.contains(portal.entityId) || fadeWeight > 0.001 else {
+                continue
+            }
+
+            proxyLights.append(
+                LightPortalProxyLight(
+                    sourceEntityId: portal.entityId,
+                    channels: portal.channels,
+                    position: portal.position,
+                    forward: portal.frame.forward,
+                    right: portal.frame.right,
+                    up: portal.frame.up,
+                    bounds: portal.frame.bounds,
+                    color: simd_float3(1.0, 1.0, 1.0),
+                    intensity: portal.intensity * portal.distanceFade * fadeWeight,
+                    range: portal.range,
+                    distanceToCamera: portal.distanceToCamera,
+                    useRealWorldTint: portal.useRealWorldTint
+                )
+            )
+        }
+
+        proxyLights.sort {
+            if $0.distanceToCamera == $1.distanceToCamera {
+                return $0.sourceEntityId < $1.sourceEntityId
+            }
+            return $0.distanceToCamera < $1.distanceToCamera
+        }
+        diagnostics.activePortalCount = selectedEntityIds.count
+        return (proxyLights, diagnostics)
+    }
+
+    private func selectionDistance(
+        _ portal: ResolvedPortalCandidate,
+        previousStates: [EntityID: PortalSelectionState]
+    ) -> Float {
+        guard previousStates[portal.entityId]?.isSelected == true else {
+            return portal.distanceToCamera
+        }
+        return portal.distanceToCamera - selectionHysteresisDistance
+    }
+
+    /// Advances the per-portal temporal fade weights toward the current selection
+    /// and returns the updated weights. Portals seen for the first time snap to
+    /// their target so initial resolves (scene load, tests) are deterministic;
+    /// tracked portals whose selection changed fade over `selectionFadeDuration`.
+    /// Portals no longer in range (or no longer candidates) are dropped outright —
+    /// their distance fade already reached zero at the activation boundary.
+    private func updateSelectionStates(
+        inRangePortalIds: [EntityID],
+        selectedEntityIds: Set<EntityID>
+    ) -> [EntityID: Float] {
+        let now = CFAbsoluteTimeGetCurrent()
+        lock.lock()
+        defer { lock.unlock() }
+
+        let deltaTime = lastSelectionUpdateTime.map { max(min(now - $0, 0.25), 0.0) }
+        lastSelectionUpdateTime = now
+        let fadeStep: Float
+        if let deltaTime, selectionFadeDuration > 0.0 {
+            fadeStep = Float(deltaTime) / selectionFadeDuration
+        } else {
+            fadeStep = 1.0
+        }
+
+        var updatedStates: [EntityID: PortalSelectionState] = [:]
+        var fadeWeightsByEntityId: [EntityID: Float] = [:]
+        for entityId in inRangePortalIds {
+            let isSelected = selectedEntityIds.contains(entityId)
+            let targetWeight: Float = isSelected ? 1.0 : 0.0
+            let fadeWeight: Float
+            if let previous = selectionStatesByEntityId[entityId] {
+                if previous.fadeWeight < targetWeight {
+                    fadeWeight = min(previous.fadeWeight + fadeStep, targetWeight)
+                } else {
+                    fadeWeight = max(previous.fadeWeight - fadeStep, targetWeight)
+                }
+            } else {
+                fadeWeight = targetWeight
+            }
+            updatedStates[entityId] = PortalSelectionState(fadeWeight: fadeWeight, isSelected: isSelected)
+            fadeWeightsByEntityId[entityId] = fadeWeight
+        }
+        selectionStatesByEntityId = updatedStates
+        return fadeWeightsByEntityId
+    }
+
+    private func activationDistanceFade(_ distance: Float, activationDistance: Float) -> Float {
+        let fadeStart = activationDistance * activationDistanceFadeStartFraction
+        guard activationDistance > fadeStart, distance > fadeStart else {
+            return 1.0
+        }
+        let t = min(max((distance - fadeStart) / (activationDistance - fadeStart), 0.0), 1.0)
+        return 1.0 - t * t * (3.0 - 2.0 * t)
     }
 
     private static func elapsedMilliseconds(since startTime: TimeInterval) -> Double {

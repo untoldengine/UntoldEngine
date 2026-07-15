@@ -54,12 +54,23 @@
         private var currentReadTextureSetIndex = 0
         private var prefilterGeneration: UInt64 = 0
         private let cameraScaleReferenceWhitePoint: Float = 5000.0
+        private var smoothedIntensityScaleValue: Float?
+        private var smoothedTintColorValue = simd_float3(1.0, 1.0, 1.0)
+        private var lastSmoothedLightingTimestamp: CFTimeInterval?
 
         #if canImport(ARKit)
             private let environmentLightEstimationProvider: EnvironmentLightEstimationProvider?
         #endif
 
         public var minimumProbeUpdateInterval: CFTimeInterval = 0.5
+
+        /// Exponential-smoothing time constant (seconds) applied to the probe-driven
+        /// intensity scale and tint before publishing. The raw values track headset
+        /// camera auto-exposure (`cameraScaleReference`) and can step sharply when the
+        /// user looks toward or away from bright real-world light sources; without
+        /// smoothing every real-world-tinted light portal steps in brightness with
+        /// head movement. Set to 0 to publish raw values immediately.
+        public var lightingSmoothingTimeConstant: CFTimeInterval = 1.0
 
         public init() {
             #if canImport(ARKit)
@@ -112,6 +123,9 @@
                 lastPrefilterDurationMsValue = nil
                 lastAcceptedProbeUpdateTime = 0
                 prefilterGeneration &+= 1
+                smoothedIntensityScaleValue = nil
+                smoothedTintColorValue = simd_float3(1.0, 1.0, 1.0)
+                lastSmoothedLightingTimestamp = nil
                 RuntimeEnvironmentLightingStore.shared.publishXRLighting(nil)
             }
             lock.unlock()
@@ -285,6 +299,24 @@
             let textureSet = textureSets[textureSetIndex]
             latestTintColorValue = tintColor
             fallbackReasonValue = nil
+
+            // Smooth the published intensity/tint so auto-exposure steps in the raw
+            // probe estimate don't pop every real-world-tinted light in the scene.
+            // Diagnostics keep the raw values; only the published lighting is smoothed.
+            var publishedIntensityScale = intensityScale
+            var publishedTintColor = tintColor
+            if let previousScale = smoothedIntensityScaleValue,
+               let previousTimestamp = lastSmoothedLightingTimestamp,
+               lightingSmoothingTimeConstant > 0.0
+            {
+                let deltaTime = min(max(timestamp - previousTimestamp, 0.0), 10.0)
+                let alpha = Float(1.0 - exp(-deltaTime / lightingSmoothingTimeConstant))
+                publishedIntensityScale = previousScale + (intensityScale - previousScale) * alpha
+                publishedTintColor = smoothedTintColorValue + (tintColor - smoothedTintColorValue) * alpha
+            }
+            smoothedIntensityScaleValue = publishedIntensityScale
+            smoothedTintColorValue = publishedTintColor
+            lastSmoothedLightingTimestamp = timestamp
             lock.unlock()
 
             RuntimeEnvironmentLightingStore.shared.publishXRLighting(
@@ -292,8 +324,8 @@
                     irradianceMap: textureSet.irradianceMap,
                     specularMap: textureSet.specularMap,
                     brdfMap: textureSet.brdfMap,
-                    intensityScale: intensityScale,
-                    tintColor: tintColor,
+                    intensityScale: publishedIntensityScale,
+                    tintColor: publishedTintColor,
                     timestamp: timestamp,
                     isValid: true
                 )
