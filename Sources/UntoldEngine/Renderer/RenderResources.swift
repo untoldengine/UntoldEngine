@@ -247,9 +247,20 @@ public struct AccelStructResources {
     public var instanceTransforms: [MTLPackedFloat4x3] = []
     public var accelerationStructIndex: [UInt32] = []
     public var entityIDIndex: [EntityID] = []
+    public var geometryMetadataByInstance: [[ScenePickingGeometryMetadata]] = []
     public var instanceAccelerationStructure: MTLAccelerationStructure?
     public var instanceBuffer: MTLBuffer?
     public var mask: [Int32] = []
 
     public init() {}
+}
+
+public struct ScenePickingGeometryMetadata {
+    public let meshIndex: Int
+    public let submeshIndex: Int
+
+    public init(meshIndex: Int, submeshIndex: Int) {
+        self.meshIndex = meshIndex
+        self.submeshIndex = submeshIndex
+    }
 }

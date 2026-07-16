@@ -114,6 +114,7 @@ final class ScenePickingSystemTests: XCTestCase {
         XCTAssertEqual(hit.worldPosition.x, 4.0, accuracy: 0.0001)
         XCTAssertEqual(hit.worldPosition.y, 0.0, accuracy: 0.0001)
         XCTAssertEqual(hit.worldPosition.z, 0.0, accuracy: 0.0001)
+        XCTAssertNil(hit.worldNormal, "CPU picker should not report a mesh surface normal")
         XCTAssertNil(hit.triangleIndex, "CPU picker should not report triangle index")
     }
 

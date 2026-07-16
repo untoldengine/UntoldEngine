@@ -137,6 +137,8 @@ final class XRInputSystemSpatialTests: XCTestCase {
             state.spatialPinchDragDelta = simd_float3(0.1, -0.2, 0.3)
             state.gazePosition = simd_float3(0, 1, 0)
             state.gazeDirection = simd_float3(0, 0, -1)
+            state.pickedEntityWorldPosition = simd_float3(1, 2, 3)
+            state.pickedEntityWorldNormal = simd_float3(0, 0, 1)
             input.xrSpatialInputState = state
 
             XCTAssertTrue(input.hasSpatialTap())
@@ -154,6 +156,8 @@ final class XRInputSystemSpatialTests: XCTestCase {
             XCTAssertEqual(rotateSignal?.axisWorld, simd_float3(0, 1, 0))
             XCTAssertEqual(input.getPinchDragDelta(), simd_float3(0.1, -0.2, 0.3))
             XCTAssertEqual(input.getGazeTarget(maxDistance: 2.0), simd_float3(0, 1, -2))
+            XCTAssertEqual(input.getPickedEntityWorldPosition(), simd_float3(1, 2, 3))
+            XCTAssertEqual(input.getPickedEntityWorldNormal(), simd_float3(0, 0, 1))
         }
 
         func test_twoHandRotateSignal_requiresBothHandsAndRotateState() {
@@ -395,6 +399,20 @@ final class XRInputSystemSpatialTests: XCTestCase {
             )
         }
 
+        func testPickedEntityWorldNormalStoredDuringPick() {
+            let input = InputSystem.shared
+            var state = XRSpatialInputState()
+
+            state.pickedEntityId = 99
+            state.pickedEntityWorldNormal = simd_float3(0, 0, 1)
+            state.currentPhase = .began
+            input.xrSpatialInputState = state
+
+            XCTAssertEqual(input.xrSpatialInputState.pickedEntityId, 99)
+            XCTAssertEqual(input.xrSpatialInputState.pickedEntityWorldNormal, simd_float3(0, 0, 1))
+            XCTAssertEqual(input.getPickedEntityWorldNormal(), simd_float3(0, 0, 1))
+        }
+
         func testPickedEntityDistanceResetOnInteractionEnd() {
             let input = InputSystem.shared
             var state = XRSpatialInputState()
@@ -417,6 +435,25 @@ final class XRInputSystemSpatialTests: XCTestCase {
                 Float.infinity,
                 "Distance should reset to infinity on interaction end"
             )
+        }
+
+        func testPickedEntityWorldNormalResetOnInteractionEnd() {
+            let input = InputSystem.shared
+            var state = XRSpatialInputState()
+
+            state.pickedEntityId = 99
+            state.pickedEntityWorldNormal = simd_float3(0, 1, 0)
+            state.currentPhase = .began
+            input.xrSpatialInputState = state
+
+            state.currentPhase = .ended
+            state.pickedEntityId = nil
+            state.pickedEntityWorldNormal = nil
+            input.xrSpatialInputState = state
+
+            XCTAssertNil(input.xrSpatialInputState.pickedEntityId)
+            XCTAssertNil(input.xrSpatialInputState.pickedEntityWorldNormal)
+            XCTAssertNil(input.getPickedEntityWorldNormal())
         }
     }
 #endif
