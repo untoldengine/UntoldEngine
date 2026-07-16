@@ -422,7 +422,7 @@ public final class LightPortalSystem: @unchecked Sendable {
         diagnostics.maxActivePortals = maxActivePortals
         if maxActivePortals <= 0 {
             diagnostics.activePortalCount = 0
-            updateSelectionStates(inRangePortalIds: [], selectedEntityIds: [])
+            _ = updateSelectionStates(inRangePortalIds: [], selectedEntityIds: [])
             return ([], diagnostics)
         }
 
