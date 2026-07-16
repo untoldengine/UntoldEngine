@@ -534,6 +534,31 @@ if state.spatialTapActive, let entityId = state.pickedEntityId {
 }
 ```
 
+## Get Model Hit Position And Normal
+
+When a spatial tap hits a pickable model/entity, `XRSpatialInputState` includes the exact world-space hit point. GPU mesh picking can also provide the geometric surface normal of the triangle that was hit.
+
+```swift
+let state = getXRSpatialInputState()
+
+if state.spatialTapActive, let entityId = state.pickedEntityId {
+    let modelPoint = state.pickedEntityWorldPosition
+    let modelNormal = state.pickedEntityWorldNormal
+
+    Logger.log(message: "Picked model entity: \(entityId)")
+
+    if let modelPoint {
+        Logger.log(message: "Model hit point", vector: modelPoint)
+    }
+
+    if let modelNormal {
+        Logger.log(message: "Model surface normal", vector: modelNormal)
+    }
+}
+```
+
+`pickedEntityWorldNormal` is optional. It is populated by GPU mesh picking for triangle hits. CPU bounds picking and other non-mesh fallback paths do not report a true model surface normal, so they leave this value `nil`.
+
 ------------------------------------------------------------------------
 
 ## Get Ground/Plane Hit Position
@@ -635,6 +660,81 @@ if let hit = pickRealSurfacePosition(
 ```
 
 Use `.wallOnly` when the workflow specifically needs an ARKit-classified wall. Use `.verticalAny` when doors, windows, or temporarily unknown vertical planes are acceptable.
+
+### Aligning a model wall to a real wall
+
+For digital twin or floor-plan calibration, use one tap on the virtual model wall and one tap on the detected real wall. The model tap provides `pickedEntityWorldPosition` plus `pickedEntityWorldNormal`; the real wall tap provides `RealSurfaceHit.worldPosition` plus `surfaceNormal`.
+
+```swift
+struct WallAlignmentSample {
+    var modelPoint: simd_float3?
+    var modelNormal: simd_float3?
+    var realPoint: simd_float3?
+    var realNormal: simd_float3?
+}
+
+var wallAlignment = WallAlignmentSample()
+
+func captureModelWallTap() {
+    let state = getXRSpatialInputState()
+
+    guard state.spatialTapActive,
+          state.pickedEntityId != nil,
+          let point = state.pickedEntityWorldPosition,
+          let normal = state.pickedEntityWorldNormal
+    else {
+        return
+    }
+
+    wallAlignment.modelPoint = point
+    wallAlignment.modelNormal = normal
+}
+
+func captureRealWallTap() {
+    let state = getXRSpatialInputState()
+
+    guard state.spatialTapActive,
+          let hit = pickRealSurfacePosition(
+              rayOrigin: state.rayOriginWorld,
+              rayDirection: state.rayDirectionWorld,
+              filter: .wallOnly
+          )
+    else {
+        return
+    }
+
+    wallAlignment.realPoint = hit.worldPosition
+    wallAlignment.realNormal = hit.surfaceNormal
+}
+
+func applyWallAlignment(to modelRoot: EntityID) {
+    guard let modelPoint = wallAlignment.modelPoint,
+          let modelNormal = wallAlignment.modelNormal,
+          let realPoint = wallAlignment.realPoint,
+          let realNormal = wallAlignment.realNormal
+    else {
+        return
+    }
+
+    let modelRootPosition = getPosition(entityId: modelRoot)
+    let currentOrientation = getOrientation(entityId: modelRoot)
+    let currentRotation = transformMatrix3nToQuaternion(m: matrix_float3x3(columns: (
+        simd_float3(currentOrientation.columns.0.x, currentOrientation.columns.0.y, currentOrientation.columns.0.z),
+        simd_float3(currentOrientation.columns.1.x, currentOrientation.columns.1.y, currentOrientation.columns.1.z),
+        simd_float3(currentOrientation.columns.2.x, currentOrientation.columns.2.y, currentOrientation.columns.2.z)
+    )))
+
+    let deltaRotation = simd_quatf(from: simd_normalize(modelNormal), to: simd_normalize(realNormal))
+    let targetRotation = simd_normalize(deltaRotation * currentRotation)
+    let rotatedModelPoint = modelRootPosition + deltaRotation.act(modelPoint - modelRootPosition)
+    let targetPosition = modelRootPosition + (realPoint - rotatedModelPoint)
+
+    rotateTo(entityId: modelRoot, rotation: getMatrix4x4FromQuaternion(q: targetRotation))
+    translateTo(entityId: modelRoot, position: targetPosition)
+}
+```
+
+This sample assumes `modelRoot` is the top-level model entity you want to calibrate. If it has a parent transform, convert the target position and rotation into that parent space before calling `translateTo` or `rotateTo`. In a production calibration flow, keep the model's intended up axis stable when applying the rotation so wall alignment does not introduce unwanted roll.
 
 ### Choosing the right filter
 
@@ -770,6 +870,7 @@ if state.spatialTapActive {
 | Snap to engine ground (`Y = 0`) | `pickGroundPosition` |
 | Snap to a raised virtual surface | `pickGroundPosition(planeY:)` |
 | Cast against a wall or angled surface you defined | `pickPlanePosition` |
+| Cast against a pickable model/entity surface | `pickedEntityWorldPosition` + `pickedEntityWorldNormal` |
 | Cast against an ARKit-detected physical surface | `pickRealSurfacePosition` |
 
 Both `pickGroundPosition` and `pickPlanePosition` automatically account for scene root transforms, so the math stays correct even when the scene has been translated or rotated.

@@ -52,11 +52,13 @@ kernel void rayModelIntersectKernel(uint2 tid [[thread_position_in_grid]],
         pickOutput.instanceHit = intersection.instance_id;
         pickOutput.distance = intersection.distance;
         pickOutput.triangleIndex = intersection.primitive_id;
+        pickOutput.geometryIndex = intersection.geometry_id;
         pickOutput.barycentric = intersection.triangle_barycentric_coord;
     } else {
         pickOutput.instanceHit = -1;
         pickOutput.distance = INFINITY;
         pickOutput.triangleIndex = 0;
+        pickOutput.geometryIndex = 0;
         pickOutput.barycentric = simd_float2(0.0, 0.0);
     }
 }

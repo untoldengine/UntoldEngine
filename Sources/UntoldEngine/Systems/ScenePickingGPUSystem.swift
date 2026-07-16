@@ -152,6 +152,7 @@ func initScenePickingGPUResources() {
     outputPointer.pointee.instanceHit = -1
     outputPointer.pointee.distance = Float.infinity
     outputPointer.pointee.triangleIndex = 0
+    outputPointer.pointee.geometryIndex = 0
     outputPointer.pointee.barycentric = .zero
 
     scenePickingCacheState = ScenePickingCacheState()
@@ -407,11 +408,12 @@ private func scenePickingCreateAccelerationStructures(_ candidates: [EntityID]) 
         if scenePickingShouldIgnoreEntityDueToTransparency(renderComponent) { continue }
 
         var geometryDescriptors: [MTLAccelerationStructureGeometryDescriptor] = []
+        var geometryMetadata: [ScenePickingGeometryMetadata] = []
 
-        for mesh in renderComponent.mesh {
+        for (meshIndex, mesh) in renderComponent.mesh.enumerated() {
             guard mesh.metalKitMesh.vertexBuffers.count > positionVertexBufferIndex else { continue }
 
-            for submesh in mesh.submeshes {
+            for (submeshIndex, submesh) in mesh.submeshes.enumerated() {
                 let triangleCount = submesh.metalKitSubmesh.indexCount / 3
                 guard triangleCount > 0 else { continue }
 
@@ -419,11 +421,13 @@ private func scenePickingCreateAccelerationStructures(_ candidates: [EntityID]) 
                 geometryDescriptor.vertexBuffer = mesh.metalKitMesh.vertexBuffers[positionVertexBufferIndex].buffer
                 geometryDescriptor.vertexStride = MemoryLayout<simd_float4>.stride
                 geometryDescriptor.indexBuffer = submesh.metalKitSubmesh.indexBuffer.buffer
+                geometryDescriptor.indexBufferOffset = submesh.metalKitSubmesh.indexBuffer.offset
                 geometryDescriptor.indexType = submesh.metalKitSubmesh.indexType
                 geometryDescriptor.triangleCount = triangleCount
                 geometryDescriptor.vertexFormat = .float4
 
                 geometryDescriptors.append(geometryDescriptor)
+                geometryMetadata.append(ScenePickingGeometryMetadata(meshIndex: meshIndex, submeshIndex: submeshIndex))
             }
         }
 
@@ -451,6 +455,7 @@ private func scenePickingCreateAccelerationStructures(_ candidates: [EntityID]) 
         scenePickingAccelStructResources.instanceTransforms.append(transform)
         scenePickingAccelStructResources.accelerationStructIndex.append(accelerationStructureIndex)
         scenePickingAccelStructResources.entityIDIndex.append(entityId)
+        scenePickingAccelStructResources.geometryMetadataByInstance.append(geometryMetadata)
         scenePickingAccelStructResources.mask.append(Int32(GEOMETRY_MASK_TRIANGLE))
     }
 }
@@ -546,6 +551,7 @@ func scenePickingCleanupAccelStructures() {
     scenePickingAccelStructResources.instanceTransforms.removeAll()
     scenePickingAccelStructResources.accelerationStructIndex.removeAll()
     scenePickingAccelStructResources.entityIDIndex.removeAll()
+    scenePickingAccelStructResources.geometryMetadataByInstance.removeAll()
     scenePickingAccelStructResources.mask.removeAll()
     scenePickingAccelStructResources.instanceAccelerationStructure = nil
     scenePickingAccelStructResources.instanceBuffer = nil
@@ -574,7 +580,99 @@ private func scenePickingResetOutputBuffer(_ outputBuffer: MTLBuffer) {
     outputPointer.pointee.instanceHit = -1
     outputPointer.pointee.distance = Float.infinity
     outputPointer.pointee.triangleIndex = 0
+    outputPointer.pointee.geometryIndex = 0
     outputPointer.pointee.barycentric = .zero
+}
+
+private func scenePickingReadTriangleVertexIndex(
+    submesh: SubMesh,
+    triangleIndex: UInt32,
+    corner: Int
+) -> UInt32? {
+    guard corner >= 0, corner < 3 else { return nil }
+
+    let metalSubmesh = submesh.metalKitSubmesh
+    let indexElement = Int(triangleIndex) * 3 + corner
+    guard indexElement < metalSubmesh.indexCount else { return nil }
+
+    let indexBuffer = metalSubmesh.indexBuffer.buffer
+    let byteOffset = metalSubmesh.indexBuffer.offset
+
+    switch metalSubmesh.indexType {
+    case .uint16:
+        let indices = indexBuffer.contents()
+            .advanced(by: byteOffset)
+            .bindMemory(to: UInt16.self, capacity: metalSubmesh.indexCount)
+        return UInt32(indices[indexElement])
+    case .uint32:
+        let indices = indexBuffer.contents()
+            .advanced(by: byteOffset)
+            .bindMemory(to: UInt32.self, capacity: metalSubmesh.indexCount)
+        return indices[indexElement]
+    @unknown default:
+        return nil
+    }
+}
+
+private func scenePickingComputeWorldNormal(
+    instanceIndex: Int,
+    geometryIndex: UInt32,
+    triangleIndex: UInt32,
+    entityId: EntityID
+) -> simd_float3? {
+    guard instanceIndex >= 0,
+          instanceIndex < scenePickingAccelStructResources.geometryMetadataByInstance.count
+    else {
+        return nil
+    }
+
+    let geometryMetadata = scenePickingAccelStructResources.geometryMetadataByInstance[instanceIndex]
+    let geometryMetadataIndex = Int(geometryIndex)
+    guard geometryMetadataIndex >= 0, geometryMetadataIndex < geometryMetadata.count else {
+        return nil
+    }
+
+    let metadata = geometryMetadata[geometryMetadataIndex]
+    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId),
+          let worldTransform = scene.get(component: WorldTransformComponent.self, for: entityId),
+          metadata.meshIndex >= 0,
+          metadata.meshIndex < renderComponent.mesh.count
+    else {
+        return nil
+    }
+
+    let mesh = renderComponent.mesh[metadata.meshIndex]
+    guard metadata.submeshIndex >= 0,
+          metadata.submeshIndex < mesh.submeshes.count,
+          mesh.metalKitMesh.vertexBuffers.count > Int(modelPassVerticesIndex.rawValue)
+    else {
+        return nil
+    }
+
+    let submesh = mesh.submeshes[metadata.submeshIndex]
+    guard let i0 = scenePickingReadTriangleVertexIndex(submesh: submesh, triangleIndex: triangleIndex, corner: 0),
+          let i1 = scenePickingReadTriangleVertexIndex(submesh: submesh, triangleIndex: triangleIndex, corner: 1),
+          let i2 = scenePickingReadTriangleVertexIndex(submesh: submesh, triangleIndex: triangleIndex, corner: 2)
+    else {
+        return nil
+    }
+
+    let vertexCount = mesh.metalKitMesh.vertexCount
+    guard i0 < vertexCount, i1 < vertexCount, i2 < vertexCount else { return nil }
+
+    let positionBuffer = mesh.metalKitMesh.vertexBuffers[Int(modelPassVerticesIndex.rawValue)].buffer
+    let positions = positionBuffer.contents().bindMemory(to: simd_float4.self, capacity: vertexCount)
+    let p0v = simd_mul(worldTransform.space, positions[Int(i0)])
+    let p1v = simd_mul(worldTransform.space, positions[Int(i1)])
+    let p2v = simd_mul(worldTransform.space, positions[Int(i2)])
+    let p0 = simd_float3(p0v.x, p0v.y, p0v.z)
+    let p1 = simd_float3(p1v.x, p1v.y, p1v.z)
+    let p2 = simd_float3(p2v.x, p2v.y, p2v.z)
+
+    let normal = simd_cross(p1 - p0, p2 - p0)
+    let lengthSquared = simd_length_squared(normal)
+    guard lengthSquared.isFinite, lengthSquared > Float.ulpOfOne else { return nil }
+    return normal / sqrt(lengthSquared)
 }
 
 private func scenePickingExecuteRayVsModelHit(
@@ -652,6 +750,7 @@ func pickEntityGPUWithCandidates(
     let savedTransforms = scenePickingAccelStructResources.instanceTransforms
     let savedAccelIndex = scenePickingAccelStructResources.accelerationStructIndex
     let savedEntityIndex = scenePickingAccelStructResources.entityIDIndex
+    let savedGeometryMetadata = scenePickingAccelStructResources.geometryMetadataByInstance
     let savedMask = scenePickingAccelStructResources.mask
     let savedInstanceBuffer = scenePickingAccelStructResources.instanceBuffer
     let savedInstanceAccel = scenePickingAccelStructResources.instanceAccelerationStructure
@@ -661,6 +760,7 @@ func pickEntityGPUWithCandidates(
     scenePickingAccelStructResources.instanceTransforms.removeAll()
     scenePickingAccelStructResources.accelerationStructIndex.removeAll()
     scenePickingAccelStructResources.entityIDIndex.removeAll()
+    scenePickingAccelStructResources.geometryMetadataByInstance.removeAll()
     scenePickingAccelStructResources.mask.removeAll()
     scenePickingAccelStructResources.instanceBuffer = nil
     scenePickingAccelStructResources.instanceAccelerationStructure = nil
@@ -678,6 +778,7 @@ func pickEntityGPUWithCandidates(
         scenePickingAccelStructResources.instanceTransforms = savedTransforms
         scenePickingAccelStructResources.accelerationStructIndex = savedAccelIndex
         scenePickingAccelStructResources.entityIDIndex = savedEntityIndex
+        scenePickingAccelStructResources.geometryMetadataByInstance = savedGeometryMetadata
         scenePickingAccelStructResources.mask = savedMask
         scenePickingAccelStructResources.instanceBuffer = savedInstanceBuffer
         scenePickingAccelStructResources.instanceAccelerationStructure = savedInstanceAccel
@@ -735,10 +836,17 @@ func pickEntityGPUWithCandidates(
     guard scene.mask(for: entityId) != nil else { return nil }
     if !scenePickingUsesMeshHitRepresentation(entityId) { return nil }
     let worldPosition = rayOrigin + normalizedRayDirection * output.distance
+    let worldNormal = scenePickingComputeWorldNormal(
+        instanceIndex: hitIndex,
+        geometryIndex: output.geometryIndex,
+        triangleIndex: output.triangleIndex,
+        entityId: entityId
+    )
     return ScenePickHit(
         entityId: entityId,
         distance: output.distance,
         worldPosition: worldPosition,
+        worldNormal: worldNormal,
         triangleIndex: output.triangleIndex
     )
 }
@@ -806,10 +914,17 @@ func pickEntityGPU(
     guard scene.mask(for: entityId) != nil else { return .miss }
     if !scenePickingUsesMeshHitRepresentation(entityId) { return .miss }
     let worldPosition = rayOrigin + normalizedRayDirection * output.distance
+    let worldNormal = scenePickingComputeWorldNormal(
+        instanceIndex: hitIndex,
+        geometryIndex: output.geometryIndex,
+        triangleIndex: output.triangleIndex,
+        entityId: entityId
+    )
     return .hit(ScenePickHit(
         entityId: entityId,
         distance: output.distance,
         worldPosition: worldPosition,
+        worldNormal: worldNormal,
         triangleIndex: output.triangleIndex
     ))
 }

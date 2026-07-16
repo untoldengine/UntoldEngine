@@ -347,6 +347,7 @@ typedef struct{
     int instanceHit;
     float distance;
     unsigned int triangleIndex;
+    unsigned int geometryIndex;
     simd_float2 barycentric;
 }RayModelPickOutput;
 

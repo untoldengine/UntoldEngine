@@ -177,11 +177,23 @@ public func pickEntity(
     // Back-transform hit position into the caller's (scene-root-shifted) world space.
     guard let h = hit, !srt.isIdentity else { return hit }
     let wp = simd_mul(srt.matrix, simd_float4(h.worldPosition, 1.0))
+    let transformedNormal: simd_float3?
+    if let worldNormal = h.worldNormal {
+        let upperMatrix = matrix_float3x3(columns: (
+            simd_float3(srt.matrix.columns.0.x, srt.matrix.columns.0.y, srt.matrix.columns.0.z),
+            simd_float3(srt.matrix.columns.1.x, srt.matrix.columns.1.y, srt.matrix.columns.1.z),
+            simd_float3(srt.matrix.columns.2.x, srt.matrix.columns.2.y, srt.matrix.columns.2.z)
+        ))
+        let normalMatrix = upperMatrix.inverse.transpose
+        transformedNormal = simd_normalize(normalMatrix * worldNormal)
+    } else {
+        transformedNormal = nil
+    }
     return ScenePickHit(
         entityId: h.entityId,
         distance: h.distance,
         worldPosition: simd_float3(wp.x, wp.y, wp.z),
-        worldNormal: h.worldNormal,
+        worldNormal: transformedNormal,
         triangleIndex: h.triangleIndex
     )
 }
