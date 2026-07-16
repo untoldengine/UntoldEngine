@@ -5,7 +5,7 @@ Focused demo for Untold Engine rendering and post-processing controls.
 Run it from the repository root:
 
 ```bash
-swift run renderingqualitydemo
+swift run RenderingQualityDemo
 ```
 
 What it demonstrates:

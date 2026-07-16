@@ -5,7 +5,7 @@ Minimal first-run demo for Untold Engine.
 Run it from the repository root:
 
 ```bash
-swift run starterdemo
+swift run StarterDemo
 ```
 
 What it demonstrates:

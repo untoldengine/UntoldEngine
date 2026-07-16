@@ -51,7 +51,7 @@ Clone the repository and launch the demo:
 ```bash
 git clone https://github.com/untoldengine/UntoldEngine.git
 cd UntoldEngine
-swift run untolddemo
+swift run ShowcaseDemo
 ```
 
 The demo UI lets you see the engine in action right away. Using the `Remote Scene` drop-down menu, you can choose a scene to stream directly into the demo through the engine's **Asset Remote Streaming** support.

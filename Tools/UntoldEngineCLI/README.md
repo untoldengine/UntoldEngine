@@ -140,6 +140,38 @@ untoldengine update MyGame --asset-path ~/GameAssets
 untoldengine update ~/Projects/MyGame --asset-path ~/GameAssets
 ```
 
+### `studio` - Launch, install, or update Untold Engine Studio
+
+Manages the visual editor. Running `untoldengine studio` with no subcommand launches
+the editor, offering to install it first if it isn't present. Releases are downloaded
+from the official [UntoldEditor releases](https://github.com/untoldengine/UntoldEditor/releases).
+
+**Subcommands:**
+- `launch` - Launch the editor, installing it first if missing (default)
+- `install` - Download and install the editor into `/Applications` (or `~/Applications` if not writable)
+- `update` - Update an existing install to the latest release
+
+**Install options:**
+- `--version <version>` - Version to install, e.g. `0.13.0` (default: latest release)
+- `--destination <path>` - Directory to install into (default: `/Applications`)
+- `--force` - Replace an existing install without prompting
+
+**Examples:**
+
+```bash
+# Launch the editor (installs it first if missing)
+untoldengine studio
+
+# Install the latest release
+untoldengine studio install
+
+# Install a specific version
+untoldengine studio install --version 0.13.0
+
+# Update to the latest release
+untoldengine studio update
+```
+
 ## Project Structure
 
 Generated projects have the following structure:

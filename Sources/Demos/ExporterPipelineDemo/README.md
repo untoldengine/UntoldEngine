@@ -5,7 +5,7 @@ Focused demo for the exported-asset runtime path.
 Run it from the repository root:
 
 ```bash
-swift run exporterpipelinedemo
+swift run ExporterPipelineDemo
 ```
 
 What it demonstrates:

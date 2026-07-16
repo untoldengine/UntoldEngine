@@ -118,7 +118,7 @@
 
         private func printUsage() {
             print("""
-            Usage: swift run showcasedemo [--resolution WIDTHxHEIGHT]
+            Usage: swift run ShowcaseDemo [--resolution WIDTHxHEIGHT]
 
             Options:
               --resolution WIDTHxHEIGHT  Start the demo at a specific window size, for example 800x600.

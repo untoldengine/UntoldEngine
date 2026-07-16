@@ -14,14 +14,14 @@ application. Choose the package plugin when another project or developer should
 consume the extension as a dependency.
 
 If you are creating your first distributable extension, follow
-[Creating a Rendering Extension Plugin](CreatingRenderingExtensionPlugin.md)
+[Creating a Rendering Extension Plugin](../Extensions/CreatingRenderingExtensionPlugin.md)
 first. This document is the API reference for capabilities and advanced
 integration choices.
 
-- [Step-by-step plugin tutorial](CreatingRenderingExtensionPlugin.md)
-- [Rendering Extension examples](../../Examples/RenderingExtensions/README.md)
-- [Application-local model-surface example](../../Examples/RenderingExtensions/ApplicationLocal/README.md)
-- [Swift package plugin example](../../Examples/RenderingExtensions/SwiftPackagePlugin/README.md)
+- [Step-by-step plugin tutorial](../Extensions/CreatingRenderingExtensionPlugin.md)
+- [Rendering Extension examples](https://github.com/untoldengine/UntoldEngine/tree/develop/Examples/RenderingExtensions)
+- [Application-local model-surface example](https://github.com/untoldengine/UntoldEngine/tree/develop/Examples/RenderingExtensions/ApplicationLocal)
+- [Swift package plugin example](https://github.com/untoldengine/UntoldEngine/tree/develop/Examples/RenderingExtensions/SwiftPackagePlugin)
 - [Rendering Extensions architecture](../Architecture/RenderingExtensions.md)
 
 > The water package is an API acceptance fixture, not a production water renderer. Its shaders are intentionally minimal.
@@ -136,7 +136,7 @@ Use a package plugin when the extension is a reusable product consumed through
 Swift Package Manager or a framework dependency.
 
 The complete buildable reference is
-[`Examples/RenderingExtensions/SwiftPackagePlugin`](../../Examples/RenderingExtensions/SwiftPackagePlugin/README.md).
+[`Examples/RenderingExtensions/SwiftPackagePlugin`](https://github.com/untoldengine/UntoldEngine/tree/develop/Examples/RenderingExtensions/SwiftPackagePlugin).
 It contains the Swift extension, manifest, registration entry point, argument
 buffer shader, declarations, tests, and bundled precompiled metallib. It also
 contains a procedural triangle pass that uses no engine mesh: the package vertex
@@ -608,7 +608,7 @@ Use the named Swift and shader-support constants shown above instead of numeric
 binding indices.
 
 For a complete implementation, shader, and package compilation commands, use the
-[application-local argument-buffer sample](../../Examples/RenderingExtensions/ApplicationLocal/README.md).
+[application-local argument-buffer sample](https://github.com/untoldengine/UntoldEngine/tree/develop/Examples/RenderingExtensions/ApplicationLocal).
 
 ## Migrating a Raw-Slot Extension
 
