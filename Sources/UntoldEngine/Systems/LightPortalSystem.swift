@@ -89,13 +89,13 @@ public final class LightPortalSystem: @unchecked Sendable {
     private let minimumPortalSurfaceDimension: Float = 0.01
     private let maximumPortalThicknessFraction: Float = 0.25
 
-    // Portals fade to zero intensity over the outer fraction of their activation
-    // distance so crossing the activation boundary never pops a light on or off.
+    /// Portals fade to zero intensity over the outer fraction of their activation
+    /// distance so crossing the activation boundary never pops a light on or off.
     private let activationDistanceFadeStartFraction: Float = 0.85
-    // A currently active portal keeps its slot until a challenger is closer by
-    // this margin (meters), preventing selection churn from small camera moves.
+    /// A currently active portal keeps its slot until a challenger is closer by
+    /// this margin (meters), preventing selection churn from small camera moves.
     private let selectionHysteresisDistance: Float = 0.75
-    // Seconds for a portal to fade in after gaining a slot or out after losing one.
+    /// Seconds for a portal to fade in after gaining a slot or out after losing one.
     private let selectionFadeDuration: Float = 0.4
 
     private struct PortalSelectionState {
