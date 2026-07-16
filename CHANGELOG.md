@@ -1,4 +1,10 @@
 # Changelog
+## v0.14.2 - 2026-07-16
+### 🐞 Fixes
+- [Patch] Implemented soft CSM-shadows (a47d9b8…)
+- [Patch] fixed env rendering in full immersion mode (5cc6571…)
+- [Patch] Smooth XR light portal transitions (5107fc0…)
+- [Patch] Expose GPU mesh pick surface normals for XR (134e7b2…)
 ## v0.14.1 - 2026-07-12
 ### 🐞 Fixes
 - [Patch] Add global asset export and texture baking commands (137c102…)
