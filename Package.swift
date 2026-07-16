@@ -60,58 +60,11 @@ let package = Package(
 
         .library(name: "UntoldEngineAR", targets: ["UntoldEngineAR"]),
 
-        // Executable for the showcase demo app (primary name)
-        .executable(
-            name: "showcasedemo",
-            targets: ["ShowcaseDemo"]
-        ),
-
-        // Backward-compatible executable alias
-        .executable(
-            name: "untolddemo",
-            targets: ["ShowcaseDemo"]
-        ),
-
-        .executable(
-            name: "starterdemo",
-            targets: ["StarterDemo"]
-        ),
-
-        .executable(
-            name: "largescenestreamingdemo",
-            targets: ["LargeSceneStreamingDemo"]
-        ),
-
-        .executable(
-            name: "interactiongameplaydemo",
-            targets: ["InteractionGameplayDemo"]
-        ),
-
-        .executable(
-            name: "renderingqualitydemo",
-            targets: ["RenderingQualityDemo"]
-        ),
-
-        .executable(
-            name: "exporterpipelinedemo",
-            targets: ["ExporterPipelineDemo"]
-        ),
-
-        .executable(
-            name: "lightingdemo",
-            targets: ["LightingDemo"]
-        ),
-
-        .executable(
-            name: "sandbox",
-            targets: ["Sandbox"]
-        ),
-
-        // Backward-compatible executable alias
-        .executable(
-            name: "DemoGame",
-            targets: ["ShowcaseDemo"]
-        ),
+        // NOTE: Demo executables are intentionally NOT declared as products so they
+        // stay hidden from consumers of the package. SwiftPM creates implicit
+        // products for executable targets in the root package, so they remain
+        // runnable during engine development via `swift run <TargetName>`,
+        // e.g. `swift run ShowcaseDemo`.
     ],
     dependencies: [],
     targets: [

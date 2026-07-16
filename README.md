@@ -79,45 +79,35 @@ Clone the repository and launch the Starter Demo:
 git clone https://github.com/untoldengine/UntoldEngine.git
 cd UntoldEngine
 git checkout v0.14.2
-swift run starterdemo
+swift run StarterDemo
 ```
 
 After that, run the focused demos based on what you want to learn:
 
 | Demo | Command | Start here when you want to learn |
 | --- | --- | --- |
-| Starter Demo | `swift run starterdemo` | The minimal app structure: renderer setup, camera, light, input, and a simple scene. |
-| Interaction / Gameplay Demo | `swift run interactiongameplaydemo` | Gameplay-style movement, input handling, animation switching, physics pause/resume, and parented entities. |
-| Lighting Demo | `swift run lightingdemo` | All four light types — directional, point, spot, and area — with live intensity and cone-angle controls. |
-| Rendering Quality Demo | `swift run renderingqualitydemo` | Post-processing controls such as color grading, SSAO, bloom, vignette, depth of field, anti-aliasing, and debug views. |
-| Large Scene Streaming Demo | `swift run largescenestreamingdemo` | Manifest-driven tiled scene streaming, LOD, batching, streaming stats, and large-world traversal. |
-| Exporter Pipeline Demo | `swift run exporterpipelinedemo` | Loading exported `.untold` assets, applying exported animation clips, and checking validation metadata. |
-| Showcase Demo | `swift run showcasedemo` | A broader engine showcase that combines many systems in one app. Use this after the focused demos. |
+| Starter Demo | `swift run StarterDemo` | The minimal app structure: renderer setup, camera, light, input, and a simple scene. |
+| Interaction / Gameplay Demo | `swift run InteractionGameplayDemo` | Gameplay-style movement, input handling, animation switching, physics pause/resume, and parented entities. |
+| Lighting Demo | `swift run LightingDemo` | All four light types — directional, point, spot, and area — with live intensity and cone-angle controls. |
+| Rendering Quality Demo | `swift run RenderingQualityDemo` | Post-processing controls such as color grading, SSAO, bloom, vignette, depth of field, anti-aliasing, and debug views. |
+| Large Scene Streaming Demo | `swift run LargeSceneStreamingDemo` | Manifest-driven tiled scene streaming, LOD, batching, streaming stats, and large-world traversal. |
+| Exporter Pipeline Demo | `swift run ExporterPipelineDemo` | Loading exported `.untold` assets, applying exported animation clips, and checking validation metadata. |
+| Showcase Demo | `swift run ShowcaseDemo` | A broader engine showcase that combines many systems in one app. Use this after the focused demos. |
 
-The demos live under `Sources/Demos`. The older `swift run untolddemo` command
-still works as a compatibility alias for the Showcase Demo.
+The demos live under `Sources/Demos`. They are runnable when working inside the
+engine repository, but are not exposed as products to apps that add Untold
+Engine as a package dependency.
 
 ![untoldengine-image-2](/docs/images/engine-highlight-2.png)
 
-### I want to try my own USDZ
-
-Untold Engine uses its own native asset format: `.untold`.
-
-To try your own `USDZ` file, first convert it to `.untold`. The recommended workflow is to use the Untold Engine Blender add-on: import or open your model in Blender, then export it with `File > Export > Untold (.untold)`.
-
-The add-on can export models already loaded in Blender, so it also works with other Blender-supported source formats such as `.fbx`, `.glb`, and `.obj`.
-
-For installation and export details, see [Using The Blender Plugin](docs/API/UsingBlenderAddon.md).
- 
 ---
-
-![untoldengine-image-3](/docs/images/engine-highlight-3.png)
 
 ## Getting Started
 
 To create your own project/game using the Untold Engine, see 
-[Getting Started](docs/API/GettingStarted.md).
+[Getting Started](https://untoldengine.github.io/UntoldEngine/API/GettingStarted/).
 
+![untoldengine-image-3](/docs/images/engine-highlight-3.png)
 
 ## 🧱 Core Direction
 

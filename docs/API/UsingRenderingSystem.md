@@ -117,7 +117,7 @@ setRendering(.debugView(.smaaDifference)) // Original vs. SMAA-resolved differen
 
 Restore normal rendering with `setRendering(.debugView(.lit))`.
 
-For the broader settings style, see [Engine Settings API](UsingEngineSettings.md).
+For the broader settings style, see [Engine Settings API](UsingEngineAPI.md).
 
 For optional renderer features that add their own graph passes or resources,
 see [Rendering Extensions](UsingRenderingExtensions.md).

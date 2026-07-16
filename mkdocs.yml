@@ -46,9 +46,10 @@ nav:
   - API:
     - Getting Started: API/GettingStarted.md
     - Usage Examples: API/UsageExamples.md
-    - Engine Settings: API/UsingEngineSettings.md
+    - Engine Settings: API/UsingEngineAPI.md
     - Registration System: API/UsingRegistrationSystem.md
     - Rendering System: API/UsingRenderingSystem.md
+    - Rendering Extensions: API/UsingRenderingExtensions.md
     - Transform System: API/UsingTransformSystem.md
     - Camera System: API/UsingCameraSystem.md
     - Input System: API/UsingInputSystem.md
@@ -79,6 +80,7 @@ nav:
     - Optimizations: API/Optimizations.md
   - Architecture:
     - Rendering System: Architecture/renderingSystem.md
+    - Rendering Extensions: Architecture/RenderingExtensions.md
     - XR Rendering System: Architecture/xrRenderingSystem.md
     - Scene Channels: Architecture/sceneChannels.md
     - Out-of-Core Geometry: Architecture/outOfCore.md
@@ -94,6 +96,8 @@ nav:
     - Asset Profiler: Architecture/assetProfiler.md
     - Progressive Asset Loader: Architecture/progressiveAssetLoader.md
     - Asset Remote Streaming: Architecture/asset_remote_streaming.md
+  - Extensions:
+    - Creating a Rendering Extension Plugin: Extensions/CreatingRenderingExtensionPlugin.md
   - Contributing:
     - Guidelines: Contributor/ContributionGuidelines.md
     - Versioning: Contributor/versioning.md

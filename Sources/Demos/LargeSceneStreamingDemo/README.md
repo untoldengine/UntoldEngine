@@ -5,7 +5,7 @@ Focused demo for Untold Engine's manifest-driven tiled-scene streaming path.
 Run it from the repository root:
 
 ```bash
-swift run largescenestreamingdemo
+swift run LargeSceneStreamingDemo
 ```
 
 What it demonstrates:

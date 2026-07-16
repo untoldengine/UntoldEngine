@@ -23,7 +23,7 @@ Clone the repository and launch the demo:
 git clone https://github.com/untoldengine/UntoldEngine.git
 cd UntoldEngine
 git checkout v0.14.2
-swift run untolddemo
+swift run ShowcaseDemo
 ```
 
 ## Create an Xcode Project

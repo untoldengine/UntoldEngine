@@ -4,7 +4,7 @@ This document explains how Rendering Extensions are represented, registered,
 compiled, validated, and executed inside Untold Engine. For authoring and
 consumer examples, see [Using Rendering Extensions](../API/UsingRenderingExtensions.md).
 For a task-oriented introduction, see
-[Creating a Rendering Extension Plugin](../API/CreatingRenderingExtensionPlugin.md).
+[Creating a Rendering Extension Plugin](../Extensions/CreatingRenderingExtensionPlugin.md).
 
 ## Design Goals
 
@@ -368,8 +368,8 @@ the extension contract.
 
 ## Reference Implementations
 
-- [Application-local argument-buffer sample](../../Examples/RenderingExtensions/ApplicationLocal/README.md)
-- [External package acceptance fixture](../../Examples/RenderingExtensions/SwiftPackagePlugin/README.md),
+- [Application-local argument-buffer sample](https://github.com/untoldengine/UntoldEngine/tree/develop/Examples/RenderingExtensions/ApplicationLocal)
+- [External package acceptance fixture](https://github.com/untoldengine/UntoldEngine/tree/develop/Examples/RenderingExtensions/SwiftPackagePlugin),
   including a vertex-ID-driven custom-geometry draw that exercises camera context,
   pipeline lookup, scene color/depth access, depth state, staged graph execution,
   plugin ownership, and cleanup.

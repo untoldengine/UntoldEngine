@@ -175,4 +175,4 @@ setPostFX(.ssao(.enabled(true)))
 
 Direct singleton access remains available for compatibility and advanced tooling. Prefer the `setPostFX(...)` facade in user-facing examples.
 
-For the broader settings style, see [Engine Settings API](UsingEngineSettings.md).
+For the broader settings style, see [Engine Settings API](UsingEngineAPI.md).

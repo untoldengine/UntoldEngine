@@ -5,7 +5,7 @@ Focused demo for a small gameplay loop using Untold Engine APIs.
 Run it from the repository root:
 
 ```bash
-swift run interactiongameplaydemo
+swift run InteractionGameplayDemo
 ```
 
 What it demonstrates:

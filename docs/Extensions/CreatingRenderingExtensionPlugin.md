@@ -7,9 +7,9 @@ without accessing private renderer state.
 
 Use this tutorial when rendering code must be shared by more than one
 application. For application-local code, start with
-[Using Rendering Extensions](UsingRenderingExtensions.md). A complete buildable
+[Using Rendering Extensions](../API/UsingRenderingExtensions.md). A complete buildable
 package is available in
-[Examples/RenderingExtensions/SwiftPackagePlugin](../../Examples/RenderingExtensions/SwiftPackagePlugin/README.md).
+[Examples/RenderingExtensions/SwiftPackagePlugin](https://github.com/untoldengine/UntoldEngine/tree/develop/Examples/RenderingExtensions/SwiftPackagePlugin).
 
 ## What You Will Build
 
@@ -434,8 +434,8 @@ Once the procedural draw works, add advanced features incrementally:
 - use `registerModelSurfacePipeline` for normal engine entity drawing; and
 - use the lower-level pipeline descriptor for extension-owned offscreen targets.
 
-See [Using Rendering Extensions](UsingRenderingExtensions.md) for these APIs and
-the [package fixture](../../Examples/RenderingExtensions/SwiftPackagePlugin/README.md)
+See [Using Rendering Extensions](../API/UsingRenderingExtensions.md) for these APIs and
+the [package fixture](https://github.com/untoldengine/UntoldEngine/tree/develop/Examples/RenderingExtensions/SwiftPackagePlugin)
 for compute, resources, argument buffers, model surfaces, and custom geometry in
 one buildable package.
 
@@ -505,6 +505,6 @@ swift test
 | Depth appears inverted | The pipeline disabled reverse-Z compatibility or used an unsuitable comparison. |
 | Metal reports corrupt uniforms | Swift and Metal size, alignment, or field order differ. |
 
-For API details, continue with [Using Rendering Extensions](UsingRenderingExtensions.md).
+For API details, continue with [Using Rendering Extensions](../API/UsingRenderingExtensions.md).
 For engine internals, see
 [Rendering Extensions Architecture](../Architecture/RenderingExtensions.md).
