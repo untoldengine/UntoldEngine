@@ -1,13 +1,14 @@
 # Getting Started
 
 This guide takes you from a fresh Untold Engine checkout to a working game
-project. You will run the demo, create an Xcode project, export assets into the
-engine's `.untold` runtime format, and load those assets from a `GameScene`.
+project. You will run the demo, create an Xcode project, load starter assets
+from a `GameScene`, and export your own assets into the engine's `.untold`
+runtime format.
 
-You can create projects using the Untold Engine Commannd Line Interface.
+You can create projects using the Untold Engine Command Line Interface.
 
-After your project is created, an Xcode project with a `GameData` folder that contains the assets your game loads at
-runtime.
+After your project is created, you'll get an Xcode project with a `GameData`
+folder that contains the assets your game loads at runtime.
 
 ---
 
@@ -87,6 +88,132 @@ To see all available asset packs:
 ```bash
 untoldengine assets list
 ```
+
+## Loading a Single Asset
+
+Once in your Xcode project, head over to the `init()` function in `Sources/<ProjectName>/GameScene.swift`.
+
+Use `setEntityMeshAsync` to load an `.untold` file as an always-resident asset.
+This is the right choice for props, characters, and any object that should stay
+in memory for the lifetime of the scene.
+
+```swift
+
+//...After configureEngineSystems()
+
+let stadium = createEntity()
+
+setEntityMeshAsync(entityId: stadium, filename: "stadium", withExtension: "untold") { success in
+
+    guard success else {
+        setSceneReady(false)
+        return
+    }
+    
+    moveCameraTo(entityId: findGameCamera(), 0.0, 3.0, 10.0)
+    ambientIntensity = 0.4
+    setSceneReady(success)
+}
+
+```
+
+`setEntityMeshAsync` is non-blocking. The completion block fires on the main thread
+once the mesh is parsed and uploaded to GPU memory.
+
+---
+
+## Putting It All Together
+
+A complete `GameScene` using the patterns above. The three assets load
+independently, so the scene is marked ready only after the last completion
+block fires. All completion blocks run on the main thread, so a plain counter
+is enough to track this:
+
+```swift
+final class GameScene {
+
+    // Number of assets still loading
+    private var pendingLoads = 3
+
+    init() {
+        // Configure asset paths
+        setupAssetPaths()
+
+        // Configure game Systems
+        configureEngineSystems()
+
+        // Load your scene here
+
+        // Load a single always-resident asset
+        let stadium = createEntity()
+
+        setEntityMeshAsync(entityId: stadium, filename: "stadium", withExtension: "untold") { [self] success in
+
+            guard success else {
+                assetLoaded(false)
+                return
+            }
+
+            moveCameraTo(entityId: findGameCamera(), 0.0, 3.0, 10.0)
+            ambientIntensity = 0.4
+            assetLoaded(true)
+        }
+
+        let player = createEntity()
+        setEntityName(entityId: player, name: "player")
+
+        setEntityMeshAsync(entityId: player, filename: "redplayer", withExtension: "untold") { [self] success in
+
+            guard success else {
+                assetLoaded(false)
+                return
+            }
+
+            setEntityAnimations(entityId: player, filename: "hol_running_anim", withExtension: "untold", name: "running")
+            setEntityAnimations(entityId: player, filename: "hol_idle_anim", withExtension: "untold", name: "idle")
+
+            changeAnimation(entityId: player, name: "running")
+            assetLoaded(true)
+        }
+
+        let ball = createEntity()
+
+        setEntityMeshAsync(entityId: ball, filename: "ball", withExtension: "untold") { [self] success in
+
+            guard success else {
+                assetLoaded(false)
+                return
+            }
+
+            translateBy(entityId: ball, position: simd_float3(0.0, 0.3, 0.8))
+            assetLoaded(true)
+        }
+
+    }
+
+    // Marks the scene ready once every asset has finished loading
+    private func assetLoaded(_ success: Bool) {
+        guard success else {
+            setSceneReady(false)
+            return
+        }
+
+        pendingLoads -= 1
+        if pendingLoads == 0 {
+            setSceneReady(true)
+        }
+    }
+}
+```
+
+---
+
+## Using Your Own Assets
+
+Everything up to this point uses the Starter Pack. Eventually, you will want to
+use your own 3D models. The sections that follow cover installing the exporter
+tools, converting assets to the engine's `.untold` format, and streaming large
+scenes.
 
 ## Bootstrap Exporter Dependencies
 
@@ -186,35 +313,6 @@ workflows, see [Optimizations](Optimizations.md).
 
 ---
 
-## Loading a Single Asset
-
-Once in your Xcode project, head over to the init function in Sources/<ProjectName>/GameScene.swift.
-
-Use `setEntityMeshAsync` to load an `.untold` file as an always-resident asset.
-This is the right choice for props, characters, and any object that should stay
-in memory for the lifetime of the scene.
-
-```swift
-
-//...After configureEngineSystems()
-
-let entity = createEntity()
-setEntityName(entityId: entity, name: "robot")
-
-setEntityMeshAsync(entityId: entity, filename: "robot", withExtension: "untold") { success in
-    if success {
-        translateTo(entityId: entity, position: simd_float3(0.0, 0.0, 0.0))
-        setEntityKinetics(entityId: entity)
-    }
-    setSceneReady(success)
-}
-```
-
-`setEntityMeshAsync` is non-blocking. The completion block fires on the main thread
-once the mesh is parsed and uploaded to GPU memory.
-
----
-
 ## Loading a Streamed Scene
 
 Use `setEntityStreamScene` to load a large scene that streams tiles in and out of
@@ -259,94 +357,3 @@ architecture.
 
 ---
 
-## Finding Entities in the Loaded Scene
-
-Retrieve a named entity with `findEntity(name:)` inside the completion block or
-after `setSceneReady`:
-
-```swift
-setEntityMeshAsync(entityId: entity, filename: "stadium", withExtension: "untold") { success in
-    if let player = findEntity(name: "player") {
-        rotateTo(entityId: player, angle: 0, axis: simd_float3(0.0, 1.0, 0.0))
-        setEntityKinetics(entityId: player)
-    }
-    setSceneReady(success)
-}
-```
-
----
-
-## Camera and Lighting
-
-Create a camera and directional light manually in your scene setup, then position
-the camera after assets load:
-
-```swift
-let gameCamera = createEntity()
-setEntityName(entityId: gameCamera, name: "Main Camera")
-createGameCamera(entityId: gameCamera)
-setCamera(.active(gameCamera))
-
-let light = createEntity()
-setEntityName(entityId: light, name: "Directional Light")
-createDirLight(entityId: light)
-```
-
-After loading:
-
-```swift
-moveCameraTo(entityId: findGameCamera(), 0.0, 3.0, 10.0)
-ambientIntensity = 0.4
-```
-
----
-
-## Putting It All Together
-
-A complete `GameScene` using the patterns above:
-
-```swift
-final class GameScene {
-
-    init() {
-        // Camera and light
-        let gameCamera = createEntity()
-        setEntityName(entityId: gameCamera, name: "Main Camera")
-        createGameCamera(entityId: gameCamera)
-        setCamera(.active(gameCamera))
-
-        let light = createEntity()
-        setEntityName(entityId: light, name: "Directional Light")
-        createDirLight(entityId: light)
-
-        // Load a single always-resident asset
-        let stadium = createEntity()
-
-        setEntityMeshAsync(entityId: stadium, filename: "stadium", withExtension: "untold") { success in
-            if let player = findEntity(name: "player") {
-                rotateTo(entityId: player, angle: 0, axis: simd_float3(0.0, 1.0, 0.0))
-                setEntityAnimations(entityId: player, filename: "running", withExtension: "untold", name: "running")
-                setEntityAnimations(entityId: player, filename: "idle",    withExtension: "untold", name: "idle")
-                setEntityKinetics(entityId: player)
-            }
-
-            moveCameraTo(entityId: findGameCamera(), 0.0, 3.0, 10.0)
-            ambientIntensity = 0.4
-            setSceneReady(success)
-        }
-    }
-}
-```
-
-For a large streaming scene, replace the `setEntityMeshAsync` call with `setEntityStreamScene`:
-
-```swift
-let sceneRoot = createEntity()
-setEntityName(entityId: sceneRoot, name: "dungeon")
-
-setEntityStreamScene(entityId: sceneRoot, manifest: "dungeon", withExtension: "json") { success in
-    moveCameraTo(entityId: findGameCamera(), 0.0, 3.0, 10.0)
-    ambientIntensity = 0.4
-    setSceneReady(success)
-}
-```
