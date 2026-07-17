@@ -6,6 +6,7 @@ from bpy.props import BoolProperty, EnumProperty, FloatProperty, IntProperty, St
 from bpy_extras.io_utils import ExportHelper
 
 from . import bridge
+from . import material_fidelity
 from . import object_metadata
 from . import viewport_overlay
 
@@ -123,8 +124,34 @@ class UNTOLD_OT_export_asset(bpy.types.Operator, ExportHelper):
         default=False,
     )
 
+    bake_materials: BoolProperty(
+        name="Bake Materials",
+        description=(
+            "Bake materials the engine cannot evaluate (Mix, Math, procedural textures, ...) "
+            "into flat textures via Cycles so the export matches Blender. See the material "
+            "fidelity report printed to the console during export"
+        ),
+        default=False,
+    )
+
+    bake_resolution: IntProperty(
+        name="Bake Resolution",
+        description="Square resolution for baked material textures. Override per material via a "
+                    "material['untold_bake_resolution'] custom property",
+        default=1024,
+        min=1,
+        soft_max=4096,
+    )
+
+    bake_cache: BoolProperty(
+        name="Use Bake Cache",
+        description="Skip re-baking materials unchanged since the last export. Disable to force "
+                    "every divergent material to be re-baked",
+        default=True,
+    )
+
     bake_textures: BoolProperty(
-        name="Bake Textures To .utex",
+        name="Compress Textures",
         description="After export, bake staged textures to engine-native .utex files and patch the .untold references",
         default=False,
     )
@@ -176,6 +203,9 @@ class UNTOLD_OT_export_asset(bpy.types.Operator, ExportHelper):
                 source_orientation=self.source_orientation,
                 validate=self.validate,
                 compress_geometry=self.compress_geometry,
+                bake_materials=self.bake_materials,
+                bake_resolution=self.bake_resolution,
+                bake_cache=self.bake_cache,
                 bake_textures=self.bake_textures,
                 texture_quality=self.texture_quality,
                 keep_texture_temp=self.keep_texture_temp,
@@ -192,6 +222,8 @@ class UNTOLD_OT_export_asset(bpy.types.Operator, ExportHelper):
         )
         if compression_summary["detail"]:
             message += f" | Geometry: {compression_summary['detail']}"
+        if result.get("baked_material_count"):
+            message += f" | Materials: baked {result['baked_material_count']}"
         if result.get("texture_bake_status") == "baked":
             message += " | Textures: baked to .utex"
         elif result.get("texture_bake_status") == "no textures":
@@ -428,6 +460,33 @@ class UNTOLD_OT_export_tiled_scene(bpy.types.Operator):
         default=False,
     )
 
+    bake_materials: BoolProperty(
+        name="Bake Materials",
+        description=(
+            "Bake materials the engine cannot evaluate (Mix, Math, procedural textures, ...) "
+            "into flat textures via Cycles so the export matches Blender. Applies to full-detail "
+            "tile and shared-bucket payloads only — HLOD/LOD tiles are decimated stand-ins and "
+            "are not separately baked"
+        ),
+        default=False,
+    )
+
+    bake_resolution: IntProperty(
+        name="Bake Resolution",
+        description="Square resolution for baked material textures. Override per material via a "
+                    "material['untold_bake_resolution'] custom property",
+        default=1024,
+        min=1,
+        soft_max=4096,
+    )
+
+    bake_cache: BoolProperty(
+        name="Use Bake Cache",
+        description="Skip re-baking materials unchanged since the last export. Disable to force "
+                    "every divergent material to be re-baked",
+        default=True,
+    )
+
     dry_run: BoolProperty(
         name="Dry Run",
         description="Plan the tile partition without writing payload files",
@@ -520,6 +579,9 @@ class UNTOLD_OT_export_tiled_scene(bpy.types.Operator):
                 generate_hlod=self.generate_hlod,
                 generate_lod=self.generate_lod,
                 compress_geometry=self.compress_geometry,
+                bake_materials=self.bake_materials,
+                bake_resolution=self.bake_resolution,
+                bake_cache=self.bake_cache,
                 dry_run=self.dry_run,
                 write_manifest_in_dry_run=self.write_manifest_in_dry_run,
                 progress_callback=progress,
@@ -561,9 +623,11 @@ def register() -> None:
     bpy.types.TOPBAR_MT_file_export.append(menu_func_export)
     object_metadata.register()
     viewport_overlay.register()
+    material_fidelity.register()
 
 
 def unregister() -> None:
+    material_fidelity.unregister()
     viewport_overlay.unregister()
     object_metadata.unregister()
     bpy.types.TOPBAR_MT_file_export.remove(menu_func_export)

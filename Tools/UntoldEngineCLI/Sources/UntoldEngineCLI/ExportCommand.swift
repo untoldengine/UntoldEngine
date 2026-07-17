@@ -63,12 +63,31 @@ struct ExportCommand: ParsableCommand {
     @Flag(name: .long, help: "Compress geometry and bake/patch textures after export (implies --compress-geometry)")
     var optimize = false
 
+    @Flag(name: .customLong("bake-materials"), help: "Bake node-graph materials the engine cannot evaluate (Mix, Math, procedural textures, ...) into flat textures so the export matches Blender")
+    var bakeMaterials = false
+
+    @Option(name: .customLong("bake-resolution"), help: "Square resolution for baked material textures (max: \(ExportCommand.maxBakeResolution)). Override per material via a material['untold_bake_resolution'] custom property")
+    var bakeResolution: Int = 1024
+
+    @Flag(name: .customLong("no-bake-cache"), help: "Disable the persistent bake cache and force every divergent material to be re-baked, even if unchanged since the last export")
+    var noBakeCache = false
+
+    /// Keep in sync with MAX_BAKE_RESOLUTION in scripts/untoldexplorer.py.
+    static let maxBakeResolution = 8192
+
     func run() throws {
         let inputURL = resolvePath(input).standardizedFileURL
         let outputURL = resolvePath(output).standardizedFileURL
 
         guard FileManager.default.fileExists(atPath: inputURL.path) else {
             throw ExportError.inputNotFound(inputURL.path)
+        }
+        guard bakeResolution > 0 else {
+            throw ExportError.invalidBakeResolution(bakeResolution)
+        }
+        let clampedBakeResolution = min(bakeResolution, Self.maxBakeResolution)
+        if clampedBakeResolution != bakeResolution {
+            printInfo("--bake-resolution \(bakeResolution) is very high; clamping to \(clampedBakeResolution).")
         }
 
         let blenderURL = try resolveBlender()
@@ -85,6 +104,11 @@ struct ExportCommand: ParsableCommand {
         if validate { exporterArguments.append("--validate") }
         if compressGeometry || optimize { exporterArguments.append("--compress-geometry") }
         if animation { exporterArguments.append("--animation") }
+        if bakeMaterials {
+            exporterArguments.append("--bake-materials")
+            exporterArguments += ["--bake-resolution", String(clampedBakeResolution)]
+            if noBakeCache { exporterArguments.append("--no-bake-cache") }
+        }
 
         printInfo("Using Blender: \(blenderURL.path)")
         printInfo("Exporting \(inputURL.path)")
@@ -213,6 +237,7 @@ enum ExportError: LocalizedError {
     case exporterNotInstalled(String)
     case exportFailed(Int32)
     case optimizeFailed(Int32)
+    case invalidBakeResolution(Int)
 
     var errorDescription: String? {
         switch self {
@@ -231,6 +256,8 @@ enum ExportError: LocalizedError {
             return "Blender exporter failed with exit status \(status)"
         case let .optimizeFailed(status):
             return "Texture optimization (texbake) failed with exit status \(status)"
+        case let .invalidBakeResolution(value):
+            return "--bake-resolution must be a positive integer, got \(value)"
         }
     }
 }

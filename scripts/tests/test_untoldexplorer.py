@@ -538,5 +538,534 @@ class UntoldExplorerTests(unittest.TestCase):
         self.assertIn("does not exist", str(ctx2.exception))
 
 
+def _make_image_node(name: str = "tex") -> FakeNode:
+    image = FakeData(filepath=f"textures/{name}.png", library=None, size=(64, 64), name=name)
+    node = FakeNode("ShaderNodeTexImage", image=image)
+    node.name = name
+    return node
+
+
+def _make_principled_output(base_color_source: FakeNode | None, base_color_socket: str = "Color") -> tuple[FakeNode, FakeNode]:
+    base_color = FakeSocket("Base Color")
+    if base_color_source is not None:
+        base_color.link_from(base_color_source, base_color_socket)
+    principled = FakeNode("ShaderNodeBsdfPrincipled", inputs={"Base Color": base_color})
+    principled.name = "Principled BSDF"
+    surface = FakeSocket("Surface")
+    surface.link_from(principled, "BSDF")
+    output = FakeNode("ShaderNodeOutputMaterial", inputs={"Surface": surface})
+    output.name = "Material Output"
+    return principled, output
+
+
+def _make_material(name: str, nodes: list[FakeNode]) -> FakeData:
+    return FakeData(name=name, node_tree=FakeData(nodes=nodes))
+
+
+class MaterialGraphAnalysisTests(unittest.TestCase):
+    def test_texture_into_principled_is_supported(self) -> None:
+        tex = _make_image_node()
+        principled, output = _make_principled_output(tex)
+        analysis = u.analyze_material(_make_material("ok_mat", [output, principled, tex]))
+        self.assertEqual(analysis.classification, u.MATERIAL_GRAPH_SUPPORTED)
+        self.assertEqual(analysis.findings, [])
+
+    def test_mix_node_is_bakeable(self) -> None:
+        tex_a = _make_image_node("a")
+        tex_b = _make_image_node("b")
+        input_a = FakeSocket("A")
+        input_a.link_from(tex_a, "Color")
+        input_b = FakeSocket("B")
+        input_b.link_from(tex_b, "Color")
+        mix = FakeNode("ShaderNodeMix", inputs={"A": input_a, "B": input_b})
+        mix.name = "Mix"
+        principled, output = _make_principled_output(mix, "Result")
+        analysis = u.analyze_material(_make_material("mix_mat", [output, principled, mix, tex_a, tex_b]))
+        self.assertEqual(analysis.classification, u.MATERIAL_GRAPH_BAKEABLE)
+        self.assertEqual([f.node_type for f in analysis.findings], ["ShaderNodeMix"])
+
+    def test_fresnel_makes_material_unbakeable(self) -> None:
+        fresnel = FakeNode("ShaderNodeFresnel")
+        fresnel.name = "Fresnel"
+        fac = FakeSocket("Factor")
+        fac.link_from(fresnel, "Fac")
+        mix = FakeNode("ShaderNodeMix", inputs={"Factor": fac})
+        mix.name = "Mix"
+        principled, output = _make_principled_output(mix, "Result")
+        analysis = u.analyze_material(_make_material("fresnel_mat", [output, principled, mix, fresnel]))
+        self.assertEqual(analysis.classification, u.MATERIAL_GRAPH_UNBAKEABLE)
+        categories = {f.node_type: f.category for f in analysis.findings}
+        self.assertEqual(categories["ShaderNodeFresnel"], u.MATERIAL_GRAPH_UNBAKEABLE)
+
+    def test_identity_mapping_is_supported_but_scaled_mapping_is_bakeable(self) -> None:
+        def make_mapping(scale: tuple[float, float, float]) -> FakeNode:
+            tex = _make_image_node()
+            location = FakeSocket("Location")
+            location.default_value = (0.0, 0.0, 0.0)
+            rotation = FakeSocket("Rotation")
+            rotation.default_value = (0.0, 0.0, 0.0)
+            scale_socket = FakeSocket("Scale")
+            scale_socket.default_value = scale
+            vector = FakeSocket("Vector")
+            mapping = FakeNode(
+                "ShaderNodeMapping",
+                inputs={"Location": location, "Rotation": rotation, "Scale": scale_socket, "Vector": vector},
+            )
+            mapping.name = "Mapping"
+            color = FakeSocket("Color")
+            color.link_from(mapping, "Vector")
+            tex.inputs = {"Vector": color}
+            return tex
+
+        tex_identity = make_mapping((1.0, 1.0, 1.0))
+        principled, output = _make_principled_output(tex_identity)
+        analysis = u.analyze_material(_make_material("id_mat", [output, principled, tex_identity]))
+        self.assertEqual(analysis.classification, u.MATERIAL_GRAPH_SUPPORTED)
+
+        tex_scaled = make_mapping((2.0, 1.0, 1.0))
+        principled, output = _make_principled_output(tex_scaled)
+        analysis = u.analyze_material(_make_material("scaled_mat", [output, principled, tex_scaled]))
+        self.assertEqual(analysis.classification, u.MATERIAL_GRAPH_BAKEABLE)
+        self.assertEqual([f.node_type for f in analysis.findings], ["ShaderNodeMapping"])
+
+    def test_unconnected_nodes_are_not_flagged(self) -> None:
+        tex = _make_image_node()
+        principled, output = _make_principled_output(tex)
+        stray_noise = FakeNode("ShaderNodeTexNoise")
+        stray_noise.name = "Noise Texture"
+        analysis = u.analyze_material(_make_material("ao_mat", [output, principled, tex, stray_noise]))
+        self.assertEqual(analysis.classification, u.MATERIAL_GRAPH_SUPPORTED)
+
+    def test_node_group_contents_are_analyzed(self) -> None:
+        noise = FakeNode("ShaderNodeTexNoise")
+        noise.name = "Noise Texture"
+        group_result = FakeSocket("Result")
+        group_result.link_from(noise, "Color")
+        group_output = FakeNode("NodeGroupOutput", inputs={"Result": group_result})
+        group = FakeNode("ShaderNodeGroup")
+        group.name = "NodeGroup"
+        group.node_tree = FakeData(nodes=[group_output, noise])
+        principled, output = _make_principled_output(group, "Result")
+        analysis = u.analyze_material(_make_material("group_mat", [output, principled, group]))
+        self.assertEqual(analysis.classification, u.MATERIAL_GRAPH_BAKEABLE)
+        self.assertEqual([f.node_type for f in analysis.findings], ["ShaderNodeTexNoise"])
+
+    def test_animated_node_tree_is_unbakeable(self) -> None:
+        tex = _make_image_node()
+        principled, output = _make_principled_output(tex)
+        material = _make_material("anim_mat", [output, principled, tex])
+        material.node_tree.animation_data = FakeData(action=FakeData(name="mat_action"), drivers=[])
+        analysis = u.analyze_material(material)
+        self.assertEqual(analysis.classification, u.MATERIAL_GRAPH_UNBAKEABLE)
+
+    def test_report_lines_summarize_and_warn_on_missing_uvs(self) -> None:
+        tex = _make_image_node()
+        principled, output = _make_principled_output(tex)
+        supported_material = _make_material("ok_mat", [output, principled, tex])
+
+        input_a = FakeSocket("A")
+        input_a.link_from(_make_image_node("a"), "Color")
+        mix = FakeNode("ShaderNodeMix", inputs={"A": input_a})
+        mix.name = "Mix"
+        principled2, output2 = _make_principled_output(mix, "Result")
+        bakeable_material = _make_material("mix_mat", [output2, principled2, mix])
+
+        supported_mesh = FakeSceneObject("Floor", "MESH", FakeData(materials=[supported_material], uv_layers=[]))
+        bakeable_mesh = FakeSceneObject("Wall", "MESH", FakeData(materials=[bakeable_material], uv_layers=[]))
+
+        lines = u.material_fidelity_report_lines([supported_mesh, bakeable_mesh])
+        self.assertIn("1 supported, 1 bakeable, 0 unbakeable", lines[0])
+        self.assertTrue(any("mix_mat" in line and "[bakeable]" in line for line in lines))
+        self.assertTrue(any("Wall" in line and "no UV map" in line for line in lines))
+        # The supported mesh has no UVs either, but is never flagged: no bake needed.
+        self.assertFalse(any("Floor" in line for line in lines))
+
+    def test_compute_material_fidelity_exposes_structured_data(self) -> None:
+        """The addon's pre-export panel needs structured per-material data
+        (not pre-formatted text) to render classification/reason as UI rows."""
+        tex = _make_image_node()
+        principled, output = _make_principled_output(tex)
+        supported_material = _make_material("ok_mat", [output, principled, tex])
+
+        input_a = FakeSocket("A")
+        input_a.link_from(_make_image_node("a"), "Color")
+        mix = FakeNode("ShaderNodeMix", inputs={"A": input_a})
+        mix.name = "Mix"
+        principled2, output2 = _make_principled_output(mix, "Result")
+        bakeable_material = _make_material("mix_mat", [output2, principled2, mix])
+
+        supported_mesh = FakeSceneObject("Floor", "MESH", FakeData(materials=[supported_material], uv_layers=[]))
+        bakeable_mesh = FakeSceneObject("Wall", "MESH", FakeData(materials=[bakeable_material], uv_layers=[]))
+
+        report = u.compute_material_fidelity([supported_mesh, bakeable_mesh])
+        self.assertEqual(set(report.analyses_by_name), {"ok_mat", "mix_mat"})
+        self.assertEqual(report.analyses_by_name["ok_mat"].classification, u.MATERIAL_GRAPH_SUPPORTED)
+        mix_analysis = report.analyses_by_name["mix_mat"]
+        self.assertEqual(mix_analysis.classification, u.MATERIAL_GRAPH_BAKEABLE)
+        self.assertEqual(mix_analysis.findings[0].node_type, "ShaderNodeMix")
+        self.assertTrue(any("Wall" in w and "no UV map" in w for w in report.uv_warnings))
+
+        # material_fidelity_report_lines must still produce identical output
+        # built on top of the same structured data (behavior-preserving refactor).
+        lines = u.material_fidelity_report_lines([supported_mesh, bakeable_mesh])
+        self.assertIn("1 supported, 1 bakeable, 0 unbakeable", lines[0])
+
+    def test_safe_bake_stem_sanitizes_material_names(self) -> None:
+        self.assertEqual(u._safe_bake_stem("wall mat.001"), "wall_mat_001")
+        self.assertEqual(u._safe_bake_stem(""), "material")
+
+    def test_extract_material_substitutes_baked_channels(self) -> None:
+        tex = _make_image_node("original")
+        principled, output = _make_principled_output(tex)
+        material = _make_material("baked_mat", [output, principled, tex])
+        mesh_object = FakeSceneObject("Wall", "MESH", FakeData(materials=[material]))
+
+        def make_baked(suffix: str) -> u.ExportedTexture:
+            return u.ExportedTexture(
+                name=f"baked_mat_{suffix}.png", uri=f"baked_mat_{suffix}.png",
+                width=1024, height=1024, mip_count=1,
+                source_path=Path(f"/tmp/bake/baked_mat_{suffix}.png"),
+            )
+
+        baked = u.BakedMaterialTextures(
+            base_color=make_baked("basecolor"),
+            orm=make_baked("orm"),
+            normal=make_baked("normal"),
+        )
+        u._baked_material_textures["Wall"] = baked  # keyed by mesh object name, not material name
+        try:
+            with tempfile.TemporaryDirectory() as tmpdir:
+                exported = u.extract_material(mesh_object, Path(tmpdir) / "asset.untold")
+        finally:
+            u._baked_material_textures.clear()
+
+        self.assertIs(exported.base_color_texture, baked.base_color)
+        self.assertEqual(exported.base_color_factor[:3], (1.0, 1.0, 1.0))
+        self.assertEqual(exported.roughness_texture.uri, "baked_mat_orm.png")
+        self.assertEqual(exported.roughness_texture_channel, u.TEXTURE_CHANNEL_G)
+        self.assertEqual(exported.metallic_texture.uri, "baked_mat_orm.png")
+        self.assertEqual(exported.metallic_texture_channel, u.TEXTURE_CHANNEL_B)
+        self.assertEqual(exported.roughness_factor, 1.0)
+        self.assertEqual(exported.metallic_factor, 1.0)
+        self.assertIs(exported.normal_texture, baked.normal)
+        self.assertEqual(exported.normal_scale, 1.0)
+
+    def test_bake_plan_marks_only_divergent_channels(self) -> None:
+        # Mix on base color, math node on roughness, clean normal/emissive.
+        mix = FakeNode("ShaderNodeMix")
+        mix.name = "Mix"
+        base_color = FakeSocket("Base Color")
+        base_color.link_from(mix, "Result")
+        math_node = FakeNode("ShaderNodeMath")
+        math_node.name = "Math"
+        roughness = FakeSocket("Roughness")
+        roughness.link_from(math_node, "Value")
+        principled = FakeNode(
+            "ShaderNodeBsdfPrincipled",
+            inputs={"Base Color": base_color, "Roughness": roughness},
+        )
+        surface = FakeSocket("Surface")
+        surface.link_from(principled, "BSDF")
+        output = FakeNode("ShaderNodeOutputMaterial", inputs={"Surface": surface})
+        material = _make_material("chan_mat", [output, principled, mix, math_node])
+
+        plan = u.material_bake_plan(material)
+        self.assertEqual(
+            plan,
+            {"base_color": True, "orm": True, "normal": False, "emissive": False},
+        )
+
+    def test_bake_plan_skips_view_dependent_channel_but_keeps_others(self) -> None:
+        mix = FakeNode("ShaderNodeMix")
+        mix.name = "Mix"
+        base_color = FakeSocket("Base Color")
+        base_color.link_from(mix, "Result")
+        fresnel = FakeNode("ShaderNodeFresnel")
+        fresnel.name = "Fresnel"
+        roughness = FakeSocket("Roughness")
+        roughness.link_from(fresnel, "Fac")
+        principled = FakeNode(
+            "ShaderNodeBsdfPrincipled",
+            inputs={"Base Color": base_color, "Roughness": roughness},
+        )
+        surface = FakeSocket("Surface")
+        surface.link_from(principled, "BSDF")
+        output = FakeNode("ShaderNodeOutputMaterial", inputs={"Surface": surface})
+        material = _make_material("partial_mat", [output, principled, mix, fresnel])
+
+        plan = u.material_bake_plan(material)
+        self.assertTrue(plan["base_color"])
+        self.assertFalse(plan["orm"])
+
+    def test_bake_plan_mix_shader_above_principled_is_unbakeable(self) -> None:
+        """The channel bake recipes only read individual Principled BSDF inputs, so they
+        cannot reproduce a Mix Shader combining the Principled with another shader —
+        baking per channel from the Principled alone would silently discard the
+        blending and produce a confidently wrong texture. The whole material must be
+        skipped, not partially baked."""
+        principled = FakeNode("ShaderNodeBsdfPrincipled", inputs={})
+        diffuse = FakeNode("ShaderNodeBsdfDiffuse")
+        diffuse.name = "Diffuse BSDF"
+        shader_a = FakeSocket("Shader")
+        shader_a.link_from(principled, "BSDF")
+        shader_b = FakeSocket("Shader")
+        shader_b.link_from(diffuse, "BSDF")
+        mix_shader = FakeNode("ShaderNodeMixShader", inputs={"Shader": shader_a, "Shader.001": shader_b})
+        mix_shader.name = "Mix Shader"
+        surface = FakeSocket("Surface")
+        surface.link_from(mix_shader, "Shader")
+        output = FakeNode("ShaderNodeOutputMaterial", inputs={"Surface": surface})
+        material = _make_material("global_mat", [output, mix_shader, principled, diffuse])
+
+        self.assertEqual(u.material_bake_plan(material), {})
+
+    def test_bake_plan_empty_for_supported_material(self) -> None:
+        tex = _make_image_node()
+        principled, output = _make_principled_output(tex)
+        material = _make_material("ok_mat", [output, principled, tex])
+        self.assertEqual(u.material_bake_plan(material), {})
+
+    def test_png_needs_conversion_flags_indexed_grayscale_and_16bit(self) -> None:
+        def make_png_header(bit_depth: int, color_type: int) -> bytes:
+            # Magic + chunk length (unused) + "IHDR" + width + height + bit_depth + color_type.
+            # _png_ihdr only reads the first 26 bytes, so the rest of a real PNG isn't needed.
+            return (
+                b"\x89PNG\r\n\x1a\n"
+                + b"\x00\x00\x00\x0d"
+                + b"IHDR"
+                + b"\x00\x00\x04\x00\x00\x00\x04\x00"  # 1024x1024
+                + bytes([bit_depth, color_type])
+            )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cases = [
+                ("rgb_8bit.png", 8, 2, False),       # standard RGB — no conversion
+                ("rgba_8bit.png", 8, 6, False),      # standard RGBA — no conversion
+                ("gray_8bit.png", 8, 0, True),       # grayscale — Metal maps to R-only
+                ("gray_alpha.png", 8, 4, True),      # grayscale+alpha — same issue
+                ("indexed_1bit.png", 1, 3, True),    # palette — not direct color samples
+                ("indexed_8bit.png", 8, 3, True),    # palette — not direct color samples
+                ("rgb_16bit.png", 16, 2, True),      # 16-bit — Metal has no sRGB 16-bit format
+            ]
+            for filename, bit_depth, color_type, expected in cases:
+                path = Path(tmpdir) / filename
+                path.write_bytes(make_png_header(bit_depth, color_type))
+                self.assertEqual(
+                    u._png_needs_conversion(path), expected,
+                    f"{filename} (bit_depth={bit_depth}, color_type={color_type})",
+                )
+
+    def test_material_node_tree_fingerprint_deterministic_and_sensitive(self) -> None:
+        mix = FakeNode("ShaderNodeMix")
+        mix.name = "Mix"
+        principled, output = _make_principled_output(mix, "Result")
+        material = _make_material("fp_mat", [output, principled, mix])
+
+        fp1 = u._material_node_tree_fingerprint(material)
+        fp2 = u._material_node_tree_fingerprint(material)
+        self.assertEqual(fp1, fp2, "same material state must hash identically")
+
+        # An unlinked socket's default_value change must change the hash.
+        roughness = FakeSocket("Roughness")
+        roughness.default_value = 0.5
+        principled.inputs["Roughness"] = roughness
+        fp3 = u._material_node_tree_fingerprint(material)
+        self.assertNotEqual(fp1, fp3)
+
+        roughness.default_value = 0.9
+        fp4 = u._material_node_tree_fingerprint(material)
+        self.assertNotEqual(fp3, fp4)
+
+    def test_material_node_tree_fingerprint_sensitive_to_output_socket_value(self) -> None:
+        """Regression test: constant-value nodes (ShaderNodeRGB, ShaderNodeValue)
+        store their configured value on the OUTPUT socket, not an input. A fix
+        that only hashed inputs silently missed edits to these nodes, serving a
+        stale cached bake after an artist changed a Color/Value node's value."""
+        rgb = FakeNode("ShaderNodeRGB")
+        rgb.name = "Color"
+        color_socket = FakeSocket("Color")
+        color_socket.default_value = (0.6, 0.2, 0.2, 1.0)
+        rgb.outputs = {"Color": color_socket}
+        principled, output = _make_principled_output(rgb)
+        material = _make_material("rgb_mat", [output, principled, rgb])
+
+        fp1 = u._material_node_tree_fingerprint(material)
+        color_socket.default_value = (0.3, 0.2, 0.2, 1.0)
+        fp2 = u._material_node_tree_fingerprint(material)
+        self.assertNotEqual(fp1, fp2, "editing an RGB node's output color must change the fingerprint")
+
+    def test_material_node_tree_fingerprint_handles_missing_links_gracefully(self) -> None:
+        tex = _make_image_node()
+        principled, output = _make_principled_output(tex)
+        material = _make_material("no_links_mat", [output, principled, tex])
+        # _make_material's fake node_tree has no .links attribute at all.
+        self.assertFalse(hasattr(material.node_tree, "links"))
+        fp = u._material_node_tree_fingerprint(material)
+        self.assertTrue(fp)
+
+    class _FakeMaterialWithProps:
+        def __init__(self, name: str, props: dict | None = None) -> None:
+            self.name = name
+            self._props = props or {}
+
+        def get(self, key, default=None):
+            return self._props.get(key, default)
+
+    def test_resolution_for_material_uses_override_when_set(self) -> None:
+        mat = self._FakeMaterialWithProps("mat", {"untold_bake_resolution": 2048})
+        self.assertEqual(u._resolution_for_material(mat, 1024), 2048)
+
+    def test_resolution_for_material_falls_back_to_default_when_unset(self) -> None:
+        mat = self._FakeMaterialWithProps("mat")
+        self.assertEqual(u._resolution_for_material(mat, 1024), 1024)
+
+    def test_resolution_for_material_falls_back_on_invalid_override(self) -> None:
+        mat = self._FakeMaterialWithProps("mat", {"untold_bake_resolution": -5})
+        self.assertEqual(u._resolution_for_material(mat, 1024), 1024)
+
+        mat2 = self._FakeMaterialWithProps("mat2", {"untold_bake_resolution": "not-a-number"})
+        self.assertEqual(u._resolution_for_material(mat2, 1024), 1024)
+
+    def test_resolution_for_material_clamps_override_above_max(self) -> None:
+        mat = self._FakeMaterialWithProps("mat", {"untold_bake_resolution": 999999})
+        self.assertEqual(u._resolution_for_material(mat, 1024), u.MAX_BAKE_RESOLUTION)
+
+    def test_material_bake_cache_put_then_get_round_trips(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cache_dir = Path(tmpdir) / "cache"
+            source_file = Path(tmpdir) / "source.png"
+            source_file.write_bytes(b"fake-png-bytes")
+
+            cache = u.MaterialBakeCache(cache_dir)
+            self.assertIsNone(cache.get("some-key"))
+            cached_path = cache.put("some-key", source_file)
+            self.assertTrue(cached_path.is_file())
+            self.assertEqual(cached_path.read_bytes(), b"fake-png-bytes")
+            self.assertEqual(cache.hits, 0)
+            self.assertEqual(cache.misses, 1)
+
+            cache.save_manifest()
+            self.assertTrue(cache.manifest_path.is_file())
+
+            # A fresh cache instance loading the saved manifest should find the entry.
+            reloaded = u.MaterialBakeCache(cache_dir)
+            found = reloaded.get("some-key")
+            self.assertEqual(found, cached_path)
+            self.assertEqual(reloaded.hits, 1)
+
+    def test_material_bake_cache_miss_when_cached_file_deleted(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cache_dir = Path(tmpdir) / "cache"
+            source_file = Path(tmpdir) / "source.png"
+            source_file.write_bytes(b"fake-png-bytes")
+
+            cache = u.MaterialBakeCache(cache_dir)
+            cache.put("some-key", source_file)
+            cache.save_manifest()
+
+            reloaded = u.MaterialBakeCache(cache_dir)
+            (cache_dir / reloaded._manifest["some-key"]).unlink()
+            self.assertIsNone(reloaded.get("some-key"))
+
+    def test_material_bake_cache_key_differs_by_channel_and_resolution(self) -> None:
+        tex = _make_image_node()
+        principled, output = _make_principled_output(tex)
+        material = _make_material("key_mat", [output, principled, tex])
+        mesh_object = FakeSceneObject("Obj", "MESH", FakeData(uv_layers=[], materials=[material]))
+        mesh_object.matrix_world = [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]
+
+        key_a = u._material_bake_cache_key(mesh_object, material, "base_color", 1024)
+        key_b = u._material_bake_cache_key(mesh_object, material, "normal", 1024)
+        key_c = u._material_bake_cache_key(mesh_object, material, "base_color", 2048)
+        self.assertNotEqual(key_a, key_b)
+        self.assertNotEqual(key_a, key_c)
+        self.assertEqual(key_a, u._material_bake_cache_key(mesh_object, material, "base_color", 1024))
+
+    def test_validate_bake_resolution_rejects_non_positive(self) -> None:
+        for bad_value in (0, -1, -1024):
+            with self.assertRaises(RuntimeError):
+                u.validate_bake_resolution(bad_value)
+
+    def test_validate_bake_resolution_passes_through_normal_values(self) -> None:
+        self.assertEqual(u.validate_bake_resolution(1024), 1024)
+        self.assertEqual(u.validate_bake_resolution(1), 1)
+        self.assertEqual(u.validate_bake_resolution(u.MAX_BAKE_RESOLUTION), u.MAX_BAKE_RESOLUTION)
+
+    def test_validate_bake_resolution_clamps_high_values(self) -> None:
+        self.assertEqual(u.validate_bake_resolution(u.MAX_BAKE_RESOLUTION + 1), u.MAX_BAKE_RESOLUTION)
+        self.assertEqual(u.validate_bake_resolution(1_000_000), u.MAX_BAKE_RESOLUTION)
+
+    def test_cleanup_material_bake_temp_dir_removes_directory_and_is_idempotent(self) -> None:
+        with tempfile.TemporaryDirectory() as parent:
+            bake_dir = Path(parent) / "untold_material_bake_test"
+            bake_dir.mkdir()
+            (bake_dir / "wall_basecolor.png").write_bytes(b"fake")
+
+            u._set_material_bake_temp_dir(bake_dir)
+            self.assertTrue(bake_dir.is_dir())
+
+            u.cleanup_material_bake_temp_dir()
+            self.assertFalse(bake_dir.exists())
+
+            # Safe to call again with nothing pending, and safe when nothing was ever set.
+            u.cleanup_material_bake_temp_dir()
+
+    def test_write_blender_image_forces_lazy_pixel_load_before_giving_up(self) -> None:
+        """Blender reports has_data=False for packed/external images until something
+        forces a real decode, even when the data is completely valid. Regression
+        for a bug where valid packed textures (e.g. from a downloaded .blend with
+        broken external filepaths) were being skipped as 'missing' because the
+        exporter checked has_data before ever touching .pixels."""
+
+        class LazyPixels:
+            def __init__(self, image: "FakeImage") -> None:
+                self._image = image
+
+            def __getitem__(self, index):
+                self._image.has_data = True  # accessing pixels forces the real decode
+                return 0.0
+
+        class FakeImage:
+            def __init__(self, *, decodes_successfully: bool) -> None:
+                self.has_data = False
+                self.size = (64, 64)
+                self._decodes_successfully = decodes_successfully
+                self.filepath_raw = ""
+                self.file_format = "PNG"
+
+            @property
+            def pixels(self):
+                if not self._decodes_successfully:
+                    raise RuntimeError("simulated decode failure")
+                return LazyPixels(self)
+
+            def save(self):
+                pass
+
+        original_bpy = u.bpy
+        try:
+            valid_image = FakeImage(decodes_successfully=True)
+            u.bpy = FakeData(data=FakeData(images=FakeData(get=lambda name: valid_image)))
+            with tempfile.TemporaryDirectory() as tmpdir:
+                u.write_blender_image_to_path("valid", Path(tmpdir) / "out.png")
+            self.assertTrue(valid_image.has_data)
+
+            broken_image = FakeImage(decodes_successfully=False)
+            u.bpy = FakeData(data=FakeData(images=FakeData(get=lambda name: broken_image)))
+            with tempfile.TemporaryDirectory() as tmpdir:
+                with self.assertRaises(u.UnsupportedTextureFormatError):
+                    u.write_blender_image_to_path("broken", Path(tmpdir) / "out.png")
+        finally:
+            u.bpy = original_bpy
+
+    def test_report_lines_all_supported_is_single_summary(self) -> None:
+        tex = _make_image_node()
+        principled, output = _make_principled_output(tex)
+        material = _make_material("ok_mat", [output, principled, tex])
+        mesh = FakeSceneObject("Floor", "MESH", FakeData(materials=[material], uv_layers=[]))
+        lines = u.material_fidelity_report_lines([mesh])
+        self.assertEqual(lines, ["Material fidelity report: 1 supported, 0 bakeable, 0 unbakeable"])
+
+
 if __name__ == "__main__":
     unittest.main()

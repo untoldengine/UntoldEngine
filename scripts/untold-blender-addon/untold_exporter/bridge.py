@@ -100,6 +100,46 @@ def scene_payload_candidates(context: Any, scope: str) -> list[object]:
     ]
 
 
+def scan_material_fidelity(context: Any, scope: str) -> dict[str, object]:
+    """Classify every material used by the given scope as supported / bakeable /
+    unbakeable, matching what --bake-materials would do at export time, without
+    exporting anything. Backs the addon's pre-export "Material Fidelity" panel.
+    """
+    module = exporter_module()
+    objects = scene_export_candidates(context, scope)
+    mesh_objects = [obj for obj in objects if getattr(obj, "type", None) == "MESH"]
+    if not mesh_objects:
+        raise RuntimeError("No mesh objects were found for the selected scope")
+
+    report = module.compute_material_fidelity(mesh_objects)
+    materials: list[dict[str, str]] = []
+    supported_count = bakeable_count = unbakeable_count = 0
+    for analysis in sorted(report.analyses_by_name.values(), key=lambda a: a.material_name):
+        if analysis.classification == module.MATERIAL_GRAPH_SUPPORTED:
+            supported_count += 1
+            continue
+        if analysis.classification == module.MATERIAL_GRAPH_BAKEABLE:
+            bakeable_count += 1
+        else:
+            unbakeable_count += 1
+        reason = "; ".join(
+            f"{finding.node_name} ({finding.node_type}): {finding.reason}" for finding in analysis.findings
+        )
+        materials.append({
+            "material_name": analysis.material_name,
+            "classification": analysis.classification,
+            "reason": reason,
+        })
+
+    return {
+        "materials": materials,
+        "uv_warnings": report.uv_warnings,
+        "supported_count": supported_count,
+        "bakeable_count": bakeable_count,
+        "unbakeable_count": unbakeable_count,
+    }
+
+
 def append_unique_objects(objects: list[object], additions: list[object]) -> list[object]:
     seen = {obj.as_pointer() for obj in objects}
     merged = list(objects)
@@ -122,6 +162,9 @@ def export_asset(
     source_orientation: str,
     validate: bool,
     compress_geometry: bool,
+    bake_materials: bool,
+    bake_resolution: int,
+    bake_cache: bool,
     bake_textures: bool,
     texture_quality: str,
     keep_texture_temp: bool,
@@ -143,6 +186,9 @@ def export_asset(
         source_orientation=source_orientation,
         validate=validate,
         compress_geometry=compress_geometry,
+        bake_materials=bake_materials,
+        bake_resolution=module.validate_bake_resolution(bake_resolution),
+        bake_cache=bake_cache,
         progress_callback=progress_callback,
     )
     result["texture_bake_status"] = "skipped"
@@ -275,6 +321,9 @@ def export_tiled_scene(
     generate_hlod: bool,
     generate_lod: bool,
     compress_geometry: bool,
+    bake_materials: bool,
+    bake_resolution: int,
+    bake_cache: bool,
     dry_run: bool,
     write_manifest_in_dry_run: bool,
     progress_callback: ProgressCallback | None = None,
@@ -334,6 +383,11 @@ def export_tiled_scene(
         argv.append("--generate-lod")
     if compress_geometry:
         argv.append("--compress-geometry")
+    if bake_materials:
+        argv.append("--bake-materials")
+        argv.extend(["--bake-resolution", str(module.validate_bake_resolution(bake_resolution))])
+        if not bake_cache:
+            argv.append("--no-bake-cache")
     if dry_run:
         argv.append("--dry-run")
     if write_manifest_in_dry_run:
