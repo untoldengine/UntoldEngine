@@ -343,6 +343,7 @@
                     Text("Lit").tag(RenderDebugViewMode.lit)
                     Text("Albedo").tag(RenderDebugViewMode.albedo)
                     Text("Normal").tag(RenderDebugViewMode.normal)
+                    Text("Position").tag(RenderDebugViewMode.position)
                     Text("Depth").tag(RenderDebugViewMode.depth)
                     Text("SSAO (Blurred)").tag(RenderDebugViewMode.ssaoBlurred)
                     Text("FXAA Edges").tag(RenderDebugViewMode.fxaaEdgeDebug)

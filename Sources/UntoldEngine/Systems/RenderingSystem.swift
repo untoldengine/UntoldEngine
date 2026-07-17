@@ -1185,6 +1185,8 @@ private func debugSourceTexture(for mode: RenderDebugViewMode) -> MTLTexture? {
         return textureResources.colorMap
     case .normal:
         return textureResources.normalMap
+    case .position:
+        return textureResources.positionMap
     case .ssaoBlurred:
         return textureResources.ssaoBlurTexture
     case .depth:
@@ -1208,7 +1210,7 @@ private func lookPassShouldRenderLitOutput(for mode: RenderDebugViewMode) -> Boo
     switch mode {
     case .lit, .fxaaEdgeDebug, .smaaEdges, .smaaBlend, .smaaDifference, .occlusionDebug:
         return true
-    case .albedo, .normal, .ssaoBlurred, .depth:
+    case .albedo, .normal, .position, .ssaoBlurred, .depth:
         return false
     }
 }

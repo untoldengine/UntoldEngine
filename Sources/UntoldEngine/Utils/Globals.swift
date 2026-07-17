@@ -1437,6 +1437,8 @@ public enum RenderDebugViewMode: Int, CaseIterable, Sendable {
     case smaaDifference = 8
     /// Renders the lit scene with green wireframe AABBs around HZB-occluded entities.
     case occlusionDebug = 9
+    /// Visualizes the G-buffer world-position texture as repeating world-space RGB bands.
+    case position = 10
 }
 
 // TODO: try to remove this var, because only make sense on the editor side

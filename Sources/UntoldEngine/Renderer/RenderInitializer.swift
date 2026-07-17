@@ -515,7 +515,7 @@ func initRenderPassDescriptors() {
 
 func gBufferDebugModeNeedsStoredTargets(_ mode: RenderDebugViewMode) -> Bool {
     switch mode {
-    case .albedo, .normal:
+    case .albedo, .normal, .position:
         return true
     case .lit, .depth, .ssaoBlurred, .fxaaEdgeDebug, .smaaEdges, .smaaBlend, .smaaDifference, .occlusionDebug:
         return false

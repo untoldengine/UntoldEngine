@@ -22,6 +22,7 @@ setRendering(.antiAliasing(.none))
 
 setRendering(.debugView(.lit))
 setRendering(.debugView(.depth))
+setRendering(.debugView(.position))
 setRendering(.debugView(.ssaoBlurred))
 
 setRendering(.postProcessing(.enabled))

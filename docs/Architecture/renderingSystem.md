@@ -271,6 +271,7 @@ When `renderDebugViewMode` is set to a G-Buffer visualization mode, the renderer
 | `.lit`, `.fxaaEdgeDebug`, `.smaaEdges`, `.smaaBlend`, `.smaaDifference` | Color-graded composite (`sceneCompositeTexture`) |
 | `.albedo` | G-Buffer albedo texture |
 | `.normal` | G-Buffer normal texture |
+| `.position` | G-Buffer world-position texture |
 | `.depth` | Depth buffer (linearized, visualized as grayscale) |
 | `.ssaoBlurred` | SSAO blur result texture |
 

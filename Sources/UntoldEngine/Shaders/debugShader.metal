@@ -35,6 +35,7 @@ fragment float4 fragmentDebugShader(VertexDebugOutput vertexOut [[stage_in]],
     const int depthMode = 3;
     const int normalMode = 2;
     const int ssaoMode = 4;
+    const int positionMode = 10;
 
     if (debugMode == depthMode) {
         float near = frustumPlanes.x;
@@ -47,6 +48,8 @@ fragment float4 fragmentDebugShader(VertexDebugOutput vertexOut [[stage_in]],
     float4 sampled = finalTexture.sample(s, vertexOut.uvCoords);
     if (debugMode == normalMode) {
         sampled = float4(sampled.xyz * 0.5 + 0.5, 1.0);
+    } else if (debugMode == positionMode) {
+        sampled = float4(fract(sampled.xyz * 0.1), 1.0);
     } else if (debugMode == ssaoMode) {
         sampled = float4(sampled.r, sampled.r, sampled.r, 1.0);
     }

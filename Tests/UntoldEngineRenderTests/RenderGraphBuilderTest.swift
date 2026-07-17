@@ -1195,7 +1195,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
         let (baseGraph, _) = try buildGameModeGraph()
         let baseKeys = Set(baseGraph.keys)
 
-        for mode in [RenderDebugViewMode.albedo, .normal, .depth, .ssaoBlurred] {
+        for mode in [RenderDebugViewMode.albedo, .normal, .position, .depth, .ssaoBlurred] {
             renderDebugViewMode = mode
             let (graph, finalPassID) = try buildGameModeGraph()
             XCTAssertEqual(Set(graph.keys), baseKeys,

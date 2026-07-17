@@ -362,7 +362,7 @@ final class PostFXTests: BaseRenderSetup {
     // MARK: - G-Buffer Debug View Mode Smoke Tests
 
     //
-    // These verify the G-Buffer visualization paths (albedo, normal, depth, ssaoBlurred)
+    // These verify the G-Buffer visualization paths (albedo, normal, position, depth, ssaoBlurred)
     // execute without error and produce a non-nil look texture. They do not use PSNR
     // reference images — correctness of the visual output is verified by inspection when
     // reference images are regenerated.
@@ -392,6 +392,21 @@ final class PostFXTests: BaseRenderSetup {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             XCTAssertNotNil(textureResources.lookTexture,
                             "lookTexture must be non-nil after rendering in .normal debug mode")
+            exp.fulfill()
+        }
+        wait(for: [exp], timeout: TimeInterval(timeoutFactor))
+    }
+
+    func testDebugViewMode_Position_ProducesLookTexture() {
+        XCTAssertNotNil(renderer, "Renderer should be initialized")
+        renderDebugViewMode = .position
+        defer { renderDebugViewMode = .lit }
+        renderer.draw(in: renderer.metalView)
+
+        let exp = expectation(description: "Position debug view")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            XCTAssertNotNil(textureResources.lookTexture,
+                            "lookTexture must be non-nil after rendering in .position debug mode")
             exp.fulfill()
         }
         wait(for: [exp], timeout: TimeInterval(timeoutFactor))
