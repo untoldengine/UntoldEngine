@@ -23,7 +23,7 @@ Clone the repository and launch the demo:
 ```bash
 git clone https://github.com/untoldengine/UntoldEngine.git
 cd UntoldEngine
-git checkout v0.14.2
+git checkout v0.14.3
 swift run ShowcaseDemo
 ```
 

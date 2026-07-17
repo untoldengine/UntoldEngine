@@ -1,4 +1,9 @@
 # Changelog
+## v0.14.3 - 2026-07-17
+### 🐞 Fixes
+- [Patch] Added the new public debug view - position (3dccbad…)
+### 📚 Docs
+- [Docs] Updated the docs (7ba1598…)
 ## v0.14.2 - 2026-07-16
 ### 🐞 Fixes
 - [Patch] Implemented soft CSM-shadows (a47d9b8…)
