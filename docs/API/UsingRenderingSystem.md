@@ -107,6 +107,7 @@ The engine can visualize individual G-Buffer layers and anti-aliasing internals 
 setRendering(.debugView(.lit))            // Normal output (default)
 setRendering(.debugView(.albedo))         // G-Buffer base color
 setRendering(.debugView(.normal))         // G-Buffer surface normals
+setRendering(.debugView(.position))       // G-Buffer world position
 setRendering(.debugView(.depth))          // Linearized depth buffer (grayscale)
 setRendering(.debugView(.ssaoBlurred))    // SSAO occlusion result
 setRendering(.debugView(.fxaaEdgeDebug))  // FXAA luma-gradient edge map
