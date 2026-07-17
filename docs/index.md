@@ -42,31 +42,42 @@ Creator & Lead Developer:
 
 ---
 
-## Try the Engine Right Now
+## 🚀 Try the Engine Right Now
 
-The fastest way to experience Untold Engine is to run the demo project.
+The best first step is to run the Starter Demo. It is intentionally small and
+shows the basic shape of an Untold Engine app without the extra systems used by
+the larger showcase.
 
-Clone the repository and launch the demo:
+> **Recommendation:** Use the latest stable release instead of the `develop`
+> branch. The `develop` branch is the bleeding-edge version of Untold Engine and
+> is updated frequently, so it may contain unstable changes or regressions.
+
+Clone the repository and launch the Starter Demo:
 
 ```bash
 git clone https://github.com/untoldengine/UntoldEngine.git
 cd UntoldEngine
-swift run ShowcaseDemo
+git checkout v0.14.2
+swift run StarterDemo
 ```
 
-The demo UI lets you see the engine in action right away. Using the `Remote Scene` drop-down menu, you can choose a scene to stream directly into the demo through the engine's **Asset Remote Streaming** support.
+After that, run the focused demos based on what you want to learn:
+
+| Demo | Command | Start here when you want to learn |
+| --- | --- | --- |
+| Starter Demo | `swift run StarterDemo` | The minimal app structure: renderer setup, camera, light, input, and a simple scene. |
+| Interaction / Gameplay Demo | `swift run InteractionGameplayDemo` | Gameplay-style movement, input handling, animation switching, physics pause/resume, and parented entities. |
+| Lighting Demo | `swift run LightingDemo` | All four light types — directional, point, spot, and area — with live intensity and cone-angle controls. |
+| Rendering Quality Demo | `swift run RenderingQualityDemo` | Post-processing controls such as color grading, SSAO, bloom, vignette, depth of field, anti-aliasing, and debug views. |
+| Large Scene Streaming Demo | `swift run LargeSceneStreamingDemo` | Manifest-driven tiled scene streaming, LOD, batching, streaming stats, and large-world traversal. |
+| Exporter Pipeline Demo | `swift run ExporterPipelineDemo` | Loading exported `.untold` assets, applying exported animation clips, and checking validation metadata. |
+| Showcase Demo | `swift run ShowcaseDemo` | A broader engine showcase that combines many systems in one app. Use this after the focused demos. |
+
+The demos live under `Sources/Demos`. They are runnable when working inside the
+engine repository, but are not exposed as products to apps that add Untold
+Engine as a package dependency.
 
 ![untoldengine-image-2](images/engine-highlight-2.png)
-
-### I want to try my own USDZ
-
-Untold Engine uses its own native asset format: `.untold`.
-
-To try your own `USDZ` file, first convert it to `.untold` using the `Tools` section in the demo UI.
-
-After the export is complete, open the Local Scene `Browse` drop-down menu, choose `.untold`, then browse for and select your exported `.untold` file.
-
-> **Note:** The exporter requires [Blender](https://www.blender.org).
 
 ---
 
@@ -74,11 +85,11 @@ After the export is complete, open the Local Scene `Browse` drop-down menu, choo
 
 ## Getting Started
 
-To create your own project using the Untold Engine, see [Getting Started](API/GettingStarted.md).
+To create your own project/game using the Untold Engine, see [Getting Started](API/GettingStarted.md).
 
 ---
 
-## Core Direction
+## 🧱 Core Direction
 
 Untold Engine is built around three focused goals:
 
@@ -90,7 +101,7 @@ Untold Engine is built around three focused goals:
 
 ---
 
-## Example Use Cases
+## 🖼 Example Use Cases
 
 Untold Engine is well-suited for:
 
@@ -128,6 +139,12 @@ See open issues for planned features and known improvements.
 
 ---
 
+## Support
+
+For help or questions, open a [GitHub Issue](https://github.com/untoldengine/UntoldEngine/issues).
+
+---
+
 ## Contributing
 
 Contributions are welcome — whether that's fixing bugs, improving systems, writing documentation, or proposing ideas.
@@ -135,6 +152,12 @@ Contributions are welcome — whether that's fixing bugs, improving systems, wri
 Before submitting a pull request, please review the [Contributing Guidelines](Contributor/ContributionGuidelines.md).
 
 All contributions are licensed under **MPL-2.0**.
+
+---
+
+## Contributor License Agreement
+
+By submitting a pull request you agree that your contributions may be distributed under the **Mozilla Public License 2.0**. See [CONTRIBUTOR_LICENSE_AGREEMENT.md](https://github.com/untoldengine/UntoldEngine/blob/main/CONTRIBUTOR_LICENSE_AGREEMENT.md) for details.
 
 ---
 
@@ -164,6 +187,14 @@ This allows developers to build commercial applications while ensuring improveme
 | Create plugins | Yes | Any license allowed |
 
 Full license: https://www.mozilla.org/MPL/2.0/
+
+**Need to keep engine modifications private?** A commercial license is available for teams that require it. See [COMMERCIAL.md](https://github.com/untoldengine/UntoldEngine/blob/main/COMMERCIAL.md) for details.
+
+---
+
+## Trademark
+
+"Untold Engine" and the Untold Engine logo are trademarks of **Untold Engine Studios**. Forks may not use the name in a way that implies official endorsement. See [TRADEMARKS.md](https://github.com/untoldengine/UntoldEngine/blob/main/TRADEMARKS.md).
 
 ---
 
