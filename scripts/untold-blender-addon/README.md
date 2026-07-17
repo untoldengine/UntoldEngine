@@ -31,7 +31,15 @@ Options:
 - `Convert Orientation`: convert Blender native coordinates into engine space.
 - `Write Validation JSON`: write a companion validation file.
 - `Compress Geometry`: use LZ4 compression for geometry chunks.
-- `Bake Textures To .utex`: convert staged textures to engine-native `.utex`
+- `Bake Materials`: evaluate Blender shader nodes the exporter
+  can't read directly (Mix, Math, procedural textures, ...) into flat
+  textures via Cycles, so the export matches Blender. See
+  [Material Node Baking](../../docs/API/UsingBlenderAddon.md#material-node-baking).
+- `Bake Resolution`: square resolution for baked material textures.
+  Override per material with a `untold_bake_resolution` custom property.
+- `Use Bake Cache`: skip re-baking materials unchanged since the last
+  export; disable to force a full re-bake.
+- `Compress Textures`: convert staged textures to engine-native `.utex`
   files and patch the exported `.untold` references.
 
 Texture baking requires Pillow in Blender's Python and the `astcenc` binary:
@@ -68,7 +76,12 @@ Tiled scene options:
   for auto.
 - `Scene Profile`: auto, indoor, or outdoor streaming radius profile.
 - `Generate HLOD` / `Generate LOD`: create simplified distance assets.
+  Not separately re-baked even when `Bake Materials` is on —
+  they reuse the full-detail tile's export, which is baked.
 - `Compress Geometry`: LZ4-compress tile vertex/index chunks.
+- `Bake Materials` / `Bake Resolution` / `Use Bake Cache`: same
+  as the model exporter, above. Applies to full-detail tile and
+  shared-bucket payloads only.
 - `Dry Run`: plan the partition without writing payload files.
 
 The plugin runs tiled export in sequential mode. Use

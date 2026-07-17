@@ -16,6 +16,7 @@ import os
 import shutil
 import struct
 import sys
+import tempfile
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Callable, Iterable, Optional
@@ -1947,6 +1948,948 @@ def _resolve_texture_from_socket(input_socket: object, asset_path: Path, visited
     return None
 
 
+# --- Material graph fidelity analysis (see docs/Architecture/materialNodeBaking.md) ---
+#
+# Classifies each material by how faithfully the exporter can represent its node
+# graph, so exports can report exactly which materials will diverge from Blender:
+#   supported  — every reachable node is represented exactly.
+#   bakeable   — static nodes the exporter drops or only traces through; an
+#                export-time Cycles bake (Milestone 2+) can capture them.
+#   unbakeable — view-dependent or animated inputs; no baked texture can
+#                represent them.
+
+MATERIAL_GRAPH_SUPPORTED = "supported"
+MATERIAL_GRAPH_BAKEABLE = "bakeable"
+MATERIAL_GRAPH_UNBAKEABLE = "unbakeable"
+
+_GRAPH_FAITHFUL_NODE_IDS = {
+    "ShaderNodeOutputMaterial",
+    "ShaderNodeBsdfPrincipled",
+    "ShaderNodeTexImage",
+    "ShaderNodeNormalMap",
+    "ShaderNodeSeparateColor",
+    "ShaderNodeSeparateRGB",
+    "ShaderNodeUVMap",
+    "NodeReroute",
+    "ShaderNodeGroup",
+    "NodeGroupInput",
+    "NodeGroupOutput",
+}
+
+# Traced through by _resolve_texture_from_socket, but their math is dropped.
+_GRAPH_TRACED_THROUGH_NODE_IDS = {
+    "ShaderNodeMix",
+    "ShaderNodeMixRGB",
+    "ShaderNodeRGBToBW",
+    "ShaderNodeGamma",
+    "ShaderNodeBrightContrast",
+    "ShaderNodeHueSaturation",
+    "ShaderNodeInvert",
+    "ShaderNodeCurveRGB",
+    "ShaderNodeCurveFloat",
+}
+
+_GRAPH_UNBAKEABLE_NODE_IDS = {
+    "ShaderNodeFresnel": "view-dependent",
+    "ShaderNodeLayerWeight": "view-dependent",
+    "ShaderNodeCameraData": "view-dependent",
+    "ShaderNodeLightPath": "depends on the active render ray",
+}
+
+# Nodes whose fidelity depends on which output socket feeds the graph.
+_GRAPH_UNBAKEABLE_OUTPUT_SOCKETS = {
+    "ShaderNodeTexCoord": {"Camera", "Window", "Reflection"},
+    "ShaderNodeNewGeometry": {"Incoming"},
+}
+_GRAPH_FAITHFUL_OUTPUT_SOCKETS = {
+    "ShaderNodeTexCoord": {"UV"},
+}
+
+
+@dataclass
+class MaterialGraphFinding:
+    node_name: str
+    node_type: str
+    category: str  # MATERIAL_GRAPH_BAKEABLE or MATERIAL_GRAPH_UNBAKEABLE
+    reason: str
+
+
+@dataclass
+class MaterialGraphAnalysis:
+    material_name: str
+    classification: str
+    findings: list[MaterialGraphFinding]
+
+
+def _socket_is_identity(node: object, socket_name: str, identity_value, tolerance: float = 1.0e-6) -> bool:
+    """True when an input socket is unlinked and holds its identity value."""
+    socket = node.inputs.get(socket_name) if getattr(node, "inputs", None) is not None else None
+    if socket is None:
+        return True
+    if getattr(socket, "is_linked", False):
+        return False
+    value = getattr(socket, "default_value", None)
+    if value is None:
+        return True
+    try:
+        if isinstance(identity_value, tuple):
+            return all(abs(float(value[i]) - identity_value[i]) <= tolerance for i in range(len(identity_value)))
+        return abs(float(value) - float(identity_value)) <= tolerance
+    except (TypeError, ValueError, IndexError):
+        return False
+
+
+def _node_is_identity_configured(node: object) -> bool:
+    """True for color/vector nodes configured so they pass their input through unchanged."""
+    node_id = node.bl_idname
+    if node_id == "ShaderNodeMapping":
+        return (
+            _socket_is_identity(node, "Location", (0.0, 0.0, 0.0))
+            and _socket_is_identity(node, "Rotation", (0.0, 0.0, 0.0))
+            and _socket_is_identity(node, "Scale", (1.0, 1.0, 1.0))
+        )
+    if node_id == "ShaderNodeGamma":
+        return _socket_is_identity(node, "Gamma", 1.0)
+    if node_id == "ShaderNodeBrightContrast":
+        return _socket_is_identity(node, "Bright", 0.0) and _socket_is_identity(node, "Contrast", 0.0)
+    if node_id == "ShaderNodeHueSaturation":
+        return (
+            _socket_is_identity(node, "Hue", 0.5)
+            and _socket_is_identity(node, "Saturation", 1.0)
+            and _socket_is_identity(node, "Value", 1.0)
+        )
+    if node_id == "ShaderNodeInvert":
+        return _socket_is_identity(node, "Fac", 0.0)
+    return False
+
+
+def _classify_graph_node(node: object, from_socket_name: str) -> Optional[MaterialGraphFinding]:
+    node_id = node.bl_idname
+    node_name = getattr(node, "name", "") or node_id
+
+    unbakeable_sockets = _GRAPH_UNBAKEABLE_OUTPUT_SOCKETS.get(node_id)
+    if unbakeable_sockets is not None and from_socket_name in unbakeable_sockets:
+        return MaterialGraphFinding(node_name, node_id, MATERIAL_GRAPH_UNBAKEABLE, f"'{from_socket_name}' output is view-dependent")
+    faithful_sockets = _GRAPH_FAITHFUL_OUTPUT_SOCKETS.get(node_id)
+    if faithful_sockets is not None:
+        if from_socket_name in faithful_sockets:
+            return None
+        return MaterialGraphFinding(
+            node_name, node_id, MATERIAL_GRAPH_BAKEABLE,
+            f"'{from_socket_name}' coordinates are frozen into UV space when baked",
+        )
+
+    unbakeable_reason = _GRAPH_UNBAKEABLE_NODE_IDS.get(node_id)
+    if unbakeable_reason is not None:
+        return MaterialGraphFinding(node_name, node_id, MATERIAL_GRAPH_UNBAKEABLE, unbakeable_reason)
+
+    if node_id in _GRAPH_FAITHFUL_NODE_IDS:
+        return None
+    if _node_is_identity_configured(node):
+        return None
+    if node_id in _GRAPH_TRACED_THROUGH_NODE_IDS or node_id == "ShaderNodeMapping":
+        return MaterialGraphFinding(node_name, node_id, MATERIAL_GRAPH_BAKEABLE, "node math is dropped by the exporter")
+    return MaterialGraphFinding(node_name, node_id, MATERIAL_GRAPH_BAKEABLE, "not evaluated by the exporter")
+
+
+def _material_output_node(node_tree: object) -> Optional[object]:
+    fallback = None
+    for node in getattr(node_tree, "nodes", []):
+        if node.bl_idname != "ShaderNodeOutputMaterial":
+            continue
+        if getattr(node, "is_active_output", False):
+            return node
+        if fallback is None:
+            fallback = node
+    return fallback
+
+
+def _group_output_node(node_tree: object) -> Optional[object]:
+    for node in getattr(node_tree, "nodes", []):
+        if node.bl_idname == "NodeGroupOutput":
+            return node
+    return None
+
+
+def _graph_node_key(node: object) -> int:
+    """Stable identity for a graph node.
+
+    bpy creates a fresh Python wrapper on every node access, so id() differs
+    between two lookups of the same node; as_pointer() is stable.
+    """
+    as_pointer = getattr(node, "as_pointer", None)
+    if callable(as_pointer):
+        try:
+            return as_pointer()
+        except Exception:
+            pass
+    return id(node)
+
+
+def _node_tree_is_animated(node_tree: object) -> bool:
+    animation_data = getattr(node_tree, "animation_data", None)
+    if animation_data is None:
+        return False
+    if getattr(animation_data, "action", None) is not None:
+        return True
+    return bool(getattr(animation_data, "drivers", None))
+
+
+def _walk_material_graph(
+    node: object,
+    from_socket_name: str,
+    findings: list[MaterialGraphFinding],
+    visited_nodes: set[int],
+    classified: set[tuple[int, str]],
+    stop_node_ids: Optional[set[int]] = None,
+) -> None:
+    muted = getattr(node, "mute", False)
+    node_key = _graph_node_key(node)
+    classification_key = (node_key, from_socket_name)
+    if not muted and classification_key not in classified:
+        classified.add(classification_key)
+        finding = _classify_graph_node(node, from_socket_name)
+        if finding is not None:
+            findings.append(finding)
+
+    if stop_node_ids is not None and node_key in stop_node_ids:
+        return
+    if node_key in visited_nodes:
+        return
+    visited_nodes.add(node_key)
+
+    group_tree = getattr(node, "node_tree", None) if node.bl_idname == "ShaderNodeGroup" else None
+    if group_tree is not None:
+        group_output = _group_output_node(group_tree)
+        if group_output is not None:
+            _walk_material_graph(group_output, "", findings, visited_nodes, classified, stop_node_ids)
+
+    inputs = getattr(node, "inputs", None)
+    if inputs is None:
+        return
+    for socket in inputs.values():
+        if not getattr(socket, "is_linked", False):
+            continue
+        for link in getattr(socket, "links", []):
+            source_socket_name = getattr(getattr(link, "from_socket", None), "name", "") or ""
+            _walk_material_graph(link.from_node, source_socket_name, findings, visited_nodes, classified, stop_node_ids)
+
+
+def analyze_material(material: object) -> MaterialGraphAnalysis:
+    """Classify how faithfully the exporter can represent a material's node graph.
+
+    Walks only nodes reachable from the active Material Output so deliberately
+    unconnected nodes (e.g. the AO textures found by _detect_occlusion_texture)
+    are not flagged.
+    """
+    material_name = getattr(material, "name", "<unnamed>")
+    node_tree = getattr(material, "node_tree", None)
+    if node_tree is None:
+        return MaterialGraphAnalysis(material_name, MATERIAL_GRAPH_SUPPORTED, [])
+
+    findings: list[MaterialGraphFinding] = []
+    if _node_tree_is_animated(node_tree):
+        findings.append(
+            MaterialGraphFinding(material_name, "node_tree", MATERIAL_GRAPH_UNBAKEABLE, "animated node values (keyframes or drivers)")
+        )
+
+    output_node = _material_output_node(node_tree)
+    if output_node is not None:
+        _walk_material_graph(output_node, "", findings, visited_nodes=set(), classified=set())
+
+    if any(finding.category == MATERIAL_GRAPH_UNBAKEABLE for finding in findings):
+        classification = MATERIAL_GRAPH_UNBAKEABLE
+    elif findings:
+        classification = MATERIAL_GRAPH_BAKEABLE
+    else:
+        classification = MATERIAL_GRAPH_SUPPORTED
+    return MaterialGraphAnalysis(material_name, classification, findings)
+
+
+def _mesh_uv_warning(mesh_data: object) -> Optional[str]:
+    """Return a warning string when the mesh has no usable UVs for baking."""
+    uv_layers = getattr(mesh_data, "uv_layers", None)
+    if uv_layers is None or len(uv_layers) == 0:
+        return "has no UV map"
+    if not _HAS_NUMPY:
+        return None
+    try:
+        layer_data = uv_layers[0].data
+        uv_flat = np.empty(len(layer_data) * 2, dtype=np.float32)
+        layer_data.foreach_get("uv", uv_flat)
+        uvs = uv_flat.reshape(-1, 2)
+        if len(uvs) > 0 and np.all(np.ptp(uvs, axis=0) < 1.0e-6):
+            return "has a collapsed UV map (all UVs identical)"
+    except Exception:
+        return None
+    return None
+
+
+@dataclass
+class MaterialFidelityReport:
+    analyses_by_name: dict[str, MaterialGraphAnalysis]
+    uv_warnings: list[str]  # pre-formatted, e.g. "Warning: mesh 'X' has no UV map; ..."
+
+
+def compute_material_fidelity(mesh_objects: Iterable[object]) -> MaterialFidelityReport:
+    """Classify every material used by mesh_objects as supported/bakeable/unbakeable,
+    and flag meshes that need a UV map for baking but don't have one.
+
+    Shared by the console report (material_fidelity_report_lines) and the
+    Blender addon's pre-export material panel — both want the same
+    per-material classification, but the panel needs structured data
+    (name/classification/findings) to render as UI rows rather than
+    pre-formatted text.
+    """
+    analyses_by_name: dict[str, MaterialGraphAnalysis] = {}
+    uv_warnings: list[str] = []
+    for mesh_object in mesh_objects:
+        materials = getattr(getattr(mesh_object, "data", None), "materials", None) or []
+        object_needs_bake = False
+        for material in materials:
+            if material is None:
+                continue
+            name = getattr(material, "name", "<unnamed>")
+            if name not in analyses_by_name:
+                try:
+                    analyses_by_name[name] = analyze_material(material)
+                except Exception as exc:
+                    print(f"  Warning: material analysis failed for '{name}': {exc}", flush=True)
+                    continue
+            if analyses_by_name[name].classification != MATERIAL_GRAPH_SUPPORTED:
+                object_needs_bake = True
+        if object_needs_bake:
+            uv_warning = _mesh_uv_warning(getattr(mesh_object, "data", None))
+            if uv_warning is not None:
+                uv_warnings.append(f"Warning: mesh '{mesh_object.name}' {uv_warning}; export-time baking will require one")
+    return MaterialFidelityReport(analyses_by_name=analyses_by_name, uv_warnings=uv_warnings)
+
+
+def material_fidelity_report_lines(mesh_objects: Iterable[object]) -> list[str]:
+    """Build the per-export material fidelity report (Milestone 1 diagnostics)."""
+    report = compute_material_fidelity(mesh_objects)
+    analyses_by_name = report.analyses_by_name
+    if not analyses_by_name:
+        return []
+
+    counts = {MATERIAL_GRAPH_SUPPORTED: 0, MATERIAL_GRAPH_BAKEABLE: 0, MATERIAL_GRAPH_UNBAKEABLE: 0}
+    for analysis in analyses_by_name.values():
+        counts[analysis.classification] += 1
+
+    lines = [
+        "Material fidelity report: "
+        f"{counts[MATERIAL_GRAPH_SUPPORTED]} supported, "
+        f"{counts[MATERIAL_GRAPH_BAKEABLE]} bakeable, "
+        f"{counts[MATERIAL_GRAPH_UNBAKEABLE]} unbakeable"
+    ]
+    for analysis in sorted(analyses_by_name.values(), key=lambda a: a.material_name):
+        if analysis.classification == MATERIAL_GRAPH_SUPPORTED:
+            continue
+        details = "; ".join(
+            f"{finding.node_name} ({finding.node_type}): {finding.reason}" for finding in analysis.findings
+        )
+        lines.append(f"  [{analysis.classification}] {analysis.material_name} — {details}")
+    lines.extend(report.uv_warnings)
+    if counts[MATERIAL_GRAPH_BAKEABLE] or counts[MATERIAL_GRAPH_UNBAKEABLE]:
+        lines.append("  Materials listed above will render differently in the engine than in Blender.")
+        lines.append("  See docs/Architecture/materialNodeBaking.md for the export-time baking plan.")
+    return lines
+
+
+# --- Milestones 2/3: export-time material baking (opt-in via --bake-materials) ---
+#
+# For materials with divergent node graphs, Blender itself evaluates them:
+# color/scalar channels are rewired into a temporary Emission shader and baked
+# with type=EMIT (exact, lighting-free, and correct for metallic materials,
+# whose Diffuse-pass albedo bakes black); the normal channel uses a
+# tangent-space NORMAL bake with the original graph intact.  Roughness and
+# metallic are packed into one ORM-style image (G=roughness, B=metallic).
+# Divergence is decided per channel, so a material with a Mix on base color
+# only bakes base color.  Baked textures are registered by material name;
+# extract_material substitutes them for the traced textures.
+
+@dataclass
+class BakedMaterialTextures:
+    base_color: Optional[ExportedTexture] = None
+    orm: Optional[ExportedTexture] = None  # G=roughness, B=metallic
+    normal: Optional[ExportedTexture] = None
+    emissive: Optional[ExportedTexture] = None
+
+    def channel_labels(self) -> list[str]:
+        labels = []
+        if self.base_color is not None:
+            labels.append("base color")
+        if self.orm is not None:
+            labels.append("roughness+metallic")
+        if self.normal is not None:
+            labels.append("normal")
+        if self.emissive is not None:
+            labels.append("emissive")
+        return labels
+
+
+MAX_BAKE_RESOLUTION = 8192
+
+
+def validate_bake_resolution(resolution: int) -> int:
+    """Validate a --bake-resolution value, clamping instead of failing at the high end.
+
+    Raises RuntimeError for non-positive values (Blender's bpy.data.images.new()
+    rejects these with a much less clear error).  Values above MAX_BAKE_RESOLUTION
+    are clamped with a warning rather than rejected, since an oversized bake is
+    slow, not unsafe.
+    """
+    if resolution <= 0:
+        raise RuntimeError(f"--bake-resolution must be a positive integer, got {resolution}")
+    if resolution > MAX_BAKE_RESOLUTION:
+        print(
+            f"Warning: --bake-resolution {resolution} is very high; clamping to {MAX_BAKE_RESOLUTION}.",
+            flush=True,
+        )
+        return MAX_BAKE_RESOLUTION
+    return resolution
+
+
+_baked_material_textures: dict[str, BakedMaterialTextures] = {}
+
+# Owns the tempfile.mkdtemp() directory created by bake_divergent_materials(), if any.
+# The directory holds the baked PNGs and must survive until stage_nodes_for_output()
+# has copied them into the final Textures/ output folder — call
+# cleanup_material_bake_temp_dir() once staging (or the whole export) is complete.
+_material_bake_temp_dir: Optional[Path] = None
+
+
+def _set_material_bake_temp_dir(directory: Path) -> None:
+    global _material_bake_temp_dir
+    _material_bake_temp_dir = directory
+
+
+def cleanup_material_bake_temp_dir() -> None:
+    """Remove the temp directory created by the most recent bake_divergent_materials()
+    call, if any.  Safe to call even when no bake happened."""
+    global _material_bake_temp_dir
+    if _material_bake_temp_dir is not None and _material_bake_temp_dir.is_dir():
+        shutil.rmtree(_material_bake_temp_dir, ignore_errors=True)
+    _material_bake_temp_dir = None
+
+
+_BAKE_CHANNEL_SOCKETS = {
+    "base_color": ("Base Color",),
+    "orm": ("Roughness", "Metallic"),
+    "normal": ("Normal",),
+    "emissive": ("Emission Color", "Emission"),
+}
+
+
+def _safe_bake_stem(name: str) -> str:
+    stem = "".join(ch if ch.isalnum() or ch in "-_" else "_" for ch in name)
+    return stem or "material"
+
+
+def _findings_from_socket(socket: object, stop_node_ids: Optional[set[int]] = None) -> list[MaterialGraphFinding]:
+    findings: list[MaterialGraphFinding] = []
+    if socket is None or not getattr(socket, "is_linked", False):
+        return findings
+    visited: set[int] = set()
+    classified: set[tuple[int, str]] = set()
+    for link in getattr(socket, "links", []):
+        source_socket_name = getattr(getattr(link, "from_socket", None), "name", "") or ""
+        _walk_material_graph(link.from_node, source_socket_name, findings, visited, classified, stop_node_ids)
+    return findings
+
+
+def material_bake_plan(material: object) -> dict[str, bool]:
+    """Decide per channel whether export-time baking is needed and possible.
+
+    Returns {} when nothing should be baked.  The channel bake recipes
+    (_wire_emission_base_color etc.) only read individual Principled BSDF
+    inputs — they have no way to reproduce a shader combined above the
+    Principled (Mix Shader, Add Shader, another BSDF blended in).  So any
+    divergence found between the Material Output and the Principled BSDF
+    makes the *entire material* unbakeable with the current implementation,
+    not just "every channel": baking individual channels from the Principled
+    alone would silently discard the shader-level blending and produce a
+    confidently wrong texture.  Only divergence found on a single Principled
+    input (Base Color, Roughness, etc.) is baked, and only for that channel.
+    Channels with view-dependent (unbakeable) findings are skipped with a
+    warning.
+    """
+    tree = getattr(material, "node_tree", None)
+    if tree is None:
+        return {}
+    principled = next((node for node in getattr(tree, "nodes", []) if node.bl_idname == "ShaderNodeBsdfPrincipled"), None)
+    output_node = _material_output_node(tree)
+    if principled is None or output_node is None:
+        return {}
+    if _node_tree_is_animated(tree):
+        print(f"    Skipping '{material.name}': animated node values cannot be baked", flush=True)
+        return {}
+
+    global_findings = _findings_from_socket(output_node.inputs.get("Surface"), stop_node_ids={_graph_node_key(principled)})
+    if global_findings:
+        if any(finding.category == MATERIAL_GRAPH_UNBAKEABLE for finding in global_findings):
+            print(f"    Skipping '{material.name}': view-dependent nodes above the Principled BSDF cannot be baked", flush=True)
+        else:
+            print(
+                f"    Skipping '{material.name}': shader-level mixing above the Principled BSDF "
+                f"(e.g. Mix Shader / Add Shader) is not supported by the baker — per-channel "
+                f"emission rewiring cannot reproduce shader blending",
+                flush=True,
+            )
+        return {}
+
+    plan: dict[str, bool] = {}
+    for channel, socket_names in _BAKE_CHANNEL_SOCKETS.items():
+        channel_findings: list[MaterialGraphFinding] = []
+        for socket_name in socket_names:
+            socket = principled.inputs.get(socket_name)
+            channel_findings.extend(_findings_from_socket(socket))
+        if any(finding.category == MATERIAL_GRAPH_UNBAKEABLE for finding in channel_findings):
+            print(f"    Skipping '{material.name}' {channel} channel: view-dependent nodes cannot be baked", flush=True)
+            plan[channel] = False
+            continue
+        plan[channel] = bool(channel_findings)
+    if not any(plan.values()):
+        return {}
+    return plan
+
+
+def _wire_emission_base_color(tree: object, principled: object, emission: object) -> list[object]:
+    base_color_input = principled.inputs.get("Base Color")
+    if base_color_input is not None and base_color_input.is_linked:
+        tree.links.new(base_color_input.links[0].from_socket, emission.inputs["Color"])
+    elif base_color_input is not None:
+        emission.inputs["Color"].default_value = vector4(base_color_input.default_value)
+    return []
+
+
+def _wire_emission_orm(tree: object, principled: object, emission: object) -> list[object]:
+    combine = tree.nodes.new("ShaderNodeCombineColor")
+    combine.inputs["Red"].default_value = 1.0
+    for socket_name, combine_input in (("Roughness", "Green"), ("Metallic", "Blue")):
+        socket = principled.inputs.get(socket_name)
+        if socket is not None and socket.is_linked:
+            tree.links.new(socket.links[0].from_socket, combine.inputs[combine_input])
+        elif socket is not None:
+            combine.inputs[combine_input].default_value = float(socket.default_value)
+    tree.links.new(combine.outputs["Color"], emission.inputs["Color"])
+    return [combine]
+
+
+def _wire_emission_emissive(tree: object, principled: object, emission: object) -> list[object]:
+    emissive_input = principled.inputs.get("Emission Color") or principled.inputs.get("Emission")
+    if emissive_input is not None and emissive_input.is_linked:
+        tree.links.new(emissive_input.links[0].from_socket, emission.inputs["Color"])
+    elif emissive_input is not None:
+        emission.inputs["Color"].default_value = vector4(emissive_input.default_value)
+    return []
+
+
+_BAKE_CHANNEL_RECIPES = {
+    # channel: (file suffix, bake type, emission wiring, image colorspace)
+    "base_color": ("basecolor", "EMIT", _wire_emission_base_color, None),
+    "orm": ("orm", "EMIT", _wire_emission_orm, "Non-Color"),
+    "normal": ("normal", "NORMAL", None, "Non-Color"),
+    "emissive": ("emissive", "EMIT", _wire_emission_emissive, None),
+}
+
+
+def _bake_output_filename(mesh_object: object, channel: str) -> str:
+    file_suffix = _BAKE_CHANNEL_RECIPES[channel][0]
+    return f"{_safe_bake_stem(mesh_object.name)}_{file_suffix}.png"
+
+
+def _resolution_for_material(material: object, default_resolution: int) -> int:
+    """Per-material bake resolution override via a custom property
+    (material["untold_bake_resolution"]), falling back to the global
+    --bake-resolution default when unset.  Set via Blender's generic Custom
+    Properties panel on the material, or material["untold_bake_resolution"]
+    = 2048 in Python."""
+    override = material.get("untold_bake_resolution", None) if hasattr(material, "get") else None
+    if override is None:
+        return default_resolution
+    try:
+        return validate_bake_resolution(int(override))
+    except (TypeError, ValueError, RuntimeError) as exc:
+        print(
+            f"    Warning: invalid untold_bake_resolution on '{material.name}': {override!r} ({exc}); "
+            f"using default {default_resolution}",
+            flush=True,
+        )
+        return default_resolution
+
+
+def _material_node_tree_fingerprint(material: object) -> str:
+    """Deterministic hash of everything in a material's node tree that could
+    affect a bake result: node types, unlinked socket default values, and
+    link topology.  Hashes the whole tree rather than just the subgraph
+    feeding one channel — simpler, and safe to over-invalidate (an unrelated
+    node edit forces one unnecessary re-bake) rather than risk
+    under-invalidating (silently serving a stale bake).
+    """
+    def format_default_value(default: object) -> object:
+        try:
+            return tuple(round(float(component), 6) for component in default)
+        except TypeError:
+            try:
+                return round(float(default), 6)
+            except (TypeError, ValueError):
+                return str(default)
+
+    tree = getattr(material, "node_tree", None)
+    if tree is None:
+        return "no-node-tree"
+    lines: list[str] = []
+    for node in tree.nodes:
+        lines.append(f"NODE|{node.name}|{node.bl_idname}|mute={getattr(node, 'mute', False)}")
+        inputs = getattr(node, "inputs", None)
+        for socket in (inputs.values() if inputs is not None else []):
+            if getattr(socket, "is_linked", False):
+                continue
+            default = getattr(socket, "default_value", None)
+            if default is None:
+                continue
+            lines.append(f"INPUT|{node.name}|{socket.name}|{format_default_value(default)}")
+        # Constant-value nodes (RGB, Value) store their configured value on
+        # the OUTPUT socket, not an input — must be hashed too, or editing a
+        # ShaderNodeRGB's color leaves the fingerprint (and cache key)
+        # unchanged, silently serving a stale bake.
+        outputs = getattr(node, "outputs", None)
+        for index, socket in enumerate(outputs.values() if outputs is not None else []):
+            default = getattr(socket, "default_value", None)
+            if default is None:
+                continue
+            lines.append(f"OUTPUT|{node.name}|{index}:{socket.name}|{format_default_value(default)}")
+    for link in getattr(tree, "links", []):
+        lines.append(f"LINK|{link.from_node.name}.{link.from_socket.name}|{link.to_node.name}.{link.to_socket.name}")
+    lines.sort()  # Blender's node/link iteration order is not guaranteed stable.
+    return hashlib.sha1("\n".join(lines).encode("utf-8")).hexdigest()
+
+
+def _mesh_uv_fingerprint(mesh_data: object) -> str:
+    """Cheap content hash of the mesh's active UV layer.  Invalidates the
+    bake cache when a mesh is re-unwrapped without renaming the object."""
+    uv_layers = getattr(mesh_data, "uv_layers", None)
+    if not uv_layers:
+        return "no-uv"
+    layer = uv_layers.active or uv_layers[0]
+    data = layer.data
+    n = len(data)
+    if n == 0:
+        return "empty-uv"
+    if _HAS_NUMPY:
+        flat = np.empty(n * 2, dtype=np.float32)
+        data.foreach_get("uv", flat)
+        return hashlib.sha1(flat.tobytes()).hexdigest()
+    step = max(1, n // 256)
+    parts = [f"{data[i].uv[0]:.6f},{data[i].uv[1]:.6f}" for i in range(0, n, step)]
+    return hashlib.sha1(",".join(parts).encode("utf-8")).hexdigest()
+
+
+def _object_transform_fingerprint(mesh_object: object) -> str:
+    """Cheap fingerprint of world transform, since Object-coordinate-driven
+    procedural nodes (Texture Coordinate 'Object', Object Info) bake
+    differently depending on it."""
+    matrix = mesh_object.matrix_world
+    values = (round(matrix[r][c], 6) for r in range(4) for c in range(4))
+    return ",".join(str(v) for v in values)
+
+
+def _material_bake_cache_key(mesh_object: object, material: object, channel: str, resolution: int) -> str:
+    parts = [
+        _material_node_tree_fingerprint(material),
+        _mesh_uv_fingerprint(getattr(mesh_object, "data", None)),
+        _object_transform_fingerprint(mesh_object),
+        f"resolution={resolution}",
+        f"channel={channel}",
+    ]
+    return hashlib.sha1("|".join(parts).encode("utf-8")).hexdigest()
+
+
+def _material_bake_cache_dir(asset_path: Path) -> Path:
+    return asset_path.parent / f".untold_bake_cache_{_safe_bake_stem(asset_path.stem)}"
+
+
+class MaterialBakeCache:
+    """Persistent, content-addressed cache of baked material textures, so
+    re-exporting an unchanged scene skips Cycles bakes entirely.
+
+    Stored alongside the source asset rather than the export output: one
+    source asset commonly exports to many different tile/output locations
+    (tile-streaming, repeated single-asset exports to different folders)
+    that should all share the same cache.  Cache entries are content-keyed
+    (see _material_bake_cache_key), so cache growth is bounded by the number
+    of distinct (mesh, material, channel, resolution) combinations ever
+    baked from this source asset — stale entries are never automatically
+    pruned; delete the cache directory to reset it.
+    """
+
+    def __init__(self, cache_dir: Path) -> None:
+        self.cache_dir = cache_dir
+        self.manifest_path = cache_dir / "manifest.json"
+        self.hits = 0
+        self.misses = 0
+        self._manifest: dict[str, str] = {}
+        if self.manifest_path.is_file():
+            try:
+                self._manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))
+            except (json.JSONDecodeError, OSError):
+                self._manifest = {}
+
+    def get(self, cache_key: str) -> Optional[Path]:
+        filename = self._manifest.get(cache_key)
+        if filename is None:
+            return None
+        cached_path = self.cache_dir / filename
+        if not cached_path.is_file():
+            return None
+        self.hits += 1
+        return cached_path
+
+    def put(self, cache_key: str, source_file: Path) -> Path:
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
+        cached_path = self.cache_dir / f"{cache_key}.png"
+        shutil.copy2(source_file, cached_path)
+        self._manifest[cache_key] = cached_path.name
+        self.misses += 1
+        return cached_path
+
+    def save_manifest(self) -> None:
+        if not self._manifest:
+            return
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
+        self.manifest_path.write_text(json.dumps(self._manifest, indent=2, sort_keys=True), encoding="utf-8")
+
+
+def _bake_material_channel(
+    material: object,
+    mesh_object: object,
+    resolution: int,
+    bake_dir: Path,
+    channel: str,
+) -> Optional[ExportedTexture]:
+    """Bake one channel of one material, using only mesh_object's own UVs, into a PNG.
+
+    Baking is scoped to a single mesh instance rather than shared across every
+    object that uses the material: sharing one texture across multiple
+    objects risks one object's bake silently overwriting another's at
+    overlapping UV coordinates, or the two instances legitimately differing
+    where procedural/object-space nodes evaluate per-object.  The node tree
+    is restored exactly, including on failure, so the bake is safe inside a
+    live Blender session.
+    """
+    import bpy as _bpy
+
+    file_suffix, bake_type, wire_emission, colorspace = _BAKE_CHANNEL_RECIPES[channel]
+    tree = material.node_tree
+    principled = next((node for node in tree.nodes if node.bl_idname == "ShaderNodeBsdfPrincipled"), None)
+    output_node = _material_output_node(tree)
+    surface_socket = output_node.inputs.get("Surface") if output_node is not None else None
+    if principled is None or surface_socket is None:
+        return None
+
+    view_layer = _bpy.context.view_layer
+    original_surface_source = surface_socket.links[0].from_socket if surface_socket.is_linked else None
+    previous_active_node = tree.nodes.active
+
+    image = _bpy.data.images.new(f"{mesh_object.name}_{file_suffix}_bake", width=resolution, height=resolution)
+    if colorspace is not None:
+        image.colorspace_settings.name = colorspace
+    bake_target = tree.nodes.new("ShaderNodeTexImage")
+    bake_target.image = image
+    tree.nodes.active = bake_target
+    temp_nodes: list[object] = [bake_target]
+
+    if wire_emission is not None:
+        emission = tree.nodes.new("ShaderNodeEmission")
+        temp_nodes.append(emission)
+        temp_nodes.extend(wire_emission(tree, principled, emission))
+        tree.links.new(emission.outputs["Emission"], surface_socket)
+
+    previous_uv_index = mesh_object.data.uv_layers.active_index
+    try:
+        # Clear selection across every object, not just this view layer's:
+        # bake() validates all currently-selected objects are in the active
+        # view layer, and stale selection left over from a different scene
+        # (e.g. a previous tile's now-removed temp scene, processed earlier
+        # in the same sequential run) makes it fail with "Object 'X' is not
+        # in view layer" even though X was never selected in this call.
+        for obj in _bpy.data.objects:
+            try:
+                obj.select_set(False)
+            except RuntimeError:
+                pass
+        mesh_object.select_set(True)
+        mesh_object.data.uv_layers.active_index = 0
+        view_layer.objects.active = mesh_object
+
+        bake_kwargs = {"margin": 16, "use_clear": True, "use_selected_to_active": False}
+        if bake_type == "NORMAL":
+            bake_kwargs["normal_space"] = "TANGENT"
+        _bpy.ops.object.bake(type=bake_type, **bake_kwargs)
+
+        output_file = bake_dir / _bake_output_filename(mesh_object, channel)
+        image.filepath_raw = str(output_file)
+        image.file_format = "PNG"
+        image.save()
+        return ExportedTexture(
+            name=output_file.name,
+            uri=output_file.name,
+            width=resolution,
+            height=resolution,
+            mip_count=1,
+            source_path=output_file,
+        )
+    finally:
+        try:
+            mesh_object.data.uv_layers.active_index = previous_uv_index
+        except Exception:
+            pass
+        for temp_node in temp_nodes:
+            tree.nodes.remove(temp_node)
+        tree.nodes.active = previous_active_node
+        if original_surface_source is not None:
+            tree.links.new(original_surface_source, surface_socket)
+        _bpy.data.images.remove(image)
+
+
+def bake_divergent_materials(
+    mesh_objects: Iterable[object],
+    *,
+    resolution: int = 1024,
+    samples: int = 1,
+    asset_path: Optional[Path] = None,
+    use_cache: bool = True,
+) -> dict[str, BakedMaterialTextures]:
+    """Bake every divergent channel for every (mesh, material) pair.
+
+    Returns baked textures keyed by mesh object name — baking is scoped per
+    mesh instance, not shared across every object using a material, so two
+    objects that happen to share a material (e.g. many chairs using the same
+    "Wood" material) each get their own texture rather than risking one
+    object's bake overwriting another's at overlapping UV coordinates.
+    material_bake_plan() is only computed once per distinct material and
+    reused across its instances, since the plan only depends on the node
+    graph.  resolution is the default; a material can override it via a
+    material["untold_bake_resolution"] custom property.  When asset_path is
+    given and use_cache is True, each (mesh, material, channel, resolution)
+    combination is looked up in a persistent, content-addressed cache next
+    to the source asset (see MaterialBakeCache) and only baked on a miss —
+    re-exporting an unchanged scene skips every bake.  Render engine, sample
+    count, selection, and active object are restored afterwards so repeated
+    or in-session (add-on) exports see no scene changes.
+    """
+    blender_required()
+    import bpy as _bpy
+
+    plans_by_material_name: dict[str, dict[str, bool]] = {}
+    candidates: list[tuple[object, object, dict[str, bool]]] = []  # (mesh_object, material, plan)
+    for mesh_object in mesh_objects:
+        material_slots = getattr(getattr(mesh_object, "data", None), "materials", None) or []
+        material = material_slots[0] if material_slots and material_slots[0] is not None else None
+        if material is None:
+            continue
+        if material.name not in plans_by_material_name:
+            try:
+                plans_by_material_name[material.name] = material_bake_plan(material)
+            except Exception as exc:
+                print(f"    Warning: bake planning failed for '{material.name}': {exc}", flush=True)
+                plans_by_material_name[material.name] = {}
+        plan = plans_by_material_name[material.name]
+        if not plan:
+            continue
+        if len(getattr(mesh_object.data, "uv_layers", [])) == 0:
+            print(f"    Skipping '{mesh_object.name}': no UV map", flush=True)
+            continue
+        candidates.append((mesh_object, material, plan))
+    if not candidates:
+        return {}
+
+    cache = MaterialBakeCache(_material_bake_cache_dir(asset_path)) if (use_cache and asset_path is not None) else None
+
+    bake_dir = Path(tempfile.mkdtemp(prefix="untold_material_bake_"))
+    _set_material_bake_temp_dir(bake_dir)
+    scene = _bpy.context.scene
+    view_layer = _bpy.context.view_layer
+    previous_engine = scene.render.engine
+    previous_samples = scene.cycles.samples if hasattr(scene, "cycles") else None
+    previous_selection = [obj for obj in view_layer.objects if obj.select_get()]
+    previous_active = view_layer.objects.active
+
+    baked: dict[str, BakedMaterialTextures] = {}
+    try:
+        scene.render.engine = "CYCLES"
+        if hasattr(scene, "cycles"):
+            scene.cycles.samples = samples
+        for mesh_object, material, plan in candidates:
+            channels = BakedMaterialTextures()
+            material_resolution = _resolution_for_material(material, resolution)
+            for channel, needed in plan.items():
+                if not needed:
+                    continue
+                cache_key = (
+                    _material_bake_cache_key(mesh_object, material, channel, material_resolution)
+                    if cache is not None
+                    else None
+                )
+                cached_path = cache.get(cache_key) if cache is not None and cache_key is not None else None
+                if cached_path is not None:
+                    print(
+                        f"    Using cached {channel}: '{mesh_object.name}' (material '{material.name}')",
+                        flush=True,
+                    )
+                    output_file = bake_dir / _bake_output_filename(mesh_object, channel)
+                    shutil.copy2(cached_path, output_file)
+                    texture = ExportedTexture(
+                        name=output_file.name,
+                        uri=output_file.name,
+                        width=material_resolution,
+                        height=material_resolution,
+                        mip_count=1,
+                        source_path=output_file,
+                    )
+                else:
+                    print(
+                        f"    Baking {channel}: '{mesh_object.name}' (material '{material.name}') "
+                        f"({material_resolution}x{material_resolution})",
+                        flush=True,
+                    )
+                    try:
+                        texture = _bake_material_channel(material, mesh_object, material_resolution, bake_dir, channel)
+                    except Exception as exc:
+                        print(f"    Warning: {channel} bake failed for '{mesh_object.name}': {exc}", flush=True)
+                        continue
+                    if texture is not None and cache is not None and cache_key is not None:
+                        cache.put(cache_key, texture.source_path)
+                if texture is not None:
+                    setattr(channels, channel, texture)
+            if channels.channel_labels():
+                baked[mesh_object.name] = channels
+        if cache is not None:
+            print(f"    Bake cache: {cache.hits} hit(s), {cache.misses} miss(es)", flush=True)
+    finally:
+        scene.render.engine = previous_engine
+        if previous_samples is not None and hasattr(scene, "cycles"):
+            scene.cycles.samples = previous_samples
+        for obj in view_layer.objects:
+            try:
+                obj.select_set(False)
+            except RuntimeError:
+                pass
+        for obj in previous_selection:
+            try:
+                obj.select_set(True)
+            except RuntimeError:
+                pass
+        try:
+            view_layer.objects.active = previous_active
+        except Exception:
+            pass
+        if cache is not None:
+            cache.save_manifest()
+    return baked
+
+
 def _png_bit_depth(path: Path) -> int:
     """Return the bit depth field from a PNG IHDR chunk (8 or 16), or 0 on failure."""
     info = _png_ihdr(path)
@@ -1981,10 +2924,15 @@ def _png_ihdr(path: Path) -> tuple[int, int] | None:
 def _png_needs_conversion(path: Path) -> bool:
     """Return True if the PNG must be converted before handing to Metal.
 
-    Two cases require conversion:
+    Three cases require conversion:
     - 16-bit images: Metal has no sRGB 16-bit format; values load as linear.
     - Grayscale images (color type 0 or 4): Metal maps a single-channel PNG
       to the R channel only, making affected meshes appear solid red.
+    - Indexed/palette images (color type 3): pixel data is a lookup index
+      into a PLTE color table, not direct RGB(A) samples. Common for
+      roughness/metallic maps with few distinct values (palette-optimized
+      by the authoring tool) — most texture loaders (including Metal's)
+      expect direct-color PNGs and fail outright on indexed ones.
     """
     info = _png_ihdr(path)
     if info is None:
@@ -1992,7 +2940,8 @@ def _png_needs_conversion(path: Path) -> bool:
     bit_depth, color_type = info
     is_16bit = bit_depth == 16
     is_grayscale = color_type in (0, 4)  # Grayscale or Grayscale+Alpha
-    return is_16bit or is_grayscale
+    is_indexed = color_type == 3
+    return is_16bit or is_grayscale or is_indexed
 
 
 def _set_scene_color_management_raw(scene: object) -> tuple[object, ...]:
@@ -2094,6 +3043,16 @@ def write_blender_image_to_path(image_name: str, destination_path: Path) -> None
     image = bpy.data.images.get(image_name)
     if image is None:
         raise RuntimeError(f"Blender image '{image_name}' is no longer available for export")
+
+    if not getattr(image, "has_data", True):
+        # Blender lazily decodes packed/external image data — has_data is False
+        # until something forces a load, even for a fully valid, fully packed
+        # image.  Force the load once before concluding the data is missing;
+        # accessing .pixels decodes the whole buffer as a side effect.
+        try:
+            image.pixels[0]
+        except Exception:
+            pass
 
     if not getattr(image, "has_data", True) or image.size[0] == 0 or image.size[1] == 0:
         raise UnsupportedTextureFormatError(
@@ -2478,6 +3437,25 @@ def extract_material(mesh_object: object, asset_path: Path) -> ExportedMaterial:
         if source.bl_idname == "ShaderNodeNormalMap":
             strength_input = source.inputs.get("Strength")
             normal_scale = float(strength_input.default_value) if strength_input is not None else 1.0
+
+    baked = _baked_material_textures.get(mesh_object.name)
+    if baked is not None:
+        # Baked images already contain every node-graph contribution, including
+        # solid factors, so the factors must be neutral to avoid double-applying.
+        if baked.base_color is not None:
+            base_color_texture = baked.base_color
+            base_color = (1.0, 1.0, 1.0, 1.0)
+        if baked.orm is not None:
+            roughness_texture = replace(baked.orm, channel=TEXTURE_CHANNEL_G)
+            metallic_texture = replace(baked.orm, channel=TEXTURE_CHANNEL_B)
+            roughness = 1.0
+            metallic = 1.0
+        if baked.normal is not None:
+            normal_texture = baked.normal
+            normal_scale = 1.0
+        if baked.emissive is not None:
+            emissive_texture = baked.emissive
+            emissive = (1.0, 1.0, 1.0)
 
     occlusion_texture = _detect_occlusion_texture(material, asset_path)
 
@@ -3033,6 +4011,9 @@ def extract_nodes(
     convert_orientation: bool = False,
     source_orientation: str = "blender-native",
     validate: bool = False,
+    bake_materials: bool = False,
+    bake_resolution: int = 1024,
+    bake_cache: bool = True,
     progress_callback: Optional[ProgressCallback] = None,
 ) -> list[ExportedNode]:
     blender_required()
@@ -3049,6 +4030,9 @@ def extract_nodes(
         convert_orientation=convert_orientation,
         source_orientation=source_orientation,
         validate=validate,
+        bake_materials=bake_materials,
+        bake_resolution=bake_resolution,
+        bake_cache=bake_cache,
         progress_callback=progress_callback,
     )
 
@@ -3075,6 +4059,9 @@ def extract_nodes_from_objects(
     convert_orientation: bool = False,
     source_orientation: str = "blender-native",
     validate: bool = False,
+    bake_materials: bool = False,
+    bake_resolution: int = 1024,
+    bake_cache: bool = True,
     progress_callback: Optional[ProgressCallback] = None,
 ) -> list[ExportedNode]:
     blender_required()
@@ -3086,6 +4073,22 @@ def extract_nodes_from_objects(
     depsgraph = _bpy.context.evaluated_depsgraph_get()
 
     mesh_objects = [obj for obj in export_objects if getattr(obj, "type", None) == "MESH"]
+
+    _baked_material_textures.clear()
+    if bake_materials:
+        print("  Baking node-graph materials ...", flush=True)
+        if progress_callback is not None:
+            progress_callback("Bake materials", 0, 1, "divergent channels")
+        _baked_material_textures.update(
+            bake_divergent_materials(
+                mesh_objects,
+                resolution=bake_resolution,
+                asset_path=asset_path,
+                use_cache=bake_cache,
+            )
+        )
+        depsgraph = _bpy.context.evaluated_depsgraph_get()
+
     total = len(mesh_objects)
     print(f"  Processing {total} mesh(es) ...", flush=True)
     exported_meshes_by_name: dict[str, ExportedMesh] = {}
@@ -3110,6 +4113,19 @@ def extract_nodes_from_objects(
             progress_callback("Extract meshes", i, total, obj.name)
     if skipped:
         print(f"  Skipped {skipped} mesh(es) with errors", flush=True)
+
+    for report_line in material_fidelity_report_lines(mesh_objects):
+        print(f"  {report_line}", flush=True)
+    if _baked_material_textures:
+        material_name_by_object_name = {
+            obj.name: obj.data.materials[0].name
+            for obj in mesh_objects
+            if getattr(obj.data, "materials", None) and obj.data.materials[0] is not None
+        }
+        for baked_name in sorted(_baked_material_textures):
+            channel_summary = ", ".join(_baked_material_textures[baked_name].channel_labels())
+            material_name = material_name_by_object_name.get(baked_name, "?")
+            print(f"  Baked '{baked_name}' (material '{material_name}'): {channel_summary}", flush=True)
 
     descendant_world_corners_by_name: dict[str, list[tuple[float, float, float]]] = {}
 
@@ -3916,6 +4932,9 @@ def export_objects_to_untold(
     source_orientation: str = "blender-native",
     validate: bool = False,
     compress_geometry: bool = False,
+    bake_materials: bool = False,
+    bake_resolution: int = 1024,
+    bake_cache: bool = True,
     progress_callback: Optional[ProgressCallback] = None,
 ) -> dict[str, object]:
     exported_lights, exported_cameras = extract_scene_payload_from_objects(
@@ -3930,12 +4949,16 @@ def export_objects_to_untold(
         convert_orientation=convert_orientation,
         source_orientation=source_orientation,
         validate=validate,
+        bake_materials=bake_materials,
+        bake_resolution=bake_resolution,
+        bake_cache=bake_cache,
         progress_callback=progress_callback,
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     if progress_callback is not None:
         progress_callback("Stage nodes", 0, 1, output_path.name)
     exported_nodes = stage_nodes_for_output(exported_nodes, output_path)
+    cleanup_material_bake_temp_dir()
     untold_bytes = build_untold_file(
         exported_nodes,
         output_path,
@@ -3973,6 +4996,7 @@ def export_objects_to_untold(
         "camera_count": len(exported_cameras),
         "vertex_count": sum(exported_mesh.vertex_count for exported_mesh in exported_meshes),
         "index_count": sum(exported_mesh.index_count for exported_mesh in exported_meshes),
+        "baked_material_count": len(_baked_material_textures),
     }
 
 
@@ -4010,6 +5034,24 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         action="store_true",
         help="Export animation-only clip data keyed by the source armature joint paths instead of exporting mesh/model data.",
     )
+    parser.add_argument(
+        "--bake-materials",
+        action="store_true",
+        help="Bake node-graph materials the engine cannot evaluate (Mix, Math, procedural textures, ...) into flat textures via Cycles so the exported result matches Blender. Bakes base color, roughness+metallic (packed), normal, and emissive — only the channels that actually diverge.",
+    )
+    parser.add_argument(
+        "--bake-resolution",
+        type=int,
+        default=1024,
+        help=f"Square resolution for baked material textures (default: 1024, max: {MAX_BAKE_RESOLUTION}). "
+             f"Override per material via a material['untold_bake_resolution'] custom property.",
+    )
+    parser.add_argument(
+        "--no-bake-cache",
+        action="store_true",
+        help="Disable the persistent bake cache (stored next to the source asset as "
+             ".untold_bake_cache_<name>/) and force every divergent material to be re-baked.",
+    )
     return parser.parse_args(argv)
 
 
@@ -4022,6 +5064,7 @@ def main(argv: list[str]) -> int:
         raise RuntimeError(f"Unsupported source asset type: {input_path.suffix}")
     if not input_path.is_file():
         raise RuntimeError(f"Input asset does not exist: {input_path}")
+    args.bake_resolution = validate_bake_resolution(args.bake_resolution)
 
     print(f"{'Opening' if input_path.suffix.lower() == '.blend' else 'Importing'} {input_path.name} ...", flush=True)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -4050,6 +5093,9 @@ def main(argv: list[str]) -> int:
             convert_orientation=args.convert_orientation,
             source_orientation=args.source_orientation,
             validate=args.validate,
+            bake_materials=args.bake_materials,
+            bake_resolution=args.bake_resolution,
+            bake_cache=not args.no_bake_cache,
             progress_callback=lambda stage, done, total, detail: progress.stage(
                 stage,
                 f"{done}/{total} {detail}" if total > 1 else detail,
@@ -4063,6 +5109,7 @@ def main(argv: list[str]) -> int:
         )
         print(f"Staging {len(exported_nodes)} node(s) ...", flush=True)
         exported_nodes = stage_nodes_for_output(exported_nodes, output_path)
+        cleanup_material_bake_temp_dir()
         progress.advance("Stage nodes", output_path.name)
         print("Building .untold file ...", flush=True)
         untold_bytes = build_untold_file(

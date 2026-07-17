@@ -614,6 +614,27 @@ _UNTOLD_ENTITY_FMT   = "<6I6f6f16f" # 136 bytes
 _UNTOLD_MESH_FMT     = "<8I6Q6f"    # 104 bytes
 _UNTOLD_MATERIAL_FMT = "<II12f8I"   # 88 bytes
 _UNTOLD_TEXTURE_FMT  = "<8I"        # 32 bytes
+# entityId(I) nameOffset(I) lightType(I) flags(I) color(3f) intensity(f)
+# position(3f) radius(f) direction(3f) falloff(f) right(3f) innerCone(f)
+# up(3f) outerCone(f) areaSize(2f) sourcePower(f) sourceExposure(f)
+# localTransform(16f)
+_UNTOLD_LIGHT_FMT    = "<4I40f"     # 176 bytes
+# entityId(I) nameOffset(I) flags(I) reserved(I) position(3f) fovY(f)
+# forward(3f) nearClip(f) up(3f) farClip(f) right(3f) aspectRatio(f)
+# localTransform(16f)
+_UNTOLD_CAMERA_FMT   = "<4I32f"     # 144 bytes
+# entityId(I) nameOffset(I) firstJointRecordIndex(I) jointRecordCount(I)
+# reserved(2I)
+_UNTOLD_SKELETON_FMT = "<6I"        # 24 bytes
+# parentJointIndex(I) jointPathOffset(I) flags(I) reserved(I)
+# bindTransform(16f) restTransform(16f)
+_UNTOLD_SKELETON_JOINT_FMT = "<4I32f"  # 144 bytes
+# nameOffset(I) duration(f) firstChannelRecordIndex(I) channelRecordCount(I)
+# flags(I) reserved(2I)
+_UNTOLD_ANIM_CLIP_FMT       = "<IfIIIII"  # 28 bytes
+# jointPathOffset(I) firstTranslationKeyframeIndex(I) translationKeyframeCount(I)
+# firstRotationKeyframeIndex(I) rotationKeyframeCount(I) flags(I) reserved(I)
+_UNTOLD_ANIM_CHANNEL_FMT    = "<7I"       # 28 bytes
 
 assert struct.calcsize(_UNTOLD_HEADER_FMT)   == _UNTOLD_HEADER_SIZE
 assert struct.calcsize(_UNTOLD_CHUNK_FMT)    == _UNTOLD_CHUNK_ENTRY_SIZE
@@ -621,6 +642,12 @@ assert struct.calcsize(_UNTOLD_ENTITY_FMT)   == 136
 assert struct.calcsize(_UNTOLD_MESH_FMT)     == 104
 assert struct.calcsize(_UNTOLD_MATERIAL_FMT) == 88
 assert struct.calcsize(_UNTOLD_TEXTURE_FMT)  == 32
+assert struct.calcsize(_UNTOLD_LIGHT_FMT)    == 176
+assert struct.calcsize(_UNTOLD_CAMERA_FMT)   == 144
+assert struct.calcsize(_UNTOLD_SKELETON_FMT) == 24
+assert struct.calcsize(_UNTOLD_SKELETON_JOINT_FMT) == 144
+assert struct.calcsize(_UNTOLD_ANIM_CLIP_FMT)       == 28
+assert struct.calcsize(_UNTOLD_ANIM_CHANNEL_FMT)    == 28
 
 # .untold texture record flags written by untoldexplorer.py
 # (index [3] in _UNTOLD_TEXTURE_FMT "<8I")
@@ -637,6 +664,12 @@ _CHUNK_MATERIAL_TABLE = 4
 _CHUNK_TEXTURE_TABLE = 5
 _CHUNK_VERTEX_DATA   = 6
 _CHUNK_INDEX_DATA    = 7
+_CHUNK_SKELETON_TABLE         = 8
+_CHUNK_SKELETON_JOINT_TABLE   = 9
+_CHUNK_ANIMATION_CLIP_TABLE   = 12
+_CHUNK_ANIMATION_CHANNEL_TABLE = 13
+_CHUNK_LIGHT_TABLE   = 19
+_CHUNK_CAMERA_TABLE  = 20
 
 # Compression type IDs (matches UntoldCompressionType)
 _COMPRESS_NONE = 0
@@ -844,6 +877,17 @@ def patch_refs(untold_path: Path) -> None:
     new_entity_data   = patch_table(_CHUNK_ENTITY_TABLE,   _UNTOLD_ENTITY_FMT,   [2])      # nameOffset
     new_mesh_data     = patch_table(_CHUNK_MESH_TABLE,     _UNTOLD_MESH_FMT,     [1])      # meshNameOffset
     new_material_data = patch_table(_CHUNK_MATERIAL_TABLE, _UNTOLD_MATERIAL_FMT, [0])      # nameOffset
+    # Light/camera/skeleton/animation records also carry string-table offsets
+    # (light and camera names, joint paths). Every record table that stores a
+    # string offset MUST be patched here whenever the string table is rebuilt —
+    # skipping one leaves stale offsets that read garbage or invalid UTF-8 after
+    # this pass, since the string table below is fully rebuilt with new offsets.
+    new_light_data       = patch_table(_CHUNK_LIGHT_TABLE,             _UNTOLD_LIGHT_FMT,          [1])  # nameOffset
+    new_camera_data      = patch_table(_CHUNK_CAMERA_TABLE,            _UNTOLD_CAMERA_FMT,         [1])  # nameOffset
+    new_skeleton_data    = patch_table(_CHUNK_SKELETON_TABLE,          _UNTOLD_SKELETON_FMT,       [1])  # nameOffset
+    new_skel_joint_data  = patch_table(_CHUNK_SKELETON_JOINT_TABLE,    _UNTOLD_SKELETON_JOINT_FMT, [1])  # jointPathOffset
+    new_anim_clip_data   = patch_table(_CHUNK_ANIMATION_CLIP_TABLE,    _UNTOLD_ANIM_CLIP_FMT,      [0])  # nameOffset
+    new_anim_channel_data = patch_table(_CHUNK_ANIMATION_CHANNEL_TABLE, _UNTOLD_ANIM_CHANNEL_FMT,  [0])  # jointPathOffset
 
     # Texture table: remap nameOffset(0) and uriOffset(1), also set textureFormat(2)
     tex_c    = get_chunk(_CHUNK_TEXTURE_TABLE)
@@ -868,6 +912,12 @@ def patch_refs(untold_path: Path) -> None:
         (_CHUNK_MESH_TABLE,     new_mesh_data),
         (_CHUNK_MATERIAL_TABLE, new_material_data),
         (_CHUNK_TEXTURE_TABLE,  new_texture_data),
+        (_CHUNK_LIGHT_TABLE,              new_light_data),
+        (_CHUNK_CAMERA_TABLE,             new_camera_data),
+        (_CHUNK_SKELETON_TABLE,           new_skeleton_data),
+        (_CHUNK_SKELETON_JOINT_TABLE,     new_skel_joint_data),
+        (_CHUNK_ANIMATION_CLIP_TABLE,     new_anim_clip_data),
+        (_CHUNK_ANIMATION_CHANNEL_TABLE,  new_anim_channel_data),
     ]
     updated_payloads: dict[int, bytes] = {
         ctype: payload

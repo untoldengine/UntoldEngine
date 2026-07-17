@@ -47,6 +47,15 @@ Common tile exporter flags:
   --tile-size-x N    Grid tile width  (metres, default 25). Ignored in quadtree mode.
   --tile-size-z N    Grid tile depth  (metres, default 25). Ignored in quadtree mode.
   --compress-geometry  LZ4-compress vertex/index data in tile payloads.
+  --bake-materials   Bake node-graph materials the engine can't evaluate (Mix, Math,
+                     procedural textures, ...) into flat textures via Cycles. Applies
+                     to full-detail tile and shared-bucket payloads only — HLOD/LOD
+                     tiles are decimated stand-ins and are not separately baked.
+  --bake-resolution N  Square resolution for baked material textures (default: 1024).
+                     Override per material via a material['untold_bake_resolution']
+                     custom property.
+  --no-bake-cache    Disable the persistent bake cache and force every divergent
+                     material to be re-baked, even if unchanged since the last export.
   --dry-run          Plan the partition without writing payload files.
 
 All remaining arguments are passed through to tilestreamingpartition.py.
