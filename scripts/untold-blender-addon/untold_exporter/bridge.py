@@ -287,7 +287,7 @@ def export_animation(
     if not actions:
         raise RuntimeError("No animation actions were found for the selected armature")
 
-    conversion_matrix = module.make_export_orientation_matrix(source_orientation) if convert_orientation else None
+    conversion_matrix = module.resolve_conversion_matrix(convert_orientation, source_orientation)
     if progress_callback is not None:
         progress_callback("Extract animation", 0, 1, armature.name)
     clips = module.extract_animation_clips_from_armature(
