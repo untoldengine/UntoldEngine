@@ -291,7 +291,9 @@ class UntoldExplorerTests(unittest.TestCase):
     def test_extract_scene_payload_exports_sun_spot_area_and_camera_fields(self) -> None:
         original_bpy = u.bpy
         original_vector = u.Vector
-        u.bpy = object()
+        u.bpy = FakeData(
+            context=FakeData(scene=FakeData(unit_settings=FakeData(scale_length=1.0)))
+        )
         u.Vector = FakeVector
         try:
             sun = FakeSceneObject(

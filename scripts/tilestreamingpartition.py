@@ -70,6 +70,7 @@ from untoldexplorer import (
     export_objects_to_untold,
     extract_scene_payload_from_objects,
     import_usd_asset,
+    load_blend_scene,
     validate_bake_resolution,
 )
 
@@ -490,13 +491,26 @@ PERIMETER_DEPTH = 1       # tiles inward from the boundary to keep
 
 # --- Parallel export ------------------------------------------
 # Number of Blender worker processes to spawn for tile export.
-#   0  = auto (half of os.cpu_count(), capped at 8)
+#   0  = auto (half of os.cpu_count(), capped at 8, and at an estimated
+#        memory-safe count -- see AUTO_WORKER_* below)
 #   1  = disabled (sequential, same as before)
-#   N  = exactly N workers
+#   N  = exactly N workers (bypasses the memory-safe estimate entirely)
 # Each worker gets an independent Blender process that loads the source
 # scene and exports its assigned batch of tiles.  Has no effect during
 # DRY_RUN (no files are written anyway).
 PARALLEL_WORKERS = 0
+
+# Auto mode (PARALLEL_WORKERS=0) also caps worker count by estimated memory
+# footprint, so a large scene doesn't get multiplied across up to 8
+# concurrent full-scene reloads (each worker independently imports/opens
+# the whole source scene) and exhaust system RAM. This is a rough heuristic
+# based on the source file's on-disk size -- actual in-memory footprint
+# isn't knowable without loading the scene -- so it errs conservative.
+# Explicit --parallel-workers N always bypasses it.
+AUTO_WORKER_RAM_SAFETY_FRACTION = 0.6       # fraction of total RAM the auto cap may plan to use
+AUTO_WORKER_SCENE_MEMORY_MULTIPLIER = 6.0   # estimated in-memory expansion vs on-disk file size
+AUTO_WORKER_BAKE_MEMORY_MULTIPLIER = 1.5    # extra multiplier when --bake-materials is enabled
+AUTO_WORKER_MIN_ESTIMATE_BYTES = 512 * 1024 * 1024  # floor per-worker estimate
 
 
 # ============================================================
@@ -551,6 +565,12 @@ def is_usd_filepath(path: str) -> bool:
         return False
     ext = os.path.splitext(path)[1].lower()
     return ext in (".usd", ".usda", ".usdc", ".usdz")
+
+
+def is_blend_filepath(path: str) -> bool:
+    if not path:
+        return False
+    return os.path.splitext(path)[1].lower() == ".blend"
 
 
 def extract_usd_filepath(value: str) -> str:
@@ -969,6 +989,10 @@ def get_candidate_objects():
         if VISIBLE_ONLY:
             if obj.hide_viewport or obj.hide_get(view_layer=view_layer):
                 continue
+        # Tiled scenes are static-only; skip skinned meshes rather than
+        # failing the whole export (see warn_skipped_animated_objects()).
+        if _mesh_uses_armature(obj):
+            continue
         objs.append(obj)
     return objs
 
@@ -989,7 +1013,12 @@ def _mesh_uses_armature(obj):
     return any(getattr(mod, "type", None) == "ARMATURE" for mod in obj.modifiers)
 
 
-def validate_tiled_scene_static_only():
+def warn_skipped_animated_objects():
+    """Tiled scenes are static-only. Armatures and any mesh they drive are
+    excluded by get_candidate_objects(); this just reports what got skipped
+    so a wind-animated tree or similar doesn't disappear from the export
+    without a trace.
+    """
     view_layer = bpy.context.view_layer
     armatures = []
     skinned_meshes = []
@@ -1007,9 +1036,10 @@ def validate_tiled_scene_static_only():
             details.append(f"armatures: {', '.join(sorted(armatures)[:8])}")
         if skinned_meshes:
             details.append(f"skinned meshes: {', '.join(sorted(skinned_meshes)[:8])}")
-        raise RuntimeError(
-            "Tiled scene export supports static mesh geometry only; "
-            + "; ".join(details)
+        print(
+            "Warning: tiled scene export is static-only; skipping "
+            + "; ".join(details),
+            flush=True,
         )
 
 
@@ -3845,12 +3875,56 @@ def print_dry_run_report(tile_assignments, shared_objects, classification_map,
 # SECTION 15: PARALLEL TILE EXPORT
 # ============================================================
 
-def _effective_worker_count(n_tiles: int) -> int:
+def _total_system_memory_bytes() -> int:
+    """Best-effort total physical RAM in bytes, used only to cap auto worker
+    count. Falls back to a conservative 8 GiB estimate if it can't be
+    determined, which just means the auto cap picks fewer workers.
+    """
+    try:
+        output = subprocess.check_output(["sysctl", "-n", "hw.memsize"], text=True)
+        return int(output.strip())
+    except (OSError, ValueError, subprocess.CalledProcessError):
+        pass
+    try:
+        return os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES")
+    except (ValueError, OSError, AttributeError):
+        return 8 * 1024 ** 3
+
+
+def _ram_based_worker_cap(source_scene_path: str) -> int:
+    """Cap auto worker count so N concurrent full-scene reloads don't exceed
+    a safe fraction of system RAM.
+
+    Pure heuristic: estimates per-worker memory as a multiple of the source
+    file's on-disk size (larger multiple when material baking is enabled,
+    since Cycles holds full-resolution image buffers per worker), then
+    divides the RAM budget by that estimate. Always returns at least 1.
+    """
+    try:
+        file_size = os.path.getsize(source_scene_path) if source_scene_path else 0
+    except OSError:
+        file_size = 0
+
+    per_worker_estimate = max(
+        file_size * AUTO_WORKER_SCENE_MEMORY_MULTIPLIER,
+        AUTO_WORKER_MIN_ESTIMATE_BYTES,
+    )
+    if BAKE_MATERIALS:
+        per_worker_estimate *= AUTO_WORKER_BAKE_MEMORY_MULTIPLIER
+
+    budget = _total_system_memory_bytes() * AUTO_WORKER_RAM_SAFETY_FRACTION
+    return max(1, int(budget // per_worker_estimate))
+
+
+def _effective_worker_count(n_tiles: int, source_scene_path: str = "") -> int:
     """Return the number of Blender worker processes to use.
 
-    PARALLEL_WORKERS=0 → auto (half of cpu_count, capped at 8 and at n_tiles).
+    PARALLEL_WORKERS=0 → auto (half of cpu_count, capped at 8, at n_tiles,
+        and at a memory-safe estimate derived from source_scene_path -- see
+        _ram_based_worker_cap).
     PARALLEL_WORKERS=1 → sequential (no subprocesses).
-    PARALLEL_WORKERS=N → exactly N workers (capped to n_tiles).
+    PARALLEL_WORKERS=N → exactly N workers (capped to n_tiles only --
+        bypasses the memory-safe estimate since it was requested explicitly).
     Always returns at least 1.
     """
     if PARALLEL_WORKERS == 1 or n_tiles <= 1:
@@ -3860,7 +3934,17 @@ def _effective_worker_count(n_tiles: int) -> int:
     # Auto: cap at 8 workers and at n_tiles so we never spawn more workers
     # than there are tiles to export.
     cpu = os.cpu_count() or 2
-    return min(max(cpu // 2, 1), 8, n_tiles)
+    cpu_cap = min(max(cpu // 2, 1), 8, n_tiles)
+    ram_cap = _ram_based_worker_cap(source_scene_path)
+    workers = max(1, min(cpu_cap, ram_cap))
+    if ram_cap < cpu_cap:
+        print(
+            f"  Auto parallel export: capping to {workers} worker(s) based on "
+            f"estimated memory usage (cpu-based cap was {cpu_cap}). "
+            f"Override with --parallel-workers N.",
+            flush=True,
+        )
+    return workers
 
 
 def _config_snapshot() -> dict:
@@ -3916,6 +4000,11 @@ def _run_worker_mode(work_bundle_path: str, result_file_path: str) -> None:
     if source_scene_path and is_usd_filepath(source_scene_path):
         clear_scene()
         import_usd_asset(Path(source_scene_path))
+    elif source_scene_path and is_blend_filepath(source_scene_path):
+        # Worker subprocesses always start from a fresh --factory-startup
+        # scene, so there is no already-open .blend to guard against here
+        # (unlike the same branch in run()).
+        load_blend_scene(Path(source_scene_path))
 
     _apply_bundle_config(bundle.get("config", {}))
 
@@ -4116,7 +4205,7 @@ def _export_tiles_parallel(
     export is not applicable (too few tiles, PARALLEL_WORKERS=1, etc.).
     """
     non_empty = [(coord, objs) for coord, objs in sorted_tiles if objs]
-    n_workers = _effective_worker_count(len(non_empty))
+    n_workers = _effective_worker_count(len(non_empty), source_scene_path)
     if n_workers <= 1:
         return None  # caller falls back to sequential
 
@@ -4258,7 +4347,7 @@ def _export_quadtree_tiles_parallel(
     export is not applicable (PARALLEL_WORKERS=1 or too few tiles).
     """
     non_empty = [(key, objs) for key, objs in sorted_groups if objs]
-    n_workers = _effective_worker_count(len(non_empty))
+    n_workers = _effective_worker_count(len(non_empty), source_scene_path)
     if n_workers <= 1:
         return None  # caller falls back to sequential
 
@@ -4532,14 +4621,21 @@ def run():
             "Set SOURCE_SCENE_PATH_OVERRIDE to your .usd/.usdz path."
         )
 
-    # When an explicit USD/USDZ input is provided, use that asset as the source
-    # scene content for partitioning. This makes the CLI behave like the single-
-    # asset exporter instead of operating on Blender's current scene contents
-    # (for example the default startup cube under --factory-startup).
+    # When an explicit USD/USDZ/.blend input is provided, use that asset as the
+    # source scene content for partitioning. This makes the CLI behave like the
+    # single-asset exporter instead of operating on Blender's current scene
+    # contents (for example the default startup cube under --factory-startup).
     if source_scene_path and is_usd_filepath(source_scene_path):
         print_export_stage("Import source scene", os.path.basename(source_scene_path))
         clear_scene()
         import_usd_asset(Path(source_scene_path))
+    elif source_scene_path and is_blend_filepath(source_scene_path) and not bpy.data.filepath:
+        # bpy.data.filepath is only empty here when this .blend came from the
+        # --input override rather than already being the open file (see
+        # resolve_source_scene_path), so this never redundantly reopens the
+        # scene the addon is already running inside of.
+        print_export_stage("Open source scene", os.path.basename(source_scene_path))
+        load_blend_scene(Path(source_scene_path))
 
     print_export_stage("Prepare output")
     output_dir = resolve_output_dir(OUTPUT_DIR, source_scene_path)
@@ -4562,7 +4658,7 @@ def run():
     # Gather objects and compute world bounds
     # ------------------------------------------------------------------
     print_export_stage("Analyze scene")
-    validate_tiled_scene_static_only()
+    warn_skipped_animated_objects()
     objects = get_candidate_objects()
     if not objects:
         print("No mesh objects found.")
@@ -5127,7 +5223,7 @@ def run():
     planned_local_assets = 0
     if use_quadtree and node_tier_groups is not None:
         non_empty_groups = sum(1 for _key, tile_objs in node_tier_groups.items() if tile_objs)
-        quadtree_parallel = _effective_worker_count(non_empty_groups) > 1
+        quadtree_parallel = _effective_worker_count(non_empty_groups, source_scene_path) > 1
         for (_node_id, tier), tile_objs in node_tier_groups.items():
             if not tile_objs:
                 continue

@@ -2790,6 +2790,47 @@ def _bake_material_channel(
         _bpy.data.images.remove(image)
 
 
+def _sanitize_cmyk_source_images() -> None:
+    """Convert any CMYK-encoded source image on disk to an RGB copy and
+    repoint the matching Blender image datablock at it.
+
+    Cycles loads baked source textures directly via OpenImageIO, bypassing
+    Blender's own image loader. OpenImageIO's JPEG CMYK->RGB conversion has
+    a native stack-corruption bug in Blender 5.1 (crashes with
+    SIGBUS/EXC_BAD_ACCESS inside JpgInput::read_native_scanlines while
+    baking — confirmed via macOS crash reports against a real asset pack).
+    Converting the source file to plain RGB before Cycles ever touches it
+    avoids the crash. Some asset packs (e.g. ones with Adobe-exported
+    signage textures) ship exactly one such file, but it can be reused
+    across many objects, so a single bad image can crash every worker.
+    """
+    import bpy as _bpy
+    try:
+        from PIL import Image as _PILImage
+    except ImportError:
+        return
+
+    safe_dir: Optional[Path] = None
+    for image in _bpy.data.images:
+        filepath = bpy.path.abspath(image.filepath) if image.filepath else ""
+        if not filepath or not os.path.isfile(filepath):
+            continue
+        try:
+            with _PILImage.open(filepath) as source_image:
+                if source_image.mode != "CMYK":
+                    continue
+                rgb_image = source_image.convert("RGB")
+        except Exception:
+            continue
+        if safe_dir is None:
+            safe_dir = Path(tempfile.mkdtemp(prefix="untold_cmyk_sanitized_"))
+        safe_path = safe_dir / f"{Path(filepath).stem}_rgb.jpg"
+        rgb_image.save(safe_path, quality=95)
+        print(f"    Converted CMYK source image to RGB: {Path(filepath).name} -> {safe_path.name}", flush=True)
+        image.filepath = str(safe_path)
+        image.reload()
+
+
 def bake_divergent_materials(
     mesh_objects: Iterable[object],
     *,
@@ -2818,6 +2859,8 @@ def bake_divergent_materials(
     """
     blender_required()
     import bpy as _bpy
+
+    _sanitize_cmyk_source_images()
 
     plans_by_material_name: dict[str, dict[str, bool]] = {}
     candidates: list[tuple[object, object, dict[str, bool]]] = []  # (mesh_object, material, plan)
@@ -2850,6 +2893,8 @@ def bake_divergent_materials(
     view_layer = _bpy.context.view_layer
     previous_engine = scene.render.engine
     previous_samples = scene.cycles.samples if hasattr(scene, "cycles") else None
+    previous_threads_mode = scene.render.threads_mode
+    previous_threads = scene.render.threads
     previous_selection = [obj for obj in view_layer.objects if obj.select_get()]
     previous_active = view_layer.objects.active
 
@@ -2858,6 +2903,14 @@ def bake_divergent_materials(
         scene.render.engine = "CYCLES"
         if hasattr(scene, "cycles"):
             scene.cycles.samples = samples
+        # Force single-threaded baking. Cycles' TBB image-loading pool has hit
+        # a real Blender/OpenImageIO crash (SIGBUS/EXC_BAD_ACCESS in
+        # JpgInput::read_native_scanlines, stack-guard-region corruption
+        # across worker threads) on some source JPEG textures in large asset
+        # packs. Serializing image loads avoids the inter-thread stack
+        # adjacency that triggers it, at the cost of slower baking.
+        scene.render.threads_mode = 'FIXED'
+        scene.render.threads = 1
         for mesh_object, material, plan in candidates:
             channels = BakedMaterialTextures()
             material_resolution = _resolution_for_material(material, resolution)
@@ -2908,6 +2961,8 @@ def bake_divergent_materials(
         scene.render.engine = previous_engine
         if previous_samples is not None and hasattr(scene, "cycles"):
             scene.cycles.samples = previous_samples
+        scene.render.threads_mode = previous_threads_mode
+        scene.render.threads = previous_threads
         for obj in view_layer.objects:
             try:
                 obj.select_set(False)

@@ -102,10 +102,12 @@ if [ -w "$SUPPORT_DIR" ]; then
     cp "$REPO_ROOT/scripts/untoldexporter.py" "$SUPPORT_DIR/untoldexporter.py"
     cp "$REPO_ROOT/scripts/untoldexplorer.py" "$SUPPORT_DIR/untoldexplorer.py"
     cp "$REPO_ROOT/scripts/texbake.py" "$SUPPORT_DIR/texbake.py"
+    cp "$REPO_ROOT/scripts/tilestreamingpartition.py" "$SUPPORT_DIR/tilestreamingpartition.py"
 else
     sudo cp "$REPO_ROOT/scripts/untoldexporter.py" "$SUPPORT_DIR/untoldexporter.py"
     sudo cp "$REPO_ROOT/scripts/untoldexplorer.py" "$SUPPORT_DIR/untoldexplorer.py"
     sudo cp "$REPO_ROOT/scripts/texbake.py" "$SUPPORT_DIR/texbake.py"
+    sudo cp "$REPO_ROOT/scripts/tilestreamingpartition.py" "$SUPPORT_DIR/tilestreamingpartition.py"
 fi
 
 echo -e "${GREEN}✅ Installation complete${NC}"
@@ -130,6 +132,9 @@ if command -v $CLI_NAME &> /dev/null; then
     echo ""
     echo -e "  ${CYAN}# Export USD/USDZ to .untold${NC}"
     echo -e "  ${CYAN}$CLI_NAME export --input model.usdz --output model.untold --convert-orientation${NC}"
+    echo ""
+    echo -e "  ${CYAN}# Partition a USD/USDZ scene into streaming tiles${NC}"
+    echo -e "  ${CYAN}$CLI_NAME export-tiles --input scene.usdz --output-dir tile_exports --tile-size-x 25 --tile-size-z 25${NC}"
     echo ""
     echo -e "  ${CYAN}# Bake textures to .utex${NC}"
     echo -e "  ${CYAN}$CLI_NAME texbake --dir Textures${NC}"
