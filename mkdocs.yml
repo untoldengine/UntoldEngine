@@ -45,57 +45,58 @@ nav:
   - Introduction: index.md
   - API:
     - Getting Started: API/GettingStarted.md
+    - Untold Engine CLI: API/UsingUntoldEngineCLI.md
     - Usage Examples: API/UsageExamples.md
     - Engine Settings: API/UsingEngineAPI.md
     - Registration System: API/UsingRegistrationSystem.md
-    - Rendering System: API/UsingRenderingSystem.md
-    - Rendering Extensions: API/UsingRenderingExtensions.md
     - Transform System: API/UsingTransformSystem.md
+    - Scene Graph: API/UsingScenegraph.md
     - Camera System: API/UsingCameraSystem.md
     - Input System: API/UsingInputSystem.md
-    - Spatial Input: API/UsingSpatialInput.md
-    - Lighting System: API/UsingLightingSystem.md
-    - XR Lighting: API/UsingXRLighting.md
-    - XR Immersion Modes: API/UsingXRImmersionMode.md
-    - Scene Channels: API/UsingSceneChannels.md
-    - Light Portals: API/UsingLightPortals.md
+    - Rendering System: API/UsingRenderingSystem.md
     - Materials: API/UsingMaterials.md
+    - Lighting System: API/UsingLightingSystem.md
     - Animation System: API/UsingAnimationSystem.md
     - Physics System: API/UsingPhysicsSystem.md
     - Steering System: API/UsingSteeringSystem.md
     - Post Effects: API/UsingPostFX.md
-    - Scene Graph: API/UsingScenegraph.md
+    - Scene Channels: API/UsingSceneChannels.md
     - LOD System: API/UsingLODSystem.md
     - Static Batching: API/UsingStaticBatchingSystem.md
     - LOD + Batching + Streaming: API/UsingLOD-Batching-Streaming.md
     - Geometry Streaming: API/UsingGeometryStreamingSystem.md
     - Async Loading: API/UsingAsyncLoading.md
+    - Spatial Input: API/UsingSpatialInput.md
+    - XR Lighting: API/UsingXRLighting.md
+    - XR Immersion Modes: API/UsingXRImmersionMode.md
+    - Light Portals: API/UsingLightPortals.md
+    - Rendering Extensions: API/UsingRenderingExtensions.md
     - Gaussian System: API/UsingGaussianSystem.md
     - Profiler: API/UsingProfiler.md
     - Spatial Debugger: API/SpatialDebugger.md
     - Logger: API/UsingTheLogger.md
     - Exporter: API/UsingTheExporter.md
     - Blender Add-on: API/UsingBlenderAddon.md
-    - Untold Engine CLI: API/UsingUntoldEngineCLI.md
     - Optimizations: API/Optimizations.md
   - Architecture:
     - Rendering System: Architecture/renderingSystem.md
     - Rendering Extensions: Architecture/RenderingExtensions.md
     - XR Rendering System: Architecture/xrRenderingSystem.md
+    - Asset Format: Architecture/assetFormat.md
+    - Material Node Baking: Architecture/materialNodeBaking.md
     - Scene Channels: Architecture/sceneChannels.md
-    - Out-of-Core Geometry: Architecture/outOfCore.md
-    - Batching System: Architecture/batchingSystem.md
-    - LOD System: Architecture/lodSystem.md
     - Tile-Based Streaming: Architecture/tilebasedstreaming.md
+    - Out-of-Core Geometry: Architecture/outOfCore.md
     - Streaming Region Manager: Architecture/streamingRegionManager.md
-    - Streaming Cache Lifecycle: Architecture/streamingCacheLifecycle.md
     - Geometry Streaming System: Architecture/geometryStreamingSystem.md
+    - Streaming Cache Lifecycle: Architecture/streamingCacheLifecycle.md
     - Texture Streaming System: Architecture/textureStreamingSystem.md
     - Mesh Resource Manager: Architecture/meshResourceManager.md
-    - Asset Format: Architecture/assetFormat.md
-    - Asset Profiler: Architecture/assetProfiler.md
     - Progressive Asset Loader: Architecture/progressiveAssetLoader.md
+    - Asset Profiler: Architecture/assetProfiler.md
     - Asset Remote Streaming: Architecture/asset_remote_streaming.md
+    - Batching System: Architecture/batchingSystem.md
+    - LOD System: Architecture/lodSystem.md
   - Extensions:
     - Creating a Rendering Extension Plugin: Extensions/CreatingRenderingExtensionPlugin.md
   - Contributing:
