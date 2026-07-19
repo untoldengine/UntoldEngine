@@ -1387,7 +1387,27 @@ def load_source_objects(asset_path: Path) -> list[object]:
     return import_usd_asset(asset_path)
 
 
-def make_export_orientation_matrix(source_orientation: str) -> object:
+def get_scene_unit_scale() -> float:
+    """Return the source file's Blender-units-to-meters ratio (Scene Properties > Units > Unit Scale).
+
+    Some asset packs are modeled with raw coordinates in centimeters (or another
+    non-meter scale) and rely on this scene setting purely for Blender's own UI
+    to display "nice" meter values; the raw mesh/object coordinates never get
+    rescaled by it. The engine assumes 1 exported unit = 1 meter, so this ratio
+    must be baked into exported geometry explicitly.
+    """
+    if bpy is None:
+        return 1.0
+    scene = getattr(bpy.context, "scene", None)
+    if scene is None:
+        return 1.0
+    try:
+        return float(scene.unit_settings.scale_length)
+    except (AttributeError, TypeError, ValueError):
+        return 1.0
+
+
+def make_export_orientation_matrix(source_orientation: str, unit_scale: float = 1.0) -> object:
     blender_required()
     if axis_conversion is None or Matrix is None or Vector is None:
         raise RuntimeError("Blender axis conversion helpers are unavailable in this environment")
@@ -1398,12 +1418,29 @@ def make_export_orientation_matrix(source_orientation: str) -> object:
     if source_orientation not in source_axes:
         raise RuntimeError(f"Unsupported source orientation: {source_orientation}")
     from_forward, from_up = source_axes[source_orientation]
-    return axis_conversion(
+    rotation = axis_conversion(
         from_forward=from_forward,
         from_up=from_up,
         to_forward="Z",
         to_up="Y",
     ).to_4x4()
+    if unit_scale != 1.0:
+        rotation = Matrix.Scale(unit_scale, 4) @ rotation
+    return rotation
+
+
+def resolve_conversion_matrix(convert_orientation: bool, source_orientation: str) -> Optional[object]:
+    """Build the matrix export code should pass through, folding in unit-scale correction.
+
+    Axis conversion stays opt-in via --convert-orientation, but unit-scale
+    correction is not a style choice: it is applied automatically whenever the
+    source file's Unit Scale differs from 1.0, regardless of that flag.
+    """
+    unit_scale = get_scene_unit_scale()
+    if not convert_orientation and unit_scale == 1.0:
+        return None
+    axis_key = source_orientation if convert_orientation else "engine-oriented"
+    return make_export_orientation_matrix(axis_key, unit_scale)
 
 
 def transform_point(matrix: object, point: tuple[float, float, float]) -> tuple[float, float, float]:
@@ -1802,7 +1839,7 @@ def extract_scene_payload_from_objects(
     if not include_scene_payload:
         return [], []
 
-    conversion_matrix = make_export_orientation_matrix(source_orientation) if convert_orientation else None
+    conversion_matrix = resolve_conversion_matrix(convert_orientation, source_orientation)
     lights: list[ExportedLight] = []
     cameras: list[ExportedCamera] = []
 
@@ -3762,14 +3799,11 @@ def extract_mesh_object(
         raise RuntimeError(f"Failed to evaluate mesh data for {mesh_object.name}")
 
     try:
-        if convert_orientation:
-            conversion_matrix = (
-                _cached_conversion_matrix
-                if _cached_conversion_matrix is not None
-                else make_export_orientation_matrix(source_orientation)
-            )
-        else:
-            conversion_matrix = None
+        conversion_matrix = (
+            _cached_conversion_matrix
+            if _cached_conversion_matrix is not None
+            else resolve_conversion_matrix(convert_orientation, source_orientation)
+        )
 
         if _HAS_NUMPY:
             return _extract_mesh_numpy(
@@ -4067,7 +4101,7 @@ def extract_nodes_from_objects(
     blender_required()
     if not export_objects:
         raise RuntimeError("No Blender objects were provided for export")
-    conversion_matrix = make_export_orientation_matrix(source_orientation) if convert_orientation else None
+    conversion_matrix = resolve_conversion_matrix(convert_orientation, source_orientation)
 
     import bpy as _bpy
     depsgraph = _bpy.context.evaluated_depsgraph_get()
@@ -4675,7 +4709,7 @@ def build_untold_file(
 def extract_animation_clips(asset_path: Path, convert_orientation: bool = False, source_orientation: str = "blender-native") -> list[ExportedAnimationClip]:
     blender_required()
     imported_objects = load_source_objects(asset_path)
-    conversion_matrix = make_export_orientation_matrix(source_orientation) if convert_orientation else None
+    conversion_matrix = resolve_conversion_matrix(convert_orientation, source_orientation)
     armatures = [obj for obj in imported_objects if getattr(obj, "type", None) == "ARMATURE"]
     if not armatures:
         raise RuntimeError("No armature objects were found in the imported animation asset")
