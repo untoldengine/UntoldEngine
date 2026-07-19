@@ -111,6 +111,7 @@ echo "Using Blender: ${blender_bin}"
 exec "${blender_bin}" \
   --background \
   --factory-startup \
+  --python-exit-code 1 \
   --python "${PYTHON_SCRIPT}" \
   -- \
   "${forwarded[@]}"

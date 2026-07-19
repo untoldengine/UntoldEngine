@@ -94,6 +94,96 @@ func runInheritedProcess(_ executableURL: URL, _ arguments: [String]) throws -> 
     return process.terminationStatus
 }
 
+// MARK: - Blender Resolution
+
+/// Shared by every command that shells out to Blender (`export`, `export-tiles`).
+enum BlenderResolutionError: LocalizedError {
+    case blenderNotFound
+    case blenderNotExecutable(String)
+
+    var errorDescription: String? {
+        switch self {
+        case .blenderNotFound:
+            return """
+            Blender was not found. Download it from https://www.blender.org/download/ \
+            (tested with Blender 5.1.0), then use --blender /path/to/Blender or set BLENDER_BIN.
+            """
+        case let .blenderNotExecutable(path):
+            return "Blender is not executable at: \(path)"
+        }
+    }
+}
+
+/// Resolves the Blender executable to run, checking (in order): an explicit
+/// `--blender` override, the `BLENDER_BIN` environment variable, the standard
+/// macOS app bundle location, and PATH.
+func resolveBlenderExecutable(override: String?) throws -> URL {
+    if let override {
+        return try blenderExecutableURL(at: resolvePath(override).path)
+    }
+    if let environmentPath = ProcessInfo.processInfo.environment["BLENDER_BIN"], !environmentPath.isEmpty {
+        return try blenderExecutableURL(at: resolvePath(environmentPath).path)
+    }
+
+    let applicationPath = "/Applications/Blender.app/Contents/MacOS/Blender"
+    if FileManager.default.isExecutableFile(atPath: applicationPath) {
+        return URL(fileURLWithPath: applicationPath)
+    }
+
+    let pathDirectories = ProcessInfo.processInfo.environment["PATH", default: ""]
+        .split(separator: ":")
+        .map(String.init)
+    for directory in pathDirectories {
+        let candidate = URL(fileURLWithPath: directory).appendingPathComponent("blender")
+        if FileManager.default.isExecutableFile(atPath: candidate.path) {
+            return candidate
+        }
+    }
+    throw BlenderResolutionError.blenderNotFound
+}
+
+private func blenderExecutableURL(at path: String) throws -> URL {
+    guard FileManager.default.isExecutableFile(atPath: path) else {
+        throw BlenderResolutionError.blenderNotExecutable(path)
+    }
+    return URL(fileURLWithPath: path)
+}
+
+// MARK: - Support Script Resolution
+
+/// Resolves a Blender/Python support script (e.g. `untoldexporter.py`,
+/// `texbake.py`, `tilestreamingpartition.py`) by filename, checking (in
+/// order): the `UNTOLDENGINE_EXPORTER_DIR` override, the installed libexec
+/// location beside the running binary, and `scripts/` in the repo root for
+/// `swift run` during development. Throws the caller's own not-installed
+/// error, built from the installed-path candidate, if none is found.
+func resolveSupportScript(named filename: String, notInstalled: (String) -> Error) throws -> URL {
+    if let supportDirectory = ProcessInfo.processInfo.environment["UNTOLDENGINE_EXPORTER_DIR"] {
+        let candidate = URL(fileURLWithPath: supportDirectory).appendingPathComponent(filename)
+        if FileManager.default.fileExists(atPath: candidate.path) { return candidate }
+    }
+
+    let executableURL = Bundle.main.executableURL
+        ?? URL(fileURLWithPath: CommandLine.arguments[0]).standardizedFileURL
+    let installedScript = executableURL
+        .deletingLastPathComponent()
+        .deletingLastPathComponent()
+        .appendingPathComponent("libexec/untoldengine/\(filename)")
+    if FileManager.default.fileExists(atPath: installedScript.path) {
+        return installedScript
+    }
+
+    // Supports `swift run` from Tools/UntoldEngineCLI during development.
+    let developmentScript = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        .appendingPathComponent("../../scripts/\(filename)")
+        .standardizedFileURL
+    if FileManager.default.fileExists(atPath: developmentScript.path) {
+        return developmentScript
+    }
+
+    throw notInstalled(installedScript.path)
+}
+
 // MARK: - Asset Folder Structure
 
 /// Creates the standard UntoldEngine asset folder structure

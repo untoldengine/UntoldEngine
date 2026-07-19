@@ -118,6 +118,10 @@ struct ExportCommand: ParsableCommand {
         process.arguments = [
             "--background",
             "--factory-startup",
+            // Without this, Blender exits 0 even when the Python script
+            // raises an uncaught exception, so a real export failure would
+            // otherwise be reported as success.
+            "--python-exit-code", "1",
             "--python", exporterURL.path,
             "--",
         ] + exporterArguments
@@ -171,69 +175,16 @@ struct ExportCommand: ParsableCommand {
     }
 
     private func resolveBlender() throws -> URL {
-        if let blender {
-            return try executableURL(at: resolvePath(blender).path)
-        }
-        if let environmentPath = ProcessInfo.processInfo.environment["BLENDER_BIN"], !environmentPath.isEmpty {
-            return try executableURL(at: resolvePath(environmentPath).path)
-        }
-
-        let applicationPath = "/Applications/Blender.app/Contents/MacOS/Blender"
-        if FileManager.default.isExecutableFile(atPath: applicationPath) {
-            return URL(fileURLWithPath: applicationPath)
-        }
-
-        let pathDirectories = ProcessInfo.processInfo.environment["PATH", default: ""]
-            .split(separator: ":")
-            .map(String.init)
-        for directory in pathDirectories {
-            let candidate = URL(fileURLWithPath: directory).appendingPathComponent("blender")
-            if FileManager.default.isExecutableFile(atPath: candidate.path) {
-                return candidate
-            }
-        }
-        throw ExportError.blenderNotFound
-    }
-
-    private func executableURL(at path: String) throws -> URL {
-        guard FileManager.default.isExecutableFile(atPath: path) else {
-            throw ExportError.blenderNotExecutable(path)
-        }
-        return URL(fileURLWithPath: path)
+        try resolveBlenderExecutable(override: blender)
     }
 
     private func resolveExporter() throws -> URL {
-        if let supportDirectory = ProcessInfo.processInfo.environment["UNTOLDENGINE_EXPORTER_DIR"] {
-            let candidate = URL(fileURLWithPath: supportDirectory).appendingPathComponent("untoldexporter.py")
-            if FileManager.default.fileExists(atPath: candidate.path) { return candidate }
-        }
-
-        let executableURL = Bundle.main.executableURL
-            ?? URL(fileURLWithPath: CommandLine.arguments[0]).standardizedFileURL
-        let installedExporter = executableURL
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appendingPathComponent("libexec/untoldengine/untoldexporter.py")
-        if FileManager.default.fileExists(atPath: installedExporter.path) {
-            return installedExporter
-        }
-
-        // Supports `swift run` from Tools/UntoldEngineCLI during development.
-        let developmentExporter = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-            .appendingPathComponent("../../scripts/untoldexporter.py")
-            .standardizedFileURL
-        if FileManager.default.fileExists(atPath: developmentExporter.path) {
-            return developmentExporter
-        }
-
-        throw ExportError.exporterNotInstalled(installedExporter.path)
+        try resolveSupportScript(named: "untoldexporter.py") { ExportError.exporterNotInstalled($0) }
     }
 }
 
 enum ExportError: LocalizedError {
     case inputNotFound(String)
-    case blenderNotFound
-    case blenderNotExecutable(String)
     case exporterNotInstalled(String)
     case exportFailed(Int32)
     case optimizeFailed(Int32)
@@ -243,13 +194,6 @@ enum ExportError: LocalizedError {
         switch self {
         case let .inputNotFound(path):
             return "Input asset does not exist: \(path)"
-        case .blenderNotFound:
-            return """
-            Blender was not found. Download it from https://www.blender.org/download/ \
-            (tested with Blender 5.1.0), then use --blender /path/to/Blender or set BLENDER_BIN.
-            """
-        case let .blenderNotExecutable(path):
-            return "Blender is not executable at: \(path)"
         case let .exporterNotInstalled(path):
             return "Exporter support files were not found. Reinstall the CLI. Expected: \(path)"
         case let .exportFailed(status):
