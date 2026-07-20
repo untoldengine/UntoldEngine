@@ -39,7 +39,7 @@ Untold Engine is a **Swift + Metal 3D engine for macOS, iOS, and visionOS** — 
 
 If you've hit the ceiling of what existing engines allow on Apple platforms, this is for you.
 
-![untoldengine-image](/docs/images/engine-highlight-1.png)
+![untoldengine-image](/docs/images/engine-highlight-5.png)
 
 ---
 
@@ -107,7 +107,7 @@ Engine as a package dependency.
 To create your own project/game using the Untold Engine, see 
 [Getting Started](https://untoldengine.github.io/UntoldEngine/API/GettingStarted/).
 
-![untoldengine-image-3](/docs/images/engine-highlight-3.png)
+![untoldengine-image-3](/docs/images/engine-highlight-4.png)
 
 ## 🧱 Core Direction
 

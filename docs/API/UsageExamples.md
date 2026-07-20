@@ -5,48 +5,6 @@ you want a concrete example first, then open the focused API pages for details.
 
 For a broader first project walkthrough, see [Getting Started](GettingStarted.md).
 
-## Export Assets First
-
-Untold Engine uses `.untold` as its runtime asset format. Keep USD/USDZ
-as your authoring format, then export it before loading it in the engine.
-
-Convert one asset:
-
-```bash
-./scripts/export-untold \
-  --input GameData/Models/robot/robot.usdz \
-  --output GameData/Models/robot/robot.untold \
-  --convert-orientation \
-  --source-orientation blender-native
-```
-
-Export an animation clip:
-
-```bash
-./scripts/export-untold \
-  --input GameData/Models/robot/running.usdz \
-  --output GameData/Models/robot/running.untold \
-  --convert-orientation \
-  --source-orientation blender-native \
-  --animation
-```
-
-Export a large streamed scene:
-
-```bash
-./scripts/export-untold-tiles \
-  --input GameData/Models/city/city.usdz \
-  --output-dir GameData/Models/city/tile_exports \
-  --tile-size-x 25 \
-  --tile-size-z 25 \
-  --generate-hlod \
-  --generate-lod
-```
-
-For exporter options and expected output layout, see
-[Using The Exporter](UsingTheExporter.md). For texture compression and LZ4
-compression, see [Optimizations](Optimizations.md).
-
 ## Create an Entity
 
 Entities are lightweight IDs. Systems add behavior by attaching components or by
