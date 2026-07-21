@@ -99,19 +99,21 @@ The full graph for a typical frame looks like this:
 environment/grid
     └── shadow
             └── batchedShadow
-                    └── model ──────────────────────────── gaussian
-                            └── batchedModel                    │
-                                    └── hzbDepthSource          │
-                                            └── ssao            │
-                                                    └── lightPass
-                                                            └── transparency
-                                                                    └── wireframe
-                                                                            └── spatialDebug
-                                                                                    └── [post-processing chain]
-                                                                                                └── precomp ◄── (gaussian joins here)
-                                                                                                        └── look
-                                                                                                                └── [aa: fxaa / smaa×3 / none]
-                                                                                                                            └── outputTransform
+                    └── pointShadow
+                            └── spotShadow
+                                    └── model ───────────────────── gaussian
+                                    └── batchedModel                    │
+                                            └── hzbDepthSource          │
+                                                    └── ssao            │
+                                                            └── lightPass
+                                                                    └── transparency
+                                                                            └── wireframe
+                                                                                    └── spatialDebug
+                                                                                            └── [post-processing chain]
+                                                                                                        └── precomp ◄── (gaussian joins here)
+                                                                                                                └── look
+                                                                                                                        └── [aa: fxaa / smaa×3 / none]
+                                                                                                                                    └── outputTransform
 ```
 
 ### Base Pass (environment or grid)
@@ -130,7 +132,7 @@ This pass has **no dependencies** — it is always the root of the graph.
 ### Shadow Passes
 
 ```
-shadow → batchedShadow
+shadow → batchedShadow → pointShadow → spotShadow
 ```
 
 Both passes render scene geometry from the **directional light's point of view** into a shadow map depth texture. No color is written — only depth. The renderer checks `entityToBatch` and routes each entity to the appropriate pass:
@@ -148,7 +150,13 @@ The cascade count is 2 by default. Raise to 3 in `Globals.swift` for outdoor sce
 
 **Per-cascade shadow distance:** Each cascade only receives shadow casters within its own split distance (`shadowCascadeMaxDistance`). The effective limit is `min(maxShadowCastingDistance, cascadeSplitDistances[cascadeIdx])`. This prevents the near cascade from rendering distant objects that are only relevant to the far cascade, significantly reducing shadow draw calls in dense scenes.
 
+**Shadow softness:** CSM sampling uses a centered 16-tap Poisson PCF kernel. The default runtime softness is `nearRadiusTexels = 2.0`, `farRadiusTexels = 5.0`, with an `xrRadiusScale = 1.35` applied only in stereo XR. Use `setShadowSoftness(_:)` to tune this globally per scene.
+
 The shadow map produced here is consumed by the TBDR light sub-pass inside `model`.
+
+**Point shadows:** `pointShadow` renders a cube depth map for the first point light with `castsShadow(true)`. It renders six 90-degree faces from the point light's world position and samples the cube map only for the matching point-light index. Because this costs six depth renders, the current milestone intentionally supports one active shadowed point light.
+
+**Spot shadows:** `spotShadow` renders a single perspective depth map for the first spot light with `castsShadow(true)`. Its view comes from the spot light's position and semantic emission direction, its field of view comes from the authored outer cone, and its far plane comes from the spot light radius. The opaque light shader samples this map only for the matching spot-light index, so unshadowed spot lights continue through the normal spot-light path.
 
 ### G-Buffer Passes (TBDR)
 

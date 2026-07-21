@@ -32,6 +32,8 @@ public struct RenderInfo {
     public var postProcessRenderPassDescriptor: MTLRenderPassDescriptor!
     // CSM: one render pass descriptor per cascade (3 total), each targeting a separate array slice.
     public var csmRenderPassDescriptors: [MTLRenderPassDescriptor] = []
+    public var pointShadowRenderPassDescriptors: [MTLRenderPassDescriptor] = []
+    public var spotShadowRenderPassDescriptor: MTLRenderPassDescriptor!
     public var gizmoRenderPassDescriptor: MTLRenderPassDescriptor!
     public var deferredRenderPassDescriptor: MTLRenderPassDescriptor!
     public var ssaoRenderPassDescriptor: MTLRenderPassDescriptor!
@@ -153,6 +155,8 @@ public struct VertexDescriptors {
 public struct TextureResources {
     // CSM depth texture array — 3 slices, one per cascade.
     public var csmShadowMap: MTLTexture?
+    public var pointShadowCubeMap: MTLTexture?
+    public var spotShadowMap: MTLTexture?
     public var colorMap: MTLTexture?
     public var normalMap: MTLTexture?
     public var positionMap: MTLTexture?

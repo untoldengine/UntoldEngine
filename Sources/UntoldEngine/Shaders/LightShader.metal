@@ -72,6 +72,123 @@ float computeCSMShadow(
     return shadow / 16.0;
 }
 
+float computeSpotShadow(
+    depth2d<float> shadowMap,
+    constant SpotShadowUniforms &spotShadow,
+    float3 worldPos
+) {
+    if (spotShadow.enabled < 0.5) {
+        return 1.0;
+    }
+
+    float4 shadowCoords = spotShadow.lightSpaceMatrix * float4(worldPos, 1.0);
+    if (shadowCoords.w <= 0.0) {
+        return 1.0;
+    }
+
+    float3 proj = shadowCoords.xyz / shadowCoords.w;
+    proj.xy = proj.xy * 0.5 + 0.5;
+    proj.y = 1.0 - proj.y;
+
+    if (proj.x < 0.0 || proj.x > 1.0 ||
+        proj.y < 0.0 || proj.y > 1.0 ||
+        proj.z < 0.0 || proj.z > 1.0) {
+        return 1.0;
+    }
+
+    constexpr sampler shadowSampler(
+        coord::normalized,
+        filter::linear,
+        address::clamp_to_edge,
+        compare_func::less_equal
+    );
+
+    float2 texelSize = 1.0 / float2(shadowMap.get_width(), shadowMap.get_height());
+    float radius = max(spotShadow.shadowSoftness, 0.25);
+    float shadow = 0.0;
+    for (int i = 0; i < 16; ++i) {
+        float2 offset = poissonDisk[i] * texelSize * radius;
+        shadow += shadowMap.sample_compare(shadowSampler, proj.xy + offset, proj.z - spotShadow.bias);
+    }
+    return shadow / 16.0;
+}
+
+float computePointShadow(
+    depthcube<float> shadowCube,
+    constant PointShadowUniforms &pointShadow,
+    float3 worldPos
+) {
+    if (pointShadow.enabled < 0.5) {
+        return 1.0;
+    }
+
+    float3 lightToFragment = worldPos - pointShadow.lightPosition;
+    float distanceToLight = length(lightToFragment);
+    float farDistance = max(pointShadow.farDistance, 0.001);
+    if (distanceToLight <= 0.001 || distanceToLight > farDistance) {
+        return 1.0;
+    }
+
+    // The depth cube stores the perspective depth of the selected cube face.
+    // Match that face-space depth by using the dominant axis, not radial distance.
+    constexpr float nearDistance = 0.05;
+    float3 absLightToFragment = abs(lightToFragment);
+    float faceDepth;
+    float2 ndc;
+    uint face;
+
+    if (absLightToFragment.x >= absLightToFragment.y && absLightToFragment.x >= absLightToFragment.z) {
+        if (lightToFragment.x >= 0.0) {
+            face = 0;
+            faceDepth = lightToFragment.x;
+            ndc = float2(-lightToFragment.z, -lightToFragment.y) / faceDepth;
+        } else {
+            face = 1;
+            faceDepth = -lightToFragment.x;
+            ndc = float2(lightToFragment.z, -lightToFragment.y) / faceDepth;
+        }
+    } else if (absLightToFragment.y >= absLightToFragment.z) {
+        if (lightToFragment.y >= 0.0) {
+            face = 2;
+            faceDepth = lightToFragment.y;
+            ndc = float2(lightToFragment.x, lightToFragment.z) / faceDepth;
+        } else {
+            face = 3;
+            faceDepth = -lightToFragment.y;
+            ndc = float2(lightToFragment.x, -lightToFragment.z) / faceDepth;
+        }
+    } else {
+        if (lightToFragment.z >= 0.0) {
+            face = 4;
+            faceDepth = lightToFragment.z;
+            ndc = float2(lightToFragment.x, -lightToFragment.y) / faceDepth;
+        } else {
+            face = 5;
+            faceDepth = -lightToFragment.z;
+            ndc = float2(-lightToFragment.x, -lightToFragment.y) / faceDepth;
+        }
+    }
+
+    float projectedDepth = farDistance / (farDistance - nearDistance)
+        - (farDistance * nearDistance) / ((farDistance - nearDistance) * faceDepth);
+
+    // Metal origin is top-left, same flip as computeCSMShadow/computeSpotShadow.
+    ndc.y = -ndc.y;
+
+    float cubeSize = max(float(shadowCube.get_width()), 1.0);
+    float2 texelSize = 1.0 / float2(cubeSize, cubeSize);
+    float radius = max(pointShadow.shadowSoftness, 0.25);
+    float shadow = 0.0;
+    for (int i = 0; i < 16; ++i) {
+        float2 uv = (ndc * 0.5 + 0.5) + poissonDisk[i] * texelSize * radius;
+        uv = clamp(uv, float2(0.0), float2(1.0));
+        uint2 texel = uint2(clamp(uv * (cubeSize - 1.0), float2(0.0), float2(cubeSize - 1.0)));
+        float storedDepth = shadowCube.read(texel, face);
+        shadow += ((projectedDepth - pointShadow.bias) <= storedDepth) ? 1.0 : 0.0;
+    }
+    return shadow / 16.0;
+}
+
 float3 computeIBLContribution(texture2d<float> irradianceTexture,
                               texture2d<float> specularTexture,
                               texture2d<float> iblBRDFTexture,
@@ -315,6 +432,8 @@ fragment float4 fragmentLightShader(VertexCompositeOutput vertexOut [[stage_in]]
                                     texture2d<float> iblBRDFTexture [[texture(lightPassIBLBRDFMapTextureIndex)]],
                                     texture2d<float> ltcMagTexture [[texture(lightPassAreaLTCMagTextureIndex)]],
                                     texture2d<float> ltcMatTexture [[texture(lightPassAreaLTCMatTextureIndex)]],
+                                    depthcube<float> pointShadowCube [[texture(lightPassPointShadowTextureIndex)]],
+                                    depth2d<float> spotShadowMap [[texture(lightPassSpotShadowTextureIndex)]],
                                     constant CSMUniforms &csmUniforms [[buffer(lightPassLightOrthoViewMatrixIndex)]],
                                     constant simd_float3 &cameraPosition [[buffer(lightPassCameraPositionIndex)]],
                                     constant LightParameters &lights [[buffer(lightPassLightParamsIndex)]],
@@ -324,7 +443,9 @@ fragment float4 fragmentLightShader(VertexCompositeOutput vertexOut [[stage_in]]
                                     constant AreaLightBlock &alBlock[[buffer(lightPassAreaLightsIndex)]],
                                     constant float &iblRotationAngle [[buffer(lightPassIBLRotationAngleIndex)]],
                                     constant bool &isGameMode[[buffer(lightPassGameModeIndex)]],
-                                    constant bool &ssaoEnabled[[buffer(lightPassSSAOEnabledIndex)]]
+                                    constant bool &ssaoEnabled[[buffer(lightPassSSAOEnabledIndex)]],
+                                    constant PointShadowUniforms &pointShadowUniforms [[buffer(lightPassPointShadowUniformIndex)]],
+                                    constant SpotShadowUniforms &spotShadowUniforms [[buffer(lightPassSpotShadowUniformIndex)]]
                                     ){
 
     float3 lightRayDirection=normalize(lights.direction);
@@ -388,6 +509,11 @@ fragment float4 fragmentLightShader(VertexCompositeOutput vertexOut [[stage_in]]
                                                     albedo.rgb,
                                                     roughness,
                                                     metallic);
+        if (pointShadowUniforms.enabled > 0.5 && int(i) == pointShadowUniforms.lightIndex) {
+            float pointShadow = computePointShadow(pointShadowCube, pointShadowUniforms, verticesInWorldSpace.xyz);
+            pl.diff *= (half)pointShadow;
+            pl.spec *= pointShadow;
+        }
         pointColor.diff += pl.diff;
         pointColor.spec += pl.spec;
     }
@@ -407,6 +533,11 @@ fragment float4 fragmentLightShader(VertexCompositeOutput vertexOut [[stage_in]]
                                                        albedo.rgb,
                                                        roughness,
                                                        metallic);
+        if (spotShadowUniforms.enabled > 0.5 && int(i) == spotShadowUniforms.lightIndex) {
+            float spotShadow = computeSpotShadow(spotShadowMap, spotShadowUniforms, verticesInWorldSpace.xyz);
+            sl.diff *= (half)spotShadow;
+            sl.spec *= spotShadow;
+        }
         spotLightColor.diff += sl.diff;
         spotLightColor.spec += sl.spec;
     }
@@ -459,6 +590,8 @@ fragment TBDRLightOutput fragmentLightShaderTBDR(
     texture2d<float>     iblBRDFTexture    [[texture(lightPassIBLBRDFMapTextureIndex)]],
     texture2d<float>     ltcMagTexture     [[texture(lightPassAreaLTCMagTextureIndex)]],
     texture2d<float>     ltcMatTexture     [[texture(lightPassAreaLTCMatTextureIndex)]],
+    depthcube<float>     pointShadowCube   [[texture(lightPassPointShadowTextureIndex)]],
+    depth2d<float>       spotShadowMap     [[texture(lightPassSpotShadowTextureIndex)]],
     // Uniform buffers
     constant CSMUniforms      &csmUniforms      [[buffer(lightPassLightOrthoViewMatrixIndex)]],
     constant simd_float3      &cameraPosition   [[buffer(lightPassCameraPositionIndex)]],
@@ -469,6 +602,8 @@ fragment TBDRLightOutput fragmentLightShaderTBDR(
     constant AreaLightBlock   &alBlock          [[buffer(lightPassAreaLightsIndex)]],
     constant float            &iblRotationAngle [[buffer(lightPassIBLRotationAngleIndex)]],
     constant bool             &isGameMode       [[buffer(lightPassGameModeIndex)]],
+    constant PointShadowUniforms &pointShadowUniforms [[buffer(lightPassPointShadowUniformIndex)]],
+    constant SpotShadowUniforms &spotShadowUniforms [[buffer(lightPassSpotShadowUniformIndex)]],
     uint                      sampleID          [[sample_id]]
 ) {
     (void)sampleID;
@@ -517,6 +652,11 @@ fragment TBDRLightOutput fragmentLightShaderTBDR(
     uint lightCount = min(plBlock.count.x, MAX_POINT_LIGHTS);
     for (uint i = 0; i < lightCount; ++i) {
         LightContribution pl = computePointLightContribution(plBlock.lights[i], verticesInWorldSpace, viewVector, surfaceNormal, albedo.rgb, roughness, metallic);
+        if (pointShadowUniforms.enabled > 0.5 && int(i) == pointShadowUniforms.lightIndex) {
+            float pointShadow = computePointShadow(pointShadowCube, pointShadowUniforms, verticesInWorldSpace.xyz);
+            pl.diff *= (half)pointShadow;
+            pl.spec *= pointShadow;
+        }
         pointColor.diff += pl.diff;
         pointColor.spec += pl.spec;
     }
@@ -527,6 +667,11 @@ fragment TBDRLightOutput fragmentLightShaderTBDR(
     uint spotLightCount = min(slBlock.count.x, MAX_POINT_LIGHTS);
     for (uint i = 0; i < spotLightCount; ++i) {
         LightContribution sl = computeSpotLightContribution(slBlock.lights[i], verticesInWorldSpace, viewVector, surfaceNormal, albedo.rgb, roughness, metallic);
+        if (spotShadowUniforms.enabled > 0.5 && int(i) == spotShadowUniforms.lightIndex) {
+            float spotShadow = computeSpotShadow(spotShadowMap, spotShadowUniforms, verticesInWorldSpace.xyz);
+            sl.diff *= (half)spotShadow;
+            sl.spec *= spotShadow;
+        }
         spotLightColor.diff += sl.diff;
         spotLightColor.spec += sl.spec;
     }

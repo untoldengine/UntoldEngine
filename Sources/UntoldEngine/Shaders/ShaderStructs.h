@@ -210,4 +210,21 @@ struct CSMUniforms {
     float    shadowSoftnessEnabled;
 };
 
+struct SpotShadowUniforms {
+    float4x4 lightSpaceMatrix;
+    int      lightIndex;
+    float    enabled;
+    float    shadowSoftness;
+    float    bias;
+};
+
+struct PointShadowUniforms {
+    float3   lightPosition;
+    float    farDistance;
+    int      lightIndex;
+    float    enabled;
+    float    shadowSoftness;
+    float    bias;
+};
+
 #endif /* ShaderStructs_h */

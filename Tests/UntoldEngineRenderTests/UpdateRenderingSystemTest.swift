@@ -65,7 +65,10 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
         let order = sortedPasses.map(\.id)
         assertTopologicalConstraints(order: order, constraints: [
             ("environment", "shadow"),
-            ("shadow", "model"),
+            ("shadow", "batchedShadow"),
+            ("batchedShadow", "pointShadow"),
+            ("pointShadow", "spotShadow"),
+            ("spotShadow", "model"),
             ("model", "lightPass"),
             ("lightPass", "depthOfField"),
         ])
@@ -130,7 +133,10 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
         let order = sortedPasses.map(\.id)
         assertTopologicalConstraints(order: order, constraints: [
             ("grid", "shadow"),
-            ("shadow", "model"),
+            ("shadow", "batchedShadow"),
+            ("batchedShadow", "pointShadow"),
+            ("pointShadow", "spotShadow"),
+            ("spotShadow", "model"),
             ("model", "lightPass"),
             ("lightPass", "depthOfField"),
         ])
@@ -273,7 +279,7 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
         XCTAssertEqual(sortedPasses.last?.id, "outputTransform", "outputTransform should be the final pass")
 
         // Verify all expected passes are present
-        let expectedPasses = ["environment", "shadow", "model", "lightPass", "gaussian", "precomp", "look", "outputTransform"]
+        let expectedPasses = ["environment", "shadow", "batchedShadow", "pointShadow", "spotShadow", "model", "lightPass", "gaussian", "precomp", "look", "outputTransform"]
         for passID in expectedPasses {
             XCTAssertNotNil(graph[passID], "Graph should contain '\(passID)' pass")
         }
@@ -295,7 +301,7 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
         XCTAssertEqual(sortedPasses.last?.id, "outputTransform", "outputTransform should be the final pass")
 
         // Verify all expected passes are present
-        let expectedPasses = ["grid", "shadow", "model", "lightPass", "gaussian", "precomp", "look", "outputTransform"]
+        let expectedPasses = ["grid", "shadow", "batchedShadow", "pointShadow", "spotShadow", "model", "lightPass", "gaussian", "precomp", "look", "outputTransform"]
         for passID in expectedPasses {
             XCTAssertNotNil(graph[passID], "Graph should contain '\(passID)' pass")
         }
@@ -323,7 +329,10 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
 
         let constraints = [
             ("environment", "shadow"),
-            ("shadow", "model"),
+            ("shadow", "batchedShadow"),
+            ("batchedShadow", "pointShadow"),
+            ("pointShadow", "spotShadow"),
+            ("spotShadow", "model"),
             ("model", "lightPass"),
         ]
 

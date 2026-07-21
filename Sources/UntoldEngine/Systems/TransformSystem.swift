@@ -336,6 +336,29 @@ public func rotateTo(entityId: EntityID, rotation: simd_float4x4) {
     syncWorldTransformAndMarkOctreeDirty(entityId: entityId)
 }
 
+public func rotateTo(entityId: EntityID, rotation: simd_quatf) {
+    guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
+        handleError(.noLocalTransformComponent, entityId)
+        return
+    }
+
+    localTransformComponent.rotation = simd_normalize(rotation)
+    syncCameraTransformIfNeeded(entityId: entityId, localTransformComponent: localTransformComponent)
+    syncWorldTransformAndMarkOctreeDirty(entityId: entityId)
+}
+
+/// The entity's actual rotation, as stored on LocalTransformComponent. This is the source
+/// of truth for rendering; rotationX/Y/Z (see getAxisRotations) are a separate Euler-angle
+/// cache that quaternion-based rotators (rotateTo, gizmo drag) do not keep in sync.
+public func getRotationQuaternion(entityId: EntityID) -> simd_quatf {
+    guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
+        handleError(.noLocalTransformComponent, entityId)
+        return simd_quatf()
+    }
+
+    return localTransformComponent.rotation
+}
+
 public func rotateTo(entityId: EntityID, pitch: Float, yaw: Float, roll: Float) {
     guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
         handleError(.noLocalTransformComponent, entityId)

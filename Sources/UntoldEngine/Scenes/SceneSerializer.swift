@@ -135,6 +135,7 @@ struct LightData: Codable {
     var up: simd_float3 = .init(0.0, 1.0, 0.0) // Up vector defining the surface orientation
     var bounds: simd_float2 = .one
     var twoSided: Bool = false
+    var castsShadow: Bool? = nil
 }
 
 struct CameraData: Codable {
@@ -233,7 +234,8 @@ struct EntityData: Codable {
     var assetURL: URL = .init(fileURLWithPath: "/") // legacy
     var asset: SceneAssetReference? = nil
     var position: simd_float3 = .zero
-    var axisOfRotations: simd_float3 = .zero
+    var axisOfRotations: simd_float3 = .zero // legacy: stale for quaternion-rotated entities, kept for old-file fallback
+    var rotation: simd_float4? = nil // quaternion (x, y, z, w) — source of truth for orientation
     var scale: simd_float3 = .one
     var animations: [URL] = []
     var animationAssets: [SceneAssetReference]? = nil
@@ -242,6 +244,7 @@ struct EntityData: Codable {
     var cameraData: CameraData? = nil
     var materialData: MaterialData? = nil
     var hasRenderingComponent: Bool = false // legacy
+    var castsShadow: Bool? = nil
     var hasAnimationComponent: Bool = false
     var hasLocalTransformComponent: Bool = false
     var hasKineticComponent: Bool = false
@@ -463,7 +466,22 @@ private func applyDeserializedLocalTransform(entityId: EntityID, entityData: Ent
     guard entityData.hasLocalTransformComponent == true else { return }
     translateTo(entityId: entityId, position: entityData.position)
     scaleTo(entityId: entityId, scale: entityData.scale)
-    applyAxisRotations(entityId: entityId, axis: entityData.axisOfRotations)
+    // Prefer the quaternion (exact, matches whatever actually rotated the entity — gizmo drag,
+    // lookAt, light defaults, etc). axisOfRotations is a legacy fallback for scenes saved before
+    // this field existed; it can be stale for entities that were only ever rotated via the
+    // quaternion-based APIs, since those never wrote back to rotationX/Y/Z.
+    if let rotation = entityData.rotation {
+        rotateTo(entityId: entityId, rotation: simd_quatf(vector: rotation))
+    } else {
+        applyAxisRotations(entityId: entityId, axis: entityData.axisOfRotations)
+    }
+}
+
+private func applyDeserializedRenderProperties(entityId: EntityID, entityData: EntityData) {
+    guard scene.get(component: RenderComponent.self, for: entityId) != nil else { return }
+    if let castsShadow = entityData.castsShadow {
+        setEntityCastsShadow(entityId: entityId, castsShadow)
+    }
 }
 
 public func serializeScene() -> SceneData {
@@ -512,6 +530,7 @@ public func serializeScene() -> SceneData {
 
         if let renderComponent = scene.get(component: RenderComponent.self, for: entityId) {
             entityData.assetName = renderComponent.assetName
+            entityData.castsShadow = renderComponent.castsShadow
 
             let assetKind: SceneAssetKind = isProceduralAssetURL(renderComponent.assetURL) ? .procedural : .model
             entityData.asset = sceneAssetReference(
@@ -589,6 +608,7 @@ public func serializeScene() -> SceneData {
             let axisOfRotations = getAxisRotations(entityId: entityId)
 
             entityData.axisOfRotations = axisOfRotations
+            entityData.rotation = getRotationQuaternion(entityId: entityId).vector
         }
 
         entityData.hasLocalTransformComponent = hasComponent(entityId: entityId, componentType: LocalTransformComponent.self)
@@ -650,6 +670,7 @@ public func serializeScene() -> SceneData {
 
             entityData.lightData?.intensity = getLightIntensity(entityId: entityId)
             entityData.lightData?.falloff = getLightFalloff(entityId: entityId)
+            entityData.lightData?.castsShadow = getPointLightCastsShadow(entityId: entityId)
         }
 
         // Spot light properties
@@ -669,6 +690,8 @@ public func serializeScene() -> SceneData {
             entityData.lightData?.falloff = getLightFalloff(entityId: entityId)
 
             entityData.lightData?.coneAngle = getLightConeAngle(entityId: entityId)
+
+            entityData.lightData?.castsShadow = getSpotLightCastsShadow(entityId: entityId)
         }
 
         // Area light properties
@@ -1242,6 +1265,7 @@ public func deserializeScene(
                     loadTracker.registerLoad()
                     setEntityMeshAsync(entityId: entityId, filename: filename, withExtension: withExtension, assetName: nil) { success in
                         applyDeserializedLocalTransform(entityId: entityId, entityData: sceneDataEntity)
+                        applyDeserializedRenderProperties(entityId: entityId, entityData: sceneDataEntity)
                         if success {
                             if sceneDataEntity.hasStaticBatchComponent == true {
                                 setEntityStaticBatchComponent(entityId: entityId)
@@ -1257,6 +1281,7 @@ public func deserializeScene(
                     loadTracker.registerLoad()
                     setEntityMeshAsync(entityId: entityId, filename: filename, withExtension: withExtension, assetName: nil) { success in
                         applyDeserializedLocalTransform(entityId: entityId, entityData: sceneDataEntity)
+                        applyDeserializedRenderProperties(entityId: entityId, entityData: sceneDataEntity)
                         if success {
                             Logger.log(message: "✅ Asset instance '\(sceneDataEntity.name)' loaded")
                             // Restore Static Batch Component (meshes now loaded)
@@ -1288,6 +1313,7 @@ public func deserializeScene(
                         let meshes = createProceduralMeshes(assetName: sceneDataEntity.assetName)
                         setEntityMeshDirect(entityId: entityId, meshes: meshes, assetName: sceneDataEntity.assetName)
                         applyDeserializedLocalTransform(entityId: entityId, entityData: sceneDataEntity)
+                        applyDeserializedRenderProperties(entityId: entityId, entityData: sceneDataEntity)
 
                         // Restore Static Batch Component (procedural mesh already loaded)
                         if sceneDataEntity.hasStaticBatchComponent == true {
@@ -1297,6 +1323,7 @@ public func deserializeScene(
                         loadTracker.registerLoad()
                         setEntityMeshAsync(entityId: entityId, filename: filename, withExtension: withExtension, assetName: sceneDataEntity.assetName) { success in
                             applyDeserializedLocalTransform(entityId: entityId, entityData: sceneDataEntity)
+                            applyDeserializedRenderProperties(entityId: entityId, entityData: sceneDataEntity)
                             if success {
                                 if sceneDataEntity.hasStaticBatchComponent == true {
                                     setEntityStaticBatchComponent(entityId: entityId)
@@ -1313,6 +1340,7 @@ public func deserializeScene(
                         let meshes = createProceduralMeshes(assetName: sceneDataEntity.assetName)
                         setEntityMeshDirect(entityId: entityId, meshes: meshes, assetName: sceneDataEntity.assetName)
                         applyDeserializedLocalTransform(entityId: entityId, entityData: sceneDataEntity)
+                        applyDeserializedRenderProperties(entityId: entityId, entityData: sceneDataEntity)
 
                         // Restore Static Batch Component (procedural mesh already loaded)
                         if sceneDataEntity.hasStaticBatchComponent == true {
@@ -1324,6 +1352,7 @@ public func deserializeScene(
                         loadTracker.registerLoad()
                         setEntityMeshAsync(entityId: entityId, filename: filename, withExtension: withExtension, assetName: sceneDataEntity.assetName) { success in
                             applyDeserializedLocalTransform(entityId: entityId, entityData: sceneDataEntity)
+                            applyDeserializedRenderProperties(entityId: entityId, entityData: sceneDataEntity)
                             if success {
                                 Logger.log(message: "✅ Mesh loaded for \(meshLabel)")
 
@@ -1424,6 +1453,9 @@ public func deserializeScene(
                         continue
                     }
 
+                    applyDeserializedLocalTransform(entityId: entityId, entityData: sceneDataEntity)
+                    applyDeserializedRenderProperties(entityId: entityId, entityData: sceneDataEntity)
+
                     if let materialData = sceneDataEntity.materialData {
                         let emmissiveValue: simd_float3 = materialData.emissiveValue
                         updateMaterialEmmisive(entityId: entityId, emmissive: emmissiveValue)
@@ -1454,11 +1486,15 @@ public func deserializeScene(
                     lightComponent.intensity = intensity
                     pointlightComponent.radius = radius
                     pointlightComponent.falloff = falloff
+                    pointlightComponent.castsShadow = light.castsShadow ?? false
 
                     guard scene.get(component: RenderComponent.self, for: entityId) != nil else {
                         handleError(.noRenderComponent)
                         continue
                     }
+
+                    applyDeserializedLocalTransform(entityId: entityId, entityData: sceneDataEntity)
+                    applyDeserializedRenderProperties(entityId: entityId, entityData: sceneDataEntity)
 
                     if let materialData = sceneDataEntity.materialData {
                         let emmissiveValue: simd_float3 = materialData.emissiveValue
@@ -1492,11 +1528,15 @@ public func deserializeScene(
                     spotlightComponent.radius = radius
                     spotlightComponent.falloff = falloff
                     spotlightComponent.coneAngle = coneAngle
+                    spotlightComponent.castsShadow = light.castsShadow ?? false
 
                     guard scene.get(component: RenderComponent.self, for: entityId) != nil else {
                         handleError(.noRenderComponent)
                         continue
                     }
+
+                    applyDeserializedLocalTransform(entityId: entityId, entityData: sceneDataEntity)
+                    applyDeserializedRenderProperties(entityId: entityId, entityData: sceneDataEntity)
 
                     if let materialData = sceneDataEntity.materialData {
                         let emmissiveValue: simd_float3 = materialData.emissiveValue
@@ -1540,6 +1580,9 @@ public func deserializeScene(
                         continue
                     }
 
+                    applyDeserializedLocalTransform(entityId: entityId, entityData: sceneDataEntity)
+                    applyDeserializedRenderProperties(entityId: entityId, entityData: sceneDataEntity)
+
                     if let materialData = sceneDataEntity.materialData {
                         let emmissiveValue: simd_float3 = materialData.emissiveValue
                         updateMaterialEmmisive(entityId: entityId, emmissive: emmissiveValue)
@@ -1549,6 +1592,7 @@ public func deserializeScene(
 
             if sceneDataEntity.assetInstance == nil, sceneDataEntity.hasRenderingComponent != true {
                 applyDeserializedLocalTransform(entityId: entityId, entityData: sceneDataEntity)
+                applyDeserializedRenderProperties(entityId: entityId, entityData: sceneDataEntity)
             }
 
             if sceneDataEntity.hasCameraComponent == true {

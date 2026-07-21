@@ -535,6 +535,9 @@ public enum RenderPasses {
         let batchingEnabled = BatchingSystem.shared.isEnabled()
         for entityId in entities {
             if shouldSkipShadowEntity(entityId) { continue }
+            guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId),
+                  renderComponent.castsShadow
+            else { continue }
             // Batch-eligible entities always cast shadows via shadowCasterBatchGroups.
             // Excluding them here prevents O(n_loaded_tiles) individual shadow draw calls.
             if batchingEnabled, scene.get(component: StaticBatchComponent.self, for: entityId) != nil { continue }
@@ -638,6 +641,149 @@ public enum RenderPasses {
     private static func shadowCasterBatchGroups(for cascadeIdx: Int) -> [BatchGroup] {
         let groups = BatchingSystem.shared.batchGroups.filter { shouldRenderSceneChannelsOpaque($0.sceneChannels) }
         guard !groups.isEmpty, let frustum = shadowFrustum(for: cascadeIdx) else { return [] }
+
+        return groups.filter {
+            isAABBInFrustum(frustum, min: $0.boundingBox.min, max: $0.boundingBox.max)
+        }
+    }
+
+    private static func spotShadowCasterEntityIds() -> [EntityID] {
+        ensureShadowCacheConfigured()
+        guard spotShadowState.isActive,
+              let shadowLight = spotShadowState.light,
+              let frustum = spotShadowState.frustum
+        else { return [] }
+
+        runtimeState.lock.lock()
+        let dirty = runtimeState.shadowCacheDirty
+        runtimeState.lock.unlock()
+        if dirty {
+            rebuildShadowEntityCache()
+        }
+
+        runtimeState.lock.lock()
+        let candidates = runtimeState.shadowEntityCandidates
+        runtimeState.lock.unlock()
+
+        let lightPosition = shadowLight.light.position
+        let maxDistance = max(shadowLight.light.attenuation.w, minimumSpotShadowDistance)
+        var result: [EntityID] = []
+        result.reserveCapacity(candidates.count / 4)
+
+        for entityId in candidates {
+            guard scene.mask(for: entityId) != nil else { continue }
+            if shouldHideSceneEntity(entityId: entityId) { continue }
+            if shouldRenderSceneEntityAsWireframe(entityId: entityId) { continue }
+            if BatchingSystem.shared.isEnabled() {
+                if scene.get(component: StaticBatchComponent.self, for: entityId) != nil { continue }
+                if BatchingSystem.shared.isBatched(entityId: entityId) { continue }
+            }
+
+            guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId),
+                  renderComponent.isVisible,
+                  let worldTransformComponent = scene.get(component: WorldTransformComponent.self, for: entityId),
+                  let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId)
+            else { continue }
+
+            let (worldMin, worldMax) = worldAABB_MinMax(
+                localMin: localTransformComponent.boundingBox.min,
+                localMax: localTransformComponent.boundingBox.max,
+                worldMatrix: worldTransformComponent.space
+            )
+            if shadowEntityBeyondMaxDistance(
+                worldMin: worldMin,
+                worldMax: worldMax,
+                cameraPosition: lightPosition,
+                maxDistance: maxDistance
+            ) { continue }
+            if isAABBInFrustum(frustum, min: worldMin, max: worldMax) {
+                result.append(entityId)
+            }
+        }
+
+        return result
+    }
+
+    private static func pointShadowCasterEntityIds() -> [EntityID] {
+        ensureShadowCacheConfigured()
+        guard pointShadowState.isActive,
+              let shadowLight = pointShadowState.light
+        else { return [] }
+
+        runtimeState.lock.lock()
+        let dirty = runtimeState.shadowCacheDirty
+        runtimeState.lock.unlock()
+        if dirty {
+            rebuildShadowEntityCache()
+        }
+
+        runtimeState.lock.lock()
+        let candidates = runtimeState.shadowEntityCandidates
+        runtimeState.lock.unlock()
+
+        let lightPosition = shadowLight.light.position
+        let maxDistance = max(shadowLight.light.radius, minimumPointShadowDistance)
+        var result: [EntityID] = []
+        result.reserveCapacity(candidates.count / 4)
+
+        for entityId in candidates {
+            if entityId == shadowLight.entityId { continue }
+            guard scene.mask(for: entityId) != nil else { continue }
+            if shouldHideSceneEntity(entityId: entityId) { continue }
+            if shouldRenderSceneEntityAsWireframe(entityId: entityId) { continue }
+            if BatchingSystem.shared.isEnabled() {
+                if scene.get(component: StaticBatchComponent.self, for: entityId) != nil { continue }
+                if BatchingSystem.shared.isBatched(entityId: entityId) { continue }
+            }
+
+            guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId),
+                  renderComponent.isVisible,
+                  let worldTransformComponent = scene.get(component: WorldTransformComponent.self, for: entityId),
+                  let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId)
+            else { continue }
+
+            let (worldMin, worldMax) = worldAABB_MinMax(
+                localMin: localTransformComponent.boundingBox.min,
+                localMax: localTransformComponent.boundingBox.max,
+                worldMatrix: worldTransformComponent.space
+            )
+            if shadowEntityBeyondMaxDistance(
+                worldMin: worldMin,
+                worldMax: worldMax,
+                cameraPosition: lightPosition,
+                maxDistance: maxDistance
+            ) { continue }
+
+            result.append(entityId)
+        }
+
+        return result
+    }
+
+    private static func pointShadowCasterBatchGroups() -> [BatchGroup] {
+        let groups = BatchingSystem.shared.batchGroups.filter { shouldRenderSceneChannelsOpaque($0.sceneChannels) }
+        guard !groups.isEmpty,
+              pointShadowState.isActive
+        else { return [] }
+
+        let maxDistance = max(pointShadowState.farDistance, minimumPointShadowDistance)
+        let lightPosition = pointShadowState.light?.light.position ?? .zero
+        return groups.filter {
+            !shadowEntityBeyondMaxDistance(
+                worldMin: $0.boundingBox.min,
+                worldMax: $0.boundingBox.max,
+                cameraPosition: lightPosition,
+                maxDistance: maxDistance
+            )
+        }
+    }
+
+    private static func spotShadowCasterBatchGroups() -> [BatchGroup] {
+        let groups = BatchingSystem.shared.batchGroups.filter { shouldRenderSceneChannelsOpaque($0.sceneChannels) }
+        guard !groups.isEmpty,
+              spotShadowState.isActive,
+              let frustum = spotShadowState.frustum
+        else { return [] }
 
         return groups.filter {
             isAABBInFrustum(frustum, min: $0.boundingBox.min, max: $0.boundingBox.max)
@@ -1165,6 +1311,313 @@ public enum RenderPasses {
                     category: .shadow,
                     batched: true
                 )
+            }
+
+            renderEncoder.updateFence(renderInfo.fence, after: .fragment)
+            renderEncoder.popDebugGroup()
+            renderEncoder.endEncoding()
+        }
+    }
+
+    public static let spotShadowExecution: RenderPassExecution = { commandBuffer in
+        if renderInfo.isXRStereoMode, renderInfo.currentEye > 0 { return }
+
+        spotShadowState.update()
+        guard spotShadowState.isActive else { return }
+
+        guard let shadowPipeline = PipelineManager.shared.renderPipelinesByType[.shadow] else {
+            handleError(.pipelineStateNulled, "shadowPipeline is nil")
+            return
+        }
+        if shadowPipeline.success == false {
+            handleError(.pipelineStateNulled, shadowPipeline.name!)
+            return
+        }
+
+        guard let descriptor = renderInfo.spotShadowRenderPassDescriptor else {
+            handleError(.renderPassCreationFailed, "Spot Shadow descriptor not initialized")
+            return
+        }
+        descriptor.depthAttachment.loadAction = .clear
+        descriptor.depthAttachment.storeAction = .store
+        descriptor.depthAttachment.clearDepth = 1.0
+
+        guard let camera = CameraSystem.shared.activeCamera,
+              let cameraComponent = scene.get(component: CameraComponent.self, for: camera)
+        else {
+            handleError(.noActiveCamera)
+            return
+        }
+
+        guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor) else {
+            handleError(.renderPassCreationFailed, "Spot Shadow")
+            return
+        }
+
+        renderEncoder.label = "Spot Shadow"
+        renderEncoder.pushDebugGroup("Spot Shadow")
+        renderEncoder.setRenderPipelineState(shadowPipeline.pipelineState!)
+        renderEncoder.setDepthStencilState(shadowPipeline.depthState!)
+        renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
+        renderEncoder.setDepthBias(0.0015, slopeScale: 0.75, clamp: 0.02)
+        renderEncoder.setViewport(
+            MTLViewport(originX: 0, originY: 0,
+                        width: Double(shadowResolution.x), height: Double(shadowResolution.y),
+                        znear: 0, zfar: 1)
+        )
+
+        var effectiveLightMatrix = SceneRootTransform.shared.effectiveLightMatrix(spotShadowState.lightSpaceMatrix)
+        renderEncoder.setVertexBytes(
+            &effectiveLightMatrix,
+            length: MemoryLayout<simd_float4x4>.stride,
+            index: Int(shadowPassLightMatrixUniform.rawValue)
+        )
+
+        let viewMatrix = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
+        for entityId in spotShadowCasterEntityIds() {
+            guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId),
+                  let transformComponent = scene.get(component: WorldTransformComponent.self, for: entityId),
+                  scene.get(component: LocalTransformComponent.self, for: entityId) != nil
+            else { continue }
+
+            for mesh in renderComponent.mesh {
+                var modelUniforms = Uniforms()
+                let modelMatrix = simd_mul(transformComponent.space, mesh.localSpace)
+                modelUniforms.modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
+                modelUniforms.normalMatrix = matrix3x3_upper_left(modelMatrix).inverse.transpose
+                modelUniforms.viewMatrix = viewMatrix
+                modelUniforms.modelMatrix = modelMatrix
+                modelUniforms.cameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
+                modelUniforms.projectionMatrix = renderInfo.perspectiveSpace
+
+                renderEncoder.setVertexBytes(&modelUniforms, length: MemoryLayout<Uniforms>.stride, index: Int(shadowPassModelUniform.rawValue))
+                renderEncoder.setVertexBuffer(
+                    mesh.metalKitMesh.vertexBuffers[Int(shadowPassModelPositionIndex.rawValue)].buffer,
+                    offset: 0,
+                    index: Int(shadowPassModelPositionIndex.rawValue)
+                )
+
+                let jointTransformBuffer = mesh.skin?.jointTransformsBuffer
+                var hasArmature = scene.get(component: SkeletonComponent.self, for: entityId) != nil && jointTransformBuffer != nil
+                renderEncoder.setVertexBytes(&hasArmature, length: MemoryLayout<Bool>.stride, index: Int(shadowPassHasArmature.rawValue))
+                renderEncoder.setVertexBuffer(
+                    mesh.metalKitMesh.vertexBuffers[Int(modelPassJointIdIndex.rawValue)].buffer,
+                    offset: 0,
+                    index: Int(shadowPassJointIdIndex.rawValue)
+                )
+                renderEncoder.setVertexBuffer(
+                    mesh.metalKitMesh.vertexBuffers[Int(modelPassJointWeightsIndex.rawValue)].buffer,
+                    offset: 0,
+                    index: Int(shadowPassJointWeightsIndex.rawValue)
+                )
+                if let jtb = jointTransformBuffer {
+                    renderEncoder.setVertexBuffer(jtb, offset: 0, index: Int(shadowPassJointTransformIndex.rawValue))
+                } else {
+                    var identity = matrix_identity_float4x4
+                    renderEncoder.setVertexBytes(&identity, length: MemoryLayout<simd_float4x4>.stride, index: Int(shadowPassJointTransformIndex.rawValue))
+                }
+
+                for subMesh in mesh.submeshes {
+                    renderEncoder.drawIndexedPrimitivesTracked(
+                        type: subMesh.metalKitSubmesh.primitiveType,
+                        indexCount: subMesh.metalKitSubmesh.indexCount,
+                        indexType: subMesh.metalKitSubmesh.indexType,
+                        indexBuffer: subMesh.metalKitSubmesh.indexBuffer.buffer,
+                        indexBufferOffset: subMesh.metalKitSubmesh.indexBuffer.offset,
+                        category: .shadow
+                    )
+                }
+            }
+        }
+
+        if BatchingSystem.shared.isEnabled() {
+            var batchUniforms = Uniforms()
+            batchUniforms.modelMatrix = matrix_identity_float4x4
+            batchUniforms.viewMatrix = viewMatrix
+            batchUniforms.modelViewMatrix = viewMatrix
+            batchUniforms.normalMatrix = matrix_identity_float3x3
+            batchUniforms.cameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
+            batchUniforms.projectionMatrix = renderInfo.perspectiveSpace
+
+            for batchGroup in spotShadowCasterBatchGroups() {
+                guard let positionBuffer = batchGroup.positionBuffer,
+                      let indexBuffer = batchGroup.indexBuffer
+                else { continue }
+
+                renderEncoder.setVertexBytes(&batchUniforms, length: MemoryLayout<Uniforms>.stride, index: Int(shadowPassModelUniform.rawValue))
+                renderEncoder.setVertexBuffer(positionBuffer, offset: 0, index: Int(shadowPassModelPositionIndex.rawValue))
+
+                var hasArmature = false
+                renderEncoder.setVertexBytes(&hasArmature, length: MemoryLayout<Bool>.stride, index: Int(shadowPassHasArmature.rawValue))
+                renderEncoder.setVertexBuffer(positionBuffer, offset: 0, index: Int(shadowPassJointIdIndex.rawValue))
+                renderEncoder.setVertexBuffer(positionBuffer, offset: 0, index: Int(shadowPassJointWeightsIndex.rawValue))
+                var identity = matrix_identity_float4x4
+                renderEncoder.setVertexBytes(&identity, length: MemoryLayout<simd_float4x4>.stride, index: Int(shadowPassJointTransformIndex.rawValue))
+
+                renderEncoder.drawIndexedPrimitivesTracked(
+                    type: .triangle,
+                    indexCount: batchGroup.indexCount,
+                    indexType: .uint32,
+                    indexBuffer: indexBuffer,
+                    indexBufferOffset: 0,
+                    category: .shadow,
+                    batched: true
+                )
+            }
+        }
+
+        renderEncoder.updateFence(renderInfo.fence, after: .fragment)
+        renderEncoder.popDebugGroup()
+        renderEncoder.endEncoding()
+    }
+
+    public static let pointShadowExecution: RenderPassExecution = { commandBuffer in
+        if renderInfo.isXRStereoMode, renderInfo.currentEye > 0 { return }
+
+        pointShadowState.update()
+        guard pointShadowState.isActive else { return }
+
+        guard let shadowPipeline = PipelineManager.shared.renderPipelinesByType[.shadow] else {
+            handleError(.pipelineStateNulled, "shadowPipeline is nil")
+            return
+        }
+        if shadowPipeline.success == false {
+            handleError(.pipelineStateNulled, shadowPipeline.name!)
+            return
+        }
+
+        guard let camera = CameraSystem.shared.activeCamera,
+              let cameraComponent = scene.get(component: CameraComponent.self, for: camera)
+        else {
+            handleError(.noActiveCamera)
+            return
+        }
+
+        let viewMatrix = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
+        let casterEntityIds = pointShadowCasterEntityIds()
+        let batchGroups = BatchingSystem.shared.isEnabled() ? pointShadowCasterBatchGroups() : []
+
+        for face in 0 ..< min(renderInfo.pointShadowRenderPassDescriptors.count, pointShadowState.lightSpaceMatrices.count) {
+            let descriptor = renderInfo.pointShadowRenderPassDescriptors[face]
+            descriptor.depthAttachment.loadAction = .clear
+            descriptor.depthAttachment.storeAction = .store
+            descriptor.depthAttachment.clearDepth = 1.0
+            descriptor.depthAttachment.slice = face
+
+            guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor) else {
+                handleError(.renderPassCreationFailed, "Point Shadow")
+                return
+            }
+
+            renderEncoder.label = "Point Shadow Face \(face)"
+            renderEncoder.pushDebugGroup("Point Shadow Face \(face)")
+            renderEncoder.setRenderPipelineState(shadowPipeline.pipelineState!)
+            renderEncoder.setDepthStencilState(shadowPipeline.depthState!)
+            renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
+            renderEncoder.setDepthBias(0.002, slopeScale: 0.9, clamp: 0.03)
+            renderEncoder.setViewport(
+                MTLViewport(originX: 0, originY: 0,
+                            width: Double(shadowResolution.x), height: Double(shadowResolution.y),
+                            znear: 0, zfar: 1)
+            )
+
+            var effectiveLightMatrix = SceneRootTransform.shared.effectiveLightMatrix(pointShadowState.lightSpaceMatrices[face])
+            renderEncoder.setVertexBytes(
+                &effectiveLightMatrix,
+                length: MemoryLayout<simd_float4x4>.stride,
+                index: Int(shadowPassLightMatrixUniform.rawValue)
+            )
+
+            for entityId in casterEntityIds {
+                guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId),
+                      let transformComponent = scene.get(component: WorldTransformComponent.self, for: entityId),
+                      scene.get(component: LocalTransformComponent.self, for: entityId) != nil
+                else { continue }
+
+                for mesh in renderComponent.mesh {
+                    var modelUniforms = Uniforms()
+                    let modelMatrix = simd_mul(transformComponent.space, mesh.localSpace)
+                    modelUniforms.modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
+                    modelUniforms.normalMatrix = matrix3x3_upper_left(modelMatrix).inverse.transpose
+                    modelUniforms.viewMatrix = viewMatrix
+                    modelUniforms.modelMatrix = modelMatrix
+                    modelUniforms.cameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
+                    modelUniforms.projectionMatrix = renderInfo.perspectiveSpace
+
+                    renderEncoder.setVertexBytes(&modelUniforms, length: MemoryLayout<Uniforms>.stride, index: Int(shadowPassModelUniform.rawValue))
+                    renderEncoder.setVertexBuffer(
+                        mesh.metalKitMesh.vertexBuffers[Int(shadowPassModelPositionIndex.rawValue)].buffer,
+                        offset: 0,
+                        index: Int(shadowPassModelPositionIndex.rawValue)
+                    )
+
+                    let jointTransformBuffer = mesh.skin?.jointTransformsBuffer
+                    var hasArmature = scene.get(component: SkeletonComponent.self, for: entityId) != nil && jointTransformBuffer != nil
+                    renderEncoder.setVertexBytes(&hasArmature, length: MemoryLayout<Bool>.stride, index: Int(shadowPassHasArmature.rawValue))
+                    renderEncoder.setVertexBuffer(
+                        mesh.metalKitMesh.vertexBuffers[Int(modelPassJointIdIndex.rawValue)].buffer,
+                        offset: 0,
+                        index: Int(shadowPassJointIdIndex.rawValue)
+                    )
+                    renderEncoder.setVertexBuffer(
+                        mesh.metalKitMesh.vertexBuffers[Int(modelPassJointWeightsIndex.rawValue)].buffer,
+                        offset: 0,
+                        index: Int(shadowPassJointWeightsIndex.rawValue)
+                    )
+                    if let jtb = jointTransformBuffer {
+                        renderEncoder.setVertexBuffer(jtb, offset: 0, index: Int(shadowPassJointTransformIndex.rawValue))
+                    } else {
+                        var identity = matrix_identity_float4x4
+                        renderEncoder.setVertexBytes(&identity, length: MemoryLayout<simd_float4x4>.stride, index: Int(shadowPassJointTransformIndex.rawValue))
+                    }
+
+                    for subMesh in mesh.submeshes {
+                        renderEncoder.drawIndexedPrimitivesTracked(
+                            type: subMesh.metalKitSubmesh.primitiveType,
+                            indexCount: subMesh.metalKitSubmesh.indexCount,
+                            indexType: subMesh.metalKitSubmesh.indexType,
+                            indexBuffer: subMesh.metalKitSubmesh.indexBuffer.buffer,
+                            indexBufferOffset: subMesh.metalKitSubmesh.indexBuffer.offset,
+                            category: .shadow
+                        )
+                    }
+                }
+            }
+
+            if BatchingSystem.shared.isEnabled() {
+                var batchUniforms = Uniforms()
+                batchUniforms.modelMatrix = matrix_identity_float4x4
+                batchUniforms.viewMatrix = viewMatrix
+                batchUniforms.modelViewMatrix = viewMatrix
+                batchUniforms.normalMatrix = matrix_identity_float3x3
+                batchUniforms.cameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
+                batchUniforms.projectionMatrix = renderInfo.perspectiveSpace
+
+                for batchGroup in batchGroups {
+                    guard let positionBuffer = batchGroup.positionBuffer,
+                          let indexBuffer = batchGroup.indexBuffer
+                    else { continue }
+
+                    renderEncoder.setVertexBytes(&batchUniforms, length: MemoryLayout<Uniforms>.stride, index: Int(shadowPassModelUniform.rawValue))
+                    renderEncoder.setVertexBuffer(positionBuffer, offset: 0, index: Int(shadowPassModelPositionIndex.rawValue))
+
+                    var hasArmature = false
+                    renderEncoder.setVertexBytes(&hasArmature, length: MemoryLayout<Bool>.stride, index: Int(shadowPassHasArmature.rawValue))
+                    renderEncoder.setVertexBuffer(positionBuffer, offset: 0, index: Int(shadowPassJointIdIndex.rawValue))
+                    renderEncoder.setVertexBuffer(positionBuffer, offset: 0, index: Int(shadowPassJointWeightsIndex.rawValue))
+                    var identity = matrix_identity_float4x4
+                    renderEncoder.setVertexBytes(&identity, length: MemoryLayout<simd_float4x4>.stride, index: Int(shadowPassJointTransformIndex.rawValue))
+
+                    renderEncoder.drawIndexedPrimitivesTracked(
+                        type: .triangle,
+                        indexCount: batchGroup.indexCount,
+                        indexType: .uint32,
+                        indexBuffer: indexBuffer,
+                        indexBufferOffset: 0,
+                        category: .shadow,
+                        batched: true
+                    )
+                }
             }
 
             renderEncoder.updateFence(renderInfo.fence, after: .fragment)
@@ -1961,6 +2414,12 @@ public enum RenderPasses {
         renderEncoder.setFragmentBytes(&csmUniforms, length: MemoryLayout<CSMUniforms>.stride, index: Int(lightPassLightOrthoViewMatrixIndex.rawValue))
 
         renderEncoder.setFragmentTexture(textureResources.csmShadowMap, index: Int(lightPassShadowTextureIndex.rawValue))
+        renderEncoder.setFragmentTexture(textureResources.pointShadowCubeMap, index: Int(lightPassPointShadowTextureIndex.rawValue))
+        var pointShadowUniforms = pointShadowState.makeUniforms()
+        renderEncoder.setFragmentBytes(&pointShadowUniforms, length: MemoryLayout<PointShadowUniforms>.stride, index: Int(lightPassPointShadowUniformIndex.rawValue))
+        renderEncoder.setFragmentTexture(textureResources.spotShadowMap, index: Int(lightPassSpotShadowTextureIndex.rawValue))
+        var spotShadowUniforms = spotShadowState.makeUniforms()
+        renderEncoder.setFragmentBytes(&spotShadowUniforms, length: MemoryLayout<SpotShadowUniforms>.stride, index: Int(lightPassSpotShadowUniformIndex.rawValue))
         let environmentLighting = resolveCurrentEnvironmentLighting()
         renderEncoder.setFragmentTexture(environmentLighting.irradianceMap, index: Int(lightPassIBLIrradianceTextureIndex.rawValue))
         renderEncoder.setFragmentTexture(environmentLighting.specularMap, index: Int(lightPassIBLSpecularTextureIndex.rawValue))
@@ -2635,6 +3094,24 @@ public enum RenderPasses {
         // CSM shadow array texture
         renderEncoder.setFragmentTexture(
             textureResources.csmShadowMap, index: Int(lightPassShadowTextureIndex.rawValue)
+        )
+        renderEncoder.setFragmentTexture(
+            textureResources.pointShadowCubeMap, index: Int(lightPassPointShadowTextureIndex.rawValue)
+        )
+        var pointShadowUniforms = pointShadowState.makeUniforms()
+        renderEncoder.setFragmentBytes(
+            &pointShadowUniforms,
+            length: MemoryLayout<PointShadowUniforms>.stride,
+            index: Int(lightPassPointShadowUniformIndex.rawValue)
+        )
+        renderEncoder.setFragmentTexture(
+            textureResources.spotShadowMap, index: Int(lightPassSpotShadowTextureIndex.rawValue)
+        )
+        var spotShadowUniforms = spotShadowState.makeUniforms()
+        renderEncoder.setFragmentBytes(
+            &spotShadowUniforms,
+            length: MemoryLayout<SpotShadowUniforms>.stride,
+            index: Int(lightPassSpotShadowUniformIndex.rawValue)
         )
 
         let MAX_POINT_LIGHTS = 1024

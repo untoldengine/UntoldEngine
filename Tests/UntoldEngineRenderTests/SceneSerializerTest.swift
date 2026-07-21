@@ -1275,6 +1275,7 @@ final class SceneSerializerTests: BaseRenderSetup {
         setEntityName(entityId: entityId, name: "ProcCube")
         let meshes = BasicPrimitives.createCube()
         setEntityMeshDirect(entityId: entityId, meshes: meshes, assetName: "Cube")
+        setEntityCastsShadow(entityId: entityId, false)
 
         let sceneData = serializeScene()
 
@@ -1298,6 +1299,7 @@ final class SceneSerializerTests: BaseRenderSetup {
         XCTAssertFalse(renderComponent.mesh.isEmpty, "Procedural mesh should be recreated on deserialize")
         XCTAssertEqual(renderComponent.assetName, "Cube")
         XCTAssertTrue(renderComponent.assetURL.path.hasPrefix("/primitive/"))
+        XCTAssertFalse(renderComponent.castsShadow)
     }
 
     // MARK: - LOD Component Tests

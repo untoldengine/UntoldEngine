@@ -110,6 +110,12 @@ public struct PointLight {
     var radius: Float = 1.0
 }
 
+struct ShadowCastingPointLight {
+    var entityId: EntityID
+    var light: PointLight
+    var index: Int32
+}
+
 public struct SpotLight {
     var attenuation: simd_float4 = .init(1.0, 0.7, 1.8, 0.0) // constant, linera, quadratic -> (x, y, z, max range)
     var direction: simd_float3 = .init(1.0, 1.0, 1.0)
@@ -118,6 +124,12 @@ public struct SpotLight {
     var intensity: Float = 1.0
     var innerCone: Float = 0.0
     var outerCone: Float = 0.0
+}
+
+struct ShadowCastingSpotLight {
+    var entityId: EntityID
+    var light: SpotLight
+    var index: Int32
 }
 
 public struct AreaLight {
@@ -254,7 +266,19 @@ private func normalizedLightDirection(_ direction: simd_float3, fallback: simd_f
 /// This is a pure transform concept. Use `getLightEmissionDirection(entityId:)`
 /// when asking where a non-point light emits.
 public func getLightTransformForwardAxis(entityId: EntityID) -> simd_float3 {
-    normalizedLightDirection(
+    if scene.get(component: WorldTransformComponent.self, for: entityId) != nil {
+        let orientation = getOrientation(entityId: entityId)
+        return normalizedLightDirection(
+            simd_float3(
+                orientation.columns.2.x,
+                orientation.columns.2.y,
+                orientation.columns.2.z
+            ),
+            fallback: simd_float3(0.0, 0.0, 1.0)
+        )
+    }
+
+    return normalizedLightDirection(
         getForwardAxisVector(entityId: entityId),
         fallback: simd_float3(0.0, 0.0, 1.0)
     )
@@ -516,6 +540,52 @@ public func getLightIntensity(entityId: EntityID) -> Float {
     return lightComponent.intensity
 }
 
+public func updatePointLightCastsShadow(entityId: EntityID, castsShadow: Bool) {
+    guard scene.get(component: LightComponent.self, for: entityId) != nil else {
+        handleError(.noLightComponent)
+        return
+    }
+
+    guard let pointLightComponent = scene.get(component: PointLightComponent.self, for: entityId) else {
+        handleError(.noPointLightComponent)
+        return
+    }
+
+    pointLightComponent.castsShadow = castsShadow
+}
+
+public func getPointLightCastsShadow(entityId: EntityID) -> Bool {
+    guard let pointLightComponent = scene.get(component: PointLightComponent.self, for: entityId) else {
+        handleError(.noPointLightComponent)
+        return false
+    }
+
+    return pointLightComponent.castsShadow
+}
+
+public func updateSpotLightCastsShadow(entityId: EntityID, castsShadow: Bool) {
+    guard scene.get(component: LightComponent.self, for: entityId) != nil else {
+        handleError(.noLightComponent)
+        return
+    }
+
+    guard let spotLightComponent = scene.get(component: SpotLightComponent.self, for: entityId) else {
+        handleError(.noSpotLightComponent)
+        return
+    }
+
+    spotLightComponent.castsShadow = castsShadow
+}
+
+public func getSpotLightCastsShadow(entityId: EntityID) -> Bool {
+    guard let spotLightComponent = scene.get(component: SpotLightComponent.self, for: entityId) else {
+        handleError(.noSpotLightComponent)
+        return false
+    }
+
+    return spotLightComponent.castsShadow
+}
+
 public func updateLightRadius(entityId: EntityID, radius: Float) {
     guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
         handleError(.noLightComponent)
@@ -681,7 +751,7 @@ func getPointLights() -> [PointLight] {
         }
 
         var pointLight = PointLight()
-        pointLight.position = getLocalPosition(entityId: entity)
+        pointLight.position = getPosition(entityId: entity)
         pointLight.color = lightComponent.color
 
         let falloff = sanitizedLightFalloff(pointLightComponent.falloff)
@@ -690,7 +760,7 @@ func getPointLights() -> [PointLight] {
         let quadratic: Float = simd_mix(0.0, 1.0 / (radius * radius), falloff)
         let constant: Float = 1.0
 
-        pointLight.attenuation = simd_float4(constant, linear, quadratic, 0.0)
+        pointLight.attenuation = simd_float4(constant, linear, quadratic, radius)
         pointLight.intensity = lightComponent.intensity
         pointLight.radius = radius
 
@@ -698,6 +768,43 @@ func getPointLights() -> [PointLight] {
     }
 
     return pointLights
+}
+
+func getShadowCastingPointLight() -> ShadowCastingPointLight? {
+    let lightComponentID = getComponentId(for: LightComponent.self)
+    let pointLightComponentID = getComponentId(for: PointLightComponent.self)
+    let localTransformComponentID = getComponentId(for: LocalTransformComponent.self)
+
+    let lightEntities = queryEntitiesWithComponentIds([lightComponentID, localTransformComponentID, pointLightComponentID], in: scene)
+
+    var pointIndex: Int32 = 0
+    for entity in lightEntities {
+        guard let lightComponent = scene.get(component: LightComponent.self, for: entity),
+              let pointLightComponent = scene.get(component: PointLightComponent.self, for: entity),
+              scene.get(component: LocalTransformComponent.self, for: entity) != nil
+        else {
+            continue
+        }
+
+        defer { pointIndex += 1 }
+        guard pointLightComponent.castsShadow else { continue }
+
+        var pointLight = PointLight()
+        pointLight.position = getPosition(entityId: entity)
+        pointLight.color = lightComponent.color
+
+        let falloff = sanitizedLightFalloff(pointLightComponent.falloff)
+        let radius = sanitizedLightRadius(pointLightComponent.radius)
+        let linear: Float = simd_mix(0.1, 0.0, falloff)
+        let quadratic: Float = simd_mix(0.0, 1.0 / (radius * radius), falloff)
+        pointLight.attenuation = simd_float4(1.0, linear, quadratic, radius)
+        pointLight.intensity = lightComponent.intensity
+        pointLight.radius = radius
+
+        return ShadowCastingPointLight(entityId: entity, light: pointLight, index: pointIndex)
+    }
+
+    return nil
 }
 
 func getLightType(entityId: EntityID) -> String {
@@ -751,7 +858,7 @@ func getSpotLights() -> [SpotLight] {
 
         var spotLight = SpotLight()
         spotLight.direction = getLightEmissionDirection(entityId: entity)
-        spotLight.position = getLocalPosition(entityId: entity)
+        spotLight.position = getPosition(entityId: entity)
         spotLight.color = lightComponent.color
 
         let falloff = sanitizedLightFalloff(spotLightComponent.falloff)
@@ -760,7 +867,7 @@ func getSpotLights() -> [SpotLight] {
         let quadratic: Float = simd_mix(0.0, 1.0 / (radius * radius), falloff)
         let constant: Float = 1.0
 
-        spotLight.attenuation = simd_float4(constant, linear, quadratic, 0.0)
+        spotLight.attenuation = simd_float4(constant, linear, quadratic, radius)
         spotLight.intensity = lightComponent.intensity
 
         let innerCone = simd_clamp(
@@ -789,6 +896,54 @@ func getSpotLights() -> [SpotLight] {
     }
 
     return spotLights
+}
+
+func getShadowCastingSpotLight() -> ShadowCastingSpotLight? {
+    let lightComponentID = getComponentId(for: LightComponent.self)
+    let spotLightComponentID = getComponentId(for: SpotLightComponent.self)
+    let localTransformComponentID = getComponentId(for: LocalTransformComponent.self)
+
+    let lightEntities = queryEntitiesWithComponentIds([lightComponentID, localTransformComponentID, spotLightComponentID], in: scene)
+
+    var spotIndex: Int32 = 0
+    for entity in lightEntities {
+        guard let lightComponent = scene.get(component: LightComponent.self, for: entity),
+              let spotLightComponent = scene.get(component: SpotLightComponent.self, for: entity),
+              scene.get(component: LocalTransformComponent.self, for: entity) != nil
+        else {
+            continue
+        }
+
+        defer { spotIndex += 1 }
+        guard spotLightComponent.castsShadow else { continue }
+
+        var spotLight = SpotLight()
+        spotLight.direction = getLightEmissionDirection(entityId: entity)
+        spotLight.position = getPosition(entityId: entity)
+        spotLight.color = lightComponent.color
+
+        let falloff = sanitizedLightFalloff(spotLightComponent.falloff)
+        let radius = sanitizedLightRadius(spotLightComponent.radius)
+        let linear: Float = simd_mix(0.1, 0.0, falloff)
+        let quadratic: Float = simd_mix(0.0, 1.0 / (radius * radius), falloff)
+        spotLight.attenuation = simd_float4(1.0, linear, quadratic, radius)
+        spotLight.intensity = lightComponent.intensity
+
+        let innerCone = simd_clamp(spotLightComponent.innerCone, minimumSpotConeAngle, maximumSpotConeAngle)
+        let outerCone = simd_clamp(spotLightComponent.outerCone, minimumSpotConeAngle, maximumSpotConeAngle)
+        if innerCone < outerCone {
+            spotLight.innerCone = degreesToRadians(degrees: innerCone)
+            spotLight.outerCone = degreesToRadians(degrees: outerCone)
+        } else {
+            let cones = derivedSpotConeAngles(coneAngle: spotLightComponent.coneAngle, falloff: falloff)
+            spotLight.innerCone = degreesToRadians(degrees: cones.inner)
+            spotLight.outerCone = degreesToRadians(degrees: cones.outer)
+        }
+
+        return ShadowCastingSpotLight(entityId: entity, light: spotLight, index: spotIndex)
+    }
+
+    return nil
 }
 
 func getLightInnerCone(entityId: EntityID) -> Float {
