@@ -152,7 +152,9 @@ typedef enum{
     lightPassAreaLightsIndex,
     lightPassAreaLightsCountIndex,
     lightPassGameModeIndex,
-    lightPassSSAOEnabledIndex
+    lightPassSSAOEnabledIndex,
+    lightPassSpotShadowUniformIndex,
+    lightPassPointShadowUniformIndex
 }LightPassBufferIndices;
 
 typedef enum{
@@ -179,7 +181,9 @@ typedef enum{
     lightPassIBLSpecularTextureIndex,
     lightPassIBLBRDFMapTextureIndex,
     lightPassAreaLTCMagTextureIndex,
-    lightPassAreaLTCMatTextureIndex
+    lightPassAreaLTCMatTextureIndex,
+    lightPassSpotShadowTextureIndex,
+    lightPassPointShadowTextureIndex
 }LightPassTextureIndices;
 
 typedef enum{

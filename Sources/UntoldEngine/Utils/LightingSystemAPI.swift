@@ -21,6 +21,7 @@ public enum PointLightProperty: Sendable {
     case radius(Float)
     case falloff(Float)
     case attenuation(simd_float3)
+    case castsShadow(Bool)
 }
 
 public enum SpotLightProperty: Sendable {
@@ -28,6 +29,7 @@ public enum SpotLightProperty: Sendable {
     case falloff(Float)
     case radius(Float)
     case attenuation(simd_float3)
+    case castsShadow(Bool)
 }
 
 public enum AreaLightProperty: Sendable {
@@ -85,6 +87,8 @@ private func applyPointLightProperty(entityId: EntityID, _ property: PointLightP
         updateLightFalloff(entityId: entityId, falloff: value)
     case let .attenuation(value):
         updateLightAttenuation(entityId: entityId, attenuation: value)
+    case let .castsShadow(value):
+        updatePointLightCastsShadow(entityId: entityId, castsShadow: value)
     }
 }
 
@@ -98,6 +102,8 @@ private func applySpotLightProperty(entityId: EntityID, _ property: SpotLightPro
         updateLightRadius(entityId: entityId, radius: value)
     case let .attenuation(value):
         updateLightAttenuation(entityId: entityId, attenuation: value)
+    case let .castsShadow(value):
+        updateSpotLightCastsShadow(entityId: entityId, castsShadow: value)
     }
 }
 

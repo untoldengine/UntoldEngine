@@ -216,6 +216,7 @@ let gameModeReservedPassIDs: Set<String> = [
     "grid",
     "shadow",
     "batchedShadow",
+    "spotShadow",
     "model",
     "batchedModel",
     "hzbDepthSource",
@@ -326,8 +327,18 @@ private func buildGameModeGraphWithCompilation() throws -> CompiledRenderGraphRe
     )
     builder.addPass(batchedShadowPass)
 
+    let pointShadowPass = RenderPass(
+        id: "pointShadow", dependencies: [batchedShadowPass.id], execute: RenderPasses.pointShadowExecution
+    )
+    builder.addPass(pointShadowPass)
+
+    let spotShadowPass = RenderPass(
+        id: "spotShadow", dependencies: [pointShadowPass.id], execute: RenderPasses.spotShadowExecution
+    )
+    builder.addPass(spotShadowPass)
+
     var opaqueGraph: [String: RenderPass] = [:]
-    gBufferPass(graph: &opaqueGraph, shadowPass: batchedShadowPass)
+    gBufferPass(graph: &opaqueGraph, shadowPass: spotShadowPass)
     for passID in opaqueGraph.keys.sorted() {
         if let pass = opaqueGraph[passID] {
             builder.addPass(pass)

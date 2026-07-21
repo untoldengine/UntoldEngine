@@ -109,8 +109,8 @@ final class ShadowSystemMakeUniformsTests: XCTestCase {
         let sys = ShadowSystem()
         let u = sys.makeUniforms()
 
-        XCTAssertEqual(u.shadowSoftnessNear, 1.0, accuracy: 1e-6)
-        XCTAssertEqual(u.shadowSoftnessFar, 2.25, accuracy: 1e-6)
+        XCTAssertEqual(u.shadowSoftnessNear, 2.0, accuracy: 1e-6)
+        XCTAssertEqual(u.shadowSoftnessFar, 5.0, accuracy: 1e-6)
         XCTAssertEqual(u.shadowSoftnessDepthScale, 1.0, accuracy: 1e-6)
         XCTAssertEqual(u.shadowSoftnessEnabled, 1.0, accuracy: 1e-6)
     }
@@ -121,7 +121,8 @@ final class ShadowSystemMakeUniformsTests: XCTestCase {
             enabled: false,
             nearRadiusTexels: 2.0,
             farRadiusTexels: 5.0,
-            depthScale: 0.5
+            depthScale: 0.5,
+            xrRadiusScale: 1.0
         ))
 
         let u = sys.makeUniforms()
@@ -137,7 +138,8 @@ final class ShadowSystemMakeUniformsTests: XCTestCase {
             enabled: true,
             nearRadiusTexels: -5.0,
             farRadiusTexels: -1.0,
-            depthScale: 10.0
+            depthScale: 10.0,
+            xrRadiusScale: 0.5
         ))
 
         let u = sys.makeUniforms()
@@ -145,6 +147,25 @@ final class ShadowSystemMakeUniformsTests: XCTestCase {
         XCTAssertEqual(u.shadowSoftnessFar, 0.25, accuracy: 1e-6)
         XCTAssertEqual(u.shadowSoftnessDepthScale, 2.0, accuracy: 1e-6)
         XCTAssertEqual(u.shadowSoftnessEnabled, 1.0, accuracy: 1e-6)
+    }
+
+    func testXRSoftnessScaleIsAppliedWhenStereoRenderingIsActive() {
+        let originalXRMode = renderInfo.isXRStereoMode
+        defer { renderInfo.isXRStereoMode = originalXRMode }
+
+        renderInfo.isXRStereoMode = true
+        var sys = ShadowSystem()
+        sys.setSoftness(ShadowSoftnessSettings(
+            enabled: true,
+            nearRadiusTexels: 2.0,
+            farRadiusTexels: 5.0,
+            depthScale: 1.0,
+            xrRadiusScale: 1.5
+        ))
+
+        let u = sys.makeUniforms()
+        XCTAssertEqual(u.shadowSoftnessNear, 3.0, accuracy: 1e-6)
+        XCTAssertEqual(u.shadowSoftnessFar, 7.5, accuracy: 1e-6)
     }
 }
 

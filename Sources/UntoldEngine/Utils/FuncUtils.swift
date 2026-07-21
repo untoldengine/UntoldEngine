@@ -735,6 +735,25 @@ public func getAssetURL(entityId: EntityID) -> URL? {
     return renderComponent.assetURL
 }
 
+public func setEntityCastsShadow(entityId: EntityID, _ castsShadow: Bool) {
+    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
+        handleError(.noRenderComponent, entityId)
+        return
+    }
+
+    renderComponent.castsShadow = castsShadow
+    RenderPasses.invalidateShadowEntityCache()
+}
+
+public func getEntityCastsShadow(entityId: EntityID) -> Bool {
+    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
+        handleError(.noRenderComponent, entityId)
+        return false
+    }
+
+    return renderComponent.castsShadow
+}
+
 func hasMaterialSlot(renderComponent: RenderComponent, meshIndex: Int, submeshIndex: Int) -> Bool {
     guard renderComponent.mesh.indices.contains(meshIndex) else { return false }
     return renderComponent.mesh[meshIndex].submeshes.indices.contains(submeshIndex)

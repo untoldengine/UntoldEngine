@@ -51,6 +51,7 @@ public class RenderComponent: Component {
     var assetURL: URL = .init(fileURLWithPath: "")
     var assetName: String = ""
     public var isVisible: Bool = true // Visibility flag for bulk loading
+    public var castsShadow: Bool = true
 
     public required init() {
         mesh = []
@@ -212,6 +213,7 @@ public class PointLightComponent: Component {
     public var attenuation: simd_float4 = .init(1.0, 0.7, 1.8, 0.0) // (constant, linear, quadratic)->x,y,z
     public var radius: Float = 1.0
     public var falloff: Float = 0.5
+    public var castsShadow: Bool = false
 
     public required init() {}
 }
@@ -224,6 +226,7 @@ public class SpotLightComponent: Component {
     public var direction: simd_float3 = .init(0, -1, 0)
     public var falloff: Float = 0.5
     public var coneAngle: Float = 30.0
+    public var castsShadow: Bool = false
 
     public required init() {}
 }

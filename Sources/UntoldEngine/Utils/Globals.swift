@@ -35,6 +35,8 @@ private final class CoreRuntimeGlobals: @unchecked Sendable {
     let lock = NSRecursiveLock()
     var scene = Scene()
     var shadowSystem: ShadowSystem!
+    var pointShadowState: PointShadowState!
+    var spotShadowState: SpotShadowState!
     var renderInfo = RenderInfo()
     var vertexDescriptor = VertexDescriptors()
     var bufferResources = BufferResources()
@@ -106,6 +108,48 @@ var shadowSystem: ShadowSystem! {
         state.lock.lock()
         defer { state.lock.unlock() }
         yield &state.shadowSystem
+    }
+}
+
+var pointShadowState: PointShadowState! {
+    get {
+        let state = CoreRuntimeGlobals.shared
+        state.lock.lock()
+        defer { state.lock.unlock() }
+        return state.pointShadowState
+    }
+    set {
+        let state = CoreRuntimeGlobals.shared
+        state.lock.lock()
+        state.pointShadowState = newValue
+        state.lock.unlock()
+    }
+    _modify {
+        let state = CoreRuntimeGlobals.shared
+        state.lock.lock()
+        defer { state.lock.unlock() }
+        yield &state.pointShadowState
+    }
+}
+
+var spotShadowState: SpotShadowState! {
+    get {
+        let state = CoreRuntimeGlobals.shared
+        state.lock.lock()
+        defer { state.lock.unlock() }
+        return state.spotShadowState
+    }
+    set {
+        let state = CoreRuntimeGlobals.shared
+        state.lock.lock()
+        state.spotShadowState = newValue
+        state.lock.unlock()
+    }
+    _modify {
+        let state = CoreRuntimeGlobals.shared
+        state.lock.lock()
+        defer { state.lock.unlock() }
+        yield &state.spotShadowState
     }
 }
 

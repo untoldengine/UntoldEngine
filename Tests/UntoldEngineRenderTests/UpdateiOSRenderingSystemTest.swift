@@ -161,7 +161,10 @@ final class UpdateiOSRenderingSystemTest: BaseRenderSetup {
 
         // Verify topological constraints for iOS mode
         assertTopologicalConstraints(order: order, constraints: [
-            ("shadow", "model"),
+            ("shadow", "batchedShadow"),
+            ("batchedShadow", "pointShadow"),
+            ("pointShadow", "spotShadow"),
+            ("spotShadow", "model"),
             ("model", "lightPass"),
             ("lightPass", "depthOfField"),
         ])

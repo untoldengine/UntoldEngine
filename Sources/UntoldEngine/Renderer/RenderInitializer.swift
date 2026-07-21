@@ -422,6 +422,27 @@ func initRenderPassDescriptors() {
         renderInfo.csmRenderPassDescriptors.append(desc)
     }
 
+    renderInfo.pointShadowRenderPassDescriptors.removeAll()
+    for faceIdx in 0 ..< 6 {
+        let desc = MTLRenderPassDescriptor()
+        desc.renderTargetWidth = Int(shadowResolution.x)
+        desc.renderTargetHeight = Int(shadowResolution.y)
+        desc.depthAttachment.texture = textureResources.pointShadowCubeMap
+        desc.depthAttachment.loadAction = .clear
+        desc.depthAttachment.storeAction = .store
+        desc.depthAttachment.clearDepth = 1.0
+        desc.depthAttachment.slice = faceIdx
+        renderInfo.pointShadowRenderPassDescriptors.append(desc)
+    }
+
+    renderInfo.spotShadowRenderPassDescriptor = MTLRenderPassDescriptor()
+    renderInfo.spotShadowRenderPassDescriptor.renderTargetWidth = Int(shadowResolution.x)
+    renderInfo.spotShadowRenderPassDescriptor.renderTargetHeight = Int(shadowResolution.y)
+    renderInfo.spotShadowRenderPassDescriptor.depthAttachment.texture = textureResources.spotShadowMap
+    renderInfo.spotShadowRenderPassDescriptor.depthAttachment.loadAction = .clear
+    renderInfo.spotShadowRenderPassDescriptor.depthAttachment.storeAction = .store
+    renderInfo.spotShadowRenderPassDescriptor.depthAttachment.clearDepth = 1.0
+
     // Combined G-buffer + lighting render pass (TBDR).
     // Attachments 0-4 are normally memoryless G-buffer slots and are discarded at
     // the end. G-buffer debug views switch them to stored textures so the later
@@ -689,6 +710,26 @@ func initTextureResources() {
     csmDesc.storageMode = .private
     textureResources.csmShadowMap = renderInfo.device.makeTexture(descriptor: csmDesc)
     textureResources.csmShadowMap?.label = "CSM Shadow Cascade Array"
+
+    let pointShadowDesc = MTLTextureDescriptor()
+    pointShadowDesc.textureType = .typeCube
+    pointShadowDesc.pixelFormat = .depth32Float
+    pointShadowDesc.width = Int(shadowResolution.x)
+    pointShadowDesc.height = Int(shadowResolution.y)
+    pointShadowDesc.usage = [.shaderRead, .renderTarget]
+    pointShadowDesc.storageMode = .private
+    textureResources.pointShadowCubeMap = renderInfo.device.makeTexture(descriptor: pointShadowDesc)
+    textureResources.pointShadowCubeMap?.label = "Point Shadow Cube Map"
+
+    let spotShadowDesc = MTLTextureDescriptor()
+    spotShadowDesc.textureType = .type2D
+    spotShadowDesc.pixelFormat = .depth32Float
+    spotShadowDesc.width = Int(shadowResolution.x)
+    spotShadowDesc.height = Int(shadowResolution.y)
+    spotShadowDesc.usage = [.shaderRead, .renderTarget]
+    spotShadowDesc.storageMode = .private
+    textureResources.spotShadowMap = renderInfo.device.makeTexture(descriptor: spotShadowDesc)
+    textureResources.spotShadowMap?.label = "Spot Shadow Map"
 
     initGBufferTextureResources()
 

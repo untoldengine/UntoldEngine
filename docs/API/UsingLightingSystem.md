@@ -96,6 +96,20 @@ setLight(entityId: sun, .intensity(1.2))
 setLight(entityId: sun, .directional(.active))
 ```
 
+Directional shadows use cascaded shadow maps. Runtime softness can be tuned globally:
+
+```swift
+setShadowSoftness(ShadowSoftnessSettings(
+    enabled: true,
+    nearRadiusTexels: 2.0,
+    farRadiusTexels: 5.0,
+    depthScale: 1.0,
+    xrRadiusScale: 1.35
+))
+```
+
+`nearRadiusTexels` and `farRadiusTexels` control the PCF radius across the shadow distance. `xrRadiusScale` applies only while stereo XR rendering is active, where hard shadow edges are more noticeable.
+
 ### Point light
 
 Point lights have a `radius` (effective influence range) and a `falloff` (0 = linear, 1 = physically-based quadratic). You can also override the raw attenuation coefficients if you need exact control:
@@ -110,7 +124,10 @@ setLight(entityId: bulb, .intensity(3.0))
 setLight(entityId: bulb, .point(.radius(8.0)))
 setLight(entityId: bulb, .point(.falloff(0.7)))
 setLight(entityId: bulb, .point(.attenuation(simd_float3(1, 0.5, 0.1))))
+setLight(entityId: bulb, .point(.castsShadow(true)))
 ```
+
+Point shadows are opt-in. The renderer currently shadows one point light per frame: the first point light with `castsShadow(true)` in the engine's point-light query order. Point shadows use a cube depth map, so they cost six depth renders for the active shadowed point light.
 
 ### Spot light
 
@@ -126,7 +143,10 @@ setLight(entityId: spot, .spot(.coneAngle(25.0)))
 setLight(entityId: spot, .spot(.falloff(0.6)))
 setLight(entityId: spot, .spot(.radius(6.0)))
 setLight(entityId: spot, .spot(.attenuation(simd_float3(1, 0.4, 0.08))))
+setLight(entityId: spot, .spot(.castsShadow(true)))
 ```
+
+Spot shadows are opt-in. The renderer currently shadows one spot light per frame: the first spot light with `castsShadow(true)` in the engine's spot-light query order. The spot light's `radius` defines both its lighting range and the far plane of the spot shadow projection.
 
 ### Area light
 

@@ -11,23 +11,47 @@
 import Foundation
 import simd
 
+let minimumSpotShadowDistance: Float = 10.0
+let minimumPointShadowDistance: Float = 10.0
+
+let pointShadowFaceDirections: [simd_float3] = [
+    simd_float3(1.0, 0.0, 0.0),
+    simd_float3(-1.0, 0.0, 0.0),
+    simd_float3(0.0, 1.0, 0.0),
+    simd_float3(0.0, -1.0, 0.0),
+    simd_float3(0.0, 0.0, 1.0),
+    simd_float3(0.0, 0.0, -1.0),
+]
+
+let pointShadowFaceUpVectors: [simd_float3] = [
+    simd_float3(0.0, -1.0, 0.0),
+    simd_float3(0.0, -1.0, 0.0),
+    simd_float3(0.0, 0.0, 1.0),
+    simd_float3(0.0, 0.0, -1.0),
+    simd_float3(0.0, -1.0, 0.0),
+    simd_float3(0.0, -1.0, 0.0),
+]
+
 /// Runtime tuning for CSM shadow filtering.
 public struct ShadowSoftnessSettings: Equatable, Sendable {
     public var enabled: Bool
     public var nearRadiusTexels: Float
     public var farRadiusTexels: Float
     public var depthScale: Float
+    public var xrRadiusScale: Float
 
     public init(
         enabled: Bool = true,
-        nearRadiusTexels: Float = 1.0,
-        farRadiusTexels: Float = 2.25,
-        depthScale: Float = 1.0
+        nearRadiusTexels: Float = 2.0,
+        farRadiusTexels: Float = 5.0,
+        depthScale: Float = 1.0,
+        xrRadiusScale: Float = 1.35
     ) {
         self.enabled = enabled
         self.nearRadiusTexels = nearRadiusTexels
         self.farRadiusTexels = farRadiusTexels
         self.depthScale = depthScale
+        self.xrRadiusScale = xrRadiusScale
     }
 }
 
@@ -47,6 +71,138 @@ struct CSMUniforms {
     var shadowSoftnessFar: Float = 2.25
     var shadowSoftnessDepthScale: Float = 1.0
     var shadowSoftnessEnabled: Float = 1.0
+}
+
+struct SpotShadowUniforms {
+    var lightSpaceMatrix: simd_float4x4 = matrix_identity_float4x4
+    var lightIndex: Int32 = -1
+    var enabled: Float = 0.0
+    var shadowSoftness: Float = 2.0
+    var bias: Float = 0.0015
+}
+
+struct PointShadowUniforms {
+    var lightPosition: simd_float3 = .zero
+    var farDistance: Float = 1.0
+    var lightIndex: Int32 = -1
+    var enabled: Float = 0.0
+    var shadowSoftness: Float = 2.0
+    var bias: Float = 0.0015
+}
+
+struct PointShadowState {
+    var light: ShadowCastingPointLight?
+    var lightSpaceMatrices: [simd_float4x4] = Array(repeating: matrix_identity_float4x4, count: 6)
+    var farDistance: Float = minimumPointShadowDistance
+    var isActive: Bool = false
+
+    mutating func update() {
+        isActive = false
+        light = nil
+        lightSpaceMatrices = Array(repeating: matrix_identity_float4x4, count: 6)
+        farDistance = minimumPointShadowDistance
+
+        guard let shadowLight = getShadowCastingPointLight() else { return }
+
+        let position = shadowLight.light.position
+        guard position.x.isFinite, position.y.isFinite, position.z.isFinite else { return }
+
+        let radius = max(shadowLight.light.radius, shadowLight.light.attenuation.w, 0.001)
+        farDistance = max(radius, minimumPointShadowDistance)
+        let nearZ: Float = 0.05
+        let projection = matrixPerspectiveRightHand(
+            fovyRadians: degreesToRadians(degrees: 90.0),
+            aspectRatio: 1.0,
+            nearZ: nearZ,
+            farZ: farDistance
+        )
+
+        for face in 0 ..< 6 {
+            let view = matrix_look_at_right_hand(
+                position,
+                position + pointShadowFaceDirections[face],
+                pointShadowFaceUpVectors[face]
+            )
+            lightSpaceMatrices[face] = simd_mul(projection, view)
+        }
+
+        light = shadowLight
+        isActive = true
+    }
+
+    func makeUniforms() -> PointShadowUniforms {
+        guard isActive, let light else {
+            return PointShadowUniforms()
+        }
+
+        let softnessScale: Float = renderInfo.isXRStereoMode ? 1.35 : 1.0
+        return PointShadowUniforms(
+            lightPosition: light.light.position,
+            farDistance: farDistance,
+            lightIndex: light.index,
+            enabled: 1.0,
+            shadowSoftness: 2.0 * softnessScale,
+            bias: 0.0015
+        )
+    }
+}
+
+struct SpotShadowState {
+    var light: ShadowCastingSpotLight?
+    var lightSpaceMatrix: simd_float4x4 = matrix_identity_float4x4
+    var frustum: Frustum?
+    var isActive: Bool = false
+
+    mutating func update() {
+        isActive = false
+        light = nil
+        lightSpaceMatrix = matrix_identity_float4x4
+        frustum = nil
+
+        guard let shadowLight = getShadowCastingSpotLight() else { return }
+
+        let direction = simd_normalize(shadowLight.light.direction)
+        guard direction.x.isFinite, direction.y.isFinite, direction.z.isFinite else { return }
+
+        let position = shadowLight.light.position
+        let radius = max(shadowLight.light.attenuation.w, 0.001)
+        let outerCone = max(shadowLight.light.outerCone, degreesToRadians(degrees: 1.0))
+        let fov = min(max(outerCone * 2.0, degreesToRadians(degrees: 1.0)), degreesToRadians(degrees: 175.0))
+        let nearZ: Float = 0.05
+        let farZ = max(radius, minimumSpotShadowDistance, nearZ + 0.01)
+        let up = stableSpotShadowUp(for: direction)
+        let view = matrix_look_at_right_hand(position, position + direction, up)
+        let projection = matrixPerspectiveRightHand(fovyRadians: fov, aspectRatio: 1.0, nearZ: nearZ, farZ: farZ)
+        let matrix = simd_mul(projection, view)
+
+        light = shadowLight
+        lightSpaceMatrix = matrix
+        frustum = buildFrustum(from: matrix)
+        isActive = true
+    }
+
+    func makeUniforms() -> SpotShadowUniforms {
+        guard isActive, let light else {
+            return SpotShadowUniforms()
+        }
+
+        let softnessScale: Float = renderInfo.isXRStereoMode ? 1.35 : 1.0
+        return SpotShadowUniforms(
+            lightSpaceMatrix: SceneRootTransform.shared.effectiveLightMatrix(lightSpaceMatrix),
+            lightIndex: light.index,
+            enabled: 1.0,
+            shadowSoftness: 2.0 * softnessScale,
+            bias: 0.0015
+        )
+    }
+}
+
+private func stableSpotShadowUp(for direction: simd_float3) -> simd_float3 {
+    let worldUp = simd_float3(0.0, 1.0, 0.0)
+    if abs(simd_dot(direction, worldUp)) < 0.95 {
+        return worldUp
+    }
+    return simd_float3(1.0, 0.0, 0.0)
 }
 
 struct ShadowSystem {
@@ -88,8 +244,9 @@ struct ShadowSystem {
         )
         u.cascadeCount = Int32(csmCascadeCount)
         let softness = Self.sanitizedSoftnessSettings(softnessSettings)
-        u.shadowSoftnessNear = softness.nearRadiusTexels
-        u.shadowSoftnessFar = softness.farRadiusTexels
+        let xrScale = renderInfo.isXRStereoMode ? softness.xrRadiusScale : 1.0
+        u.shadowSoftnessNear = softness.nearRadiusTexels * xrScale
+        u.shadowSoftnessFar = softness.farRadiusTexels * xrScale
         u.shadowSoftnessDepthScale = softness.depthScale
         u.shadowSoftnessEnabled = softness.enabled ? 1.0 : 0.0
         return u
@@ -103,11 +260,13 @@ struct ShadowSystem {
         let nearRadius = simd_clamp(settings.nearRadiusTexels, 0.25, 8.0)
         let farRadius = simd_clamp(settings.farRadiusTexels, nearRadius, 12.0)
         let depthScale = simd_clamp(settings.depthScale, 0.0, 2.0)
+        let xrRadiusScale = simd_clamp(settings.xrRadiusScale, 1.0, 2.0)
         return ShadowSoftnessSettings(
             enabled: settings.enabled,
             nearRadiusTexels: nearRadius,
             farRadiusTexels: farRadius,
-            depthScale: depthScale
+            depthScale: depthScale,
+            xrRadiusScale: xrRadiusScale
         )
     }
 
