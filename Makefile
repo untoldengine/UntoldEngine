@@ -37,6 +37,10 @@ testexporter:
 testcore:
 	swift test --filter UntoldEngineTests
 
+testrenderer-smoke:
+	python3 -m pip install --user --break-system-packages opencv-python-headless scikit-image
+	UNTOLD_KEEP_ARTIFACTS=$(KEEP) swift test --filter 'UntoldEngineRenderTests.(RendererTests|LightPortalRendererTests)'
+
 testrenderer:
 	python3 -m pip install --user --break-system-packages --upgrade pip wheel setuptools
 	python3 -m pip install --user --break-system-packages opencv-python-headless scikit-image
