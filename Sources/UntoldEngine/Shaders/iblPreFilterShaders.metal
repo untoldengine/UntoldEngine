@@ -35,10 +35,16 @@ fragment IBLFragmentOut fragmentIBLPreFilterShader(VertexCompositeOutput in [[st
     IBLFragmentOut out;
 
     out.irradiance=diffuseImportanceMap(in.uvCoords, environmentTexture);
-    out.specular=specularImportanceMap(in.uvCoords, environmentTexture);
+    out.specular=specularImportanceMap(in.uvCoords, environmentTexture, 0.0);
     out.brdfMap=BRDFIntegrationMap(1.0-in.uvCoords.y, in.uvCoords.x);
 
     return out;
+}
+
+fragment float4 fragmentIBLSpecularPreFilterShader(VertexCompositeOutput in [[stage_in]],
+                                                   texture2d<float> environmentTexture [[texture(0)]],
+                                                   constant float &roughness [[buffer(0)]]) {
+    return specularImportanceMap(in.uvCoords, environmentTexture, roughness);
 }
 
 static float3 xrIBLNormalFromEquirectUV(float2 texCoords) {
@@ -70,28 +76,29 @@ static float4 diffuseImportanceMapCube(float2 texCoords, texturecube<float> envi
     return float4(result / float(sampleCount), 1.0);
 }
 
-static float4 specularImportanceMapCube(float2 texCoords, texturecube<float> environmentTexture) {
+static float4 specularImportanceMapCube(float2 texCoords, texturecube<float> environmentTexture, float roughness) {
     constexpr sampler s(coord::normalized,
                         filter::linear,
                         mip_filter::none,
                         address::clamp_to_edge);
 
-    constexpr float shininess = 600.0;
-    constexpr uint sampleCount = 128u;
+    uint sampleCount = roughness < 0.001 ? 1u : 128u;
     float3 normal = xrIBLNormalFromEquirectUV(texCoords);
-    float3x3 normalSpace = getNormalSpace(normal);
     float3 result = float3(0.0);
+    float totalWeight = 0.0;
 
     for (uint n = 1u; n <= sampleCount; n++) {
         float2 p = hammersley(n, sampleCount);
-        float theta = acos(pow(1.0 - p.y, 1.0 / (shininess + 1.0)));
-        float phi = 2.0 * M_PI_F * p.x;
-        float3 pos = float3(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
-        float3 posGlob = normalize(normalSpace * pos);
-        result += environmentTexture.sample(s, posGlob).rgb;
+        float3 H = roughness < 0.001 ? normal : importanceSampleGGX(p, roughness, normal);
+        float3 L = normalize(2.0 * dot(normal, H) * H - normal);
+        float NoL = max(dot(normal, L), 0.0);
+        if (NoL > 0.0) {
+            result += environmentTexture.sample(s, L).rgb * NoL;
+            totalWeight += NoL;
+        }
     }
 
-    result = result / float(sampleCount) * (shininess + 2.0) / (shininess + 1.0);
+    result = totalWeight > 0.0 ? result / totalWeight : float3(0.0);
     return float4(result, 1.0);
 }
 
@@ -99,7 +106,13 @@ fragment IBLFragmentOut fragmentXRIBLCubePreFilterShader(VertexCompositeOutput i
                                                          texturecube<float> environmentTexture [[texture(0)]]) {
     IBLFragmentOut out;
     out.irradiance = diffuseImportanceMapCube(in.uvCoords, environmentTexture);
-    out.specular = specularImportanceMapCube(in.uvCoords, environmentTexture);
+    out.specular = specularImportanceMapCube(in.uvCoords, environmentTexture, 0.0);
     out.brdfMap = BRDFIntegrationMap(1.0 - in.uvCoords.y, in.uvCoords.x);
     return out;
+}
+
+fragment float4 fragmentXRIBLCubeSpecularPreFilterShader(VertexCompositeOutput in [[stage_in]],
+                                                         texturecube<float> environmentTexture [[texture(0)]],
+                                                         constant float &roughness [[buffer(0)]]) {
+    return specularImportanceMapCube(in.uvCoords, environmentTexture, roughness);
 }

@@ -24,6 +24,112 @@ enum LoadError: Error {
     case textureCreationFailed
 }
 
+struct LoadedHDRTextures {
+    let visible: MTLTexture
+    let iblSource: MTLTexture
+}
+
+private enum HDRIBLCalibration {
+    static let targetLogAverageLuminance: Float = 0.35
+    static let outlierPercentile: Float = 0.999
+    static let outlierMultiplier: Float = 4.0
+    static let maxFiniteRadiance: Float = 65504.0
+    static let maxNormalizedRadiance: Float = 16.0
+    static let minExposureScale: Float = 0.01
+    static let maxExposureScale: Float = 8.0
+}
+
+private func makeHDRTexture(width: Int, height: Int, label: String) throws -> MTLTexture {
+    let descriptor = MTLTextureDescriptor()
+    descriptor.pixelFormat = .rgba16Float
+    descriptor.width = width
+    descriptor.height = height
+    descriptor.depth = 1
+    descriptor.usage = .shaderRead
+    descriptor.resourceOptions = .storageModeShared
+    descriptor.sampleCount = 1
+    descriptor.textureType = .type2D
+    descriptor.mipmapLevelCount = Int(
+        1 + floorf(log2f(fmaxf(Float(width), Float(height))))
+    )
+
+    guard let texture = renderInfo.device.makeTexture(descriptor: descriptor) else {
+        throw LoadError.textureCreationFailed
+    }
+    texture.label = label
+    return texture
+}
+
+private func sanitizedRadiance(_ value: Float16) -> Float {
+    let radiance = Float(value)
+    guard radiance.isFinite else { return 0.0 }
+    return min(max(radiance, 0.0), HDRIBLCalibration.maxFiniteRadiance)
+}
+
+private func luminance(_ color: SIMD3<Float>) -> Float {
+    dot(color, SIMD3<Float>(0.2126, 0.7152, 0.0722))
+}
+
+private func calibratedIBLHalfData(from halfBits: UnsafeMutablePointer<UInt16>, pixelCount: Int) -> [Float16] {
+    let epsilon: Float = 1.0e-4
+    var colors: [SIMD3<Float>] = []
+    colors.reserveCapacity(pixelCount)
+    var luminances: [Float] = []
+    luminances.reserveCapacity(pixelCount)
+    var logLuminanceSum: Float = 0.0
+
+    for pixel in 0 ..< pixelCount {
+        let base = pixel * 4
+        let color = SIMD3<Float>(
+            sanitizedRadiance(Float16(bitPattern: halfBits[base])),
+            sanitizedRadiance(Float16(bitPattern: halfBits[base + 1])),
+            sanitizedRadiance(Float16(bitPattern: halfBits[base + 2]))
+        )
+        let lum = luminance(color)
+        colors.append(color)
+        luminances.append(lum)
+        logLuminanceSum += log(max(lum, epsilon))
+    }
+
+    guard pixelCount > 0 else { return [] }
+
+    luminances.sort()
+    let percentileIndex = min(
+        max(Int(Float(pixelCount - 1) * HDRIBLCalibration.outlierPercentile), 0),
+        pixelCount - 1
+    )
+    let percentileLuminance = max(luminances[percentileIndex], epsilon)
+    let logAverage = max(exp(logLuminanceSum / Float(pixelCount)), epsilon)
+    let sourceClipLuminance = max(
+        percentileLuminance * HDRIBLCalibration.outlierMultiplier,
+        logAverage
+    )
+    let exposureScale = min(
+        max(HDRIBLCalibration.targetLogAverageLuminance / logAverage,
+            HDRIBLCalibration.minExposureScale),
+        HDRIBLCalibration.maxExposureScale
+    )
+
+    var calibrated = Array(repeating: Float16(1.0), count: pixelCount * 4)
+    for pixel in 0 ..< pixelCount {
+        let base = pixel * 4
+        var color = colors[pixel]
+        let lum = luminance(color)
+        if lum > sourceClipLuminance {
+            color *= sourceClipLuminance / lum
+        }
+        color *= exposureScale
+        color = min(color, SIMD3<Float>(repeating: HDRIBLCalibration.maxNormalizedRadiance))
+
+        calibrated[base] = Float16(color.x)
+        calibrated[base + 1] = Float16(color.y)
+        calibrated[base + 2] = Float16(color.z)
+        calibrated[base + 3] = Float16(1.0)
+    }
+
+    return calibrated
+}
+
 public func loadTexture(
     device: MTLDevice,
     textureName: String,
@@ -65,6 +171,10 @@ public func loadImage(_ textureName: String, from directory: URL? = nil) throws 
 }
 
 public func loadHDR(_ textureName: String, from directory: URL? = nil) throws -> MTLTexture? {
+    try loadHDRTextures(textureName, from: directory).visible
+}
+
+func loadHDRTextures(_ textureName: String, from directory: URL? = nil) throws -> LoadedHDRTextures {
     let url = try loadImage(textureName, from: directory)
 
     let cfURLString = url.path as CFString
@@ -122,29 +232,23 @@ public func loadHDR(_ textureName: String, from directory: URL? = nil) throws ->
         }
     }
 
-    let descriptor = MTLTextureDescriptor()
-    descriptor.pixelFormat = .rgba16Float
-    descriptor.width = cgImage.width
-    descriptor.height = cgImage.height
-    descriptor.depth = 1
-    descriptor.usage = .shaderRead
-    descriptor.resourceOptions = .storageModeShared
-    descriptor.sampleCount = 1
-    descriptor.textureType = .type2D
-    descriptor.mipmapLevelCount = Int(
-        1 + floorf(log2f(fmaxf(Float(cgImage.width), Float(cgImage.height))))
-    )
+    let visibleTexture = try makeHDRTexture(width: cgImage.width, height: cgImage.height, label: "environment texture")
+    let iblSourceTexture = try makeHDRTexture(width: cgImage.width, height: cgImage.height, label: "IBL calibrated environment texture")
+    let calibratedData = calibratedIBLHalfData(from: halfBits, pixelCount: cgImage.width * cgImage.height)
 
-    guard let texture = renderInfo.device.makeTexture(descriptor: descriptor) else {
-        throw LoadError.textureCreationFailed
-    }
-
-    texture.replace(
+    visibleTexture.replace(
         region: MTLRegionMake2D(0, 0, cgImage.width, cgImage.height), mipmapLevel: 0,
         withBytes: bitmapContext.data!, bytesPerRow: cgImage.width * 2 * 4
     )
 
-    return texture
+    calibratedData.withUnsafeBytes { bytes in
+        iblSourceTexture.replace(
+            region: MTLRegionMake2D(0, 0, cgImage.width, cgImage.height), mipmapLevel: 0,
+            withBytes: bytes.baseAddress!, bytesPerRow: cgImage.width * 2 * 4
+        )
+    }
+
+    return LoadedHDRTextures(visible: visibleTexture, iblSource: iblSourceTexture)
 }
 
 public func readArrayOfStructsFromFile<T: Codable>(filePath: URL) -> [T]? {
@@ -216,8 +320,9 @@ public func hasTextureCoordinates(mesh: MDLMesh) -> Bool {
 
 public func generateHDR(_ hdrName: String, from directory: URL? = nil) {
     do {
-        textureResources.environmentTexture = try loadHDR(hdrName, from: directory)
-        textureResources.environmentTexture?.label = "environment texture"
+        let hdrTextures = try loadHDRTextures(hdrName, from: directory)
+        textureResources.environmentTexture = hdrTextures.visible
+        textureResources.iblEnvironmentTexture = hdrTextures.iblSource
 
         // If the environment was properly loaded, then mip-map it
 
@@ -236,6 +341,7 @@ public func generateHDR(_ hdrName: String, from directory: URL? = nil) {
         }
 
         envMipMapBlitEncoder.generateMipmaps(for: textureResources.environmentTexture!)
+        envMipMapBlitEncoder.generateMipmaps(for: textureResources.iblEnvironmentTexture!)
 
         // add a completion handler here
         envMipMapCommandBuffer.addCompletedHandler { (_ commandBuffer) in
@@ -254,7 +360,7 @@ public func generateHDR(_ hdrName: String, from directory: URL? = nil) {
         }
 
         executeIBLPreFilterPass(
-            uCommandBuffer: iblPreFilterCommandBuffer, textureResources.environmentTexture!
+            uCommandBuffer: iblPreFilterCommandBuffer, textureResources.iblEnvironmentTexture!
         )
 
         // add a completion handler here
@@ -264,35 +370,8 @@ public func generateHDR(_ hdrName: String, from directory: URL? = nil) {
         iblPreFilterCommandBuffer.commit()
         iblPreFilterCommandBuffer.waitUntilCompleted()
 
-        // mipmap the specular texture
-
-        guard
-            let specMipMapCommandBuffer: MTLCommandBuffer = renderInfo.commandQueue.makeCommandBuffer()
-        else {
-            handleError(.iblSpecMipMapCreationFailed)
-            return
-        }
-
-        guard
-            let specMipMapBlitEncoder: MTLBlitCommandEncoder =
-            specMipMapCommandBuffer.makeBlitCommandEncoder()
-        else {
-            handleError(.iblSpecMipMapBlitCreationFailed)
-            return
-        }
-
-        specMipMapBlitEncoder.generateMipmaps(for: textureResources.specularMap!)
-
-        // add a completion handler here
-        specMipMapCommandBuffer.addCompletedHandler { (_ commandBuffer) in
-            iblSuccessful = true
-            hdrURL = hdrName
-            // print("IBL Pre-Filters created successfully")
-        }
-
-        specMipMapBlitEncoder.endEncoding()
-        specMipMapCommandBuffer.commit()
-        specMipMapCommandBuffer.waitUntilCompleted()
+        iblSuccessful = true
+        hdrURL = hdrName
 
     } catch {
         handleError(.iBLCreationFailed)

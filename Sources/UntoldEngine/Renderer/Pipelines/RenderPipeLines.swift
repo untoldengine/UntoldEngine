@@ -757,6 +757,19 @@ public func InitIBLPreFilterPipeline() -> RenderPipeline? {
     )
 }
 
+public func InitIBLSpecularPreFilterPipeline() -> RenderPipeline? {
+    CreatePipeline(
+        vertexShader: "vertexIBLPreFilterShader",
+        fragmentShader: "fragmentIBLSpecularPreFilterShader",
+        vertexDescriptor: createIBLPreFilterVertexDescriptor(),
+        colorFormats: [wf.ibl],
+        depthFormat: .invalid,
+        depthCompareFunction: .less,
+        depthEnabled: false,
+        name: "IBL Specular Pre-Filter Pipeline"
+    )
+}
+
 public func InitXRIBLCubePreFilterPipeline() -> RenderPipeline? {
     CreatePipeline(
         vertexShader: "vertexIBLPreFilterShader",
@@ -767,6 +780,19 @@ public func InitXRIBLCubePreFilterPipeline() -> RenderPipeline? {
         depthCompareFunction: .less,
         depthEnabled: false,
         name: "XR IBL Cube Pre-Filter Pipeline"
+    )
+}
+
+public func InitXRIBLCubeSpecularPreFilterPipeline() -> RenderPipeline? {
+    CreatePipeline(
+        vertexShader: "vertexIBLPreFilterShader",
+        fragmentShader: "fragmentXRIBLCubeSpecularPreFilterShader",
+        vertexDescriptor: createIBLPreFilterVertexDescriptor(),
+        colorFormats: [wf.ibl],
+        depthFormat: .invalid,
+        depthCompareFunction: .less,
+        depthEnabled: false,
+        name: "XR IBL Cube Specular Pre-Filter Pipeline"
     )
 }
 
@@ -961,7 +987,9 @@ public func DefaultPipeLines() -> [(RenderPipelineType, RenderPipelineInitBlock)
         (.ssaoUpsample, InitSSAOUpsamplePipeline),
         (.environment, InitEnvironmentPipeline),
         (.iblPreFilter, InitIBLPreFilterPipeline),
+        (.iblSpecularPreFilter, InitIBLSpecularPreFilterPipeline),
         (.xrIBLCubePreFilter, InitXRIBLCubePreFilterPipeline),
+        (.xrIBLCubeSpecularPreFilter, InitXRIBLCubeSpecularPreFilterPipeline),
         (.gaussianTBDRInitialize, InitGaussianTBDRInitializePipeline),
         (.gaussianTBDRDraw, InitGaussianTBDRDrawPipeline),
         (.gaussianTBDRPostprocess, InitGaussianTBDRPostprocessPipeline),

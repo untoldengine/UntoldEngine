@@ -133,7 +133,7 @@ float random2(float2 n);
 
 float4 diffuseImportanceMap(float2 texCoords, texture2d<float> environmentTexture);
 
-float4 specularImportanceMap(float2 texCoords, texture2d<float> environmentTexture);
+float4 specularImportanceMap(float2 texCoords, texture2d<float> environmentTexture, float roughness);
 
 float4 BRDFIntegrationMap(float roughness, float NoV);
 

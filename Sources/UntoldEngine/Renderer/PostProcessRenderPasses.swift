@@ -70,8 +70,12 @@ func executeIBLPreFilterPass(uCommandBuffer: MTLCommandBuffer, _ envTexture: MTL
         handleError(.pipelineStateNulled, "iblPreFilterPipeline is nil")
         return
     }
+    guard let iblSpecularPipeline = PipelineManager.shared.renderPipelinesByType[.iblSpecularPreFilter] else {
+        handleError(.pipelineStateNulled, "iblSpecularPreFilterPipeline is nil")
+        return
+    }
 
-    if !iblPrefilterPipeline.success {
+    if !iblPrefilterPipeline.success || !iblSpecularPipeline.success {
         return
     }
 
@@ -114,6 +118,47 @@ func executeIBLPreFilterPass(uCommandBuffer: MTLCommandBuffer, _ envTexture: MTL
             renderEncoder.endEncoding()
         }
     }
+
+    guard let specularMap = textureResources.specularMap,
+          specularMap.mipmapLevelCount > 1,
+          let pipelineState = iblSpecularPipeline.pipelineState
+    else {
+        return
+    }
+
+    for mipLevel in 1 ..< specularMap.mipmapLevelCount {
+        let mipWidth = max(1, specularMap.width >> mipLevel)
+        let mipHeight = max(1, specularMap.height >> mipLevel)
+        let renderPassDescriptor = MTLRenderPassDescriptor()
+        renderPassDescriptor.renderTargetWidth = mipWidth
+        renderPassDescriptor.renderTargetHeight = mipHeight
+        renderPassDescriptor.colorAttachments[0].texture = specularMap
+        renderPassDescriptor.colorAttachments[0].level = mipLevel
+        renderPassDescriptor.colorAttachments[0].loadAction = .dontCare
+        renderPassDescriptor.colorAttachments[0].storeAction = .store
+
+        guard let renderEncoder = uCommandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
+            continue
+        }
+
+        var roughness = Float(mipLevel) / Float(max(specularMap.mipmapLevelCount - 1, 1))
+        renderEncoder.setRenderPipelineState(pipelineState)
+        renderEncoder.pushDebugGroup("IBL Specular Pre-Filter Mip \(mipLevel)")
+        renderEncoder.label = "IBL Specular Pre-Filter Mip \(mipLevel)"
+        renderEncoder.setVertexBuffer(bufferResources.quadVerticesBuffer, offset: 0, index: 0)
+        renderEncoder.setVertexBuffer(bufferResources.quadTexCoordsBuffer, offset: 0, index: 1)
+        renderEncoder.setFragmentTexture(envTexture, index: 0)
+        renderEncoder.setFragmentBytes(&roughness, length: MemoryLayout<Float>.stride, index: 0)
+        renderEncoder.drawIndexedPrimitivesTracked(
+            type: .triangle,
+            indexCount: 6,
+            indexType: .uint16,
+            indexBuffer: bufferResources.quadIndexBuffer!,
+            indexBufferOffset: 0
+        )
+        renderEncoder.popDebugGroup()
+        renderEncoder.endEncoding()
+    }
 }
 
 public func executeXRIBLCubePreFilterPass(
@@ -130,9 +175,15 @@ public func executeXRIBLCubePreFilterPass(
         handleError(.pipelineStateNulled, "xrIBLCubePreFilterPipeline is nil")
         return false
     }
+    guard let iblSpecularPipeline = PipelineManager.shared.renderPipelinesByType[.xrIBLCubeSpecularPreFilter] else {
+        handleError(.pipelineStateNulled, "xrIBLCubeSpecularPreFilterPipeline is nil")
+        return false
+    }
 
     guard iblPrefilterPipeline.success,
-          let pipelineState = iblPrefilterPipeline.pipelineState
+          let pipelineState = iblPrefilterPipeline.pipelineState,
+          iblSpecularPipeline.success,
+          let specularPipelineState = iblSpecularPipeline.pipelineState
     else {
         return false
     }
@@ -173,12 +224,39 @@ public func executeXRIBLCubePreFilterPass(
     renderEncoder.popDebugGroup()
     renderEncoder.endEncoding()
 
-    guard let blitEncoder = commandBuffer.makeBlitCommandEncoder() else {
-        return false
+    for mipLevel in 1 ..< target.specularMap.mipmapLevelCount {
+        let mipWidth = max(1, target.specularMap.width >> mipLevel)
+        let mipHeight = max(1, target.specularMap.height >> mipLevel)
+        let mipRenderPassDescriptor = MTLRenderPassDescriptor()
+        mipRenderPassDescriptor.renderTargetWidth = mipWidth
+        mipRenderPassDescriptor.renderTargetHeight = mipHeight
+        mipRenderPassDescriptor.colorAttachments[0].texture = target.specularMap
+        mipRenderPassDescriptor.colorAttachments[0].level = mipLevel
+        mipRenderPassDescriptor.colorAttachments[0].loadAction = .dontCare
+        mipRenderPassDescriptor.colorAttachments[0].storeAction = .store
+
+        guard let mipEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: mipRenderPassDescriptor) else {
+            continue
+        }
+
+        var roughness = Float(mipLevel) / Float(max(target.specularMap.mipmapLevelCount - 1, 1))
+        mipEncoder.setRenderPipelineState(specularPipelineState)
+        mipEncoder.pushDebugGroup("XR IBL Cube Specular Pre-Filter Mip \(mipLevel)")
+        mipEncoder.label = "XR IBL Cube Specular Pre-Filter Mip \(mipLevel)"
+        mipEncoder.setVertexBuffer(bufferResources.quadVerticesBuffer, offset: 0, index: 0)
+        mipEncoder.setVertexBuffer(bufferResources.quadTexCoordsBuffer, offset: 0, index: 1)
+        mipEncoder.setFragmentTexture(environmentCubeTexture, index: 0)
+        mipEncoder.setFragmentBytes(&roughness, length: MemoryLayout<Float>.stride, index: 0)
+        mipEncoder.drawIndexedPrimitivesTracked(
+            type: .triangle,
+            indexCount: 6,
+            indexType: .uint16,
+            indexBuffer: bufferResources.quadIndexBuffer!,
+            indexBufferOffset: 0
+        )
+        mipEncoder.popDebugGroup()
+        mipEncoder.endEncoding()
     }
-    blitEncoder.label = "XR IBL Specular Mipmap Generation"
-    blitEncoder.generateMipmaps(for: target.specularMap)
-    blitEncoder.endEncoding()
 
     return true
 }

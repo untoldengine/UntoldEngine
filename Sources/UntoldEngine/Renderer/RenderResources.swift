@@ -175,6 +175,7 @@ public struct TextureResources {
 
     // ibl
     public var environmentTexture: MTLTexture?
+    public var iblEnvironmentTexture: MTLTexture?
     public var irradianceMap: MTLTexture?
     public var specularMap: MTLTexture?
     public var iblBRDFMap: MTLTexture?
