@@ -388,41 +388,48 @@ float4 diffuseImportanceMap(float2 texCoords, texture2d<float> environmentTextur
     return color;
 }
 
-float4 specularImportanceMap(float2 texCoords, texture2d<float> environmentTexture){
+float3 importanceSampleGGX(float2 xi, float roughness, float3 normal) {
+    float a = max(roughness * roughness, 0.001);
+    float phi = 2.0 * M_PI_F * xi.x;
+    float cosTheta = sqrt((1.0 - xi.y) / (1.0 + (a * a - 1.0) * xi.y));
+    float sinTheta = sqrt(max(1.0 - cosTheta * cosTheta, 0.0));
+
+    float3 H = float3(cos(phi) * sinTheta, sin(phi) * sinTheta, cosTheta);
+    return normalize(getNormalSpace(normal) * H);
+}
+
+float4 specularImportanceMap(float2 texCoords, texture2d<float> environmentTexture, float roughness){
 
     constexpr sampler s(coord::normalized,
                         filter::linear,
                         mip_filter::linear,
                         address::repeat);
 
-    float shininess=600;
-    int samples=1024;
+    int samples = roughness < 0.001 ? 1 : 1024;
 
     float thetaN = M_PI_F * (1.0 - texCoords.y);
     float phiN = 2.0 * M_PI_F * (1.0-texCoords.x);
-    float3 normal = float3(sin(thetaN) * cos(phiN), sin(thetaN) * sin(phiN), cos(thetaN));
-
-
-    float3x3 normalSpace = getNormalSpace(normal);
+    float3 normal = normalize(float3(sin(thetaN) * cos(phiN), sin(thetaN) * sin(phiN), cos(thetaN)));
 
     float3 result = float3(0.0);
+    float totalWeight = 0.0;
 
     uint N = uint(samples);
 
-    //float r = random2(texCoords);
-
     for(uint n = 1u; n <= N; n++) {
-      float2 p = hammersley(n, N);
-      //float2 p = mod(hammersley(n, N) + r, 1.0);
-      float theta = acos(pow(1.0 - p.y, 1.0/(shininess + 1.0)));
-      float phi = 2.0 * M_PI_F * p.x;
-      float3 pos = float3(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
-      float3 posGlob = normalSpace * pos;
-      float2 uv = directionToSphericalEnvmap(posGlob);
-      float3 radiance = environmentTexture.sample(s,uv,level(3.0)).rgb;
-      result += radiance;
+        float2 p = hammersley(n, N);
+        float3 H = roughness < 0.001 ? normal : importanceSampleGGX(p, roughness, normal);
+        float3 L = normalize(2.0 * dot(normal, H) * H - normal);
+        float NoL = max(dot(normal, L), 0.0);
+        if (NoL > 0.0) {
+            float2 uv = directionToSphericalEnvmap(L);
+            float sourceMip = roughness < 0.001 ? 0.0 : roughness * 5.0;
+            float3 radiance = environmentTexture.sample(s, uv, level(sourceMip)).rgb;
+            result += radiance * NoL;
+            totalWeight += NoL;
+        }
     }
-    result = result / float(samples) * (shininess + 2.0) / (shininess + 1.0);
+    result = totalWeight > 0.0 ? result / totalWeight : float3(0.0);
 
     float4 color;
     color.rgb = float3(result);
@@ -481,7 +488,7 @@ float3 specularIBL(float3 F0 , float roughness, float3 N, float3 V, texture2d<fl
                         mip_filter::none,
                         address::clamp_to_edge);
 
-    int mipCount=5;
+    int mipCount=6;
     float NoV = clamp(dot(N, V), 0.0, 1.0);
     float3 R = reflect(-V, N);
 
