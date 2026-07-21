@@ -15,7 +15,6 @@ public struct SceneData: Codable {
     var schemaVersion: Int? = 2
     var entities: [EntityData] = []
     var environment: EnvironmentData? = nil
-    var assetBasePath: URL? = nil
     var toneMapping: ToneMappingData? = nil
     var colorGrading: ColorGradingData? = nil
     var colorCorrection: ColorCorrectionData? = nil
@@ -228,7 +227,10 @@ struct EntityData: Codable {
     var parentUUID: UUID? = nil // UUID of the parent entity, if any
     var name: String = "" // entity name
     var assetName: String = "" // asset name in 3D software (legacy)
-    var assetURL: URL = .init(fileURLWithPath: "") // legacy
+    // `fileURLWithPath: ""` resolves against the process's current working directory, which
+    // leaked machine-specific build paths (e.g. Xcode DerivedData) into entities with no asset.
+    // Pin the default to "/" so it's deterministic and never carries local filesystem state.
+    var assetURL: URL = .init(fileURLWithPath: "/") // legacy
     var asset: SceneAssetReference? = nil
     var position: simd_float3 = .zero
     var axisOfRotations: simd_float3 = .zero
@@ -303,6 +305,19 @@ private func sceneAssetReference(kind: SceneAssetKind, url: URL, displayName: St
     }
 
     return SceneAssetReference(kind: kind, path: relativePath, displayName: displayName)
+}
+
+/// Value stored in the legacy (pre-`SceneAssetReference`) `assetURL`/`animations` fields.
+/// These fields are kept only so older scene files (saved before the relative-path asset
+/// reference system existed) still decode. When we successfully computed a project-relative
+/// `reference`, mirror that same relative path here instead of the absolute filesystem URL —
+/// otherwise every save re-bakes the current machine's absolute path into the scene file, even
+/// though loading always prefers `reference` when it's present.
+private func legacyAssetURL(for url: URL, reference: SceneAssetReference?) -> URL {
+    guard let reference, reference.kind != .procedural, !reference.path.hasPrefix("https://") else {
+        return url
+    }
+    return URL(string: reference.path) ?? url
 }
 
 private func resolvedSceneAssetURL(_ reference: SceneAssetReference) -> URL? {
@@ -498,13 +513,13 @@ public func serializeScene() -> SceneData {
         if let renderComponent = scene.get(component: RenderComponent.self, for: entityId) {
             entityData.assetName = renderComponent.assetName
 
-            entityData.assetURL = renderComponent.assetURL
             let assetKind: SceneAssetKind = isProceduralAssetURL(renderComponent.assetURL) ? .procedural : .model
             entityData.asset = sceneAssetReference(
                 kind: assetKind,
                 url: renderComponent.assetURL,
                 displayName: renderComponent.assetName.isEmpty ? nil : renderComponent.assetName
             )
+            entityData.assetURL = legacyAssetURL(for: renderComponent.assetURL, reference: entityData.asset)
 
             // material data
             let baseColor: simd_float4 = getMaterialBaseColor(entityId: entityId)
@@ -583,11 +598,12 @@ public func serializeScene() -> SceneData {
         // asset roots collect animation source URLs from their derived descendants.
         let animationSourceURLs = animationSourceURLsForSerialization(entityId: entityId)
         if animationSourceURLs.isEmpty == false {
-            entityData.animations = animationSourceURLs
-            let animationReferences = animationSourceURLs.compactMap {
+            let animationReferences = animationSourceURLs.map {
                 sceneAssetReference(kind: .animation, url: $0, displayName: $0.deletingPathExtension().lastPathComponent)
             }
-            entityData.animationAssets = animationReferences.isEmpty ? nil : animationReferences
+            entityData.animations = zip(animationSourceURLs, animationReferences).map(legacyAssetURL(for:reference:))
+            let validReferences = animationReferences.compactMap { $0 }
+            entityData.animationAssets = validReferences.isEmpty ? nil : validReferences
         }
 
         entityData.hasAnimationComponent = animationSourceURLs.isEmpty == false || hasComponent(entityId: entityId, componentType: AnimationComponent.self)
@@ -835,9 +851,10 @@ public func serializeScene() -> SceneData {
                 }
             }
 
+            let assetInstanceReference = sceneAssetReference(kind: .model, url: assetInstanceComp.assetURL, displayName: assetInstanceComp.assetName)
             entityData.assetInstance = AssetInstanceData(
-                assetURL: assetInstanceComp.assetURL,
-                asset: sceneAssetReference(kind: .model, url: assetInstanceComp.assetURL, displayName: assetInstanceComp.assetName),
+                assetURL: legacyAssetURL(for: assetInstanceComp.assetURL, reference: assetInstanceReference),
+                asset: assetInstanceReference,
                 assetName: assetInstanceComp.assetName,
                 importMode: assetInstanceComp.importMode,
                 rootPrimPath: assetInstanceComp.rootPrimPath,
@@ -942,8 +959,10 @@ public func serializeScene() -> SceneData {
         smaa: SMAAData(edgeThreshold: SMAAParams.shared.edgeThreshold)
     )
 
-    // save asset base path
-    sceneData.assetBasePath = assetBasePath
+    // Intentionally not persisting `assetBasePath`: it's an absolute, machine-specific
+    // filesystem path. Baking it into the scene file breaks portability when the project
+    // (and its .untoldscene files) is shared or checked into version control. Consumers
+    // should establish assetBasePath themselves (e.g. via setupAssetPaths()).
 
     return sceneData
 }
@@ -1050,10 +1069,6 @@ public func deserializeScene(
     meshLoadingMode: MeshLoadingMode = .asyncDefault,
     completion: (() -> Void)? = nil
 ) {
-    if assetBasePath == nil, let savedAssetBasePath = sceneData.assetBasePath {
-        assetBasePath = savedAssetBasePath
-    }
-
     var uuidToEntityMap: [UUID: EntityID] = [:]
 
     // Track async loading operations for completion callback

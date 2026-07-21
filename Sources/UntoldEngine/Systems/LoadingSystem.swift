@@ -147,6 +147,13 @@ public func playSceneAt(url: URL, completion: (() -> Void)? = nil) {
         return
     }
 
+    // Scene files always live at `<assetBasePath>/Scenes/<name>.untoldscene`. If the asset
+    // base path hasn't been configured yet (e.g. setupAssetPaths() wasn't called), derive it
+    // from the scene file's own location rather than trusting a path baked into the scene data.
+    if assetBasePath == nil, url.deletingLastPathComponent().lastPathComponent == "Scenes" {
+        assetBasePath = url.deletingLastPathComponent().deletingLastPathComponent()
+    }
+
     destroyAllEntities {
         deserializeScene(sceneData: scene) {
             completion?()
