@@ -62,6 +62,40 @@ final class NativeTextureLoaderTests: BaseRenderSetup {
         XCTAssertGreaterThan(texFull.width, texSmall.width, "Full-res texture must be wider than the capped tier")
     }
 
+    func testLoadsUncompressedRGBA16FloatTexture() throws {
+        let width = 8
+        let height = 4
+        let payloadSize = width * height * 8
+        let header = NativeTexHeader(
+            flags: NativeTexFlags.hasAlpha,
+            width: UInt32(width),
+            height: UInt32(height),
+            mipCount: 1,
+            pixelFormat: NativeTexFormat.rgba16FloatPixelFormat,
+            blockWidth: 1,
+            blockHeight: 1,
+            payloadOffset: NativeTexFormat.payloadOffset(mipCount: 1),
+            totalPayloadSize: UInt32(payloadSize)
+        )
+        let writer = UntoldBinaryWriter()
+        header.encode(to: writer)
+        NativeTexMipEntry(
+            byteOffset: 0,
+            byteSize: UInt32(payloadSize),
+            widthPx: UInt32(width),
+            heightPx: UInt32(height)
+        ).encode(to: writer)
+        writer.writeData(Data(count: payloadSize))
+        let url = tempDir.appendingPathComponent("rgba16float.utex")
+        try writer.data.write(to: url)
+
+        let texture = try XCTUnwrap(loader.loadTexture(from: url))
+        XCTAssertEqual(texture.pixelFormat, .rgba16Float)
+        XCTAssertEqual(texture.width, width)
+        XCTAssertEqual(texture.height, height)
+        XCTAssertEqual(texture.mipmapLevelCount, 1)
+    }
+
     // MARK: - Single-flight concurrency
 
     func testConcurrentRequestsForSameKeyReturnSameInstance() async throws {

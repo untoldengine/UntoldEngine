@@ -7,10 +7,11 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 """
-texbake.py — Offline ASTC texture baker for the UntoldEngine native asset pipeline.
+texbake.py — Offline texture baker for the UntoldEngine native asset pipeline.
 
 Converts PNG/JPEG/TGA source textures to the engine-native .utex container format
-using ASTC block compression. Run this as a post-export step after export-untold or
+using ASTC block compression for material textures. Color LUTs use uncompressed
+RGBA16Float. Run this as a post-export step after export-untold or
 export-untold-tiles has produced a textures/ directory.
 
 Requirements:
@@ -34,7 +35,7 @@ Options:
     --output PATH      Output .utex path (default: same location as input, .utex extension)
     --slot SLOT        Texture slot. One of:
                            base_color, emissive, normal, roughness, metallic,
-                           occlusion, orm, opacity, data
+                           occlusion, orm, opacity, data, lut
     --quality LEVEL    astcenc quality level: fastest, fast, medium, thorough, exhaustive
                        (default: thorough)
     --dir PATH         Batch mode: convert all supported images in this directory
@@ -52,6 +53,7 @@ Texture slot → ASTC format mapping:
     orm          no       6×6    208  (astc_6x6_ldr)
     opacity      no       4×4    204  (astc_4x4_ldr)
     data         no       4×4    204  (astc_4x4_ldr)  ← default for unrecognised slots
+    lut          no       1×1    115  (rgba16Float, uncompressed, one mip)
 """
 
 from __future__ import annotations
@@ -111,6 +113,7 @@ MTL_ASTC_4X4_LDR = 204
 MTL_ASTC_5X5_LDR = 206
 MTL_ASTC_6X6_LDR = 208
 MTL_ASTC_8X8_LDR = 212
+MTL_RGBA16_FLOAT = 115
 
 # Flags (matches NativeTexFlags in Swift)
 FLAG_HAS_ALPHA = 1 << 0
@@ -130,6 +133,8 @@ class SlotConfig:
     block_w: int
     block_h: int
     pixel_format: int  # MTLPixelFormat raw value
+    generate_mips: bool = True  # LUT strips must never be mip-filtered — see "lut" slot below.
+    encoding: str = "astc"
 
 
 _SLOT_CONFIG: dict[str, SlotConfig] = {
@@ -142,6 +147,9 @@ _SLOT_CONFIG: dict[str, SlotConfig] = {
     "orm":        SlotConfig(srgb=False, block_size="6x6", block_w=6, block_h=6, pixel_format=MTL_ASTC_6X6_LDR),
     "opacity":    SlotConfig(srgb=False, block_size="4x4", block_w=4, block_h=4, pixel_format=MTL_ASTC_4X4_LDR),
     "data":       SlotConfig(srgb=False, block_size="4x4", block_w=4, block_h=4, pixel_format=MTL_ASTC_4X4_LDR),
+    # LUTs remain uncompressed RGBA16Float. ASTC errors become color-transform
+    # errors and are especially visible in dark gradients.
+    "lut":        SlotConfig(srgb=False, block_size="1x1", block_w=1, block_h=1, pixel_format=MTL_RGBA16_FLOAT, generate_mips=False, encoding="rgba16f"),
 }
 
 SUPPORTED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".tga", ".bmp"}
@@ -182,6 +190,8 @@ def _slot_from_texture_flags(flags: int) -> str | None:
     Returns None when no slot-relevant flag is set; caller should fall back to
     detect_slot() in that case.
     """
+    if flags & _UNTOLD_TEX_FLAG_LUT:
+        return "lut"
     if flags & _UNTOLD_TEX_FLAG_NORMAL_MAP:
         return "normal"
     if flags & _UNTOLD_TEX_FLAG_EMISSIVE:
@@ -421,14 +431,30 @@ def bake_texture(
         print(f"  [warn] Unknown slot '{slot}', falling back to 'data'")
         cfg = _SLOT_CONFIG["data"]
 
-    astcenc = find_astcenc()
-
     print(f"  Loading   {input_path.name}")
     img = Image.open(input_path)
     has_alpha = img.mode in ("RGBA", "LA", "PA") or (img.mode == "P" and "transparency" in img.info)
 
-    mips = generate_mip_chain(img)
-    print(f"  Mip chain {img.size[0]}×{img.size[1]} → {len(mips)} levels")
+    if cfg.encoding == "rgba16f":
+        rgba = img.convert("RGBA")
+        payload = bytearray(rgba.width * rgba.height * 8)
+        offset = 0
+        for channel in rgba.tobytes():
+            struct.pack_into("<e", payload, offset, channel / 255.0)
+            offset += 2
+        write_utex(output_path, [bytes(payload)], [rgba.size], cfg, has_alpha)
+        size_kb = output_path.stat().st_size / 1024
+        print(f"  Written   {output_path.name}  ({size_kb:.1f} KB, RGBA16Float)")
+        return
+
+    astcenc = find_astcenc()
+
+    if cfg.generate_mips:
+        mips = generate_mip_chain(img)
+        print(f"  Mip chain {img.size[0]}×{img.size[1]} → {len(mips)} levels")
+    else:
+        mips = [img.convert("RGBA")]
+        print(f"  Mip chain {img.size[0]}×{img.size[1]} → 1 level (mips disabled for slot '{slot}')")
 
     tmp_dir = Path(tempfile.mkdtemp(prefix="texbake_"))
     try:
@@ -623,6 +649,7 @@ _UNTOLD_LIGHT_FMT    = "<4I40f"     # 176 bytes
 # forward(3f) nearClip(f) up(3f) farClip(f) right(3f) aspectRatio(f)
 # localTransform(16f)
 _UNTOLD_CAMERA_FMT   = "<4I32f"     # 144 bytes
+_UNTOLD_COLOR_MANAGEMENT_FMT = "<IIIffffI"  # 32 bytes
 # entityId(I) nameOffset(I) firstJointRecordIndex(I) jointRecordCount(I)
 # reserved(2I)
 _UNTOLD_SKELETON_FMT = "<6I"        # 24 bytes
@@ -644,6 +671,7 @@ assert struct.calcsize(_UNTOLD_MATERIAL_FMT) == 88
 assert struct.calcsize(_UNTOLD_TEXTURE_FMT)  == 32
 assert struct.calcsize(_UNTOLD_LIGHT_FMT)    == 176
 assert struct.calcsize(_UNTOLD_CAMERA_FMT)   == 144
+assert struct.calcsize(_UNTOLD_COLOR_MANAGEMENT_FMT) == 32
 assert struct.calcsize(_UNTOLD_SKELETON_FMT) == 24
 assert struct.calcsize(_UNTOLD_SKELETON_JOINT_FMT) == 144
 assert struct.calcsize(_UNTOLD_ANIM_CLIP_FMT)       == 28
@@ -653,6 +681,7 @@ assert struct.calcsize(_UNTOLD_ANIM_CHANNEL_FMT)    == 28
 # (index [3] in _UNTOLD_TEXTURE_FMT "<8I")
 _UNTOLD_TEX_FLAG_SRGB       = 1 << 0   # base-color / any sRGB texture
 _UNTOLD_TEX_FLAG_NORMAL_MAP = 1 << 1
+_UNTOLD_TEX_FLAG_LUT        = 1 << 2   # color-grading LUT strip — never mip-filtered
 _UNTOLD_TEX_FLAG_EMISSIVE   = 1 << 6
 _UNTOLD_TEX_FLAG_OCCLUSION  = 1 << 7
 
@@ -670,6 +699,7 @@ _CHUNK_ANIMATION_CLIP_TABLE   = 12
 _CHUNK_ANIMATION_CHANNEL_TABLE = 13
 _CHUNK_LIGHT_TABLE   = 19
 _CHUNK_CAMERA_TABLE  = 20
+_CHUNK_COLOR_MANAGEMENT_TABLE = 21
 
 # Compression type IDs (matches UntoldCompressionType)
 _COMPRESS_NONE = 0
@@ -680,14 +710,17 @@ _UNTOLD_FORMAT_ASTC_4X4 = 4
 _UNTOLD_FORMAT_ASTC_5X5 = 5
 _UNTOLD_FORMAT_ASTC_6X6 = 6
 _UNTOLD_FORMAT_ASTC_8X8 = 7
+_UNTOLD_FORMAT_RGBA16_FLOAT = 8
 
-def _untold_format_for_block(block_size: str) -> int:
+def _untold_format_for_config(cfg: SlotConfig) -> int:
+    if cfg.pixel_format == MTL_RGBA16_FLOAT:
+        return _UNTOLD_FORMAT_RGBA16_FLOAT
     return {
         "4x4": _UNTOLD_FORMAT_ASTC_4X4,
         "5x5": _UNTOLD_FORMAT_ASTC_5X5,
         "6x6": _UNTOLD_FORMAT_ASTC_6X6,
         "8x8": _UNTOLD_FORMAT_ASTC_8X8,
-    }.get(block_size, _UNTOLD_FORMAT_ASTC_4X4)
+    }.get(cfg.block_size, _UNTOLD_FORMAT_ASTC_4X4)
 
 # ──────────────────────────────────────────────
 # .untold patcher
@@ -821,7 +854,7 @@ def patch_refs(untold_path: Path) -> None:
         flags = rec[3]
         slot  = _slot_from_texture_flags(flags) or detect_slot(uri_path)
         cfg   = _SLOT_CONFIG.get(slot, _SLOT_CONFIG["data"])
-        updates[i] = (utex_uri, _untold_format_for_block(cfg.block_size))
+        updates[i] = (utex_uri, _untold_format_for_config(cfg))
 
     if not updates:
         print("  No .utex counterparts found — nothing to patch.")
@@ -884,6 +917,11 @@ def patch_refs(untold_path: Path) -> None:
     # this pass, since the string table below is fully rebuilt with new offsets.
     new_light_data       = patch_table(_CHUNK_LIGHT_TABLE,             _UNTOLD_LIGHT_FMT,          [1])  # nameOffset
     new_camera_data      = patch_table(_CHUNK_CAMERA_TABLE,            _UNTOLD_CAMERA_FMT,         [1])  # nameOffset
+    new_color_management_data = patch_table(
+        _CHUNK_COLOR_MANAGEMENT_TABLE,
+        _UNTOLD_COLOR_MANAGEMENT_FMT,
+        [1, 2],
+    )
     new_skeleton_data    = patch_table(_CHUNK_SKELETON_TABLE,          _UNTOLD_SKELETON_FMT,       [1])  # nameOffset
     new_skel_joint_data  = patch_table(_CHUNK_SKELETON_JOINT_TABLE,    _UNTOLD_SKELETON_JOINT_FMT, [1])  # jointPathOffset
     new_anim_clip_data   = patch_table(_CHUNK_ANIMATION_CLIP_TABLE,    _UNTOLD_ANIM_CLIP_FMT,      [0])  # nameOffset
@@ -914,6 +952,7 @@ def patch_refs(untold_path: Path) -> None:
         (_CHUNK_TEXTURE_TABLE,  new_texture_data),
         (_CHUNK_LIGHT_TABLE,              new_light_data),
         (_CHUNK_CAMERA_TABLE,             new_camera_data),
+        (_CHUNK_COLOR_MANAGEMENT_TABLE,   new_color_management_data),
         (_CHUNK_SKELETON_TABLE,           new_skeleton_data),
         (_CHUNK_SKELETON_JOINT_TABLE,     new_skel_joint_data),
         (_CHUNK_ANIMATION_CLIP_TABLE,     new_anim_clip_data),

@@ -1757,6 +1757,76 @@ public final class ColorGradingParams: ObservableObject, @unchecked Sendable {
     @Published public var enabled: Bool = false
 }
 
+/// Scene-wide color-grading LUT, baked from the source Blender scene's View
+/// Transform/Look/Exposure/Gamma (see UntoldColorManagementRecordV1). Unlike
+/// ColorGradingParams/ToneMappingParams above, this is asset-derived, not a
+/// user-authored creative override. Installation and removal are owned by the
+/// scene-authored payload loader, never by individual mesh residency.
+struct ColorLUTSnapshot {
+    let enabled: Bool
+    let lutTexture: MTLTexture?
+    let shaperMinStops: Float
+    let shaperMaxStops: Float
+    let lutSize: Int
+}
+
+public final class ColorLUTParams: @unchecked Sendable {
+    public static let shared = ColorLUTParams()
+
+    private struct State {
+        var enabled = false
+        var lutTexture: MTLTexture?
+        var shaperMinStops: Float = -10.0
+        var shaperMaxStops: Float = 6.0
+        var lutSize = 0
+    }
+
+    private let lock = NSLock()
+    private var state = State()
+
+    public var enabled: Bool {
+        get { snapshot().enabled }
+        set { setEnabled(newValue) }
+    }
+
+    public func setEnabled(_ enabled: Bool) {
+        lock.lock()
+        state.enabled = enabled && state.lutTexture != nil
+        lock.unlock()
+    }
+
+    func replace(texture: MTLTexture, shaperMinStops: Float, shaperMaxStops: Float, lutSize: Int) {
+        lock.lock()
+        state = State(
+            enabled: true,
+            lutTexture: texture,
+            shaperMinStops: shaperMinStops,
+            shaperMaxStops: shaperMaxStops,
+            lutSize: lutSize
+        )
+        lock.unlock()
+    }
+
+    public func clear() {
+        lock.lock()
+        state = State()
+        lock.unlock()
+    }
+
+    func snapshot() -> ColorLUTSnapshot {
+        lock.lock()
+        let value = ColorLUTSnapshot(
+            enabled: state.enabled,
+            lutTexture: state.lutTexture,
+            shaperMinStops: state.shaperMinStops,
+            shaperMaxStops: state.shaperMaxStops,
+            lutSize: state.lutSize
+        )
+        lock.unlock()
+        return value
+    }
+}
+
 public final class ColorCorrectionParams: ObservableObject, @unchecked Sendable {
     static let shared = ColorCorrectionParams()
 

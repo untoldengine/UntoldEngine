@@ -7,8 +7,8 @@
 //
 //  The loader memory-maps the .utex file, reads the NativeTexHeader and mip table,
 //  creates a GPU-private MTLTexture, and uploads each mip level via a staging
-//  MTLBuffer + blit encoder.  No CPU-side decompression occurs — ASTC blocks are
-//  transferred to the GPU as-is and decoded in hardware.
+//  MTLBuffer + blit encoder. ASTC blocks are transferred to the GPU as-is;
+//  uncompressed formats such as RGBA16Float use the same upload path.
 //
 //
 // Copyright (C) Untold Engine Studios
@@ -169,7 +169,7 @@ public final class NativeTextureLoader: @unchecked Sendable {
         )
         desc.mipmapLevelCount = mipCount
         desc.storageMode = .private
-        desc.usage = .shaderRead // ASTC blocks cannot be reinterpreted; no .pixelFormatView needed
+        desc.usage = .shaderRead
 
         guard let texture = device.makeTexture(descriptor: desc) else {
             throw NativeTexLoadError.textureAllocationFailed
@@ -188,6 +188,9 @@ public final class NativeTextureLoader: @unchecked Sendable {
     ) throws {
         let blockW = Int(header.blockWidth)
         let blockH = Int(header.blockHeight)
+        guard let bytesPerBlock = NativeTexFormat.bytesPerBlock(pixelFormat: header.pixelFormat) else {
+            throw NativeTexLoadError.unsupportedPixelFormat(header.pixelFormat)
+        }
 
         guard let commandBuffer = commandQueue.makeCommandBuffer(),
               let blitEncoder = commandBuffer.makeBlitCommandEncoder()
@@ -201,7 +204,7 @@ public final class NativeTextureLoader: @unchecked Sendable {
             let mipH = Int(mip.heightPx)
             let blocksWide = (mipW + blockW - 1) / blockW
             let blocksHigh = (mipH + blockH - 1) / blockH
-            let bytesPerRow = blocksWide * 16 // each ASTC block is always 16 bytes
+            let bytesPerRow = blocksWide * bytesPerBlock
             let bytesPerImage = bytesPerRow * blocksHigh
 
             // Slice the mip payload out of the memory-mapped file data.

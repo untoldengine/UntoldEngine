@@ -81,6 +81,7 @@ CHUNK_TYPES = {
     "edge_index_data": 18,
     "light_table": 19,
     "camera_table": 20,
+    "color_management_table": 21,
 }
 
 VERTEX_LAYOUT_PBR_STATIC_V1 = 1
@@ -96,8 +97,10 @@ LIGHT_FLAG_CUSTOM_DISTANCE = 1 << 2
 ARCHITECTURAL_EDGE_ANGLE_DEGREES = 30.0
 ARCHITECTURAL_EDGE_POSITION_EPSILON = 1.0e-5
 TEXTURE_FORMAT_UNKNOWN = 0
+TEXTURE_FORMAT_RGBA16_FLOAT = 8
 TEXTURE_FLAG_SRGB = 1 << 0
 TEXTURE_FLAG_NORMAL_MAP = 1 << 1
+TEXTURE_FLAG_LUT = 1 << 2
 TEXTURE_FLAG_EMISSIVE = 1 << 6
 TEXTURE_FLAG_OCCLUSION = 1 << 7
 TEXTURE_CHANNEL_R = 0
@@ -474,6 +477,18 @@ class CameraRecord:
 
 
 @dataclass(frozen=True)
+class ColorManagementRecord:
+    lut_texture_index: int
+    view_transform_name_offset: int
+    look_name_offset: int
+    exposure: float
+    gamma: float
+    shaper_min_stops: float
+    shaper_max_stops: float
+    lut_size: int
+
+
+@dataclass(frozen=True)
 class MaterialRecord:
     name_offset: int
     flags: int
@@ -602,6 +617,7 @@ class ExportedTexture:
     source_path: Optional[Path] = None
     source_image_name: Optional[str] = None
     channel: int = TEXTURE_CHANNEL_R
+    texture_format: int = TEXTURE_FORMAT_UNKNOWN
 
 
 @dataclass(frozen=True)
@@ -1199,6 +1215,17 @@ def write_camera_record(writer: BinaryWriter, camera: CameraRecord) -> None:
     writer.write_matrix4x4_column_major(camera.local_transform_rows)
 
 
+def write_color_management_record(writer: BinaryWriter, record: ColorManagementRecord) -> None:
+    writer.write_u32(record.lut_texture_index)
+    writer.write_u32(record.view_transform_name_offset)
+    writer.write_u32(record.look_name_offset)
+    writer.write_f32(record.exposure)
+    writer.write_f32(record.gamma)
+    writer.write_f32(record.shaper_min_stops)
+    writer.write_f32(record.shaper_max_stops)
+    writer.write_u32(record.lut_size)
+
+
 def write_skeleton_record(writer: BinaryWriter, skeleton: SkeletonRecord) -> None:
     writer.write_u32(skeleton.entity_id)
     writer.write_u32(skeleton.name_offset)
@@ -1300,8 +1327,12 @@ def validation_path_for_output(output_path: Path) -> Path:
     return output_path.with_suffix(".validation.json")
 
 
-def build_validation_payload(asset_name: str, validation_meshes: list[ValidationMesh]) -> dict[str, object]:
-    return {
+def build_validation_payload(
+    asset_name: str,
+    validation_meshes: list[ValidationMesh],
+    color_management_bake: Optional["ColorManagementBake"] = None,
+) -> dict[str, object]:
+    payload: dict[str, object] = {
         "format": "untold-validation",
         "version": 1,
         "asset_name": asset_name,
@@ -1327,11 +1358,29 @@ def build_validation_payload(asset_name: str, validation_meshes: list[Validation
             for mesh in validation_meshes
         ],
     }
+    if color_management_bake is not None:
+        payload["color_management"] = {
+            "view_transform": color_management_bake.view_transform,
+            "look": color_management_bake.look,
+            "exposure": color_management_bake.exposure,
+            "gamma": color_management_bake.gamma,
+            "display_device": color_management_bake.display_device,
+            "lut_size": color_management_bake.lut_size,
+            "shaper_min_stops": color_management_bake.shaper_min_stops,
+            "shaper_max_stops": color_management_bake.shaper_max_stops,
+            "lut_uri": color_management_bake.lut_texture.uri,
+        }
+    return payload
 
 
-def write_validation_file(output_path: Path, asset_name: str, validation_meshes: list[ValidationMesh]) -> Path:
+def write_validation_file(
+    output_path: Path,
+    asset_name: str,
+    validation_meshes: list[ValidationMesh],
+    color_management_bake: Optional["ColorManagementBake"] = None,
+) -> Path:
     validation_path = validation_path_for_output(output_path)
-    payload = build_validation_payload(asset_name, validation_meshes)
+    payload = build_validation_payload(asset_name, validation_meshes, color_management_bake)
     validation_path.write_text(f"{json.dumps(payload, indent=2)}\n", encoding="utf-8")
     return validation_path
 
@@ -3084,23 +3133,25 @@ def _set_scene_color_management_raw(scene: object) -> tuple[object, ...]:
         getattr(sequencer_settings, "name", None),
     )
 
+    # NOTE: bl_rna.properties[...].enum_items.keys() is unreliable in this
+    # context — it returns a placeholder ('NONE') instead of the config's
+    # actual dynamic enum values, silently making every "is this a valid
+    # option" guard below always false. Rather than gate on that introspection,
+    # attempt the assignment directly and fall back only if Blender itself
+    # rejects the value (invalid enum raises on assignment).
     if view_settings is not None:
         try:
-            view_transform_items = view_settings.bl_rna.properties["view_transform"].enum_items.keys()
-        except Exception:
-            view_transform_items = ()
-        if "Raw" in view_transform_items:
             view_settings.view_transform = "Raw"
-        elif "Standard" in view_transform_items:
-            # Fallback for configurations without a Raw view.
-            view_settings.view_transform = "Standard"
+        except Exception:
+            try:
+                view_settings.view_transform = "Standard"
+            except Exception:
+                pass
 
         try:
-            look_items = view_settings.bl_rna.properties["look"].enum_items.keys()
-        except Exception:
-            look_items = ()
-        if "None" in look_items:
             view_settings.look = "None"
+        except Exception:
+            pass
         if hasattr(view_settings, "exposure"):
             view_settings.exposure = 0.0
         if hasattr(view_settings, "gamma"):
@@ -3108,13 +3159,12 @@ def _set_scene_color_management_raw(scene: object) -> tuple[object, ...]:
 
     if display_settings is not None:
         try:
-            display_items = display_settings.bl_rna.properties["display_device"].enum_items.keys()
-        except Exception:
-            display_items = ()
-        if "None" in display_items:
             display_settings.display_device = "None"
-        elif "sRGB" in display_items:
-            display_settings.display_device = "sRGB"
+        except Exception:
+            try:
+                display_settings.display_device = "sRGB"
+            except Exception:
+                pass
 
     if sequencer_settings is not None and hasattr(sequencer_settings, "name"):
         try:
@@ -3153,6 +3203,390 @@ def _restore_scene_color_management(scene: object, saved: tuple[object, ...]) ->
 
     if sequencer_settings is not None and saved_sequencer_name is not None and hasattr(sequencer_settings, "name"):
         sequencer_settings.name = saved_sequencer_name
+
+
+_PNG_COLOR_SPACE_CHUNK_TYPES = {b"sRGB", b"gAMA", b"cHRM", b"iCCP"}
+
+
+def _strip_png_color_profile_chunks(path: Path) -> None:
+    """Remove sRGB/gAMA/cHRM/iCCP chunks from a PNG file in place.
+
+    _set_scene_color_management_raw tries to force View Transform "Raw" (so
+    the written pixel bytes are untouched linear data) but the Display Device
+    still falls back to "sRGB" in configs without a "None" display (confirmed
+    the case here). Blender's PNG writer embeds color-space chunks based on
+    that Display Device regardless of View Transform, so the file ends up
+    correctly holding linear bytes but *tagged* as sRGB-encoded. Color-
+    management-aware loaders (ImageIO/MTKTextureLoader) honor that tag and
+    apply their own implicit sRGB decode on load, silently corrupting values
+    that are already linear. Stripping the tag makes the file's declared
+    color space match what its bytes actually are: untagged/raw.
+    """
+    data = path.read_bytes()
+    if not data.startswith(b"\x89PNG\r\n\x1a\n"):
+        return
+    out = bytearray(data[:8])
+    pos = 8
+    while pos < len(data):
+        length = int.from_bytes(data[pos : pos + 4], "big")
+        chunk_type = data[pos + 4 : pos + 8]
+        chunk_end = pos + 8 + length + 4
+        if chunk_type not in _PNG_COLOR_SPACE_CHUNK_TYPES:
+            out += data[pos:chunk_end]
+        pos = chunk_end
+        if chunk_type == b"IEND":
+            break
+    path.write_bytes(bytes(out))
+
+
+# ──────────────────────────────────────────────
+# Color-grading LUT bake
+#
+# Captures the scene's active View Transform/Look/Exposure/Gamma by baking a
+# known identity color grid through Blender's own color management
+# (image.save_render) rather than reimplementing Filmic/AgX curve math. This
+# reproduces whatever Blender actually does, including HDR highlight
+# compression, for any current or future view transform or custom Look.
+# ──────────────────────────────────────────────
+
+MAX_COLOR_LUT_SIZE = 64
+MIN_COLOR_LUT_SIZE = 4
+
+# Log2 "shaper" domain, anchored on 18% middle gray, that the identity grid is
+# built in. Blender's own curves already saturate to white by ~4 stops over
+# 1.0 (see the feasibility spike), so -10..+6 stops is a generous starting
+# range covering both deep shadow and bright HDR highlight detail. The Metal
+# sampler uses this exact encode/decode contract.
+_LUT_SHAPER_MIDDLE_GRAY = 0.18
+_LUT_SHAPER_MIN_STOPS = -10.0
+_LUT_SHAPER_MAX_STOPS = 6.0
+
+
+def validate_lut_size(lut_size: int) -> int:
+    """Validate a --color-lut-size value, clamping instead of failing at either end."""
+    if lut_size < MIN_COLOR_LUT_SIZE:
+        raise RuntimeError(f"--color-lut-size must be >= {MIN_COLOR_LUT_SIZE}, got {lut_size}")
+    if lut_size > MAX_COLOR_LUT_SIZE:
+        print(
+            f"Warning: --color-lut-size {lut_size} is very high; clamping to {MAX_COLOR_LUT_SIZE}.",
+            flush=True,
+        )
+        return MAX_COLOR_LUT_SIZE
+    return lut_size
+
+
+def _lut_shaper_decode(t: float) -> float:
+    """Map a normalized [0, 1] shaper-space value to a scene-linear color value."""
+    stops = _LUT_SHAPER_MIN_STOPS + t * (_LUT_SHAPER_MAX_STOPS - _LUT_SHAPER_MIN_STOPS)
+    return _LUT_SHAPER_MIDDLE_GRAY * (2.0 ** stops)
+
+
+def build_identity_lut_grid_pixels(lut_size: int) -> list[float]:
+    """RGBA float pixel buffer (Blender's flat .pixels layout) for a
+    lut_size-cubed identity LUT grid, unwrapped as a 2D strip: width =
+    lut_size * lut_size (blue axis tiled horizontally), height = lut_size.
+
+    Blender's `.pixels` buffer is bottom-up, but `image.save_render()` flips
+    vertically when writing a top-down PNG. Rows are written here in reverse
+    (green index g placed at buffer row `lut_size - 1 - g`) so that after that
+    flip, PNG/texture row g still holds green index g — the convention the
+    runtime LUT sampler assumes.
+    """
+    width = lut_size * lut_size
+    step = 1.0 / (lut_size - 1) if lut_size > 1 else 0.0
+    linear_steps = [_lut_shaper_decode(i * step) for i in range(lut_size)]
+
+    pixels = [0.0] * (width * lut_size * 4)
+    for g in range(lut_size):
+        green = linear_steps[g]
+        row_offset = (lut_size - 1 - g) * width * 4
+        for b in range(lut_size):
+            blue = linear_steps[b]
+            tile_offset = row_offset + b * lut_size * 4
+            for r in range(lut_size):
+                idx = tile_offset + r * 4
+                pixels[idx + 0] = linear_steps[r]
+                pixels[idx + 1] = green
+                pixels[idx + 2] = blue
+                pixels[idx + 3] = 1.0
+    return pixels
+
+
+@dataclass(frozen=True)
+class ColorManagementBake:
+    lut_texture: "ExportedTexture"
+    view_transform: str
+    look: str
+    exposure: float
+    gamma: float
+    lut_size: int
+    display_device: str = "sRGB"
+    shaper_min_stops: float = _LUT_SHAPER_MIN_STOPS
+    shaper_max_stops: float = _LUT_SHAPER_MAX_STOPS
+
+
+_UTEX_MAGIC = b"UTEX\x00\x00\x00\x00"
+_UTEX_VERSION = 1
+_UTEX_HEADER_SIZE = 64
+_UTEX_MIP_ENTRY_SIZE = 16
+_UTEX_RGBA16_FLOAT_PIXEL_FORMAT = 115
+_UTEX_HEADER_FMT = "<8sIIIIIIBBxxII5I"
+_UTEX_MIP_ENTRY_FMT = "<IIII"
+
+
+def build_rgba16f_utex_bytes(
+    pixels: list[float],
+    width: int,
+    height: int,
+    *,
+    source_rows_bottom_up: bool = True,
+) -> bytes:
+    """Build a one-mip RGBA16Float .utex payload.
+
+    Blender image buffers are bottom-up while Metal uploads texture rows
+    top-down. Reverse the rows by default so the LUT's green axis has the same
+    orientation in Blender, the native container, and the Metal sampler.
+    """
+    expected_values = width * height * 4
+    if width <= 0 or height <= 0 or len(pixels) != expected_values:
+        raise ValueError(
+            f"Expected {expected_values} RGBA values for {width}x{height}, got {len(pixels)}"
+        )
+
+    payload = bytearray(expected_values * 2)
+    output_index = 0
+    row_indices = range(height - 1, -1, -1) if source_rows_bottom_up else range(height)
+    for source_y in row_indices:
+        row_start = source_y * width * 4
+        for value in pixels[row_start : row_start + width * 4]:
+            struct.pack_into("<e", payload, output_index, float(value))
+            output_index += 2
+
+    payload_offset = _UTEX_HEADER_SIZE + _UTEX_MIP_ENTRY_SIZE
+    header = struct.pack(
+        _UTEX_HEADER_FMT,
+        _UTEX_MAGIC,
+        _UTEX_VERSION,
+        1,  # NativeTexFlags.hasAlpha
+        width,
+        height,
+        1,
+        _UTEX_RGBA16_FLOAT_PIXEL_FORMAT,
+        1,
+        1,
+        payload_offset,
+        len(payload),
+        0, 0, 0, 0, 0,
+    )
+    mip = struct.pack(_UTEX_MIP_ENTRY_FMT, 0, len(payload), width, height)
+    return header + mip + bytes(payload)
+
+
+def color_lut_filename(utex_bytes: bytes) -> str:
+    """Return a stable, collision-safe filename derived from LUT contents."""
+    digest = hashlib.sha256(utex_bytes).hexdigest()[:16]
+    return f"gradelut_{digest}.utex"
+
+
+def decode_rgba16f_utex_bytes(data: bytes) -> tuple[int, int, list[float]]:
+    """Decode the RGBA16Float subset of .utex used by color LUT validation."""
+    if len(data) < _UTEX_HEADER_SIZE + _UTEX_MIP_ENTRY_SIZE:
+        raise ValueError("Truncated .utex data")
+    header = struct.unpack_from(_UTEX_HEADER_FMT, data, 0)
+    if header[0] != _UTEX_MAGIC or header[1] != _UTEX_VERSION:
+        raise ValueError("Invalid .utex header")
+    width, height, mip_count, pixel_format = header[3], header[4], header[5], header[6]
+    payload_offset, payload_size = header[9], header[10]
+    if mip_count != 1 or pixel_format != _UTEX_RGBA16_FLOAT_PIXEL_FORMAT:
+        raise ValueError("Expected a one-mip RGBA16Float .utex")
+    expected_size = width * height * 8
+    if payload_size != expected_size or payload_offset + payload_size > len(data):
+        raise ValueError("Invalid RGBA16Float .utex payload size")
+    values = [
+        item[0]
+        for item in struct.iter_unpack(
+            "<e",
+            data[payload_offset : payload_offset + payload_size],
+        )
+    ]
+    return width, height, values
+
+
+def sample_color_lut_pixels(
+    pixels: list[float],
+    lut_size: int,
+    color: tuple[float, float, float],
+) -> tuple[float, float, float]:
+    """CPU reference for LookShader.metal's trilinear LUT sampling."""
+    width = lut_size * lut_size
+    if len(pixels) != width * lut_size * 4:
+        raise ValueError("LUT pixel count does not match lut_size")
+
+    coords: list[float] = []
+    for channel in color:
+        stops = math.log2(max(channel, 1.0e-6) / _LUT_SHAPER_MIDDLE_GRAY)
+        t = max(0.0, min(1.0, (stops - _LUT_SHAPER_MIN_STOPS) / (_LUT_SHAPER_MAX_STOPS - _LUT_SHAPER_MIN_STOPS)))
+        coords.append(t * (lut_size - 1))
+
+    low = [math.floor(value) for value in coords]
+    high = [min(value + 1, lut_size - 1) for value in low]
+    frac = [coords[index] - low[index] for index in range(3)]
+
+    def texel(r: int, g: int, b: int) -> tuple[float, float, float]:
+        offset = (g * width + b * lut_size + r) * 4
+        return tuple(pixels[offset + channel] for channel in range(3))
+
+    result = [0.0, 0.0, 0.0]
+    for bz, blue_index in enumerate((low[2], high[2])):
+        wb = (1.0 - frac[2]) if bz == 0 else frac[2]
+        for gy, green_index in enumerate((low[1], high[1])):
+            wg = (1.0 - frac[1]) if gy == 0 else frac[1]
+            for rx, red_index in enumerate((low[0], high[0])):
+                wr = (1.0 - frac[0]) if rx == 0 else frac[0]
+                sample = texel(red_index, green_index, blue_index)
+                weight = wr * wg * wb
+                for channel in range(3):
+                    result[channel] += sample[channel] * weight
+    return result[0], result[1], result[2]
+
+
+def bake_color_management_lut(lut_size: int, textures_dir: Path) -> ColorManagementBake:
+    """Bake Blender's active view transform into an RGBA16Float LUT.
+
+    The runtime's look pass (fragmentLookShader) writes to a linear
+    intermediate texture and applies exactly one gamma encode later, in
+    fragmentOutputTransformShader — the same contract ACESFilmicToneMapping's
+    output already follows. A LUT baked straight through save_render() would
+    violate that: save_render() bakes the View Transform AND the scene's
+    display-device sRGB gamma together, so the shipped texture would already
+    be gamma-encoded, and the engine's existing gamma step would then apply a
+    second time on top — washing out the image (lifted blacks, crushed
+    contrast). To keep the single-gamma-encode contract, this bakes through
+    the real display transform (to capture the View Transform's tonemap curve
+    correctly) and then decodes the result back to linear before writing the
+    file actually shipped as the LUT texture.
+    """
+    blender_required()
+    import bpy as _bpy
+
+    scene = _bpy.context.scene
+    view_settings = scene.view_settings
+    view_transform = str(getattr(view_settings, "view_transform", "Standard"))
+    look = str(getattr(view_settings, "look", "None"))
+    exposure = float(getattr(view_settings, "exposure", 0.0))
+    gamma = float(getattr(view_settings, "gamma", 1.0))
+
+    lut_size = validate_lut_size(lut_size)
+    width = lut_size * lut_size
+    height = lut_size
+    textures_dir.mkdir(parents=True, exist_ok=True)
+
+    # Step 1: bake the identity grid through the scene's real, active color
+    # management into a canonical sRGB display target. The engine output
+    # transform is also sRGB, so the exported result does not depend on the
+    # display device selected in the author's Blender UI.
+    with tempfile.NamedTemporaryFile(
+        prefix=".gradelut_display_encoded_",
+        suffix=".png",
+        dir=textures_dir,
+        delete=False,
+    ) as intermediate_file:
+        intermediate_path = Path(intermediate_file.name)
+    bake_image = _bpy.data.images.new(
+        "untold_lut_bake", width=width, height=height, float_buffer=True, alpha=True
+    )
+    display_settings = scene.display_settings
+    saved_display_device = str(getattr(display_settings, "display_device", "sRGB"))
+    saved_dither = float(getattr(scene.render, "dither_intensity", 0.0))
+    try:
+        try:
+            display_settings.display_device = "sRGB"
+        except Exception as error:
+            raise RuntimeError(
+                "The active Blender OCIO configuration has no sRGB display device; "
+                "Untold's canonical output target is sRGB."
+            ) from error
+        if hasattr(scene.render, "dither_intensity"):
+            scene.render.dither_intensity = 0.0
+
+        bake_image.pixels = build_identity_lut_grid_pixels(lut_size)
+        img_settings = scene.render.image_settings
+        saved_settings = (
+            img_settings.file_format,
+            img_settings.color_depth,
+            img_settings.color_mode,
+            getattr(img_settings, "color_management", None),
+        )
+        img_settings.file_format = "PNG"
+        img_settings.color_depth = "16"
+        img_settings.color_mode = "RGBA"
+        if hasattr(img_settings, "color_management"):
+            img_settings.color_management = "FOLLOW_SCENE"
+        try:
+            bake_image.filepath_raw = str(intermediate_path)
+            bake_image.file_format = "PNG"
+            # Uses the scene's real, active view_settings — this is the whole
+            # point of the bake, so no neutralization here.
+            bake_image.save_render(str(intermediate_path), scene=scene)
+        finally:
+            img_settings.file_format, img_settings.color_depth, img_settings.color_mode = saved_settings[:3]
+            if saved_settings[3] is not None:
+                img_settings.color_management = saved_settings[3]
+    except Exception:
+        try:
+            intermediate_path.unlink()
+        except OSError:
+            pass
+        raise
+    finally:
+        _bpy.data.images.remove(bake_image)
+        if hasattr(scene.render, "dither_intensity"):
+            scene.render.dither_intensity = saved_dither
+        display_settings.display_device = saved_display_device
+
+    # Step 2: reload the display-encoded PNG. Blender decodes any image whose
+    # colorspace is "sRGB" back to linear float pixels when populating
+    # .pixels — recovering the tonemapped-but-linear value the engine needs,
+    # using Blender's own color pipeline rather than hand-rolled OETF math.
+    try:
+        reloaded = _bpy.data.images.load(str(intermediate_path))
+        try:
+            reloaded.colorspace_settings.name = "sRGB"
+            linear_pixels = list(reloaded.pixels)
+        finally:
+            _bpy.data.images.remove(reloaded)
+    finally:
+        try:
+            intermediate_path.unlink()
+        except OSError:
+            pass
+
+    # Step 3: preserve the decoded linear values as half floats. This avoids
+    # both 8-bit shadow quantization and ASTC approximation in the color
+    # transform. Content-addressing prevents different scenes exported into
+    # the same directory from overwriting each other's LUT.
+    utex_bytes = build_rgba16f_utex_bytes(linear_pixels, width, height)
+    output_path = textures_dir / color_lut_filename(utex_bytes)
+    output_path.write_bytes(utex_bytes)
+
+    lut_texture = ExportedTexture(
+        name="ColorGradeLUT",
+        uri=str(Path("Textures") / output_path.name),
+        width=width,
+        height=height,
+        mip_count=1,
+        source_path=output_path,
+        texture_format=TEXTURE_FORMAT_RGBA16_FLOAT,
+    )
+    return ColorManagementBake(
+        lut_texture=lut_texture,
+        view_transform=view_transform,
+        look=look,
+        exposure=exposure,
+        gamma=gamma,
+        lut_size=lut_size,
+        display_device="sRGB",
+    )
 
 
 # Formats that do not support 8-bit color depth (only 16 or 32-bit).
@@ -3289,6 +3723,12 @@ def write_blender_image_to_path(image_name: str, destination_path: Path) -> None
             finally:
                 _restore_scene_color_management(scene, saved_color_management)
                 img_settings.file_format, img_settings.color_depth, img_settings.color_mode = saved
+            if is_linear_data and out_format == "PNG":
+                # View Transform "Raw" wrote untouched linear bytes, but the
+                # Display Device still falls back to sRGB in configs without
+                # a "None" display, so the file gets tagged as sRGB-encoded
+                # despite holding linear data — see _strip_png_color_profile_chunks.
+                _strip_png_color_profile_chunks(destination_path)
         else:
             image.save()
     finally:
@@ -4627,6 +5067,7 @@ def build_untold_file(
     exported_lights: Optional[list[ExportedLight]] = None,
     exported_cameras: Optional[list[ExportedCamera]] = None,
     compress_geometry: bool = False,
+    color_management_bake: Optional[ColorManagementBake] = None,
     progress_callback: Optional[ProgressCallback] = None,
 ) -> bytes:
     if not exported_nodes:
@@ -4642,6 +5083,7 @@ def build_untold_file(
     entities: list[EntityRecord] = []
     light_records: list[LightRecord] = []
     camera_records: list[CameraRecord] = []
+    color_management_records: list[ColorManagementRecord] = []
     meshes: list[MeshRecord] = []
     skeletons: list[SkeletonRecord] = []
     skeleton_joints: list[SkeletonJointRecord] = []
@@ -4662,7 +5104,11 @@ def build_untold_file(
             textures[existing] = TextureRecord(
                 name_offset=existing_record.name_offset,
                 uri_offset=existing_record.uri_offset,
-                texture_format=existing_record.texture_format,
+                texture_format=(
+                    existing_record.texture_format
+                    if existing_record.texture_format != TEXTURE_FORMAT_UNKNOWN
+                    else texture.texture_format
+                ),
                 flags=existing_record.flags | flags,
                 width=existing_record.width,
                 height=existing_record.height,
@@ -4676,6 +5122,7 @@ def build_untold_file(
             TextureRecord(
                 name_offset=string_table.add(texture.name),
                 uri_offset=string_table.add(texture.uri),
+                texture_format=texture.texture_format,
                 flags=flags,
                 width=texture.width,
                 height=texture.height,
@@ -4903,6 +5350,21 @@ def build_untold_file(
             )
         )
 
+    if color_management_bake is not None:
+        lut_texture_index = add_texture(color_management_bake.lut_texture, TEXTURE_FLAG_LUT)
+        color_management_records.append(
+            ColorManagementRecord(
+                lut_texture_index=lut_texture_index,
+                view_transform_name_offset=string_table.add(color_management_bake.view_transform),
+                look_name_offset=string_table.add(color_management_bake.look),
+                exposure=color_management_bake.exposure,
+                gamma=color_management_bake.gamma,
+                shaper_min_stops=color_management_bake.shaper_min_stops,
+                shaper_max_stops=color_management_bake.shaper_max_stops,
+                lut_size=color_management_bake.lut_size,
+            )
+        )
+
     if progress_callback is not None:
         progress_callback("Build chunks", 0, 1, output_path.name)
     string_chunk = string_table.data
@@ -4930,6 +5392,11 @@ def build_untold_file(
     for camera_record in camera_records:
         write_camera_record(camera_writer, camera_record)
     camera_chunk = camera_writer.data
+
+    color_management_writer = BinaryWriter()
+    for color_management_record in color_management_records:
+        write_color_management_record(color_management_writer, color_management_record)
+    color_management_chunk = color_management_writer.data
 
     skeleton_writer = BinaryWriter()
     for skeleton in skeletons:
@@ -5014,6 +5481,16 @@ def build_untold_file(
         (CHUNK_TYPES["joint_index_data"], joint_index_raw, len(joint_index_raw), 0, COMPRESSION_NONE),
         (CHUNK_TYPES["joint_weight_data"], joint_weight_raw, len(joint_weight_raw), 0, COMPRESSION_NONE),
     ]
+    if color_management_records:
+        chunk_payloads.append(
+            (
+                CHUNK_TYPES["color_management_table"],
+                color_management_chunk,
+                len(color_management_chunk),
+                len(color_management_records),
+                COMPRESSION_NONE,
+            )
+        )
 
     # Content hash is computed over the (compressed) bytes in chunk order — matches
     # runtime validation in UntoldReader.validateContentHash.
@@ -5334,6 +5811,8 @@ def export_objects_to_untold(
     bake_materials: bool = False,
     bake_resolution: int = 1024,
     bake_cache: bool = True,
+    bake_color_management: bool = False,
+    color_lut_size: int = 32,
     progress_callback: Optional[ProgressCallback] = None,
 ) -> dict[str, object]:
     exported_lights, exported_cameras = extract_scene_payload_from_objects(
@@ -5354,6 +5833,16 @@ def export_objects_to_untold(
         progress_callback=progress_callback,
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    color_management_bake: Optional[ColorManagementBake] = None
+    if bake_color_management:
+        if progress_callback is not None:
+            progress_callback("Bake color management", 0, 1, "LUT")
+        color_management_bake = bake_color_management_lut(
+            validate_lut_size(color_lut_size),
+            output_path.parent / "Textures",
+        )
+
     if progress_callback is not None:
         progress_callback("Stage nodes", 0, 1, output_path.name)
     exported_nodes = stage_nodes_for_output(exported_nodes, output_path)
@@ -5365,6 +5854,7 @@ def export_objects_to_untold(
         exported_lights=exported_lights,
         exported_cameras=exported_cameras,
         compress_geometry=compress_geometry,
+        color_management_bake=color_management_bake,
         progress_callback=progress_callback,
     )
     if progress_callback is not None:
@@ -5383,6 +5873,7 @@ def export_objects_to_untold(
             output_path,
             output_path.stem,
             [exported_mesh.validation_mesh for exported_mesh in exported_meshes],
+            color_management_bake,
         )
 
     return {
@@ -5396,6 +5887,7 @@ def export_objects_to_untold(
         "vertex_count": sum(exported_mesh.vertex_count for exported_mesh in exported_meshes),
         "index_count": sum(exported_mesh.index_count for exported_mesh in exported_meshes),
         "baked_material_count": len(_baked_material_textures),
+        "color_management_baked": color_management_bake is not None,
     }
 
 
@@ -5451,6 +5943,19 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         help="Disable the persistent bake cache (stored next to the source asset as "
              ".untold_bake_cache_<name>/) and force every divergent material to be re-baked.",
     )
+    parser.add_argument(
+        "--bake-color-management",
+        action="store_true",
+        help="Bake the scene's active View Transform/Look/Exposure/Gamma into a color-grading "
+             "RGBA16Float LUT so Untold can closely reproduce Blender's sRGB display transform, "
+             "including Filmic/AgX highlight compression.",
+    )
+    parser.add_argument(
+        "--color-lut-size",
+        type=int,
+        default=32,
+        help=f"Grid size (N) for the NxNxN color-grading LUT (default: 32, max: {MAX_COLOR_LUT_SIZE}).",
+    )
     return parser.parse_args(argv)
 
 
@@ -5464,6 +5969,7 @@ def main(argv: list[str]) -> int:
     if not input_path.is_file():
         raise RuntimeError(f"Input asset does not exist: {input_path}")
     args.bake_resolution = validate_bake_resolution(args.bake_resolution)
+    args.color_lut_size = validate_lut_size(args.color_lut_size)
 
     print(f"{'Opening' if input_path.suffix.lower() == '.blend' else 'Importing'} {input_path.name} ...", flush=True)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -5511,6 +6017,15 @@ def main(argv: list[str]) -> int:
         staged_hdr_assets = stage_hdr_assets_for_output(output_path, input_path)
         cleanup_material_bake_temp_dir()
         progress.advance("Stage nodes", output_path.name)
+
+        color_management_bake: Optional[ColorManagementBake] = None
+        if args.bake_color_management:
+            print("Baking color management LUT ...", flush=True)
+            color_management_bake = bake_color_management_lut(
+                args.color_lut_size,
+                output_path.parent / "Textures",
+            )
+
         print("Building .untold file ...", flush=True)
         untold_bytes = build_untold_file(
             exported_nodes,
@@ -5519,6 +6034,7 @@ def main(argv: list[str]) -> int:
             exported_lights=exported_lights,
             exported_cameras=exported_cameras,
             compress_geometry=args.compress_geometry,
+            color_management_bake=color_management_bake,
             progress_callback=lambda stage, done, total, detail: progress.stage(
                 stage,
                 f"{done}/{total} {detail}" if total > 1 else detail,
@@ -5536,7 +6052,7 @@ def main(argv: list[str]) -> int:
         print(f"Vertices: {sum(exported_mesh.vertex_count for exported_mesh in exported_meshes)}, indices: {sum(exported_mesh.index_count for exported_mesh in exported_meshes)}")
         if args.validate:
             # This sidecar is only for validation/debugging in engine-side tests.
-            validation_path = write_validation_file(output_path, output_path.stem, [exported_mesh.validation_mesh for exported_mesh in exported_meshes])
+            validation_path = write_validation_file(output_path, output_path.stem, [exported_mesh.validation_mesh for exported_mesh in exported_meshes], color_management_bake)
             print(f"Wrote {validation_path}")
         progress.advance("Complete", output_path.name)
     return 0

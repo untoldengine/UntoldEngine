@@ -28,12 +28,14 @@ final class NativeFormatTileStreamingTests: BaseRenderSetup {
         MemoryBudgetManager.shared.enabled = true
         MemoryBudgetManager.shared.geometryBudget = 512 * 1024 * 1024
         MemoryBudgetManager.shared.textureBudget = 256 * 1024 * 1024
+        ColorLUTParams.shared.clear()
     }
 
     override func tearDown() async throws {
         GeometryStreamingSystem.shared.reset()
         GeometryStreamingSystem.shared.enabled = false
         MemoryBudgetManager.shared.clear()
+        ColorLUTParams.shared.clear()
         LoadingSystem.shared.resourceURLFn = getResourceURL
         destroyAllEntities()
         try await super.tearDown()
@@ -247,6 +249,36 @@ final class NativeFormatTileStreamingTests: BaseRenderSetup {
         XCTAssertEqual(fov, 55.0, accuracy: 0.001)
         XCTAssertEqual(near, 0.05, accuracy: 0.001)
         XCTAssertEqual(far, 750.0, accuracy: 0.001)
+    }
+
+    func testSceneAuthoredManifestInstallsAndResetsColorLUT() async throws {
+        let fixture = try makeUntoldTileSceneFixture(
+            includeHLOD: false,
+            includeLOD: false,
+            includeColorLUT: true
+        )
+        let installed = await loadSceneManifestFromURL(fixture.manifestURL)
+        XCTAssertTrue(installed)
+
+        let active = ColorLUTParams.shared.snapshot()
+        XCTAssertTrue(active.enabled)
+        XCTAssertEqual(active.lutTexture?.pixelFormat, .rgba16Float)
+        XCTAssertEqual(active.lutTexture?.width, 16)
+        XCTAssertEqual(active.lutTexture?.height, 4)
+        XCTAssertEqual(active.lutTexture?.mipmapLevelCount, 1)
+        XCTAssertEqual(active.lutSize, 4)
+
+        let noLUTFixture = try makeUntoldTileSceneFixture(
+            includeHLOD: false,
+            includeLOD: false
+        )
+        let reset = await loadSceneManifestFromURL(noLUTFixture.manifestURL)
+        XCTAssertTrue(reset)
+
+        let cleared = ColorLUTParams.shared.snapshot()
+        XCTAssertFalse(cleared.enabled)
+        XCTAssertNil(cleared.lutTexture)
+        XCTAssertEqual(cleared.lutSize, 0)
     }
 
     // MARK: - Parse timeout — clock starts after download, not before
@@ -825,7 +857,8 @@ private struct UntoldTileSceneFixture {
 private func makeUntoldTileSceneFixture(
     includeHLOD: Bool,
     includeLOD: Bool,
-    includeScenePayload: Bool = false
+    includeScenePayload: Bool = false,
+    includeColorLUT: Bool = false
 ) throws -> UntoldTileSceneFixture {
     guard let sourceUntoldURL = Bundle.module.url(forResource: "redplayer", withExtension: "untold") else {
         throw NSError(domain: "NativeFormatTileStreamingTests", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to locate redplayer.untold in test resources"])
@@ -893,6 +926,45 @@ private func makeUntoldTileSceneFixture(
         ],
         "tiles": [tileEntry],
     ]
+
+    if includeColorLUT {
+        let lutSize = 4
+        let width = lutSize * lutSize
+        let payloadSize = width * lutSize * 8
+        let writer = UntoldBinaryWriter()
+        NativeTexHeader(
+            flags: NativeTexFlags.hasAlpha,
+            width: UInt32(width),
+            height: UInt32(lutSize),
+            mipCount: 1,
+            pixelFormat: NativeTexFormat.rgba16FloatPixelFormat,
+            blockWidth: 1,
+            blockHeight: 1,
+            payloadOffset: NativeTexFormat.payloadOffset(mipCount: 1),
+            totalPayloadSize: UInt32(payloadSize)
+        ).encode(to: writer)
+        NativeTexMipEntry(
+            byteOffset: 0,
+            byteSize: UInt32(payloadSize),
+            widthPx: UInt32(width),
+            heightPx: UInt32(lutSize)
+        ).encode(to: writer)
+        writer.writeData(Data(count: payloadSize))
+        let lutFileName = "gradelut_test.utex"
+        try writer.data.write(to: fixtureRoot.appendingPathComponent(lutFileName))
+
+        manifest["colorLUT"] = [
+            "lutUri": lutFileName,
+            "lutSize": lutSize,
+            "viewTransform": "AgX",
+            "look": "Medium High Contrast",
+            "displayDevice": "sRGB",
+            "exposure": 0.0,
+            "gamma": 1.0,
+            "shaperMinStops": -10.0,
+            "shaperMaxStops": 6.0,
+        ]
+    }
 
     if includeScenePayload {
         let keyLightRows: [[Float]] = [

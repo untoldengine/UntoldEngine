@@ -38,6 +38,8 @@ def _build_minimal_untold_file(tmpdir: Path) -> Path:
     texture_uri_off = strings.add("Textures/wall.png")
     light_name_off = strings.add("日光")  # "日光" (sunlight) — non-ASCII, like the real asset
     camera_name_off = strings.add("摄像机")  # "摄像机" (camera)
+    view_name_off = strings.add("AgX")
+    look_name_off = strings.add("Medium High Contrast")
 
     texture_writer = u.BinaryWriter()
     u.write_texture_record(
@@ -71,11 +73,27 @@ def _build_minimal_untold_file(tmpdir: Path) -> Path:
         ),
     )
 
+    color_writer = u.BinaryWriter()
+    u.write_color_management_record(
+        color_writer,
+        u.ColorManagementRecord(
+            lut_texture_index=0,
+            view_transform_name_offset=view_name_off,
+            look_name_offset=look_name_off,
+            exposure=0.0,
+            gamma=1.0,
+            shaper_min_stops=-10.0,
+            shaper_max_stops=6.0,
+            lut_size=32,
+        ),
+    )
+
     chunk_payloads = [
         (u.CHUNK_TYPES["string_table"], strings.data, 0),
         (u.CHUNK_TYPES["texture_table"], texture_writer.data, 1),
         (u.CHUNK_TYPES["light_table"], light_writer.data, 1),
         (u.CHUNK_TYPES["camera_table"], camera_writer.data, 1),
+        (u.CHUNK_TYPES["color_management_table"], color_writer.data, 1),
     ]
 
     header_writer = u.BinaryWriter()
@@ -157,6 +175,18 @@ class TexbakePatchRefsTests(unittest.TestCase):
             self.assertEqual(camera_count, 1)
             camera_name_offset = struct.unpack_from("<I", data, camera_off + 4)[0]
             self.assertEqual(_read_string_at(data, string_table, camera_name_offset), "摄像机")
+
+            color_off, _, color_count = chunks[u.CHUNK_TYPES["color_management_table"]]
+            self.assertEqual(color_count, 1)
+            view_offset, look_offset = struct.unpack_from("<II", data, color_off + 4)
+            self.assertEqual(_read_string_at(data, string_table, view_offset), "AgX")
+            self.assertEqual(_read_string_at(data, string_table, look_offset), "Medium High Contrast")
+
+    def test_lut_slot_maps_to_uncompressed_rgba16float(self) -> None:
+        config = t._SLOT_CONFIG["lut"]
+        self.assertEqual(config.encoding, "rgba16f")
+        self.assertEqual(config.pixel_format, t.MTL_RGBA16_FLOAT)
+        self.assertEqual(t._untold_format_for_config(config), t._UNTOLD_FORMAT_RGBA16_FLOAT)
 
 
 if __name__ == "__main__":

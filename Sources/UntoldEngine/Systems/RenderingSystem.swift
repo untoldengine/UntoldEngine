@@ -725,6 +725,8 @@ let colorCorrectionRenderPass: RenderPasses.RenderPassExecution = { commandBuffe
 }
 
 func colorGradingCustomization(encoder: MTLRenderCommandEncoder) {
+    let colorLUT = ColorLUTParams.shared.snapshot()
+
     var exposure = powf(2.0, ColorGradingParams.shared.exposure)
     var contrast = ColorGradingParams.shared.contrast
     var whiteBalanceCoeffs: simd_float3 = colorBalanceToLMSCoeffs(temperature: ColorGradingParams.shared.temperature, tint: ColorGradingParams.shared.tint)
@@ -763,6 +765,36 @@ func colorGradingCustomization(encoder: MTLRenderCommandEncoder) {
         &whiteBalanceCoeffs,
         length: MemoryLayout<simd_float3>.stride,
         index: Int(colorGradingWhiteBalanceCoeffsIndex.rawValue)
+    )
+
+    encoder.setFragmentTexture(colorLUT.lutTexture, index: Int(lookPassColorLUTTextureIndex.rawValue))
+
+    var colorLUTEnabled = colorLUT.enabled && colorLUT.lutTexture != nil
+    encoder.setFragmentBytes(
+        &colorLUTEnabled,
+        length: MemoryLayout<Bool>.stride,
+        index: Int(colorLUTEnabledIndex.rawValue)
+    )
+
+    var colorLUTShaperMinStops = colorLUT.shaperMinStops
+    encoder.setFragmentBytes(
+        &colorLUTShaperMinStops,
+        length: MemoryLayout<Float>.stride,
+        index: Int(colorLUTShaperMinStopsIndex.rawValue)
+    )
+
+    var colorLUTShaperMaxStops = colorLUT.shaperMaxStops
+    encoder.setFragmentBytes(
+        &colorLUTShaperMaxStops,
+        length: MemoryLayout<Float>.stride,
+        index: Int(colorLUTShaperMaxStopsIndex.rawValue)
+    )
+
+    var colorLUTSize = Int32(colorLUT.lutSize)
+    encoder.setFragmentBytes(
+        &colorLUTSize,
+        length: MemoryLayout<Int32>.stride,
+        index: Int(colorLUTSizeIndex.rawValue)
     )
 }
 

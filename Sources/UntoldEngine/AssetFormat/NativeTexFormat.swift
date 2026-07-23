@@ -28,7 +28,9 @@
 //    widthPx      UInt32
 //    heightPx     UInt32
 //
-//  Payload: raw ASTC block data, mip 0 first (full-res → smallest).
+//  Payload: raw GPU texture data, mip 0 first (full-res → smallest).
+//  ASTC payloads contain 16-byte compressed blocks. Uncompressed RGBA16Float
+//  payloads use a 1×1 block and eight bytes per texel.
 //  Each mip block stream is 16-byte aligned.
 //
 //
@@ -52,12 +54,24 @@ public enum NativeTexFormat {
     public static let mipEntrySize: Int = 16
     /// Required byte alignment for the payload start and each mip boundary.
     public static let payloadAlignment: Int = 16
+    public static let rgba16FloatPixelFormat: UInt32 = 115
 
     /// Compute the payload start offset for a file with the given mip count.
     /// Result is always 16-byte aligned because headerSize (64) and mipCount × mipEntrySize (16N)
     /// are both multiples of 16.
     public static func payloadOffset(mipCount: Int) -> UInt32 {
         UInt32(headerSize + mipCount * mipEntrySize)
+    }
+
+    public static func bytesPerBlock(pixelFormat: UInt32) -> Int? {
+        let isASTC = (186 ... 200).contains(pixelFormat) || (204 ... 218).contains(pixelFormat)
+        if isASTC {
+            return 16
+        }
+        if pixelFormat == rgba16FloatPixelFormat {
+            return 8
+        }
+        return nil
     }
 }
 
@@ -158,6 +172,9 @@ public enum NativeTexValidationError: Error, Sendable, Equatable {
     case unsupportedVersion(UInt32)
     case zeroMipCount
     case zeroBlockDimension
+    case unsupportedPixelFormat(UInt32)
+    case invalidBlockDimensions(pixelFormat: UInt32, width: UInt8, height: UInt8)
+    case invalidMipPayloadSize(mipIndex: Int, expected: UInt64, actual: UInt32)
     /// A mip entry's byte range falls outside the declared payload bounds.
     case mipEntryOutOfBounds(mipIndex: Int, offset: UInt32, size: UInt32, payloadSize: UInt32)
 }
@@ -275,9 +292,24 @@ public struct NativeTexReader {
         guard header.blockWidth > 0, header.blockHeight > 0 else {
             throw NativeTexValidationError.zeroBlockDimension
         }
+        guard NativeTexFormat.bytesPerBlock(pixelFormat: header.pixelFormat) != nil else {
+            throw NativeTexValidationError.unsupportedPixelFormat(header.pixelFormat)
+        }
+        if header.pixelFormat == NativeTexFormat.rgba16FloatPixelFormat,
+           header.blockWidth != 1 || header.blockHeight != 1
+        {
+            throw NativeTexValidationError.invalidBlockDimensions(
+                pixelFormat: header.pixelFormat,
+                width: header.blockWidth,
+                height: header.blockHeight
+            )
+        }
     }
 
     private func validate(mips: [NativeTexMipEntry], header: NativeTexHeader) throws {
+        guard let bytesPerBlock = NativeTexFormat.bytesPerBlock(pixelFormat: header.pixelFormat) else {
+            throw NativeTexValidationError.unsupportedPixelFormat(header.pixelFormat)
+        }
         for (index, mip) in mips.enumerated() {
             let end = UInt64(mip.byteOffset) + UInt64(mip.byteSize)
             guard end <= UInt64(header.totalPayloadSize) else {
@@ -287,6 +319,18 @@ public struct NativeTexReader {
                     size: mip.byteSize,
                     payloadSize: header.totalPayloadSize
                 )
+            }
+            if header.pixelFormat == NativeTexFormat.rgba16FloatPixelFormat {
+                let blocksWide = (UInt64(mip.widthPx) + UInt64(header.blockWidth) - 1) / UInt64(header.blockWidth)
+                let blocksHigh = (UInt64(mip.heightPx) + UInt64(header.blockHeight) - 1) / UInt64(header.blockHeight)
+                let expectedSize = blocksWide * blocksHigh * UInt64(bytesPerBlock)
+                guard UInt64(mip.byteSize) == expectedSize else {
+                    throw NativeTexValidationError.invalidMipPayloadSize(
+                        mipIndex: index,
+                        expected: expectedSize,
+                        actual: mip.byteSize
+                    )
+                }
             }
         }
     }

@@ -212,6 +212,18 @@ typedef enum{
     colorGradingPassEnabledIndex
 }ColorGradingPassBufferIndices;
 
+typedef enum {
+    lookPassColorLUTTextureIndex = 1,    // texture(0) is the look pass's sceneTexture
+} LookPassLUTTextureIndices;
+
+typedef enum{
+    colorLUTEnabledIndex = 7,    // starts after ColorGradingPassBufferIndices (0-6) — both
+                                 // enums bind buffers on the same fragmentLookShader
+    colorLUTShaperMinStopsIndex,
+    colorLUTShaperMaxStopsIndex,
+    colorLUTSizeIndex,
+}ColorLUTPassBufferIndices;
+
 typedef enum{
     colorCorrectionPassColorTextureIndex,
     colorCorrectionPassTemperatureIndex,
