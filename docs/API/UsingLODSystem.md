@@ -237,7 +237,19 @@ setLOD(.hysteresis(10.0))
 
 // Enable dithered cross-fade transitions between LOD representations
 setLOD(.fadeTransitions(.enabled(duration: 0.5)))
+
+// Update every frame instead of throttling the full entity pass (default: 4 frames)
+setLOD(.updateFrameInterval(1))
+
+// Force an immediate update once the camera has moved this many units (default: 0.5)
+setLOD(.minimumCameraDisplacement(1.0))
+
+// Override the default per-index distance thresholds used when a LODLevel
+// doesn't specify its own maxDistance (see LODConfig.lodDistances)
+setLOD(.distanceThresholds([25.0, 75.0, 200.0]))
 ```
+
+`LODSystem.update()` doesn't re-evaluate every entity every frame — the full pass is throttled to once every `updateFrameInterval` frames, with an early-out that forces an immediate pass if the camera moved more than `minimumCameraDisplacement` units since the last one. Lowering `updateFrameInterval` (e.g. to `1`) trades performance for LOD responsiveness; raising `minimumCameraDisplacement` makes fast camera movement less likely to force an off-cycle update. See [`docs/Architecture/lodSystem.md`](../Architecture/lodSystem.md) for the full throttling behavior.
 
 The older `LODConfig.shared` values remain available for compatibility and advanced tuning. New code should prefer `setLOD(...)` so LOD settings follow the same style as scene channels, rendering, and PostFX.
 

@@ -44,6 +44,7 @@ The runtime still exposes `MeshStreamingPolicy`, but the architecture has moved:
 - `setEntityMeshAsync(..., streamingPolicy: .auto)` is used by tile loading so the runtime can choose immediate vs OCC
 - `setEntityStreamScene(...)` is the supported public streaming path
 - `StreamingComponent` and `enableStreaming(...)` are internal tile/OOC mechanisms
+- `createStreamingEntity(...)` is a public function but a **known gap**: it creates a `StreamingComponent` on a standalone entity with no `TileComponent` ancestor, so the tile-ownership check in `loadMesh()` rejects it and it never actually streams. Don't use it.
 
 That means the old pattern:
 

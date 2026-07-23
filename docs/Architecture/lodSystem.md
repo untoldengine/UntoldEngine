@@ -5,7 +5,7 @@ UntoldEngine has two separate LOD mechanisms that operate at different granulari
 | | **Entity-level LOD** (this document) | **Per-tile LOD** (tile streaming) |
 |---|---|---|
 | Unit | Individual mesh entity (`LODComponent`) | Whole tile `.untold` file (`TileLODLevel`) |
-| Control | `LODSystem` — runs every frame | `GeometryStreamingSystem.update()` — runs per tick |
+| Control | `LODSystem` — called every frame, but the full entity pass is throttled to every `lodUpdateFrameInterval` frames (default 4) unless the camera moved past `minimumCameraDisplacementForLODUpdate` (default 0.5 units) | `GeometryStreamingSystem.update()` — runs per tick |
 | Switch trigger | Camera distance vs `LODLevel.maxDistance` | Camera distance vs `TileLODLevel.switchDistance` (with hysteresis) |
 | Hysteresis | 5-unit inner band on finer-LOD transitions only | `lodHysteresisFactor` (default 0.90 = 10% band) on active level |
 | Meshes in memory | All LOD levels GPU-resident simultaneously | Only the active LOD level is loaded |
@@ -36,14 +36,16 @@ Each `LODLevel` tracks its own `residencyState` (`.resident`, `.loading`, `.notR
 
 ### Every Frame: `LODSystem.update()`
 
-The system runs once per frame. Here's what happens for all 500 buildings:
+`update()` is called every frame, but the expensive per-entity pass (Steps 2-3 below) is gated by `lodShouldRunThisFrame(...)`: it always runs on the first call, otherwise it only runs once every `LODConfig.shared.lodUpdateFrameInterval` frames (default **4**), with an early-out fast path that forces an immediate run if the camera has moved more than `LODConfig.shared.minimumCameraDisplacementForLODUpdate` (default **0.5** units) since the last full pass. So under normal (slow) camera movement, all 500 buildings are re-evaluated roughly every 4th frame rather than every frame; a fast camera jump still triggers an immediate update instead of waiting out the interval.
 
 **Step 1 — Get camera position**
 ```
 CameraSystem → activeCamera → CameraComponent.localPosition
+SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
 ```
+The raw `CameraComponent.localPosition` is passed through `SceneRootTransform.shared.effectiveCameraPosition(...)` before being used for distance checks or the displacement-throttle comparison above — the same scene-root-relative adjustment described in [`geometryStreamingSystem.md`](geometryStreamingSystem.md), so LOD distance math stays consistent with tile streaming even when the scene root has been translated (e.g. XR head movement).
 
-**Step 2 — Query all LOD entities**
+**Step 2 — Query all LOD entities** *(only on frames where the throttle above allows a full pass)*
 ```swift
 queryEntitiesWithComponentIds([LODComponent, WorldTransformComponent])
 ```

@@ -42,7 +42,9 @@ Timing: frame 12.34ms (raw CPU) | update 1.23ms | render 8.45ms | cull 0.45ms | 
 Render: draws 45 (opaque 32, transparent 3, shadow 8, batched 28) | triangles 125000 | visible 89
 Culling: frustum 234/512 failed 278 | occlusion 198/234 failed 36 | usedHZB true validHZB true
 Streaming: loaded 847 loading 3 unloaded 12 | active 3 | nearby 124 candidates 5 slots 4 | backlog 0 | pendingUploads 3 | gateMs 0.00
-Streaming: tick=true workMs 1.23 | evictions 0 | avgLoadMs 45.67 | applyMs 0.89 | tileSwapWarn 0
+Streaming: tick=true workMs 1.23 | evictions 0 | avgLoadMs 45.67 | applyMs 0.89 | tileSwapWarn 0 | repGap 0 | lod0VisWarn 0 covered 0 open 0 | hierGateSkip 0
+TileReps: resident full/lod/hlod 24/8/2 | visible full/lod/hlod 18/5/1 | overlap visible full+lod/full+hlod/lod+hlod 0/0/0 residentFull+fallback 0 | fades 0 waiting 0
+TileRenderCost: visible full/lod/hlod 18/5/1 | draws full/lod/hlod 22/6/1 | tris full/lod/hlod 84000/9000/1200
 Batching: groups 132 | batchedMeshes 916 | dirty 0→0 | defWork 0 skipComplex 2 | dispatched 0→0 groups | rebuilds/s 0 | rebuildMs 0.00
 Memory: mesh 312/512mb | tex 198/512mb | total 50% | entities 847
 ```
@@ -68,6 +70,27 @@ Memory: mesh 312/512mb | tex 198/512mb | total 50% | entities 847
 | `avgLoadMs` | Mean I/O + parse time per mesh load. High values = I/O bound, not slot-starved. |
 | `applyMs` | Main-thread GPU upload cost when a completed load is applied. |
 | `tileSwapWarn` | Cumulative tile representation thrash events (≥ 6 swaps in 5 s). |
+| `repGap` | Cumulative tile-representation gap warnings — a tile briefly had no representation resident during a swap. |
+| `lod0VisWarn / covered / open` | Cumulative warnings for a visible tile missing its LOD0 representation; `covered` = a fallback representation was available, `open` = nothing was available to fall back to. |
+| `hierGateSkip` | Tiles skipped this tick by the hierarchy gate (parent representation not yet resident). |
+
+**TileReps line** — per-tile representation residency and overlap:
+
+| Field | What it tells you |
+|---|---|
+| `resident full/lod/hlod` | Count of tiles currently resident at each representation tier. |
+| `visible full/lod/hlod` | Count of resident tiles at each tier that are also visible this frame. |
+| `overlap visible full+lod/full+hlod/lod+hlod` | Tiles where two representation tiers are visible simultaneously — should trend toward zero outside of transition fades. |
+| `residentFull+fallback` | Tiles where the full representation is resident alongside a fallback (LOD/HLOD) representation. |
+| `fades / waiting` | Active cross-fade transitions between representations, and fades queued but not yet started. |
+
+**TileRenderCost line** — rendering cost attributed to each tile representation tier:
+
+| Field | What it tells you |
+|---|---|
+| `visible full/lod/hlod` | Same visible-instance counts as the `TileReps` line, restated here alongside cost. |
+| `draws full/lod/hlod` | Estimated draw calls contributed by each tier. |
+| `tris full/lod/hlod` | Estimated triangles contributed by each tier. A high `full` triangle count relative to `lod`/`hlod` suggests LOD switching is happening too late (or not at all) for distant tiles. |
 
 **Batching line** — rebuild scheduler state:
 
@@ -210,7 +233,7 @@ print("evictions: \(diag.evictionsPerformed)  tileSwapWarnings: \(diag.tileSwapW
 print("avg async load: \(diag.averageAsyncLoadMs) ms")
 ```
 
-This struct also contains fields not in the verbose snapshot: `startedLoads`, `activeLoadsAtUpdateStart/End`, `lastAsyncLoadMs`, `lastAsyncReloadLODMs`, `lastFailedAsyncLoadMs`, and `lastUnloadMeshMs`.
+This struct also contains fields not printed by the compact log profile: `startedLoads`, `activeLoadsAtUpdateStart/End`, `lastAsyncLoadMs`, `lastAsyncReloadLODMs`, `lastFailedAsyncLoadMs`, `lastUnloadMeshMs`, `unloadCandidates`, and `processedUnloads`.
 
 | Field | What it tells you |
 |---|---|
@@ -218,11 +241,20 @@ This struct also contains fields not in the verbose snapshot: `startedLoads`, `a
 | `updateWorkMs` | CPU time spent inside the streaming update. Spikes here cause frame hitches. |
 | `nearbyEntitiesQueried` | How many entities the frustum/radius gate evaluated. |
 | `loadCandidates` / `startedLoads` | How many entities were eligible vs actually kicked off. A gap means slots were full. |
+| `unloadCandidates` / `processedUnloads` | How many entities were eligible for unload vs actually unloaded this tick. |
 | `availableLoadSlots` | Concurrency slots free at the start of the tick. `0` = slot-starved. |
 | `evictionTriggered` / `evictionsPerformed` | Whether memory pressure forced an eviction pass. Frequent evictions indicate the budget is too tight for the scene. |
 | `lastAsyncLoadMs` / `averageAsyncLoadMs` | I/O + parse time per mesh. High values mean the bottleneck is I/O, not slot count. |
 | `lastApplyLoadedMeshMs` | Main-thread GPU upload cost when a mesh completes loading. |
 | `tileSwapWarnings` | Count of tile representation thrash events (≥ 6 swaps in 5 s). Nonzero means a tile is oscillating between LOD levels. |
+| `tilesSkippedByHierarchyGate` | Tiles skipped this tick because their parent representation wasn't yet resident. |
+| `tileRepresentationGapWarnings` | Tiles that briefly had no representation resident during a swap. |
+| `lod0VisibilityWarnings` / `...WithFallback` / `...NoFallback` | Warnings for a visible tile missing its LOD0 representation; the `WithFallback`/`NoFallback` split tells you whether a fallback representation covered the gap. |
+| `residentFull/LOD/HLODRepresentations` | Count of tiles resident at each representation tier. |
+| `visibleFull/LOD/HLODRepresentations` | Count of resident tiles at each tier that are also visible this frame. |
+| `fullAndLOD/fullAndHLOD/lodAndHLODVisibleOverlapTiles` | Tiles where two representation tiers are visible simultaneously. |
+| `fullAndFallbackResidentOverlapTiles` | Tiles where the full representation is resident alongside a fallback representation. |
+| `activeTileRepresentationFades` / `waitingTileRepresentationFades` | Cross-fade transitions currently running vs queued. |
 
 ### Streaming summary to console
 

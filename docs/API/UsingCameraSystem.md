@@ -138,6 +138,72 @@ let settings = CameraPathSettings(startImmediately: true) {
 startCameraPath(waypoints: waypoints, mode: .once, settings: settings)
 ```
 
+### Stopping and Querying Path State
+
+```swift
+stopCameraPath()
+
+if isCameraPathActive() {
+    // don't start a new path while one is already running
+}
+```
+
+## Orbit Camera
+
+`orbitCameraAround` rotates the camera around `cameraComponent.orbitTarget` (set with `setOrbitOffset`), which is the pattern used by the shipped demos for mouse-drag orbit controls:
+
+```swift
+// Establish the pivot point in front of the camera
+setOrbitOffset(entityId: camera, uTargetOffset: 5.0)
+
+// Feed raw mouse-drag delta in
+orbitCameraAround(entityId: camera, uDelta: dragDelta) // pre-scaled by -0.01 internally
+```
+
+To orbit around another entity at a fixed radius and angular speed instead of a mouse-driven pivot:
+
+```swift
+cameraOrbitTarget(
+    entityId: camera,
+    centerEntity: target,
+    radius: 8.0,
+    angularSpeed: 0.5, // radians/sec
+    deltaTime: deltaTime,
+    offsetY: 1.0
+)
+```
+
+`orbitAround(entityId:uPosition:)` is the lower-level primitive both of the above build on, if you need direct control over the yaw/pitch delta.
+
+## WASD / Free-Look Movement
+
+`moveCameraWithInput` drives free-fly movement from a WASD+QE-style input struct (ignored while `InputSystem.shared.cameraControlMode == .orbiting`):
+
+```swift
+moveCameraWithInput(
+    entityId: camera,
+    input: (w: keysDown.w, a: keysDown.a, s: keysDown.s, d: keysDown.d, q: keysDown.q, e: keysDown.e),
+    speed: 5.0,
+    deltaTime: deltaTime
+)
+```
+
+Related low-level helpers: `cameraLookAboutAxis(entityId:uDelta:)` applies a mouse-look style yaw/pitch delta, and `moveCameraAlongAxis(entityId:uDelta:)` moves along the camera's local right/up/forward axes.
+
+## Local-Space Follow
+
+`cameraFollowLocal` is like `cameraFollow`, but the offset is expressed in the target's local space rather than world space — useful when the target rotates and the camera should stay attached to a specific side (e.g. behind a turning vehicle):
+
+```swift
+cameraFollowLocal(
+    entityId: camera,
+    targetEntity: target,
+    localOffset: simd_float3(0.0, 2.0, -6.0),
+    smoothFactor: 6.0,
+    deltaTime: deltaTime
+)
+```
+
 ## Notes
 
 - `startCameraPath` and `updateCameraPath` operate on the active camera set with `setCamera(.active(...))`.

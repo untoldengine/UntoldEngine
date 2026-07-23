@@ -139,7 +139,7 @@ Distance is measured as the closest point on the region AABB to the camera posit
 `loadRegion(id:)` (internal):
 
 1. Marks region `.loading`.
-2. Checks `MemoryBudgetManager.canAccept(sizeBytes:)`. If the budget is full, attempts `evictLRU` before proceeding; if still full, marks region `.unloaded` and returns.
+2. Checks `MemoryBudgetManager.canAccept(sizeBytes:)`. If the budget is full and `MemoryBudgetManager.shouldEvict()` is true, fetches `getEvictionCandidatesToTarget()` and unregisters/destroys each candidate entity to free memory. Either way — whether or not eviction happened — the region is then unconditionally marked `.unloaded` and `loadRegion` returns for this call; it does **not** retry `canAccept` after evicting, so a load that hits the budget wall always defers to the next load-path pass rather than completing in the same call.
 3. For each `AssetReference` in `region.assets`:
    - Calls `createEntity()` + `setEntityMeshAsync(entityId:filename:withExtension:)`.
    - Registers memory with `MemoryBudgetManager` for the root entity and all children.

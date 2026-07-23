@@ -173,6 +173,57 @@ updateMaterialOpacity(entityId: entity, opacity: 0.5, meshIndex: 0, submeshIndex
 
 ---
 
+## Textures
+
+Each material slot (`.baseColor`, `.roughness`, `.metallic`, `.normal` — the `TextureType` enum) can carry an image texture in addition to its scalar/color value. When a texture is present it modulates or replaces the scalar value in the shader, as noted above for roughness and metallic.
+
+### Set a Texture
+
+```swift
+updateMaterialTexture(
+    entityId: entity,
+    textureType: .baseColor,
+    path: URL(fileURLWithPath: "/path/to/GameData/Textures/brick_basecolor.png")
+)
+```
+
+The filename, extension, and containing folder are extracted from `path` and resolved the same way other engine assets are (relative to the game's resource bundle).
+
+### Remove a Texture
+
+```swift
+removeMaterialTexture(entityId: entity, textureType: .roughness)
+```
+
+Clears the texture and reverts the slot to its scalar value (roughness resets to `1.0`, metallic resets to `0.0`). The original embedded texture, if any, is retained internally so it can be restored later.
+
+### Query a Texture
+
+```swift
+let url = getMaterialTextureURL(entityId: entity, type: .baseColor)     // URL? — nil if no texture is set
+let mdlTexture = getMaterialMDLTexture(entityId: entity, type: .baseColor) // MDLTexture? — used for embedded USDZ textures
+```
+
+### UV Tiling (ST Scale)
+
+`stScale` controls texture-coordinate tiling/repetition across the surface:
+
+```swift
+let scale = getMaterialSTScale(entityId: entity)
+updateMaterialSTScale(entityId: entity, stScale: 4.0)
+```
+
+### Texture Wrap Mode
+
+`WrapMode` is `.clampToEdge` or `.repeat`. Only `.baseColor` currently reports a wrap mode via the getter; `updateTextureSampler` applies the wrap mode to any texture slot's sampler:
+
+```swift
+let wrapMode = getTextureWrapMode(entityId: entity, textureType: .baseColor) // WrapMode?
+updateTextureSampler(entityId: entity, textureType: .baseColor, wrapMode: .repeat)
+```
+
+---
+
 ## Quick Reference
 
 - `getMaterialBaseColor(entityId:meshIndex:submeshIndex:)` → `simd_float4`
@@ -190,3 +241,11 @@ updateMaterialOpacity(entityId: entity, opacity: 0.5, meshIndex: 0, submeshIndex
 - `getMaterialOpacity(entityId:meshIndex:submeshIndex:)` → `Float`
 - `updateMaterialOpacity(entityId:opacity:applyToAllSubmeshes:recursive:)`
 - `updateMaterialOpacity(entityId:opacity:meshIndex:submeshIndex:)`
+- `updateMaterialTexture(entityId:textureType:path:meshIndex:submeshIndex:)`
+- `removeMaterialTexture(entityId:textureType:meshIndex:submeshIndex:)`
+- `getMaterialTextureURL(entityId:type:meshIndex:submeshIndex:)` → `URL?`
+- `getMaterialMDLTexture(entityId:type:meshIndex:submeshIndex:)` → `MDLTexture?`
+- `getMaterialSTScale(entityId:meshIndex:submeshIndex:)` → `Float`
+- `updateMaterialSTScale(entityId:stScale:meshIndex:submeshIndex:)`
+- `getTextureWrapMode(entityId:textureType:meshIndex:submeshIndex:)` → `WrapMode?`
+- `updateTextureSampler(entityId:textureType:wrapMode:meshIndex:submeshIndex:)`

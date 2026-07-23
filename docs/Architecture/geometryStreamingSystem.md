@@ -100,6 +100,8 @@ Inside the async task:
 - `StreamingComponent` stubs are created internally by `setEntityMeshAsync` for the out-of-core (OCC) path when a tile file is large enough to be split into sub-mesh stubs. External callers never attach `StreamingComponent` directly.
 - `enableStreaming()` is `internal`; it is not part of the public API.
 
+> **Known gap:** `createStreamingEntity(filename:withExtension:streamingRadius:unloadRadius:priority:)` (`RegistrationSystem.swift`) is a **public** function that attaches a `StreamingComponent` to a standalone entity with no `TileComponent` ancestor — contradicting the ownership rule above. Because `loadMesh()`'s `isTileOwned()` guard rejects any entity without a tile ancestor, entities created through `createStreamingEntity` are never actually picked up by the normal streaming update pass; the function is effectively a dead end today. Treat it as unsupported until it either registers created entities with the octree/tile system or is marked internal.
+
 ### What to use instead
 
 | Use case | API |
@@ -183,12 +185,12 @@ In addition to the per-tick budget checks above, `MemoryBudgetManager` subscribe
 
 | OS signal | Response | `maxEntities` |
 |---|---|---|
-| `.warning` | Texture shed | 8 |
-| `.critical` | Texture shed + double geometry eviction pass (capped at 16 per pass) + CPU heap release | 20 |
+| `.warning` | Texture shed + single geometry eviction pass (capped at 16) | 8 |
+| `.critical` | Texture shed + double geometry eviction pass (capped at 16 per pass) | 20 |
 
 The OS callback fires on a background queue and sets a `pendingPressureRelief` flag on `GeometryStreamingSystem`. The flag is drained at the **start of the next `update()` tick** on the main thread, so all eviction work stays on the same thread as the rest of the streaming system. This prevents the OS from silently escalating to `.critical` and terminating the process — on visionOS in particular, the window between `.warning` and process kill can be under a second.
 
-**CPU heap ownership** — `evictLRU` frees GPU Metal buffers tracked by `MemoryBudgetManager`. Native OCC CPU data is owned by `ProgressiveAssetLoader` as `CPURuntimeEntry` records and is released when the tile/root is unloaded through `removeOutOfCoreAsset(rootEntityId:)`.
+**CPU heap ownership** — `evictLRU` frees GPU Metal buffers tracked by `MemoryBudgetManager`. Native OCC CPU data is owned by `ProgressiveAssetLoader` as `CPURuntimeEntry` records and is released when the tile/root is unloaded through `removeOutOfCoreAsset(rootEntityId:)`. There is currently no dedicated CPU-heap release step under `.critical` pressure — this is a known gap (tracked as a `TODO` in `GeometryStreamingSystem.swift`), so critical pressure relies on texture shedding plus the doubled geometry eviction pass rather than reclaiming `CPURuntimeEntry` data directly.
 
 ---
 

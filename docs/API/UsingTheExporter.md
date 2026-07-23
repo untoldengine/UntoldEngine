@@ -1,13 +1,16 @@
 # Using The Exporter
 
-UntoldEngine ships a global CLI command for exporting individual assets and a
-repository script for tiled scene exports:
+UntoldEngine ships global CLI commands for both individual-asset and tiled
+scene exports, plus a repository script wrapper for tiled exports:
 
-- `untoldengine export`
-- `export-untold-tiles`
+- `untoldengine export` — single asset
+- `untoldengine export-tiles` — tiled scene (CLI equivalent of the script below)
+- `export-untold-tiles` — repository script wrapper for tiled scene exports
 
-Both commands launch Blender in background mode and run the Python exporters
+All of these launch Blender in background mode and run the Python exporters
 for you. Users do not need to invoke Blender or the Python scripts directly.
+See [Using the UntoldEngine CLI](UsingUntoldEngineCLI.md) for the full CLI
+subcommand reference, including `untoldengine export-tiles --help`.
 
 ## Install The Export Command
 
@@ -43,8 +46,8 @@ If Blender cannot be found, the wrapper prints an install message and exits.
 
 ## Export A Single Asset
 
-Use `untoldengine export` from any directory to convert one USD or USDZ asset
-into one `.untold` runtime file.
+Use `untoldengine export` from any directory to convert one USD/USDZ or
+`.blend` asset into one `.untold` runtime file.
 
 Basic usage:
 
@@ -69,7 +72,7 @@ untoldengine export \
 
 Common options:
 
-- `--input <path>`: required source `.usd`, `.usda`, `.usdc`, or `.usdz`
+- `--input <path>`: required source `.usd`, `.usda`, `.usdc`, `.usdz`, or `.blend`
 - `--output <path>`: required destination `.untold`
 - `--file-type <tile|lod|hlod|shared|animation>`: optional, defaults to `tile`
 - `--mesh-name <name>`: optional, export only one mesh from a multi-mesh asset
@@ -77,6 +80,10 @@ Common options:
 - `--source-orientation <blender-native|engine-oriented>`: optional, defaults to `blender-native`
 - `--validate`: optional, also writes `<name>.validation.json`
 - `--compress-geometry`: optional, LZ4-compress vertex and index chunks (requires `pip install lz4`)
+- `--optimize`: optional, compress geometry and bake/patch textures after export (implies `--compress-geometry`)
+- `--bake-materials`: optional, bake node-graph materials the engine cannot evaluate (Mix, Math, procedural textures, ...) into flat textures so the export matches Blender
+- `--bake-resolution <pixels>`: optional, square resolution for baked material textures, defaults to `1024`
+- `--no-bake-cache`: optional, disable the persistent bake cache and force every divergent material to be re-baked
 - `--animation`: optional, export animation clips only — no mesh geometry is written
 - `--blender <path>`: optional Blender executable override
 
@@ -168,7 +175,7 @@ Available options:
 
 ## Export A Scene Into Tiles
 
-Use `export-untold-tiles` (found in `scripts/`) to partition a USD or USDZ scene into tile payloads and generate a manifest JSON file.
+Use `export-untold-tiles` (found in `scripts/`), or the equivalent `untoldengine export-tiles` CLI command, to partition a USD/USDZ or `.blend` scene into tile payloads and generate a manifest JSON file.
 
 Basic usage:
 
@@ -183,14 +190,16 @@ Basic usage:
 
 Common options:
 
-- `--input <path>`: required source `.usd`, `.usda`, `.usdc`, or `.usdz`
+- `--input <path>`: required source `.usd`, `.usda`, `.usdc`, `.usdz`, or `.blend`
 - `--output-dir <path>`: required destination directory for tile payloads
-- `--tile-size-x <number>`: optional tile width in world units
+- `--tile-size-x <number>`: optional tile width in world units (ignored in `--quadtree`/`--kdtree` mode)
 - `--tile-size-y <number>`: optional tile height in world units, defaults to `10000`
-- `--tile-size-z <number>`: optional tile depth in world units
+- `--tile-size-z <number>`: optional tile depth in world units (ignored in `--quadtree`/`--kdtree` mode)
 - `--auto-tile-size`: optional automatic tile sizing
 - `--generate-hlod`: optional HLOD generation
 - `--generate-lod`: optional per-tile LOD generation
+- `--lod-level <distance:ratio>`: optional override for a per-tile LOD level. May be repeated.
+- `--hlod-level <suffix:distance:ratio>`: optional override for an HLOD level. May be repeated.
 - `--dry-run`: optional planning pass without writing payload files
 - `--write-manifest-in-dry-run`: optional manifest write during dry run
 - `--visible-only`: optional export only visible meshes
@@ -200,10 +209,20 @@ Common options:
 - `--kdtree`: optional partition tiles using a KD-tree instead of a quadtree (inline annotation only). Splits each floor's XY plane on the longer axis at the median object center, producing better-balanced tiles in scenes where geometry is unevenly distributed. Produces `partitioning_mode: "kdtree_floor"` in the manifest. Ignored if the input is pre-annotated (quadtree metadata takes precedence)
 - `--scene-profile <auto|indoor|outdoor>`: optional streaming radius profile, defaults to `auto`. Radii are always proportional to scene size — no fixed distances to hand-tune. Use `outdoor` for cities, terrain, and large exterior scenes if auto-detection misses.
 - `--tier-radius <Tier=stream,unload[,priority]>`: optional quadtree semantic-tier radius override in world units. May be repeated.
-- `--floor-count <number>`: optional number of vertical floors to split each tile into (for quadtree mode)
+- `--min-objects-per-tile-tier <count>`: optional, collapse underfilled tile-tiers upward until reaching this many objects, defaults to `4`
+- `--untagged-semantic-tier <Auto|ExteriorShell|StructuralInterior|RoomContents|FineProps>`: optional semantic tier for meshes without an explicit override, defaults to `Auto`
+- `--floor-count <number>`: optional number of vertical floors to split each tile into (for quadtree/KD-tree mode)
 - `--floor-band-height <number>`: optional per-floor height in world units (overrides auto-detection from scene Z extent)
+- `--sample`: optional, export only a small tile patch near the world origin for fast iteration
+- `--sample-fraction <fraction>`: optional fraction of total tiles to keep in sample mode, defaults to `0.10`
+- `--perimeter`: optional, export only the outer shell of tiles, skipping interior tiles
+- `--perimeter-depth <count>`: optional number of tiles inward from the boundary to keep, defaults to `1`
 - `--parallel-workers <number>`: optional number of parallel Blender worker processes (`0` = auto-detect CPU count, `1` = sequential)
 - `--compress-geometry`: optional LZ4-compress vertex and index chunks in every exported tile payload (requires `pip install lz4`)
+- `--optimize`: optional, compress geometry and bake/patch textures after export (implies `--compress-geometry`)
+- `--bake-materials`: optional, bake node-graph materials the engine cannot evaluate into flat textures
+- `--bake-resolution <pixels>`: optional, square resolution for baked material textures, defaults to `1024`
+- `--no-bake-cache`: optional, disable the persistent bake cache and force every divergent material to be re-baked
 - `--blender <path>`: optional wrapper-level Blender override
 
 Example:

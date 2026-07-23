@@ -181,6 +181,64 @@ This can help diagnose:
 
 ------------------------------------------------------------------------
 
+## Tile Bounds
+
+Draws wireframe boxes around streaming tiles (`TileComponent` entities),
+using each tile's partition-cell bounds so the box matches what the Blender
+tile overlay shows. The shared-bucket tile (a global asset, not a spatial
+partition cell) is always skipped.
+
+``` swift
+setSpatialDebug(.tileBounds(enabled: true, maxTileNodeCount: 500))
+```
+
+Tile boxes follow the same color mode as octree leaves (`colorMode` from the
+last `.octreeLeafBounds(.enabled(...))` call): `.residency` colors tiles by
+load state, while `.plain` and `.culling` both draw a neutral wireframe since
+tile stubs have no per-frame visibility signal of their own.
+
+------------------------------------------------------------------------
+
+## Static Batch Cell Bounds
+
+Draws wireframe boxes around static-batching grid cells (`BatchCellID`
+regions), useful for diagnosing batch-cell sizing and rebuild boundaries.
+
+``` swift
+setSpatialDebug(.staticBatchCellBounds(
+    enabled: true,
+    maxCellCount: 2000,
+    colorMode: .lod
+))
+```
+
+`colorMode` (`SpatialDebugBatchCellColorMode`) controls per-cell coloring:
+
+  Mode        Meaning
+  ----------- ---------------------------------------------------------
+  `.plain`    Single neutral color for every cell
+  `.culling`  Green = all entities visible, blue = all culled, orange = mixed
+  `.lod`      Colors by the LOD level(s) present in the cell; a mixed-LOD cell gets a distinct "mixed" color
+  `.cell`     Stable per-cell pseudo-random hue, useful for visually distinguishing neighboring cells
+
+------------------------------------------------------------------------
+
+## Texture Streaming Tiers
+
+Colors renderable entities by their current texture streaming tier, instead
+of drawing wireframe bounds:
+
+``` swift
+setSpatialDebug(.textureStreamingTiers(true))
+```
+
+Color meanings: Blue = full resolution, Orange = medium (capped), Red =
+minimum, Yellow = texture load in-flight. Useful for spotting entities stuck
+at a reduced texture tier or thrashing between tiers near the streaming
+budget limit.
+
+------------------------------------------------------------------------
+
 ## API
 
 ### setSpatialDebug
@@ -191,8 +249,8 @@ This can help diagnose:
         colorMode: SpatialDebugLeafColorMode
     )))
 
-    setSpatialDebug(.tileBounds(enabled: Bool, maxTileNodeCount: Int))
-    setSpatialDebug(.staticBatchCellBounds(enabled: Bool, maxCellCount: Int))
+    setSpatialDebug(.tileBounds(enabled: Bool, maxTileNodeCount: Int = 500))
+    setSpatialDebug(.staticBatchCellBounds(enabled: Bool, maxCellCount: Int = 2000, colorMode: SpatialDebugBatchCellColorMode = .plain))
     setSpatialDebug(.lodLevels(Bool))
     setSpatialDebug(.textureStreamingTiers(Bool))
     setSpatialDebug(.disabled)
