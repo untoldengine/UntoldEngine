@@ -70,6 +70,12 @@ public final class UntoldReader: @unchecked Sendable {
             from: data,
             entries: chunks
         )
+        let colorManagement = try decodeSingleIfPresent(
+            UntoldColorManagementRecordV1.self,
+            chunkType: .colorManagementTable,
+            from: data,
+            entries: chunks
+        )
         let skeletons = try decodeTableIfPresent(
             UntoldSkeletonRecordV1.self,
             chunkType: .skeletonTable,
@@ -129,6 +135,7 @@ public final class UntoldReader: @unchecked Sendable {
             textures: textures,
             lights: lights,
             cameras: cameras,
+            colorManagement: colorManagement,
             skeletons: skeletons,
             skeletonJoints: skeletonJoints,
             skins: skins,
@@ -369,6 +376,26 @@ public final class UntoldReader: @unchecked Sendable {
         return try decodeTable(T.self, chunkType: chunkType, from: fileData, entries: entries)
     }
 
+    /// Like `decodeTableIfPresent`, but for chunk types that hold at most one
+    /// scene-wide record (e.g. color management) rather than a per-entity table.
+    private func decodeSingleIfPresent<T: UntoldBinaryDecodable>(
+        _: T.Type,
+        chunkType: UntoldChunkType,
+        from fileData: Data,
+        entries: [UntoldChunkEntryV1]
+    ) throws -> T? {
+        guard let entry = entries.first(where: { $0.chunkType == chunkType }) else {
+            return nil
+        }
+        guard entry.elementCount <= 1 else {
+            throw UntoldValidationError.invalidSingletonRecordCount(
+                chunkType: chunkType,
+                count: entry.elementCount
+            )
+        }
+        return try decodeTableIfPresent(T.self, chunkType: chunkType, from: fileData, entries: entries).first
+    }
+
     /// Returns decompressed chunk payload for the given chunk type.
     /// Call this from external loaders (e.g. NativeFormatLoader) to retrieve
     /// vertex or index data with transparent decompression.
@@ -453,6 +480,7 @@ public struct UntoldDecodedAsset: Sendable {
     public let textures: [UntoldTextureRefRecordV1]
     public let lights: [UntoldLightRecordV1]
     public let cameras: [UntoldCameraRecordV1]
+    public let colorManagement: UntoldColorManagementRecordV1?
     public let skeletons: [UntoldSkeletonRecordV1]
     public let skeletonJoints: [UntoldSkeletonJointRecordV1]
     public let skins: [UntoldSkinRecordV1]
@@ -472,6 +500,7 @@ public struct UntoldDecodedAsset: Sendable {
         textures: [UntoldTextureRefRecordV1],
         lights: [UntoldLightRecordV1] = [],
         cameras: [UntoldCameraRecordV1] = [],
+        colorManagement: UntoldColorManagementRecordV1? = nil,
         skeletons: [UntoldSkeletonRecordV1],
         skeletonJoints: [UntoldSkeletonJointRecordV1],
         skins: [UntoldSkinRecordV1],
@@ -490,6 +519,7 @@ public struct UntoldDecodedAsset: Sendable {
         self.textures = textures
         self.lights = lights
         self.cameras = cameras
+        self.colorManagement = colorManagement
         self.skeletons = skeletons
         self.skeletonJoints = skeletonJoints
         self.skins = skins

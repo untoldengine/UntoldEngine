@@ -131,6 +131,57 @@ final class NativeTexFormatTests: XCTestCase {
         XCTAssertNoThrow(try NativeTexReader().read(from: container))
     }
 
+    func testReaderAcceptsRGBA16FloatPayloadLayout() throws {
+        let width: UInt32 = 8
+        let height: UInt32 = 4
+        let byteSize = width * height * 8
+        let header = NativeTexHeader(
+            width: width,
+            height: height,
+            mipCount: 1,
+            pixelFormat: NativeTexFormat.rgba16FloatPixelFormat,
+            blockWidth: 1,
+            blockHeight: 1,
+            payloadOffset: NativeTexFormat.payloadOffset(mipCount: 1),
+            totalPayloadSize: byteSize
+        )
+        let writer = UntoldBinaryWriter()
+        header.encode(to: writer)
+        NativeTexMipEntry(
+            byteOffset: 0,
+            byteSize: byteSize,
+            widthPx: width,
+            heightPx: height
+        ).encode(to: writer)
+
+        let result = try NativeTexReader().read(from: writer.data)
+        XCTAssertEqual(result.header.pixelFormat, NativeTexFormat.rgba16FloatPixelFormat)
+        XCTAssertEqual(result.mips[0].byteSize, byteSize)
+    }
+
+    func testReaderRejectsRGBA16FloatPayloadWithWrongByteSize() throws {
+        let header = NativeTexHeader(
+            width: 8,
+            height: 4,
+            mipCount: 1,
+            pixelFormat: NativeTexFormat.rgba16FloatPixelFormat,
+            blockWidth: 1,
+            blockHeight: 1,
+            payloadOffset: NativeTexFormat.payloadOffset(mipCount: 1),
+            totalPayloadSize: 16
+        )
+        let writer = UntoldBinaryWriter()
+        header.encode(to: writer)
+        NativeTexMipEntry(byteOffset: 0, byteSize: 16, widthPx: 8, heightPx: 4).encode(to: writer)
+
+        XCTAssertThrowsError(try NativeTexReader().read(from: writer.data)) { error in
+            XCTAssertEqual(
+                error as? NativeTexValidationError,
+                .invalidMipPayloadSize(mipIndex: 0, expected: 256, actual: 16)
+            )
+        }
+    }
+
     func testReaderRejectsInvalidMagic() throws {
         var data = makeMinimalContainer(mipCount: 1)
         data[0] = 0xFF // corrupt first byte of magic

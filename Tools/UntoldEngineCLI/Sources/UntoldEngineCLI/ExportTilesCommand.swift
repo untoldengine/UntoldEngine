@@ -135,6 +135,12 @@ struct ExportTilesCommand: ParsableCommand {
     @Flag(name: .customLong("no-bake-cache"), help: "Disable the persistent bake cache and force every divergent material to be re-baked, even if unchanged since the last export")
     var noBakeCache = false
 
+    @Flag(name: .customLong("bake-color-management"), help: "Bake the scene's active View Transform/Look/Exposure/Gamma into a scene-wide color-grading LUT referenced from the manifest's colorLUT key")
+    var bakeColorManagement = false
+
+    @Option(name: .customLong("color-lut-size"), help: "Grid size (N) for the NxNxN color-grading LUT")
+    var colorLutSize: Int = 32
+
     func run() throws {
         let outputDirURL = resolvePath(outputDir).standardizedFileURL
 
@@ -203,6 +209,10 @@ struct ExportTilesCommand: ParsableCommand {
             partitionerArguments.append("--bake-materials")
             partitionerArguments += ["--bake-resolution", String(clampedBakeResolution)]
             if noBakeCache { partitionerArguments.append("--no-bake-cache") }
+        }
+        if bakeColorManagement {
+            partitionerArguments.append("--bake-color-management")
+            partitionerArguments += ["--color-lut-size", String(colorLutSize)]
         }
 
         printInfo("Using Blender: \(blenderURL.path)")

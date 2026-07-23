@@ -30,4 +30,12 @@ public enum UntoldValidationError: Error, Sendable, Equatable {
     case unsupportedEnumValue
     case contentHashMismatch
     case compressionOutputSizeMismatch(expected: UInt64, actual: UInt64)
+    case invalidSingletonRecordCount(chunkType: UntoldChunkType, count: UInt32)
+    case invalidColorManagementRecord
+    case invalidColorManagementTextureDimensions(
+        expectedWidth: UInt32,
+        expectedHeight: UInt32,
+        actualWidth: UInt32,
+        actualHeight: UInt32
+    )
 }

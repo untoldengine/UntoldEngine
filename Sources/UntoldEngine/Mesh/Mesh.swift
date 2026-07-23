@@ -690,7 +690,7 @@ public struct Material {
 
             // ASTC textures stored in the engine-native .utex container bypass
             // MTKTextureLoader entirely and are uploaded directly to the GPU.
-            if reference.textureFormat.isASTCNative {
+            if reference.textureFormat.isNativeContainer {
                 return nativeLoader?.loadTexture(
                     from: url,
                     label: "\(runtimeMaterial.name ?? "material")_\(label.lowercased())"

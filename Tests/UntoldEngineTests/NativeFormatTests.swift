@@ -206,6 +206,150 @@ final class NativeFormatTests: XCTestCase {
         XCTAssertEqual(runtimeCamera.aspectRatio, 1.6, accuracy: 0.0001)
     }
 
+    func testColorManagementTableChunkDoesNotBreakLoading() throws {
+        // The exporter emits a color_management_table chunk (LUT texture
+        // reference + shaper params) that must round-trip correctly — an
+        // unrecognized *chunk type* used to throw unsupportedEnumValue before
+        // .colorManagementTable was added to UntoldChunkType, and this record
+        // is what RegistrationSystem's scene-level LUT installation consumes.
+        let record = UntoldColorManagementRecordV1(
+            lutTextureIndex: UntoldFormat.invalidIndex, // no texture in this fixture
+            viewTransformNameOffset: UntoldFormat.invalidIndex,
+            lookNameOffset: UntoldFormat.invalidIndex,
+            exposure: 0.25,
+            gamma: 1.0,
+            shaperMinStops: -10.0,
+            shaperMaxStops: 6.0,
+            lutSize: 32
+        )
+        let writer = UntoldBinaryWriter()
+        record.encode(to: writer)
+
+        let fixture = makeTinyFixture(colorManagementChunk: writer.data)
+        let decoded = try UntoldReader().readAsset(from: fixture.fileData)
+
+        XCTAssertTrue(decoded.chunks.contains(where: { $0.chunkType == .colorManagementTable }))
+        XCTAssertEqual(decoded.colorManagement, record)
+    }
+
+    func testColorManagementRoundtripsThroughRuntimeLoader() throws {
+        // Reuses the tiny fixture's existing texture (index 0, "albedo.ktx2")
+        // as the LUT reference, to exercise the same index -> URL resolution
+        // path NativeFormatLoader uses for material textures.
+        let record = UntoldColorManagementRecordV1(
+            lutTextureIndex: 0,
+            viewTransformNameOffset: UntoldFormat.invalidIndex,
+            lookNameOffset: UntoldFormat.invalidIndex,
+            exposure: 0.1,
+            gamma: 1.0,
+            shaperMinStops: -10.0,
+            shaperMaxStops: 6.0,
+            lutSize: 16
+        )
+        let writer = UntoldBinaryWriter()
+        record.encode(to: writer)
+
+        let fixture = makeTinyFixture(
+            colorManagementChunk: writer.data,
+            mutator: { _, _, _, _, texture, _, _ in
+                texture.width = 16 * 16
+                texture.height = 16
+                texture.mipCount = 1
+                texture.textureFormat = .rgba16Float
+                texture.flags |= UntoldTextureFlags.lut
+            }
+        )
+        let loaded = try NativeFormatLoader().loadAssetSync(from: writeFixtureToTemporaryFile(fixture.fileData))
+
+        let colorManagement = try XCTUnwrap(loaded.colorManagement)
+        XCTAssertEqual(colorManagement.exposure, 0.1, accuracy: 0.0001)
+        XCTAssertEqual(colorManagement.shaperMinStops, -10.0, accuracy: 0.0001)
+        XCTAssertEqual(colorManagement.shaperMaxStops, 6.0, accuracy: 0.0001)
+        XCTAssertEqual(colorManagement.lutSize, 16)
+        XCTAssertNotNil(colorManagement.lutTexture?.sourceURL)
+        XCTAssertEqual(colorManagement.lutTexture?.isSRGB, false)
+        XCTAssertEqual(colorManagement.lutTexture?.textureFormat, .rgba16Float)
+    }
+
+    func testColorManagementRejectsMismatchedTextureDimensions() throws {
+        let record = UntoldColorManagementRecordV1(
+            lutTextureIndex: 0,
+            shaperMinStops: -10.0,
+            shaperMaxStops: 6.0,
+            lutSize: 16
+        )
+        let writer = UntoldBinaryWriter()
+        record.encode(to: writer)
+        let fixture = makeTinyFixture(
+            colorManagementChunk: writer.data,
+            mutator: { _, _, _, _, texture, _, _ in
+                texture.mipCount = 1
+                texture.textureFormat = .rgba16Float
+                texture.flags |= UntoldTextureFlags.lut
+            }
+        )
+
+        XCTAssertThrowsError(
+            try NativeFormatLoader().loadAssetSync(from: writeFixtureToTemporaryFile(fixture.fileData))
+        ) { error in
+            XCTAssertEqual(
+                error as? UntoldValidationError,
+                .invalidColorManagementTextureDimensions(
+                    expectedWidth: 256,
+                    expectedHeight: 16,
+                    actualWidth: 512,
+                    actualHeight: 512
+                )
+            )
+        }
+    }
+
+    func testColorManagementRejectsCompressedOrUntaggedTexture() throws {
+        let record = UntoldColorManagementRecordV1(
+            lutTextureIndex: 0,
+            shaperMinStops: -10.0,
+            shaperMaxStops: 6.0,
+            lutSize: 16
+        )
+        let writer = UntoldBinaryWriter()
+        record.encode(to: writer)
+        let fixture = makeTinyFixture(
+            colorManagementChunk: writer.data,
+            mutator: { _, _, _, _, texture, _, _ in
+                texture.width = 16 * 16
+                texture.height = 16
+                texture.mipCount = 1
+                texture.textureFormat = .astc4x4
+            }
+        )
+
+        XCTAssertThrowsError(
+            try NativeFormatLoader().loadAssetSync(from: writeFixtureToTemporaryFile(fixture.fileData))
+        ) { error in
+            XCTAssertEqual(error as? UntoldValidationError, .invalidColorManagementRecord)
+        }
+    }
+
+    func testColorManagementRejectsMultipleSceneWideRecords() throws {
+        let record = UntoldColorManagementRecordV1(lutTextureIndex: 0, lutSize: 16)
+        let writer = UntoldBinaryWriter()
+        record.encode(to: writer)
+        let fixture = makeTinyFixture(
+            colorManagementChunk: writer.data,
+            chunkEntryMutator: { entries in
+                let index = entries.firstIndex(where: { $0.chunkType == .colorManagementTable })!
+                entries[index].elementCount = 2
+            }
+        )
+
+        XCTAssertThrowsError(try UntoldReader().readAsset(from: fixture.fileData)) { error in
+            XCTAssertEqual(
+                error as? UntoldValidationError,
+                .invalidSingletonRecordCount(chunkType: .colorManagementTable, count: 2)
+            )
+        }
+    }
+
     func testMaterialTextureChannelsRoundtripThroughRuntimeLoader() throws {
         let fixture = makeTinyFixture(mutator: { _, _, _, material, _, _, _ in
             material = UntoldMaterialRecordV1(
@@ -285,6 +429,7 @@ final class NativeFormatTests: XCTestCase {
         removedChunkTypes: Set<UntoldChunkType> = [],
         computeHash: Bool = false,
         edgeIndexData: Data = Data(),
+        colorManagementChunk: Data? = nil,
         mutator: ((inout UntoldFileHeaderV1, inout UntoldEntityRecordV1, inout UntoldMeshRecordV1, inout UntoldMaterialRecordV1, inout UntoldTextureRefRecordV1, inout UntoldPBRStaticVertexV1, inout Data) -> Void)? = nil,
         meshMutator: ((inout UntoldMeshRecordV1) -> Void)? = nil,
         chunkEntryMutator: ((inout [UntoldChunkEntryV1]) -> Void)? = nil
@@ -393,6 +538,7 @@ final class NativeFormatTests: XCTestCase {
             vertexData: vertexData,
             indexData: indexData,
             edgeIndexData: edgeIndexData,
+            colorManagementChunk: colorManagementChunk,
             removedChunkTypes: removedChunkTypes
         )
 
@@ -585,6 +731,7 @@ final class NativeFormatTests: XCTestCase {
         edgeIndexData: Data = Data(),
         lights: [UntoldLightRecordV1] = [],
         cameras: [UntoldCameraRecordV1] = [],
+        colorManagementChunk: Data? = nil,
         removedChunkTypes: Set<UntoldChunkType> = []
     ) -> [(type: UntoldChunkType, data: Data, elementCount: UInt32)] {
         var all: [(type: UntoldChunkType, data: Data, elementCount: UInt32)] = [
@@ -604,6 +751,9 @@ final class NativeFormatTests: XCTestCase {
         }
         if !cameras.isEmpty {
             all.append((.cameraTable, encodeChunk(cameras), UInt32(cameras.count)))
+        }
+        if let colorManagementChunk {
+            all.append((.colorManagementTable, colorManagementChunk, 1))
         }
         return all.filter { !removedChunkTypes.contains($0.type) }
     }

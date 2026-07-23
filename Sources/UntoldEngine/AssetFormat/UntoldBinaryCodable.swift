@@ -483,6 +483,32 @@ extension UntoldCameraRecordV1: UntoldBinaryEncodable, UntoldBinaryDecodable {
     }
 }
 
+extension UntoldColorManagementRecordV1: UntoldBinaryEncodable, UntoldBinaryDecodable {
+    public func encode(to writer: UntoldBinaryWriter) {
+        writer.writeUInt32LE(lutTextureIndex)
+        writer.writeUInt32LE(viewTransformNameOffset)
+        writer.writeUInt32LE(lookNameOffset)
+        writer.writeFloat32LE(exposure)
+        writer.writeFloat32LE(gamma)
+        writer.writeFloat32LE(shaperMinStops)
+        writer.writeFloat32LE(shaperMaxStops)
+        writer.writeUInt32LE(lutSize)
+    }
+
+    public static func decode(from reader: UntoldBinaryReader) throws -> UntoldColorManagementRecordV1 {
+        try UntoldColorManagementRecordV1(
+            lutTextureIndex: reader.readUInt32LE(),
+            viewTransformNameOffset: reader.readUInt32LE(),
+            lookNameOffset: reader.readUInt32LE(),
+            exposure: reader.readFloat32LE(),
+            gamma: reader.readFloat32LE(),
+            shaperMinStops: reader.readFloat32LE(),
+            shaperMaxStops: reader.readFloat32LE(),
+            lutSize: reader.readUInt32LE()
+        )
+    }
+}
+
 extension UntoldSkeletonRecordV1: UntoldBinaryEncodable, UntoldBinaryDecodable {
     public func encode(to writer: UntoldBinaryWriter) {
         writer.writeUInt32LE(entityId)

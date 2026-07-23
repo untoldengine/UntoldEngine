@@ -165,6 +165,8 @@ def export_asset(
     bake_materials: bool,
     bake_resolution: int,
     bake_cache: bool,
+    bake_color_management: bool,
+    color_lut_size: int,
     bake_textures: bool,
     texture_quality: str,
     keep_texture_temp: bool,
@@ -189,6 +191,8 @@ def export_asset(
         bake_materials=bake_materials,
         bake_resolution=module.validate_bake_resolution(bake_resolution),
         bake_cache=bake_cache,
+        bake_color_management=bake_color_management,
+        color_lut_size=module.validate_lut_size(color_lut_size),
         progress_callback=progress_callback,
     )
     result["texture_bake_status"] = "skipped"
@@ -324,6 +328,8 @@ def export_tiled_scene(
     bake_materials: bool,
     bake_resolution: int,
     bake_cache: bool,
+    bake_color_management: bool,
+    color_lut_size: int,
     dry_run: bool,
     write_manifest_in_dry_run: bool,
     progress_callback: ProgressCallback | None = None,
@@ -388,6 +394,9 @@ def export_tiled_scene(
         argv.extend(["--bake-resolution", str(module.validate_bake_resolution(bake_resolution))])
         if not bake_cache:
             argv.append("--no-bake-cache")
+    if bake_color_management:
+        argv.append("--bake-color-management")
+        argv.extend(["--color-lut-size", str(module.validate_lut_size(color_lut_size))])
     if dry_run:
         argv.append("--dry-run")
     if write_manifest_in_dry_run:

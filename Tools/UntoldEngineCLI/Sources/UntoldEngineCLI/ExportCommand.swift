@@ -72,6 +72,12 @@ struct ExportCommand: ParsableCommand {
     @Flag(name: .customLong("no-bake-cache"), help: "Disable the persistent bake cache and force every divergent material to be re-baked, even if unchanged since the last export")
     var noBakeCache = false
 
+    @Flag(name: .customLong("bake-color-management"), help: "Bake the scene's active View Transform/Look/Exposure/Gamma into an RGBA16Float LUT targeting canonical sRGB output")
+    var bakeColorManagement = false
+
+    @Option(name: .customLong("color-lut-size"), help: "Grid size (N) for the NxNxN color-grading LUT")
+    var colorLutSize: Int = 32
+
     /// Keep in sync with MAX_BAKE_RESOLUTION in scripts/untoldexplorer.py.
     static let maxBakeResolution = 8192
 
@@ -108,6 +114,10 @@ struct ExportCommand: ParsableCommand {
             exporterArguments.append("--bake-materials")
             exporterArguments += ["--bake-resolution", String(clampedBakeResolution)]
             if noBakeCache { exporterArguments.append("--no-bake-cache") }
+        }
+        if bakeColorManagement {
+            exporterArguments.append("--bake-color-management")
+            exporterArguments += ["--color-lut-size", String(colorLutSize)]
         }
 
         printInfo("Using Blender: \(blenderURL.path)")

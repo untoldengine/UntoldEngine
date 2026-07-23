@@ -244,6 +244,7 @@ public func setEngine(_ property: EngineProperty) {
 public enum PostFXProperty: Sendable {
     case preset(PostFXPreset)
     case colorGrading(ColorGradingProperty)
+    case colorLUT(ColorLUTProperty)
     case colorCorrection(ColorCorrectionProperty)
     case bloomThreshold(BloomThresholdProperty)
     case bloomComposite(BloomCompositeProperty)
@@ -261,6 +262,13 @@ public enum ColorGradingProperty: Sendable {
     case saturation(Float)
     case temperature(Float)
     case tint(Float)
+}
+
+/// The color-grading LUT itself is asset-derived (baked from the source
+/// Blender scene, see ColorLUTParams) — this only lets a developer toggle it
+/// off to compare against the default ACES tonemap, not author new LUT data.
+public enum ColorLUTProperty: Sendable {
+    case enabled(Bool)
 }
 
 public enum ColorCorrectionProperty: Sendable {
@@ -316,6 +324,8 @@ public func setPostFX(_ property: PostFXProperty) {
         PostFX.apply(preset)
     case let .colorGrading(property):
         applyColorGradingProperty(property)
+    case let .colorLUT(property):
+        applyColorLUTProperty(property)
     case let .colorCorrection(property):
         applyColorCorrectionProperty(property)
     case let .bloomThreshold(property):
@@ -565,6 +575,13 @@ private func applyColorGradingProperty(_ property: ColorGradingProperty) {
         ColorGradingParams.shared.temperature = value
     case let .tint(value):
         ColorGradingParams.shared.tint = value
+    }
+}
+
+private func applyColorLUTProperty(_ property: ColorLUTProperty) {
+    switch property {
+    case let .enabled(value):
+        ColorLUTParams.shared.setEnabled(value)
     }
 }
 
