@@ -47,7 +47,7 @@ Before any uniforms are uploaded, dirty transforms are propagated down the scene
 
 ## Step 3: Pre-Render Compute Passes
 
-These three compute dispatches run **before any render encoder is opened**. They prepare data that the render passes will consume.
+These four compute dispatches run **before any render encoder is opened**. They prepare data that the render passes will consume.
 
 ### 3a. Frustum Culling → `performFrustumCulling(commandBuffer:)`
 
@@ -59,13 +59,17 @@ In addition to writing the GPU visibility result, `executeFrustumCulling` stores
 
 For XR, a reduce-scan variant runs the test against both eyes simultaneously.
 
-### 3b. Gaussian Depth → `executeGaussianDepth(commandBuffer)`
+### 3b. Gaussian Frustum Culling → `executeGaussianFrustumCulling(commandBuffer)`
 
-For entities carrying a `GaussianComponent` (3D Gaussian splat data), a compute pass calculates the camera-space depth of each splat. This depth value is used as the sort key in the next step.
+For entities carrying a `GaussianComponent` (3D Gaussian splat data), a compute pass culls splats against the camera frustum before the more expensive depth and sort passes run on them.
 
-### 3c. Bitonic Sort → `executeBitonicSort(commandBuffer)`
+### 3c. Gaussian Depth → `executeGaussianDepth(commandBuffer)`
 
-A GPU bitonic sort reorders the Gaussian splats **back-to-front** by depth. Gaussian splats must be composited in this order for correct alpha blending. The sort runs entirely on the GPU and its output feeds directly into the Gaussian render pass later in the graph.
+A compute pass calculates the camera-space depth of each surviving splat. This depth value is used as the sort key in the next step.
+
+### 3d. Radix Sort → `executeRadixSort(commandBuffer)`
+
+A GPU radix sort reorders the Gaussian splats **back-to-front** by depth. Gaussian splats must be composited in this order for correct alpha blending. The sort runs entirely on the GPU and its output feeds directly into the Gaussian render pass later in the graph.
 
 ---
 
@@ -371,8 +375,9 @@ The completion handler fires on the GPU thread when the command buffer finishes 
         │
         ▼
 [GPU compute] frustumCulling   → writes next frame's visibleEntityIds
+[GPU compute] gaussianFrustumCulling → cull splats against frustum
 [GPU compute] gaussianDepth    → depth per splat
-[GPU compute] bitonicSort      → sort splats back-to-front
+[GPU compute] radixSort        → sort splats back-to-front
         │
         ▼
 [CPU] buildGameModeGraph()     → construct render pass DAG

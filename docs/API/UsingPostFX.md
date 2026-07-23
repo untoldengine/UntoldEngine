@@ -171,6 +171,7 @@ setPostFX(.vignette(.enabled(true)))
 setPostFX(.ssao(.radius(0.8)))
 setPostFX(.ssao(.intensity(0.75)))
 setPostFX(.ssao(.enabled(true)))
+setPostFX(.ssao(.quality(.high))) // .fast (8 samples), .balanced (16), .high (32)
 ```
 
 Direct singleton access remains available for compatibility and advanced tooling. Prefer the `setPostFX(...)` facade in user-facing examples.

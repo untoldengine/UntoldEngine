@@ -129,10 +129,10 @@ This is where the actual Metal work happens, split into three parts.
 ```swift
 performFrustumCulling(commandBuffer: commandBuffer)
 executeGaussianDepth(commandBuffer)
-executeBitonicSort(commandBuffer)
+executeRadixSort(commandBuffer)
 ```
 
-These are the **same three compute passes** as the macOS path: frustum cull, Gaussian depth, bitonic sort. The key difference is they run **once per frame**, not once per eye. The culled visibility list and sorted splat indices produced here are reused by both the left and right eye render passes.
+These are the **same three compute passes** as the macOS path: frustum cull, Gaussian depth, radix sort. Unlike the macOS path, the XR path does not call `executeGaussianFrustumCulling` before the depth pass. The key difference from macOS is these run **once per frame**, not once per eye. The culled visibility list and sorted splat indices produced here are reused by both the left and right eye render passes.
 
 > **Why only once?** Running culling and sorting twice — once per eye — at 90 FPS would double the compute budget for work that produces nearly identical results (the two eyes are only ~65mm apart). One cull pass with a slightly conservative frustum covers both views.
 
@@ -224,7 +224,7 @@ The snapshot is processed on the next frame's update phase by `spatialGestureRec
                 │
                 ├─ [GPU compute] frustumCulling    (once, covers both eyes)
                 ├─ [GPU compute] gaussianDepth
-                ├─ [GPU compute] bitonicSort
+                ├─ [GPU compute] radixSort
                 │
                 ├─ for eye in [left, right]:
                 │       ├─ compute view matrix (originFromDevice × deviceFromView)⁻¹

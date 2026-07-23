@@ -88,6 +88,7 @@ Categories let you silence or focus specific subsystems without changing the glo
 | `.textureStreaming`   | `"TextureStreaming"`   | disabled      |
 | `.textureLoading`     | `"TextureLoading"`     | disabled      |
 | `.batching`           | `"Batching"`           | disabled      |
+| `.gaussian`           | `"Gaussian"`           | disabled      |
 
 High-volume categories are off by default to avoid log spam during normal operation.
 

@@ -91,7 +91,7 @@ untoldengine create CrossGame --platform multi --team-id ABCD1234EF
 | `--output` | Output directory | current directory |
 | `--macos-version` | macOS deployment target (`13`, `14`, `15`) | `15` |
 | `--ios-version` | iOS deployment target (`16`, `17`, `18`) | `17` |
-| `--visionos-version` | visionOS deployment target (`1`, `2`) | `2` |
+| `--visionos-version` | visionOS deployment target (`1`, `2`, `26`) | `2` |
 | `--team-id` | Apple Developer Team ID | — |
 | `--optimization` | Optimization level (`none`, `speed`, `size`) | `none` |
 | `--debug / --no-debug` | Include debug information | yes |
@@ -147,6 +147,85 @@ followed by `untoldengine texbake --dir` and `--patch-refs`. See
 
 Use `--blender /path/to/Blender` when Blender is not installed in its standard
 macOS location and is not available on `PATH`.
+
+---
+
+## Partitioning Scenes into Streaming Tiles
+
+For large outdoor scenes, `export-tiles` partitions a USD/USDZ/`.blend` scene into
+per-tile `.untold` payloads plus a manifest, for use with the [geometry
+streaming system](UsingGeometryStreamingSystem.md):
+
+```bash
+untoldengine export-tiles \
+  --input scene.usdz \
+  --output-dir tile_exports \
+  --tile-size-x 25 --tile-size-z 25 \
+  --optimize --bake-materials
+```
+
+`--optimize` compresses geometry and, if the export produced a shared
+`Textures` directory, bakes those textures to `.utex` and patches every
+tile's `.untold` references. Grid, quadtree, and KD-tree partitioning modes
+are available (`--quadtree`, `--kdtree`); run `untoldengine export-tiles
+--help` for the full flag list, including material-baking (`--bake-materials`,
+`--bake-resolution`, `--no-bake-cache`), tiering (`--min-objects-per-tile-tier`,
+`--untagged-semantic-tier`), LOD/HLOD (`--lod-level`, `--hlod-level`), and
+sampling (`--sample`, `--sample-fraction`, `--perimeter`, `--perimeter-depth`)
+options.
+
+---
+
+## Managing Asset Packs
+
+```bash
+# List available asset packs
+untoldengine assets list
+
+# Install a pack into the current project's GameData folder
+untoldengine assets install starter
+
+# Install into a specific GameData path, overwriting existing files
+untoldengine assets install soccer --output ~/Projects/MyGame/Sources/MyGame/GameData --force
+```
+
+`assets install` auto-detects the `GameData` folder from the current
+directory, or use `--output` to point at it explicitly.
+
+---
+
+## Untold Engine Studio (Visual Editor)
+
+```bash
+# Launch the editor, installing it first if missing
+untoldengine studio
+
+# Install the latest release explicitly
+untoldengine studio install
+
+# Install a specific version
+untoldengine studio install --version 0.13.0
+
+# Update an existing install to the latest release
+untoldengine studio update
+```
+
+`studio install` downloads the editor from GitHub releases into
+`/Applications` (or `~/Applications` if `/Applications` isn't writable).
+
+---
+
+## Packaging the Blender Add-on
+
+```bash
+untoldengine blender-addon
+```
+
+Run from the UntoldEngine repository root. This bundles the add-on source
+with fresh vendored copies of the exporter scripts (`untoldexplorer.py`,
+`texbake.py`, `tilestreamingpartition.py`) into
+`scripts/untold-blender-addon/build/untold_exporter.zip`. This is an
+engine-repo maintenance tool, not something a game project needs to run.
 
 ---
 

@@ -240,21 +240,17 @@ let ready = isXRSceneReady()
 ## Input (PSVR2 Sense)
 
 ```swift
-// Config
-setInput(.psvr2(.motionEnabled(true)))
-setInput(.psvr2(.leftTriggerEffect(.weapon(startPosition: 0.2, endPosition: 0.8, strength: 1.0))))
-setInput(.psvr2(.leftTriggerEffect(.feedback(startPosition: 0.3, strength: 0.7))))
-setInput(.psvr2(.leftTriggerEffect(.vibration(startPosition: 0.0, amplitude: 0.5, frequency: 15.0))))
-setInput(.psvr2(.leftTriggerEffect(.slopeFeedback(startPosition: 0.1, endPosition: 0.9, startStrength: 0.2, endStrength: 1.0))))
-setInput(.psvr2(.leftTriggerEffect(.off)))
-setInput(.psvr2(.rightTriggerEffect(.weapon(startPosition: 0.2, endPosition: 0.8, strength: 1.0))))
-
 // Query
 let state = getPSVR2SenseState()
 let connected = isPSVR2SenseConnected()
+
+if state.left.isTracked {
+    let leftPosition = state.left.position
+    let leftOrientation = state.left.orientation
+}
 ```
 
-All position and strength values in `PSVR2TriggerEffect` are normalized to `[0, 1]`. Effects take effect immediately when a controller is connected; calls are silently ignored when no controller is paired. Motion data (`state.motionGravityX/Y/Z`, `state.motionRotationRateX/Y/Z`) is only populated when `motionEnabled` is `true`.
+PSVR2 Sense spatial poses are query-only — there is no `setInput(.psvr2(...))` configuration API or trigger-haptics support. Button/trigger input still comes through `getGameControllerState()`. See [UsingInputSystem.md](UsingInputSystem.md#read-spatial-poses) for the full `PSVR2ControllerPose` field reference.
 
 ## Spatial Manipulation (visionOS)
 
@@ -378,7 +374,6 @@ registerKeyboardEvents()
 registerMouseEvents()
 registerTouchEvents(view: view)
 setInput(.xr(.newProperty(value)))
-setInput(.psvr2(.newProperty(value)))
 setSpatialManipulation(.newProperty(value))
 setLight(entityId: entity, .lightType(.newProperty(value)))
 setSceneChannel(.contextGeometry, .renderMode(.wireframe))

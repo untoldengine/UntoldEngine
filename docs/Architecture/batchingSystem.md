@@ -215,7 +215,7 @@ BatchingSystem.shared.applyRuntimeBatchingTuning(.macOSBalanced)
 | `recentVisibilityWindowFrames` | 120 | 90 | Frames a cell remains "recently visible" for scheduling |
 | `maxRetirementsPerTick` | 8 | 4 | Retired batch artifacts released per tick |
 | `batchRetireDelayFrames` | 3 | 3 | Safety delay before GPU resources are released |
-| `cellSize` | 32.0 | 32.0 | World-space cell side length |
+| `cellSize` | 32.0 | 16.0 | World-space cell side length |
 
 **Why visionOS uses relaxed per-cell complexity guards:** background artifact builds run on a `.utility` DispatchQueue, completely off the render thread. Dense architecture cells (1M+ vertices) add ~50–100 ms to the background queue without touching frame pacing. The stricter macOS guards exist because macOS scenes are less likely to have tile-streamed dense geometry where this pattern is common.
 

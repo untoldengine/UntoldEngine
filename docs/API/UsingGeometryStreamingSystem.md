@@ -55,6 +55,8 @@ The engine uses multiple geometry layers:
 
 `StreamingComponent` is internal to the tile-owned OCC path. External callers should not attach it manually or rely on `enableStreaming(...)`.
 
+> **Known gap:** the public function `createStreamingEntity(filename:withExtension:streamingRadius:unloadRadius:priority:)` creates a standalone entity with a `StreamingComponent` but no `TileComponent` ancestor. Since the streaming update pass requires tile ownership (see below), entities created this way are never actually loaded by the normal streaming tick. Don't use it — prefer `setEntityMeshAsync` or `setEntityStreamScene`.
+
 ## Manifest Fields That Matter
 
 These are the important fields for geometry streaming:

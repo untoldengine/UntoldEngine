@@ -19,7 +19,7 @@ The single download actor for all remote assets. Responsibilities:
 - Downloads assets via `URLSession` and commits them to `AssetDiskCache`.
 - **HTTPS-only enforcement** — `localURL(for:)` throws `DownloadError.insecureScheme` immediately for any non-HTTPS URL. Plain `http://` is never sent to the network.
 - **Single-flight deduplication** — if two tiles request the same URL concurrently, only one network request is issued. The second caller suspends until the first completes, then returns the cached path.
-- **Exponential backoff retry** — up to 3 attempts, with delays of 1 s, 2 s, and 4 s between attempts.
+- **Exponential backoff retry** — up to 3 attempts total, with delays of 1 s and 2 s between them; the 3rd attempt's failure throws immediately with no further delay.
 - **Conditional GET** — if a cached ETag sidecar exists for a URL, the next request includes `If-None-Match: <etag>`. A 304 Not Modified response returns the cached path instantly without re-downloading.
 - **Texture pre-fetch** — after downloading a `.untold` file, immediately fetches all textures referenced in its texture table in the background so they are cache-resident before the tile is parsed.
 
@@ -37,7 +37,7 @@ Returns a local `file://` URL pointing to the cached asset. Throws on permanent 
 |---|---|
 | `timeoutIntervalForRequest` | 30 s |
 | `timeoutIntervalForResource` | 300 s |
-| Max retry attempts | 3 (delays: 1 s, 2 s, 4 s) |
+| Max retry attempts | 3 (delays: 1 s, 2 s; 3rd failure throws immediately) |
 | Retry delay formula | `2^attempt` seconds |
 
 ---
@@ -214,7 +214,7 @@ If the server returns 200 with a new ETag, the manifest and its ETag sidecar are
 When accumulated downloads exceed the 500 MB budget:
 
 ```
-AssetDiskCache.evictToLimit()
+AssetDiskCache.evictIfNeeded()
   ├─ Sort entries by lastAccess ascending (oldest first)
   └─ Delete files (and their .meta sidecars) until usage ≤ 375 MB (75%)
 ```
@@ -229,12 +229,11 @@ Evicted files are re-downloaded transparently on next access. The cache director
 
 | Attempt | Delay before next attempt |
 |---|---|
-| 0 | — (immediate first try) |
-| 1 | 1 s |
-| 2 | 2 s |
-| 3 (final) | 4 s |
+| 1 | — (immediate first try) |
+| 2 | 1 s (after attempt 1 fails) |
+| 3 (final) | 2 s (after attempt 2 fails) |
 
-After 3 failed attempts, `localURL(for:)` throws. The tile load marks state `.failed` and enters the tile-level exponential backoff (5 s → 10 s → 20 s → 60 s max) before retrying.
+After attempt 3 fails, `localURL(for:)` throws immediately — no further delay is scheduled. The tile load marks state `.failed` and enters the tile-level exponential backoff (5 s → 10 s → 20 s → 60 s max) before retrying.
 
 ### HTTP 304 Not Modified
 
