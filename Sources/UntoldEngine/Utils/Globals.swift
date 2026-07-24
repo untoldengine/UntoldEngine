@@ -1483,6 +1483,14 @@ public enum RenderDebugViewMode: Int, CaseIterable, Sendable {
     case occlusionDebug = 9
     /// Visualizes the G-buffer world-position texture as repeating world-space RGB bands.
     case position = 10
+    /// Visualizes the G-buffer roughness channel.
+    case roughness = 11
+    /// Visualizes the G-buffer metallic channel.
+    case metallic = 12
+    /// Visualizes scene luminance before Look/ACES tonemapping.
+    case preTonemapHDRLuminance = 13
+    /// Routes the normal post-tonemap output explicitly for color-pipeline checks.
+    case postTonemapOutput = 14
 }
 
 // TODO: try to remove this var, because only make sense on the editor side
