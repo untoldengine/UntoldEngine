@@ -140,15 +140,21 @@ public struct NativeFormatLoader: NamedRuntimeAssetLoading {
 
     private func makeRuntimeLights(decoded: UntoldDecodedAsset) throws -> [RuntimeLightSource] {
         try decoded.lights.map { record in
-            try RuntimeLightSource(
+            let usesRadiometricUnits = record.flags & UntoldLightFlags.radiometric != 0
+            let hasCustomDistance = record.flags & UntoldLightFlags.customDistance != 0
+            let castsShadow = usesRadiometricUnits
+                ? record.flags & UntoldLightFlags.castsShadow != 0
+                : record.lightType == .directional
+            return try RuntimeLightSource(
                 name: decoded.string(at: record.nameOffset),
                 kind: runtimeLightKind(from: record.lightType),
                 color: record.color,
                 intensity: record.intensity,
                 position: record.position,
                 radius: record.radius,
+                range: usesRadiometricUnits && hasCustomDistance ? max(record.falloff, 0.0) : 0.0,
                 direction: record.direction,
-                falloff: record.falloff,
+                falloff: usesRadiometricUnits ? 0.5 : record.falloff,
                 right: record.right,
                 innerCone: record.innerCone,
                 up: record.up,
@@ -156,6 +162,8 @@ public struct NativeFormatLoader: NamedRuntimeAssetLoading {
                 areaSize: record.areaSize,
                 sourcePower: record.sourcePower,
                 sourceExposure: record.sourceExposure,
+                castsShadow: castsShadow,
+                usesRadiometricUnits: usesRadiometricUnits,
                 localTransform: record.localTransform
             )
         }

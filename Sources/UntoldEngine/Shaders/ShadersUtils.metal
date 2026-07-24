@@ -80,14 +80,26 @@ void transformToLogDepth(thread simd_float4 &position, float far){
 
 }
 
-float calculateAttenuation(float distance, simd_float4 attenuation){
-    
-    // Scale the attenuation factors based on the radius
-    float scaledConstant = attenuation.x;
-    float scaledLinear = attenuation.y;
-    float scaledQuadratic = attenuation.z;
+float calculateAttenuation(float distance, simd_float4 attenuation, float sourceRadius){
+    if (attenuation.x < 0.0) {
+        // Radiometric local light: inverse-square falloff with finite-source
+        // regularization and an optional smooth performance cutoff.
+        float radius = max(sourceRadius, 1.0e-3);
+        float inverseSquare = 1.0 / max(distance * distance, radius * radius);
+        float range = attenuation.w;
+        if (range <= 0.0) {
+            return inverseSquare;
+        }
 
-    return 1.0 / (scaledConstant + scaledLinear * distance + scaledQuadratic * (distance * distance));
+        float normalizedDistance = distance / max(range, radius);
+        float rangeWindow = saturate(1.0 - pow(normalizedDistance, 4.0));
+        return inverseSquare * rangeWindow * rangeWindow;
+    }
+
+    return 1.0 / max(
+        attenuation.x + attenuation.y * distance + attenuation.z * distance * distance,
+        1.0e-6
+    );
 }
 
 //Gulbransen Parametrization

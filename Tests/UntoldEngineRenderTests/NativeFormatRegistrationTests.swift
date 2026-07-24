@@ -130,6 +130,10 @@ final class NativeFormatRegistrationTests: BaseRenderSetup {
         let spotComponent = try XCTUnwrap(scene.get(component: SpotLightComponent.self, for: spotEntity))
         XCTAssertEqual(spotComponent.innerCone, 14.0, accuracy: 0.001)
         XCTAssertEqual(spotComponent.outerCone, 36.0, accuracy: 0.001)
+        XCTAssertEqual(spotComponent.radius, 0.2, accuracy: 0.001)
+        XCTAssertEqual(spotComponent.range, 18.0, accuracy: 0.001)
+        XCTAssertTrue(spotComponent.castsShadow)
+        XCTAssertTrue(try XCTUnwrap(scene.get(component: LightComponent.self, for: spotEntity)).usesRadiometricUnits)
 
         let spotParameters = getSpotLights()
         let importedSpot = try XCTUnwrap(spotParameters.first(where: { abs($0.outerCone - degreesToRadians(degrees: 36.0)) < 0.001 }))
@@ -400,11 +404,12 @@ private func makeSceneAuthoredUntoldFixture() throws -> SceneAuthoredUntoldFixtu
         entityId: 2,
         nameOffset: strings.offsets[spotName]!,
         lightType: .spot,
+        flags: UntoldLightFlags.castsShadow | UntoldLightFlags.radiometric | UntoldLightFlags.customDistance,
         color: SIMD3<Float>(0.2, 0.4, 1.0),
         intensity: 5.0,
         position: SIMD3<Float>(2, 3, 4),
-        radius: 8.0,
-        falloff: 0.25,
+        radius: 0.2,
+        falloff: 18.0,
         innerCone: 14.0,
         outerCone: 36.0,
         localTransform: spotTransform

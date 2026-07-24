@@ -634,6 +634,8 @@ final class SceneSerializerTests: BaseRenderSetup {
 
         lightComponent.color = simd_float3(1.0, 0.8, 0.6)
         lightComponent.intensity = 2.5
+        lightComponent.usesRadiometricUnits = true
+        scene.get(component: DirectionalLightComponent.self, for: entityId)?.castsShadow = false
 
         // Serialize
         let sceneData = serializeScene()
@@ -643,6 +645,8 @@ final class SceneSerializerTests: BaseRenderSetup {
         XCTAssertNotNil(sceneData.entities[0].lightData, "Light data should not be nil")
         XCTAssertEqual(sceneData.entities[0].lightData?.color, simd_float3(1.0, 0.8, 0.6), "Light color should match")
         XCTAssertEqual(sceneData.entities[0].lightData?.intensity, 2.5, "Light intensity should match")
+        XCTAssertEqual(sceneData.entities[0].lightData?.usesRadiometricUnits, true)
+        XCTAssertEqual(sceneData.entities[0].lightData?.castsShadow, false)
     }
 
     func testSerializePointLight() {
@@ -659,7 +663,9 @@ final class SceneSerializerTests: BaseRenderSetup {
 
         lightComponent.color = simd_float3(1.0, 0.0, 0.0)
         lightComponent.intensity = 3.0
+        lightComponent.usesRadiometricUnits = true
         pointLightComponent.radius = 10.0
+        pointLightComponent.range = 24.0
         pointLightComponent.falloff = 0.75
 
         // Serialize
@@ -669,6 +675,8 @@ final class SceneSerializerTests: BaseRenderSetup {
         XCTAssertTrue(sceneData.entities[0].hasPointLightComponent == true, "Should have point light component")
         XCTAssertEqual(sceneData.entities[0].lightData?.radius, 10.0, "Radius should match")
         XCTAssertEqual(sceneData.entities[0].lightData?.falloff, 0.75, "Falloff should match")
+        XCTAssertEqual(sceneData.entities[0].lightData?.range, 24.0)
+        XCTAssertEqual(sceneData.entities[0].lightData?.usesRadiometricUnits, true)
     }
 
     func testSerializeSpotLight() {
@@ -684,6 +692,8 @@ final class SceneSerializerTests: BaseRenderSetup {
         }
 
         lightComponent.intensity = 4.0
+        lightComponent.usesRadiometricUnits = true
+        spotLightComponent.range = 18.0
         spotLightComponent.coneAngle = 45.0
 
         // Serialize
@@ -691,6 +701,8 @@ final class SceneSerializerTests: BaseRenderSetup {
 
         XCTAssertTrue(sceneData.entities[0].hasSpotLightComponent == true, "Should have spot light component")
         XCTAssertEqual(sceneData.entities[0].lightData?.coneAngle, 45.0, "Cone angle should match")
+        XCTAssertEqual(sceneData.entities[0].lightData?.range, 18.0)
+        XCTAssertEqual(sceneData.entities[0].lightData?.usesRadiometricUnits, true)
     }
 
     func testSerializeAreaLight() {
@@ -706,6 +718,9 @@ final class SceneSerializerTests: BaseRenderSetup {
         let bounds = getDimension(entityId: entityId)
         areaLightComponent.bounds = simd_float2(bounds.width, bounds.height)
         areaLightComponent.twoSided = true
+        areaLightComponent.range = 30.0
+        areaLightComponent.castsShadow = true
+        scene.get(component: LightComponent.self, for: entityId)?.usesRadiometricUnits = true
 
         // Serialize
         let sceneData = serializeScene()
@@ -713,6 +728,9 @@ final class SceneSerializerTests: BaseRenderSetup {
         XCTAssertTrue(sceneData.entities[0].hasAreaLightComponent == true, "Should have area light component")
         XCTAssertEqual(sceneData.entities[0].lightData?.bounds, simd_float2(bounds.width, bounds.height), "Bounds should match")
         XCTAssertTrue(sceneData.entities[0].lightData?.twoSided == true, "Two-sided flag should match")
+        XCTAssertEqual(sceneData.entities[0].lightData?.range, 30.0)
+        XCTAssertEqual(sceneData.entities[0].lightData?.castsShadow, true)
+        XCTAssertEqual(sceneData.entities[0].lightData?.usesRadiometricUnits, true)
     }
 
     // MARK: - Post-Processing Effects Tests

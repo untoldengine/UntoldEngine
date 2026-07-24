@@ -37,8 +37,12 @@ public struct RuntimeLightSource: Sendable, Equatable {
     public var color: SIMD3<Float>
     public var intensity: Float
     public var position: SIMD3<Float>
+    /// Physical source radius used for near-field regularization and shadow softness.
     public var radius: Float
+    /// Optional influence cutoff in scene units. Zero means no authored cutoff.
+    public var range: Float
     public var direction: SIMD3<Float>
+    /// Legacy artistic falloff retained for older assets and procedural lights.
     public var falloff: Float
     public var right: SIMD3<Float>
     public var innerCone: Float
@@ -47,6 +51,8 @@ public struct RuntimeLightSource: Sendable, Equatable {
     public var areaSize: SIMD2<Float>
     public var sourcePower: Float
     public var sourceExposure: Float
+    public var castsShadow: Bool
+    public var usesRadiometricUnits: Bool
     public var localTransform: simd_float4x4
 
     public init(
@@ -56,6 +62,7 @@ public struct RuntimeLightSource: Sendable, Equatable {
         intensity: Float = 1.0,
         position: SIMD3<Float> = .zero,
         radius: Float = 1.0,
+        range: Float = 0.0,
         direction: SIMD3<Float> = SIMD3<Float>(0, -1, 0),
         falloff: Float = 0.5,
         right: SIMD3<Float> = SIMD3<Float>(1, 0, 0),
@@ -65,6 +72,8 @@ public struct RuntimeLightSource: Sendable, Equatable {
         areaSize: SIMD2<Float> = SIMD2<Float>(1, 1),
         sourcePower: Float = 1.0,
         sourceExposure: Float = 0.0,
+        castsShadow: Bool = false,
+        usesRadiometricUnits: Bool = false,
         localTransform: simd_float4x4 = matrix_identity_float4x4
     ) {
         self.name = name
@@ -73,6 +82,7 @@ public struct RuntimeLightSource: Sendable, Equatable {
         self.intensity = intensity
         self.position = position
         self.radius = radius
+        self.range = range
         self.direction = direction
         self.falloff = falloff
         self.right = right
@@ -82,6 +92,8 @@ public struct RuntimeLightSource: Sendable, Equatable {
         self.areaSize = areaSize
         self.sourcePower = sourcePower
         self.sourceExposure = sourceExposure
+        self.castsShadow = castsShadow
+        self.usesRadiometricUnits = usesRadiometricUnits
         self.localTransform = localTransform
     }
 }

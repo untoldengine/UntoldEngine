@@ -158,6 +158,7 @@ final class LightSystemTest: BaseRenderSetup {
         XCTAssertEqual(MemoryLayout.offset(of: \SpotLightUniform.intensity), 64)
         XCTAssertEqual(MemoryLayout.offset(of: \SpotLightUniform.innerCone), 68)
         XCTAssertEqual(MemoryLayout.offset(of: \SpotLightUniform.outerCone), 72)
+        XCTAssertEqual(MemoryLayout.offset(of: \SpotLightUniform.radius), 76)
 
         XCTAssertEqual(MemoryLayout<SpotShadowUniforms>.stride, 80)
         XCTAssertEqual(MemoryLayout<SpotShadowUniforms>.alignment, 16)
@@ -216,6 +217,16 @@ final class LightSystemTest: BaseRenderSetup {
         XCTAssertTrue(uniform.twoSided)
     }
 
+    func testSetLightPowerEnablesRadiometricUnits() {
+        let entityId: EntityID = createEntity()
+        createPointLight(entityId: entityId)
+
+        setLight(entityId: entityId, .power(300.0))
+
+        XCTAssertEqual(getLightIntensity(entityId: entityId), 300.0, accuracy: 0.0001)
+        XCTAssertTrue(scene.get(component: LightComponent.self, for: entityId)?.usesRadiometricUnits ?? false)
+    }
+
     func testGetDirLightParameters() {
         let entityId: EntityID = createEntity()
 
@@ -265,6 +276,32 @@ final class LightSystemTest: BaseRenderSetup {
         XCTAssertEqual(pointLightParameter[0].attenuation.z, 0.5, "quadratic should be 1")
         XCTAssertEqual(pointLightParameter[0].attenuation.w, 1.0, "range should match radius")
         XCTAssertEqual(pointLightParameter[0].radius, 1.0, "radius should be 1")
+
+        destroyEntity(entityId: entityId)
+    }
+
+    func testRadiometricPointLightSeparatesSourceRadiusFromInfluenceRange() throws {
+        destroyAllEntities()
+
+        let entityId = createEntity()
+        createPointLight(entityId: entityId)
+        let light = try XCTUnwrap(scene.get(component: LightComponent.self, for: entityId))
+        let point = try XCTUnwrap(scene.get(component: PointLightComponent.self, for: entityId))
+        light.intensity = 1000.0
+        light.usesRadiometricUnits = true
+        point.radius = 0.1
+        point.range = 12.0
+        point.castsShadow = true
+
+        let parameters = try XCTUnwrap(getPointLights().first)
+        XCTAssertLessThan(parameters.attenuation.x, 0.0)
+        XCTAssertEqual(parameters.attenuation.w, 12.0, accuracy: 0.001)
+        XCTAssertEqual(parameters.radius, 0.1, accuracy: 0.001)
+
+        var shadowState = PointShadowState()
+        shadowState.update()
+        XCTAssertEqual(shadowState.farDistance, 12.0, accuracy: 0.001)
+        XCTAssertEqual(shadowState.makeUniforms().shadowSoftness, 0.1, accuracy: 0.001)
 
         destroyEntity(entityId: entityId)
     }

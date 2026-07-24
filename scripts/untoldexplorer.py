@@ -90,6 +90,9 @@ LIGHT_TYPE_DIRECTIONAL = 1
 LIGHT_TYPE_POINT = 2
 LIGHT_TYPE_SPOT = 3
 LIGHT_TYPE_AREA = 4
+LIGHT_FLAG_CASTS_SHADOW = 1 << 0
+LIGHT_FLAG_RADIOMETRIC = 1 << 1
+LIGHT_FLAG_CUSTOM_DISTANCE = 1 << 2
 ARCHITECTURAL_EDGE_ANGLE_DEGREES = 30.0
 ARCHITECTURAL_EDGE_POSITION_EPSILON = 1.0e-5
 TEXTURE_FORMAT_UNKNOWN = 0
@@ -679,6 +682,7 @@ class ExportedLight:
     intensity: float
     position: tuple[float, float, float]
     radius: float
+    range: float
     direction: tuple[float, float, float]
     falloff: float
     right: tuple[float, float, float]
@@ -688,6 +692,7 @@ class ExportedLight:
     area_size: tuple[float, float]
     source_power: float
     source_exposure: float
+    casts_shadow: bool
     local_transform_rows: list[list[float]]
 
 
@@ -1808,6 +1813,21 @@ def _blender_light_source_exposure(light_data: object) -> float:
         return 0.0
 
 
+def _blender_light_influence_range(light_data: object, light_type: int) -> float:
+    if light_type == LIGHT_TYPE_DIRECTIONAL:
+        return 0.0
+    if not bool(getattr(light_data, "use_custom_distance", False)):
+        return 0.0
+    try:
+        return max(float(getattr(light_data, "cutoff_distance", 0.0)), 0.0)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _blender_light_casts_shadow(light_data: object) -> bool:
+    return bool(getattr(light_data, "use_shadow", True))
+
+
 def _blender_light_engine_intensity(light_data: object) -> float:
     power = max(float(getattr(light_data, "energy", 1.0)), 0.0)
     exposure = _blender_light_source_exposure(light_data)
@@ -1851,8 +1871,11 @@ def extract_scene_payload_from_objects(
             transform_rows = _semantic_light_transform_rows(obj, conversion_matrix, light_type)
             spot_size = max(float(getattr(light_data, "spot_size", math.radians(45.0))), math.radians(0.1))
             spot_blend = clamp(float(getattr(light_data, "spot_blend", 0.15)), 0.0, 1.0)
-            outer_cone = math.degrees(spot_size)
+            # Blender spot_size is the full cone angle; Untold stores the
+            # half-angle consumed by cos(theta) and the shadow projection.
+            outer_cone = math.degrees(spot_size * 0.5)
             inner_cone = max(0.1, outer_cone * (1.0 - spot_blend))
+            influence_range = _blender_light_influence_range(light_data, light_type)
             lights.append(
                 ExportedLight(
                     entity_name=obj.name,
@@ -1861,6 +1884,7 @@ def extract_scene_payload_from_objects(
                     intensity=_blender_light_engine_intensity(light_data),
                     position=_position_from_matrix_rows(transform_rows),
                     radius=_blender_light_radius(light_data, light_type),
+                    range=influence_range,
                     direction=_direction_from_matrix_rows(transform_rows, (0.0, 0.0, -1.0), (0.0, -1.0, 0.0)),
                     falloff=0.5,
                     right=_direction_from_matrix_rows(transform_rows, (1.0, 0.0, 0.0), (1.0, 0.0, 0.0)),
@@ -1870,6 +1894,7 @@ def extract_scene_payload_from_objects(
                     area_size=_blender_light_area_size(light_data),
                     source_power=max(float(getattr(light_data, "energy", 1.0)), 0.0),
                     source_exposure=_blender_light_source_exposure(light_data),
+                    casts_shadow=_blender_light_casts_shadow(light_data),
                     local_transform_rows=transform_rows,
                 )
             )
@@ -4550,18 +4575,25 @@ def build_untold_file(
     for exported_light in exported_lights:
         entity_id = next_scene_payload_entity_id
         next_scene_payload_entity_id += 1
+        light_flags = LIGHT_FLAG_RADIOMETRIC
+        if exported_light.casts_shadow:
+            light_flags |= LIGHT_FLAG_CASTS_SHADOW
+        if exported_light.range > 0.0:
+            light_flags |= LIGHT_FLAG_CUSTOM_DISTANCE
         light_records.append(
             LightRecord(
                 entity_id=entity_id,
                 name_offset=string_table.add(exported_light.entity_name),
                 light_type=exported_light.light_type,
-                flags=0,
+                flags=light_flags,
                 color=exported_light.color,
                 intensity=exported_light.intensity,
                 position=exported_light.position,
                 radius=exported_light.radius,
                 direction=exported_light.direction,
-                falloff=exported_light.falloff,
+                # Binary-compatible reuse of the legacy falloff slot. The
+                # RADIOMETRIC flag tells new runtimes this is influence range.
+                falloff=exported_light.range,
                 right=exported_light.right,
                 inner_cone=exported_light.inner_cone,
                 up=exported_light.up,

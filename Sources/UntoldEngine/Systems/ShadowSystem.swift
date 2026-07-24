@@ -13,6 +13,7 @@ import simd
 
 let minimumSpotShadowDistance: Float = 10.0
 let minimumPointShadowDistance: Float = 10.0
+private let localShadowInfluenceThreshold: Float = 0.01
 
 let pointShadowFaceDirections: [simd_float3] = [
     simd_float3(1.0, 0.0, 0.0),
@@ -107,8 +108,7 @@ struct PointShadowState {
         let position = shadowLight.light.position
         guard position.x.isFinite, position.y.isFinite, position.z.isFinite else { return }
 
-        let radius = max(shadowLight.light.radius, shadowLight.light.attenuation.w, 0.001)
-        farDistance = max(radius, minimumPointShadowDistance)
+        farDistance = pointShadowDistance(for: shadowLight.light)
         let nearZ: Float = 0.05
         let projection = matrixPerspectiveRightHand(
             fovyRadians: degreesToRadians(degrees: 90.0),
@@ -141,7 +141,9 @@ struct PointShadowState {
             farDistance: farDistance,
             lightIndex: light.index,
             enabled: 1.0,
-            shadowSoftness: 2.0 * softnessScale,
+            shadowSoftness: (light.light.attenuation.x < 0.0
+                ? max(light.light.radius, 0.001)
+                : 2.0) * softnessScale,
             bias: 0.0015
         )
     }
@@ -165,11 +167,10 @@ struct SpotShadowState {
         guard direction.x.isFinite, direction.y.isFinite, direction.z.isFinite else { return }
 
         let position = shadowLight.light.position
-        let radius = max(shadowLight.light.attenuation.w, 0.001)
         let outerCone = max(shadowLight.light.outerCone, degreesToRadians(degrees: 1.0))
         let fov = min(max(outerCone * 2.0, degreesToRadians(degrees: 1.0)), degreesToRadians(degrees: 175.0))
         let nearZ: Float = 0.05
-        let farZ = max(radius, minimumSpotShadowDistance, nearZ + 0.01)
+        let farZ = max(spotShadowDistance(for: shadowLight.light), nearZ + 0.01)
         let up = stableSpotShadowUp(for: direction)
         let view = matrix_look_at_right_hand(position, position + direction, up)
         let projection = matrixPerspectiveRightHand(fovyRadians: fov, aspectRatio: 1.0, nearZ: nearZ, farZ: farZ)
@@ -191,10 +192,47 @@ struct SpotShadowState {
             lightSpaceMatrix: SceneRootTransform.shared.effectiveLightMatrix(lightSpaceMatrix),
             lightIndex: light.index,
             enabled: 1.0,
-            shadowSoftness: 2.0 * softnessScale,
+            shadowSoftness: (light.light.attenuation.x < 0.0
+                ? max(light.light.radius, 0.001)
+                : 2.0) * softnessScale,
             bias: 0.0015
         )
     }
+}
+
+private func pointShadowDistance(for light: PointLight) -> Float {
+    if light.attenuation.w > 0.0 {
+        return max(light.attenuation.w, minimumPointShadowDistance)
+    }
+    guard light.attenuation.x < 0.0 else {
+        return max(light.radius, minimumPointShadowDistance)
+    }
+
+    let radiantIntensity = max(light.intensity, 0.0) / (4.0 * Float.pi)
+    let automaticDistance = sqrt(radiantIntensity / localShadowInfluenceThreshold)
+    return simd_clamp(
+        automaticDistance,
+        minimumPointShadowDistance,
+        max(RenderPasses.maxShadowCastingDistance, minimumPointShadowDistance)
+    )
+}
+
+private func spotShadowDistance(for light: SpotLight) -> Float {
+    if light.attenuation.w > 0.0 {
+        return max(light.attenuation.w, minimumSpotShadowDistance)
+    }
+    guard light.attenuation.x < 0.0 else {
+        return max(light.attenuation.w, minimumSpotShadowDistance)
+    }
+
+    let solidAngle = max(2.0 * Float.pi * (1.0 - cos(light.outerCone)), 1.0e-4)
+    let radiantIntensity = max(light.intensity, 0.0) / solidAngle
+    let automaticDistance = sqrt(radiantIntensity / localShadowInfluenceThreshold)
+    return simd_clamp(
+        automaticDistance,
+        minimumSpotShadowDistance,
+        max(RenderPasses.maxShadowCastingDistance, minimumSpotShadowDistance)
+    )
 }
 
 private func stableSpotShadowUp(for direction: simd_float3) -> simd_float3 {
@@ -282,12 +320,13 @@ struct ShadowSystem {
         isActive = false
 
         guard let lightEntity = LightingSystem.shared.activeDirectionalLight,
-              scene.get(component: DirectionalLightComponent.self, for: lightEntity) != nil,
+              let directionalLight = scene.get(component: DirectionalLightComponent.self, for: lightEntity),
               scene.get(component: LocalTransformComponent.self, for: lightEntity) != nil
         else {
             LightingSystem.shared.activeDirectionalLight = nil
             return
         }
+        guard directionalLight.castsShadow else { return }
 
         let lightForward = getLightEmissionDirection(entityId: lightEntity)
 

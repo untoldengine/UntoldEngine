@@ -191,7 +191,10 @@ final class NativeFormatTests: XCTestCase {
         XCTAssertEqual(runtimeLight.kind, .spot)
         XCTAssertEqual(runtimeLight.color, SIMD3<Float>(0.25, 0.5, 1.0))
         XCTAssertEqual(runtimeLight.intensity, 7.0, accuracy: 0.0001)
-        XCTAssertEqual(runtimeLight.radius, 9.0, accuracy: 0.0001)
+        XCTAssertEqual(runtimeLight.radius, 0.2, accuracy: 0.0001)
+        XCTAssertEqual(runtimeLight.range, 18.0, accuracy: 0.0001)
+        XCTAssertTrue(runtimeLight.castsShadow)
+        XCTAssertTrue(runtimeLight.usesRadiometricUnits)
         XCTAssertEqual(runtimeLight.innerCone, 12.0, accuracy: 0.0001)
         XCTAssertEqual(runtimeLight.outerCone, 34.0, accuracy: 0.0001)
 
@@ -521,12 +524,13 @@ final class NativeFormatTests: XCTestCase {
             entityId: 10,
             nameOffset: stringTable.offsets["Authored Spot"]!,
             lightType: .spot,
+            flags: UntoldLightFlags.castsShadow | UntoldLightFlags.radiometric | UntoldLightFlags.customDistance,
             color: SIMD3<Float>(0.25, 0.5, 1.0),
             intensity: 7.0,
             position: SIMD3<Float>(2.0, 3.0, 4.0),
-            radius: 9.0,
+            radius: 0.2,
             direction: SIMD3<Float>(0.0, -1.0, 0.0),
-            falloff: 0.25,
+            falloff: 18.0,
             innerCone: 12.0,
             outerCone: 34.0,
             localTransform: lightTransform

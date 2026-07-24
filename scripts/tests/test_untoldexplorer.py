@@ -357,9 +357,11 @@ class UntoldExplorerTests(unittest.TestCase):
 
         self.assertEqual(lights[1].entity_name, "Spot")
         self.assertEqual(lights[1].light_type, u.LIGHT_TYPE_SPOT)
-        self.assertAlmostEqual(lights[1].outer_cone, 40.0)
-        self.assertAlmostEqual(lights[1].inner_cone, 30.0)
+        self.assertAlmostEqual(lights[1].outer_cone, 20.0)
+        self.assertAlmostEqual(lights[1].inner_cone, 15.0)
         self.assertAlmostEqual(lights[1].radius, 6.0)
+        self.assertEqual(lights[1].range, 0.0)
+        self.assertTrue(lights[1].casts_shadow)
 
         self.assertEqual(lights[2].entity_name, "Area")
         self.assertEqual(lights[2].light_type, u.LIGHT_TYPE_AREA)
@@ -383,6 +385,19 @@ class UntoldExplorerTests(unittest.TestCase):
         self.assertAlmostEqual(cameras[0].near_clip, 0.05)
         self.assertAlmostEqual(cameras[0].far_clip, 750.0)
         self.assertAlmostEqual(cameras[0].aspect_ratio, 1.6)
+
+    def test_blender_light_shadow_and_custom_distance_are_exported_independently(self) -> None:
+        light = FakeData(
+            type="POINT",
+            shadow_soft_size=0.25,
+            use_shadow=False,
+            use_custom_distance=True,
+            cutoff_distance=14.0,
+        )
+
+        self.assertAlmostEqual(u._blender_light_radius(light, u.LIGHT_TYPE_POINT), 0.25)
+        self.assertAlmostEqual(u._blender_light_influence_range(light, u.LIGHT_TYPE_POINT), 14.0)
+        self.assertFalse(u._blender_light_casts_shadow(light))
 
     def test_normalize_blender_path_and_blender_required(self) -> None:
         resolved = u.normalize_blender_path("./scripts/../scripts/untoldexplorer.py")

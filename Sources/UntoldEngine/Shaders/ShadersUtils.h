@@ -68,7 +68,7 @@ float3x3 rotation_matrix(float3 axis, float angle);
 
 float4x4 rotationmatrix4x4(float3 axis, float angle);
 
-float calculateAttenuation(float distance, simd_float4 attenuation);
+float calculateAttenuation(float distance, simd_float4 attenuation, float sourceRadius);
 
 float mod(float x, float y);
 

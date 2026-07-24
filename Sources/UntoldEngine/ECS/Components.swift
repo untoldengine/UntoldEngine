@@ -227,17 +227,24 @@ public class LightComponent: Component {
 
     public var color: simd_float3 = .one
     public var intensity: Float = 1.0
+    /// When true, local-light intensity is radiant power in watts and sun
+    /// intensity is irradiance in W/m². False preserves legacy engine units.
+    public var usesRadiometricUnits: Bool = false
 
     public required init() {}
 }
 
 public class DirectionalLightComponent: Component {
+    public var castsShadow: Bool = true
     public required init() {}
 }
 
 public class PointLightComponent: Component {
     public var attenuation: simd_float4 = .init(1.0, 0.7, 1.8, 0.0) // (constant, linear, quadratic)->x,y,z
+    /// Physical emitter radius. It does not define the light's influence range.
     public var radius: Float = 1.0
+    /// Optional influence cutoff. Zero means no authored cutoff.
+    public var range: Float = 0.0
     public var falloff: Float = 0.5
     public var castsShadow: Bool = false
 
@@ -246,7 +253,10 @@ public class PointLightComponent: Component {
 
 public class SpotLightComponent: Component {
     public var attenuation: simd_float4 = .init(1.0, 0.7, 1.8, 0.0)
+    /// Physical emitter radius. It does not define the light's influence range.
     public var radius: Float = 1.0
+    /// Optional influence cutoff. Zero means no authored cutoff.
+    public var range: Float = 0.0
     public var innerCone: Float = 5.0
     public var outerCone: Float = 10.0
     public var direction: simd_float3 = .init(0, -1, 0)
@@ -258,11 +268,13 @@ public class SpotLightComponent: Component {
 }
 
 public class AreaLightComponent: Component {
-    var bounds: simd_float2 = .init(1.0, 1.0)
+    public var bounds: simd_float2 = .init(1.0, 1.0)
     var forward: simd_float3 = .zero
     var right: simd_float3 = .zero
     var up: simd_float3 = .zero
-    var twoSided: Bool = false
+    public var twoSided: Bool = false
+    public var range: Float = 0.0
+    public var castsShadow: Bool = false
 
     public required init() {}
 }

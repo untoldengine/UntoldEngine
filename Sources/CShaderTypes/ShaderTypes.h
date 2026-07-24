@@ -62,6 +62,7 @@ typedef struct{
     float intensity;
     float innerCone;
     float outerCone;
+    float radius;
 }SpotLightUniform;
 
 typedef struct{

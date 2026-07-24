@@ -322,22 +322,29 @@ Use `setLight(entityId:, _:)` for all per-entity light configuration. Light-type
 // Shared across all light types
 setLight(entityId: light, .color(simd_float3(1.0, 0.85, 0.7)))
 setLight(entityId: light, .intensity(2.5))
+setLight(entityId: light, .power(300.0)) // radiometric watts for local lights
 
 // Directional light
 setLight(entityId: light, .directional(.active))
+setLight(entityId: light, .directional(.castsShadow(true)))
 
 // Point light
-setLight(entityId: light, .point(.radius(5.0)))
+setLight(entityId: light, .point(.range(5.0)))
+setLight(entityId: light, .point(.radius(0.1)))
 setLight(entityId: light, .point(.falloff(0.7)))
 setLight(entityId: light, .point(.attenuation(simd_float3(1, 0.5, 0.1))))
+setLight(entityId: light, .point(.castsShadow(true)))
 
 // Spot light
-setLight(entityId: light, .spot(.coneAngle(30.0)))
+setLight(entityId: light, .spot(.range(8.0)))
+setLight(entityId: light, .spot(.radius(0.05)))
+setLight(entityId: light, .spot(.coneAngle(22.5))) // engine half-angle
 setLight(entityId: light, .spot(.falloff(0.5)))
-setLight(entityId: light, .spot(.radius(3.0)))
 setLight(entityId: light, .spot(.attenuation(simd_float3(1, 0.5, 0.1))))
+setLight(entityId: light, .spot(.castsShadow(true)))
 
 // Area light
+setLight(entityId: light, .area(.range(6.0)))
 setLight(entityId: light, .area(.twoSided(true)))
 ```
 
