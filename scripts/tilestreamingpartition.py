@@ -115,6 +115,7 @@ def _manifest_light_payload(light):
         "intensity": float(light.intensity),
         "position": _manifest_vec(light.position),
         "radius": float(light.radius),
+        "range": float(getattr(light, "range", 0.0)),
         "direction": _manifest_vec(light.direction),
         "falloff": float(light.falloff),
         "right": _manifest_vec(light.right),
@@ -124,6 +125,8 @@ def _manifest_light_payload(light):
         "area_size": _manifest_vec(light.area_size),
         "source_power": float(light.source_power),
         "source_exposure": float(light.source_exposure),
+        "casts_shadow": bool(getattr(light, "casts_shadow", False)),
+        "uses_radiometric_units": True,
         "local_transform_rows": _manifest_matrix_rows(light.local_transform_rows),
     }
 

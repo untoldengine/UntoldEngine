@@ -127,7 +127,9 @@ struct AntiAliasingData: Codable {
 struct LightData: Codable {
     var color: simd_float3 = .one
     var radius: Float = 1.0
+    var range: Float? = nil
     var intensity: Float = 1.0
+    var usesRadiometricUnits: Bool? = nil
     var falloff: Float = 0.5
     var coneAngle: Float = 30.0
     var forward: simd_float3 = .init(0.0, 0.0, -1.0) // Normal vector of the light's surface
@@ -654,6 +656,8 @@ public func serializeScene() -> SceneData {
             entityData.lightData?.color = getLightColor(entityId: entityId)
 
             entityData.lightData?.intensity = getLightIntensity(entityId: entityId)
+            entityData.lightData?.usesRadiometricUnits = scene.get(component: LightComponent.self, for: entityId)?.usesRadiometricUnits
+            entityData.lightData?.castsShadow = scene.get(component: DirectionalLightComponent.self, for: entityId)?.castsShadow
         }
 
         // Point Light properties
@@ -671,6 +675,8 @@ public func serializeScene() -> SceneData {
             entityData.lightData?.intensity = getLightIntensity(entityId: entityId)
             entityData.lightData?.falloff = getLightFalloff(entityId: entityId)
             entityData.lightData?.castsShadow = getPointLightCastsShadow(entityId: entityId)
+            entityData.lightData?.range = scene.get(component: PointLightComponent.self, for: entityId)?.range
+            entityData.lightData?.usesRadiometricUnits = scene.get(component: LightComponent.self, for: entityId)?.usesRadiometricUnits
         }
 
         // Spot light properties
@@ -692,6 +698,8 @@ public func serializeScene() -> SceneData {
             entityData.lightData?.coneAngle = getLightConeAngle(entityId: entityId)
 
             entityData.lightData?.castsShadow = getSpotLightCastsShadow(entityId: entityId)
+            entityData.lightData?.range = scene.get(component: SpotLightComponent.self, for: entityId)?.range
+            entityData.lightData?.usesRadiometricUnits = scene.get(component: LightComponent.self, for: entityId)?.usesRadiometricUnits
         }
 
         // Area light properties
@@ -717,7 +725,10 @@ public func serializeScene() -> SceneData {
 
             if let areaLightComponent = scene.get(component: AreaLightComponent.self, for: entityId) {
                 entityData.lightData?.twoSided = areaLightComponent.twoSided
+                entityData.lightData?.range = areaLightComponent.range
+                entityData.lightData?.castsShadow = areaLightComponent.castsShadow
             }
+            entityData.lightData?.usesRadiometricUnits = scene.get(component: LightComponent.self, for: entityId)?.usesRadiometricUnits
         }
 
         // Camera properties
@@ -1447,6 +1458,8 @@ public func deserializeScene(
 
                     lightComponent.color = color
                     lightComponent.intensity = intensity
+                    lightComponent.usesRadiometricUnits = light.usesRadiometricUnits ?? false
+                    scene.get(component: DirectionalLightComponent.self, for: entityId)?.castsShadow = light.castsShadow ?? true
 
                     guard scene.get(component: RenderComponent.self, for: entityId) != nil else {
                         handleError(.noRenderComponent)
@@ -1484,7 +1497,9 @@ public func deserializeScene(
 
                     lightComponent.color = color
                     lightComponent.intensity = intensity
+                    lightComponent.usesRadiometricUnits = light.usesRadiometricUnits ?? false
                     pointlightComponent.radius = radius
+                    pointlightComponent.range = max(light.range ?? 0.0, 0.0)
                     pointlightComponent.falloff = falloff
                     pointlightComponent.castsShadow = light.castsShadow ?? false
 
@@ -1525,7 +1540,9 @@ public func deserializeScene(
 
                     lightComponent.color = color
                     lightComponent.intensity = intensity
+                    lightComponent.usesRadiometricUnits = light.usesRadiometricUnits ?? false
                     spotlightComponent.radius = radius
+                    spotlightComponent.range = max(light.range ?? 0.0, 0.0)
                     spotlightComponent.falloff = falloff
                     spotlightComponent.coneAngle = coneAngle
                     spotlightComponent.castsShadow = light.castsShadow ?? false
@@ -1569,11 +1586,14 @@ public func deserializeScene(
 
                     lightComponent.color = color
                     lightComponent.intensity = intensity
+                    lightComponent.usesRadiometricUnits = light.usesRadiometricUnits ?? false
                     areaLightComponent.forward = forward
                     areaLightComponent.right = right
                     areaLightComponent.up = up
                     areaLightComponent.bounds = bounds
                     areaLightComponent.twoSided = twoSided
+                    areaLightComponent.range = max(light.range ?? 0.0, 0.0)
+                    areaLightComponent.castsShadow = light.castsShadow ?? false
 
                     guard scene.get(component: RenderComponent.self, for: entityId) != nil else {
                         handleError(.noRenderComponent)

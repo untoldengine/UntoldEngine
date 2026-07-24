@@ -108,6 +108,18 @@ public enum UntoldLightType: UInt32, Sendable {
     case area = 4
 }
 
+/// Bits stored in `UntoldLightRecordV1.flags`.
+///
+/// `radiometric` also gives the legacy `falloff` float a new, compatible
+/// meaning: it stores an optional influence range in scene units (zero means
+/// automatic/unbounded). Records without this bit retain the old artistic
+/// attenuation behavior.
+public enum UntoldLightFlags {
+    public static let castsShadow: UInt32 = 1 << 0
+    public static let radiometric: UInt32 = 1 << 1
+    public static let customDistance: UInt32 = 1 << 2
+}
+
 public struct UntoldAABB: Sendable, Equatable {
     public var min: SIMD3<Float>
     public var max: SIMD3<Float>
@@ -412,6 +424,8 @@ public struct UntoldLightRecordV1: Sendable, Equatable {
     public var position: SIMD3<Float>
     public var radius: Float
     public var direction: SIMD3<Float>
+    /// Legacy artistic falloff, or influence range when
+    /// `UntoldLightFlags.radiometric` is set.
     public var falloff: Float
     public var right: SIMD3<Float>
     public var innerCone: Float

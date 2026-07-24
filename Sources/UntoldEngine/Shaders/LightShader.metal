@@ -75,7 +75,9 @@ float computeCSMShadow(
 float computeSpotShadow(
     depth2d<float> shadowMap,
     constant SpotShadowUniforms &spotShadow,
-    float3 worldPos
+    constant SpotLightUniform &light,
+    float3 worldPos,
+    float3 normal
 ) {
     if (spotShadow.enabled < 0.5) {
         return 1.0;
@@ -104,11 +106,23 @@ float computeSpotShadow(
     );
 
     float2 texelSize = 1.0 / float2(shadowMap.get_width(), shadowMap.get_height());
-    float radius = max(spotShadow.shadowSoftness, 0.25);
+    float lightDistance = max(length(light.position - worldPos), 1.0e-3);
+    float projectionScale = 0.5 * float(shadowMap.get_width())
+        / max(tan(max(light.outerCone, 1.0e-3)), 1.0e-3);
+    float radius = light.attenuation.x < 0.0
+        ? clamp(
+            (max(spotShadow.shadowSoftness, 1.0e-3) / lightDistance) * projectionScale,
+            0.75,
+            12.0
+        )
+        : max(spotShadow.shadowSoftness, 0.25);
+    float3 lightDirection = normalize(light.position - worldPos);
+    float NoL = clamp(dot(normalize(normal), lightDirection), 0.0, 1.0);
+    float receiverBias = spotShadow.bias * mix(3.0, 1.0, NoL);
     float shadow = 0.0;
     for (int i = 0; i < 16; ++i) {
         float2 offset = poissonDisk[i] * texelSize * radius;
-        shadow += shadowMap.sample_compare(shadowSampler, proj.xy + offset, proj.z - spotShadow.bias);
+        shadow += shadowMap.sample_compare(shadowSampler, proj.xy + offset, proj.z - receiverBias);
     }
     return shadow / 16.0;
 }
@@ -116,7 +130,9 @@ float computeSpotShadow(
 float computePointShadow(
     depthcube<float> shadowCube,
     constant PointShadowUniforms &pointShadow,
-    float3 worldPos
+    float sourceRadius,
+    float3 worldPos,
+    float3 normal
 ) {
     if (pointShadow.enabled < 0.5) {
         return 1.0;
@@ -177,14 +193,23 @@ float computePointShadow(
 
     float cubeSize = max(float(shadowCube.get_width()), 1.0);
     float2 texelSize = 1.0 / float2(cubeSize, cubeSize);
-    float radius = max(pointShadow.shadowSoftness, 0.25);
+    float radius = sourceRadius > 0.0
+        ? clamp(
+            (max(sourceRadius, pointShadow.shadowSoftness) / max(distanceToLight, 1.0e-3)) * cubeSize * 0.5,
+            0.75,
+            12.0
+        )
+        : max(pointShadow.shadowSoftness, 0.25);
+    float3 fragmentToLight = normalize(pointShadow.lightPosition - worldPos);
+    float NoL = clamp(dot(normalize(normal), fragmentToLight), 0.0, 1.0);
+    float receiverBias = pointShadow.bias * mix(3.0, 1.0, NoL);
     float shadow = 0.0;
     for (int i = 0; i < 16; ++i) {
         float2 uv = (ndc * 0.5 + 0.5) + poissonDisk[i] * texelSize * radius;
         uv = clamp(uv, float2(0.0), float2(1.0));
         uint2 texel = uint2(clamp(uv * (cubeSize - 1.0), float2(0.0), float2(cubeSize - 1.0)));
         float storedDepth = shadowCube.read(texel, face);
-        shadow += ((projectedDepth - pointShadow.bias) <= storedDepth) ? 1.0 : 0.0;
+        shadow += ((projectedDepth - receiverBias) <= storedDepth) ? 1.0 : 0.0;
     }
     return shadow / 16.0;
 }
@@ -236,11 +261,17 @@ LightContribution computePointLightContribution(constant PointLightUniform &ligh
 
     LightContribution br=computeBRDF(lightDirection, viewVector, normalMap.xyz, inBaseColor, float3(1.0), roughness,metallic);
 
-    float attenuation=calculateAttenuation(lightDistance, light.attenuation);
+    float attenuation=calculateAttenuation(lightDistance, light.attenuation, light.radius);
+    float intensity = light.intensity;
+    if (light.attenuation.x < 0.0) {
+        // Blender point-light power is radiant flux in watts. Convert an
+        // isotropic emitter to radiant intensity (W/sr).
+        intensity *= 1.0 / (4.0 * M_PI_F);
+    }
 
     LightContribution outC;
-    outC.diff = br.diff * (half)attenuation * (half)light.intensity * (half3)light.color;
-    outC.spec = br.spec * attenuation * light.intensity * (float3)light.color;
+    outC.diff = br.diff * (half)attenuation * (half)intensity * (half3)light.color;
+    outC.spec = br.spec * attenuation * intensity * (float3)light.color;
         
     return outC;
 }
@@ -260,7 +291,7 @@ LightContribution computeSpotLightContribution(constant SpotLightUniform &light,
     float directionLen2 = dot(light.direction.xyz, light.direction.xyz);
     float3 spotDirection = directionLen2 > 1.0e-8 ? light.direction.xyz * rsqrt(directionLen2) : float3(0.0, -1.0, 0.0);
     
-    float attenuation=calculateAttenuation(lightDistance, light.attenuation);
+    float attenuation=calculateAttenuation(lightDistance, light.attenuation, light.radius);
     
     LightContribution br=computeBRDF(lightDirection, viewVector, normalMap.xyz, inBaseColor, float3(1.0), roughness,metallic);
     
@@ -270,10 +301,18 @@ LightContribution computeSpotLightContribution(constant SpotLightUniform &light,
     float outerCos = cos(outerCone);
     float epsilon = max(cos(innerCone) - outerCos, 1.0e-4);
     float coneFalloff = clamp((theta - outerCos) / epsilon, 0.0, 1.0);
+    float intensity = light.intensity;
+    if (light.attenuation.x < 0.0) {
+        // Normalize radiant power over the authored spot cone. The smooth
+        // edge makes this an approximation, but it preserves power far more
+        // closely than treating watts as arbitrary shader intensity.
+        float coneSolidAngle = max(2.0 * M_PI_F * (1.0 - outerCos), 1.0e-4);
+        intensity /= coneSolidAngle;
+    }
     
     LightContribution outC;
-    outC.diff = br.diff * (half)attenuation * (half)coneFalloff * (half)light.intensity * half3(light.color);
-    outC.spec = br.spec * attenuation*coneFalloff*light.intensity*light.color;
+    outC.diff = br.diff * (half)attenuation * (half)coneFalloff * (half)intensity * half3(light.color);
+    outC.spec = br.spec * attenuation * coneFalloff * intensity * light.color;
     
     return outC;
 }
@@ -510,7 +549,13 @@ fragment float4 fragmentLightShader(VertexCompositeOutput vertexOut [[stage_in]]
                                                     roughness,
                                                     metallic);
         if (pointShadowUniforms.enabled > 0.5 && int(i) == pointShadowUniforms.lightIndex) {
-            float pointShadow = computePointShadow(pointShadowCube, pointShadowUniforms, verticesInWorldSpace.xyz);
+            float pointShadow = computePointShadow(
+                pointShadowCube,
+                pointShadowUniforms,
+                plBlock.lights[i].attenuation.x < 0.0 ? plBlock.lights[i].radius : 0.0,
+                verticesInWorldSpace.xyz,
+                surfaceNormal
+            );
             pl.diff *= (half)pointShadow;
             pl.spec *= pointShadow;
         }
@@ -534,7 +579,13 @@ fragment float4 fragmentLightShader(VertexCompositeOutput vertexOut [[stage_in]]
                                                        roughness,
                                                        metallic);
         if (spotShadowUniforms.enabled > 0.5 && int(i) == spotShadowUniforms.lightIndex) {
-            float spotShadow = computeSpotShadow(spotShadowMap, spotShadowUniforms, verticesInWorldSpace.xyz);
+            float spotShadow = computeSpotShadow(
+                spotShadowMap,
+                spotShadowUniforms,
+                slBlock.lights[i],
+                verticesInWorldSpace.xyz,
+                surfaceNormal
+            );
             sl.diff *= (half)spotShadow;
             sl.spec *= spotShadow;
         }
@@ -653,7 +704,13 @@ fragment TBDRLightOutput fragmentLightShaderTBDR(
     for (uint i = 0; i < lightCount; ++i) {
         LightContribution pl = computePointLightContribution(plBlock.lights[i], verticesInWorldSpace, viewVector, surfaceNormal, albedo.rgb, roughness, metallic);
         if (pointShadowUniforms.enabled > 0.5 && int(i) == pointShadowUniforms.lightIndex) {
-            float pointShadow = computePointShadow(pointShadowCube, pointShadowUniforms, verticesInWorldSpace.xyz);
+            float pointShadow = computePointShadow(
+                pointShadowCube,
+                pointShadowUniforms,
+                plBlock.lights[i].attenuation.x < 0.0 ? plBlock.lights[i].radius : 0.0,
+                verticesInWorldSpace.xyz,
+                surfaceNormal
+            );
             pl.diff *= (half)pointShadow;
             pl.spec *= pointShadow;
         }
@@ -668,7 +725,13 @@ fragment TBDRLightOutput fragmentLightShaderTBDR(
     for (uint i = 0; i < spotLightCount; ++i) {
         LightContribution sl = computeSpotLightContribution(slBlock.lights[i], verticesInWorldSpace, viewVector, surfaceNormal, albedo.rgb, roughness, metallic);
         if (spotShadowUniforms.enabled > 0.5 && int(i) == spotShadowUniforms.lightIndex) {
-            float spotShadow = computeSpotShadow(spotShadowMap, spotShadowUniforms, verticesInWorldSpace.xyz);
+            float spotShadow = computeSpotShadow(
+                spotShadowMap,
+                spotShadowUniforms,
+                slBlock.lights[i],
+                verticesInWorldSpace.xyz,
+                surfaceNormal
+            );
             sl.diff *= (half)spotShadow;
             sl.spec *= spotShadow;
         }

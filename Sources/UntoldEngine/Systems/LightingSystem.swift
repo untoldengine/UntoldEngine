@@ -103,7 +103,9 @@ public struct DirectionalLight {
 }
 
 public struct PointLight {
-    var attenuation: simd_float4 = .init(1.0, 0.7, 1.8, 0.0) // constant, linera, quadratic -> (x, y, z, max range)
+    /// Legacy coefficients in xyz, or x < 0 for radiometric inverse-square.
+    /// w is the optional influence range.
+    var attenuation: simd_float4 = .init(1.0, 0.7, 1.8, 0.0)
     var position: simd_float3 = .init(0.0, 1.0, 0.0)
     var color: simd_float3 = .init(1.0, 0.0, 0.0)
     var intensity: Float = 1.0
@@ -117,13 +119,16 @@ struct ShadowCastingPointLight {
 }
 
 public struct SpotLight {
-    var attenuation: simd_float4 = .init(1.0, 0.7, 1.8, 0.0) // constant, linera, quadratic -> (x, y, z, max range)
+    /// Legacy coefficients in xyz, or x < 0 for radiometric inverse-square.
+    /// w is the optional influence range.
+    var attenuation: simd_float4 = .init(1.0, 0.7, 1.8, 0.0)
     var direction: simd_float3 = .init(1.0, 1.0, 1.0)
     var position: simd_float3 = .init(0.0, 1.0, 0.0)
     var color: simd_float3 = .init(1.0, 0.0, 0.0)
     var intensity: Float = 1.0
     var innerCone: Float = 0.0
     var outerCone: Float = 0.0
+    var radius: Float = 1.0
 }
 
 struct ShadowCastingSpotLight {
@@ -229,6 +234,23 @@ private func sanitizedLightRadius(_ radius: Float) -> Float {
 
 private func sanitizedLightFalloff(_ falloff: Float) -> Float {
     simd_clamp(falloff, 0.0, 1.0)
+}
+
+private func lightAttenuationUniform(
+    usesRadiometricUnits: Bool,
+    falloff: Float,
+    sourceRadius: Float,
+    range: Float
+) -> simd_float4 {
+    if usesRadiometricUnits {
+        return simd_float4(-1.0, 0.0, 0.0, max(range, 0.0))
+    }
+
+    let sanitizedFalloff = sanitizedLightFalloff(falloff)
+    let legacyRadius = sanitizedLightRadius(sourceRadius)
+    let linear: Float = simd_mix(0.1, 0.0, sanitizedFalloff)
+    let quadratic: Float = simd_mix(0.0, 1.0 / (legacyRadius * legacyRadius), sanitizedFalloff)
+    return simd_float4(1.0, linear, quadratic, legacyRadius)
 }
 
 private func sanitizedSpotConeAngle(_ coneAngle: Float) -> Float {
@@ -754,13 +776,13 @@ func getPointLights() -> [PointLight] {
         pointLight.position = getPosition(entityId: entity)
         pointLight.color = lightComponent.color
 
-        let falloff = sanitizedLightFalloff(pointLightComponent.falloff)
         let radius = sanitizedLightRadius(pointLightComponent.radius)
-        let linear: Float = simd_mix(0.1, 0.0, falloff)
-        let quadratic: Float = simd_mix(0.0, 1.0 / (radius * radius), falloff)
-        let constant: Float = 1.0
-
-        pointLight.attenuation = simd_float4(constant, linear, quadratic, radius)
+        pointLight.attenuation = lightAttenuationUniform(
+            usesRadiometricUnits: lightComponent.usesRadiometricUnits,
+            falloff: pointLightComponent.falloff,
+            sourceRadius: radius,
+            range: pointLightComponent.range
+        )
         pointLight.intensity = lightComponent.intensity
         pointLight.radius = radius
 
@@ -793,11 +815,13 @@ func getShadowCastingPointLight() -> ShadowCastingPointLight? {
         pointLight.position = getPosition(entityId: entity)
         pointLight.color = lightComponent.color
 
-        let falloff = sanitizedLightFalloff(pointLightComponent.falloff)
         let radius = sanitizedLightRadius(pointLightComponent.radius)
-        let linear: Float = simd_mix(0.1, 0.0, falloff)
-        let quadratic: Float = simd_mix(0.0, 1.0 / (radius * radius), falloff)
-        pointLight.attenuation = simd_float4(1.0, linear, quadratic, radius)
+        pointLight.attenuation = lightAttenuationUniform(
+            usesRadiometricUnits: lightComponent.usesRadiometricUnits,
+            falloff: pointLightComponent.falloff,
+            sourceRadius: radius,
+            range: pointLightComponent.range
+        )
         pointLight.intensity = lightComponent.intensity
         pointLight.radius = radius
 
@@ -863,12 +887,14 @@ func getSpotLights() -> [SpotLight] {
 
         let falloff = sanitizedLightFalloff(spotLightComponent.falloff)
         let radius = sanitizedLightRadius(spotLightComponent.radius)
-        let linear: Float = simd_mix(0.1, 0.0, falloff)
-        let quadratic: Float = simd_mix(0.0, 1.0 / (radius * radius), falloff)
-        let constant: Float = 1.0
-
-        spotLight.attenuation = simd_float4(constant, linear, quadratic, radius)
+        spotLight.attenuation = lightAttenuationUniform(
+            usesRadiometricUnits: lightComponent.usesRadiometricUnits,
+            falloff: falloff,
+            sourceRadius: radius,
+            range: spotLightComponent.range
+        )
         spotLight.intensity = lightComponent.intensity
+        spotLight.radius = radius
 
         let innerCone = simd_clamp(
             spotLightComponent.innerCone,
@@ -924,10 +950,14 @@ func getShadowCastingSpotLight() -> ShadowCastingSpotLight? {
 
         let falloff = sanitizedLightFalloff(spotLightComponent.falloff)
         let radius = sanitizedLightRadius(spotLightComponent.radius)
-        let linear: Float = simd_mix(0.1, 0.0, falloff)
-        let quadratic: Float = simd_mix(0.0, 1.0 / (radius * radius), falloff)
-        spotLight.attenuation = simd_float4(1.0, linear, quadratic, radius)
+        spotLight.attenuation = lightAttenuationUniform(
+            usesRadiometricUnits: lightComponent.usesRadiometricUnits,
+            falloff: falloff,
+            sourceRadius: radius,
+            range: spotLightComponent.range
+        )
         spotLight.intensity = lightComponent.intensity
+        spotLight.radius = radius
 
         let innerCone = simd_clamp(spotLightComponent.innerCone, minimumSpotConeAngle, maximumSpotConeAngle)
         let outerCone = simd_clamp(spotLightComponent.outerCone, minimumSpotConeAngle, maximumSpotConeAngle)
@@ -1036,6 +1066,12 @@ func getAreaLights() -> [AreaLight] {
         let (width, height, _) = getDimension(entityId: entity)
         areaLight.bounds = simd_float2(width, height)
         areaLight.twoSided = areaLightComponent.twoSided
+        areaLight.range = areaLightComponent.range
+        if lightComponent.usesRadiometricUnits {
+            let emittingArea = max(abs(width * height), 1.0e-6)
+            let emittingSides: Float = areaLight.twoSided ? 2.0 : 1.0
+            areaLight.intensity = lightComponent.intensity / (Float.pi * emittingArea * emittingSides)
+        }
         areaLights.append(areaLight)
     }
 

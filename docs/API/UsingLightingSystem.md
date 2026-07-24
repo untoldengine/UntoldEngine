@@ -75,12 +75,15 @@ setLight(entityId: light, .lightType(.property(value)))   // type-specific
 
 ### Shared properties (all light types)
 
-Color and intensity apply to every light type:
+Color and intensity apply to every light type. Use `.power` for Blender-style radiometric local lights; it is a convenience alias for setting the numeric intensity and switching the light to radiometric units.
 
 ```swift
 setLight(entityId: light, .color(simd_float3(1.0, 0.85, 0.7)))
 setLight(entityId: light, .intensity(2.5))
+setLight(entityId: light, .power(300.0)) // watts for point, spot, and area lights
 ```
+
+`.intensity` preserves the current unit mode. `.power` always enables radiometric units.
 
 ### Directional light
 
@@ -112,7 +115,7 @@ setShadowSoftness(ShadowSoftnessSettings(
 
 ### Point light
 
-Point lights have a `radius` (effective influence range) and a `falloff` (0 = linear, 1 = physically-based quadratic). You can also override the raw attenuation coefficients if you need exact control:
+Point lights separate emitter size from influence range. `radius` is the physical source radius used for light regularization and soft-shadow filtering. `range` is the optional influence cutoff; use `0` to disable the authored cutoff. `falloff` and raw attenuation coefficients are legacy artistic controls:
 
 ```swift
 let bulb = createEntity()
@@ -120,8 +123,9 @@ createPointLight(entityId: bulb)
 translateTo(entityId: bulb, position: simd_float3(0, 2, 0))
 
 setLight(entityId: bulb, .color(simd_float3(1, 0.6, 0.2)))
-setLight(entityId: bulb, .intensity(3.0))
-setLight(entityId: bulb, .point(.radius(8.0)))
+setLight(entityId: bulb, .power(300.0))
+setLight(entityId: bulb, .point(.range(5.0)))
+setLight(entityId: bulb, .point(.radius(0.1)))
 setLight(entityId: bulb, .point(.falloff(0.7)))
 setLight(entityId: bulb, .point(.attenuation(simd_float3(1, 0.5, 0.1))))
 setLight(entityId: bulb, .point(.castsShadow(true)))
@@ -131,33 +135,36 @@ Point shadows are opt-in. The renderer currently shadows one point light per fra
 
 ### Spot light
 
-Spot lights add a cone. `coneAngle` controls the outer cone in degrees; `falloff` softens the inner edge:
+Spot lights add a cone. `coneAngle` is the engine outer half-angle in degrees. Blender's UI displays the full cone angle, so a Blender `45` degree spot corresponds to `.spot(.coneAngle(22.5))`. `radius` is source size, `range` is influence cutoff, and `falloff` softens the inner edge:
 
 ```swift
 let spot = createEntity()
 createSpotLight(entityId: spot)
 
 setLight(entityId: spot, .color(simd_float3(1, 1, 0.9)))
-setLight(entityId: spot, .intensity(4.0))
-setLight(entityId: spot, .spot(.coneAngle(25.0)))
+setLight(entityId: spot, .power(600.0))
+setLight(entityId: spot, .spot(.range(8.0)))
+setLight(entityId: spot, .spot(.radius(0.05)))
+setLight(entityId: spot, .spot(.coneAngle(22.5)))
 setLight(entityId: spot, .spot(.falloff(0.6)))
-setLight(entityId: spot, .spot(.radius(6.0)))
 setLight(entityId: spot, .spot(.attenuation(simd_float3(1, 0.4, 0.08))))
 setLight(entityId: spot, .spot(.castsShadow(true)))
 ```
 
-Spot shadows are opt-in. The renderer currently shadows one spot light per frame: the first spot light with `castsShadow(true)` in the engine's spot-light query order. The spot light's `radius` defines both its lighting range and the far plane of the spot shadow projection.
+Spot shadows are opt-in. The renderer currently shadows one spot light per frame: the first spot light with `castsShadow(true)` in the engine's spot-light query order. The spot light's `range`, when nonzero, defines its lighting cutoff and shadow distance.
 
 ### Area light
 
-Area lights derive their bounds from the entity's scale and orientation. The one configurable flag is `twoSided`, which controls whether the light emits from both faces of the rectangle:
+Area lights derive their bounds from the entity's scale and orientation. `twoSided` controls whether the light emits from both faces of the rectangle, and `range` is the optional influence cutoff:
 
 ```swift
 let panel = createEntity()
 createAreaLight(entityId: panel)
+scaleTo(entityId: panel, scale: simd_float3(2.0, 1.0, 1.0))
 
 setLight(entityId: panel, .color(simd_float3(0.9, 0.95, 1.0)))
-setLight(entityId: panel, .intensity(5.0))
+setLight(entityId: panel, .power(500.0))
+setLight(entityId: panel, .area(.range(6.0)))
 setLight(entityId: panel, .area(.twoSided(true)))
 ```
 

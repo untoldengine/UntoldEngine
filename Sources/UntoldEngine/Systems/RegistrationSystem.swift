@@ -1078,23 +1078,29 @@ private func registerUntoldLight(_ light: RuntimeLightSource) {
     if let lightComponent = scene.get(component: LightComponent.self, for: lightEntityId) {
         lightComponent.color = light.color
         lightComponent.intensity = light.intensity
+        lightComponent.usesRadiometricUnits = light.usesRadiometricUnits
         updateMaterialEmmisive(entityId: lightEntityId, emmissive: light.color)
     }
 
     switch light.kind {
     case .directional:
+        scene.get(component: DirectionalLightComponent.self, for: lightEntityId)?.castsShadow = light.castsShadow
         setDirectionalLight(.active(lightEntityId))
 
     case .point:
         if let pointLight = scene.get(component: PointLightComponent.self, for: lightEntityId) {
             pointLight.radius = max(light.radius, untoldImportedMinimumLightRadius)
+            pointLight.range = max(light.range, 0.0)
             pointLight.falloff = simd_clamp(light.falloff, 0.0, 1.0)
+            pointLight.castsShadow = light.castsShadow
         }
 
     case .spot:
         if let spotLight = scene.get(component: SpotLightComponent.self, for: lightEntityId) {
             spotLight.radius = max(light.radius, untoldImportedMinimumLightRadius)
+            spotLight.range = max(light.range, 0.0)
             spotLight.falloff = simd_clamp(light.falloff, 0.0, 1.0)
+            spotLight.castsShadow = light.castsShadow
             spotLight.innerCone = simd_clamp(light.innerCone, untoldImportedMinimumSpotConeAngle, untoldImportedMaximumSpotConeAngle)
             spotLight.outerCone = simd_clamp(light.outerCone, untoldImportedMinimumSpotConeAngle, untoldImportedMaximumSpotConeAngle)
             if spotLight.innerCone >= spotLight.outerCone {
@@ -1110,6 +1116,8 @@ private func registerUntoldLight(_ light: RuntimeLightSource) {
                 max(light.areaSize.x, untoldImportedMinimumLightRadius),
                 max(light.areaSize.y, untoldImportedMinimumLightRadius)
             )
+            areaLight.range = max(light.range, 0.0)
+            areaLight.castsShadow = light.castsShadow
         }
     }
 }
@@ -1549,6 +1557,7 @@ private struct ManifestLightEntry: Decodable {
     let intensity: Float
     let position: simd_float3
     let radius: Float
+    let range: Float
     let direction: simd_float3
     let falloff: Float
     let right: simd_float3
@@ -1558,6 +1567,8 @@ private struct ManifestLightEntry: Decodable {
     let areaSize: simd_float2
     let sourcePower: Float
     let sourceExposure: Float
+    let castsShadow: Bool
+    let usesRadiometricUnits: Bool
     let localTransform: simd_float4x4
 
     enum CodingKeys: String, CodingKey {
@@ -1570,6 +1581,7 @@ private struct ManifestLightEntry: Decodable {
         case intensity
         case position
         case radius
+        case range
         case direction
         case falloff
         case right
@@ -1579,6 +1591,8 @@ private struct ManifestLightEntry: Decodable {
         case areaSize = "area_size"
         case sourcePower = "source_power"
         case sourceExposure = "source_exposure"
+        case castsShadow = "casts_shadow"
+        case usesRadiometricUnits = "uses_radiometric_units"
         case localTransform = "local_transform"
         case localTransformRows = "local_transform_rows"
     }
@@ -1592,6 +1606,7 @@ private struct ManifestLightEntry: Decodable {
         intensity = try container.decodeIfPresent(Float.self, forKey: .intensity) ?? 1.0
         position = try decodeFloat3(container.decodeIfPresent([Float].self, forKey: .position), default: .zero)
         radius = try container.decodeIfPresent(Float.self, forKey: .radius) ?? 1.0
+        range = try max(container.decodeIfPresent(Float.self, forKey: .range) ?? 0.0, 0.0)
         direction = try decodeFloat3(container.decodeIfPresent([Float].self, forKey: .direction), default: simd_float3(0, -1, 0))
         falloff = try container.decodeIfPresent(Float.self, forKey: .falloff) ?? 0.5
         right = try decodeFloat3(container.decodeIfPresent([Float].self, forKey: .right), default: simd_float3(1, 0, 0))
@@ -1601,6 +1616,8 @@ private struct ManifestLightEntry: Decodable {
         areaSize = try decodeFloat2(container.decodeIfPresent([Float].self, forKey: .areaSize), default: simd_float2(1, 1))
         sourcePower = try container.decodeIfPresent(Float.self, forKey: .sourcePower) ?? intensity
         sourceExposure = try container.decodeIfPresent(Float.self, forKey: .sourceExposure) ?? 0.0
+        castsShadow = try container.decodeIfPresent(Bool.self, forKey: .castsShadow) ?? (kind == .directional)
+        usesRadiometricUnits = try container.decodeIfPresent(Bool.self, forKey: .usesRadiometricUnits) ?? false
         let transformRows = try container.decodeIfPresent([[Float]].self, forKey: .localTransformRows)
             ?? container.decodeIfPresent([[Float]].self, forKey: .localTransform)
         localTransform = decodeMatrix4x4Rows(
@@ -1856,6 +1873,7 @@ private func registerManifestScenePayload(_ manifest: TileManifest) {
                 intensity: light.intensity,
                 position: light.position,
                 radius: light.radius,
+                range: light.range,
                 direction: light.direction,
                 falloff: light.falloff,
                 right: light.right,
@@ -1865,6 +1883,8 @@ private func registerManifestScenePayload(_ manifest: TileManifest) {
                 areaSize: light.areaSize,
                 sourcePower: light.sourcePower,
                 sourceExposure: light.sourceExposure,
+                castsShadow: light.castsShadow,
+                usesRadiometricUnits: light.usesRadiometricUnits,
                 localTransform: light.localTransform
             )
         )
