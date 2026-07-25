@@ -84,6 +84,8 @@ Common options:
 - `--bake-materials`: optional, bake node-graph materials the engine cannot evaluate (Mix, Math, procedural textures, ...) into flat textures so the export matches Blender
 - `--bake-resolution <pixels>`: optional, square resolution for baked material textures, defaults to `1024`
 - `--no-bake-cache`: optional, disable the persistent bake cache and force every divergent material to be re-baked
+- `--bake-color-management`: optional, bake the scene's active View Transform/Look/Exposure/Gamma (e.g. Blender's AgX) into an `NxNxN` color-grading LUT so the engine can reproduce Blender's display transform instead of its default ACES Filmic tonemap. The LUT is scene-wide, not per-material — see [Loading Scene-Authored Data](UsingRegistrationSystem.md#loading-scene-authored-data) for how to actually apply it at runtime; it is not loaded by a normal mesh import
+- `--color-lut-size <N>`: optional, grid size for the `NxNxN` color-grading LUT, defaults to `32`
 - `--animation`: optional, export animation clips only — no mesh geometry is written
 - `--blender <path>`: optional Blender executable override
 
@@ -223,6 +225,8 @@ Common options:
 - `--bake-materials`: optional, bake node-graph materials the engine cannot evaluate into flat textures
 - `--bake-resolution <pixels>`: optional, square resolution for baked material textures, defaults to `1024`
 - `--no-bake-cache`: optional, disable the persistent bake cache and force every divergent material to be re-baked
+- `--bake-color-management`: optional, bake the scene's active View Transform/Look/Exposure/Gamma into a scene-wide color-grading LUT, referenced from the manifest's `colorLUT` key. See [Loading Scene-Authored Data](UsingRegistrationSystem.md#loading-scene-authored-data) — it is only applied via an explicit `loadSceneAuthored(url:)` call, not by normal tile loading
+- `--color-lut-size <N>`: optional, grid size for the `NxNxN` color-grading LUT, defaults to `32`
 - `--blender <path>`: optional wrapper-level Blender override
 
 Example:
