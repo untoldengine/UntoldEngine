@@ -160,6 +160,24 @@ public class SkeletonComponent: Component {
     }
 }
 
+/// Per-entity animation control policy.
+///
+/// Layered animation control (see upstream discussion #801): the global
+/// `AnimationSystem.isEnabled` toggle has highest precedence — when it is
+/// off, nothing animates regardless of policy. When it is on, each entity
+/// resolves its own policy: `.inherit` follows the effective value from the
+/// levels above (global today; per-view control when the editor adds it),
+/// `.forceOn` always animates, and `.forceOff` never animates.
+///
+/// `.forceOff` freezes the entity's playback clock without touching its
+/// `pause` state, so toggling the policy back restores whatever play/pause
+/// state the entity had.
+public enum AnimationPolicy: String, CaseIterable, Sendable {
+    case inherit
+    case forceOn
+    case forceOff
+}
+
 public class AnimationComponent: Component {
     var animationClips: [String: AnimationClip] = [:]
     var currentAnimation: AnimationClip?
@@ -167,6 +185,7 @@ public class AnimationComponent: Component {
     var pause: Bool = false
     var playbackSpeed: Float = 1.0
     var currentTime: Float = 0.0
+    var policy: AnimationPolicy = .inherit
 
     // Compiled sampling state (see docs/Architecture/animationPoseLayer.md):
     // clips resolved against this entity's skeleton, plus the per-entity

@@ -157,6 +157,10 @@ private func updateAnimationSystem(deltaTime: Float) {
             continue
         }
 
+        if animationPolicyAllowsPlayback(animationComponent) == false {
+            continue
+        }
+
         if isAnimationComponentPaused(entityId: entity) {
             continue
         }
@@ -188,6 +192,46 @@ private func updateAnimationSystem(deltaTime: Float) {
             }
         }
     }
+}
+
+/// Resolves whether an animation component may advance this frame given its
+/// per-entity policy. The global `AnimationSystem.isEnabled` toggle has
+/// already been applied by the time the update loop runs (disabled swaps in
+/// a dummy update), so `.inherit` and `.forceOn` both animate here; they
+/// diverge once per-view control exists, where `.forceOn` overrides a
+/// view-level pause and `.inherit` honors it.
+func animationPolicyAllowsPlayback(_ animationComponent: AnimationComponent) -> Bool {
+    switch animationComponent.policy {
+    case .inherit, .forceOn:
+        return true
+    case .forceOff:
+        return false
+    }
+}
+
+/// Sets the animation policy for the entity (or its descendants that carry
+/// an `AnimationComponent`, matching how the other animation APIs resolve
+/// hierarchical assets).
+public func setAnimationPolicy(entityId: EntityID, policy: AnimationPolicy) {
+    let animationComponents = animationComponentsForEntityOrDescendants(entityId: entityId)
+    guard animationComponents.isEmpty == false else {
+        handleError(.noAnimationComponent, entityId)
+        return
+    }
+
+    for (_, animationComponent) in animationComponents {
+        animationComponent.policy = policy
+    }
+}
+
+public func getAnimationPolicy(entityId: EntityID) -> AnimationPolicy {
+    let targetEntityId = resolveEntityWithAnimationComponent(entityId: entityId) ?? entityId
+    guard let animationComponent = scene.get(component: AnimationComponent.self, for: targetEntityId) else {
+        handleError(.noAnimationComponent, entityId)
+        return .inherit
+    }
+
+    return animationComponent.policy
 }
 
 public func pauseAnimationComponent(entityId: EntityID, isPaused: Bool) {
