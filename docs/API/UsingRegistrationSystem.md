@@ -112,3 +112,38 @@ public func playSceneAt(url: URL, completion: (() -> Void)? = nil) {
     }
 }
 ```
+
+---
+
+### Loading Scene-Authored Data
+
+Some data exported from Blender is scene-wide rather than per-mesh: scene-authored
+lights/cameras, and a baked color-grading LUT (from `--bake-color-management`,
+see [Using the Exporter](UsingTheExporter.md)). None of this is registered by a
+normal mesh load — `setEntityMesh`/`setEntityMeshAsync` only bring in geometry
+and materials. Use `loadSceneAuthored` alongside your mesh load to bring in the
+rest:
+
+```swift
+// From a single .untold asset (file-type: shared)
+loadSceneAuthored(filename: "office", withExtension: "untold") { success in
+    // Scene-authored lights/cameras and any baked color-grading LUT are now registered.
+}
+
+// From a tile manifest
+loadSceneAuthored(url: manifestURL) { success in
+    // Same, sourced from the manifest's scene_lights/scene_cameras/colorLUT keys.
+}
+```
+
+Important behavior:
+
+- Calling either overload clears any previously-loaded color-grading LUT
+  first (`ColorLUTParams.shared.clear()`), then re-populates it only if the
+  asset/manifest actually has one baked in.
+- If the source wasn't exported with `--bake-color-management`, the engine
+  silently falls back to its default ACES Filmic tonemap — this is not an
+  error.
+- The color-grading LUT can be toggled off at runtime (e.g. to compare
+  against the default tonemap) with `setPostFX(.colorLUT(.enabled(false)))`.
+  See [Using Post-Effects](UsingPostFX.md).

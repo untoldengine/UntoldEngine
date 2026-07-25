@@ -129,12 +129,23 @@ let isActive = PostFX.isEnabled(.bloomThreshold)
 | Effect | Description |
 |---|---|
 | `.colorGrading` | Exposure, brightness, contrast, saturation, temperature, tint |
+| `.colorLUT` | Toggle only — see below |
 | `.colorCorrection` | Lift/gamma/gain per-channel color correction |
 | `.bloomThreshold` | Bright-pass filter that feeds the bloom blur chain |
 | `.bloomComposite` | Bloom blend pass |
 | `.vignette` | Screen-edge darkening |
 | `.chromaticAberration` | RGB channel fringing |
 | `.depthOfField` | Vogel-disc focus blur (16 samples) |
+
+> **`.colorLUT` is asset-derived, not user-authored.** Unlike the other
+> effects, there's nothing to configure — the LUT itself is baked from the
+> source Blender scene's View Transform/Look/Exposure/Gamma at export time
+> (`--bake-color-management`) and only gets loaded via an explicit
+> `loadSceneAuthored(...)` call (see [Using the Registration
+> System](UsingRegistrationSystem.md#loading-scene-authored-data)), not by a
+> normal mesh import. `setPostFX(.colorLUT(.enabled(false)))` only lets you
+> compare the baked LUT against the default ACES Filmic tonemap — enabling it
+> is a no-op if no LUT has actually been loaded.
 
 > **SSAO is not a `PostFXEffect`** — it has its own enable API:
 > ```swift
