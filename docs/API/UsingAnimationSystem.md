@@ -68,6 +68,40 @@ Once the animation is set up:
 
 ---
 
+## Controlling Which Entities Animate
+
+Animation can be controlled at two levels, with a clear precedence:
+
+1. **Global** — `AnimationSystem.shared.isEnabled`. When `false`, nothing
+   animates, regardless of any per-entity setting. Useful for packaged
+   builds, performance testing, or editing a static world.
+2. **Per entity** — each `AnimationComponent` carries an `AnimationPolicy`:
+   - `.inherit` (default): follow the effective value from the levels above.
+   - `.forceOn`: always animate (when the global toggle is on).
+   - `.forceOff`: never animate.
+
+```swift
+// Freeze one character while the rest of the scene keeps animating.
+setAnimationPolicy(entityId: zombie, policy: .forceOff)
+
+// Restore the default layered behavior.
+setAnimationPolicy(entityId: zombie, policy: .inherit)
+
+let policy = getAnimationPolicy(entityId: zombie)
+```
+
+Like the other animation APIs, `setAnimationPolicy` called on an asset root
+applies to every descendant that carries an `AnimationComponent`, so split
+or multi-mesh rigged assets behave as one actor.
+
+`.forceOff` freezes the entity's playback clock without touching its
+play/pause state — switching the policy back resumes exactly where the
+entity left off, with whatever pause state it had. This also makes
+`.forceOff` a cheap animation LOD lever: distant characters can be frozen
+and unfrozen without disturbing their playback state.
+
+---
+
 ## Tips and Best Practices
 
 - Name Animations Clearly: Use descriptive names like "running" or "jumping" to make it easier to manage multiple animations.
