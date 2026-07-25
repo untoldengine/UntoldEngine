@@ -122,6 +122,27 @@ class UntoldExplorerTests(unittest.TestCase):
         self.assertIsNotNone(texture)
         self.assertEqual(texture.channel, u.TEXTURE_CHANNEL_A)
 
+    def test_unique_hdr_destination_name_deduplicates_collisions(self) -> None:
+        context = u.HDRStagingContext()
+
+        first = u.unique_hdr_destination_name("forest.exr", context)
+        second = u.unique_hdr_destination_name("forest.exr", context)
+        third = u.unique_hdr_destination_name("forest.exr", context)
+
+        self.assertEqual(first, "forest.exr")
+        self.assertTrue(second.startswith("forest_"))
+        self.assertTrue(second.endswith(".exr"))
+        self.assertNotEqual(second, first)
+        self.assertNotEqual(third, second)
+
+    def test_hdr_staging_key_prefers_resolved_path(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "forest.exr"
+            key = u.hdr_staging_key(path, "IgnoredImage", "fallback")
+
+        self.assertTrue(key.startswith("path:"))
+        self.assertIn("forest.exr", key)
+
     def test_normalize_and_pack_helpers_use_fallbacks_and_clamping(self) -> None:
         self.assertEqual(u.normalize3((0.0, 0.0, 0.0), (1.0, 2.0, 3.0)), (1.0, 2.0, 3.0))
         self.assertEqual(u.pack_snorm10(2.0), 511)
