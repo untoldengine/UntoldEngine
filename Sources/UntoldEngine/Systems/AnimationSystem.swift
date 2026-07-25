@@ -189,6 +189,18 @@ private func updateAnimationSystem(deltaTime: Float) {
             into: &animationComponent.localPose
         )
 
+        // Root motion runs on the raw sampled pose, before transition
+        // offsets: deltas come from the clip, transitions blend grounded
+        // poses.
+        applyRootMotion(
+            entityId: entity,
+            animationComponent: animationComponent,
+            skeleton: skeletonComponent.skeleton,
+            compiledClip: compiledClip,
+            clipDuration: animationClip.duration,
+            clipSpeed: animationClip.speed
+        )
+
         // Transitions decay in real time, independent of playback speed.
         animationComponent.transition.apply(
             to: &animationComponent.localPose,
@@ -326,7 +338,42 @@ public func changeAnimation(entityId: EntityID, name: String, transitionHalflife
         animationComponent.currentAnimation = animationClip
         animationComponent.currentTime = 0
         animationComponent.pause = withPause
+        // Re-baseline root motion on the new clip; the first frame after a
+        // switch contributes no delta.
+        animationComponent.rootMotion.resetHistory()
     }
+}
+
+/// Enables or disables root motion for the entity (or its descendants that
+/// carry an `AnimationComponent`). While enabled, the root joint's
+/// horizontal translation and yaw drive the entity transform instead of the
+/// pose; vertical motion, pitch, and roll stay in the pose. By default the
+/// skeleton's first parentless joint is the root; pass `rootJointPath` to
+/// designate a different joint.
+public func setRootMotionEnabled(entityId: EntityID, enabled: Bool, rootJointPath: String? = nil) {
+    let animationComponents = animationComponentsForEntityOrDescendants(entityId: entityId)
+    guard animationComponents.isEmpty == false else {
+        handleError(.noAnimationComponent, entityId)
+        return
+    }
+
+    for (_, animationComponent) in animationComponents {
+        animationComponent.rootMotion.isEnabled = enabled
+        animationComponent.rootMotion.rootJointPath = rootJointPath
+        animationComponent.rootMotion.anchorEntity = entityId
+        animationComponent.rootMotion.resolvedRootIndex = nil
+        animationComponent.rootMotion.resetHistory()
+    }
+}
+
+public func isRootMotionEnabled(entityId: EntityID) -> Bool {
+    let targetEntityId = resolveEntityWithAnimationComponent(entityId: entityId) ?? entityId
+    guard let animationComponent = scene.get(component: AnimationComponent.self, for: targetEntityId) else {
+        handleError(.noAnimationComponent, entityId)
+        return false
+    }
+
+    return animationComponent.rootMotion.isEnabled
 }
 
 /// Captures inertialization offsets for a clip switch. Falls back to a hard
@@ -371,6 +418,20 @@ private func beginAnimationTransition(
         speed: clip.speed,
         into: &animationComponent.transition.scratchTargetNext
     )
+
+    // With root motion enabled the displayed pose is grounded, so the
+    // incoming clip's samples must be grounded too — otherwise the captured
+    // offset would reintroduce the horizontal root displacement.
+    if animationComponent.rootMotion.isEnabled,
+       let rootIndex = resolveRootMotionJointIndex(
+           state: &animationComponent.rootMotion,
+           skeleton: skeleton,
+           compiledClip: compiledClip
+       )
+    {
+        stripRootMotion(from: &animationComponent.transition.scratchTarget, rootIndex: rootIndex)
+        stripRootMotion(from: &animationComponent.transition.scratchTargetNext, rootIndex: rootIndex)
+    }
 
     // Copy the scratch poses out (COW, no allocation) so the mutating
     // begin() call does not overlap a read of the same property.
