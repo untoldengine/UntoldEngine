@@ -353,7 +353,7 @@ public func rotateTo(entityId: EntityID, rotation: simd_quatf) {
 public func getRotationQuaternion(entityId: EntityID) -> simd_quatf {
     guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
         handleError(.noLocalTransformComponent, entityId)
-        return simd_quatf()
+        return simd_quatf(ix: 0, iy: 0, iz: 0, r: 1)
     }
 
     return localTransformComponent.rotation
