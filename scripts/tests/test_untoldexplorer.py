@@ -999,36 +999,6 @@ class MaterialGraphAnalysisTests(unittest.TestCase):
         material = _make_material("ok_mat", [output, principled, tex])
         self.assertEqual(u.material_bake_plan(material), {})
 
-    def test_png_needs_conversion_flags_indexed_grayscale_and_16bit(self) -> None:
-        def make_png_header(bit_depth: int, color_type: int) -> bytes:
-            # Magic + chunk length (unused) + "IHDR" + width + height + bit_depth + color_type.
-            # _png_ihdr only reads the first 26 bytes, so the rest of a real PNG isn't needed.
-            return (
-                b"\x89PNG\r\n\x1a\n"
-                + b"\x00\x00\x00\x0d"
-                + b"IHDR"
-                + b"\x00\x00\x04\x00\x00\x00\x04\x00"  # 1024x1024
-                + bytes([bit_depth, color_type])
-            )
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            cases = [
-                ("rgb_8bit.png", 8, 2, False),       # standard RGB — no conversion
-                ("rgba_8bit.png", 8, 6, False),      # standard RGBA — no conversion
-                ("gray_8bit.png", 8, 0, True),       # grayscale — Metal maps to R-only
-                ("gray_alpha.png", 8, 4, True),      # grayscale+alpha — same issue
-                ("indexed_1bit.png", 1, 3, True),    # palette — not direct color samples
-                ("indexed_8bit.png", 8, 3, True),    # palette — not direct color samples
-                ("rgb_16bit.png", 16, 2, True),      # 16-bit — Metal has no sRGB 16-bit format
-            ]
-            for filename, bit_depth, color_type, expected in cases:
-                path = Path(tmpdir) / filename
-                path.write_bytes(make_png_header(bit_depth, color_type))
-                self.assertEqual(
-                    u._png_needs_conversion(path), expected,
-                    f"{filename} (bit_depth={bit_depth}, color_type={color_type})",
-                )
-
     def test_material_node_tree_fingerprint_deterministic_and_sensitive(self) -> None:
         mix = FakeNode("ShaderNodeMix")
         mix.name = "Mix"

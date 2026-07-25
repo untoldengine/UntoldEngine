@@ -3096,29 +3096,6 @@ def _png_ihdr(path: Path) -> tuple[int, int] | None:
         return None
 
 
-def _png_needs_conversion(path: Path) -> bool:
-    """Return True if the PNG must be converted before handing to Metal.
-
-    Three cases require conversion:
-    - 16-bit images: Metal has no sRGB 16-bit format; values load as linear.
-    - Grayscale images (color type 0 or 4): Metal maps a single-channel PNG
-      to the R channel only, making affected meshes appear solid red.
-    - Indexed/palette images (color type 3): pixel data is a lookup index
-      into a PLTE color table, not direct RGB(A) samples. Common for
-      roughness/metallic maps with few distinct values (palette-optimized
-      by the authoring tool) — most texture loaders (including Metal's)
-      expect direct-color PNGs and fail outright on indexed ones.
-    """
-    info = _png_ihdr(path)
-    if info is None:
-        return False
-    bit_depth, color_type = info
-    is_16bit = bit_depth == 16
-    is_grayscale = color_type in (0, 4)  # Grayscale or Grayscale+Alpha
-    is_indexed = color_type == 3
-    return is_16bit or is_grayscale or is_indexed
-
-
 def _set_scene_color_management_raw(scene: object) -> tuple[object, ...]:
     """Temporarily force identity color management so image saves preserve texture values."""
     view_settings = getattr(scene, "view_settings", None)
@@ -3831,10 +3808,12 @@ def unique_asset_destination_name(source_name: str, used_names: set[str], fallba
         counter += 1
 
 
-def unique_texture_destination_name(texture: ExportedTexture, context: TextureStagingContext) -> str:
+def unique_texture_destination_name(
+    texture: ExportedTexture, context: TextureStagingContext, suffix_override: Optional[str] = None
+) -> str:
     source_name = texture.source_path.name if texture.source_path is not None else texture.name
     base = Path(source_name).stem or "texture"
-    suffix = Path(source_name).suffix
+    suffix = suffix_override if suffix_override is not None else Path(source_name).suffix
     candidate = f"{base}{suffix}"
     if candidate not in context.used_names:
         context.used_names.add(candidate)
@@ -3895,30 +3874,36 @@ def stage_texture_for_output(texture: ExportedTexture, output_path: Path, contex
     if source_path is not None:
         source_path = source_path.expanduser().resolve()
 
-    destination_name = unique_texture_destination_name(texture, context)
+    # File-backed textures are always re-encoded through Blender rather than
+    # raw-copied (see below) — except when Blender isn't available at all
+    # (e.g. pure-Python unit tests), where the original bytes are copied
+    # untouched since no re-encoding can happen. Re-encoded output always
+    # normalizes to PNG: never trust the source's on-disk suffix or encoding.
+    # A source can be indexed/palette color (PNG color type 3, TGA color-mapped
+    # datatype, ...), 16-bit, grayscale, or even a non-raster format like PSD
+    # that Blender can read but cannot write back out under its own suffix —
+    # all of which either fail outright in Metal or crash Blender's image
+    # writer if the original suffix is preserved. write_blender_image_to_path
+    # already handles the indexed/16-bit/grayscale cases via
+    # image.depth/image.channels, which reflect the fully-decoded image
+    # regardless of source format.
+    will_reencode = bool(texture.source_image_name) or bpy is not None
+    destination_name = unique_texture_destination_name(
+        texture, context, suffix_override=".png" if will_reencode else None
+    )
     destination_path = texture_dir / destination_name
 
     try:
         if source_path is not None and source_path.is_file():
             if source_path != destination_path:
-                # 16-bit and grayscale PNGs must be converted before handing to Metal:
-                # - 16-bit: Metal has no sRGB 16-bit format; values load as linear.
-                # - Grayscale (color type 0/4): Metal maps a 1-channel PNG to the R
-                #   channel only, making meshes appear solid red.
-                # If the Blender image is not available (e.g. external GIMP file never
-                # loaded into bpy), load it temporarily so write_blender_image_to_path
-                # can apply the grayscale→RGB and 16-bit→8-bit conversions.
-                if _png_needs_conversion(source_path):
-                    if texture.source_image_name:
-                        write_blender_image_to_path(texture.source_image_name, destination_path)
-                    elif bpy is not None:
-                        tmp_image = bpy.data.images.load(str(source_path))
-                        try:
-                            write_blender_image_to_path(tmp_image.name, destination_path)
-                        finally:
-                            bpy.data.images.remove(tmp_image)
-                    else:
-                        shutil.copy2(source_path, destination_path)
+                if texture.source_image_name:
+                    write_blender_image_to_path(texture.source_image_name, destination_path)
+                elif bpy is not None:
+                    tmp_image = bpy.data.images.load(str(source_path))
+                    try:
+                        write_blender_image_to_path(tmp_image.name, destination_path)
+                    finally:
+                        bpy.data.images.remove(tmp_image)
                 else:
                     shutil.copy2(source_path, destination_path)
         elif texture.source_image_name:
