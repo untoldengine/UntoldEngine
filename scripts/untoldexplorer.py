@@ -774,6 +774,15 @@ class TextureStagingContext:
         self.used_names = set()
 
 
+class HDRStagingContext:
+    staged_by_key: dict[str, Path]
+    used_names: set[str]
+
+    def __init__(self) -> None:
+        self.staged_by_key = {}
+        self.used_names = set()
+
+
 def aabb_from_points(points: Iterable[tuple[float, float, float]]) -> AABB:
     point_list = list(points)
     if not point_list:
@@ -3153,6 +3162,7 @@ _FORMATS_WITHOUT_8BIT = {"OPEN_EXR", "OPEN_EXR_MULTILAYER", "HDR", "CINEON", "DP
 
 # File extensions that map to formats not supported by the engine pipeline.
 _UNSUPPORTED_TEXTURE_SUFFIXES = {".exr", ".hdr", ".cin", ".dpx"}
+_HDR_IMAGE_SUFFIXES = {".exr", ".hdr"}
 
 
 def write_blender_image_to_path(image_name: str, destination_path: Path) -> None:
@@ -3286,12 +3296,99 @@ def write_blender_image_to_path(image_name: str, destination_path: Path) -> None
         image.file_format = original_file_format
 
 
+def write_blender_hdr_image_to_path(image_name: str, destination_path: Path) -> None:
+    blender_required()
+    image = bpy.data.images.get(image_name)
+    if image is None:
+        raise RuntimeError(f"Blender image '{image_name}' is no longer available for HDR export")
+
+    if not getattr(image, "has_data", True):
+        try:
+            image.pixels[0]
+        except Exception:
+            pass
+
+    if not getattr(image, "has_data", True) or image.size[0] == 0 or image.size[1] == 0:
+        raise RuntimeError(f"Blender HDR image '{image_name}' has no pixel data")
+
+    destination_path.parent.mkdir(parents=True, exist_ok=True)
+
+    normalized_suffix = destination_path.suffix.lower()
+    if normalized_suffix == ".hdr":
+        original_filepath_raw = getattr(image, "filepath_raw", "")
+        original_file_format = getattr(image, "file_format", "OPEN_EXR")
+        try:
+            image.filepath_raw = str(destination_path)
+            image.file_format = "HDR"
+            image.save()
+        finally:
+            image.filepath_raw = original_filepath_raw
+            image.file_format = original_file_format
+        return
+
+    # EXR: always re-encode with ZIP, regardless of the source's original
+    # codec. Real-world EXRs (Poly Haven HDRIs, Blender's own bundled studio
+    # lights) are commonly DWAA/DWAB-compressed. Apple's ImageIO OpenEXR
+    # decoder -- what the engine uses at runtime -- recognizes the DWAA/DWAB
+    # container but cannot decode it (a documented ImageIO limitation), which
+    # silently produces a black/missing IBL environment. ZIP is lossless
+    # relative to the source and decodes reliably via ImageIO.
+    scene = bpy.context.scene
+    img_settings = scene.render.image_settings
+    saved_image_settings = (img_settings.file_format, img_settings.exr_codec, img_settings.color_depth)
+    # save_render() bakes in the scene's active view transform (e.g. AgX,
+    # Filmic), which would corrupt linear HDR radiance values on write.
+    saved_color_management = _set_scene_color_management_raw(scene)
+    try:
+        img_settings.file_format = "OPEN_EXR"
+        img_settings.exr_codec = "ZIP"
+        # The engine only ever samples this as a half-float texture, so 16-bit
+        # loses nothing at runtime while keeping the staged file smaller.
+        img_settings.color_depth = "16"
+        image.save_render(str(destination_path), scene=scene)
+    finally:
+        _restore_scene_color_management(scene, saved_color_management)
+        img_settings.file_format, img_settings.exr_codec, img_settings.color_depth = saved_image_settings
+
+
 def texture_staging_key(texture: ExportedTexture) -> str:
     if texture.source_path is not None:
         return f"path:{texture.source_path.expanduser().resolve()}"
     if texture.source_image_name:
         return f"image:{texture.source_image_name}"
     return f"uri:{texture.uri}"
+
+
+def hdr_staging_key(source_path: Optional[Path], image_name: Optional[str], label: str) -> str:
+    if source_path is not None:
+        return f"path:{source_path.expanduser().resolve()}"
+    if image_name:
+        return f"image:{image_name}"
+    return f"label:{label}"
+
+
+def unique_asset_destination_name(source_name: str, used_names: set[str], fallback_stem: str) -> str:
+    source_path = Path(source_name)
+    base = source_path.stem or fallback_stem
+    suffix = source_path.suffix
+    candidate = f"{base}{suffix}"
+    if candidate not in used_names:
+        used_names.add(candidate)
+        return candidate
+
+    fingerprint = hashlib.sha1(source_name.encode("utf-8")).hexdigest()[:8]
+    candidate = f"{base}_{fingerprint}{suffix}"
+    if candidate not in used_names:
+        used_names.add(candidate)
+        return candidate
+
+    counter = 1
+    while True:
+        candidate = f"{base}_{fingerprint}_{counter}{suffix}"
+        if candidate not in used_names:
+            used_names.add(candidate)
+            return candidate
+        counter += 1
 
 
 def unique_texture_destination_name(texture: ExportedTexture, context: TextureStagingContext) -> str:
@@ -3317,6 +3414,10 @@ def unique_texture_destination_name(texture: ExportedTexture, context: TextureSt
             context.used_names.add(candidate)
             return candidate
         counter += 1
+
+
+def unique_hdr_destination_name(source_name: str, context: HDRStagingContext) -> str:
+    return unique_asset_destination_name(source_name, context.used_names, "environment")
 
 
 def stage_texture_for_output(texture: ExportedTexture, output_path: Path, context: TextureStagingContext) -> Optional[ExportedTexture]:
@@ -3396,6 +3497,183 @@ def stage_texture_for_output(texture: ExportedTexture, output_path: Path, contex
         uri=destination_path.relative_to(output_path.parent).as_posix(),
         source_path=destination_path,
     )
+
+
+def _image_absolute_path(image: object, asset_path: Optional[Path] = None) -> Optional[Path]:
+    filepath = getattr(image, "filepath", "") or ""
+    if not filepath:
+        return None
+    raw_path = bpy.path.abspath(filepath, library=getattr(image, "library", None)) if bpy is not None else filepath
+    image_path = Path(raw_path)
+    if not image_path.is_absolute() and asset_path is not None:
+        image_path = (asset_path.parent / image_path).resolve()
+    return image_path
+
+
+def _is_hdr_image(image: object, asset_path: Optional[Path] = None) -> bool:
+    image_path = _image_absolute_path(image, asset_path)
+    if image_path is not None and image_path.suffix.lower() in _HDR_IMAGE_SUFFIXES:
+        return True
+    file_format = str(getattr(image, "file_format", "") or "").upper()
+    return file_format in {"OPEN_EXR", "OPEN_EXR_MULTILAYER", "HDR"}
+
+
+def stage_hdr_source_for_output(
+    *,
+    output_path: Path,
+    context: HDRStagingContext,
+    label: str,
+    source_path: Optional[Path],
+    image_name: Optional[str] = None,
+    source_name: Optional[str] = None,
+) -> Optional[Path]:
+    """Stage an HDR/EXR environment asset beside the exported .untold file.
+
+    HDR assets are intentionally separate from material textures because they
+    use the engine environment/IBL path, not the 8-bit material texture path.
+    """
+    hdr_dir = output_path.parent / "HDR"
+    staging_key = hdr_staging_key(source_path, image_name, label)
+
+    existing_destination = context.staged_by_key.get(staging_key)
+    if existing_destination is not None:
+        return existing_destination
+
+    if source_path is not None:
+        source_path = source_path.expanduser().resolve()
+
+    destination_name_source = source_name
+    if destination_name_source is None:
+        if source_path is not None:
+            destination_name_source = source_path.name
+        elif image_name:
+            destination_name_source = image_name
+        else:
+            destination_name_source = f"{label}.exr"
+
+    if Path(destination_name_source).suffix.lower() not in _HDR_IMAGE_SUFFIXES:
+        destination_name_source = f"{Path(destination_name_source).stem or label}.exr"
+
+    destination_path = hdr_dir / unique_hdr_destination_name(destination_name_source, context)
+
+    try:
+        if destination_path.suffix.lower() == ".exr":
+            # Always re-encode EXRs through Blender (never a raw file copy).
+            # The source's on-disk codec is untrusted here: DWAA/DWAB-
+            # compressed EXRs are common in the wild and Apple's ImageIO
+            # OpenEXR decoder (used by the engine at runtime) cannot read
+            # them. write_blender_hdr_image_to_path forces ZIP on write.
+            if image_name:
+                write_blender_hdr_image_to_path(image_name, destination_path)
+            elif source_path is not None and source_path.is_file():
+                blender_required()
+                loaded_image = bpy.data.images.load(str(source_path))
+                try:
+                    write_blender_hdr_image_to_path(loaded_image.name, destination_path)
+                finally:
+                    bpy.data.images.remove(loaded_image)
+            else:
+                return None
+        elif source_path is not None and source_path.is_file():
+            hdr_dir.mkdir(parents=True, exist_ok=True)
+            if source_path != destination_path:
+                shutil.copy2(source_path, destination_path)
+        elif image_name:
+            write_blender_hdr_image_to_path(image_name, destination_path)
+        else:
+            return None
+    except Exception as exc:
+        print(f"  Warning: failed to stage HDR environment '{label}': {exc}", flush=True)
+        return None
+
+    context.staged_by_key[staging_key] = destination_path
+    print(f"  Staged HDR environment '{label}' -> {destination_path.relative_to(output_path.parent).as_posix()}", flush=True)
+    return destination_path
+
+
+def stage_world_hdr_images_for_output(output_path: Path, asset_path: Path, context: HDRStagingContext) -> list[Path]:
+    blender_required()
+    staged: list[Path] = []
+    for world in bpy.data.worlds:
+        node_tree = getattr(world, "node_tree", None)
+        if node_tree is None:
+            continue
+        for node in getattr(node_tree, "nodes", []):
+            if getattr(node, "bl_idname", "") != "ShaderNodeTexEnvironment":
+                continue
+            image = getattr(node, "image", None)
+            if image is None or not _is_hdr_image(image, asset_path):
+                continue
+            image_size = getattr(image, "size", (0, 0))
+            if image_size[0] <= 1 or image_size[1] <= 1:
+                # 1x1 EXRs are constant-color placeholders (e.g. Blender's USD
+                # importer bakes a dome light's flat color into a throwaway
+                # 1x1 image rather than a real environment map). Never a real HDRI.
+                continue
+            image_path = _image_absolute_path(image, asset_path)
+            staged_path = stage_hdr_source_for_output(
+                output_path=output_path,
+                context=context,
+                label=f"world:{getattr(world, 'name', 'World')}",
+                source_path=image_path,
+                image_name=getattr(image, "name", None),
+                source_name=(image_path.name if image_path is not None else getattr(image, "name", None)),
+            )
+            if staged_path is not None:
+                staged.append(staged_path)
+    return staged
+
+
+def stage_material_preview_studio_lights_for_output(output_path: Path, context: HDRStagingContext) -> list[Path]:
+    blender_required()
+    staged: list[Path] = []
+    for screen in bpy.data.screens:
+        for area in getattr(screen, "areas", []):
+            if getattr(area, "type", None) != "VIEW_3D":
+                continue
+            for space in getattr(area, "spaces", []):
+                if getattr(space, "type", None) != "VIEW_3D":
+                    continue
+                shading = getattr(space, "shading", None)
+                if shading is None or getattr(shading, "type", None) != "MATERIAL":
+                    continue
+                if getattr(shading, "light", None) != "STUDIO":
+                    continue
+                selected_studio_light = getattr(shading, "selected_studio_light", None)
+                studio_light_name = getattr(shading, "studio_light", None) or getattr(selected_studio_light, "name", None)
+                studio_light_path = getattr(selected_studio_light, "path", None)
+                if not studio_light_path:
+                    continue
+                source_path = Path(studio_light_path)
+                if source_path.suffix.lower() not in _HDR_IMAGE_SUFFIXES:
+                    continue
+                staged_path = stage_hdr_source_for_output(
+                    output_path=output_path,
+                    context=context,
+                    label=f"material-preview:{studio_light_name or source_path.name}",
+                    source_path=source_path,
+                    image_name=None,
+                    source_name=studio_light_name or source_path.name,
+                )
+                if staged_path is not None:
+                    staged.append(staged_path)
+    return staged
+
+
+def stage_hdr_assets_for_output(output_path: Path, asset_path: Path) -> list[Path]:
+    if bpy is None:
+        return []
+    context = HDRStagingContext()
+    staged = stage_world_hdr_images_for_output(output_path, asset_path, context)
+    staged.extend(stage_material_preview_studio_lights_for_output(output_path, context))
+    unique_staged: list[Path] = []
+    seen: set[Path] = set()
+    for staged_path in staged:
+        if staged_path in seen:
+            continue
+        seen.add(staged_path)
+        unique_staged.append(staged_path)
+    return unique_staged
 
 
 def stage_material_for_output(material: ExportedMaterial, output_path: Path, context: TextureStagingContext) -> ExportedMaterial:
@@ -5230,6 +5508,7 @@ def main(argv: list[str]) -> int:
         )
         print(f"Staging {len(exported_nodes)} node(s) ...", flush=True)
         exported_nodes = stage_nodes_for_output(exported_nodes, output_path)
+        staged_hdr_assets = stage_hdr_assets_for_output(output_path, input_path)
         cleanup_material_bake_temp_dir()
         progress.advance("Stage nodes", output_path.name)
         print("Building .untold file ...", flush=True)
@@ -5252,6 +5531,8 @@ def main(argv: list[str]) -> int:
         print(f"Wrote {output_path} ({len(untold_bytes)} bytes)")
         print(f"Nodes: {len(exported_nodes)}, Meshes: {len(exported_meshes)}")
         print(f"Lights: {len(exported_lights)}, Cameras: {len(exported_cameras)}")
+        if staged_hdr_assets:
+            print(f"HDR environments: {len(staged_hdr_assets)}")
         print(f"Vertices: {sum(exported_mesh.vertex_count for exported_mesh in exported_meshes)}, indices: {sum(exported_mesh.index_count for exported_mesh in exported_meshes)}")
         if args.validate:
             # This sidecar is only for validation/debugging in engine-side tests.
