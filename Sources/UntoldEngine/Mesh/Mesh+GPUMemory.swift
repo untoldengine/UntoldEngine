@@ -91,9 +91,11 @@ extension Skin {
     var gpuMemorySize: Int {
         var totalSize = 0
 
-        // Joint transforms buffer
-        if let buffer = jointTransformsBuffer {
-            totalSize += buffer.length
+        // Joint transforms ring (one buffer per in-flight frame slot)
+        if let ring = jointTransformsRing {
+            for buffer in ring.buffers {
+                totalSize += buffer.length
+            }
         }
 
         return totalSize
