@@ -206,6 +206,14 @@ private func updateAnimationSystem(deltaTime: Float) {
             to: &animationComponent.localPose,
             deltaTime: deltaTime
         )
+        // Foot IK corrects the final pose: plant feet on real geometry
+        // after root motion and transitions have settled the pose.
+        applyFootIK(
+            entityId: entity,
+            animationComponent: animationComponent,
+            skeleton: skeletonComponent.skeleton
+        )
+
         animationComponent.hasSampledPose = true
         animationComponent.lastSampleDeltaTime = deltaTime
 
@@ -363,6 +371,60 @@ public func setRootMotionEnabled(entityId: EntityID, enabled: Bool, rootJointPat
         animationComponent.rootMotion.anchorEntity = entityId
         animationComponent.rootMotion.resolvedRootIndex = nil
         animationComponent.rootMotion.resetHistory()
+    }
+}
+
+/// Enables or disables foot IK for the entity (or its descendants that
+/// carry an `AnimationComponent`). Configure the leg chains first with
+/// `setFootIKChains`.
+public func setFootIKEnabled(entityId: EntityID, enabled: Bool) {
+    let animationComponents = animationComponentsForEntityOrDescendants(entityId: entityId)
+    guard animationComponents.isEmpty == false else {
+        handleError(.noAnimationComponent, entityId)
+        return
+    }
+
+    for (_, animationComponent) in animationComponents {
+        animationComponent.footIK.isEnabled = enabled
+    }
+}
+
+public func isFootIKEnabled(entityId: EntityID) -> Bool {
+    let targetEntityId = resolveEntityWithAnimationComponent(entityId: entityId) ?? entityId
+    guard let animationComponent = scene.get(component: AnimationComponent.self, for: targetEntityId) else {
+        handleError(.noAnimationComponent, entityId)
+        return false
+    }
+
+    return animationComponent.footIK.isEnabled
+}
+
+/// Configures the leg chains foot IK operates on. Chains whose joint paths
+/// do not exist in the skeleton are ignored.
+public func setFootIKChains(entityId: EntityID, chains: [FootIKChainDescriptor]) {
+    let animationComponents = animationComponentsForEntityOrDescendants(entityId: entityId)
+    guard animationComponents.isEmpty == false else {
+        handleError(.noAnimationComponent, entityId)
+        return
+    }
+
+    for (_, animationComponent) in animationComponents {
+        animationComponent.footIK.descriptors = chains
+        animationComponent.footIK.invalidateResolution()
+    }
+}
+
+/// Overrides how foot IK samples the ground beneath each foot. Pass nil to
+/// restore the default scene ray-pick probe.
+public func setFootIKGroundQuery(entityId: EntityID, query: FootIKGroundQuery?) {
+    let animationComponents = animationComponentsForEntityOrDescendants(entityId: entityId)
+    guard animationComponents.isEmpty == false else {
+        handleError(.noAnimationComponent, entityId)
+        return
+    }
+
+    for (_, animationComponent) in animationComponents {
+        animationComponent.footIK.groundQuery = query
     }
 }
 
