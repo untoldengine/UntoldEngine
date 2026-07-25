@@ -17,6 +17,11 @@ class Skeleton {
     var restTransform: [simd_float4x4]
     var currentPose: [simd_float4x4]
 
+    /// Scratch storage for the compiled sampling path; reused across frames
+    /// so pose composition never allocates in steady state.
+    private var worldPoseScratch: [simd_float4x4] = []
+    private var inverseBindTransform: [simd_float4x4] = []
+
     init?(mdlSkeleton: MDLSkeleton?) {
         guard let mdlSkeleton, !mdlSkeleton.jointPaths.isEmpty else { return nil }
 
@@ -57,7 +62,50 @@ class Skeleton {
         jointPaths.compactMap { self.jointPaths.firstIndex(of: $0) }
     }
 
-    /// Updates the skeleton's world pose based on animation data
+    /// Updates the skeleton's world pose from a sampled local-space pose.
+    /// Local matrices are rebuilt as T * R * S(rest scale), the hierarchy is
+    /// composed, and the inverse bind transforms are applied — matching
+    /// `updateWorldPose(at:animationClip:)` output for the same pose.
+    func updateWorldPose(from localPose: PoseBuffer, localScales: [simd_float3]) {
+        let jointCount = jointPaths.count
+        guard localPose.jointCount == jointCount, localScales.count == jointCount else {
+            handleError(.noSkeletonPose)
+            return
+        }
+
+        if worldPoseScratch.count != jointCount {
+            worldPoseScratch = [simd_float4x4](repeating: .identity, count: jointCount)
+        }
+        if inverseBindTransform.count != jointCount {
+            inverseBindTransform = bindTransform.map(\.inverse)
+        }
+        if currentPose.count != jointCount {
+            currentPose = [simd_float4x4](repeating: .identity, count: jointCount)
+        }
+
+        for index in 0 ..< jointCount {
+            let localMatrix = simd_float4x4(translation: localPose.translations[index])
+                * simd_float4x4(localPose.rotations[index])
+                * simd_float4x4(scale: localScales[index])
+            if let parentIndex = parentIndices[index] {
+                worldPoseScratch[index] = worldPoseScratch[parentIndex] * localMatrix
+            } else {
+                worldPoseScratch[index] = localMatrix
+            }
+        }
+
+        for index in 0 ..< jointCount {
+            currentPose[index] = worldPoseScratch[index] * inverseBindTransform[index]
+        }
+    }
+
+    /// Updates the skeleton's world pose based on animation data.
+    ///
+    /// This is the legacy string-keyed sampling path. The engine's frame
+    /// update routes through the compiled path
+    /// (`updateWorldPose(from:localScales:)`); this method is retained as
+    /// the reference implementation that the compiled path is tested
+    /// against for equality.
     func updateWorldPose(at currentTime: Float, animationClip: AnimationClip) {
         let time = fmod(currentTime, animationClip.duration)
 
@@ -324,7 +372,7 @@ class AnimationClip {
         return float4x4(translation: translation) * float4x4(rotation) * float4x4(scale: fallbackScale)
     }
 
-    private static func localScale(from matrix: float4x4) -> SIMD3<Float> {
+    static func localScale(from matrix: float4x4) -> SIMD3<Float> {
         SIMD3<Float>(
             simd_length(SIMD3<Float>(matrix.columns.0.x, matrix.columns.0.y, matrix.columns.0.z)),
             simd_length(SIMD3<Float>(matrix.columns.1.x, matrix.columns.1.y, matrix.columns.1.z)),
@@ -332,7 +380,7 @@ class AnimationClip {
         )
     }
 
-    private static func localRotation(from matrix: float4x4, scale: SIMD3<Float>) -> simd_quatf {
+    static func localRotation(from matrix: float4x4, scale: SIMD3<Float>) -> simd_quatf {
         let epsilon: Float = 0.000001
         let sx = max(scale.x, epsilon)
         let sy = max(scale.y, epsilon)
