@@ -170,6 +170,12 @@ public func CreateTilePipeline(
     colorFormats: [MTLPixelFormat],
     name: String
 ) -> RenderPipeline? {
+    #if targetEnvironment(simulator)
+    // Tile shaders are unsupported in the simulator; creating the pipeline state
+    // raises a hard assertion (not a catchable error), so bail out before that.
+    Logger.log(message: "Skipping tile pipeline '\(name)': tile shaders are not supported in the simulator")
+    return nil
+    #else
     let pipelineDescriptor = MTLTileRenderPipelineDescriptor()
 
     guard let tileLibrary = resolveRenderShaderLibrary(
@@ -210,6 +216,7 @@ public func CreateTilePipeline(
         handleError(.pipelineStateCreationFailed, name)
         return nil
     }
+    #endif
 }
 
 public typealias RenderPipelineInitBlock = () -> RenderPipeline?
@@ -320,7 +327,25 @@ public func InitModelPipeline() -> RenderPipeline? {
 /// (framebuffer fetch) and writes the lit result to attachment 5 (deferredColorMap).
 /// Attachments 0-4 carry G-buffer data; their writeMask is disabled so the light
 /// quad does not overwrite geometry output that is still live in tile memory.
+///
+/// Simulator: framebuffer fetch is unsupported ("reading from a rendertarget is
+/// not supported"), so the light pass instead samples the stored G-buffer
+/// textures with the texture-based fragmentLightShader in its own encoder
+/// (deferredRenderPassDescriptor). See combinedModelLightExecution.
 public func InitLightPipeline() -> RenderPipeline? {
+    #if targetEnvironment(simulator)
+    return CreatePipeline(
+        vertexShader: "vertexLightShader",
+        fragmentShader: "fragmentLightShader",
+        vertexDescriptor: createLightVertexDescriptor(),
+        colorFormats: [wf.sceneColor],
+        depthFormat: renderInfo.depthPixelFormat,
+        depthCompareFunction: .always,
+        depthEnabled: false,
+        reverseZCompatible: false,
+        name: "Light Pipeline (Simulator)"
+    )
+    #else
     guard let library = renderInfo.library else {
         handleError(.metalLibraryNotFound)
         return nil
@@ -370,9 +395,10 @@ public func InitLightPipeline() -> RenderPipeline? {
             rasterSampleCount: desc.rasterSampleCount
         )
     } catch {
-        handleError(.pipelineStateCreationFailed, "Light Pipeline (TBDR)")
+        handleError(.pipelineStateCreationFailed, "Light Pipeline (TBDR): \(error.localizedDescription)")
         return nil
     }
+    #endif
 }
 
 // MARK: Geometry pipeline

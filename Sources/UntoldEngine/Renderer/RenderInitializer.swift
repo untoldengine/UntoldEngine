@@ -112,6 +112,11 @@ func createTexture(
 
 @inline(__always)
 func requestedOpaqueSampleCount() -> Int {
+    #if targetEnvironment(simulator)
+    // The simulator's two-pass deferred fallback samples the G-buffer as
+    // texture2d, which is incompatible with multisampled (memoryless) targets.
+    return 1
+    #else
     switch antiAliasingMode {
     case .msaa:
         let preferredSampleCount = 4
@@ -120,6 +125,7 @@ func requestedOpaqueSampleCount() -> Int {
     case .none, .fxaa, .smaa:
         return 1
     }
+    #endif
 }
 
 @inline(__always)
@@ -446,8 +452,13 @@ func initRenderPassDescriptors() {
     // Combined G-buffer + lighting render pass (TBDR).
     // Attachments 0-4 are normally memoryless G-buffer slots and are discarded at
     // the end. G-buffer debug views switch them to stored textures so the later
-    // debug pass can sample them.
+    // debug pass can sample them; the simulator always stores them for its
+    // texture-based light pass.
+    #if targetEnvironment(simulator)
+    let gBufferStoreAction: MTLStoreAction = .store
+    #else
     let gBufferStoreAction: MTLStoreAction = renderInfo.gBufferDebugStorageEnabled ? .store : .dontCare
+    #endif
     renderInfo.offscreenRenderPassDescriptor = createRenderPassDescriptor(
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),
@@ -571,12 +582,19 @@ func initGBufferTextureResources() {
     let viewportHeight = max(1, Int(renderInfo.viewPort.y))
     let opaqueSampleCount = max(1, renderInfo.opaqueSampleCount)
 
-    // G-buffer textures: memoryless in normal rendering; persistent only when
-    // a debug view needs to sample the G-buffer after the TBDR pass.
-    let gBufferUsage: MTLTextureUsage = renderInfo.gBufferDebugStorageEnabled
+    // G-buffer textures: memoryless in normal rendering; persistent when a debug
+    // view needs to sample the G-buffer after the TBDR pass, and always in the
+    // simulator, where the light pass samples the G-buffer as textures because
+    // framebuffer fetch is unsupported there.
+    #if targetEnvironment(simulator)
+    let gBufferNeedsStorage = true
+    #else
+    let gBufferNeedsStorage = renderInfo.gBufferDebugStorageEnabled
+    #endif
+    let gBufferUsage: MTLTextureUsage = gBufferNeedsStorage
         ? [.renderTarget, .shaderRead]
         : [.renderTarget]
-    let gBufferStorageMode: MTLStorageMode = renderInfo.gBufferDebugStorageEnabled
+    let gBufferStorageMode: MTLStorageMode = gBufferNeedsStorage
         ? .private
         : .memoryless
 
