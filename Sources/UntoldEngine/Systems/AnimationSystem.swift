@@ -165,9 +165,20 @@ private func updateAnimationSystem(deltaTime: Float) {
 
         guard let animationClip = animationComponent.currentAnimation else { continue }
 
+        let compiledClip = animationComponent.compiledClip(
+            for: animationClip,
+            skeleton: skeletonComponent.skeleton
+        )
+        animationComponent.sampler.sample(
+            compiledClip,
+            time: animationComponent.currentTime,
+            duration: animationClip.duration,
+            speed: animationClip.speed,
+            into: &animationComponent.localPose
+        )
         skeletonComponent.skeleton.updateWorldPose(
-            at: animationComponent.currentTime,
-            animationClip: animationClip
+            from: animationComponent.localPose,
+            localScales: compiledClip.restScales
         )
 
         // Update the skin for each mesh in the render component

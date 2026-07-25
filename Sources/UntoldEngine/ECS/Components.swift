@@ -164,12 +164,23 @@ public class AnimationComponent: Component {
     var pause: Bool = false
     var playbackSpeed: Float = 1.0
     var currentTime: Float = 0.0
+
+    // Compiled sampling state (see docs/Architecture/animationPoseLayer.md):
+    // clips resolved against this entity's skeleton, plus the per-entity
+    // sampler cursors and local pose the frame update writes into.
+    var compiledClips: [String: CompiledAnimationClip] = [:]
+    var sampler = ClipSampler()
+    var localPose = PoseBuffer()
+
     public required init() {}
 
     func cleanUp() {
         animationClips.removeAll()
         currentAnimation?.cleanUp()
         currentAnimation = nil
+        compiledClips.removeAll()
+        sampler = ClipSampler()
+        localPose = PoseBuffer()
     }
 
     func getAllAnimationClips() -> [String] {
@@ -178,6 +189,18 @@ public class AnimationComponent: Component {
 
     func removeAnimationClip(animationClip: String) {
         animationClips.removeValue(forKey: animationClip)
+        compiledClips.removeValue(forKey: animationClip)
+    }
+
+    /// Returns the compiled form of `clip` resolved against `skeleton`,
+    /// compiling and caching it on first use.
+    func compiledClip(for clip: AnimationClip, skeleton: Skeleton) -> CompiledAnimationClip {
+        if let cached = compiledClips[clip.name], cached.jointCount == skeleton.jointPaths.count {
+            return cached
+        }
+        let compiled = CompiledAnimationClip(clip: clip, skeleton: skeleton)
+        compiledClips[clip.name] = compiled
+        return compiled
     }
 }
 
