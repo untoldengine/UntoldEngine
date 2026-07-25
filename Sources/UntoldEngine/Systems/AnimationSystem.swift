@@ -9,6 +9,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import Foundation
+import simd
 
 public final class AnimationSystem: @unchecked Sendable {
     /// Thread-safe shared instance
@@ -163,6 +164,17 @@ private func updateAnimationSystem(deltaTime: Float) {
 
         if isAnimationComponentPaused(entityId: entity) {
             continue
+        }
+
+        // Motion matching may switch the clip/time before this frame's
+        // pose is sampled.
+        if animationComponent.motionMatching.isEnabled {
+            updateMotionMatching(
+                entityId: entity,
+                animationComponent: animationComponent,
+                skeleton: skeletonComponent.skeleton,
+                deltaTime: deltaTime
+            )
         }
 
         animationComponent.currentTime += deltaTime * animationComponent.playbackSpeed
@@ -428,6 +440,69 @@ public func setFootIKGroundQuery(entityId: EntityID, query: FootIKGroundQuery?) 
     }
 }
 
+/// Configures motion matching for the entity (or its descendants that
+/// carry an `AnimationComponent`). The motion database is built lazily on
+/// the first enabled update, from the clips loaded on the entity. Enable
+/// root motion as well — the clips' own travel is what moves the entity.
+public func setMotionMatching(entityId: EntityID, descriptor: MotionMatchingDescriptor) {
+    let animationComponents = animationComponentsForEntityOrDescendants(entityId: entityId)
+    guard animationComponents.isEmpty == false else {
+        handleError(.noAnimationComponent, entityId)
+        return
+    }
+
+    for (_, animationComponent) in animationComponents {
+        animationComponent.motionMatching.descriptor = descriptor
+        animationComponent.motionMatching.anchorEntity = entityId
+        animationComponent.motionMatching.reset()
+    }
+}
+
+public func setMotionMatchingEnabled(entityId: EntityID, enabled: Bool) {
+    let animationComponents = animationComponentsForEntityOrDescendants(entityId: entityId)
+    guard animationComponents.isEmpty == false else {
+        handleError(.noAnimationComponent, entityId)
+        return
+    }
+
+    for (_, animationComponent) in animationComponents {
+        animationComponent.motionMatching.isEnabled = enabled
+        if animationComponent.motionMatching.anchorEntity == .invalid {
+            animationComponent.motionMatching.anchorEntity = entityId
+        }
+    }
+}
+
+public func isMotionMatchingEnabled(entityId: EntityID) -> Bool {
+    let targetEntityId = resolveEntityWithAnimationComponent(entityId: entityId) ?? entityId
+    guard let animationComponent = scene.get(component: AnimationComponent.self, for: targetEntityId) else {
+        handleError(.noAnimationComponent, entityId)
+        return false
+    }
+
+    return animationComponent.motionMatching.isEnabled
+}
+
+/// States the world-space goal motion matching should steer toward —
+/// typically the steering system's desired velocity. `desiredFacing` nil
+/// faces along the desired velocity.
+public func setMotionMatchingGoal(
+    entityId: EntityID,
+    desiredVelocity: simd_float3,
+    desiredFacing: simd_float3? = nil
+) {
+    let animationComponents = animationComponentsForEntityOrDescendants(entityId: entityId)
+    guard animationComponents.isEmpty == false else {
+        handleError(.noAnimationComponent, entityId)
+        return
+    }
+
+    for (_, animationComponent) in animationComponents {
+        animationComponent.motionMatching.desiredVelocity = desiredVelocity
+        animationComponent.motionMatching.desiredFacing = desiredFacing
+    }
+}
+
 public func isRootMotionEnabled(entityId: EntityID) -> Bool {
     let targetEntityId = resolveEntityWithAnimationComponent(entityId: entityId) ?? entityId
     guard let animationComponent = scene.get(component: AnimationComponent.self, for: targetEntityId) else {
@@ -441,11 +516,12 @@ public func isRootMotionEnabled(entityId: EntityID) -> Bool {
 /// Captures inertialization offsets for a clip switch. Falls back to a hard
 /// cut (no transition) when there is nothing to blend from: no clip playing,
 /// no pose displayed yet, no skeleton, or a zero halflife.
-private func beginAnimationTransition(
+func beginAnimationTransition(
     entityId: EntityID,
     animationComponent: AnimationComponent,
     to clip: AnimationClip,
-    halflife: Float
+    halflife: Float,
+    targetTime: Float = 0
 ) {
     guard halflife > 0,
           animationComponent.currentAnimation != nil,
@@ -462,20 +538,20 @@ private func beginAnimationTransition(
         return
     }
 
-    // Sample the incoming clip at its start and one small step later to
-    // estimate its initial velocity. The component sampler rebinds to the
-    // new clip here, which it would do on the next frame anyway.
+    // Sample the incoming clip at its target time and one small step
+    // later to estimate its initial velocity. The component sampler
+    // rebinds to the new clip here, which it would do next frame anyway.
     let velocityStep: Float = 1.0 / 60.0
     animationComponent.sampler.sample(
         compiledClip,
-        time: 0,
+        time: targetTime,
         duration: clip.duration,
         speed: clip.speed,
         into: &animationComponent.transition.scratchTarget
     )
     animationComponent.sampler.sample(
         compiledClip,
-        time: velocityStep,
+        time: targetTime + velocityStep,
         duration: clip.duration,
         speed: clip.speed,
         into: &animationComponent.transition.scratchTargetNext
