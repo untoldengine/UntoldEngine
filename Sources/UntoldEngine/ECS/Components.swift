@@ -194,6 +194,16 @@ public class AnimationComponent: Component {
     var sampler = ClipSampler()
     var localPose = PoseBuffer()
 
+    // Displayed-pose history for inertialized transitions: `localPose` holds
+    // the pose shown last frame (post-transition offsets), `previousPose`
+    // the frame before. The update loop ping-pongs the two buffers so
+    // steady-state playback never allocates.
+    var previousPose = PoseBuffer()
+    var hasSampledPose = false
+    var hasPreviousPose = false
+    var lastSampleDeltaTime: Float = 0
+    var transition = PoseTransition()
+
     public required init() {}
 
     func cleanUp() {
@@ -203,6 +213,11 @@ public class AnimationComponent: Component {
         compiledClips.removeAll()
         sampler = ClipSampler()
         localPose = PoseBuffer()
+        previousPose = PoseBuffer()
+        hasSampledPose = false
+        hasPreviousPose = false
+        lastSampleDeltaTime = 0
+        transition = PoseTransition()
     }
 
     func getAllAnimationClips() -> [String] {

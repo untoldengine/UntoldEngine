@@ -173,6 +173,14 @@ private func updateAnimationSystem(deltaTime: Float) {
             for: animationClip,
             skeleton: skeletonComponent.skeleton
         )
+
+        // Preserve the pose displayed last frame (post-transition offsets)
+        // for velocity estimation when the next transition begins. Swapping
+        // the buffers avoids any copy; the sampler fully overwrites
+        // localPose below.
+        swap(&animationComponent.previousPose, &animationComponent.localPose)
+        animationComponent.hasPreviousPose = animationComponent.hasSampledPose
+
         animationComponent.sampler.sample(
             compiledClip,
             time: animationComponent.currentTime,
@@ -180,6 +188,15 @@ private func updateAnimationSystem(deltaTime: Float) {
             speed: animationClip.speed,
             into: &animationComponent.localPose
         )
+
+        // Transitions decay in real time, independent of playback speed.
+        animationComponent.transition.apply(
+            to: &animationComponent.localPose,
+            deltaTime: deltaTime
+        )
+        animationComponent.hasSampledPose = true
+        animationComponent.lastSampleDeltaTime = deltaTime
+
         skeletonComponent.skeleton.updateWorldPose(
             from: animationComponent.localPose,
             localScales: compiledClip.restScales
@@ -267,7 +284,14 @@ public func isAnimationComponentPaused(entityId: EntityID) -> Bool {
     }
 }
 
-public func changeAnimation(entityId: EntityID, name: String, withPause: Bool = false) {
+/// Switches the entity to the named clip.
+///
+/// With a positive `transitionHalflife`, the switch is inertialized: the
+/// offset between the pose on screen and the incoming clip is captured and
+/// decayed to zero with a critically damped spring, so the character eases
+/// into the new clip instead of popping. `transitionHalflife: 0` reproduces
+/// a hard cut. Playback restarts at the beginning of the new clip.
+public func changeAnimation(entityId: EntityID, name: String, transitionHalflife: Float = 0.1, withPause: Bool = false) {
     guard hasAnyAnimationComponent(entityId: entityId) else {
         handleError(.noAnimationComponent, entityId)
         return
@@ -279,10 +303,77 @@ public func changeAnimation(entityId: EntityID, name: String, withPause: Bool = 
         return
     }
 
-    for (_, animationComponent, animationClip) in matchingComponents {
+    for (targetEntityId, animationComponent, animationClip) in matchingComponents {
+        beginAnimationTransition(
+            entityId: targetEntityId,
+            animationComponent: animationComponent,
+            to: animationClip,
+            halflife: transitionHalflife
+        )
         animationComponent.currentAnimation = animationClip
+        animationComponent.currentTime = 0
         animationComponent.pause = withPause
     }
+}
+
+/// Captures inertialization offsets for a clip switch. Falls back to a hard
+/// cut (no transition) when there is nothing to blend from: no clip playing,
+/// no pose displayed yet, no skeleton, or a zero halflife.
+private func beginAnimationTransition(
+    entityId: EntityID,
+    animationComponent: AnimationComponent,
+    to clip: AnimationClip,
+    halflife: Float
+) {
+    guard halflife > 0,
+          animationComponent.currentAnimation != nil,
+          animationComponent.hasSampledPose,
+          let skeleton = scene.get(component: SkeletonComponent.self, for: entityId)?.skeleton
+    else {
+        animationComponent.transition.cancel()
+        return
+    }
+
+    let compiledClip = animationComponent.compiledClip(for: clip, skeleton: skeleton)
+    guard compiledClip.jointCount == animationComponent.localPose.jointCount else {
+        animationComponent.transition.cancel()
+        return
+    }
+
+    // Sample the incoming clip at its start and one small step later to
+    // estimate its initial velocity. The component sampler rebinds to the
+    // new clip here, which it would do on the next frame anyway.
+    let velocityStep: Float = 1.0 / 60.0
+    animationComponent.sampler.sample(
+        compiledClip,
+        time: 0,
+        duration: clip.duration,
+        speed: clip.speed,
+        into: &animationComponent.transition.scratchTarget
+    )
+    animationComponent.sampler.sample(
+        compiledClip,
+        time: velocityStep,
+        duration: clip.duration,
+        speed: clip.speed,
+        into: &animationComponent.transition.scratchTargetNext
+    )
+
+    // Copy the scratch poses out (COW, no allocation) so the mutating
+    // begin() call does not overlap a read of the same property.
+    let targetPose = animationComponent.transition.scratchTarget
+    let targetNext = animationComponent.transition.scratchTargetNext
+
+    animationComponent.transition.begin(
+        halflife: halflife,
+        sourcePose: animationComponent.localPose,
+        sourcePrevious: animationComponent.previousPose,
+        hasSourcePrevious: animationComponent.hasPreviousPose,
+        sourceDeltaTime: animationComponent.lastSampleDeltaTime,
+        targetPose: targetPose,
+        targetNext: targetNext,
+        targetDeltaTime: velocityStep
+    )
 }
 
 public func setAnimationPlaybackSpeed(entityId: EntityID, speed: Float) {
