@@ -20,7 +20,10 @@ import simd
 
 public class LocalTransformComponent: Component {
     public var position: simd_float3 = .zero
-    public var rotation: simd_quatf = .init()
+    // simd_quatf() is the zero quaternion, not identity: it rotates every vector
+    // to zero, so entities created via registerComponent would silently zero out
+    // any math done with their default rotation.
+    public var rotation: simd_quatf = .init(ix: 0, iy: 0, iz: 0, r: 1)
     public var scale: simd_float3 = .one
 
     public var space: simd_float4x4 = .identity
@@ -255,8 +258,8 @@ public class CameraComponent: Component {
     public var yAxis: simd_float3 = .init(0.0, 0.0, 0.0)
     public var zAxis: simd_float3 = .init(0.0, 0.0, 0.0)
 
-    // quaternion
-    public var rotation: simd_quatf = .init()
+    // quaternion (identity; simd_quatf() would be the zero quaternion)
+    public var rotation: simd_quatf = .init(ix: 0, iy: 0, iz: 0, r: 1)
     var localOrientation: simd_float3 = .init(0.0, 0.0, 0.0)
     public var localPosition: simd_float3 = .init(0.0, 0.0, 0.0)
     var orbitTarget: simd_float3 = .init(0.0, 0.0, 0.0)
