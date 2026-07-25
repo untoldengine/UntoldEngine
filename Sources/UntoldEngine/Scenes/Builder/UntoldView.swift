@@ -16,6 +16,7 @@ public struct UntoldView: View {
     @State private var metalView: MTKView
     private var renderer: UntoldRenderer?
     private var content: [any NodeProtocol] = []
+    private var updateHandler: (@MainActor (UpdateEvent) -> Void)?
 
     public init(renderer: UntoldRenderer? = nil, @SceneBuilder _ content: @escaping @MainActor () -> [any NodeProtocol]) {
         self.renderer = renderer ?? UntoldRenderer.create()
@@ -24,6 +25,20 @@ public struct UntoldView: View {
     }
 
     public var body: some View {
-        SceneView(renderer: renderer)
+        SceneView(renderer: renderer, updateHandler: updateHandler)
+    }
+
+    /// Subscribes to the engine's per-frame update event (RealityKit
+    /// `SceneEvents.Update` style). The handler fires every frame on the main
+    /// thread, regardless of `gameMode`, after simulation and before rendering.
+    ///
+    /// - Warning: Do not mutate SwiftUI `@State` that this view's scene content
+    ///   depends on from inside the handler — that re-evaluates the body every
+    ///   frame and re-runs the scene builder. Keep per-frame values in a
+    ///   reference type or in the ECS.
+    public func onUpdate(_ handler: @escaping @MainActor (UpdateEvent) -> Void) -> UntoldView {
+        var copy = self
+        copy.updateHandler = handler
+        return copy
     }
 }
