@@ -25,6 +25,8 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
     var gameUpdateCallback: ((_ deltaTime: Float) -> Void)?
     var handleInputCallback: (() -> Void)?
 
+    let frameEvents = FrameEventDispatcher()
+
     private var configuration: UntoldRendererConfig
     public var delegate: UntoldRendererDelegate?
     public var pendingResize = false
@@ -141,6 +143,16 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
     ) {
         gameUpdateCallback = gameUpdate
         handleInputCallback = handleInput
+    }
+
+    /// Subscribes to the per-frame update event. Fires once per frame after
+    /// animation/physics/game update and before rendering, regardless of `gameMode`.
+    /// The handler runs on the frame thread: main for MTKView/AR hosts, the
+    /// compositor render thread for XR. The world-access gate is held during
+    /// delivery, so scene mutation is safe inside the handler.
+    @discardableResult
+    public func onUpdate(_ handler: @escaping (UpdateEvent) -> Void) -> EventSubscription {
+        frameEvents.subscribe(handler)
     }
 
     func initResources() {
@@ -608,6 +620,12 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
 
             // user game update
             gameUpdateCallback?(timeSinceLastUpdate)
+        }
+
+        // Per-frame view update event — fires every frame regardless of gameMode
+        // (RealityKit SceneEvents.Update semantics)
+        if frameEvents.hasSubscribers {
+            frameEvents.dispatch(UpdateEvent(deltaTime: TimeInterval(timeSinceLastUpdate), renderer: self))
         }
         EngineProfiler.shared.endScope(.update)
         #if ENGINE_STATS_ENABLED
