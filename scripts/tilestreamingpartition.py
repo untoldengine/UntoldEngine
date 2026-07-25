@@ -73,6 +73,7 @@ from untoldexplorer import (
     extract_scene_payload_from_objects,
     import_usd_asset,
     load_blend_scene,
+    stage_hdr_assets_for_output,
     validate_bake_resolution,
     validate_lut_size,
 )
@@ -4690,6 +4691,14 @@ def run():
     if BAKE_COLOR_MANAGEMENT and (not DRY_RUN or DRY_RUN_WRITE_MANIFEST):
         print_export_stage("Bake color management")
         color_management_bake = bake_color_management_lut(COLOR_LUT_SIZE, Path(output_dir) / "Textures")
+
+    # The world/studio-light HDR environment is scene-wide too, so stage it
+    # once here rather than per-tile -- same reasoning as color management.
+    staged_hdr_assets: list[Path] = []
+    if not DRY_RUN or DRY_RUN_WRITE_MANIFEST:
+        print_export_stage("Stage HDR environment")
+        hdr_asset_path = Path(source_scene_path) if source_scene_path else Path(output_dir)
+        staged_hdr_assets = stage_hdr_assets_for_output(Path(output_dir), hdr_asset_path)
 
     # ------------------------------------------------------------------
     # Gather objects and compute world bounds

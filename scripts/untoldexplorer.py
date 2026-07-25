@@ -3945,19 +3945,19 @@ def _is_hdr_image(image: object, asset_path: Optional[Path] = None) -> bool:
 
 def stage_hdr_source_for_output(
     *,
-    output_path: Path,
+    output_dir: Path,
     context: HDRStagingContext,
     label: str,
     source_path: Optional[Path],
     image_name: Optional[str] = None,
     source_name: Optional[str] = None,
 ) -> Optional[Path]:
-    """Stage an HDR/EXR environment asset beside the exported .untold file.
+    """Stage an HDR/EXR environment asset into output_dir/HDR.
 
     HDR assets are intentionally separate from material textures because they
     use the engine environment/IBL path, not the 8-bit material texture path.
     """
-    hdr_dir = output_path.parent / "HDR"
+    hdr_dir = output_dir / "HDR"
     staging_key = hdr_staging_key(source_path, image_name, label)
 
     existing_destination = context.staged_by_key.get(staging_key)
@@ -4012,11 +4012,11 @@ def stage_hdr_source_for_output(
         return None
 
     context.staged_by_key[staging_key] = destination_path
-    print(f"  Staged HDR environment '{label}' -> {destination_path.relative_to(output_path.parent).as_posix()}", flush=True)
+    print(f"  Staged HDR environment '{label}' -> {destination_path.relative_to(output_dir).as_posix()}", flush=True)
     return destination_path
 
 
-def stage_world_hdr_images_for_output(output_path: Path, asset_path: Path, context: HDRStagingContext) -> list[Path]:
+def stage_world_hdr_images_for_output(output_dir: Path, asset_path: Path, context: HDRStagingContext) -> list[Path]:
     blender_required()
     staged: list[Path] = []
     for world in bpy.data.worlds:
@@ -4037,7 +4037,7 @@ def stage_world_hdr_images_for_output(output_path: Path, asset_path: Path, conte
                 continue
             image_path = _image_absolute_path(image, asset_path)
             staged_path = stage_hdr_source_for_output(
-                output_path=output_path,
+                output_dir=output_dir,
                 context=context,
                 label=f"world:{getattr(world, 'name', 'World')}",
                 source_path=image_path,
@@ -4049,7 +4049,7 @@ def stage_world_hdr_images_for_output(output_path: Path, asset_path: Path, conte
     return staged
 
 
-def stage_material_preview_studio_lights_for_output(output_path: Path, context: HDRStagingContext) -> list[Path]:
+def stage_material_preview_studio_lights_for_output(output_dir: Path, context: HDRStagingContext) -> list[Path]:
     blender_required()
     staged: list[Path] = []
     for screen in bpy.data.screens:
@@ -4073,7 +4073,7 @@ def stage_material_preview_studio_lights_for_output(output_path: Path, context: 
                 if source_path.suffix.lower() not in _HDR_IMAGE_SUFFIXES:
                     continue
                 staged_path = stage_hdr_source_for_output(
-                    output_path=output_path,
+                    output_dir=output_dir,
                     context=context,
                     label=f"material-preview:{studio_light_name or source_path.name}",
                     source_path=source_path,
@@ -4085,12 +4085,12 @@ def stage_material_preview_studio_lights_for_output(output_path: Path, context: 
     return staged
 
 
-def stage_hdr_assets_for_output(output_path: Path, asset_path: Path) -> list[Path]:
+def stage_hdr_assets_for_output(output_dir: Path, asset_path: Path) -> list[Path]:
     if bpy is None:
         return []
     context = HDRStagingContext()
-    staged = stage_world_hdr_images_for_output(output_path, asset_path, context)
-    staged.extend(stage_material_preview_studio_lights_for_output(output_path, context))
+    staged = stage_world_hdr_images_for_output(output_dir, asset_path, context)
+    staged.extend(stage_material_preview_studio_lights_for_output(output_dir, context))
     unique_staged: list[Path] = []
     seen: set[Path] = set()
     for staged_path in staged:
@@ -5999,7 +5999,7 @@ def main(argv: list[str]) -> int:
         )
         print(f"Staging {len(exported_nodes)} node(s) ...", flush=True)
         exported_nodes = stage_nodes_for_output(exported_nodes, output_path)
-        staged_hdr_assets = stage_hdr_assets_for_output(output_path, input_path)
+        staged_hdr_assets = stage_hdr_assets_for_output(output_path.parent, input_path)
         cleanup_material_bake_temp_dir()
         progress.advance("Stage nodes", output_path.name)
 
