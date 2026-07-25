@@ -14,14 +14,18 @@ public struct SceneBuilder {
         []
     }
 
-    /// Single node
-    public static func buildBlock(_ component: any NodeProtocol) -> [any NodeProtocol] {
-        [component]
+    /// Lift each expression to a component so single nodes and for-loop
+    /// results (both `[any NodeProtocol]`) can be combined in the same block.
+    public static func buildExpression(_ node: any NodeProtocol) -> [any NodeProtocol] {
+        [node]
     }
 
-    /// Multiple nodes
-    public static func buildBlock(_ components: any NodeProtocol...) -> [any NodeProtocol] {
-        components
+    public static func buildExpression(_ nodes: [any NodeProtocol]) -> [any NodeProtocol] {
+        nodes
+    }
+
+    public static func buildBlock(_ components: [any NodeProtocol]...) -> [any NodeProtocol] {
+        components.flatMap { $0 }
     }
 
     /// Support conditionals (if/else)

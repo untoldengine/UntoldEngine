@@ -38,6 +38,11 @@ public extension NodeTransform {
         return self
     }
 
+    func translateTo(x: Float = 0, y: Float = 0, z: Float = 0) -> Self {
+        UntoldEngine.translateTo(entityId: entityID, position: simd_float3(x, y, z))
+        return self
+    }
+
     internal func axisToSimdFloat3(_ axis: [Axis]) -> simd_float3 {
         var x: Float = 0, y: Float = 0, z: Float = 0
         for a in axis {
