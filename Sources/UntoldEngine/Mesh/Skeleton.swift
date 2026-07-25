@@ -110,10 +110,71 @@ class Skeleton {
     }
 }
 
+/// Ring of joint-transform buffers so the CPU never rewrites a buffer a
+/// previous frame's GPU work may still be reading.
+///
+/// The animation update runs before the renderer waits on
+/// `commandBufferSemaphore`, so a write can overlap all
+/// `maxInFlightCommandBuffers` frames still executing — the ring therefore
+/// holds one extra slot. Each `write` rotates to the next buffer;
+/// `currentBuffer` is always the most recently written one, so a skin that
+/// stops animating keeps binding a buffer the CPU no longer touches.
+///
+/// This is a class so `Skin` copies (which already share their `MTLBuffer`
+/// storage) also share the write cursor.
+final class JointTransformsRing {
+    private(set) var buffers: [MTLBuffer]
+    private var writeIndex: Int = 0
+    let jointCount: Int
+
+    /// All buffers are pre-filled with identity matrices so the bind pose
+    /// renders correctly before any animation write occurs.
+    init?(jointCount: Int) {
+        let slotCount = maxInFlightCommandBuffers + 1
+        let bufferSize = jointCount * MemoryLayout<simd_float4x4>.stride
+        var buffers: [MTLBuffer] = []
+        buffers.reserveCapacity(slotCount)
+
+        for _ in 0 ..< slotCount {
+            guard let buffer = renderInfo.device.makeBuffer(length: bufferSize) else {
+                handleError(.bufferAllocationFailed, "joint transforms: \(bufferSize) bytes for \(jointCount) joints — device likely under memory pressure")
+                return nil
+            }
+            let pointer = buffer.contents().bindMemory(to: simd_float4x4.self, capacity: jointCount)
+            for jointIndex in 0 ..< jointCount {
+                pointer[jointIndex] = matrix_identity_float4x4
+            }
+            buffers.append(buffer)
+        }
+
+        self.buffers = buffers
+        self.jointCount = jointCount
+    }
+
+    /// The buffer render passes should bind: the most recently written slot.
+    var currentBuffer: MTLBuffer {
+        buffers[writeIndex]
+    }
+
+    /// Rotates to the next slot and fills it via `fill`, which receives a
+    /// typed pointer to the slot's contents.
+    func write(_ fill: (UnsafeMutablePointer<simd_float4x4>) -> Void) {
+        let nextIndex = (writeIndex + 1) % buffers.count
+        let pointer = buffers[nextIndex].contents().bindMemory(to: simd_float4x4.self, capacity: jointCount)
+        fill(pointer)
+        writeIndex = nextIndex
+    }
+}
+
 struct Skin {
     var jointPaths: [String] = []
     var skinToSkeletonMap: [Int] = [] // Maps skin joints to skeleton joints
-    var jointTransformsBuffer: MTLBuffer! // Buffer holding joint transforms
+    var jointTransformsRing: JointTransformsRing!
+
+    /// The joint transforms buffer render passes bind this frame.
+    var jointTransformsBuffer: MTLBuffer! {
+        jointTransformsRing?.currentBuffer
+    }
 
     /// Initializes a Skin object with an animation bind component and a skeleton
     init?(animationBindComponent: MDLAnimationBindComponent?, skeleton: Skeleton?) {
@@ -125,78 +186,59 @@ struct Skin {
         jointPaths = animationBindComponent.jointPaths ?? skeleton.jointPaths
         skinToSkeletonMap = skeleton.mapJoints(from: jointPaths)
 
-        guard let buffer = Skin.createBuffer(for: jointPaths.count) else {
+        guard let ring = JointTransformsRing(jointCount: jointPaths.count) else {
             handleError(.jointBufferFailed)
             return nil
         }
-        jointTransformsBuffer = buffer
+        jointTransformsRing = ring
     }
 
     init?(runtimeSkin: RuntimeSkinBinding) {
         skinToSkeletonMap = runtimeSkin.skinToSkeletonMap
         jointPaths = runtimeSkin.skinToSkeletonMap.map { "joint_\($0)" }
 
-        guard let buffer = Skin.createBuffer(for: jointPaths.count) else {
+        guard let ring = JointTransformsRing(jointCount: jointPaths.count) else {
             handleError(.jointBufferFailed)
             return nil
         }
-        jointTransformsBuffer = buffer
+        jointTransformsRing = ring
     }
 
     /// Initialize a skin object with zero data-for entities with no armature
     init?() {
-        guard let buffer = Skin.createBuffer(for: 1) else {
+        guard let ring = JointTransformsRing(jointCount: 1) else {
             handleError(.jointBufferFailed)
             return nil
         }
 
-        jointTransformsBuffer = buffer
+        jointTransformsRing = ring
     }
 
     /// Clean up
     mutating func cleanUp() {
-        jointTransformsBuffer = nil
+        jointTransformsRing = nil
         jointPaths.removeAll()
         skinToSkeletonMap.removeAll()
     }
 
-    /// Updates the joint transform matrices in the buffer using the skeleton's current pose
+    /// Updates the joint transform matrices in the next ring slot using the
+    /// skeleton's current pose
     func updateJointMatrices(skeleton: Skeleton?) {
         guard let skeletonPose = skeleton?.currentPose else {
             handleError(.noSkeletonPose)
             return
         }
 
-        guard let pointer = Skin.bindBuffer(jointTransformsBuffer, jointCount: jointPaths.count) else {
+        guard let ring = jointTransformsRing else {
             handleError(.jointBindFailed)
             return
         }
 
-        for (index, skinIndex) in skinToSkeletonMap.enumerated() {
-            pointer[index] = skeletonPose[skinIndex]
+        ring.write { pointer in
+            for (index, skinIndex) in skinToSkeletonMap.enumerated() {
+                pointer[index] = skeletonPose[skinIndex]
+            }
         }
-    }
-
-    // MARK: - Private Helpers
-
-    /// Creates a Metal buffer for storing joint transform matrices, pre-filled with
-    /// identity matrices so the bind pose renders correctly before any animation runs.
-    private static func createBuffer(for jointCount: Int) -> MTLBuffer? {
-        let bufferSize = jointCount * MemoryLayout<simd_float4x4>.stride
-        guard let buffer = renderInfo.device.makeBuffer(length: bufferSize) else {
-            handleError(.bufferAllocationFailed, "joint transforms: \(bufferSize) bytes for \(jointCount) joints — device likely under memory pressure")
-            return nil
-        }
-        let ptr = buffer.contents().bindMemory(to: simd_float4x4.self, capacity: jointCount)
-        for i in 0 ..< jointCount {
-            ptr[i] = matrix_identity_float4x4
-        }
-        return buffer
-    }
-
-    /// Binds the Metal buffer and returns a typed pointer
-    private static func bindBuffer(_ buffer: MTLBuffer, jointCount: Int) -> UnsafeMutablePointer<simd_float4x4>? {
-        buffer.contents().bindMemory(to: simd_float4x4.self, capacity: jointCount)
     }
 }
 
