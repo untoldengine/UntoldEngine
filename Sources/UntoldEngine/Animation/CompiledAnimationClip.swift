@@ -58,6 +58,13 @@ final class CompiledAnimationClip {
     let restRotations: [simd_quatf]
     let restScales: [simd_float3]
 
+    /// Root motion metadata: the skeleton's first parentless joint, and the
+    /// root channel's net displacement/yaw over one loop — used to correct
+    /// frame deltas across the loop wrap.
+    let rootJointIndex: Int?
+    let rootTranslationPerLoop: simd_float3
+    let rootYawPerLoop: Float
+
     init(clip: AnimationClip, skeleton: Skeleton) {
         name = clip.name
         jointCount = skeleton.jointPaths.count
@@ -96,5 +103,24 @@ final class CompiledAnimationClip {
         self.restTranslations = restTranslations
         self.restRotations = restRotations
         self.restScales = restScales
+
+        let rootIndex = skeleton.parentIndices.firstIndex(where: { $0 == nil })
+        rootJointIndex = rootIndex
+        if let rootIndex, channels[rootIndex].animated {
+            let rootChannel = channels[rootIndex]
+            if let first = rootChannel.translationValues.first, let last = rootChannel.translationValues.last {
+                rootTranslationPerLoop = last - first
+            } else {
+                rootTranslationPerLoop = .zero
+            }
+            if let first = rootChannel.rotationValues.first, let last = rootChannel.rotationValues.last {
+                rootYawPerLoop = wrapAngle(yawTwist(last).yaw - yawTwist(first).yaw)
+            } else {
+                rootYawPerLoop = 0
+            }
+        } else {
+            rootTranslationPerLoop = .zero
+            rootYawPerLoop = 0
+        }
     }
 }
