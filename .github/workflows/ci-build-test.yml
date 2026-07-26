@@ -68,28 +68,28 @@ jobs:
         env:
           CI: true
 
-      # ⚠️ Disabled: renderer tests are failing in CI - under investigation
-      # - name: Run renderer tests (non-async suites)
-      #   timeout-minutes: 30
-      #   env:
-      #     CI: true
-      #     UNTOLD_PSNR_THRESHOLD: "33.5"   # tweak per suite/scene
-      #     UNTOLD_PYTHON: "python3"
-      #     # UNTOLD_KEEP_ARTIFACTS: "1"    # rarely needed on CI
-      #   run: |
-      #     command -v "${UNTOLD_PYTHON}" >/dev/null 2>&1 || { echo "python not found"; exit 1; }
-      #     swift test -v --disable-swift-testing --parallel --num-workers 1 --filter UntoldEngineRenderTests --skip 'UntoldEngineRenderTests.(AsyncLoadingSystemTest|AsyncMeshLoadingTest|AssetLoadingGateRenderingTests)'
+      # ✅ Run renderer tests (non-async suites)
+      - name: Run renderer tests (non-async suites)
+        timeout-minutes: 30
+        env:
+          CI: true
+          UNTOLD_PSNR_THRESHOLD: "33.5"   # tweak per suite/scene
+          UNTOLD_PYTHON: "python3"
+          # UNTOLD_KEEP_ARTIFACTS: "1"    # rarely needed on CI
+        run: |
+          command -v "${UNTOLD_PYTHON}" >/dev/null 2>&1 || { echo "python not found"; exit 1; }
+          swift test -v --disable-swift-testing --parallel --num-workers 1 --filter UntoldEngineRenderTests --skip 'UntoldEngineRenderTests.(AsyncMeshLoadingTest|AssetLoadingGateRenderingTests)'
 
-      # ⚠️ Disabled: renderer tests are failing in CI - under investigation
-      # - name: Run async renderer tests
-      #   timeout-minutes: 20
-      #   env:
-      #     CI: true
-      #     UNTOLD_PSNR_THRESHOLD: "33.5"
-      #     UNTOLD_PYTHON: "python3"
-      #   run: |
-      #     command -v "${UNTOLD_PYTHON}" >/dev/null 2>&1 || { echo "python not found"; exit 1; }
-      #     swift test -v --disable-swift-testing --parallel --num-workers 1 --filter 'UntoldEngineRenderTests.(AsyncLoadingSystemTest|AsyncMeshLoadingTest|AssetLoadingGateRenderingTests)'
+      # ✅ Run async renderer tests
+      - name: Run async renderer tests
+        timeout-minutes: 20
+        env:
+          CI: true
+          UNTOLD_PSNR_THRESHOLD: "33.5"
+          UNTOLD_PYTHON: "python3"
+        run: |
+          command -v "${UNTOLD_PYTHON}" >/dev/null 2>&1 || { echo "python not found"; exit 1; }
+          swift test -v --disable-swift-testing --parallel --num-workers 1 --filter 'UntoldEngineRenderTests.(AsyncMeshLoadingTest|AssetLoadingGateRenderingTests)'
 
   swift6-guardrails:
     runs-on: macos-26
