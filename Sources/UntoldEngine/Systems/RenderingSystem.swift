@@ -217,6 +217,7 @@ let gameModeReservedPassIDs: Set<String> = [
     "shadow",
     "batchedShadow",
     "spotShadow",
+    "pointShadow",
     "model",
     "batchedModel",
     "hzbDepthSource",
