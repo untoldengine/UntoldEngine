@@ -116,6 +116,15 @@ jobs:
             --skip 'UntoldEngineRenderTests.PerformanceTests/test_EngineProfiler_CPUFrameMetrics'
 
       # ✅ Run async renderer tests
+      #
+      # --num-workers 1 here deliberately, not 4: run 30206576385 (2026-07-26) hit
+      # a hard deadlock on AsyncMeshLoadingTest/testSetEntityMeshAsync_loadsSimpleMesh
+      # at --num-workers 4 — 27 tests ran at normal pace, then zero output for
+      # 18.5 minutes until the 20-minute step timeout killed it. Did not reproduce
+      # locally (3/3 clean passes) even on much stronger hardware, so it looks like
+      # a resource-constrained-CI-runner-specific race in concurrent async asset
+      # loading across worker processes, not a deterministic bug. This step is only
+      # 31 lightweight tests, so running serially costs little wall-clock time.
       - name: Run async renderer tests
         timeout-minutes: 20
         env:
@@ -124,7 +133,7 @@ jobs:
           UNTOLD_PYTHON: "python3"
         run: |
           command -v "${UNTOLD_PYTHON}" >/dev/null 2>&1 || { echo "python not found"; exit 1; }
-          swift test -v --disable-swift-testing --parallel --num-workers 4 --filter 'UntoldEngineRenderTests.(AsyncMeshLoadingTest|AssetLoadingGateRenderingTests)'
+          swift test -v --disable-swift-testing --parallel --num-workers 1 --filter 'UntoldEngineRenderTests.(AsyncMeshLoadingTest|AssetLoadingGateRenderingTests)'
 
   swift6-guardrails:
     runs-on: macos-26
