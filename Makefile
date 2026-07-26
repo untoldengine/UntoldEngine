@@ -37,14 +37,16 @@ testexporter:
 testcore:
 	swift test --filter UntoldEngineTests
 
-testrenderer-smoke:
-	python3 -m pip install --user --break-system-packages opencv-python-headless scikit-image
-	UNTOLD_KEEP_ARTIFACTS=$(KEEP) swift test --filter 'UntoldEngineRenderTests.(RendererTests|LightPortalRendererTests)'
+# Empirically validated on an 18-core/24GB M5 Pro: --num-workers 4 gave a 3-4x
+# wall-clock speedup on both light and heavy (memory-budget-stressing) renderer
+# suites with zero failures. Override with `make testrenderer WORKERS=1` if your
+# machine has less RAM/GPU headroom.
+WORKERS ?= 4
 
 testrenderer:
 	python3 -m pip install --user --break-system-packages --upgrade pip wheel setuptools
 	python3 -m pip install --user --break-system-packages opencv-python-headless scikit-image
-	UNTOLD_KEEP_ARTIFACTS=$(KEEP) swift test --parallel --num-workers 1 --filter UntoldEngineRenderTests
+	UNTOLD_KEEP_ARTIFACTS=$(KEEP) swift test --parallel --num-workers $(WORKERS) --filter UntoldEngineRenderTests
 
 # Required SwiftFormat version
 SWIFTFORMAT_VERSION := 0.60.1

@@ -36,13 +36,13 @@ repos:
         stages: [pre-commit]
       
       - id: run-renderer-tests
-        name: Running Renderer Visual Tests Before Commit
+        name: Running Engine Renderer Tests Before Commit
         entry: |
           bash -c '
-            if ! make testrenderer-smoke; then
+            if ! make testrenderer; then
               echo ""
-              echo "❌ Renderer visual tests failed during pre-commit."
-              echo "🧪 Run the full renderer suite manually with: make testrenderer"
+              echo "❌ Engine Renderer tests failed during pre-commit."
+              echo "🧪 Run them manually with: make testrenderer"
               echo "👉 Or bypass tests with: git commit --no-verify"
               echo ""
               exit 1
