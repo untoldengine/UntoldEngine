@@ -357,11 +357,17 @@ automatically.
 
 1. Enable `Bake Materials` in the export panel (works for both
    `Export A Model` and `Export A Tiled Scene`).
-2. Set `Bake Resolution` (default 1024). To use a different resolution for
-   one specific material, add a custom property to it named
+2. `Bake Resolution` (default 1024) is only a fallback. Each material's
+   actual bake resolution is auto-detected from the largest source texture
+   feeding it, rounded up to a power of two, and never goes below this
+   fallback — a material built from a 4096x4096 photo texture bakes at 4096
+   even if you never touch this setting. The fallback only kicks in for
+   materials with no source texture to detect from (e.g. procedural/
+   solid-color materials). If the auto-detected resolution is ever wrong for
+   a specific material, add a custom property to it named
    `untold_bake_resolution` (Material Properties tab → Custom Properties →
-   Add) set to the resolution you want — it overrides the export-wide
-   setting for that material only.
+   Add) set to the resolution you want — it overrides auto-detection for
+   that material only.
 3. Export as usual.
 
 Baked textures need a UV map. A mesh using a divergent material with no UVs
