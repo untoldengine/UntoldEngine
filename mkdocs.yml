@@ -83,7 +83,6 @@ nav:
     - Rendering Extensions: Architecture/RenderingExtensions.md
     - XR Rendering System: Architecture/xrRenderingSystem.md
     - Asset Format: Architecture/assetFormat.md
-    - Material Node Baking: Architecture/materialNodeBaking.md
     - Scene Channels: Architecture/sceneChannels.md
     - Tile-Based Streaming: Architecture/tilebasedstreaming.md
     - Out-of-Core Geometry: Architecture/outOfCore.md

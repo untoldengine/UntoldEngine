@@ -82,7 +82,7 @@ Common options:
 - `--compress-geometry`: optional, LZ4-compress vertex and index chunks (requires `pip install lz4`)
 - `--optimize`: optional, compress geometry and bake/patch textures after export (implies `--compress-geometry`)
 - `--bake-materials`: optional, bake node-graph materials the engine cannot evaluate (Mix, Math, procedural textures, ...) into flat textures so the export matches Blender
-- `--bake-resolution <pixels>`: optional, square resolution for baked material textures, defaults to `1024`
+- `--bake-resolution <pixels>`: optional, fallback square resolution for baked material textures, defaults to `1024`. Each material's actual bake resolution is normally auto-detected from the largest source texture feeding it (rounded up to a power of two, never below this fallback) — this flag only matters when a material has no source texture to detect from (e.g. a procedural/solid-color material). Override a specific material explicitly via a `material["untold_bake_resolution"]` custom property
 - `--no-bake-cache`: optional, disable the persistent bake cache and force every divergent material to be re-baked
 - `--bake-color-management`: optional, bake the scene's active View Transform/Look/Exposure/Gamma (e.g. Blender's AgX) into an `NxNxN` color-grading LUT so the engine can reproduce Blender's display transform instead of its default ACES Filmic tonemap. The LUT is scene-wide, not per-material — see [Loading Scene-Authored Data](UsingRegistrationSystem.md#loading-scene-authored-data) for how to actually apply it at runtime; it is not loaded by a normal mesh import
 - `--color-lut-size <N>`: optional, grid size for the `NxNxN` color-grading LUT, defaults to `32`
@@ -223,7 +223,7 @@ Common options:
 - `--compress-geometry`: optional LZ4-compress vertex and index chunks in every exported tile payload (requires `pip install lz4`)
 - `--optimize`: optional, compress geometry and bake/patch textures after export (implies `--compress-geometry`)
 - `--bake-materials`: optional, bake node-graph materials the engine cannot evaluate into flat textures
-- `--bake-resolution <pixels>`: optional, square resolution for baked material textures, defaults to `1024`
+- `--bake-resolution <pixels>`: optional, fallback square resolution for baked material textures, defaults to `1024`. Each material's actual bake resolution is normally auto-detected from the largest source texture feeding it (rounded up to a power of two, never below this fallback) — this flag only matters when a material has no source texture to detect from (e.g. a procedural/solid-color material). Override a specific material explicitly via a `material["untold_bake_resolution"]` custom property
 - `--no-bake-cache`: optional, disable the persistent bake cache and force every divergent material to be re-baked
 - `--bake-color-management`: optional, bake the scene's active View Transform/Look/Exposure/Gamma into a scene-wide color-grading LUT, referenced from the manifest's `colorLUT` key. See [Loading Scene-Authored Data](UsingRegistrationSystem.md#loading-scene-authored-data) — it is only applied via an explicit `loadSceneAuthored(url:)` call, not by normal tile loading
 - `--color-lut-size <N>`: optional, grid size for the `NxNxN` color-grading LUT, defaults to `32`

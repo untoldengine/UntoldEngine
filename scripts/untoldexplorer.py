@@ -2068,7 +2068,7 @@ def _resolve_texture_from_socket(input_socket: object, asset_path: Path, visited
     return None
 
 
-# --- Material graph fidelity analysis (see docs/Architecture/materialNodeBaking.md) ---
+# --- Material graph fidelity analysis (see docs/API/UsingBlenderAddon.md#material-node-baking) ---
 #
 # Classifies each material by how faithfully the exporter can represent its node
 # graph, so exports can report exactly which materials will diverge from Blender:
@@ -2224,6 +2224,10 @@ def _material_output_node(node_tree: object) -> Optional[object]:
     return fallback
 
 
+def _principled_bsdf_node(node_tree: object) -> Optional[object]:
+    return next((node for node in getattr(node_tree, "nodes", []) if node.bl_idname == "ShaderNodeBsdfPrincipled"), None)
+
+
 def _group_output_node(node_tree: object) -> Optional[object]:
     for node in getattr(node_tree, "nodes", []):
         if node.bl_idname == "NodeGroupOutput":
@@ -2262,6 +2266,7 @@ def _walk_material_graph(
     visited_nodes: set[int],
     classified: set[tuple[int, str]],
     stop_node_ids: Optional[set[int]] = None,
+    image_sizes: Optional[list[int]] = None,
 ) -> None:
     muted = getattr(node, "mute", False)
     node_key = _graph_node_key(node)
@@ -2278,11 +2283,16 @@ def _walk_material_graph(
         return
     visited_nodes.add(node_key)
 
+    if image_sizes is not None and node.bl_idname == "ShaderNodeTexImage" and node.image is not None:
+        size = getattr(node.image, "size", None)
+        if size is not None and size[0] > 0 and size[1] > 0:
+            image_sizes.append(max(int(size[0]), int(size[1])))
+
     group_tree = getattr(node, "node_tree", None) if node.bl_idname == "ShaderNodeGroup" else None
     if group_tree is not None:
         group_output = _group_output_node(group_tree)
         if group_output is not None:
-            _walk_material_graph(group_output, "", findings, visited_nodes, classified, stop_node_ids)
+            _walk_material_graph(group_output, "", findings, visited_nodes, classified, stop_node_ids, image_sizes)
 
     inputs = getattr(node, "inputs", None)
     if inputs is None:
@@ -2292,7 +2302,9 @@ def _walk_material_graph(
             continue
         for link in getattr(socket, "links", []):
             source_socket_name = getattr(getattr(link, "from_socket", None), "name", "") or ""
-            _walk_material_graph(link.from_node, source_socket_name, findings, visited_nodes, classified, stop_node_ids)
+            _walk_material_graph(
+                link.from_node, source_socket_name, findings, visited_nodes, classified, stop_node_ids, image_sizes
+            )
 
 
 def analyze_material(material: object) -> MaterialGraphAnalysis:
@@ -2412,7 +2424,7 @@ def material_fidelity_report_lines(mesh_objects: Iterable[object]) -> list[str]:
     lines.extend(report.uv_warnings)
     if counts[MATERIAL_GRAPH_BAKEABLE] or counts[MATERIAL_GRAPH_UNBAKEABLE]:
         lines.append("  Materials listed above will render differently in the engine than in Blender.")
-        lines.append("  See docs/Architecture/materialNodeBaking.md for the export-time baking plan.")
+        lines.append("  See docs/API/UsingBlenderAddon.md#material-node-baking for details.")
     return lines
 
 
@@ -2518,6 +2530,35 @@ def _findings_from_socket(socket: object, stop_node_ids: Optional[set[int]] = No
     return findings
 
 
+def _max_upstream_image_dimension(socket: object) -> int:
+    """Largest width/height among ShaderNodeTexImage nodes feeding socket.
+
+    Walks through Mix/Group/etc. nodes the same way bake-need detection does
+    (reuses _walk_material_graph), so it finds a material's own source
+    textures regardless of how many nodes sit between them and the
+    Principled BSDF input.  Used to auto-size a material's bake resolution
+    instead of applying a flat default that can be far below (and blur) a
+    material built from a high-resolution photo texture, or unnecessarily
+    above one built from a small tiling texture.
+    """
+    if socket is None or not getattr(socket, "is_linked", False):
+        return 0
+    findings: list[MaterialGraphFinding] = []
+    visited: set[int] = set()
+    classified: set[tuple[int, str]] = set()
+    image_sizes: list[int] = []
+    for link in getattr(socket, "links", []):
+        source_socket_name = getattr(getattr(link, "from_socket", None), "name", "") or ""
+        _walk_material_graph(link.from_node, source_socket_name, findings, visited, classified, None, image_sizes)
+    return max(image_sizes, default=0)
+
+
+def _next_power_of_two(value: int) -> int:
+    if value <= 1:
+        return 1
+    return 1 << (value - 1).bit_length()
+
+
 def material_bake_plan(material: object) -> dict[str, bool]:
     """Decide per channel whether export-time baking is needed and possible.
 
@@ -2537,7 +2578,7 @@ def material_bake_plan(material: object) -> dict[str, bool]:
     tree = getattr(material, "node_tree", None)
     if tree is None:
         return {}
-    principled = next((node for node in getattr(tree, "nodes", []) if node.bl_idname == "ShaderNodeBsdfPrincipled"), None)
+    principled = _principled_bsdf_node(tree)
     output_node = _material_output_node(tree)
     if principled is None or output_node is None:
         return {}
@@ -2619,24 +2660,52 @@ def _bake_output_filename(mesh_object: object, channel: str) -> str:
     return f"{_safe_bake_stem(mesh_object.name)}_{file_suffix}.png"
 
 
-def _resolution_for_material(material: object, default_resolution: int) -> int:
-    """Per-material bake resolution override via a custom property
-    (material["untold_bake_resolution"]), falling back to the global
-    --bake-resolution default when unset.  Set via Blender's generic Custom
-    Properties panel on the material, or material["untold_bake_resolution"]
-    = 2048 in Python."""
+def _resolution_for_material(material: object, default_resolution: int, plan: Optional[dict[str, bool]] = None) -> int:
+    """Pick the bake resolution for one material.
+
+    An explicit material["untold_bake_resolution"] custom property always
+    wins (set via Blender's generic Custom Properties panel, or
+    material["untold_bake_resolution"] = 2048 in Python) — this remains the
+    manual escape hatch for cases the auto-detection below gets wrong.
+
+    Otherwise the resolution is auto-detected from the material's own source
+    textures: the largest ShaderNodeTexImage feeding any channel `plan` says
+    needs baking sets the floor (rounded up to a power of two), so a
+    material built from e.g. a 4096x4096 photo texture doesn't get flattened
+    to a flat --bake-resolution default and come out visibly blurrier in the
+    engine than the same material looks in Blender. Never goes *below*
+    default_resolution, so materials with only small/no source textures keep
+    today's behavior. Falls back to default_resolution outright when no
+    plan is given or no source texture is found upstream (e.g. a
+    procedural/solid-color material).
+    """
     override = material.get("untold_bake_resolution", None) if hasattr(material, "get") else None
-    if override is None:
+    if override is not None:
+        try:
+            return validate_bake_resolution(int(override))
+        except (TypeError, ValueError, RuntimeError) as exc:
+            print(
+                f"    Warning: invalid untold_bake_resolution on '{material.name}': {override!r} ({exc}); "
+                f"using auto-detected/default resolution",
+                flush=True,
+            )
+
+    if not plan:
         return default_resolution
-    try:
-        return validate_bake_resolution(int(override))
-    except (TypeError, ValueError, RuntimeError) as exc:
-        print(
-            f"    Warning: invalid untold_bake_resolution on '{material.name}': {override!r} ({exc}); "
-            f"using default {default_resolution}",
-            flush=True,
-        )
+    tree = getattr(material, "node_tree", None)
+    principled = _principled_bsdf_node(tree) if tree is not None else None
+    if principled is None:
         return default_resolution
+
+    largest_source = 0
+    for channel, needed in plan.items():
+        if not needed:
+            continue
+        for socket_name in _BAKE_CHANNEL_SOCKETS.get(channel, ()):
+            largest_source = max(largest_source, _max_upstream_image_dimension(principled.inputs.get(socket_name)))
+    if largest_source <= 0:
+        return default_resolution
+    return validate_bake_resolution(max(default_resolution, _next_power_of_two(largest_source)))
 
 
 def _material_node_tree_fingerprint(material: object) -> str:
@@ -2931,7 +3000,9 @@ def bake_divergent_materials(
     object's bake overwriting another's at overlapping UV coordinates.
     material_bake_plan() is only computed once per distinct material and
     reused across its instances, since the plan only depends on the node
-    graph.  resolution is the default; a material can override it via a
+    graph.  resolution is the fallback default; each material's actual bake
+    resolution is auto-detected from its own source textures (see
+    _resolution_for_material()) unless overridden via a
     material["untold_bake_resolution"] custom property.  When asset_path is
     given and use_cache is True, each (mesh, material, channel, resolution)
     combination is looked up in a persistent, content-addressed cache next
@@ -2996,7 +3067,7 @@ def bake_divergent_materials(
         scene.render.threads = 1
         for mesh_object, material, plan in candidates:
             channels = BakedMaterialTextures()
-            material_resolution = _resolution_for_material(material, resolution)
+            material_resolution = _resolution_for_material(material, resolution, plan)
             for channel, needed in plan.items():
                 if not needed:
                     continue
@@ -5919,8 +5990,11 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         "--bake-resolution",
         type=int,
         default=1024,
-        help=f"Square resolution for baked material textures (default: 1024, max: {MAX_BAKE_RESOLUTION}). "
-             f"Override per material via a material['untold_bake_resolution'] custom property.",
+        help=f"Fallback square resolution for baked material textures when a material's own source "
+             f"textures can't be auto-detected (default: 1024, max: {MAX_BAKE_RESOLUTION}). Each "
+             f"material's bake resolution is normally auto-detected from the largest source texture "
+             f"feeding it, rounded up to a power of two, and never goes below this default. Override "
+             f"explicitly via a material['untold_bake_resolution'] custom property.",
     )
     parser.add_argument(
         "--no-bake-cache",

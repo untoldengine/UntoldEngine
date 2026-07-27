@@ -1074,6 +1074,108 @@ class MaterialGraphAnalysisTests(unittest.TestCase):
         mat = self._FakeMaterialWithProps("mat", {"untold_bake_resolution": 999999})
         self.assertEqual(u._resolution_for_material(mat, 1024), u.MAX_BAKE_RESOLUTION)
 
+    def test_next_power_of_two(self) -> None:
+        self.assertEqual(u._next_power_of_two(0), 1)
+        self.assertEqual(u._next_power_of_two(1), 1)
+        self.assertEqual(u._next_power_of_two(2), 2)
+        self.assertEqual(u._next_power_of_two(3), 4)
+        self.assertEqual(u._next_power_of_two(4096), 4096)
+        self.assertEqual(u._next_power_of_two(4097), 8192)
+
+    def test_max_upstream_image_dimension_direct_texture(self) -> None:
+        image = FakeData(filepath="t.png", library=None, size=(2048, 1024), name="t")
+        tex = FakeNode("ShaderNodeTexImage", image=image)
+        tex.name = "tex"
+        principled, _ = _make_principled_output(tex)
+        self.assertEqual(u._max_upstream_image_dimension(principled.inputs["Base Color"]), 2048)
+
+    def test_max_upstream_image_dimension_through_mix_node(self) -> None:
+        """Mirrors a real AO-multiplied-into-diffuse setup: Base Color is fed by a
+        Mix blending a high-res photo texture with a lower-res AO map. The largest
+        of the two source textures should win, regardless of the node sitting
+        between them and the Principled BSDF."""
+        base_color_image = FakeData(filepath="base.tga", library=None, size=(4096, 4096), name="base")
+        base_color_tex = FakeNode("ShaderNodeTexImage", image=base_color_image)
+        base_color_tex.name = "Base Color Tex"
+        ao_image = FakeData(filepath="ao.png", library=None, size=(2048, 2048), name="ao")
+        ao_tex = FakeNode("ShaderNodeTexImage", image=ao_image)
+        ao_tex.name = "AO Tex"
+
+        mix_input_a = FakeSocket("A")
+        mix_input_a.link_from(base_color_tex, "Color")
+        mix_input_b = FakeSocket("B")
+        mix_input_b.link_from(ao_tex, "Color")
+        mix = FakeNode("ShaderNodeMix", inputs={"A": mix_input_a, "B": mix_input_b})
+        mix.name = "Mix"
+
+        principled, _ = _make_principled_output(mix, "Result")
+        self.assertEqual(u._max_upstream_image_dimension(principled.inputs["Base Color"]), 4096)
+
+    def test_max_upstream_image_dimension_no_texture_upstream(self) -> None:
+        mix = FakeNode("ShaderNodeMix")
+        mix.name = "Mix"
+        principled, _ = _make_principled_output(mix, "Result")
+        self.assertEqual(u._max_upstream_image_dimension(principled.inputs["Base Color"]), 0)
+
+    def test_max_upstream_image_dimension_unlinked_socket(self) -> None:
+        principled, _ = _make_principled_output(None)
+        self.assertEqual(u._max_upstream_image_dimension(principled.inputs["Base Color"]), 0)
+
+    def test_resolution_for_material_auto_detects_from_source_texture(self) -> None:
+        image = FakeData(filepath="t.tga", library=None, size=(4096, 4096), name="t")
+        tex = FakeNode("ShaderNodeTexImage", image=image)
+        tex.name = "tex"
+        mix_input = FakeSocket("A")
+        mix_input.link_from(tex, "Color")
+        mix = FakeNode("ShaderNodeMix", inputs={"A": mix_input})
+        mix.name = "Mix"
+        principled, output = _make_principled_output(mix, "Result")
+        material = _make_material("bed_mat", [output, principled, mix, tex])
+        plan = {"base_color": True, "orm": False, "normal": False, "emissive": False}
+
+        self.assertEqual(u._resolution_for_material(material, 1024, plan), 4096)
+
+    def test_resolution_for_material_auto_detected_rounds_up_to_power_of_two(self) -> None:
+        image = FakeData(filepath="t.tga", library=None, size=(3000, 3000), name="t")
+        tex = FakeNode("ShaderNodeTexImage", image=image)
+        tex.name = "tex"
+        principled, output = _make_principled_output(tex)
+        material = _make_material("odd_res_mat", [output, principled, tex])
+        plan = {"base_color": True, "orm": False, "normal": False, "emissive": False}
+
+        self.assertEqual(u._resolution_for_material(material, 1024, plan), 4096)
+
+    def test_resolution_for_material_auto_detected_never_below_default(self) -> None:
+        image = FakeData(filepath="t.png", library=None, size=(512, 512), name="t")
+        tex = FakeNode("ShaderNodeTexImage", image=image)
+        tex.name = "tex"
+        principled, output = _make_principled_output(tex)
+        material = _make_material("small_tex_mat", [output, principled, tex])
+        plan = {"base_color": True, "orm": False, "normal": False, "emissive": False}
+
+        self.assertEqual(u._resolution_for_material(material, 1024, plan), 1024)
+
+    def test_resolution_for_material_falls_back_to_default_without_plan(self) -> None:
+        image = FakeData(filepath="t.tga", library=None, size=(4096, 4096), name="t")
+        tex = FakeNode("ShaderNodeTexImage", image=image)
+        tex.name = "tex"
+        principled, output = _make_principled_output(tex)
+        material = _make_material("no_plan_mat", [output, principled, tex])
+
+        self.assertEqual(u._resolution_for_material(material, 1024, None), 1024)
+        self.assertEqual(u._resolution_for_material(material, 1024, {}), 1024)
+
+    def test_resolution_for_material_override_takes_precedence_over_auto_detected(self) -> None:
+        image = FakeData(filepath="t.tga", library=None, size=(4096, 4096), name="t")
+        tex = FakeNode("ShaderNodeTexImage", image=image)
+        tex.name = "tex"
+        principled, output = _make_principled_output(tex)
+        mat = self._FakeMaterialWithProps("mat", {"untold_bake_resolution": 2048})
+        mat.node_tree = FakeData(nodes=[output, principled, tex])
+        plan = {"base_color": True, "orm": False, "normal": False, "emissive": False}
+
+        self.assertEqual(u._resolution_for_material(mat, 1024, plan), 2048)
+
     def test_material_bake_cache_put_then_get_round_trips(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             cache_dir = Path(tmpdir) / "cache"
