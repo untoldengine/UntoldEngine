@@ -395,10 +395,13 @@ final class GPUMemoryTest: BaseRenderSetup {
             // Should have at least one joint's worth of memory
             XCTAssertGreaterThan(skinMemory, 0, "Skin should have GPU memory for joint transforms")
 
-            // Verify it matches the buffer length
-            if let buffer = testSkin.jointTransformsBuffer {
-                XCTAssertEqual(skinMemory, buffer.length,
-                               "Skin GPU memory should equal joint transforms buffer length")
+            // Verify it matches the whole ring (one buffer per in-flight
+            // frame slot plus one; jointTransformsBuffer is only the
+            // currently bound slot).
+            if let ring = testSkin.jointTransformsRing {
+                let ringTotal = ring.buffers.reduce(0) { $0 + $1.length }
+                XCTAssertEqual(skinMemory, ringTotal,
+                               "Skin GPU memory should equal the total of all joint ring slots")
             }
             return
         }
@@ -406,10 +409,13 @@ final class GPUMemoryTest: BaseRenderSetup {
         // When: Calculate skin GPU memory
         let skinMemory = skin.gpuMemorySize
 
-        // Then: Verify it matches joint transforms buffer
-        if let buffer = skin.jointTransformsBuffer {
-            XCTAssertEqual(skinMemory, buffer.length,
-                           "Skin GPU memory should equal joint transforms buffer length")
+        // Then: Verify it matches the whole ring (one buffer per in-flight
+        // frame slot plus one; jointTransformsBuffer is only the currently
+        // bound slot).
+        if let ring = skin.jointTransformsRing {
+            let ringTotal = ring.buffers.reduce(0) { $0 + $1.length }
+            XCTAssertEqual(skinMemory, ringTotal,
+                           "Skin GPU memory should equal the total of all joint ring slots")
         }
 
         XCTAssertGreaterThan(skinMemory, 0, "Skin should have positive GPU memory")
