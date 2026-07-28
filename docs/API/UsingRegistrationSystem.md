@@ -147,3 +147,7 @@ Important behavior:
 - The color-grading LUT can be toggled off at runtime (e.g. to compare
   against the default tonemap) with `setPostFX(.colorLUT(.enabled(false)))`.
   See [Using Post-Effects](UsingPostFX.md).
+
+See [Using Color Management](UsingColorManagement.md) for the full export +
+load workflow, and [Using Bake Materials](UsingBakeMaterials.md) for the
+related but separate per-material bake (`--bake-materials`).
