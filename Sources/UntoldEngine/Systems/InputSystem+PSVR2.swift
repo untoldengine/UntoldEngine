@@ -94,6 +94,7 @@ extension InputSystem {
             psvr2AccessoryLoadTask = nil
             psvr2AnchorMonitorTask = nil
             if psvr2SpatialControllers.isEmpty {
+                psvr2AccessoriesStorage = []
                 psvr2AccessoryTrackingProviderStorage = nil
                 psvr2SenseControllerState = PSVR2SenseControllerState()
                 NotificationCenter.default.post(name: .psvr2AccessoryTrackingConfigurationDidChange, object: self)
@@ -153,9 +154,7 @@ extension InputSystem {
                         try await accessories.append(Accessory(device: controller))
                     }
                     guard !Task.isCancelled, psvr2AccessoryGeneration == generation else { return }
-                    let provider = AccessoryTrackingProvider(accessories: accessories)
-                    psvr2AccessoryTrackingProviderStorage = provider
-                    monitorPSVR2Anchors(from: provider)
+                    psvr2AccessoriesStorage = accessories
                     NotificationCenter.default.post(
                         name: .psvr2AccessoryTrackingConfigurationDidChange,
                         object: self
@@ -165,6 +164,20 @@ extension InputSystem {
                     Logger.log(message: "PSVR2 accessory loading failed: \(error)")
                 }
             }
+        }
+
+        /// Builds a fresh AccessoryTrackingProvider from the cached accessories and
+        /// re-wires the anchor monitor to it. ARKit data providers are one-shot — an
+        /// instance that has been passed to ARKitSession.run can never be run again —
+        /// so the session owner must call this before every run. Returns nil when no
+        /// PSVR2 accessories have finished loading.
+        public func makePSVR2AccessoryTrackingProviderForSessionRun() -> AccessoryTrackingProvider? {
+            let accessories = psvr2AccessoriesStorage.compactMap { $0 as? Accessory }
+            guard !accessories.isEmpty else { return nil }
+            let provider = AccessoryTrackingProvider(accessories: accessories)
+            psvr2AccessoryTrackingProviderStorage = provider
+            monitorPSVR2Anchors(from: provider)
+            return provider
         }
 
         private func monitorPSVR2Anchors(from provider: AccessoryTrackingProvider) {

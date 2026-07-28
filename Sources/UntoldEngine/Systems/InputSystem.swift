@@ -73,11 +73,19 @@ public final class InputSystem: @unchecked Sendable {
     public var psvr2SenseControllerState = PSVR2SenseControllerState()
     #if os(visionOS)
         var psvr2SpatialControllers: [GCController] = []
+        // Loaded Accessory objects ([Any] to avoid @available on a stored property).
+        // Kept instead of a long-lived provider: ARKit data providers are one-shot,
+        // so a fresh AccessoryTrackingProvider is built from these for every
+        // ARKitSession run (see makePSVR2AccessoryTrackingProviderForSessionRun).
+        var psvr2AccessoriesStorage: [Any] = []
         var psvr2AccessoryTrackingProviderStorage: AnyObject?
         var psvr2AccessoryLoadTask: Task<Void, Never>?
         var psvr2AnchorMonitorTask: Task<Void, Never>?
         var psvr2AccessoryGeneration = 0
 
+        /// The provider most recently created for a session run. May already have
+        /// been run — never pass this to ARKitSession.run again; use
+        /// makePSVR2AccessoryTrackingProviderForSessionRun for that.
         @available(visionOS 26.0, *)
         public var psvr2AccessoryTrackingProvider: AccessoryTrackingProvider? {
             psvr2AccessoryTrackingProviderStorage as? AccessoryTrackingProvider
