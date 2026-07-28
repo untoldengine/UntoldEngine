@@ -87,6 +87,31 @@ For camera controls and path following, see
 [Using the Camera System](UsingCameraSystem.md). For light types, see
 [Using the Lighting System](UsingLightingSystem.md).
 
+## Use Image-Based Lighting (IBL)
+
+Enable IBL to light a scene from an HDR environment instead of (or in addition
+to) authored lights. `.asset` loads the HDR and regenerates the prefiltered IBL
+textures; `.ibl(true)` turns on its contribution to lighting; `.intensity`
+scales that contribution.
+
+```swift
+setRendering(.environment(.ibl(true)))
+setRendering(.environment(.asset("forest.exr")))
+setRendering(.environment(.intensity(0.9)))
+```
+
+`.asset` resolves `forest.exr` against the engine's standard asset search
+(`GameData`, its `HDR/` subfolder, then app/engine bundles) when no `directory`
+is given. Pass `directory:` to load from an explicit location instead.
+
+`loadSceneAuthored` loads a scene's lights, cameras, and color management, but
+never touches IBL — call `setRendering(.environment(...))` separately whenever
+a scene expects image-based lighting.
+
+For lighting modes (`authoredOnly`, `staticIBL`, `realWorldEstimate`) and how
+IBL interacts with Vision Pro environment probes, see
+[Using the Lighting System](UsingLightingSystem.md).
+
 ## Play an Animation
 
 Load the rigged mesh, then register one or more exported animation clips on the
