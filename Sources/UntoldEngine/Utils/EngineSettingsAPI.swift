@@ -77,6 +77,8 @@ public enum RenderingEnvironmentProperty: Sendable {
     case visible(Bool)
     case lightingMode(RuntimeEnvironmentLightingMode)
     case realWorldLightingContribution(Float)
+    /// Scales the intensity of image-based lighting contributed by the environment.
+    case intensity(Float)
     /// Loads an HDR environment asset and regenerates the IBL textures
     /// (mipmaps + pre-filtered irradiance/specular).
     ///
@@ -152,6 +154,8 @@ private func applyRenderingEnvironmentProperty(_ property: RenderingEnvironmentP
         RuntimeEnvironmentLightingStore.shared.mode = value
     case let .realWorldLightingContribution(value):
         RuntimeEnvironmentLightingStore.shared.realWorldLightingContribution = value
+    case let .intensity(value):
+        ambientIntensity = value
     case let .asset(name, directory):
         applyEnvironmentAsset(name, directory: directory)
     }
