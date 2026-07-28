@@ -59,7 +59,10 @@
         private var lastSmoothedLightingTimestamp: CFTimeInterval?
 
         #if canImport(ARKit)
-            private let environmentLightEstimationProvider: EnvironmentLightEstimationProvider?
+            // ARKit data providers are one-shot: an instance that has been passed to
+            // ARKitSession.run can never be run again, so makeProviderForSessionRun
+            // swaps in a fresh instance (guarded by lock) for every session run.
+            private var environmentLightEstimationProvider: EnvironmentLightEstimationProvider?
         #endif
 
         public var minimumProbeUpdateInterval: CFTimeInterval = 0.5
@@ -95,7 +98,7 @@
 
         public var providerSupported: Bool {
             #if canImport(ARKit)
-                environmentLightEstimationProvider != nil
+                EnvironmentLightEstimationProvider.isSupported
             #else
                 false
             #endif
@@ -103,9 +106,28 @@
 
         #if canImport(ARKit)
             public var providerForSession: (any DataProvider)? {
-                guard enabled, let environmentLightEstimationProvider else { return nil }
-                return environmentLightEstimationProvider
+                guard enabled else { return nil }
+                lock.lock()
+                let provider = environmentLightEstimationProvider
+                lock.unlock()
+                return provider
             }
+
+            /// Creates a fresh provider for an ARKitSession run and re-wires the probe
+            /// monitor to it. ARKit data providers are one-shot — an instance that has
+            /// been passed to ARKitSession.run can never be run again — so the session
+            /// owner must call this before every run instead of reusing providerForSession.
+            public func makeProviderForSessionRun() -> (any DataProvider)? {
+                guard enabled, EnvironmentLightEstimationProvider.isSupported else { return nil }
+                let provider = EnvironmentLightEstimationProvider()
+                lock.lock()
+                environmentLightEstimationProvider = provider
+                lock.unlock()
+                restartProbeMonitor(with: provider)
+                return provider
+            }
+        #else
+            public func makeProviderForSessionRun() -> Any? { nil }
         #endif
 
         public func setEnabled(_ enabled: Bool) {
@@ -176,11 +198,21 @@
         #if canImport(ARKit)
             private func startProbeMonitor() {
                 guard probeMonitorTask == nil else { return }
-                guard let provider = environmentLightEstimationProvider else {
+                lock.lock()
+                let provider = environmentLightEstimationProvider
+                lock.unlock()
+                guard let provider else {
                     publishUnavailableProbe(reason: "Environment light estimation unsupported")
                     return
                 }
 
+                restartProbeMonitor(with: provider)
+            }
+
+            /// anchorUpdates streams are tied to a specific provider instance and end
+            /// when that instance stops, so each fresh provider needs a fresh monitor.
+            private func restartProbeMonitor(with provider: EnvironmentLightEstimationProvider) {
+                probeMonitorTask?.cancel()
                 probeMonitorTask = Task(priority: .utility) { [weak self, provider] in
                     for await update in provider.anchorUpdates {
                         if Task.isCancelled { break }

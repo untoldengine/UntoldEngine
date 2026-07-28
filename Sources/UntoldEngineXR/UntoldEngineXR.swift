@@ -59,10 +59,17 @@
         /// Task handle for the plane-update monitor so we can cancel it on shutdown.
         private var planeMonitorTask: Task<Void, Never>?
 
+        /// Task handle for the ARKitSession event monitor (provider state changes,
+        /// authorization changes) so we can cancel it on shutdown.
+        private var sessionEventMonitorTask: Task<Void, Never>?
+
         #if canImport(ARKit)
             private let arSession = ARKitSession()
-            private let worldTracking = WorldTrackingProvider()
-            private let planeDetection = PlaneDetectionProvider(alignments: [.horizontal, .vertical])
+            // ARKit data providers are one-shot: an instance that has been passed to
+            // arSession.run can never be run again, so runARKitProvidersOnce swaps in
+            // freshly created instances (guarded by arKitProviderRunLock) on every run.
+            private var worldTracking = WorldTrackingProvider()
+            private var planeDetection = PlaneDetectionProvider(alignments: [.horizontal, .vertical])
         #else
             private let arSession: Any? = nil
             private let worldTracking: WorldTrackingProvider? = nil
@@ -92,13 +99,11 @@
             configurePSVR2TrackingObserver()
             registerRuntimeLightingModeObserverIfNeeded()
             applyXRLightingMode(RuntimeEnvironmentLightingStore.shared.mode)
+            startSessionEventMonitor()
 
+            // The plane monitor is wired up inside runARKitProvidersOnce, since it
+            // must follow the fresh PlaneDetectionProvider created for each run.
             startARKitProviders(reason: "startup")
-
-            // Start monitoring plane anchor updates in the background.
-            if PlaneDetectionProvider.isSupported {
-                startPlaneMonitor()
-            }
 
             let configuration = layerRenderer.configuration
             _ = configuration.layout
@@ -255,6 +260,8 @@
             lock.unlock()
             planeMonitorTask?.cancel()
             planeMonitorTask = nil
+            sessionEventMonitorTask?.cancel()
+            sessionEventMonitorTask = nil
             xrEnvironmentLightingSystem.setEnabled(false)
             RealSurfacePlaneStore.shared.clear()
         }
@@ -263,6 +270,44 @@
             #if canImport(ARKit)
                 scheduleARKitProviderRun(reason: reason)
             #endif
+        }
+
+        /// Watches ARKitSession.events and logs every provider state change with the
+        /// error ARKit attaches — the only place the system says WHY tracking paused
+        /// or stopped. Also feeds the recovery path so a pause of the current world
+        /// tracking provider is handled event-driven instead of waiting for an anchor
+        /// query to miss.
+        private func startSessionEventMonitor() {
+            #if canImport(ARKit)
+                guard sessionEventMonitorTask == nil else { return }
+                let arSession = arSession
+                sessionEventMonitorTask = Task { [weak self] in
+                    for await event in arSession.events {
+                        guard let self else { break }
+                        if Task.isCancelled { break }
+                        switch event {
+                        case let .dataProviderStateChanged(providers, newState, error):
+                            let names = providers.map { String(describing: type(of: $0)) }.joined(separator: ",")
+                            let errorText = error.map { ", error=\($0)" } ?? ""
+                            print("XR ARKit session event: t=\(xrLogTimestamp()), providers=\(names), newState=\(newState)\(errorText)")
+                            if newState == .paused || newState == .stopped {
+                                let current = currentWorldTracking()
+                                if providers.contains(where: { ($0 as AnyObject) === current }) {
+                                    scheduleWorldTrackingRecoveryIfNeeded()
+                                }
+                            }
+                        case let .authorizationChanged(type, status):
+                            print("XR ARKit session event: t=\(xrLogTimestamp()), authorizationChanged type=\(type), status=\(status)")
+                        default:
+                            print("XR ARKit session event: t=\(xrLogTimestamp()), \(event)")
+                        }
+                    }
+                }
+            #endif
+        }
+
+        private func xrLogTimestamp() -> String {
+            String(format: "%.3f", CACurrentMediaTime())
         }
 
         private func scheduleARKitProviderRun(reason: String) {
@@ -339,10 +384,15 @@
 
         #if canImport(ARKit)
             private func runARKitProvidersOnce(reason: String) async -> Bool {
-                let worldTracking = worldTracking
                 let arSession = arSession
-                let planeDetection = planeDetection
                 let xrEnvironmentLightingSystem = xrEnvironmentLightingSystem
+
+                // ARKit data providers are one-shot: an instance that has already been
+                // passed to arSession.run can never be run again (re-running it leaves
+                // world tracking paused forever). Create fresh instances for every run.
+                let worldTracking = WorldTrackingProvider()
+                let planeDetection = PlaneDetectionProvider(alignments: [.horizontal, .vertical])
+                installFreshARKitProviders(worldTracking: worldTracking, planeDetection: planeDetection)
 
                 let attempt = nextARKitProviderRunAttempt()
                 let startTime = CACurrentMediaTime()
@@ -351,6 +401,7 @@
                     // Check world sensing authorization before attempting plane detection.
                     let authStatus = await arSession.queryAuthorization(for: [.worldSensing])
                     let worldSensingAllowed = authStatus[.worldSensing] != .denied
+                    let authMs = (CACurrentMediaTime() - startTime) * 1000.0
 
                     var providers: [any DataProvider] = [worldTracking]
                     var providerNames = ["WorldTrackingProvider"]
@@ -359,6 +410,7 @@
                         if PlaneDetectionProvider.isSupported {
                             providers.append(planeDetection)
                             providerNames.append("PlaneDetectionProvider")
+                            restartPlaneMonitor(with: planeDetection)
                         } else {
                             print("⚠️ PlaneDetectionProvider is not supported on this device")
                         }
@@ -366,31 +418,32 @@
                         print("⚠️ World sensing authorization denied — plane detection disabled. Grant permission in Settings > Privacy > World Sensing.")
                     }
 
-                    if let lightingProvider = xrEnvironmentLightingSystem.providerForSession {
+                    let lightingProvider = xrEnvironmentLightingSystem.makeProviderForSessionRun()
+                    if let lightingProvider {
                         providers.append(lightingProvider)
                         providerNames.append("EnvironmentLightingProvider")
                     }
 
                     if #available(visionOS 26.0, *),
-                       let accessoryProvider = InputSystem.shared.psvr2AccessoryTrackingProvider
+                       let accessoryProvider = InputSystem.shared.makePSVR2AccessoryTrackingProviderForSessionRun()
                     {
                         providers.append(accessoryProvider)
                         providerNames.append("PSVR2 AccessoryTrackingProvider")
                     }
 
                     let providerList = providerNames.joined(separator: ",")
-                    print("XR ARKit providers run starting: attempt=\(attempt), reason=\(reason), providers=\(providerList), worldSensingAllowed=\(worldSensingAllowed)")
+                    print("XR ARKit providers run starting: t=\(xrLogTimestamp()), attempt=\(attempt), reason=\(reason), providers=\(providerList), worldSensingAllowed=\(worldSensingAllowed), authMs=\(String(format: "%.2f", authMs))")
                     try await arSession.run(providers)
-                    xrEnvironmentLightingSystem.markProviderRunning(xrEnvironmentLightingSystem.providerForSession != nil)
+                    xrEnvironmentLightingSystem.markProviderRunning(lightingProvider != nil)
                     let durationMs = (CACurrentMediaTime() - startTime) * 1000.0
                     let durationText = String(format: "%.2f", durationMs)
-                    print("XR ARKit providers run completed: attempt=\(attempt), durationMs=\(durationText), worldTrackingState=\(String(describing: worldTracking.state))")
+                    print("XR ARKit providers run completed: t=\(xrLogTimestamp()), attempt=\(attempt), durationMs=\(durationText), worldTrackingState=\(String(describing: worldTracking.state))")
                     return true
                 } catch {
                     xrEnvironmentLightingSystem.markProviderRunning(false)
                     let durationMs = (CACurrentMediaTime() - startTime) * 1000.0
                     let durationText = String(format: "%.2f", durationMs)
-                    print("XR ARKit providers run failed: attempt=\(attempt), durationMs=\(durationText), worldTrackingState=\(String(describing: worldTracking.state)), error=\(error)")
+                    print("XR ARKit providers run failed: t=\(xrLogTimestamp()), attempt=\(attempt), durationMs=\(durationText), worldTrackingState=\(String(describing: worldTracking.state)), error=\(error)")
                     print("⚠️ Failed to start ARKit providers: \(error)")
                     return false
                 }
@@ -404,6 +457,29 @@
             arKitProviderRunLock.unlock()
             return attempt
         }
+
+        #if canImport(ARKit)
+            private func installFreshARKitProviders(worldTracking: WorldTrackingProvider, planeDetection: PlaneDetectionProvider) {
+                arKitProviderRunLock.lock()
+                self.worldTracking = worldTracking
+                self.planeDetection = planeDetection
+                arKitProviderRunLock.unlock()
+            }
+
+            private func currentWorldTracking() -> WorldTrackingProvider {
+                arKitProviderRunLock.lock()
+                let provider = worldTracking
+                arKitProviderRunLock.unlock()
+                return provider
+            }
+
+            private func isARKitProviderRunInProgress() -> Bool {
+                arKitProviderRunLock.lock()
+                let inProgress = arKitProviderRunInProgress
+                arKitProviderRunLock.unlock()
+                return inProgress
+            }
+        #endif
 
         private func isRunning() -> Bool {
             lock.lock()
@@ -593,8 +669,11 @@
 
         // MARK: - Plane Detection
 
-        private func startPlaneMonitor() {
-            let planeDetection = planeDetection
+        /// Restarts the plane-update monitor on the given provider. Called from
+        /// runARKitProvidersOnce, since anchorUpdates streams are tied to a specific
+        /// provider instance and end when that instance stops.
+        private func restartPlaneMonitor(with planeDetection: PlaneDetectionProvider) {
+            planeMonitorTask?.cancel()
             planeMonitorTask = Task(priority: .utility) {
                 var trackedPlanes: [UUID: TrackedPlane] = [:]
                 for await update in planeDetection.anchorUpdates {
@@ -856,7 +935,7 @@
                 let layerState = layerRenderer.map { String(describing: $0.state) } ?? "nil"
                 print(
                     "⚠️ \(message): missingFrameCount=\(missingAnchorFrameCount), " +
-                        "worldTrackingState=\(String(describing: worldTracking.state)), " +
+                        "worldTrackingState=\(String(describing: currentWorldTracking().state)), " +
                         "layerState=\(layerState), " +
                         "lastValidAnchorAvailable=\(lastValidDeviceAnchor != nil), " +
                         "xrLightingValid=\(lightingDiagnostics.latestProbeTextureValid), " +
@@ -879,7 +958,7 @@
                 print(
                     "⚠️ XR command buffer semaphore stall: phase=\(phase), waitMs=\(waitText), " +
                         "missingAnchorFrameCount=\(missingAnchorFrameCount), " +
-                        "worldTrackingState=\(String(describing: worldTracking.state)), " +
+                        "worldTrackingState=\(String(describing: currentWorldTracking().state)), " +
                         "layerState=\(layerState), " +
                         "xrLightingValid=\(lightingDiagnostics.latestProbeTextureValid), " +
                         "xrIntensityScale=\(String(describing: lightingDiagnostics.latestIntensityScale)), " +
@@ -895,6 +974,7 @@
 
         private func queryDeviceAnchorIfTrackingRunning(atTimestamp timestamp: TimeInterval) -> DeviceAnchor? {
             #if canImport(ARKit)
+                let worldTracking = currentWorldTracking()
                 guard worldTracking.state == .running else {
                     scheduleWorldTrackingRecoveryIfNeeded()
                     return nil
@@ -908,6 +988,11 @@
 
         private func scheduleWorldTrackingRecoveryIfNeeded() {
             #if canImport(ARKit)
+                // A run in progress means a fresh provider is already starting up;
+                // its state stays .initialized until arSession.run returns, and
+                // scheduling recovery here would just queue a pointless extra run.
+                guard !isARKitProviderRunInProgress() else { return }
+
                 let now = CACurrentMediaTime()
                 guard now - lastWorldTrackingRecoveryAttemptTime >= worldTrackingRecoveryCooldownSeconds else {
                     if shouldLogAnchorDiagnostics() {
@@ -918,9 +1003,10 @@
 
                 lastWorldTrackingRecoveryAttemptTime = now
 
+                let worldTracking = currentWorldTracking()
                 guard worldTracking.state != .running else { return }
                 startARKitProviders(reason: "worldTrackingState=\(String(describing: worldTracking.state))")
-                print("✓ XR ARKit providers recovery scheduled: worldTrackingState=\(String(describing: worldTracking.state)), missingAnchorFrameCount=\(missingAnchorFrameCount)")
+                print("✓ XR ARKit providers recovery scheduled: t=\(xrLogTimestamp()), worldTrackingState=\(String(describing: worldTracking.state)), missingAnchorFrameCount=\(missingAnchorFrameCount)")
             #endif
         }
 
