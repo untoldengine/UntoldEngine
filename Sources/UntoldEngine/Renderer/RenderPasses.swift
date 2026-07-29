@@ -2181,8 +2181,19 @@ public enum RenderPasses {
             return
         }
 
-        // No defer here: the simulator path ends this encoder mid-function and
-        // continues in a second one, so both paths end their encoders explicitly.
+        // Both paths end this encoder explicitly (the simulator path ends it
+        // mid-function and continues in a second one), so the defer is a
+        // safety net only: it fires solely if a future early return leaves
+        // the encoder open. Note the device path's final close is this same
+        // encoder via lightQuadEncoder, so the flag must be set there too.
+        var combinedEncoderClosed = false
+        defer {
+            if !combinedEncoderClosed {
+                renderEncoder.popDebugGroup()
+                renderEncoder.endEncoding()
+            }
+        }
+
         renderEncoder.label = "G-Buffer + Light Pass (TBDR)"
         renderEncoder.pushDebugGroup("G-Buffer + Light Pass (TBDR)")
 
@@ -2405,6 +2416,7 @@ public enum RenderPasses {
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
         renderEncoder.popDebugGroup()
         renderEncoder.endEncoding()
+        combinedEncoderClosed = true
 
         guard let lightPassDescriptor = renderInfo.deferredRenderPassDescriptor else {
             handleError(.renderPassCreationFailed, "Deferred render pass descriptor not initialized")
@@ -2531,6 +2543,9 @@ public enum RenderPasses {
         // in the simulator (its G-buffer encoder was ended above).
         lightQuadEncoder.popDebugGroup()
         lightQuadEncoder.endEncoding()
+        // On device lightQuadEncoder is renderEncoder itself — this close is
+        // the one the safety-net defer is watching.
+        combinedEncoderClosed = true
     }
 
     static let ssaoExecution: RenderPassExecution = { commandBuffer in
