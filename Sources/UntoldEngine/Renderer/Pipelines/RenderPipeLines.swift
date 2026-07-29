@@ -171,51 +171,51 @@ public func CreateTilePipeline(
     name: String
 ) -> RenderPipeline? {
     #if targetEnvironment(simulator)
-    // Tile shaders are unsupported in the simulator; creating the pipeline state
-    // raises a hard assertion (not a catchable error), so bail out before that.
-    Logger.log(message: "Skipping tile pipeline '\(name)': tile shaders are not supported in the simulator")
-    return nil
-    #else
-    let pipelineDescriptor = MTLTileRenderPipelineDescriptor()
-
-    guard let tileLibrary = resolveRenderShaderLibrary(
-        tileShaderLibrary,
-        usage: "tile shader '\(tileShader)'"
-    ) else {
+        // Tile shaders are unsupported in the simulator; creating the pipeline state
+        // raises a hard assertion (not a catchable error), so bail out before that.
+        Logger.log(message: "Skipping tile pipeline '\(name)': tile shaders are not supported in the simulator")
         return nil
-    }
+    #else
+        let pipelineDescriptor = MTLTileRenderPipelineDescriptor()
 
-    do {
-        guard let tileFunction = tileLibrary.makeFunction(name: tileShader) else {
-            handleError(.shaderCreationFailed, tileShader)
+        guard let tileLibrary = resolveRenderShaderLibrary(
+            tileShaderLibrary,
+            usage: "tile shader '\(tileShader)'"
+        ) else {
             return nil
         }
 
-        pipelineDescriptor.label = name
-        pipelineDescriptor.tileFunction = tileFunction
-        pipelineDescriptor.threadgroupSizeMatchesTileSize = true
+        do {
+            guard let tileFunction = tileLibrary.makeFunction(name: tileShader) else {
+                handleError(.shaderCreationFailed, tileShader)
+                return nil
+            }
 
-        for (index, format) in colorFormats.enumerated() {
-            pipelineDescriptor.colorAttachments[index].pixelFormat = format
+            pipelineDescriptor.label = name
+            pipelineDescriptor.tileFunction = tileFunction
+            pipelineDescriptor.threadgroupSizeMatchesTileSize = true
+
+            for (index, format) in colorFormats.enumerated() {
+                pipelineDescriptor.colorAttachments[index].pixelFormat = format
+            }
+
+            let pipelineState = try renderInfo.device.makeRenderPipelineState(
+                tileDescriptor: pipelineDescriptor,
+                options: [],
+                reflection: nil
+            )
+
+            return RenderPipeline(
+                pipelineState: pipelineState,
+                depthState: nil,
+                success: true,
+                name: name
+            )
+
+        } catch {
+            handleError(.pipelineStateCreationFailed, name)
+            return nil
         }
-
-        let pipelineState = try renderInfo.device.makeRenderPipelineState(
-            tileDescriptor: pipelineDescriptor,
-            options: [],
-            reflection: nil
-        )
-
-        return RenderPipeline(
-            pipelineState: pipelineState,
-            depthState: nil,
-            success: true,
-            name: name
-        )
-
-    } catch {
-        handleError(.pipelineStateCreationFailed, name)
-        return nil
-    }
     #endif
 }
 
@@ -334,70 +334,70 @@ public func InitModelPipeline() -> RenderPipeline? {
 /// (deferredRenderPassDescriptor). See combinedModelLightExecution.
 public func InitLightPipeline() -> RenderPipeline? {
     #if targetEnvironment(simulator)
-    return CreatePipeline(
-        vertexShader: "vertexLightShader",
-        fragmentShader: "fragmentLightShader",
-        vertexDescriptor: createLightVertexDescriptor(),
-        colorFormats: [wf.sceneColor],
-        depthFormat: renderInfo.depthPixelFormat,
-        depthCompareFunction: .always,
-        depthEnabled: false,
-        reverseZCompatible: false,
-        name: "Light Pipeline (Simulator)"
-    )
-    #else
-    guard let library = renderInfo.library else {
-        handleError(.metalLibraryNotFound)
-        return nil
-    }
-    guard let vertexFunction = library.makeFunction(name: "vertexLightShader") else {
-        handleError(.shaderCreationFailed, "vertexLightShader")
-        return nil
-    }
-    guard let fragmentFunction = library.makeFunction(name: "fragmentLightShaderTBDR") else {
-        handleError(.shaderCreationFailed, "fragmentLightShaderTBDR")
-        return nil
-    }
-
-    let desc = MTLRenderPipelineDescriptor()
-    desc.label = "Light Pipeline (TBDR)"
-    desc.vertexFunction = vertexFunction
-    desc.fragmentFunction = fragmentFunction
-    desc.vertexDescriptor = createLightVertexDescriptor()
-    desc.depthAttachmentPixelFormat = renderInfo.depthPixelFormat
-    desc.rasterSampleCount = max(1, renderInfo.opaqueSampleCount)
-
-    // G-buffer slots: readable via [[color(N)]] framebuffer fetch; light quad must not write them.
-    let gbufferFormats: [MTLPixelFormat] = [
-        wf.gBufferAlbedo, wf.gBufferNormal, wf.gBufferPosition,
-        wf.gBufferMaterial, wf.gBufferEmissive,
-    ]
-    for (i, fmt) in gbufferFormats.enumerated() {
-        desc.colorAttachments[i].pixelFormat = fmt
-        desc.colorAttachments[i].writeMask = []
-    }
-
-    // Attachment 5: deferredColorMap — the lit output.
-    desc.colorAttachments[5].pixelFormat = wf.sceneColor
-    desc.colorAttachments[5].writeMask = .all
-
-    do {
-        let pipelineState = try renderInfo.device.makeRenderPipelineState(descriptor: desc)
-        let depthDesc = MTLDepthStencilDescriptor()
-        depthDesc.isDepthWriteEnabled = false
-        depthDesc.depthCompareFunction = .always
-        let depthState = renderInfo.device.makeDepthStencilState(descriptor: depthDesc)
-        return RenderPipeline(
-            pipelineState: pipelineState,
-            depthState: depthState,
-            success: true,
-            name: "Light Pipeline (TBDR)",
-            rasterSampleCount: desc.rasterSampleCount
+        return CreatePipeline(
+            vertexShader: "vertexLightShader",
+            fragmentShader: "fragmentLightShader",
+            vertexDescriptor: createLightVertexDescriptor(),
+            colorFormats: [wf.sceneColor],
+            depthFormat: renderInfo.depthPixelFormat,
+            depthCompareFunction: .always,
+            depthEnabled: false,
+            reverseZCompatible: false,
+            name: "Light Pipeline (Simulator)"
         )
-    } catch {
-        handleError(.pipelineStateCreationFailed, "Light Pipeline (TBDR): \(error.localizedDescription)")
-        return nil
-    }
+    #else
+        guard let library = renderInfo.library else {
+            handleError(.metalLibraryNotFound)
+            return nil
+        }
+        guard let vertexFunction = library.makeFunction(name: "vertexLightShader") else {
+            handleError(.shaderCreationFailed, "vertexLightShader")
+            return nil
+        }
+        guard let fragmentFunction = library.makeFunction(name: "fragmentLightShaderTBDR") else {
+            handleError(.shaderCreationFailed, "fragmentLightShaderTBDR")
+            return nil
+        }
+
+        let desc = MTLRenderPipelineDescriptor()
+        desc.label = "Light Pipeline (TBDR)"
+        desc.vertexFunction = vertexFunction
+        desc.fragmentFunction = fragmentFunction
+        desc.vertexDescriptor = createLightVertexDescriptor()
+        desc.depthAttachmentPixelFormat = renderInfo.depthPixelFormat
+        desc.rasterSampleCount = max(1, renderInfo.opaqueSampleCount)
+
+        // G-buffer slots: readable via [[color(N)]] framebuffer fetch; light quad must not write them.
+        let gbufferFormats: [MTLPixelFormat] = [
+            wf.gBufferAlbedo, wf.gBufferNormal, wf.gBufferPosition,
+            wf.gBufferMaterial, wf.gBufferEmissive,
+        ]
+        for (i, fmt) in gbufferFormats.enumerated() {
+            desc.colorAttachments[i].pixelFormat = fmt
+            desc.colorAttachments[i].writeMask = []
+        }
+
+        // Attachment 5: deferredColorMap — the lit output.
+        desc.colorAttachments[5].pixelFormat = wf.sceneColor
+        desc.colorAttachments[5].writeMask = .all
+
+        do {
+            let pipelineState = try renderInfo.device.makeRenderPipelineState(descriptor: desc)
+            let depthDesc = MTLDepthStencilDescriptor()
+            depthDesc.isDepthWriteEnabled = false
+            depthDesc.depthCompareFunction = .always
+            let depthState = renderInfo.device.makeDepthStencilState(descriptor: depthDesc)
+            return RenderPipeline(
+                pipelineState: pipelineState,
+                depthState: depthState,
+                success: true,
+                name: "Light Pipeline (TBDR)",
+                rasterSampleCount: desc.rasterSampleCount
+            )
+        } catch {
+            handleError(.pipelineStateCreationFailed, "Light Pipeline (TBDR): \(error.localizedDescription)")
+            return nil
+        }
     #endif
 }
 

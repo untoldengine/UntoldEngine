@@ -2162,9 +2162,9 @@ public enum RenderPasses {
         // The simulator always stores the G-buffer: its light pass samples it as
         // textures because framebuffer fetch is unsupported there.
         #if targetEnvironment(simulator)
-        let gBufferStoreAction: MTLStoreAction = .store
+            let gBufferStoreAction: MTLStoreAction = .store
         #else
-        let gBufferStoreAction: MTLStoreAction = renderInfo.gBufferDebugStorageEnabled ? .store : .dontCare
+            let gBufferStoreAction: MTLStoreAction = renderInfo.gBufferDebugStorageEnabled ? .store : .dontCare
         #endif
         for i in 0 ..< 5 {
             encoderDescriptor.colorAttachments[i].loadAction = .clear
@@ -2413,46 +2413,46 @@ public enum RenderPasses {
         // (attachments were stored) and light in a second encoder that samples the
         // G-buffer textures with the texture-based fragmentLightShader.
         #if targetEnvironment(simulator)
-        renderEncoder.updateFence(renderInfo.fence, after: .fragment)
-        renderEncoder.popDebugGroup()
-        renderEncoder.endEncoding()
-        combinedEncoderClosed = true
+            renderEncoder.updateFence(renderInfo.fence, after: .fragment)
+            renderEncoder.popDebugGroup()
+            renderEncoder.endEncoding()
+            combinedEncoderClosed = true
 
-        guard let lightPassDescriptor = renderInfo.deferredRenderPassDescriptor else {
-            handleError(.renderPassCreationFailed, "Deferred render pass descriptor not initialized")
-            return
-        }
-        // deferredColorMap was cleared by the G-buffer pass (attachment 5); the
-        // fullscreen quad overwrites every pixel. Preserve opaque depth for
-        // transparency and post-process consumers.
-        lightPassDescriptor.colorAttachments[0].loadAction = .load
-        lightPassDescriptor.colorAttachments[0].storeAction = .store
-        lightPassDescriptor.depthAttachment.loadAction = .load
-        lightPassDescriptor.depthAttachment.storeAction = .store
+            guard let lightPassDescriptor = renderInfo.deferredRenderPassDescriptor else {
+                handleError(.renderPassCreationFailed, "Deferred render pass descriptor not initialized")
+                return
+            }
+            // deferredColorMap was cleared by the G-buffer pass (attachment 5); the
+            // fullscreen quad overwrites every pixel. Preserve opaque depth for
+            // transparency and post-process consumers.
+            lightPassDescriptor.colorAttachments[0].loadAction = .load
+            lightPassDescriptor.colorAttachments[0].storeAction = .store
+            lightPassDescriptor.depthAttachment.loadAction = .load
+            lightPassDescriptor.depthAttachment.storeAction = .store
 
-        guard let lightEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: lightPassDescriptor) else {
-            handleError(.renderPassCreationFailed, "Light Pass (Simulator)")
-            return
-        }
-        lightEncoder.label = "Light Pass (Simulator)"
-        lightEncoder.pushDebugGroup("Light Pass (Simulator)")
-        lightEncoder.waitForFence(renderInfo.fence, before: .fragment)
+            guard let lightEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: lightPassDescriptor) else {
+                handleError(.renderPassCreationFailed, "Light Pass (Simulator)")
+                return
+            }
+            lightEncoder.label = "Light Pass (Simulator)"
+            lightEncoder.pushDebugGroup("Light Pass (Simulator)")
+            lightEncoder.waitForFence(renderInfo.fence, before: .fragment)
 
-        // G-buffer textures (stored by the previous encoder).
-        lightEncoder.setFragmentTexture(textureResources.colorMap, index: Int(lightPassAlbedoTextureIndex.rawValue))
-        lightEncoder.setFragmentTexture(textureResources.normalMap, index: Int(lightPassNormalTextureIndex.rawValue))
-        lightEncoder.setFragmentTexture(textureResources.positionMap, index: Int(lightPassPositionTextureIndex.rawValue))
-        lightEncoder.setFragmentTexture(textureResources.materialMap, index: Int(lightPassMaterialTextureIndex.rawValue))
+            // G-buffer textures (stored by the previous encoder).
+            lightEncoder.setFragmentTexture(textureResources.colorMap, index: Int(lightPassAlbedoTextureIndex.rawValue))
+            lightEncoder.setFragmentTexture(textureResources.normalMap, index: Int(lightPassNormalTextureIndex.rawValue))
+            lightEncoder.setFragmentTexture(textureResources.positionMap, index: Int(lightPassPositionTextureIndex.rawValue))
+            lightEncoder.setFragmentTexture(textureResources.materialMap, index: Int(lightPassMaterialTextureIndex.rawValue))
 
-        // SSAO runs after this pass in the graph (same as the TBDR path, where
-        // ambient occlusion is fixed at 1.0), so disable it here too.
-        lightEncoder.setFragmentTexture(textureResources.ssaoBlurTexture, index: Int(lightPassSSAOTextureIndex.rawValue))
-        var ssaoEnabledForLightPass = false
-        lightEncoder.setFragmentBytes(&ssaoEnabledForLightPass, length: MemoryLayout<Bool>.size, index: Int(lightPassSSAOEnabledIndex.rawValue))
+            // SSAO runs after this pass in the graph (same as the TBDR path, where
+            // ambient occlusion is fixed at 1.0), so disable it here too.
+            lightEncoder.setFragmentTexture(textureResources.ssaoBlurTexture, index: Int(lightPassSSAOTextureIndex.rawValue))
+            var ssaoEnabledForLightPass = false
+            lightEncoder.setFragmentBytes(&ssaoEnabledForLightPass, length: MemoryLayout<Bool>.size, index: Int(lightPassSSAOEnabledIndex.rawValue))
 
-        let lightQuadEncoder: MTLRenderCommandEncoder = lightEncoder
+            let lightQuadEncoder: MTLRenderCommandEncoder = lightEncoder
         #else
-        let lightQuadEncoder: MTLRenderCommandEncoder = renderEncoder
+            let lightQuadEncoder: MTLRenderCommandEncoder = renderEncoder
         #endif
 
         lightQuadEncoder.setRenderPipelineState(lightPipeline.pipelineState!)
@@ -4538,216 +4538,216 @@ public enum RenderPasses {
 
     public static let gaussianExecution: RenderPassExecution = { commandBuffer in
         #if targetEnvironment(simulator)
-        // Gaussian splatting needs tile shaders, which the simulator doesn't
-        // support — the pipelines were never created, so skip quietly.
-        _ = commandBuffer
-        return
+            // Gaussian splatting needs tile shaders, which the simulator doesn't
+            // support — the pipelines were never created, so skip quietly.
+            _ = commandBuffer
+            return
         #else
-        let profileStart = gaussianProfilingStartTime()
-        var profileTotals = GaussianProfileTotals()
-        var activeSplatTotal = 0
+            let profileStart = gaussianProfilingStartTime()
+            var profileTotals = GaussianProfileTotals()
+            var activeSplatTotal = 0
 
-        let pipelines = PipelineManager.shared.renderPipelinesByType
-        guard let initializePipeline = pipelines[.gaussianTBDRInitialize],
-              let drawPipeline = pipelines[.gaussianTBDRDraw],
-              let postprocessPipeline = pipelines[.gaussianTBDRPostprocess]
-        else {
-            handleError(.pipelineStateNulled, "Gaussian TBDR pipelines are nil")
-            return
-        }
-
-        if !initializePipeline.success || !drawPipeline.success || !postprocessPipeline.success {
-            handleError(.pipelineStateNulled, "Gaussian TBDR pipeline creation failed")
-            return
-        }
-
-        guard let camera = CameraSystem.shared.activeCamera, let cameraComponent = scene.get(component: CameraComponent.self, for: camera) else {
-            handleError(.noActiveCamera)
-            return
-        }
-
-        guard let renderPassDescriptor = renderInfo.gaussianRenderPassDescriptor else {
-            handleError(.renderPassCreationFailed, "Gaussian render pass descriptor not initialized")
-            return
-        }
-
-        guard let initializePipelineState = initializePipeline.pipelineState,
-              let drawPipelineState = drawPipeline.pipelineState,
-              let postprocessPipelineState = postprocessPipeline.pipelineState
-        else {
-            handleError(.pipelineStateNulled, "Gaussian TBDR pipeline state is nil")
-            return
-        }
-
-        renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadAction.clear
-        renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 0.0)
-        renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreAction.store
-        renderPassDescriptor.depthAttachment.loadAction = MTLLoadAction.load
-        renderPassDescriptor.depthAttachment.storeAction = MTLStoreAction.store
-        renderPassDescriptor.tileWidth = 32
-        renderPassDescriptor.tileHeight = 32
-        renderPassDescriptor.imageblockSampleLength = initializePipelineState.imageblockSampleLength
-
-        guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
-            handleError(.renderPassCreationFailed, "Gaussian Pass")
-            return
-        }
-
-        renderEncoder.label = "Gaussian Pass"
-
-        renderEncoder.pushDebugGroup("Gaussian Pass")
-
-        renderEncoder.pushDebugGroup("Initialize")
-        renderEncoder.setRenderPipelineState(initializePipelineState)
-        renderEncoder.dispatchThreadsPerTile(MTLSize(width: 32, height: 32, depth: 1))
-        profileTotals.dispatchCount += 1
-        renderEncoder.popDebugGroup()
-
-        renderEncoder.pushDebugGroup("Draw Splats")
-        renderEncoder.setRenderPipelineState(drawPipelineState)
-        renderEncoder.setDepthStencilState(drawPipeline.depthState)
-
-        let transformId = getComponentId(for: WorldTransformComponent.self)
-        let gaussianId = getComponentId(for: GaussianComponent.self)
-        let entities = queryEntitiesWithComponentIds([transformId, gaussianId], in: scene)
-        let effectiveViewMatrix = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
-        let effectiveCameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
-
-        for entityId in entities {
-            guard let gaussianComponent = scene.get(component: GaussianComponent.self, for: entityId) else {
-                handleError(.noGaussianComponent, entityId)
-                continue
-            }
-            profileTotals.include(component: gaussianComponent)
-
-            let activeSplatCount = min(Int(gaussianComponent.visibleSplatCountForRendering), Int(gaussianComponent.splatCount))
-            guard activeSplatCount > 0 else { continue }
-            activeSplatTotal += activeSplatCount
-
-            guard gaussianComponent.encodedSplatData != nil else {
-                handleError(.bufferAllocationFailed, "Encoded Gaussian splat buffer")
-                continue
-            }
-
-            guard let worldTransformComponent = scene.get(component: WorldTransformComponent.self, for: entityId) else {
-                handleError(.noWorldTransformComponent, entityId)
-                continue
-            }
-
-            guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
-                handleError(.noLocalTransformComponent, entityId)
-                continue
-            }
-
-            // update uniforms
-            var gaussianUniform = Uniforms()
-
-            let rootMatrix = worldTransformComponent.space
-            var modelMatrix = simd_mul(rootMatrix, .identity)
-
-            let viewMatrix: simd_float4x4 = effectiveViewMatrix
-
-            let modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
-
-            let upperModelMatrix: matrix_float3x3 = matrix3x3_upper_left(modelMatrix)
-
-            let inverseUpperModelMatrix: matrix_float3x3 = upperModelMatrix.inverse
-
-            let normalMatrix: matrix_float3x3 = inverseUpperModelMatrix.transpose
-
-            gaussianUniform.modelViewMatrix = modelViewMatrix
-
-            gaussianUniform.normalMatrix = normalMatrix
-
-            gaussianUniform.viewMatrix = viewMatrix
-
-            gaussianUniform.modelMatrix = modelMatrix
-
-            gaussianUniform.cameraPosition = effectiveCameraPosition
-
-            gaussianUniform.projectionMatrix = renderInfo.perspectiveSpace
-
-            guard !gaussianComponent.spaceUniform.isEmpty else {
-                handleError(.bufferAllocationFailed, "Gaussian Uniform buffer")
+            let pipelines = PipelineManager.shared.renderPipelinesByType
+            guard let initializePipeline = pipelines[.gaussianTBDRInitialize],
+                  let drawPipeline = pipelines[.gaussianTBDRDraw],
+                  let postprocessPipeline = pipelines[.gaussianTBDRPostprocess]
+            else {
+                handleError(.pipelineStateNulled, "Gaussian TBDR pipelines are nil")
                 return
             }
-            let uniformBufferIndex = min(currentUniformBufferIndex(), gaussianComponent.spaceUniform.count - 1)
 
-            if let gaussianUniformBuffer = gaussianComponent.spaceUniform[uniformBufferIndex] {
-                gaussianUniformBuffer.contents().copyMemory(
-                    from: &gaussianUniform, byteCount: MemoryLayout<Uniforms>.stride
+            if !initializePipeline.success || !drawPipeline.success || !postprocessPipeline.success {
+                handleError(.pipelineStateNulled, "Gaussian TBDR pipeline creation failed")
+                return
+            }
+
+            guard let camera = CameraSystem.shared.activeCamera, let cameraComponent = scene.get(component: CameraComponent.self, for: camera) else {
+                handleError(.noActiveCamera)
+                return
+            }
+
+            guard let renderPassDescriptor = renderInfo.gaussianRenderPassDescriptor else {
+                handleError(.renderPassCreationFailed, "Gaussian render pass descriptor not initialized")
+                return
+            }
+
+            guard let initializePipelineState = initializePipeline.pipelineState,
+                  let drawPipelineState = drawPipeline.pipelineState,
+                  let postprocessPipelineState = postprocessPipeline.pipelineState
+            else {
+                handleError(.pipelineStateNulled, "Gaussian TBDR pipeline state is nil")
+                return
+            }
+
+            renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadAction.clear
+            renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 0.0)
+            renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreAction.store
+            renderPassDescriptor.depthAttachment.loadAction = MTLLoadAction.load
+            renderPassDescriptor.depthAttachment.storeAction = MTLStoreAction.store
+            renderPassDescriptor.tileWidth = 32
+            renderPassDescriptor.tileHeight = 32
+            renderPassDescriptor.imageblockSampleLength = initializePipelineState.imageblockSampleLength
+
+            guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
+                handleError(.renderPassCreationFailed, "Gaussian Pass")
+                return
+            }
+
+            renderEncoder.label = "Gaussian Pass"
+
+            renderEncoder.pushDebugGroup("Gaussian Pass")
+
+            renderEncoder.pushDebugGroup("Initialize")
+            renderEncoder.setRenderPipelineState(initializePipelineState)
+            renderEncoder.dispatchThreadsPerTile(MTLSize(width: 32, height: 32, depth: 1))
+            profileTotals.dispatchCount += 1
+            renderEncoder.popDebugGroup()
+
+            renderEncoder.pushDebugGroup("Draw Splats")
+            renderEncoder.setRenderPipelineState(drawPipelineState)
+            renderEncoder.setDepthStencilState(drawPipeline.depthState)
+
+            let transformId = getComponentId(for: WorldTransformComponent.self)
+            let gaussianId = getComponentId(for: GaussianComponent.self)
+            let entities = queryEntitiesWithComponentIds([transformId, gaussianId], in: scene)
+            let effectiveViewMatrix = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
+            let effectiveCameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
+
+            for entityId in entities {
+                guard let gaussianComponent = scene.get(component: GaussianComponent.self, for: entityId) else {
+                    handleError(.noGaussianComponent, entityId)
+                    continue
+                }
+                profileTotals.include(component: gaussianComponent)
+
+                let activeSplatCount = min(Int(gaussianComponent.visibleSplatCountForRendering), Int(gaussianComponent.splatCount))
+                guard activeSplatCount > 0 else { continue }
+                activeSplatTotal += activeSplatCount
+
+                guard gaussianComponent.encodedSplatData != nil else {
+                    handleError(.bufferAllocationFailed, "Encoded Gaussian splat buffer")
+                    continue
+                }
+
+                guard let worldTransformComponent = scene.get(component: WorldTransformComponent.self, for: entityId) else {
+                    handleError(.noWorldTransformComponent, entityId)
+                    continue
+                }
+
+                guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
+                    handleError(.noLocalTransformComponent, entityId)
+                    continue
+                }
+
+                // update uniforms
+                var gaussianUniform = Uniforms()
+
+                let rootMatrix = worldTransformComponent.space
+                var modelMatrix = simd_mul(rootMatrix, .identity)
+
+                let viewMatrix: simd_float4x4 = effectiveViewMatrix
+
+                let modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
+
+                let upperModelMatrix: matrix_float3x3 = matrix3x3_upper_left(modelMatrix)
+
+                let inverseUpperModelMatrix: matrix_float3x3 = upperModelMatrix.inverse
+
+                let normalMatrix: matrix_float3x3 = inverseUpperModelMatrix.transpose
+
+                gaussianUniform.modelViewMatrix = modelViewMatrix
+
+                gaussianUniform.normalMatrix = normalMatrix
+
+                gaussianUniform.viewMatrix = viewMatrix
+
+                gaussianUniform.modelMatrix = modelMatrix
+
+                gaussianUniform.cameraPosition = effectiveCameraPosition
+
+                gaussianUniform.projectionMatrix = renderInfo.perspectiveSpace
+
+                guard !gaussianComponent.spaceUniform.isEmpty else {
+                    handleError(.bufferAllocationFailed, "Gaussian Uniform buffer")
+                    return
+                }
+                let uniformBufferIndex = min(currentUniformBufferIndex(), gaussianComponent.spaceUniform.count - 1)
+
+                if let gaussianUniformBuffer = gaussianComponent.spaceUniform[uniformBufferIndex] {
+                    gaussianUniformBuffer.contents().copyMemory(
+                        from: &gaussianUniform, byteCount: MemoryLayout<Uniforms>.stride
+                    )
+                } else {
+                    handleError(.bufferAllocationFailed, "Gaussian Uniform buffer")
+                    return
+                }
+
+                // bind data here
+                renderEncoder.setVertexBuffer(
+                    gaussianComponent.gaussianSortedIndices,
+                    offset: 0,
+                    index: Int(gaussianTBDRRenderIndicesIndex.rawValue)
                 )
-            } else {
-                handleError(.bufferAllocationFailed, "Gaussian Uniform buffer")
-                return
+
+                renderEncoder.setVertexBuffer(gaussianComponent.encodedSplatData, offset: 0, index: Int(gaussianTBDRRenderSplatIndex.rawValue))
+                renderEncoder.setVertexBuffer(
+                    gaussianComponent.spaceUniform[uniformBufferIndex], offset: 0, index: Int(gaussianTBDRRenderUniformIndex.rawValue)
+                )
+                renderEncoder.setVertexBytes(&renderInfo.viewPort, length: MemoryLayout<simd_float2>.stride, index: Int(gaussianTBDRRenderViewPortIndex.rawValue))
+
+                var shMetadata = gaussianComponent.sphericalHarmonicsMetadata ?? GaussianSHMetadata(
+                    degree: 0,
+                    coefficientsPerChannel: 0,
+                    higherOrderCoefficientsPerSplat: 0,
+                    _pad0: 0
+                )
+                renderEncoder.setVertexBuffer(
+                    gaussianComponent.sphericalHarmonicsData ?? gaussianComponent.encodedSplatData,
+                    offset: 0,
+                    index: Int(gaussianTBDRRenderSHIndex.rawValue)
+                )
+                renderEncoder.setVertexBytes(
+                    &shMetadata,
+                    length: MemoryLayout<GaussianSHMetadata>.stride,
+                    index: Int(gaussianTBDRRenderSHMetadataIndex.rawValue)
+                )
+                var localCameraPosition = gaussianLocalCameraPosition(
+                    cameraWorldPosition: effectiveCameraPosition,
+                    modelMatrix: modelMatrix
+                )
+                renderEncoder.setVertexBytes(
+                    &localCameraPosition,
+                    length: MemoryLayout<simd_float3>.stride,
+                    index: Int(gaussianTBDRRenderLocalCameraIndex.rawValue)
+                )
+
+                renderEncoder.drawPrimitivesTracked(type: .triangleStrip,
+                                                    vertexStart: 0,
+                                                    vertexCount: 4,
+                                                    instanceCount: activeSplatCount)
+                profileTotals.drawCallCount += 1
             }
 
-            // bind data here
-            renderEncoder.setVertexBuffer(
-                gaussianComponent.gaussianSortedIndices,
-                offset: 0,
-                index: Int(gaussianTBDRRenderIndicesIndex.rawValue)
-            )
+            renderEncoder.popDebugGroup()
 
-            renderEncoder.setVertexBuffer(gaussianComponent.encodedSplatData, offset: 0, index: Int(gaussianTBDRRenderSplatIndex.rawValue))
-            renderEncoder.setVertexBuffer(
-                gaussianComponent.spaceUniform[uniformBufferIndex], offset: 0, index: Int(gaussianTBDRRenderUniformIndex.rawValue)
-            )
-            renderEncoder.setVertexBytes(&renderInfo.viewPort, length: MemoryLayout<simd_float2>.stride, index: Int(gaussianTBDRRenderViewPortIndex.rawValue))
-
-            var shMetadata = gaussianComponent.sphericalHarmonicsMetadata ?? GaussianSHMetadata(
-                degree: 0,
-                coefficientsPerChannel: 0,
-                higherOrderCoefficientsPerSplat: 0,
-                _pad0: 0
-            )
-            renderEncoder.setVertexBuffer(
-                gaussianComponent.sphericalHarmonicsData ?? gaussianComponent.encodedSplatData,
-                offset: 0,
-                index: Int(gaussianTBDRRenderSHIndex.rawValue)
-            )
-            renderEncoder.setVertexBytes(
-                &shMetadata,
-                length: MemoryLayout<GaussianSHMetadata>.stride,
-                index: Int(gaussianTBDRRenderSHMetadataIndex.rawValue)
-            )
-            var localCameraPosition = gaussianLocalCameraPosition(
-                cameraWorldPosition: effectiveCameraPosition,
-                modelMatrix: modelMatrix
-            )
-            renderEncoder.setVertexBytes(
-                &localCameraPosition,
-                length: MemoryLayout<simd_float3>.stride,
-                index: Int(gaussianTBDRRenderLocalCameraIndex.rawValue)
-            )
-
-            renderEncoder.drawPrimitivesTracked(type: .triangleStrip,
-                                                vertexStart: 0,
-                                                vertexCount: 4,
-                                                instanceCount: activeSplatCount)
+            renderEncoder.pushDebugGroup("Postprocess")
+            renderEncoder.setRenderPipelineState(postprocessPipelineState)
+            renderEncoder.setDepthStencilState(postprocessPipeline.depthState)
+            var reverseZ = renderInfo.reverseZEnabled
+            renderEncoder.setFragmentBytes(&reverseZ, length: MemoryLayout<Bool>.stride, index: Int(gaussianTBDRRenderReverseZIndex.rawValue))
+            renderEncoder.drawPrimitivesTracked(type: .triangle, vertexStart: 0, vertexCount: 3)
             profileTotals.drawCallCount += 1
-        }
+            renderEncoder.popDebugGroup()
 
-        renderEncoder.popDebugGroup()
-
-        renderEncoder.pushDebugGroup("Postprocess")
-        renderEncoder.setRenderPipelineState(postprocessPipelineState)
-        renderEncoder.setDepthStencilState(postprocessPipeline.depthState)
-        var reverseZ = renderInfo.reverseZEnabled
-        renderEncoder.setFragmentBytes(&reverseZ, length: MemoryLayout<Bool>.stride, index: Int(gaussianTBDRRenderReverseZIndex.rawValue))
-        renderEncoder.drawPrimitivesTracked(type: .triangle, vertexStart: 0, vertexCount: 3)
-        profileTotals.drawCallCount += 1
-        renderEncoder.popDebugGroup()
-
-        renderEncoder.updateFence(renderInfo.fence, after: .fragment)
-        renderEncoder.popDebugGroup()
-        renderEncoder.endEncoding()
-        logGaussianProfile(
-            stage: "Render",
-            startTime: profileStart,
-            totals: profileTotals,
-            extra: String(format: "activeSplats=%d viewport=%.0fx%.0f tile=32x32", activeSplatTotal, renderInfo.viewPort.x, renderInfo.viewPort.y)
-        )
+            renderEncoder.updateFence(renderInfo.fence, after: .fragment)
+            renderEncoder.popDebugGroup()
+            renderEncoder.endEncoding()
+            logGaussianProfile(
+                stage: "Render",
+                startTime: profileStart,
+                totals: profileTotals,
+                extra: String(format: "activeSplats=%d viewport=%.0fx%.0f tile=32x32", activeSplatTotal, renderInfo.viewPort.x, renderInfo.viewPort.y)
+            )
         #endif
     }
 

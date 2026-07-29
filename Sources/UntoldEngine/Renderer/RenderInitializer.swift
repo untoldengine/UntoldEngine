@@ -113,18 +113,18 @@ func createTexture(
 @inline(__always)
 func requestedOpaqueSampleCount() -> Int {
     #if targetEnvironment(simulator)
-    // The simulator's two-pass deferred fallback samples the G-buffer as
-    // texture2d, which is incompatible with multisampled (memoryless) targets.
-    return 1
-    #else
-    switch antiAliasingMode {
-    case .msaa:
-        let preferredSampleCount = 4
-        guard let device = renderInfo.device else { return 1 }
-        return device.supportsTextureSampleCount(preferredSampleCount) ? preferredSampleCount : 1
-    case .none, .fxaa, .smaa:
+        // The simulator's two-pass deferred fallback samples the G-buffer as
+        // texture2d, which is incompatible with multisampled (memoryless) targets.
         return 1
-    }
+    #else
+        switch antiAliasingMode {
+        case .msaa:
+            let preferredSampleCount = 4
+            guard let device = renderInfo.device else { return 1 }
+            return device.supportsTextureSampleCount(preferredSampleCount) ? preferredSampleCount : 1
+        case .none, .fxaa, .smaa:
+            return 1
+        }
     #endif
 }
 
@@ -455,9 +455,9 @@ func initRenderPassDescriptors() {
     // debug pass can sample them; the simulator always stores them for its
     // texture-based light pass.
     #if targetEnvironment(simulator)
-    let gBufferStoreAction: MTLStoreAction = .store
+        let gBufferStoreAction: MTLStoreAction = .store
     #else
-    let gBufferStoreAction: MTLStoreAction = renderInfo.gBufferDebugStorageEnabled ? .store : .dontCare
+        let gBufferStoreAction: MTLStoreAction = renderInfo.gBufferDebugStorageEnabled ? .store : .dontCare
     #endif
     renderInfo.offscreenRenderPassDescriptor = createRenderPassDescriptor(
         width: Int(renderInfo.viewPort.x),
@@ -587,9 +587,9 @@ func initGBufferTextureResources() {
     // simulator, where the light pass samples the G-buffer as textures because
     // framebuffer fetch is unsupported there.
     #if targetEnvironment(simulator)
-    let gBufferNeedsStorage = true
+        let gBufferNeedsStorage = true
     #else
-    let gBufferNeedsStorage = renderInfo.gBufferDebugStorageEnabled
+        let gBufferNeedsStorage = renderInfo.gBufferDebugStorageEnabled
     #endif
     let gBufferUsage: MTLTextureUsage = gBufferNeedsStorage
         ? [.renderTarget, .shaderRead]
