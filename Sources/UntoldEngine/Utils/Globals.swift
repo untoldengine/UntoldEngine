@@ -1827,6 +1827,31 @@ public final class ColorLUTParams: @unchecked Sendable {
     }
 }
 
+final class SceneAuthoredSourceStore: @unchecked Sendable {
+    static let shared = SceneAuthoredSourceStore()
+
+    private let lock = NSLock()
+    private var storedSource: SceneAssetReference?
+
+    var source: SceneAssetReference? {
+        get {
+            lock.lock()
+            let value = storedSource
+            lock.unlock()
+            return value
+        }
+        set {
+            lock.lock()
+            storedSource = newValue
+            lock.unlock()
+        }
+    }
+
+    func clear() {
+        source = nil
+    }
+}
+
 public final class ColorCorrectionParams: ObservableObject, @unchecked Sendable {
     static let shared = ColorCorrectionParams()
 

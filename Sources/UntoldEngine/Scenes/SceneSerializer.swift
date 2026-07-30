@@ -14,6 +14,7 @@ import simd
 public struct SceneData: Codable {
     var schemaVersion: Int? = 2
     var entities: [EntityData] = []
+    var sceneAuthoredSource: SceneAssetReference? = nil
     var environment: EnvironmentData? = nil
     var toneMapping: ToneMappingData? = nil
     var colorGrading: ColorGradingData? = nil
@@ -26,7 +27,7 @@ public struct SceneData: Codable {
     var antiAliasing: AntiAliasingData? = nil
 }
 
-enum SceneAssetKind: String, Codable {
+enum SceneAssetKind: String, Codable, Equatable {
     case model
     case animation
     case streamModel
@@ -294,7 +295,7 @@ private func projectRelativeAssetPath(for url: URL) -> String? {
     return String(target.dropFirst(prefix.count))
 }
 
-private func sceneAssetReference(kind: SceneAssetKind, url: URL, displayName: String? = nil) -> SceneAssetReference? {
+func sceneAssetReference(kind: SceneAssetKind, url: URL, displayName: String? = nil) -> SceneAssetReference? {
     if kind == .procedural || isProceduralAssetURL(url) {
         return SceneAssetReference(kind: .procedural, path: url.path, displayName: displayName)
     }
@@ -325,7 +326,7 @@ private func legacyAssetURL(for url: URL, reference: SceneAssetReference?) -> UR
     return URL(string: reference.path) ?? url
 }
 
-private func resolvedSceneAssetURL(_ reference: SceneAssetReference) -> URL? {
+func resolvedSceneAssetURL(_ reference: SceneAssetReference) -> URL? {
     if reference.kind == .procedural {
         return URL(fileURLWithPath: reference.path)
     }
@@ -488,6 +489,7 @@ private func applyDeserializedRenderProperties(entityId: EntityID, entityData: E
 
 public func serializeScene() -> SceneData {
     var sceneData = SceneData()
+    sceneData.sceneAuthoredSource = SceneAuthoredSourceStore.shared.source
     var entityIdToUUID: [EntityID: UUID] = [:]
 
     var authoredEntityCount = 0
@@ -901,13 +903,13 @@ public func serializeScene() -> SceneData {
         sceneData.entities.append(entityData)
     }
 
-    // Only serialize environment data if IBL is actually being used
-    if applyIBL || renderEnvironment {
-        // Validate that HDR file actually exists if IBL is enabled
+    // Persist the HDR choice and environment toggles independently. IBL and
+    // environment rendering are separate controls in the editor.
+    if applyIBL || renderEnvironment || hdrURL.isEmpty == false {
         var validatedHDR: String? = hdrURL
         var shouldApplyIBL = applyIBL
 
-        if applyIBL, !hdrURL.isEmpty {
+        if hdrURL.isEmpty == false {
             var hdrExists = false
 
             // Check in user's asset base path (HDR folder)
@@ -928,8 +930,7 @@ public func serializeScene() -> SceneData {
             }
         }
 
-        // Only serialize if we still have a valid configuration
-        if shouldApplyIBL, renderEnvironment {
+        if shouldApplyIBL || renderEnvironment || validatedHDR != nil {
             sceneData.environment = EnvironmentData(
                 applyIBL: shouldApplyIBL,
                 renderEnvironment: renderEnvironment,
@@ -1122,16 +1123,36 @@ public func deserializeScene(
         completion?()
     })
 
+    if let sceneAuthoredSource = sceneData.sceneAuthoredSource {
+        loadTracker.registerLoad()
+        loadSceneAuthoredColorManagement(from: sceneAuthoredSource) { success in
+            if success == false {
+                Logger.logWarning(message: "[SceneSerializer] Failed to restore scene-authored color management")
+            }
+            loadTracker.completeLoad()
+        }
+    } else {
+        SceneAuthoredSourceStore.shared.clear()
+        ColorLUTParams.shared.clear()
+    }
+
     if let env = sceneData.environment {
         applyIBL = env.applyIBL ?? false
         renderEnvironment = env.renderEnvironment ?? false
         ambientIntensity = env.ambientIntensity ?? 0.4
 
-        // Only generate HDR if IBL is explicitly enabled and HDR is specified
-        if applyIBL, let hdr = env.hdr, !hdr.isEmpty {
+        if let hdr = env.hdr, !hdr.isEmpty {
             hdrURL = hdr
-            generateHDR(hdrURL)
+            setRendering(.environment(.asset(hdr)))
+            hdrURL = hdr
+        } else {
+            hdrURL = ""
         }
+    } else {
+        applyIBL = false
+        renderEnvironment = false
+        ambientIntensity = 0.4
+        hdrURL = ""
     }
 
     if let colorGrading = sceneData.colorGrading {

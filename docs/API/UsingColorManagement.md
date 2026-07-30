@@ -74,6 +74,10 @@ and cameras.
 - Calling `loadSceneAuthored` clears any previously-loaded color-grading LUT
   first, then re-populates it only if the asset/manifest actually has one
   baked in.
+- Scenes saved through the Untold scene serializer remember the
+  scene-authored source asset/manifest. Loading that `.untoldscene` re-applies
+  the baked color-grading LUT without duplicating the serialized
+  scene-authored light and camera entities.
 - If the source wasn't exported with `--bake-color-management`, the engine
   silently falls back to its default ACES Filmic tonemap — this is not an
   error, and nothing needs to be toggled off manually.

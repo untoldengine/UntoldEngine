@@ -278,6 +278,8 @@ public func destroyEntity(entityId: EntityID) {
 
 public func destroyAllEntities(completion: (() -> Void)? = nil) {
     enforceRegistrationMainActor()
+    SceneAuthoredSourceStore.shared.clear()
+    ColorLUTParams.shared.clear()
     enqueuePendingDestroyCompletion(completion)
 
     let toDestroy = scene.getAllEntities()
@@ -1424,8 +1426,18 @@ public func loadSceneAuthored(
     withExtension ext: String,
     completion: (@Sendable (Bool) -> Void)? = nil
 ) {
+    loadSceneAuthored(filename: filename, withExtension: ext, registerEntities: true, completion: completion)
+}
+
+private func loadSceneAuthored(
+    filename: String,
+    withExtension ext: String,
+    registerEntities: Bool,
+    completion: (@Sendable (Bool) -> Void)? = nil
+) {
     Task {
         ColorLUTParams.shared.clear()
+        SceneAuthoredSourceStore.shared.clear()
         guard let url = LoadingSystem.shared.resourceURL(
             forResource: filename, withExtension: ext, subResource: nil
         ) else {
@@ -1440,14 +1452,22 @@ public func loadSceneAuthored(
             return
         }
 
+        let sourceReference = sceneAssetReference(
+            kind: .model,
+            url: url,
+            displayName: url.deletingPathExtension().lastPathComponent
+        )
         guard let runtimeAsset = loadUntoldRuntimeAsset(url: url) else {
             completion?(false)
             return
         }
 
         replaceColorManagement(runtimeAsset.colorManagement)
-        withWorldMutationGate {
-            registerUntoldScenePayload(from: runtimeAsset)
+        SceneAuthoredSourceStore.shared.source = sourceReference
+        if registerEntities {
+            withWorldMutationGate {
+                registerUntoldScenePayload(from: runtimeAsset)
+            }
         }
         completion?(true)
     }
@@ -1462,8 +1482,17 @@ public func loadSceneAuthored(
     url manifestURL: URL,
     completion: (@Sendable (Bool) -> Void)? = nil
 ) {
+    loadSceneAuthored(url: manifestURL, registerEntities: true, completion: completion)
+}
+
+private func loadSceneAuthored(
+    url manifestURL: URL,
+    registerEntities: Bool,
+    completion: (@Sendable (Bool) -> Void)? = nil
+) {
     Task {
         ColorLUTParams.shared.clear()
+        SceneAuthoredSourceStore.shared.clear()
         do {
             let localURL: URL
             if manifestURL.scheme?.lowercased() == "https" {
@@ -1482,20 +1511,61 @@ public func loadSceneAuthored(
                 return
             }
 
+            let sourceReference = sceneAssetReference(
+                kind: .streamModel,
+                url: manifestURL,
+                displayName: manifestURL.deletingPathExtension().lastPathComponent
+            )
             let colorManagement = try await manifestColorManagement(
                 tileManifest.colorLUT,
                 manifestURL: manifestURL,
                 localManifestURL: localURL
             )
             replaceColorManagement(colorManagement)
-            withWorldMutationGate {
-                registerManifestScenePayload(tileManifest)
+            SceneAuthoredSourceStore.shared.source = sourceReference
+            if registerEntities {
+                withWorldMutationGate {
+                    registerManifestScenePayload(tileManifest)
+                }
             }
             completion?(true)
         } catch {
             handleError(.manifestNotFound, error.localizedDescription, manifestURL.lastPathComponent)
             completion?(false)
         }
+    }
+}
+
+func loadSceneAuthoredColorManagement(
+    from source: SceneAssetReference,
+    completion: (@Sendable (Bool) -> Void)? = nil
+) {
+    switch source.kind {
+    case .model:
+        guard let url = resolvedSceneAssetURL(source) else {
+            ColorLUTParams.shared.clear()
+            SceneAuthoredSourceStore.shared.clear()
+            completion?(false)
+            return
+        }
+        loadSceneAuthored(
+            filename: url.path,
+            withExtension: url.pathExtension,
+            registerEntities: false,
+            completion: completion
+        )
+    case .streamModel:
+        guard let url = resolvedSceneAssetURL(source) else {
+            ColorLUTParams.shared.clear()
+            SceneAuthoredSourceStore.shared.clear()
+            completion?(false)
+            return
+        }
+        loadSceneAuthored(url: url, registerEntities: false, completion: completion)
+    case .animation, .procedural:
+        ColorLUTParams.shared.clear()
+        SceneAuthoredSourceStore.shared.clear()
+        completion?(false)
     }
 }
 
@@ -1574,6 +1644,7 @@ public func setEntityMeshDirect(entityId: EntityID, meshes: [Mesh], assetName: S
 /// Called by registerTiledScene before registering new tile stubs.
 private func clearScene() {
     ColorLUTParams.shared.clear()
+    SceneAuthoredSourceStore.shared.clear()
     for entity in scene.getAllEntities() {
         destroyEntity(entityId: entity)
     }
