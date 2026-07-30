@@ -87,6 +87,8 @@ setAnimationPolicy(entityId: zombie, policy: .forceOff)
 // Restore the default layered behavior.
 setAnimationPolicy(entityId: zombie, policy: .inherit)
 
+// nil means descendants disagree (a policy was set on an individual
+// child instead of the asset root) — treat as "mixed".
 let policy = getAnimationPolicy(entityId: zombie)
 ```
 

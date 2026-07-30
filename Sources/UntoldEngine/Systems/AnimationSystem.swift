@@ -224,14 +224,23 @@ public func setAnimationPolicy(entityId: EntityID, policy: AnimationPolicy) {
     }
 }
 
-public func getAnimationPolicy(entityId: EntityID) -> AnimationPolicy {
-    let targetEntityId = resolveEntityWithAnimationComponent(entityId: entityId) ?? entityId
-    guard let animationComponent = scene.get(component: AnimationComponent.self, for: targetEntityId) else {
+/// Returns the policy shared by the entity's (or its descendants')
+/// animation components, or nil when they disagree — mirroring how
+/// `setAnimationPolicy` applies to every descendant. A nil result means a
+/// policy was set on an individual child rather than the asset root;
+/// callers building UI or LOD logic on top should treat it as "mixed"
+/// rather than assuming any single value.
+public func getAnimationPolicy(entityId: EntityID) -> AnimationPolicy? {
+    let animationComponents = animationComponentsForEntityOrDescendants(entityId: entityId)
+    guard let firstPolicy = animationComponents.first?.1.policy else {
         handleError(.noAnimationComponent, entityId)
-        return .inherit
+        return nil
     }
 
-    return animationComponent.policy
+    let allAgree = animationComponents.allSatisfy { _, animationComponent in
+        animationComponent.policy == firstPolicy
+    }
+    return allAgree ? firstPolicy : nil
 }
 
 public func pauseAnimationComponent(entityId: EntityID, isPaused: Bool) {
