@@ -59,9 +59,9 @@
         private var lastSmoothedLightingTimestamp: CFTimeInterval?
 
         #if canImport(ARKit)
-            // ARKit data providers are one-shot: an instance that has been passed to
-            // ARKitSession.run can never be run again, so makeProviderForSessionRun
-            // swaps in a fresh instance (guarded by lock) for every session run.
+            /// ARKit data providers are one-shot: an instance that has been passed to
+            /// ARKitSession.run can never be run again, so makeProviderForSessionRun
+            /// swaps in a fresh instance (guarded by lock) for every session run.
             private var environmentLightEstimationProvider: EnvironmentLightEstimationProvider?
         #endif
 
@@ -127,7 +127,9 @@
                 return provider
             }
         #else
-            public func makeProviderForSessionRun() -> Any? { nil }
+            public func makeProviderForSessionRun() -> Any? {
+                nil
+            }
         #endif
 
         public func setEnabled(_ enabled: Bool) {
