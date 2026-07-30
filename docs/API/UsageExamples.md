@@ -87,6 +87,66 @@ For camera controls and path following, see
 [Using the Camera System](UsingCameraSystem.md). For light types, see
 [Using the Lighting System](UsingLightingSystem.md).
 
+## Load Blender-Authored Lights, Cameras, and Color Management
+
+When a `.untold` asset or tiled scene manifest was exported with scene-authored
+data, load that data separately from the mesh. `setEntityMesh` and
+`setEntityMeshAsync` load geometry and materials; `loadSceneAuthored` registers
+the Blender-authored lights/cameras and installs any baked color-management LUT
+from `--bake-color-management`.
+
+```swift
+setSceneReady(false)
+
+let office = createEntity()
+setEntityName(entityId: office, name: "office")
+
+setEntityMeshAsync(entityId: office, filename: "office", withExtension: "untold") { meshLoaded in
+    guard meshLoaded else {
+        setSceneReady(false)
+        return
+    }
+
+    loadSceneAuthored(filename: "office", withExtension: "untold") { authoredLoaded in
+        setSceneReady(authoredLoaded)
+    }
+}
+```
+
+For tiled scenes, load the manifest geometry and scene-authored payload from the
+same manifest:
+
+```swift
+setSceneReady(false)
+
+let city = createEntity()
+setEntityName(entityId: city, name: "city")
+
+setEntityStreamScene(entityId: city, manifest: "city", withExtension: "json") { streamLoaded in
+    guard streamLoaded,
+          let manifestURL = LoadingSystem.shared.resourceURL(
+              forResource: "city",
+              withExtension: "json",
+              subResource: nil
+          )
+    else {
+        setSceneReady(false)
+        return
+    }
+
+    loadSceneAuthored(url: manifestURL) { authoredLoaded in
+        setSceneReady(authoredLoaded)
+    }
+}
+```
+
+This is separate from HDR image-based lighting. If the scene also needs an HDR
+environment, configure it with `setRendering(.environment(...))`.
+
+For the full workflow, see
+[Using the Registration System](UsingRegistrationSystem.md#loading-scene-authored-data)
+and [Using Color Management](UsingColorManagement.md).
+
 ## Use Image-Based Lighting (IBL)
 
 Enable IBL to light a scene from an HDR environment instead of (or in addition
@@ -104,9 +164,10 @@ setRendering(.environment(.intensity(0.9)))
 (`GameData`, its `HDR/` subfolder, then app/engine bundles) when no `directory`
 is given. Pass `directory:` to load from an explicit location instead.
 
+When loading raw `.untold` assets or tiled manifests manually,
 `loadSceneAuthored` loads a scene's lights, cameras, and color management, but
-never touches IBL — call `setRendering(.environment(...))` separately whenever
-a scene expects image-based lighting.
+does not configure IBL — call `setRendering(.environment(...))` separately
+whenever a scene expects image-based lighting.
 
 For lighting modes (`authoredOnly`, `staticIBL`, `realWorldEstimate`) and how
 IBL interacts with Vision Pro environment probes, see
