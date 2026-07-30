@@ -60,11 +60,42 @@ final class AnimationPolicyTests: XCTestCase {
         XCTAssertEqual(getAnimationPolicy(entityId: entityId), .inherit)
     }
 
-    func testGetPolicyWithoutAnimationComponentReturnsInherit() {
+    func testGetPolicyWithoutAnimationComponentReturnsNil() {
         let bareEntity = createEntity()
         defer { destroyEntity(entityId: bareEntity) }
 
-        XCTAssertEqual(getAnimationPolicy(entityId: bareEntity), .inherit)
+        XCTAssertNil(getAnimationPolicy(entityId: bareEntity))
+    }
+
+    func testDivergentDescendantPoliciesReadBackAsNil() {
+        // A second animated child under a common root, with a policy set on
+        // one child directly instead of the root.
+        let rootId = createEntity()
+        registerComponent(entityId: rootId, componentType: LocalTransformComponent.self)
+        registerComponent(entityId: rootId, componentType: WorldTransformComponent.self)
+        registerComponent(entityId: rootId, componentType: ScenegraphComponent.self)
+        let siblingId = createEntity()
+        registerComponent(entityId: siblingId, componentType: AnimationComponent.self)
+        registerComponent(entityId: siblingId, componentType: LocalTransformComponent.self)
+        registerComponent(entityId: siblingId, componentType: WorldTransformComponent.self)
+        registerComponent(entityId: siblingId, componentType: ScenegraphComponent.self)
+        registerComponent(entityId: entityId, componentType: LocalTransformComponent.self)
+        registerComponent(entityId: entityId, componentType: WorldTransformComponent.self)
+        defer {
+            destroyEntity(entityId: siblingId)
+            destroyEntity(entityId: rootId)
+        }
+
+        setParent(childId: entityId, parentId: rootId)
+        setParent(childId: siblingId, parentId: rootId)
+
+        // Diverge: one child forced off, the other left at inherit.
+        setAnimationPolicy(entityId: entityId, policy: .forceOff)
+        XCTAssertNil(getAnimationPolicy(entityId: rootId), "Divergent descendant policies must not be masked")
+
+        // Setting on the root restores agreement.
+        setAnimationPolicy(entityId: rootId, policy: .forceOn)
+        XCTAssertEqual(getAnimationPolicy(entityId: rootId), .forceOn)
     }
 
     // MARK: - Hierarchical resolution
