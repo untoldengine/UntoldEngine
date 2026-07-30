@@ -30,16 +30,39 @@
 
 # Untold Engine
 
-Untold Engine is a **Swift + Metal 3D engine for macOS, iOS, and visionOS** — with native Apple Vision Pro support and a growing focus on spatial computing — built for developers who:
+Untold Engine is an **open-source Swift/Metal XR engine for
+high-performance Apple-platform spatial visualization apps**, giving
+developers full control over rendering, shaders, and the engine pipeline.
 
-- Want **full control over rendering and systems**
-- Prefer working directly with **Swift + Metal**
-- Are building **XR, 3D, or visualization applications**
-- Need to handle **large scenes, streaming data, or custom pipelines**
+Untold Engine is built for developers and teams who:
 
-If you've hit the ceiling of what existing engines allow on Apple platforms, this is for you.
+- Need **full control over Metal rendering, shaders, and engine systems**
+- Prefer a native **Swift + Metal** architecture on Apple platforms
+- Are building **XR, 3D, or spatial visualization applications**
+- Need to handle **large scenes, streaming data, or custom asset pipelines**
+- Want an open engine they can inspect, modify, extend, and embed
+
+Creator & Lead Developer:  
+https://www.haroldserrano.com
 
 ![untoldengine-image](/docs/images/engine-highlight-5.png)
+
+---
+
+## Built For
+
+Untold Engine is designed for developers building custom spatial visualization
+software on Apple platforms, including:
+
+- Vision Pro and spatial computing apps
+- Architectural walkthroughs and large-scene visualizers
+- Product configurators and digital showrooms
+- Industrial visualization and digital twin viewers
+- Training simulators and interactive 3D tools
+- Custom rendering pipelines and research prototypes
+
+The engine owns the rendering and XR foundation. Your app owns the vertical
+workflow, product experience, and customer-specific behavior.
 
 ---
 
@@ -58,12 +81,7 @@ If you've hit the ceiling of what existing engines allow on Apple platforms, thi
   </tr>
 </table>
 
-Creator & Lead Developer:  
-http://www.haroldserrano.com
-
----
-
-## 🚀 Try the Engine Right Now
+## Try the Engine Right Now
 
 The best first step is to run the Starter Demo. It is intentionally small and
 shows the basic shape of an Untold Engine app without the extra systems used by
@@ -104,12 +122,12 @@ Engine as a package dependency.
 
 ## Getting Started
 
-To create your own project/game using the Untold Engine, see 
+To create your own XR, 3D, or spatial visualization app using Untold Engine, see
 [Getting Started](https://untoldengine.github.io/UntoldEngine/API/GettingStarted/).
 
 ![untoldengine-image-3](/docs/images/engine-highlight-4.png)
 
-## 🧱 Core Direction
+## Core Direction
 
 Untold Engine is built around three focused goals:
 
@@ -117,25 +135,27 @@ Untold Engine is built around three focused goals:
 
 - **XR / visionOS Support** — Spatial input, AR workflows, and Vision Pro support are functional today and expanding with each release.
 
-- **Metal-First Architecture** — The rendering layer stays close to Metal to maintain performance and control, without abstraction layers getting in the way.
+- **Metal-First Architecture** — The rendering layer stays close to Metal to maintain performance, shader control, and pipeline flexibility without abstraction layers getting in the way.
 
 ---
 
-## 🖼 Example Use Cases
+## Example Use Cases
 
 Untold Engine is well-suited for:
 
-- XR applications (Vision Pro, ARKit-based apps)
-- Large-scale scene visualization (cities, archviz, datasets)
-- Custom rendering pipelines and experiments
-- Simulation tools and interactive 3D systems
+- Vision Pro and ARKit-based visualization apps
+- Large-scale scene visualization: interiors, archviz, cities, datasets
+- Product configurators and digital showrooms
+- Industrial visualization and digital twin viewers
+- Simulation tools and training applications
+- Custom rendering pipelines and graphics experiments
 
 ---
 
 # Current Features
 
 - **Apple Platform Coverage** — Unified Swift + Metal codebase for macOS, iOS, and visionOS
-- **Rendering Pipeline** — Metal renderer with PBR/IBL workflows and post-processing across standard and XR paths
+- **Rendering Pipeline Control** — Metal renderer with PBR/IBL workflows, shader-level control, rendering extensions, and post-processing across standard and XR paths
 - **AR and XR Runtime Support** — Built-in AR workflows plus visionOS integration and spatial interaction support
 - **ECS + Scene Graph Core** — Component-based architecture with hierarchical transforms and scene root transform controls
 - **Async Content Loading** — Asynchronous loading pipeline for scenes and assets to improve responsiveness on large worlds
@@ -147,6 +167,23 @@ Untold Engine is well-suited for:
 - **Gameplay Systems** — Physics, animation, camera waypoint, and input systems (keyboard, mouse, touch, and gamepad)
 - **Gaussian Splat Rendering** — Native Metal support for rendering and compositing 3D Gaussian content
 - **Tooling Integration** — Optional Untold Editor workflow and Swift Package Manager integration
+
+---
+
+# Commercial Use, Sponsored Features, and Support
+
+Untold Engine is open source under MPL-2.0 and can be used in commercial apps.
+Paid commercial options are available for teams that need private engine
+modifications, sponsored engine features, priority support, or custom terms.
+
+- **Sponsored open-source features** — fund roadmap-aligned engine work that is
+  released into the public MPL engine.
+- **Commercial license** — keep private modifications to engine internals closed
+  under commercial terms.
+- **Priority support / retainers** — get focused help with engine integration,
+  rendering issues, performance, and production use.
+
+See [COMMERCIAL.md](COMMERCIAL.md) for commercial licensing details.
 
 ---
 
@@ -254,14 +291,16 @@ This allows developers to build commercial applications while ensuring improveme
 
 | Use Case | Allowed | Obligation |
 |----------|---------|-----------|
+| Build commercial apps | Yes | App code can remain proprietary |
 | Build games | Yes | Game code can remain proprietary |
-| Commercial apps | Yes | No royalties |
-| Modify engine | Yes | Modified engine files remain MPL |
+| Use engine unmodified in a commercial product | Yes | No royalties |
+| Modify engine files | Yes | Modified engine files remain MPL when distributed |
+| Keep engine modifications private | Commercial license required | See [COMMERCIAL.md](COMMERCIAL.md) |
 | Create plugins | Yes | Any license allowed |
 
 Full license: https://www.mozilla.org/MPL/2.0/
 
-**Need to keep engine modifications private?** A commercial license is available for teams that require it. See [COMMERCIAL.md](COMMERCIAL.md) for details.
+**Need private engine modifications, sponsored feature work, or priority support?** See [COMMERCIAL.md](COMMERCIAL.md) for details.
 
 ---
 
