@@ -116,7 +116,7 @@ The demos live under `Sources/Demos`. They are runnable when working inside the
 engine repository, but are not exposed as products to apps that add Untold
 Engine as a package dependency.
 
-![untoldengine-image-2](/docs/images/engine-highlight-2.png)
+![untoldengine-image-2](/docs/images/engine-highlight-6.png)
 
 ---
 
@@ -124,8 +124,6 @@ Engine as a package dependency.
 
 To create your own XR, 3D, or spatial visualization app using Untold Engine, see
 [Getting Started](https://untoldengine.github.io/UntoldEngine/API/GettingStarted/).
-
-![untoldengine-image-3](/docs/images/engine-highlight-4.png)
 
 ## Core Direction
 
@@ -138,6 +136,8 @@ Untold Engine is built around three focused goals:
 - **Metal-First Architecture** — The rendering layer stays close to Metal to maintain performance, shader control, and pipeline flexibility without abstraction layers getting in the way.
 
 ---
+
+![untoldengine-image-2](/docs/images/engine-highlight-7.png)
 
 ## Example Use Cases
 
