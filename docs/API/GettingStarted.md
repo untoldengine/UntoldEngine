@@ -242,6 +242,13 @@ The `.untold` format is a binary container optimised for fast runtime parsing wi
 no ModelIO dependency. It supports runtime mesh data, PBR materials, texture references,
 transforms, bounds, and exported animation clips.
 
+`.untold` assets can also carry scene-authored data from Blender, including
+lights, cameras, and an optional baked color-management LUT. Mesh loading APIs
+load geometry and materials; call `loadSceneAuthored(...)` when you want the
+Blender-authored scene lighting, cameras, and color transform too. See
+[Load Blender-Authored Lights, Cameras, and Color Management](UsageExamples.md#load-blender-authored-lights-cameras-and-color-management)
+for the runtime pattern.
+
 You can convert assets with either the Untold Engine Blender addon or the CLI.
 
 ### Option 1: Blender add-on
@@ -356,4 +363,3 @@ architecture.
 > available for backwards compatibility. They create an internal root entity automatically.
 
 ---
-
