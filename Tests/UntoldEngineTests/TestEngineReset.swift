@@ -31,6 +31,7 @@
     EntityLifecycleEvents.shared.reset()
     PluginSpatialRegistry.shared.removeAll()
     RenderExtensionRegistry.shared.removeAll()
+    PhysicsBackendRegistry.shared.resetForTesting()
     for frame in 0 ..< 3 {
         tripleVisibleEntities.setWrite(frame: frame, with: [])
     }
