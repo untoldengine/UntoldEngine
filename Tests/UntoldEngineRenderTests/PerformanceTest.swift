@@ -15,11 +15,29 @@ import UniformTypeIdentifiers
 import XCTest
 
 final class PerformanceTests: BaseRenderSetup {
+    private func doubleEnv(_ name: String, default defaultValue: Double) -> Double {
+        guard let rawValue = ProcessInfo.processInfo.environment[name],
+              let value = Double(rawValue)
+        else {
+            return defaultValue
+        }
+        return value
+    }
+
+    private func intEnv(_ name: String, default defaultValue: Int) -> Int {
+        guard let rawValue = ProcessInfo.processInfo.environment[name],
+              let value = Int(rawValue),
+              value > 0
+        else {
+            return defaultValue
+        }
+        return value
+    }
+
     func test_AverageFrameTime_UnderBudget() throws {
-        // Tune per target device
-        let frameBudgetMs = 17.0 // ~60 FPS - I'm relaxing the frame time for CI
-        let warmupFrames = 120
-        let measuredFrames = 300
+        let frameBudgetMs = doubleEnv("UNTOLD_PERF_GPU_FRAME_BUDGET_MS", default: 17.0)
+        let warmupFrames = intEnv("UNTOLD_PERF_WARMUP_FRAMES", default: 120)
+        let measuredFrames = intEnv("UNTOLD_PERF_GPU_MEASURED_FRAMES", default: 300)
 
         // Safety
         guard renderer != nil else { throw XCTSkip("Renderer not initialized") }
@@ -65,6 +83,7 @@ final class PerformanceTests: BaseRenderSetup {
 
         print(String(format: "Perf (GPU-synced): avg %.2f ms (%.1f FPS) over %d frames",
                      avgMs, fps, measuredFrames))
+        print(String(format: "Perf budget: avg <= %.2f ms", frameBudgetMs))
 
         XCTAssertLessThanOrEqual(
             avgMs,
@@ -75,9 +94,10 @@ final class PerformanceTests: BaseRenderSetup {
     }
 
     func test_EngineProfiler_CPUFrameMetrics() throws {
-        let frameBudgetMs = 17.0 // ~60 FPS
-        let warmupFrames = 120
-        let measuredFrames = 600 // More samples for better statistics
+        let frameBudgetMs = doubleEnv("UNTOLD_PERF_CPU_FRAME_BUDGET_MS", default: 17.0)
+        let p95Multiplier = doubleEnv("UNTOLD_PERF_CPU_P95_MULTIPLIER", default: 1.2)
+        let warmupFrames = intEnv("UNTOLD_PERF_WARMUP_FRAMES", default: 120)
+        let measuredFrames = intEnv("UNTOLD_PERF_CPU_MEASURED_FRAMES", default: 600)
 
         guard renderer != nil else { throw XCTSkip("Renderer not initialized") }
 
@@ -112,6 +132,8 @@ final class PerformanceTests: BaseRenderSetup {
         print(String(format: "  P99: %.2f ms (%.1f FPS)", snapshot.cpuFrame.p99Ms, 1000.0 / snapshot.cpuFrame.p99Ms))
         print(String(format: "  Min: %.2f ms", snapshot.cpuFrame.minMs))
         print(String(format: "  Max: %.2f ms", snapshot.cpuFrame.maxMs))
+        print(String(format: "  Budget: mean <= %.2f ms, p95 <= %.2f ms",
+                     frameBudgetMs, frameBudgetMs * p95Multiplier))
         print("=========================================")
 
         // Assert we collected samples
@@ -128,9 +150,9 @@ final class PerformanceTests: BaseRenderSetup {
         // Assert p95 is reasonable (allow 20% over budget for variance)
         XCTAssertLessThanOrEqual(
             snapshot.cpuFrame.p95Ms,
-            frameBudgetMs * 1.2,
+            frameBudgetMs * p95Multiplier,
             String(format: "❌ P95 CPU frame time %.2f ms exceeded %.2f ms",
-                   snapshot.cpuFrame.p95Ms, frameBudgetMs * 1.2)
+                   snapshot.cpuFrame.p95Ms, frameBudgetMs * p95Multiplier)
         )
     }
 
