@@ -148,6 +148,8 @@ private func registerComponentCleanupHandlers() {
         removeEntityKinetics(entityId: entityId)
     }
 
+    registerPhysicsComponentCleanupHandlers()
+
     ComponentRegistry.register(componentType: LightComponent.self, handlerId: "light", priority: 30) { entityId in
         removeEntityLight(entityId: entityId)
     }
