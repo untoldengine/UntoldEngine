@@ -157,6 +157,7 @@ final class RemoteStreamFlyThroughTests: BaseRenderSetup {
 
     func testRemoteStreamFlythrough_psnr() async throws {
         let sceneRoot = try await loadRemoteScene()
+        await hydrateFlythroughRoute(sceneRoot: sceneRoot)
 
         for (index, waypoint) in waypoints.enumerated() {
             let name = keyframeNames[index]
@@ -197,6 +198,27 @@ final class RemoteStreamFlyThroughTests: BaseRenderSetup {
 
     // -------------------------------------------------------------------------
 
+    /// Performs a non-asserting pass through the camera route before image capture.
+    /// CI starts with a cold remote asset cache and a slower paravirtual Metal device;
+    /// without this pre-pass, later waypoints can capture while their route-adjacent
+    /// tiles are still downloading or registering.
+    private func hydrateFlythroughRoute(sceneRoot: EntityID) async {
+        for (index, waypoint) in waypoints.enumerated() {
+            snapCamera(to: waypoint)
+            _ = await driveStreamingUntilReady(sceneRoot: sceneRoot)
+            setVisibleEntities()
+            for _ in 0 ..< 3 {
+                renderer.draw(in: renderer.metalView)
+            }
+
+            if index + 1 < waypoints.count {
+                await animateCameraPath(from: waypoint, to: waypoints[index + 1], sceneRoot: sceneRoot)
+            }
+        }
+
+        stopCameraPath()
+    }
+
     /// Resolves the manifest URL, loads the remote tiled scene, and returns the
     /// root entity.  Skips the test if no real URL is configured.
     private func loadRemoteScene() async throws -> EntityID {
@@ -235,12 +257,18 @@ final class RemoteStreamFlyThroughTests: BaseRenderSetup {
     /// tiles that started loading have finished parsing, then returns.
     /// Returns true if the condition was met within the timeout, false otherwise.
     @discardableResult
-    private func driveStreamingUntilReady(sceneRoot: EntityID, timeout: TimeInterval = 30.0) async -> Bool {
+    private func driveStreamingUntilReady(sceneRoot: EntityID, timeout: TimeInterval = 60.0) async -> Bool {
         let camera = findGameCamera()
+        var stableReadySamples = 0
         return await waitUntil(timeout: timeout) {
             let camPos = getCameraPosition(entityId: camera)
             GeometryStreamingSystem.shared.update(cameraPosition: camPos, deltaTime: 0.016)
-            return self.tilesAreReady(sceneRoot: sceneRoot)
+            if self.tilesAreReady(sceneRoot: sceneRoot) {
+                stableReadySamples += 1
+            } else {
+                stableReadySamples = 0
+            }
+            return stableReadySamples >= 8
         }
     }
 
@@ -266,7 +294,14 @@ final class RemoteStreamFlyThroughTests: BaseRenderSetup {
             guard tilePassesFrustumGate(entityId: $0, frustum: tileFrustum) else { return false }
             return tileDistance(entityId: $0, cameraPosition: cameraPosition) <= tile.effectivePrefetchRadius + 1.0
         }
-        return hasParsed && !hasUnreadyRelevantTile
+
+        let streamingStats = GeometryStreamingSystem.shared.getStats()
+        let noQueuedStreamingWork = streamingStats.activeLoads == 0 &&
+            streamingStats.loadingCount == 0 &&
+            streamingStats.pendingLoadBacklog == 0
+        let noGlobalAssetLoads = !AssetLoadingGate.shared.isLoadingAny
+
+        return hasParsed && !hasUnreadyRelevantTile && noQueuedStreamingWork && noGlobalAssetLoads
     }
 
     private func tilePassesFloorGate(tile: TileComponent, cameraPosition: simd_float3) -> Bool {
