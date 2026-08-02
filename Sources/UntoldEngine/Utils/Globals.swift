@@ -22,7 +22,7 @@ public extension EntityID {
     static let invalid: EntityID = .max
 }
 
-let MAX_COMPONENTS = 64
+let MAX_COMPONENTS = 128
 let MAX_ENTITIES = 20000
 
 let maxNumPointLights: Int = 100

@@ -72,7 +72,7 @@ final class ComponentRegistryTest: XCTestCase {
         let entityIndex = Int(getEntityIndex(entityId))
 
         XCTAssertTrue(scene.entities[entityIndex].freed, "Entity should be freed after finalize.")
-        XCTAssertEqual(scene.entities[entityIndex].mask.bits, 0, "All component bits should be cleared.")
+        XCTAssertTrue(scene.entities[entityIndex].mask.activeComponentIds().isEmpty, "All component bits should be cleared.")
         XCTAssertNil(entityNameMap[entityId], "Entity name should be removed during destroy.")
         XCTAssertTrue(loadTask?.isCancelled ?? false, "Streaming task should be cancelled on destroy.")
     }

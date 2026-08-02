@@ -124,6 +124,7 @@ public final class UntoldReader: @unchecked Sendable {
             from: data,
             entries: chunks
         )
+        let pluginChunks = try decodePluginChunks(from: data, entries: chunks)
 
         let decoded = UntoldDecodedAsset(
             header: header,
@@ -143,7 +144,8 @@ public final class UntoldReader: @unchecked Sendable {
             animationClips: animationClips,
             animationChannels: animationChannels,
             translationKeyframes: translationKeyframes,
-            rotationKeyframes: rotationKeyframes
+            rotationKeyframes: rotationKeyframes,
+            pluginChunks: pluginChunks
         )
         try validateDecodedAsset(decoded)
         return decoded
@@ -396,6 +398,18 @@ public final class UntoldReader: @unchecked Sendable {
         return try decodeTableIfPresent(T.self, chunkType: chunkType, from: fileData, entries: entries).first
     }
 
+    private func decodePluginChunks(
+        from fileData: Data,
+        entries: [UntoldChunkEntryV1]
+    ) throws -> [UntoldPluginChunk] {
+        try entries
+            .filter(\.chunkType.isPluginExtensionChunk)
+            .map { entry in
+                let data = try decompressChunk(entry, fileData: fileData)
+                return try UntoldPluginChunkEnvelope.decode(chunkType: entry.chunkType, data: data)
+            }
+    }
+
     /// Returns decompressed chunk payload for the given chunk type.
     /// Call this from external loaders (e.g. NativeFormatLoader) to retrieve
     /// vertex or index data with transparent decompression.
@@ -489,6 +503,7 @@ public struct UntoldDecodedAsset: Sendable {
     public let animationChannels: [UntoldAnimationChannelRecordV1]
     public let translationKeyframes: [UntoldTranslationKeyframeRecordV1]
     public let rotationKeyframes: [UntoldRotationKeyframeRecordV1]
+    public let pluginChunks: [UntoldPluginChunk]
 
     public init(
         header: UntoldFileHeaderV1,
@@ -508,7 +523,8 @@ public struct UntoldDecodedAsset: Sendable {
         animationClips: [UntoldAnimationClipRecordV1],
         animationChannels: [UntoldAnimationChannelRecordV1],
         translationKeyframes: [UntoldTranslationKeyframeRecordV1],
-        rotationKeyframes: [UntoldRotationKeyframeRecordV1]
+        rotationKeyframes: [UntoldRotationKeyframeRecordV1],
+        pluginChunks: [UntoldPluginChunk] = []
     ) {
         self.header = header
         self.chunks = chunks
@@ -528,6 +544,7 @@ public struct UntoldDecodedAsset: Sendable {
         self.animationChannels = animationChannels
         self.translationKeyframes = translationKeyframes
         self.rotationKeyframes = rotationKeyframes
+        self.pluginChunks = pluginChunks
     }
 
     public func string(at offset: UInt32) throws -> String? {

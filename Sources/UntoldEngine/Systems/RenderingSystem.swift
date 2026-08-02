@@ -308,14 +308,25 @@ private func buildGameModeGraphWithCompilation() throws -> CompiledRenderGraphRe
         mode = renderEnvironment ? .environment : .grid
     }
 
+    let frameStartID = builder.resolveStage(.frameStart, after: nil)
+
     var backgroundGraph: [String: RenderPass] = [:]
     let basePassID = addSceneBackgroundPass(to: &backgroundGraph, mode: mode)
+    if let basePassID, let frameStartID, var basePass = backgroundGraph[basePassID],
+       !basePass.dependencies.contains(frameStartID)
+    {
+        basePass.dependencies.append(frameStartID)
+        backgroundGraph[basePassID] = basePass
+    }
     for passID in backgroundGraph.keys.sorted() {
         if let pass = backgroundGraph[passID] {
             builder.addPass(pass)
         }
     }
-    let shadowDependency = basePassID.map { [$0] } ?? []
+    let beforeShadowsAnchor = basePassID ?? frameStartID
+    let beforeShadowsID = builder.resolveStage(.beforeShadows, after: beforeShadowsAnchor)
+        ?? beforeShadowsAnchor
+    let shadowDependency = beforeShadowsID.map { [$0] } ?? []
 
     let shadowPass = RenderPass(
         id: "shadow", dependencies: shadowDependency, execute: RenderPasses.shadowExecution

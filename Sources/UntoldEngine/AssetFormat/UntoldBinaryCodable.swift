@@ -62,14 +62,12 @@ extension UntoldChunkEntryV1: UntoldBinaryEncodable, UntoldBinaryDecodable {
     public static func decode(from reader: UntoldBinaryReader) throws -> UntoldChunkEntryV1 {
         let chunkTypeRaw = try reader.readUInt32LE()
         let compressionRaw = try reader.readUInt32LE()
-        guard let chunkType = UntoldChunkType(rawValue: chunkTypeRaw),
-              let compressionType = UntoldCompressionType(rawValue: compressionRaw)
-        else {
+        guard let compressionType = UntoldCompressionType(rawValue: compressionRaw) else {
             throw UntoldValidationError.unsupportedEnumValue
         }
 
         var entry = try UntoldChunkEntryV1(
-            chunkType: chunkType,
+            chunkType: UntoldChunkType(rawValue: chunkTypeRaw),
             compressionType: compressionType,
             fileOffset: reader.readUInt64LE(),
             compressedSize: reader.readUInt64LE(),

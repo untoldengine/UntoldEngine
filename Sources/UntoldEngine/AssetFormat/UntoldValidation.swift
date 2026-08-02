@@ -38,4 +38,6 @@ public enum UntoldValidationError: Error, Sendable, Equatable {
         actualWidth: UInt32,
         actualHeight: UInt32
     )
+    case invalidPluginChunkHeader
+    case unsupportedPluginChunkVersion(UInt32)
 }

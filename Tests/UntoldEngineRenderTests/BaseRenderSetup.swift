@@ -72,7 +72,8 @@ class BaseRenderSetup: XCTestCase {
         entityMeshMap.removeAll(keepingCapacity: true)
         entityNameMap.removeAll(keepingCapacity: true)
         reverseEntityNameMap.removeAll(keepingCapacity: true)
-        clearCustomSystems(keepingCapacity: true)
+        EngineExtensionRegistry.shared.removeAll()
+        clearCustomSystems()
         RenderExtensionRegistry.shared.removeAll()
         globalEntityCounter = 0
         timeSinceLastUpdatePreviousTime = nil

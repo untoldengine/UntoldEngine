@@ -32,28 +32,40 @@ public enum UntoldFileType: UInt32, Sendable {
     case animation = 5
 }
 
-public enum UntoldChunkType: UInt32, Sendable {
-    case stringTable = 1
-    case entityTable = 2
-    case meshTable = 3
-    case materialTable = 4
-    case textureTable = 5
-    case vertexData = 6
-    case indexData = 7
-    case skeletonTable = 8
-    case skeletonJointTable = 9
-    case skinTable = 10
-    case skinJointMappingTable = 11
-    case animationClipTable = 12
-    case animationChannelTable = 13
-    case translationKeyframeTable = 14
-    case rotationKeyframeTable = 15
-    case jointIndexData = 16
-    case jointWeightData = 17
-    case edgeIndexData = 18
-    case lightTable = 19
-    case cameraTable = 20
-    case colorManagementTable = 21
+public struct UntoldChunkType: RawRepresentable, Hashable, Sendable, Equatable {
+    public let rawValue: UInt32
+
+    public init(rawValue: UInt32) {
+        self.rawValue = rawValue
+    }
+
+    public static let stringTable = UntoldChunkType(rawValue: 1)
+    public static let entityTable = UntoldChunkType(rawValue: 2)
+    public static let meshTable = UntoldChunkType(rawValue: 3)
+    public static let materialTable = UntoldChunkType(rawValue: 4)
+    public static let textureTable = UntoldChunkType(rawValue: 5)
+    public static let vertexData = UntoldChunkType(rawValue: 6)
+    public static let indexData = UntoldChunkType(rawValue: 7)
+    public static let skeletonTable = UntoldChunkType(rawValue: 8)
+    public static let skeletonJointTable = UntoldChunkType(rawValue: 9)
+    public static let skinTable = UntoldChunkType(rawValue: 10)
+    public static let skinJointMappingTable = UntoldChunkType(rawValue: 11)
+    public static let animationClipTable = UntoldChunkType(rawValue: 12)
+    public static let animationChannelTable = UntoldChunkType(rawValue: 13)
+    public static let translationKeyframeTable = UntoldChunkType(rawValue: 14)
+    public static let rotationKeyframeTable = UntoldChunkType(rawValue: 15)
+    public static let jointIndexData = UntoldChunkType(rawValue: 16)
+    public static let jointWeightData = UntoldChunkType(rawValue: 17)
+    public static let edgeIndexData = UntoldChunkType(rawValue: 18)
+    public static let lightTable = UntoldChunkType(rawValue: 19)
+    public static let cameraTable = UntoldChunkType(rawValue: 20)
+    public static let colorManagementTable = UntoldChunkType(rawValue: 21)
+
+    public static let firstPluginChunkRawValue: UInt32 = 0x8000
+
+    public var isPluginExtensionChunk: Bool {
+        rawValue >= Self.firstPluginChunkRawValue
+    }
 }
 
 public enum UntoldCompressionType: UInt32, Sendable {
