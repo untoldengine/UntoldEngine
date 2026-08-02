@@ -113,4 +113,16 @@ public extension MTLPixelFormat {
             return false
         }
     }
+
+    /// The non-sRGB sibling format, or self if already linear. MPS kernels can
+    /// read an sRGB texture but cannot write to one ("must be writable" assertion),
+    /// so compute-written destinations must be allocated in this format instead of
+    /// the source's raw pixelFormat.
+    var mpsWritableFormat: MTLPixelFormat {
+        switch self {
+        case .bgra8Unorm_srgb: return .bgra8Unorm
+        case .rgba8Unorm_srgb: return .rgba8Unorm
+        default: return self
+        }
+    }
 }

@@ -1123,7 +1123,7 @@ public class TextureStreamingSystem: @unchecked Sendable {
 
         let mipCount = Int(log2(Float(max(targetWidth, targetHeight)))) + 1
         let desc = MTLTextureDescriptor.texture2DDescriptor(
-            pixelFormat: texture.pixelFormat,
+            pixelFormat: texture.pixelFormat.mpsWritableFormat,
             width: targetWidth,
             height: targetHeight,
             mipmapped: true
@@ -1152,6 +1152,9 @@ public class TextureStreamingSystem: @unchecked Sendable {
             return nil
         }
 
+        // MPS can read an sRGB texture but cannot write to one, so target was
+        // allocated in the linear sibling format; view it back as the original
+        // (possibly sRGB) format for the caller.
         let scale = MPSImageBilinearScale(device: renderInfo.device)
         scale.encode(commandBuffer: commandBuffer, sourceTexture: texture, destinationTexture: target)
 
@@ -1165,7 +1168,8 @@ public class TextureStreamingSystem: @unchecked Sendable {
             commandBuffer.commit()
         }
 
-        return target
+        guard target.pixelFormat != texture.pixelFormat else { return target }
+        return target.makeTextureView(pixelFormat: texture.pixelFormat) ?? target
     }
 
     // MARK: - sRGB Helper
