@@ -322,4 +322,61 @@ final class ECSTests: XCTestCase {
         XCTAssertFalse(queryEntities(with: [TestExtensionComponent.self]).contains(entityId))
         XCTAssertNil(getEntityComponent(entityId: entityId, componentType: TestExtensionComponent.self))
     }
+
+    func testComponentMaskSupports128ComponentSlots() {
+        var mask = ComponentMask()
+
+        mask.set(0)
+        mask.set(63)
+        mask.set(64)
+        mask.set(127)
+
+        XCTAssertTrue(mask.test(0))
+        XCTAssertTrue(mask.test(63))
+        XCTAssertTrue(mask.test(64))
+        XCTAssertTrue(mask.test(127))
+        XCTAssertEqual(mask.activeComponentIds(), [0, 63, 64, 127])
+
+        mask.reset(64)
+        XCTAssertFalse(mask.test(64))
+        XCTAssertEqual(mask.activeComponentIds(), [0, 63, 127])
+
+        mask.resetAll()
+        XCTAssertTrue(mask.activeComponentIds().isEmpty)
+    }
+
+    func testComponentRegistrationDiagnosticsIncludeExtensionComponents() {
+        let id = getComponentId(for: TestExtensionComponent.self)
+
+        let registrations = registeredComponentTypes()
+        XCTAssertTrue(registrations.contains(
+            ComponentTypeRegistration(
+                id: id,
+                typeName: String(describing: TestExtensionComponent.self)
+            )
+        ))
+    }
+
+    func testEntityLifecycleEventsPublishCreateAndDestroy() {
+        var created: [EntityID] = []
+        var destroyed: [EntityID] = []
+        let createSubscription = EntityLifecycleEvents.shared.onEntityCreated { event in
+            created.append(event.entityId)
+        }
+        let destroySubscription = EntityLifecycleEvents.shared.onEntityDestroyed { event in
+            destroyed.append(event.entityId)
+        }
+        defer {
+            createSubscription.cancel()
+            destroySubscription.cancel()
+        }
+
+        let entityId = createEntity()
+        XCTAssertTrue(created.contains(entityId))
+
+        destroyEntity(entityId: entityId)
+        scene.finalizePendingDestroys()
+
+        XCTAssertEqual(destroyed, [entityId])
+    }
 }

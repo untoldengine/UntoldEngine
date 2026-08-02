@@ -118,6 +118,66 @@ private final class TestInvalidDependencyRenderExtension: RenderExtension, @unch
     }
 }
 
+private final class TestPublicDependencyRenderExtension: RenderExtension, @unchecked Sendable {
+    let id: String
+    let firstPassID: String
+    let secondPassID: String
+    let secondDependencies: [RenderGraphPassDependency]
+
+    init(
+        id: String,
+        firstPassID: String,
+        secondPassID: String,
+        secondDependencies: [RenderGraphPassDependency]
+    ) {
+        self.id = id
+        self.firstPassID = firstPassID
+        self.secondPassID = secondPassID
+        self.secondDependencies = secondDependencies
+    }
+
+    func buildGraph(
+        _ builder: inout RenderGraphBuilder,
+        context _: RenderGraphBuildContext
+    ) {
+        builder.addPass(id: firstPassID, stage: .frameStart, execute: nil)
+        builder.addPass(
+            id: secondPassID,
+            stage: .frameStart,
+            dependencies: secondDependencies,
+            execute: nil
+        )
+    }
+}
+
+private final class TestPublicDependencyOnlyRenderExtension: RenderExtension, @unchecked Sendable {
+    let id: String
+    let passID: String
+    let dependencies: [RenderGraphPassDependency]
+
+    init(
+        id: String,
+        passID: String,
+        dependencies: [RenderGraphPassDependency]
+    ) {
+        self.id = id
+        self.passID = passID
+        self.dependencies = dependencies
+    }
+
+    func buildGraph(
+        _ builder: inout RenderGraphBuilder,
+        context _: RenderGraphBuildContext
+    ) {
+        builder.addPass(
+            id: passID,
+            stage: .beforePostProcess,
+            dependencies: dependencies,
+            execute: nil
+        )
+    }
+}
+
 private final class TestLifecycleRenderExtension: RenderExtension, @unchecked Sendable {
     let id: String
     let passID: String
@@ -1406,6 +1466,8 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
 
     func testRenderStageContractContainsOnlyResolvedStages() {
         XCTAssertEqual(RenderStage.allCases, [
+            .frameStart,
+            .beforeShadows,
             .afterOpaqueLighting,
             .beforeTransparency,
             .afterTransparency,
@@ -1494,6 +1556,8 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
         }
 
         let stagedPasses: [(id: String, stage: RenderStage)] = [
+            ("test.stage.frameStart", .frameStart),
+            ("test.stage.beforeShadows", .beforeShadows),
             ("test.stage.afterOpaqueLighting", .afterOpaqueLighting),
             ("test.stage.beforeTransparency", .beforeTransparency),
             ("test.stage.afterTransparency", .afterTransparency),
@@ -1516,6 +1580,9 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
 
         let order = try topologicalSortGraph(graph: graph).map(\.id)
         assertTopologicalConstraints(order: order, constraints: [
+            ("test.stage.frameStart", "environment"),
+            ("environment", "test.stage.beforeShadows"),
+            ("test.stage.beforeShadows", "shadow"),
             ("lightPass", "test.stage.afterOpaqueLighting"),
             ("test.stage.afterOpaqueLighting", "test.stage.beforeTransparency"),
             ("test.stage.beforeTransparency", "transparency"),
@@ -1531,6 +1598,64 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
             ("look", "test.stage.beforeOutput"),
             ("test.stage.beforeOutput", "outputTransform"),
         ])
+    }
+
+    func testPublicPassDependenciesAllowSameExtensionEarlierPasses() throws {
+        setRendering(.extensions(.register(
+            TestPublicDependencyRenderExtension(
+                id: "test.public.dependencies.same-owner",
+                firstPassID: "test.public.dependencies.first",
+                secondPassID: "test.public.dependencies.second",
+                secondDependencies: [.sameExtension("test.public.dependencies.first")]
+            )
+        )))
+
+        let (graph, _) = try buildGameModeGraph()
+        let second = try XCTUnwrap(graph["test.public.dependencies.second"])
+        XCTAssertTrue(second.dependencies.contains("test.public.dependencies.first"))
+
+        let order = try topologicalSortGraph(graph: graph).map(\.id)
+        assertTopologicalConstraints(order: order, constraints: [
+            ("test.public.dependencies.first", "test.public.dependencies.second"),
+        ])
+    }
+
+    func testPublicPassDependenciesAllowCuratedEnginePasses() throws {
+        setRendering(.extensions(.register(
+            TestPublicDependencyOnlyRenderExtension(
+                id: "test.public.dependencies.engine",
+                passID: "test.public.dependencies.after-lighting",
+                dependencies: [.engine(.opaqueLighting)]
+            )
+        )))
+
+        let (graph, _) = try buildGameModeGraph()
+        let pass = try XCTUnwrap(graph["test.public.dependencies.after-lighting"])
+        XCTAssertTrue(pass.dependencies.contains(RenderGraphEnginePassDependency.opaqueLighting.rawValue))
+    }
+
+    func testPublicPassDependenciesRejectCrossExtensionPasses() throws {
+        setRendering(.extensions(.register(
+            TestStageRenderExtension(
+                id: "test.public.dependencies.source",
+                passID: "test.public.dependencies.source-pass",
+                stage: .frameStart
+            )
+        )))
+        setRendering(.extensions(.register(
+            TestPublicDependencyOnlyRenderExtension(
+                id: "test.public.dependencies.invalid-consumer",
+                passID: "test.public.dependencies.invalid-pass",
+                dependencies: [.sameExtension("test.public.dependencies.source-pass")]
+            )
+        )))
+
+        let (graph, _) = try buildGameModeGraph()
+        XCTAssertNotNil(graph["test.public.dependencies.source-pass"])
+        XCTAssertNil(graph["test.public.dependencies.invalid-pass"])
+        XCTAssertFalse(RenderExtensionRegistry.shared.registeredIDs().contains(
+            "test.public.dependencies.invalid-consumer"
+        ))
     }
 
     func testSupportedRenderExtensionStagesResolveAcrossImmersionModes() throws {

@@ -113,9 +113,11 @@ final class RenderExtensionConflictCollector {
     }
 }
 
-public protocol RenderExtension: AnyObject, Sendable {
-    var id: String { get }
-
+/// A render-graph-owning plugin. Refines `EngineExtension`, so `update`/`fixedUpdate`/
+/// `willUnregister`/`id` come from that shared lifecycle contract — register a
+/// `RenderExtension` only with `RenderExtensionRegistry`, never additionally with
+/// `EngineExtensionRegistry`, or it will be ticked twice.
+public protocol RenderExtension: EngineExtension {
     func registerShaderLibraries(_ registry: RenderShaderLibraryRegistry)
 
     func registerPipelines(_ registry: RenderPipelineRegistry)
@@ -125,6 +127,8 @@ public protocol RenderExtension: AnyObject, Sendable {
     func registerResources(_ registry: RenderResourceRegistry)
 
     func registerArgumentBuffers(_ registry: RenderExtensionArgumentBufferRegistry)
+
+    func resourcesDidLoad(_ access: RenderResourceAccess)
 
     func buildGraph(
         _ builder: inout RenderGraphBuilder,
@@ -138,6 +142,7 @@ public extension RenderExtension {
     func registerComputePipelines(_: ComputePipelineRegistry) {}
     func registerResources(_: RenderResourceRegistry) {}
     func registerArgumentBuffers(_: RenderExtensionArgumentBufferRegistry) {}
+    func resourcesDidLoad(_: RenderResourceAccess) {}
 }
 
 public struct RenderShaderLibraryID: Hashable, ExpressibleByStringLiteral, Sendable {
@@ -160,6 +165,36 @@ public enum RenderShaderLibrarySource {
     case defaultLibrary(bundle: Bundle)
     /// Loads a precompiled `.metallib` resource relative to a bundle.
     case metallib(bundle: Bundle, resource: String, subdirectory: String? = nil)
+}
+
+public enum RenderShaderLibraryPlatformResource {
+    public static var currentPlatformSuffix: String {
+        #if os(visionOS)
+            #if targetEnvironment(simulator)
+                "xrossim"
+            #else
+                "xros"
+            #endif
+        #elseif os(iOS)
+            #if targetEnvironment(simulator)
+                "iossim"
+            #else
+                "ios"
+            #endif
+        #elseif os(tvOS)
+            #if targetEnvironment(simulator)
+                "tvossim"
+            #else
+                "tvos"
+            #endif
+        #else
+            "macos"
+        #endif
+    }
+
+    public static func resourceName(baseName: String) -> String {
+        "\(baseName)-\(currentPlatformSuffix)"
+    }
 }
 
 /// Describes a structured extension shader-library loading failure.
@@ -517,6 +552,20 @@ public struct RenderShaderLibraryRegistry {
                 resource: resource,
                 subdirectory: subdirectory
             )
+        )
+    }
+
+    public func registerPlatformLibrary(
+        _ id: RenderShaderLibraryID,
+        bundle: Bundle,
+        baseResource: String,
+        subdirectory: String? = nil
+    ) {
+        registerLibrary(
+            id,
+            bundle: bundle,
+            resource: RenderShaderLibraryPlatformResource.resourceName(baseName: baseResource),
+            subdirectory: subdirectory
         )
     }
 
@@ -2226,9 +2275,14 @@ public final class RenderExtensionRegistry: @unchecked Sendable {
             )
         }
 
+        let shouldNotifyResourcesDidLoad = report.resourcesCommitted
+            && RenderResourceRegistry.shared.allocationErrors(ownerID: renderExtension.id).isEmpty
+
         lock.lock()
         if extensionsByID[renderExtension.id] == nil {
             extensionOrder.append(renderExtension.id)
+        } else if let previousExtension, previousExtension !== renderExtension {
+            previousExtension.willUnregister()
         }
         extensionsByID[renderExtension.id] = renderExtension
         registrationConflictsByExtensionID.removeValue(forKey: renderExtension.id)
@@ -2237,7 +2291,32 @@ public final class RenderExtensionRegistry: @unchecked Sendable {
         resourceValidationErrorsByExtensionID.removeValue(forKey: renderExtension.id)
         graphValidationErrorsByExtensionID.removeValue(forKey: renderExtension.id)
         lock.unlock()
+        if shouldNotifyResourcesDidLoad {
+            renderExtension.resourcesDidLoad(RenderResourceAccess())
+        }
         return .registered
+    }
+
+    public func updateExtensions(deltaTime: Float, context: EngineExtensionUpdateContext) {
+        for renderExtension in orderedExtensionsSnapshot() {
+            renderExtension.update(deltaTime: deltaTime, context: context)
+        }
+    }
+
+    public func fixedUpdateExtensions(deltaTime: Float, context: EngineExtensionUpdateContext) {
+        for renderExtension in orderedExtensionsSnapshot() {
+            renderExtension.fixedUpdate(deltaTime: deltaTime, context: context)
+        }
+    }
+
+    public func notifyResourcesDidLoad() {
+        let access = RenderResourceAccess()
+        for renderExtension in orderedExtensionsSnapshot() {
+            guard resourceAllocationErrors(forExtensionID: renderExtension.id).isEmpty else {
+                continue
+            }
+            renderExtension.resourcesDidLoad(access)
+        }
     }
 
     public func unregister(id: String) {
@@ -2263,7 +2342,7 @@ public final class RenderExtensionRegistry: @unchecked Sendable {
 
     private func unregisterExtensionLocked(id: String) {
         lock.lock()
-        extensionsByID.removeValue(forKey: id)
+        let removedExtension = extensionsByID.removeValue(forKey: id)
         extensionOrder.removeAll { $0 == id }
         registrationConflictsByExtensionID.removeValue(forKey: id)
         shaderLibraryErrorsByExtensionID.removeValue(forKey: id)
@@ -2272,6 +2351,7 @@ public final class RenderExtensionRegistry: @unchecked Sendable {
         graphValidationErrorsByExtensionID.removeValue(forKey: id)
         lock.unlock()
 
+        removedExtension?.willUnregister()
         removeOwnedArtifacts(ownerID: id)
     }
 
@@ -2280,6 +2360,7 @@ public final class RenderExtensionRegistry: @unchecked Sendable {
         defer { lifecycleLock.unlock() }
 
         lock.lock()
+        let removedExtensions = extensionOrder.compactMap { extensionsByID[$0] }
         extensionsByID.removeAll()
         extensionOrder.removeAll()
         registrationConflictsByExtensionID.removeAll()
@@ -2288,6 +2369,9 @@ public final class RenderExtensionRegistry: @unchecked Sendable {
         resourceValidationErrorsByExtensionID.removeAll()
         graphValidationErrorsByExtensionID.removeAll()
         lock.unlock()
+        for renderExtension in removedExtensions {
+            renderExtension.willUnregister()
+        }
         RenderExtensionPluginRegistry.shared.removeAllMetadata()
         RenderShaderLibraryManager.shared.removeAll()
         PipelineManager.shared.removeAllExtensionPipelines()
@@ -2304,6 +2388,16 @@ public final class RenderExtensionRegistry: @unchecked Sendable {
         let ids = extensionOrder
         lock.unlock()
         return ids
+    }
+
+    private func orderedExtensionsSnapshot() -> [any RenderExtension] {
+        lifecycleLock.lock()
+        defer { lifecycleLock.unlock() }
+
+        lock.lock()
+        let orderedExtensions = extensionOrder.compactMap { extensionsByID[$0] }
+        lock.unlock()
+        return orderedExtensions
     }
 
     public func registrationConflicts(forExtensionID id: String) -> [RenderExtensionArtifactConflict] {
@@ -2416,6 +2510,7 @@ public final class RenderExtensionRegistry: @unchecked Sendable {
                         unregister(id: extensionID)
                     }
                 }
+                renderExtension.willUnregister()
             }
         }
     }
@@ -2528,6 +2623,7 @@ public final class RenderExtensionRegistry: @unchecked Sendable {
                 for extensionID in pluginExtensionIDs where extensionID != renderExtension.id {
                     unregister(id: extensionID)
                 }
+                renderExtension.willUnregister()
             }
         }
     }

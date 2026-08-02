@@ -16,6 +16,16 @@ struct TypeInfo {
     let type: Any.Type
 }
 
+public struct ComponentTypeRegistration: Equatable, Sendable {
+    public let id: Int
+    public let typeName: String
+
+    public init(id: Int, typeName: String) {
+        self.id = id
+        self.typeName = typeName
+    }
+}
+
 private final class ComponentIDState: @unchecked Sendable {
     let lock = NSLock()
     var componentIDs: [ObjectIdentifier: TypeInfo] = [:]
@@ -39,6 +49,20 @@ func componentTypeInfo(for typeId: ObjectIdentifier) -> TypeInfo? {
     return typeInfo
 }
 
+public func registeredComponentTypes() -> [ComponentTypeRegistration] {
+    componentTypeInfosSnapshot().values.map { typeInfo in
+        ComponentTypeRegistration(
+            id: typeInfo.id,
+            typeName: String(describing: typeInfo.type)
+        )
+    }.sorted { lhs, rhs in
+        if lhs.id != rhs.id {
+            return lhs.id < rhs.id
+        }
+        return lhs.typeName < rhs.typeName
+    }
+}
+
 @inline(__always)
 private func enforceECSMainActor() {
     // ECS synchronization is lock-based (scene/global stores + component locks),
@@ -53,6 +77,10 @@ public func getComponentId(for type: (some Any).Type) -> Int {
     if let typeInfo = componentTypeInfo(for: typeId) {
         return typeInfo.id
     } else {
+        precondition(
+            componentCounter < MAX_COMPONENTS,
+            "Exceeded maximum ECS component types (\(MAX_COMPONENTS))."
+        )
         let id = componentCounter
         componentCounter += 1
 
@@ -99,48 +127,69 @@ public struct ComponentPool {
 }
 
 public struct ComponentMask: Equatable, Hashable {
-    @usableFromInline var bits: UInt64 = 0
+    @usableFromInline var lowerBits: UInt64 = 0
+    @usableFromInline var upperBits: UInt64 = 0
 
     @inlinable init() {}
 
     @inlinable public mutating func set(_ index: Int) {
-        precondition(index >= 0 && index < 64)
-        bits |= (1 &<< index)
+        precondition(index >= 0 && index < 128)
+        if index < 64 {
+            lowerBits |= (1 &<< index)
+        } else {
+            upperBits |= (1 &<< (index - 64))
+        }
     }
 
     @inlinable public mutating func reset(_ index: Int) {
-        precondition(index >= 0 && index < 64)
-        bits &= ~(1 &<< index)
+        precondition(index >= 0 && index < 128)
+        if index < 64 {
+            lowerBits &= ~(1 &<< index)
+        } else {
+            upperBits &= ~(1 &<< (index - 64))
+        }
     }
 
     @inlinable public mutating func resetAll() {
-        bits = 0
+        lowerBits = 0
+        upperBits = 0
     }
 
     @inlinable public func test(_ index: Int) -> Bool {
-        precondition(index >= 0 && index < 64)
-        return (bits & (1 &<< index)) != 0
+        precondition(index >= 0 && index < 128)
+        if index < 64 {
+            return (lowerBits & (1 &<< index)) != 0
+        }
+        return (upperBits & (1 &<< (index - 64))) != 0
     }
 
     /// self includes all bits in `other`
     @inlinable func contains(_ other: ComponentMask) -> Bool {
-        (bits & other.bits) == other.bits
+        (lowerBits & other.lowerBits) == other.lowerBits
+            && (upperBits & other.upperBits) == other.upperBits
     }
 
     @inlinable func intersects(_ other: ComponentMask) -> Bool {
-        (bits & other.bits) != 0
+        (lowerBits & other.lowerBits) != 0
+            || (upperBits & other.upperBits) != 0
     }
 
     @inlinable func isDisjoint(with other: ComponentMask) -> Bool {
-        (bits & other.bits) == 0
+        (lowerBits & other.lowerBits) == 0
+            && (upperBits & other.upperBits) == 0
     }
 
     @inlinable func activeComponentIds() -> [Int] {
         var result: [Int] = []
-        var b = bits
-        while b != 0 {
-            result.append(b.trailingZeroBitCount)
-            b &= b &- 1
+        var lower = lowerBits
+        while lower != 0 {
+            result.append(lower.trailingZeroBitCount)
+            lower &= lower &- 1
+        }
+        var upper = upperBits
+        while upper != 0 {
+            result.append(64 + upper.trailingZeroBitCount)
+            upper &= upper &- 1
         }
         return result
     }
@@ -150,7 +199,7 @@ public struct ComponentMask: Equatable, Hashable {
 func makeMask(from componentTypes: some Sequence<Int>) -> ComponentMask {
     var m = ComponentMask()
     for c in componentTypes {
-        if c >= 0, c < 64 { m.set(c) }
+        if c >= 0, c < 128 { m.set(c) }
     }
     return m
 }

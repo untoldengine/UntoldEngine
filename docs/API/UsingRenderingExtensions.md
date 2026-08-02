@@ -280,6 +280,8 @@ standalone application-local extensions.
 Add passes at stable stage anchors:
 
 ```swift
+.frameStart
+.beforeShadows
 .afterOpaqueLighting
 .beforeTransparency
 .afterTransparency
@@ -292,11 +294,32 @@ Add passes at stable stage anchors:
 
 Choose the earliest stage that provides the inputs your pass needs. A surface
 that should run before tone mapping can use `.beforePostProcess`; a final overlay
-can use `.beforeOutput`.
+can use `.beforeOutput`. Use `.frameStart` for per-frame compute preparation and
+`.beforeShadows` for work that must complete before the engine renders shadows.
 
-Do not depend on built-in pass names such as `"lightPass"` or `"precomp"`.
-Extensions cannot construct raw engine passes or declare dependencies on private
-pass IDs.
+When one extension pass must wait for another pass owned by the same extension,
+use a typed dependency:
+
+```swift
+builder.addPass(
+    id: "com.example.sim.sort",
+    stage: .frameStart,
+    dependencies: [.sameExtension("com.example.sim.update")]
+) { context in
+    // Encode commands.
+}
+```
+
+Plugins may also depend on documented engine targets:
+
+```swift
+.engine(.sceneDepth)
+.engine(.opaqueLighting)
+.engine(.sceneComposite)
+```
+
+Do not depend on private built-in pass names or another plugin's pass IDs.
+Invalid dependencies reject the extension's graph contribution.
 
 ## Pass Resource Access
 
@@ -379,14 +402,18 @@ A package should resolve its precompiled metallib from package-owned code:
 
 ```swift
 func registerShaderLibraries(_ registry: RenderShaderLibraryRegistry) {
-    registry.registerLibrary(
+    registry.registerPlatformLibrary(
         "com.example.water.shaders",
         bundle: .module,
-        resource: "WaterShaders",
+        baseResource: "WaterShaders",
         subdirectory: "Shaders"
     )
 }
 ```
+
+This selects `WaterShaders-macos`, `WaterShaders-ios`, `WaterShaders-iossim`,
+`WaterShaders-xros`, `WaterShaders-xrossim`, `WaterShaders-tvos`, or
+`WaterShaders-tvossim` for the current SDK.
 
 Frameworks should pass their framework bundle. Missing or invalid libraries are
 reported as registration failures.

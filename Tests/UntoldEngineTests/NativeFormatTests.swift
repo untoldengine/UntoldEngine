@@ -232,6 +232,38 @@ final class NativeFormatTests: XCTestCase {
         XCTAssertEqual(decoded.colorManagement, record)
     }
 
+    func testPluginExtensionChunkRoundtrip() throws {
+        let pluginChunkType = UntoldChunkType(rawValue: UntoldChunkType.firstPluginChunkRawValue + 7)
+        let metadata = UntoldPluginChunkMetadata(
+            pluginID: "com.example.jolt",
+            chunkKind: 42,
+            chunkVersion: 3
+        )
+        let payload = Data([0xCA, 0xFE, 0xBA, 0xBE])
+        let fixture = makeTinyFixture(pluginChunks: [
+            (pluginChunkType, UntoldPluginChunkEnvelope.encode(metadata: metadata, payload: payload), 0),
+        ])
+
+        let decoded = try UntoldReader().readAsset(from: fixture.fileData)
+
+        XCTAssertTrue(decoded.chunks.contains(where: { $0.chunkType == pluginChunkType }))
+        XCTAssertEqual(decoded.pluginChunks.count, 1)
+        XCTAssertEqual(decoded.pluginChunks[0].chunkType, pluginChunkType)
+        XCTAssertEqual(decoded.pluginChunks[0].metadata, metadata)
+        XCTAssertEqual(decoded.pluginChunks[0].payload, payload)
+    }
+
+    func testRejectsInvalidPluginExtensionChunkHeader() throws {
+        let pluginChunkType = UntoldChunkType(rawValue: UntoldChunkType.firstPluginChunkRawValue)
+        let fixture = makeTinyFixture(pluginChunks: [
+            (pluginChunkType, Data(repeating: 0, count: 16), 0),
+        ])
+
+        XCTAssertThrowsError(try UntoldReader().readAsset(from: fixture.fileData)) { error in
+            XCTAssertEqual(error as? UntoldValidationError, .invalidPluginChunkHeader)
+        }
+    }
+
     func testColorManagementRoundtripsThroughRuntimeLoader() throws {
         // Reuses the tiny fixture's existing texture (index 0, "albedo.ktx2")
         // as the LUT reference, to exercise the same index -> URL resolution
@@ -430,6 +462,7 @@ final class NativeFormatTests: XCTestCase {
         computeHash: Bool = false,
         edgeIndexData: Data = Data(),
         colorManagementChunk: Data? = nil,
+        pluginChunks: [(type: UntoldChunkType, data: Data, elementCount: UInt32)] = [],
         mutator: ((inout UntoldFileHeaderV1, inout UntoldEntityRecordV1, inout UntoldMeshRecordV1, inout UntoldMaterialRecordV1, inout UntoldTextureRefRecordV1, inout UntoldPBRStaticVertexV1, inout Data) -> Void)? = nil,
         meshMutator: ((inout UntoldMeshRecordV1) -> Void)? = nil,
         chunkEntryMutator: ((inout [UntoldChunkEntryV1]) -> Void)? = nil
@@ -539,6 +572,7 @@ final class NativeFormatTests: XCTestCase {
             indexData: indexData,
             edgeIndexData: edgeIndexData,
             colorManagementChunk: colorManagementChunk,
+            pluginChunks: pluginChunks,
             removedChunkTypes: removedChunkTypes
         )
 
@@ -732,6 +766,7 @@ final class NativeFormatTests: XCTestCase {
         lights: [UntoldLightRecordV1] = [],
         cameras: [UntoldCameraRecordV1] = [],
         colorManagementChunk: Data? = nil,
+        pluginChunks: [(type: UntoldChunkType, data: Data, elementCount: UInt32)] = [],
         removedChunkTypes: Set<UntoldChunkType> = []
     ) -> [(type: UntoldChunkType, data: Data, elementCount: UInt32)] {
         var all: [(type: UntoldChunkType, data: Data, elementCount: UInt32)] = [
@@ -755,6 +790,7 @@ final class NativeFormatTests: XCTestCase {
         if let colorManagementChunk {
             all.append((.colorManagementTable, colorManagementChunk, 1))
         }
+        all.append(contentsOf: pluginChunks)
         return all.filter { !removedChunkTypes.contains($0.type) }
     }
 

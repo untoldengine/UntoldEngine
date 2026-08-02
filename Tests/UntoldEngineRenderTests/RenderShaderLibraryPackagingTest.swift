@@ -82,7 +82,81 @@ private final class TestPackagedShaderLibraryExtension: RenderExtension, @unchec
     ) {}
 }
 
+private final class TestPlatformShaderLibraryExtension: RenderExtension, @unchecked Sendable {
+    let id: String
+    let libraryID: RenderShaderLibraryID
+
+    init(id: String, libraryID: RenderShaderLibraryID) {
+        self.id = id
+        self.libraryID = libraryID
+    }
+
+    func registerShaderLibraries(_ registry: RenderShaderLibraryRegistry) {
+        registry.registerPlatformLibrary(
+            libraryID,
+            bundle: .main,
+            baseResource: "PlatformShaders",
+            subdirectory: "Shaders"
+        )
+    }
+
+    func buildGraph(
+        _: inout RenderGraphBuilder,
+        context _: RenderGraphBuildContext
+    ) {}
+}
+
 final class RenderShaderLibraryPackagingTest: BaseRenderSetup {
+    func testPlatformShaderResourceNameUsesCurrentSDKSuffix() {
+        #if os(visionOS)
+            #if targetEnvironment(simulator)
+                let expected = "ProceduralShaders-xrossim"
+            #else
+                let expected = "ProceduralShaders-xros"
+            #endif
+        #elseif os(iOS)
+            #if targetEnvironment(simulator)
+                let expected = "ProceduralShaders-iossim"
+            #else
+                let expected = "ProceduralShaders-ios"
+            #endif
+        #elseif os(tvOS)
+            #if targetEnvironment(simulator)
+                let expected = "ProceduralShaders-tvossim"
+            #else
+                let expected = "ProceduralShaders-tvos"
+            #endif
+        #else
+            let expected = "ProceduralShaders-macos"
+        #endif
+
+        XCTAssertEqual(
+            RenderShaderLibraryPlatformResource.resourceName(baseName: "ProceduralShaders"),
+            expected
+        )
+    }
+
+    func testRegisterPlatformLibraryUsesResolvedResourceName() {
+        let libraryID: RenderShaderLibraryID = "com.untold.platform.shaders"
+        let expectedResource = RenderShaderLibraryPlatformResource.resourceName(baseName: "PlatformShaders")
+        let expectedURL = URL(fileURLWithPath: "/virtual/Shaders/\(expectedResource).metallib")
+        let loader = TestRenderShaderLibraryLoader()
+        loader.resourceURLResult = expectedURL
+        loader.library = renderInfo.library
+        let previousLoader = RenderShaderLibraryManager.shared.replaceLoaderForTesting(loader)
+        defer { _ = RenderShaderLibraryManager.shared.replaceLoaderForTesting(previousLoader) }
+
+        let renderExtension = TestPlatformShaderLibraryExtension(
+            id: "com.untold.platform",
+            libraryID: libraryID
+        )
+
+        XCTAssertEqual(RenderExtensionRegistry.shared.register(renderExtension), .registered)
+        XCTAssertEqual(loader.requestedResource, expectedResource)
+        XCTAssertEqual(loader.requestedSubdirectory, "Shaders")
+        XCTAssertEqual(loader.requestedURL, expectedURL)
+    }
+
     func testBundledMetallibResolvesRelativeToProvidedBundle() {
         let libraryID: RenderShaderLibraryID = "com.untold.water.shaders"
         let expectedURL = URL(fileURLWithPath: "/virtual/Shaders/Water.metallib")

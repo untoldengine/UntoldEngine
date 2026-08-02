@@ -106,6 +106,7 @@ public struct Scene {
 
         // Unregister from spatial systems before destroying
         OctreeSystem.shared.unregisterEntity(oldId)
+        EntityLifecycleEvents.shared.dispatchEntityDestroyed(oldId)
 
         for componentId in entities[entityIndexInt].mask.activeComponentIds() {
             componentIndex[componentId]?.remove(oldId)
@@ -129,11 +130,13 @@ public struct Scene {
             entities[Int(newIndex)].freed = false
             entities[Int(newIndex)].pendingDestroy = false
             entities[Int(newIndex)].mask.resetAll()
+            EntityLifecycleEvents.shared.dispatchEntityCreated(newId)
             return newId
         } else {
             let entityIndex = EntityIndex(UInt32(entities.count))
             let newEntity = EntityDesc(entityId: createEntityId(entityIndex, 0), mask: ComponentMask(), freed: false, pendingDestroy: false)
             entities.append(newEntity)
+            EntityLifecycleEvents.shared.dispatchEntityCreated(newEntity.entityId)
             return newEntity.entityId
         }
     }
@@ -340,34 +343,60 @@ public func getAllEntityComponentsIds(entityId: EntityID) -> [Int] {
     return componentIdsArray
 }
 
-/// Custom System registry
+/// A lightweight, low-ceremony way for game code to attach a per-frame closure to its own
+/// `Component` types without conforming to `EngineExtension`. Meant for a single game's own
+/// gameplay logic, not for distributable plugins — those should use `EngineExtension`/
+/// `RenderExtension`, which carry a namespaced identity and formal lifecycle contract this
+/// mechanism deliberately does not require.
+public struct CustomSystemHandle: Hashable, Sendable {
+    private let id: UUID
+
+    fileprivate init() {
+        id = UUID()
+    }
+}
+
 private final class CustomSystemsState: @unchecked Sendable {
     let lock = NSLock()
-    var systems: [(Float) -> Void] = []
+    var systemsByHandle: [CustomSystemHandle: (Float) -> Void] = [:]
+    var order: [CustomSystemHandle] = []
 }
 
 private let customSystemsState = CustomSystemsState()
 
-public func registerCustomSystem(_ system: @escaping (Float) -> Void) {
+@discardableResult
+public func registerCustomSystem(_ system: @escaping (Float) -> Void) -> CustomSystemHandle {
+    enforceSceneMainActor()
+    let handle = CustomSystemHandle()
+    customSystemsState.lock.lock()
+    customSystemsState.systemsByHandle[handle] = system
+    customSystemsState.order.append(handle)
+    customSystemsState.lock.unlock()
+    return handle
+}
+
+public func unregisterCustomSystem(_ handle: CustomSystemHandle) {
     enforceSceneMainActor()
     customSystemsState.lock.lock()
-    customSystemsState.systems.append(system)
+    customSystemsState.systemsByHandle.removeValue(forKey: handle)
+    customSystemsState.order.removeAll { $0 == handle }
     customSystemsState.lock.unlock()
 }
 
 public func updateCustomSystems(deltaTime: Float) {
     enforceSceneMainActor()
     customSystemsState.lock.lock()
-    let systems = customSystemsState.systems
+    let systems = customSystemsState.order.compactMap { customSystemsState.systemsByHandle[$0] }
     customSystemsState.lock.unlock()
     for system in systems {
         system(deltaTime)
     }
 }
 
-func clearCustomSystems(keepingCapacity: Bool = true) {
+func clearCustomSystems() {
     enforceSceneMainActor()
     customSystemsState.lock.lock()
-    customSystemsState.systems.removeAll(keepingCapacity: keepingCapacity)
+    customSystemsState.systemsByHandle.removeAll()
+    customSystemsState.order.removeAll()
     customSystemsState.lock.unlock()
 }

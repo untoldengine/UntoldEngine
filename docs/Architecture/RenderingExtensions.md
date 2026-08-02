@@ -32,10 +32,13 @@ may contribute:
 - texture and buffer declarations;
 - argument-buffer layouts;
 - render and compute pipelines;
-- staged graph passes.
+- staged graph passes;
+- once-per-frame update work;
+- fixed-step simulation work; and
+- teardown or resource-refresh handling.
 
-Only `id` and `buildGraph` are required. The registration hooks have default
-no-op implementations.
+Only `id` and `buildGraph` are required. The registration and lifecycle hooks
+have default no-op implementations.
 
 Application-local extensions register directly through `RenderExtensionRegistry`
 or the `setRendering` facade.
@@ -100,6 +103,11 @@ possible. Failed allocation moves a resource to `invalidated`; a later refresh
 can retry it. Unregistration moves owned resources to `released` and removes
 their backing objects.
 
+When extension resources are committed and allocated, or when viewport-sized
+resources are recreated, the engine calls `resourcesDidLoad(_:)`. Extensions
+that cache Metal resource handles should refresh those handles from the supplied
+`RenderResourceAccess`.
+
 A same-ID standalone registration is a replacement transaction. The previous
 extension and its artifacts are restored if the replacement fails.
 
@@ -121,6 +129,30 @@ Uninstalling a plugin removes every artifact owned by all its extensions.
 Attempting to unregister one plugin-owned extension through the standalone
 registry removes its complete owning plugin, preserving the package transaction
 boundary.
+
+Before an extension is removed, replaced, or rejected by validation after it was
+registered, the engine calls `willUnregister()`. The callback is the supported
+place to release plugin-owned CPU-side state that is not stored in engine
+registries.
+
+## Frame Lifecycle
+
+Each registered extension receives `update(deltaTime:context:)` once per engine
+frame before graph construction and render encoding. The context includes:
+
+- viewport;
+- immersion style;
+- monotonic frame index;
+- current eye; and
+- `isPrimaryEye`.
+
+`isPrimaryEye` is true for non-stereo rendering and for eye 0 in stereo XR. Use
+it for work that must run once per frame instead of once per eye.
+
+In game mode, registered extensions also receive
+`fixedUpdate(deltaTime:context:)` inside the fixed-timestep loop after built-in
+physics and before legacy custom systems. The fixed delta time is the engine
+simulation step.
 
 ## Shader and Pipeline Packaging
 
@@ -184,6 +216,8 @@ Extensions do not create raw engine `RenderPass` values or name built-in pass
 dependencies. `RenderGraphBuilder` exposes stable stage anchors instead:
 
 ```swift
+.frameStart
+.beforeShadows
 .afterOpaqueLighting
 .beforeTransparency
 .afterTransparency
@@ -194,6 +228,10 @@ dependencies. `RenderGraphBuilder` exposes stable stage anchors instead:
 .beforeOutput
 ```
 
+Early stages are intended for setup work. `.frameStart` runs before built-in
+scene rendering begins. `.beforeShadows` runs after any scene background pass and
+before shadow rendering.
+
 During graph construction, each extension receives an owner-scoped builder.
 Staged pass declarations are collected with their owner, resource usages, and
 execution closure. Pass IDs are checked against other providers and reserved
@@ -202,6 +240,20 @@ engine IDs. A conflict discards that extension's complete staged contribution.
 When the engine resolves a stage, it inserts its pending passes after the stage
 anchor. Passes retain registration order within the same stage, producing an
 explicit dependency chain.
+
+Extensions may declare explicit dependencies only through
+`RenderGraphPassDependency`. A pass can depend on an earlier pass owned by the
+same extension with `.sameExtension("pass-id")`, or on one of the documented
+engine dependency targets:
+
+```swift
+.engine(.sceneDepth)
+.engine(.opaqueLighting)
+.engine(.sceneComposite)
+```
+
+Raw built-in pass IDs and cross-extension dependencies are not public contract.
+Invalid dependencies reject the extension's staged contribution.
 
 Pass closures do not execute during registration or graph construction. They are
 captured for later command encoding.
@@ -213,6 +265,10 @@ matrices. The view includes the scene-root transform, view-projection uses
 `projection * view`, and world position is derived from the inverse effective
 view. Render and compute pipeline accessors are lookup-only and preserve the
 existing owner-controlled registration and cleanup lifecycle.
+
+`RenderPassContext` also carries `deltaTime`, `frameIndex`, `currentEye`, and
+`isPrimaryEye` so pass closures can avoid private frame counters and hand-written
+XR eye guards.
 
 Scene render-target access is a capability rather than a public render-pass
 descriptor. It is defined only for the scene-color portion of the graph:

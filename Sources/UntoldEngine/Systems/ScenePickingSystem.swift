@@ -174,6 +174,22 @@ public func pickEntity(
         }
     }
 
+    if let pluginHit = PluginSpatialRegistry.shared.raycastAll(
+        rayOrigin: localOrigin,
+        rayDirection: localDirection,
+        options: PluginSpatialQueryOptions(maxDistance: options.maxDistance)
+    )
+    .first(where: { scenePickingAcceptsPluginEntityHit($0, options: options) }),
+    let pluginEntityId = pluginHit.entityId,
+    pluginHit.distance < (hit?.distance ?? Float.greatestFiniteMagnitude) {
+        hit = ScenePickHit(
+            entityId: pluginEntityId,
+            distance: pluginHit.distance,
+            worldPosition: pluginHit.worldPosition,
+            worldNormal: pluginHit.worldNormal
+        )
+    }
+
     // Back-transform hit position into the caller's (scene-root-shifted) world space.
     guard let h = hit, !srt.isIdentity else { return hit }
     let wp = simd_mul(srt.matrix, simd_float4(h.worldPosition, 1.0))
@@ -213,6 +229,61 @@ public func pickEntity(
     }
 
     return (hit.entityId, hit.distance)
+}
+
+public func pickPluginSpatialObject(
+    rayOrigin: simd_float3,
+    rayDirection: simd_float3,
+    options: PluginSpatialQueryOptions = PluginSpatialQueryOptions()
+) -> PluginSpatialHit? {
+    let rayLengthSquared = simd_length_squared(rayDirection)
+    guard rayLengthSquared.isFinite, rayLengthSquared > Float.ulpOfOne else { return nil }
+    let normalizedRayDirection = rayDirection / sqrt(rayLengthSquared)
+
+    let srt = SceneRootTransform.shared
+    let localOrigin: simd_float3
+    let localDirection: simd_float3
+    if srt.isIdentity {
+        localOrigin = rayOrigin
+        localDirection = normalizedRayDirection
+    } else {
+        let invM = srt.inverseMatrix
+        let o = simd_mul(invM, simd_float4(rayOrigin, 1.0))
+        localOrigin = simd_float3(o.x, o.y, o.z)
+        let d = simd_mul(invM, simd_float4(normalizedRayDirection, 0.0))
+        localDirection = simd_normalize(simd_float3(d.x, d.y, d.z))
+    }
+
+    guard let hit = PluginSpatialRegistry.shared.raycast(
+        rayOrigin: localOrigin,
+        rayDirection: localDirection,
+        options: options
+    ) else {
+        return nil
+    }
+
+    guard !srt.isIdentity else { return hit }
+    let wp = simd_mul(srt.matrix, simd_float4(hit.worldPosition, 1.0))
+    let transformedNormal: simd_float3?
+    if let worldNormal = hit.worldNormal {
+        let upperMatrix = matrix_float3x3(columns: (
+            simd_float3(srt.matrix.columns.0.x, srt.matrix.columns.0.y, srt.matrix.columns.0.z),
+            simd_float3(srt.matrix.columns.1.x, srt.matrix.columns.1.y, srt.matrix.columns.1.z),
+            simd_float3(srt.matrix.columns.2.x, srt.matrix.columns.2.y, srt.matrix.columns.2.z)
+        ))
+        transformedNormal = simd_normalize(upperMatrix.inverse.transpose * worldNormal)
+    } else {
+        transformedNormal = nil
+    }
+
+    return PluginSpatialHit(
+        ownerID: hit.ownerID,
+        objectID: hit.objectID,
+        entityId: hit.entityId,
+        distance: hit.distance,
+        worldPosition: simd_float3(wp.x, wp.y, wp.z),
+        worldNormal: transformedNormal
+    )
 }
 
 private func pickEntityOctreeGPU(
@@ -400,6 +471,25 @@ func scenePickingShouldIgnoreEntityForRayPicking(_ entityId: EntityID) -> Bool {
     return hasComponent(entityId: entityId, componentType: CameraComponent.self)
         || hasComponent(entityId: entityId, componentType: SceneCameraComponent.self)
         || shouldIgnoreLightInGameMode
+}
+
+@inline(__always)
+private func scenePickingAcceptsPluginEntityHit(
+    _ hit: PluginSpatialHit,
+    options: ScenePickOptions
+) -> Bool {
+    guard let entityId = hit.entityId else { return false }
+    guard scene.mask(for: entityId) != nil else { return false }
+    if scenePickingShouldIgnoreEntityForRayPicking(entityId) { return false }
+    if scenePickingShouldIgnoreEntityDueToInteractionSettings(entityId) { return false }
+
+    let gizmoOnly = options.gizmoOnly
+        || (options.isGizmoActive && !InputSystem.shared.keyState.shiftPressed)
+    if gizmoOnly, !hasComponent(entityId: entityId, componentType: GizmoComponent.self) {
+        return false
+    }
+
+    return true
 }
 
 @inline(__always)

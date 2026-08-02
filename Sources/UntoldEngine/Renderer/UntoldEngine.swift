@@ -208,6 +208,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         let previousOpaqueSampleCount = renderInfo.opaqueSampleCount
         initTextureResources()
         RenderResourceRegistry.shared.recreateResources()
+        RenderExtensionRegistry.shared.notifyResourcesDidLoad()
         initRenderPassDescriptors()
         if previousOpaqueSampleCount != renderInfo.opaqueSampleCount {
             updateOpaquePipelinesForSampleCount()
@@ -561,6 +562,13 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         }
 
         frameCount += 1
+        renderInfo.frameIndex &+= 1
+
+        // Reset to the primary eye for the simulation phase. In XR, renderInfo.currentEye
+        // is otherwise left holding the previous frame's last-rendered eye until the
+        // per-eye render loop runs later this frame, which would make context.isPrimaryEye
+        // false for the entire update()/fixedUpdate() phase in stereo mode.
+        renderInfo.currentEye = 0
 
         // pre-render hook (e.g., editor hot reload)
         beforeRender?()
@@ -573,6 +581,16 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         calculateDeltaTime()
         traverseSceneGraph()
         handleInputCallback?()
+
+        let extensionUpdateContext = makeEngineExtensionUpdateContext()
+        RenderExtensionRegistry.shared.updateExtensions(
+            deltaTime: timeSinceLastUpdate,
+            context: extensionUpdateContext
+        )
+        EngineExtensionRegistry.shared.updateExtensions(
+            deltaTime: timeSinceLastUpdate,
+            context: extensionUpdateContext
+        )
 
         // 3. LOD selection (decides which representation is active, checks residency)
         LODSystem.shared.update(deltaTime: fixedStep)
@@ -613,6 +631,14 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
             var steps = 0
             while physicsAccumulator >= fixedStep, steps < maxSteps {
                 updatePhysicsSystem(deltaTime: fixedStep)
+                EngineExtensionRegistry.shared.fixedUpdateExtensions(
+                    deltaTime: fixedStep,
+                    context: extensionUpdateContext
+                )
+                RenderExtensionRegistry.shared.fixedUpdateExtensions(
+                    deltaTime: fixedStep,
+                    context: extensionUpdateContext
+                )
                 updateCustomSystems(deltaTime: fixedStep)
                 physicsAccumulator -= fixedStep
                 steps += 1

@@ -89,6 +89,11 @@ Chunk payload order for **animation-only files** (`fileType = animation`):
 
 This order allows the runtime to read metadata first and defer heavy geometry reads.
 
+Plugin-owned chunks may use chunk type IDs `>= 0x8000`. The engine preserves
+those chunk IDs, validates the standard chunk table, and exposes plugin chunk
+payloads through `UntoldDecodedAsset.pluginChunks`. Core engine loaders treat
+the bytes as opaque.
+
 ## Header Encoding
 
 The header is written field-by-field in this exact order:
@@ -139,6 +144,38 @@ Rules:
 - `fileOffset` must be 16-byte aligned
 - if compression is `none`, `compressedSize == uncompressedSize`
 - `elementCount` is used for record-table chunks
+- `chunkType >= 0x8000` is reserved for plugin extension chunks
+
+## Plugin Extension Chunk Envelope
+
+Plugin chunks are normal `.untold` chunks with a reserved chunk type
+(`>= 0x8000`). Their payload starts with a small engine-defined envelope,
+followed by plugin-owned opaque bytes:
+
+```text
+magic                        UInt32   // "UEXT"
+formatVersion                UInt16   // 1
+pluginIDLength               UInt16
+chunkKind                    UInt32
+chunkVersion                 UInt32
+pluginID                     UInt8 x pluginIDLength, UTF-8, no terminator
+payload                      UInt8 x remaining bytes
+```
+
+Rules:
+
+- `pluginID` should use the same reverse-DNS namespace as the plugin package
+- `chunkKind` is plugin-defined and stable within that plugin namespace
+- `chunkVersion` is plugin-defined and should change when payload decoding
+  changes
+- cooked native data should include enough plugin-side versioning to reject
+  incompatible payloads
+- unknown plugin chunks are valid and must not make core loading fail unless
+  their envelope is malformed
+
+Examples of plugin chunk payloads include cooked physics shapes, particle
+effect descriptors, fluid volume bricks, vegetation instance cells, and impostor
+atlases. The core engine does not decode those payloads.
 
 ## String Table Encoding
 

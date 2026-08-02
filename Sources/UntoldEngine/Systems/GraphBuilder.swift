@@ -99,6 +99,8 @@ public enum RenderGraphResourceUsage: Hashable, Sendable {
 }
 
 public enum RenderStage: String, CaseIterable, Sendable {
+    case frameStart
+    case beforeShadows
     case afterOpaqueLighting
     case beforeTransparency
     case afterTransparency
@@ -107,6 +109,17 @@ public enum RenderStage: String, CaseIterable, Sendable {
     case beforeComposite
     case beforeLook
     case beforeOutput
+}
+
+public enum RenderGraphEnginePassDependency: String, CaseIterable, Sendable {
+    case sceneDepth = "hzbDepthSource"
+    case opaqueLighting = "lightPass"
+    case sceneComposite = "precomp"
+}
+
+public enum RenderGraphPassDependency: Hashable, Sendable {
+    case sameExtension(String)
+    case engine(RenderGraphEnginePassDependency)
 }
 
 /// Camera transforms captured for the eye currently executing a render-extension pass.
@@ -191,7 +204,7 @@ public struct SceneRenderTargetAccess {
         switch stage {
         case .afterOpaqueLighting, .beforeTransparency, .afterTransparency, .beforePostProcess:
             return true
-        case .afterPostProcess, .beforeComposite, .beforeLook, .beforeOutput:
+        case .frameStart, .beforeShadows, .afterPostProcess, .beforeComposite, .beforeLook, .beforeOutput:
             return false
         }
     }
@@ -200,16 +213,25 @@ public struct SceneRenderTargetAccess {
 public struct RenderGraphBuildContext: Sendable {
     public let viewport: SIMD2<Int>
     public let immersionStyle: UntoldImmersionMode
+    public let deltaTime: Float
+    public let frameIndex: UInt64
     public let currentEye: Int
+    public let isPrimaryEye: Bool
 
     public init(
         viewport: SIMD2<Int>,
         immersionStyle: UntoldImmersionMode,
-        currentEye: Int
+        deltaTime: Float = 0,
+        frameIndex: UInt64 = 0,
+        currentEye: Int,
+        isPrimaryEye: Bool = true
     ) {
         self.viewport = viewport
         self.immersionStyle = immersionStyle
+        self.deltaTime = deltaTime
+        self.frameIndex = frameIndex
         self.currentEye = currentEye
+        self.isPrimaryEye = isPrimaryEye
     }
 }
 
@@ -220,7 +242,10 @@ public struct RenderPassContext {
     public let colorFormat: MTLPixelFormat
     public let depthFormat: MTLPixelFormat
     public let immersionStyle: UntoldImmersionMode
+    public let deltaTime: Float
+    public let frameIndex: UInt64
     public let currentEye: Int
+    public let isPrimaryEye: Bool
     public let stage: RenderStage?
     public let camera: RenderExtensionCameraState
     public let resources: RenderResourceAccess
@@ -235,7 +260,10 @@ public struct RenderPassContext {
         colorFormat: MTLPixelFormat,
         depthFormat: MTLPixelFormat,
         immersionStyle: UntoldImmersionMode,
+        deltaTime: Float = 0,
+        frameIndex: UInt64 = 0,
         currentEye: Int,
+        isPrimaryEye: Bool = true,
         stage: RenderStage? = nil,
         camera: RenderExtensionCameraState = .identity,
         resources: RenderResourceAccess = RenderResourceAccess(),
@@ -249,7 +277,10 @@ public struct RenderPassContext {
         self.colorFormat = colorFormat
         self.depthFormat = depthFormat
         self.immersionStyle = immersionStyle
+        self.deltaTime = deltaTime
+        self.frameIndex = frameIndex
         self.currentEye = currentEye
+        self.isPrimaryEye = isPrimaryEye
         self.stage = stage
         self.camera = camera
         self.resources = resources
@@ -465,7 +496,30 @@ public struct RenderGraphBuilder {
         addPass(
             id: id,
             stage: stage,
-            dependencies: [],
+            dependencies: [] as [String],
+            resources: resources,
+            execute: execute
+        )
+    }
+
+    @discardableResult
+    public mutating func addPass(
+        id: String,
+        stage: RenderStage,
+        dependencies: [RenderGraphPassDependency],
+        resources: [RenderGraphResourceUsage] = [],
+        execute: RenderGraphPassExecution?
+    ) -> Bool {
+        guard let resolvedDependencies = resolvePublicDependencies(
+            dependencies,
+            forPassID: id
+        ) else {
+            return false
+        }
+        return addPass(
+            id: id,
+            stage: stage,
+            dependencies: resolvedDependencies,
             resources: resources,
             execute: execute
         )
@@ -517,6 +571,43 @@ public struct RenderGraphBuilder {
         }
         Logger.logWarning(message: "[RenderGraph] Duplicate staged pass id ignored: \(id)")
         return false
+    }
+
+    private mutating func resolvePublicDependencies(
+        _ dependencies: [RenderGraphPassDependency],
+        forPassID passID: String
+    ) -> [String]? {
+        let owner = currentExtensionID.map(RenderGraphPassOwner.renderExtension) ?? .engine
+        var resolved: [String] = []
+        for dependency in dependencies {
+            switch dependency {
+            case let .sameExtension(dependencyID):
+                guard passOwners[dependencyID] == owner,
+                      owner.extensionID != nil
+                else {
+                    recordRegistrationError(
+                        .missingDependency(passID: passID, dependencyID: dependencyID),
+                        ownerID: owner.extensionID
+                    )
+                    return nil
+                }
+                resolved.append(dependencyID)
+            case let .engine(engineDependency):
+                let dependencyID = engineDependency.rawValue
+                guard passOwners[dependencyID] == .reservedEngine
+                    || passOwners[dependencyID] == .engine
+                    || graph[dependencyID]?.owner == .engine
+                else {
+                    recordRegistrationError(
+                        .missingDependency(passID: passID, dependencyID: dependencyID),
+                        ownerID: owner.extensionID
+                    )
+                    return nil
+                }
+                resolved.append(dependencyID)
+            }
+        }
+        return resolved
     }
 
     mutating func beginExtensionRegistration(id: String) {
@@ -767,7 +858,10 @@ func makeRenderGraphBuildContext() -> RenderGraphBuildContext {
             Int(renderInfo.viewPort?.y ?? 0)
         ),
         immersionStyle: renderInfo.immersionStyle,
-        currentEye: renderInfo.currentEye
+        deltaTime: timeSinceLastUpdate ?? 0,
+        frameIndex: renderInfo.frameIndex,
+        currentEye: renderInfo.currentEye,
+        isPrimaryEye: isPrimaryRenderEye()
     )
 }
 
@@ -806,7 +900,10 @@ func makeRenderPassContext(
         colorFormat: renderInfo.colorPixelFormat,
         depthFormat: renderInfo.depthPixelFormat,
         immersionStyle: renderInfo.immersionStyle,
+        deltaTime: timeSinceLastUpdate ?? 0,
+        frameIndex: renderInfo.frameIndex,
         currentEye: renderInfo.currentEye,
+        isPrimaryEye: isPrimaryRenderEye(),
         stage: stage,
         camera: cameraState,
         resources: resources,
@@ -814,6 +911,24 @@ func makeRenderPassContext(
         renderPipelines: RenderPipelineAccess(),
         sceneRenderTargets: sceneRenderTargets
     )
+}
+
+func makeEngineExtensionUpdateContext() -> EngineExtensionUpdateContext {
+    EngineExtensionUpdateContext(
+        viewport: SIMD2<Int>(
+            Int(renderInfo.viewPort?.x ?? 0),
+            Int(renderInfo.viewPort?.y ?? 0)
+        ),
+        immersionStyle: renderInfo.immersionStyle,
+        frameIndex: renderInfo.frameIndex,
+        currentEye: renderInfo.currentEye,
+        isPrimaryEye: isPrimaryRenderEye()
+    )
+}
+
+@inline(__always)
+func isPrimaryRenderEye() -> Bool {
+    !renderInfo.isXRStereoMode || renderInfo.currentEye == 0
 }
 
 func makeSceneRenderTargetAccess(

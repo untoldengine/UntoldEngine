@@ -99,7 +99,10 @@ nav:
     - Batching System: Architecture/batchingSystem.md
     - LOD System: Architecture/lodSystem.md
   - Extensions:
+    - Plugin Architecture: Extensions/PluginArchitecture.md
+    - Plugin Authoring Guidelines: Extensions/PluginAuthoringGuidelines.md
     - Creating a Rendering Extension Plugin: Extensions/CreatingRenderingExtensionPlugin.md
+    - Creating an Engine Extension Plugin: Extensions/CreatingAnEngineExtensionPlugin.md
   - Contributing:
     - Guidelines: Contributor/ContributionGuidelines.md
     - Versioning: Contributor/versioning.md

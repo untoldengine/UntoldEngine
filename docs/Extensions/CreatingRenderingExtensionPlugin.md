@@ -273,10 +273,10 @@ final class ProceduralRenderExtension: RenderExtension, @unchecked Sendable {
     }
 
     func registerShaderLibraries(_ registry: RenderShaderLibraryRegistry) {
-        registry.registerLibrary(
+        registry.registerPlatformLibrary(
             ProceduralPluginContract.shaderLibraryID,
             bundle: shaderBundle,
-            resource: "ProceduralShaders-macos"
+            baseResource: "ProceduralShaders"
         )
     }
 
@@ -380,33 +380,13 @@ conflicts, shader or pipeline failures, and graph errors.
 
 ## 9. Add Platform-Specific Libraries
 
-For a multi-platform plugin, select the resource compiled for the current SDK
-inside package-owned code:
-
-```swift
-private var shaderResourceName: String {
-    #if os(visionOS)
-        #if targetEnvironment(simulator)
-            "ProceduralShaders-xrossim"
-        #else
-            "ProceduralShaders-xros"
-        #endif
-    #elseif os(iOS)
-        #if targetEnvironment(simulator)
-            "ProceduralShaders-iossim"
-        #else
-            "ProceduralShaders-ios"
-        #endif
-    #else
-        "ProceduralShaders-macos"
-    #endif
-}
-```
+Use `registerPlatformLibrary(_:bundle:baseResource:subdirectory:)` for
+multi-platform metallibs. It resolves the resource name for the current SDK:
+`Base-macos`, `Base-ios`, `Base-iossim`, `Base-xros`, `Base-xrossim`,
+`Base-tvos`, or `Base-tvossim`.
 
 Copy each corresponding `.metallib` in `Package.swift`. Only declare platforms
-for which the package contains compatible artifacts. Replace the hard-coded
-`"ProceduralShaders-macos"` registration and URL helper with
-`shaderResourceName` when enabling these additional platforms.
+for which the package contains compatible artifacts.
 
 ## 10. Understand visionOS Execution
 

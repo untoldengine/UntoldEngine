@@ -26,7 +26,10 @@
     globalEntityCounter = 0
     needsFinalizeDestroys = false
     hasPendingDestroys = false
+    EngineExtensionRegistry.shared.removeAll()
     clearCustomSystems()
+    EntityLifecycleEvents.shared.reset()
+    PluginSpatialRegistry.shared.removeAll()
     RenderExtensionRegistry.shared.removeAll()
     for frame in 0 ..< 3 {
         tripleVisibleEntities.setWrite(frame: frame, with: [])

@@ -70,6 +70,24 @@ This ensures new features are stable, documented, and accessible to all users.
 
 👉 Note: For small fixes or incremental features, a How-To is not required.
 
+## Optional Native Dependencies
+
+Optional systems that require native libraries, binary frameworks, shader build
+artifacts, or external tools should live in plugin repositories, not in Untold
+Engine core.
+
+Core-engine PRs may add public interfaces, registries, validation, tests, and
+documentation that make a plugin possible. They should not add optional native
+source, C++ shims, `.xcframework` artifacts, binary targets, or build scripts to
+the engine package unless the maintainer explicitly approves moving that
+dependency into core.
+
+For official plugin repositories, accepted dependency licenses are generally
+MIT, BSD, Zlib, or Apache-2.0. Avoid LGPL, GPL, and AGPL dependencies for
+statically linked Apple-platform deliverables unless a maintainer has approved a
+specific compliant distribution plan. Repositories that vendor third-party code
+or binaries must include third-party license notices.
+
 ---
 
 ### How-To Guide Format
