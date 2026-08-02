@@ -1013,7 +1013,7 @@ final class TextureLoader {
 
         let mipCount = Int(log2(Float(max(targetWidth, targetHeight)))) + 1
         let desc = MTLTextureDescriptor.texture2DDescriptor(
-            pixelFormat: texture.pixelFormat,
+            pixelFormat: texture.pixelFormat.mpsWritableFormat,
             width: targetWidth,
             height: targetHeight,
             mipmapped: true
@@ -1026,6 +1026,9 @@ final class TextureLoader {
               let commandBuffer = downsampleCommandQueue?.makeCommandBuffer()
         else { return texture }
 
+        // MPS can read an sRGB texture but cannot write to one, so target was
+        // allocated in the linear sibling format; view it back as the original
+        // (possibly sRGB) format for the caller.
         let scale = MPSImageBilinearScale(device: device)
         scale.encode(commandBuffer: commandBuffer, sourceTexture: texture, destinationTexture: target)
 
@@ -1037,7 +1040,8 @@ final class TextureLoader {
         commandBuffer.commit()
         commandBuffer.waitUntilCompleted()
 
-        return target
+        guard target.pixelFormat != texture.pixelFormat else { return target }
+        return target.makeTextureView(pixelFormat: texture.pixelFormat) ?? target
     }
 
     /// Log a summary of all textures loaded by this loader instance
