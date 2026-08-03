@@ -17,6 +17,13 @@ import simd
 public final class CameraNode: Node {
     public init(entityID: EntityID? = nil, name: String? = nil) {
         super.init(entityID: entityID ?? findGameCamera(), name: name) {}
+
+        // An explicitly passed entity may not be a camera yet. Promote it,
+        // matching the light nodes, which create their component when missing.
+        if !hasComponent(entityId: self.entityID, componentType: CameraComponent.self) {
+            createGameCamera(entityId: self.entityID)
+            if let n = name { setEntityName(entityId: self.entityID, name: n) }
+        }
     }
 
     @discardableResult
