@@ -264,6 +264,22 @@ final class NativeFormatTests: XCTestCase {
         }
     }
 
+    func testUnknownCoreChunkTypeIsIgnored() throws {
+        // A core-range chunk type this runtime does not know (e.g. one added by a
+        // newer format revision) must not prevent the rest of the asset from loading.
+        let futureChunkType = UntoldChunkType(rawValue: 22)
+        let fixture = makeTinyFixture(pluginChunks: [
+            (futureChunkType, Data([0x01, 0x02, 0x03, 0x04]), 0),
+        ])
+
+        let decoded = try UntoldReader().readAsset(from: fixture.fileData)
+
+        XCTAssertTrue(decoded.chunks.contains(where: { $0.chunkType == futureChunkType }))
+        XCTAssertTrue(decoded.pluginChunks.isEmpty)
+        XCTAssertEqual(decoded.meshes.count, 1)
+        XCTAssertEqual(decoded.entities.count, 1)
+    }
+
     func testColorManagementRoundtripsThroughRuntimeLoader() throws {
         // Reuses the tiny fixture's existing texture (index 0, "albedo.ktx2")
         // as the LUT reference, to exercise the same index -> URL resolution

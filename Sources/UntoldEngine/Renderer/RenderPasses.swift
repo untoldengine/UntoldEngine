@@ -1177,28 +1177,7 @@ public enum RenderPasses {
                         &modelUniforms, length: MemoryLayout<Uniforms>.stride,
                         index: Int(shadowPassModelUniform.rawValue)
                     )
-                    renderEncoder.setVertexBuffer(
-                        mesh.metalKitMesh.vertexBuffers[Int(shadowPassModelPositionIndex.rawValue)].buffer,
-                        offset: 0, index: Int(shadowPassModelPositionIndex.rawValue)
-                    )
-
-                    let jointTransformBuffer = mesh.skin?.jointTransformsBuffer
-                    var hasArmature = scene.get(component: SkeletonComponent.self, for: entityId) != nil && jointTransformBuffer != nil
-                    renderEncoder.setVertexBytes(&hasArmature, length: MemoryLayout<Bool>.stride, index: Int(shadowPassHasArmature.rawValue))
-                    renderEncoder.setVertexBuffer(
-                        mesh.metalKitMesh.vertexBuffers[Int(modelPassJointIdIndex.rawValue)].buffer,
-                        offset: 0, index: Int(shadowPassJointIdIndex.rawValue)
-                    )
-                    renderEncoder.setVertexBuffer(
-                        mesh.metalKitMesh.vertexBuffers[Int(modelPassJointWeightsIndex.rawValue)].buffer,
-                        offset: 0, index: Int(shadowPassJointWeightsIndex.rawValue)
-                    )
-                    if let jtb = jointTransformBuffer {
-                        renderEncoder.setVertexBuffer(jtb, offset: 0, index: Int(shadowPassJointTransformIndex.rawValue))
-                    } else {
-                        var identity = matrix_identity_float4x4
-                        renderEncoder.setVertexBytes(&identity, length: MemoryLayout<simd_float4x4>.stride, index: Int(shadowPassJointTransformIndex.rawValue))
-                    }
+                    renderEncoder.bindShadowVertexStreams(mesh: mesh, entityId: entityId)
 
                     for subMesh in mesh.submeshes {
                         renderEncoder.drawIndexedPrimitivesTracked(
@@ -1391,31 +1370,7 @@ public enum RenderPasses {
                 modelUniforms.projectionMatrix = renderInfo.perspectiveSpace
 
                 renderEncoder.setVertexBytes(&modelUniforms, length: MemoryLayout<Uniforms>.stride, index: Int(shadowPassModelUniform.rawValue))
-                renderEncoder.setVertexBuffer(
-                    mesh.metalKitMesh.vertexBuffers[Int(shadowPassModelPositionIndex.rawValue)].buffer,
-                    offset: 0,
-                    index: Int(shadowPassModelPositionIndex.rawValue)
-                )
-
-                let jointTransformBuffer = mesh.skin?.jointTransformsBuffer
-                var hasArmature = scene.get(component: SkeletonComponent.self, for: entityId) != nil && jointTransformBuffer != nil
-                renderEncoder.setVertexBytes(&hasArmature, length: MemoryLayout<Bool>.stride, index: Int(shadowPassHasArmature.rawValue))
-                renderEncoder.setVertexBuffer(
-                    mesh.metalKitMesh.vertexBuffers[Int(modelPassJointIdIndex.rawValue)].buffer,
-                    offset: 0,
-                    index: Int(shadowPassJointIdIndex.rawValue)
-                )
-                renderEncoder.setVertexBuffer(
-                    mesh.metalKitMesh.vertexBuffers[Int(modelPassJointWeightsIndex.rawValue)].buffer,
-                    offset: 0,
-                    index: Int(shadowPassJointWeightsIndex.rawValue)
-                )
-                if let jtb = jointTransformBuffer {
-                    renderEncoder.setVertexBuffer(jtb, offset: 0, index: Int(shadowPassJointTransformIndex.rawValue))
-                } else {
-                    var identity = matrix_identity_float4x4
-                    renderEncoder.setVertexBytes(&identity, length: MemoryLayout<simd_float4x4>.stride, index: Int(shadowPassJointTransformIndex.rawValue))
-                }
+                renderEncoder.bindShadowVertexStreams(mesh: mesh, entityId: entityId)
 
                 for subMesh in mesh.submeshes {
                     renderEncoder.drawIndexedPrimitivesTracked(
@@ -1545,31 +1500,7 @@ public enum RenderPasses {
                     modelUniforms.projectionMatrix = renderInfo.perspectiveSpace
 
                     renderEncoder.setVertexBytes(&modelUniforms, length: MemoryLayout<Uniforms>.stride, index: Int(shadowPassModelUniform.rawValue))
-                    renderEncoder.setVertexBuffer(
-                        mesh.metalKitMesh.vertexBuffers[Int(shadowPassModelPositionIndex.rawValue)].buffer,
-                        offset: 0,
-                        index: Int(shadowPassModelPositionIndex.rawValue)
-                    )
-
-                    let jointTransformBuffer = mesh.skin?.jointTransformsBuffer
-                    var hasArmature = scene.get(component: SkeletonComponent.self, for: entityId) != nil && jointTransformBuffer != nil
-                    renderEncoder.setVertexBytes(&hasArmature, length: MemoryLayout<Bool>.stride, index: Int(shadowPassHasArmature.rawValue))
-                    renderEncoder.setVertexBuffer(
-                        mesh.metalKitMesh.vertexBuffers[Int(modelPassJointIdIndex.rawValue)].buffer,
-                        offset: 0,
-                        index: Int(shadowPassJointIdIndex.rawValue)
-                    )
-                    renderEncoder.setVertexBuffer(
-                        mesh.metalKitMesh.vertexBuffers[Int(modelPassJointWeightsIndex.rawValue)].buffer,
-                        offset: 0,
-                        index: Int(shadowPassJointWeightsIndex.rawValue)
-                    )
-                    if let jtb = jointTransformBuffer {
-                        renderEncoder.setVertexBuffer(jtb, offset: 0, index: Int(shadowPassJointTransformIndex.rawValue))
-                    } else {
-                        var identity = matrix_identity_float4x4
-                        renderEncoder.setVertexBytes(&identity, length: MemoryLayout<simd_float4x4>.stride, index: Int(shadowPassJointTransformIndex.rawValue))
-                    }
+                    renderEncoder.bindShadowVertexStreams(mesh: mesh, entityId: entityId)
 
                     for subMesh in mesh.submeshes {
                         renderEncoder.drawIndexedPrimitivesTracked(
@@ -1770,48 +1701,7 @@ public enum RenderPasses {
                         &modelUniforms, length: MemoryLayout<Uniforms>.stride, index: Int(modelPassUniformIndex.rawValue)
                     )
 
-                    // Only enable armature path when a valid joint transform buffer exists.
-                    let jointTransformBuffer = mesh.skin?.jointTransformsBuffer
-                    var hasArmature = scene.get(component: SkeletonComponent.self, for: entityId) != nil && jointTransformBuffer != nil
-
-                    renderEncoder.setVertexBytes(&hasArmature, length: MemoryLayout<Bool>.stride, index: Int(modelPassHasArmature.rawValue))
-
-                    renderEncoder.setVertexBuffer(
-                        mesh.metalKitMesh.vertexBuffers[Int(modelPassVerticesIndex.rawValue)].buffer,
-                        offset: 0, index: Int(modelPassVerticesIndex.rawValue)
-                    )
-
-                    renderEncoder.setVertexBuffer(
-                        mesh.metalKitMesh.vertexBuffers[Int(modelPassNormalIndex.rawValue)].buffer,
-                        offset: 0, index: Int(modelPassNormalIndex.rawValue)
-                    )
-
-                    renderEncoder.setVertexBuffer(
-                        mesh.metalKitMesh.vertexBuffers[Int(modelPassUVIndex.rawValue)].buffer, offset: 0,
-                        index: Int(modelPassUVIndex.rawValue)
-                    )
-
-                    renderEncoder.setVertexBuffer(
-                        mesh.metalKitMesh.vertexBuffers[Int(modelPassTangentIndex.rawValue)].buffer,
-                        offset: 0, index: Int(modelPassTangentIndex.rawValue)
-                    )
-
-                    renderEncoder.setVertexBuffer(
-                        mesh.metalKitMesh.vertexBuffers[Int(modelPassJointIdIndex.rawValue)].buffer,
-                        offset: 0, index: Int(modelPassJointIdIndex.rawValue)
-                    )
-
-                    renderEncoder.setVertexBuffer(
-                        mesh.metalKitMesh.vertexBuffers[Int(modelPassJointWeightsIndex.rawValue)].buffer,
-                        offset: 0, index: Int(modelPassJointWeightsIndex.rawValue)
-                    )
-
-                    if let jointTransformBuffer {
-                        renderEncoder.setVertexBuffer(jointTransformBuffer, offset: 0, index: Int(modelPassJointTransformIndex.rawValue))
-                    } else {
-                        var identityMatrix = matrix_identity_float4x4
-                        renderEncoder.setVertexBytes(&identityMatrix, length: MemoryLayout<simd_float4x4>.stride, index: Int(modelPassJointTransformIndex.rawValue))
-                    }
+                    renderEncoder.bindModelVertexStreams(mesh: mesh, entityId: entityId)
 
                     renderEncoder.setFragmentBytes(
                         &modelUniforms, length: MemoryLayout<Uniforms>.stride, index: Int(modelPassFragmentUniformIndex.rawValue)
@@ -2238,23 +2128,7 @@ public enum RenderPasses {
 
                     renderEncoder.setVertexBytes(&modelUniforms, length: MemoryLayout<Uniforms>.stride, index: Int(modelPassUniformIndex.rawValue))
 
-                    let jointTransformBuffer = mesh.skin?.jointTransformsBuffer
-                    var hasArmature = scene.get(component: SkeletonComponent.self, for: entityId) != nil && jointTransformBuffer != nil
-                    renderEncoder.setVertexBytes(&hasArmature, length: MemoryLayout<Bool>.stride, index: Int(modelPassHasArmature.rawValue))
-
-                    renderEncoder.setVertexBuffer(mesh.metalKitMesh.vertexBuffers[Int(modelPassVerticesIndex.rawValue)].buffer, offset: 0, index: Int(modelPassVerticesIndex.rawValue))
-                    renderEncoder.setVertexBuffer(mesh.metalKitMesh.vertexBuffers[Int(modelPassNormalIndex.rawValue)].buffer, offset: 0, index: Int(modelPassNormalIndex.rawValue))
-                    renderEncoder.setVertexBuffer(mesh.metalKitMesh.vertexBuffers[Int(modelPassUVIndex.rawValue)].buffer, offset: 0, index: Int(modelPassUVIndex.rawValue))
-                    renderEncoder.setVertexBuffer(mesh.metalKitMesh.vertexBuffers[Int(modelPassTangentIndex.rawValue)].buffer, offset: 0, index: Int(modelPassTangentIndex.rawValue))
-                    renderEncoder.setVertexBuffer(mesh.metalKitMesh.vertexBuffers[Int(modelPassJointIdIndex.rawValue)].buffer, offset: 0, index: Int(modelPassJointIdIndex.rawValue))
-                    renderEncoder.setVertexBuffer(mesh.metalKitMesh.vertexBuffers[Int(modelPassJointWeightsIndex.rawValue)].buffer, offset: 0, index: Int(modelPassJointWeightsIndex.rawValue))
-
-                    if let jtb = jointTransformBuffer {
-                        renderEncoder.setVertexBuffer(jtb, offset: 0, index: Int(modelPassJointTransformIndex.rawValue))
-                    } else {
-                        var identity = matrix_identity_float4x4
-                        renderEncoder.setVertexBytes(&identity, length: MemoryLayout<simd_float4x4>.stride, index: Int(modelPassJointTransformIndex.rawValue))
-                    }
+                    renderEncoder.bindModelVertexStreams(mesh: mesh, entityId: entityId)
 
                     renderEncoder.setFragmentBytes(&modelUniforms, length: MemoryLayout<Uniforms>.stride, index: Int(modelPassFragmentUniformIndex.rawValue))
 
@@ -3644,59 +3518,7 @@ public enum RenderPasses {
                     index: Int(modelPassUniformIndex.rawValue)
                 )
 
-                // Only enable armature path when a valid joint transform buffer exists.
-                let jointTransformBuffer = mesh.skin?.jointTransformsBuffer
-                var hasArmature = scene.get(component: SkeletonComponent.self, for: entityId) != nil && jointTransformBuffer != nil
-                renderEncoder.setVertexBytes(
-                    &hasArmature,
-                    length: MemoryLayout<Bool>.stride,
-                    index: Int(modelPassHasArmature.rawValue)
-                )
-
-                renderEncoder.setVertexBuffer(
-                    mesh.metalKitMesh.vertexBuffers[Int(modelPassVerticesIndex.rawValue)].buffer,
-                    offset: 0,
-                    index: Int(modelPassVerticesIndex.rawValue)
-                )
-                renderEncoder.setVertexBuffer(
-                    mesh.metalKitMesh.vertexBuffers[Int(modelPassNormalIndex.rawValue)].buffer,
-                    offset: 0,
-                    index: Int(modelPassNormalIndex.rawValue)
-                )
-                renderEncoder.setVertexBuffer(
-                    mesh.metalKitMesh.vertexBuffers[Int(modelPassUVIndex.rawValue)].buffer,
-                    offset: 0,
-                    index: Int(modelPassUVIndex.rawValue)
-                )
-                renderEncoder.setVertexBuffer(
-                    mesh.metalKitMesh.vertexBuffers[Int(modelPassTangentIndex.rawValue)].buffer,
-                    offset: 0,
-                    index: Int(modelPassTangentIndex.rawValue)
-                )
-                renderEncoder.setVertexBuffer(
-                    mesh.metalKitMesh.vertexBuffers[Int(modelPassJointIdIndex.rawValue)].buffer,
-                    offset: 0,
-                    index: Int(modelPassJointIdIndex.rawValue)
-                )
-                renderEncoder.setVertexBuffer(
-                    mesh.metalKitMesh.vertexBuffers[Int(modelPassJointWeightsIndex.rawValue)].buffer,
-                    offset: 0,
-                    index: Int(modelPassJointWeightsIndex.rawValue)
-                )
-                if let jointTransformBuffer {
-                    renderEncoder.setVertexBuffer(
-                        jointTransformBuffer,
-                        offset: 0,
-                        index: Int(modelPassJointTransformIndex.rawValue)
-                    )
-                } else {
-                    var identityMatrix = matrix_identity_float4x4
-                    renderEncoder.setVertexBytes(
-                        &identityMatrix,
-                        length: MemoryLayout<simd_float4x4>.stride,
-                        index: Int(modelPassJointTransformIndex.rawValue)
-                    )
-                }
+                renderEncoder.bindModelVertexStreams(mesh: mesh, entityId: entityId)
 
                 renderEncoder.setFragmentBytes(
                     &modelUniforms,
@@ -3916,30 +3738,7 @@ public enum RenderPasses {
                     index: Int(modelPassUniformIndex.rawValue)
                 )
 
-                let jointTransformBuffer = mesh.skin?.jointTransformsBuffer
-                var hasArmature = scene.get(component: SkeletonComponent.self, for: entityId) != nil && jointTransformBuffer != nil
-                renderEncoder.setVertexBytes(
-                    &hasArmature,
-                    length: MemoryLayout<Bool>.stride,
-                    index: Int(modelPassHasArmature.rawValue)
-                )
-
-                renderEncoder.setVertexBuffer(mesh.metalKitMesh.vertexBuffers[Int(modelPassVerticesIndex.rawValue)].buffer, offset: 0, index: Int(modelPassVerticesIndex.rawValue))
-                renderEncoder.setVertexBuffer(mesh.metalKitMesh.vertexBuffers[Int(modelPassNormalIndex.rawValue)].buffer, offset: 0, index: Int(modelPassNormalIndex.rawValue))
-                renderEncoder.setVertexBuffer(mesh.metalKitMesh.vertexBuffers[Int(modelPassUVIndex.rawValue)].buffer, offset: 0, index: Int(modelPassUVIndex.rawValue))
-                renderEncoder.setVertexBuffer(mesh.metalKitMesh.vertexBuffers[Int(modelPassTangentIndex.rawValue)].buffer, offset: 0, index: Int(modelPassTangentIndex.rawValue))
-                renderEncoder.setVertexBuffer(mesh.metalKitMesh.vertexBuffers[Int(modelPassJointIdIndex.rawValue)].buffer, offset: 0, index: Int(modelPassJointIdIndex.rawValue))
-                renderEncoder.setVertexBuffer(mesh.metalKitMesh.vertexBuffers[Int(modelPassJointWeightsIndex.rawValue)].buffer, offset: 0, index: Int(modelPassJointWeightsIndex.rawValue))
-                if let jointTransformBuffer {
-                    renderEncoder.setVertexBuffer(jointTransformBuffer, offset: 0, index: Int(modelPassJointTransformIndex.rawValue))
-                } else {
-                    var identityMatrix = matrix_identity_float4x4
-                    renderEncoder.setVertexBytes(
-                        &identityMatrix,
-                        length: MemoryLayout<simd_float4x4>.stride,
-                        index: Int(modelPassJointTransformIndex.rawValue)
-                    )
-                }
+                renderEncoder.bindModelVertexStreams(mesh: mesh, entityId: entityId)
 
                 for subMesh in mesh.submeshes {
                     renderEncoder.drawIndexedPrimitives(
@@ -4155,30 +3954,7 @@ public enum RenderPasses {
                     index: Int(modelPassUniformIndex.rawValue)
                 )
 
-                let jointTransformBuffer = mesh.skin?.jointTransformsBuffer
-                var hasArmature = scene.get(component: SkeletonComponent.self, for: entityId) != nil && jointTransformBuffer != nil
-                renderEncoder.setVertexBytes(
-                    &hasArmature,
-                    length: MemoryLayout<Bool>.stride,
-                    index: Int(modelPassHasArmature.rawValue)
-                )
-
-                renderEncoder.setVertexBuffer(mesh.metalKitMesh.vertexBuffers[Int(modelPassVerticesIndex.rawValue)].buffer, offset: 0, index: Int(modelPassVerticesIndex.rawValue))
-                renderEncoder.setVertexBuffer(mesh.metalKitMesh.vertexBuffers[Int(modelPassNormalIndex.rawValue)].buffer, offset: 0, index: Int(modelPassNormalIndex.rawValue))
-                renderEncoder.setVertexBuffer(mesh.metalKitMesh.vertexBuffers[Int(modelPassUVIndex.rawValue)].buffer, offset: 0, index: Int(modelPassUVIndex.rawValue))
-                renderEncoder.setVertexBuffer(mesh.metalKitMesh.vertexBuffers[Int(modelPassTangentIndex.rawValue)].buffer, offset: 0, index: Int(modelPassTangentIndex.rawValue))
-                renderEncoder.setVertexBuffer(mesh.metalKitMesh.vertexBuffers[Int(modelPassJointIdIndex.rawValue)].buffer, offset: 0, index: Int(modelPassJointIdIndex.rawValue))
-                renderEncoder.setVertexBuffer(mesh.metalKitMesh.vertexBuffers[Int(modelPassJointWeightsIndex.rawValue)].buffer, offset: 0, index: Int(modelPassJointWeightsIndex.rawValue))
-                if let jointTransformBuffer {
-                    renderEncoder.setVertexBuffer(jointTransformBuffer, offset: 0, index: Int(modelPassJointTransformIndex.rawValue))
-                } else {
-                    var identityMatrix = matrix_identity_float4x4
-                    renderEncoder.setVertexBytes(
-                        &identityMatrix,
-                        length: MemoryLayout<simd_float4x4>.stride,
-                        index: Int(modelPassJointTransformIndex.rawValue)
-                    )
-                }
+                renderEncoder.bindModelVertexStreams(mesh: mesh, entityId: entityId)
 
                 if let edgeIndexBuffer = mesh.featureEdgeIndexBuffer, mesh.featureEdgeIndexCount > 0 {
                     renderEncoder.setTriangleFillMode(.fill)
