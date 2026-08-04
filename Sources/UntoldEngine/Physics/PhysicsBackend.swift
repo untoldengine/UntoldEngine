@@ -52,7 +52,7 @@ public enum PhysicsColliderShape: Hashable, Sendable {
 
 /// World-level simulation settings. Units are metres, kilograms and seconds; Y is up.
 public struct PhysicsWorldConfiguration: Sendable {
-    public var gravity: simd_float3 = simd_float3(0.0, -9.8, 0.0)
+    public var gravity: simd_float3 = .init(0.0, -9.8, 0.0)
     /// Layer pair filter: `collisionLayerMatrix[layer]` is the bit mask of layers that
     /// layer collides with. Empty means every pair collides.
     public var collisionLayerMatrix: [UInt32] = []
@@ -313,6 +313,11 @@ public extension PhysicsBackend {
     func didRemoveBody(entity _: EntityID) {}
     func drainEvents(into _: any PhysicsEventSink) {}
     func writeKinematicTargets(_: PhysicsBodyWriteBatch) {}
-    func readActiveTransforms(into _: PhysicsTransformReadBatch) -> Int { 0 }
-    func raycast(_: PhysicsRay, filter _: PhysicsQueryFilter) -> PhysicsRayHit? { nil }
+    func readActiveTransforms(into _: PhysicsTransformReadBatch) -> Int {
+        0
+    }
+
+    func raycast(_: PhysicsRay, filter _: PhysicsQueryFilter) -> PhysicsRayHit? {
+        nil
+    }
 }

@@ -181,5 +181,4 @@ final class SceneBuilderNodesTest: BaseRenderSetup {
         XCTAssertEqual(getLightIntensity(entityId: entity), 7,
                        "Wrapping an existing point light must not recreate the component")
     }
-
 }
