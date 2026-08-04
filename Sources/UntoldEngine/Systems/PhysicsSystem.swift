@@ -99,13 +99,14 @@ public func updatePhysicsSystem(deltaTime: Float) {
     let physicsId = getComponentId(for: PhysicsComponents.self)
     let transformId = getComponentId(for: LocalTransformComponent.self)
     let entities = queryEntitiesWithComponentIds([kineticId, physicsId, transformId], in: scene)
+    let gravity = PhysicsCoordinator.shared.worldGravity
 
     for entity in entities {
         if isPhysicsComponentPaused(entityId: entity) {
             continue
         }
 
-        addGravity(entityId: entity, gravity: simd_float3(0.0, -9.8, 0.0)) // add gravity
+        addGravity(entityId: entity, gravity: gravity)
         addDrag(entityId: entity, deltaTime: deltaTime)
         accumulateForces(entityId: entity, deltaTime: deltaTime) // Apply accumulated forces to acceleration
         accumulateMoment(entityId: entity, deltaTime: deltaTime)

@@ -214,8 +214,9 @@ private struct InstalledPhysicsBackendPlugin {
 /// active is rejected — uninstall first. When no plugin is installed the engine
 /// uses its built-in integrator, exactly as before this registry existed.
 ///
-/// Install before `UntoldRenderer.create(...)`. Once the engine locks the registry
-/// for runtime, install and uninstall are rejected.
+/// Install before `UntoldRenderer.create(...)`. The registry locks for runtime on
+/// the first fixed substep the coordinator simulates with the installed backend;
+/// from then on install and uninstall are rejected.
 public final class PhysicsBackendRegistry: @unchecked Sendable {
     public static let shared = PhysicsBackendRegistry()
 
@@ -244,22 +245,28 @@ public final class PhysicsBackendRegistry: @unchecked Sendable {
         }
 
         lock.lock()
-        defer { lock.unlock() }
 
         guard !lockedForRuntime else {
             let failure = PhysicsBackendPluginFailure(registryLocked: true)
             failuresByPluginID[manifest.id] = failure
+            lock.unlock()
             return .rejected(failure)
         }
         if let active = installedPlugin, active.manifest.id != manifest.id {
             let failure = PhysicsBackendPluginFailure(conflictingPluginID: active.manifest.id)
             failuresByPluginID[manifest.id] = failure
+            lock.unlock()
             return .rejected(failure)
         }
 
         let replacing = installedPlugin != nil
         installedPlugin = InstalledPhysicsBackendPlugin(manifest: manifest, backend: backend)
         failuresByPluginID.removeValue(forKey: manifest.id)
+        lock.unlock()
+
+        // Outside the lock: configures the backend and schedules the coordinator
+        // in EngineExtensionRegistry (idempotent for a replace of the same ID).
+        PhysicsCoordinator.shared.backendDidInstall(backend)
         return replacing ? .replaced : .installed
     }
 
@@ -267,12 +274,15 @@ public final class PhysicsBackendRegistry: @unchecked Sendable {
     @discardableResult
     public func uninstall(id: String) -> Bool {
         lock.lock()
-        defer { lock.unlock() }
         guard !lockedForRuntime, installedPlugin?.manifest.id == id else {
+            lock.unlock()
             return false
         }
         installedPlugin = nil
         failuresByPluginID.removeValue(forKey: id)
+        lock.unlock()
+
+        PhysicsCoordinator.shared.backendDidUninstall()
         return true
     }
 
@@ -314,5 +324,8 @@ public final class PhysicsBackendRegistry: @unchecked Sendable {
         failuresByPluginID.removeAll()
         lockedForRuntime = false
         lock.unlock()
+
+        PhysicsCoordinator.shared.backendDidUninstall()
+        PhysicsCoordinator.shared.resetForTesting()
     }
 }
