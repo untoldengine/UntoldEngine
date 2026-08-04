@@ -206,18 +206,13 @@ final class PostFXTests: BaseRenderSetup {
         configureSSAO()
         SSAO.setEnabled(true)
         renderer.draw(in: renderer.metalView)
+        renderInfo.lastCommandBuffer?.waitUntilCompleted()
 
-        let exp = expectation(description: "SSAO PSNR")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            guard let tex = textureResources.ssaoBlurTexture else {
-                XCTFail("ssaoBlurTexture should exist after enabling SSAO")
-                exp.fulfill()
-                return
-            }
-            self.psnrTest(targetName: "SSAO", texture: tex)
-            exp.fulfill()
+        guard let tex = textureResources.ssaoBlurTexture else {
+            XCTFail("ssaoBlurTexture should exist after enabling SSAO")
+            return
         }
-        wait(for: [exp], timeout: TimeInterval(timeoutFactor))
+        psnrTest(targetName: "SSAO", texture: tex)
     }
 
     func testDepthOfField() {
@@ -225,18 +220,13 @@ final class PostFXTests: BaseRenderSetup {
         configureDepthOfField()
         PostFX.enableDepthOfField(true)
         renderer.draw(in: renderer.metalView)
+        renderInfo.lastCommandBuffer?.waitUntilCompleted()
 
-        let exp = expectation(description: "DepthOfField PSNR")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            guard let tex = textureResources.depthOfFieldTexture else {
-                XCTFail("depthOfFieldTexture should exist after enabling Depth of Field")
-                exp.fulfill()
-                return
-            }
-            self.psnrTest(targetName: "DepthOfField", texture: tex)
-            exp.fulfill()
+        guard let tex = textureResources.depthOfFieldTexture else {
+            XCTFail("depthOfFieldTexture should exist after enabling Depth of Field")
+            return
         }
-        wait(for: [exp], timeout: TimeInterval(timeoutFactor))
+        psnrTest(targetName: "DepthOfField", texture: tex)
     }
 
     func testChromaticAberration() {
@@ -244,18 +234,13 @@ final class PostFXTests: BaseRenderSetup {
         configureChromaticAberration()
         PostFX.enableChromaticAberration(true)
         renderer.draw(in: renderer.metalView)
+        renderInfo.lastCommandBuffer?.waitUntilCompleted()
 
-        let exp = expectation(description: "ChromaticAberration PSNR")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            guard let tex = textureResources.chromaticAberrationTexture else {
-                XCTFail("chromaticAberrationTexture should exist after enabling Chromatic Aberration")
-                exp.fulfill()
-                return
-            }
-            self.psnrTest(targetName: "ChromaticAberration", texture: tex)
-            exp.fulfill()
+        guard let tex = textureResources.chromaticAberrationTexture else {
+            XCTFail("chromaticAberrationTexture should exist after enabling Chromatic Aberration")
+            return
         }
-        wait(for: [exp], timeout: TimeInterval(timeoutFactor))
+        psnrTest(targetName: "ChromaticAberration", texture: tex)
     }
 
     func testBloom() {
@@ -264,18 +249,13 @@ final class PostFXTests: BaseRenderSetup {
         PostFX.enableBloomThreshold(true)
         PostFX.enableBloomComposite(true)
         renderer.draw(in: renderer.metalView)
+        renderInfo.lastCommandBuffer?.waitUntilCompleted()
 
-        let exp = expectation(description: "Bloom PSNR")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            guard let tex = textureResources.bloomCompositeTexture else {
-                XCTFail("bloomCompositeTexture should exist after enabling Bloom")
-                exp.fulfill()
-                return
-            }
-            self.psnrTest(targetName: "Bloom", texture: tex)
-            exp.fulfill()
+        guard let tex = textureResources.bloomCompositeTexture else {
+            XCTFail("bloomCompositeTexture should exist after enabling Bloom")
+            return
         }
-        wait(for: [exp], timeout: TimeInterval(timeoutFactor))
+        psnrTest(targetName: "Bloom", texture: tex)
     }
 
     func testVignette() {
@@ -283,18 +263,13 @@ final class PostFXTests: BaseRenderSetup {
         configureVignette()
         PostFX.enableVignette(true)
         renderer.draw(in: renderer.metalView)
+        renderInfo.lastCommandBuffer?.waitUntilCompleted()
 
-        let exp = expectation(description: "Vignette PSNR")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            guard let tex = textureResources.vignetteTexture else {
-                XCTFail("vignetteTexture should exist after enabling Vignette")
-                exp.fulfill()
-                return
-            }
-            self.psnrTest(targetName: "Vignette", texture: tex)
-            exp.fulfill()
+        guard let tex = textureResources.vignetteTexture else {
+            XCTFail("vignetteTexture should exist after enabling Vignette")
+            return
         }
-        wait(for: [exp], timeout: TimeInterval(timeoutFactor))
+        psnrTest(targetName: "Vignette", texture: tex)
     }
 
     func testColorGrading() {
@@ -302,36 +277,26 @@ final class PostFXTests: BaseRenderSetup {
         configureColorGrading()
         PostFX.enableColorGrading(true)
         renderer.draw(in: renderer.metalView)
+        renderInfo.lastCommandBuffer?.waitUntilCompleted()
 
-        let exp = expectation(description: "ColorGrading PSNR")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            guard let tex = textureResources.lookTexture else {
-                XCTFail("lookTexture should exist after enabling Color Grading")
-                exp.fulfill()
-                return
-            }
-            self.psnrTest(targetName: "ColorGrading", texture: tex)
-            exp.fulfill()
+        guard let tex = textureResources.lookTexture else {
+            XCTFail("lookTexture should exist after enabling Color Grading")
+            return
         }
-        wait(for: [exp], timeout: TimeInterval(timeoutFactor))
+        psnrTest(targetName: "ColorGrading", texture: tex)
     }
 
     func testFXAA() {
         XCTAssertNotNil(renderer, "Renderer should be initialized")
         antiAliasingMode = .fxaa
         renderer.draw(in: renderer.metalView)
+        renderInfo.lastCommandBuffer?.waitUntilCompleted()
 
-        let exp = expectation(description: "FXAA PSNR")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            guard let tex = textureResources.antiAliasingTexture else {
-                XCTFail("antiAliasingTexture should exist after setting antiAliasingMode = .fxaa")
-                exp.fulfill()
-                return
-            }
-            self.psnrTest(targetName: "FXAA", texture: tex)
-            exp.fulfill()
+        guard let tex = textureResources.antiAliasingTexture else {
+            XCTFail("antiAliasingTexture should exist after setting antiAliasingMode = .fxaa")
+            return
         }
-        wait(for: [exp], timeout: TimeInterval(timeoutFactor))
+        psnrTest(targetName: "FXAA", texture: tex)
     }
 
     func testSMAA() throws {
@@ -345,18 +310,13 @@ final class PostFXTests: BaseRenderSetup {
         XCTAssertNotNil(renderer, "Renderer should be initialized")
         antiAliasingMode = .smaa
         renderer.draw(in: renderer.metalView)
+        renderInfo.lastCommandBuffer?.waitUntilCompleted()
 
-        let exp = expectation(description: "SMAA PSNR")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            guard let tex = textureResources.antiAliasingTexture else {
-                XCTFail("antiAliasingTexture should exist after setting antiAliasingMode = .smaa")
-                exp.fulfill()
-                return
-            }
-            self.psnrTest(targetName: "SMAA", texture: tex)
-            exp.fulfill()
+        guard let tex = textureResources.antiAliasingTexture else {
+            XCTFail("antiAliasingTexture should exist after setting antiAliasingMode = .smaa")
+            return
         }
-        wait(for: [exp], timeout: TimeInterval(timeoutFactor))
+        psnrTest(targetName: "SMAA", texture: tex)
     }
 
     // MARK: - G-Buffer Debug View Mode Smoke Tests
@@ -372,14 +332,10 @@ final class PostFXTests: BaseRenderSetup {
         renderDebugViewMode = .albedo
         defer { renderDebugViewMode = .lit }
         renderer.draw(in: renderer.metalView)
+        renderInfo.lastCommandBuffer?.waitUntilCompleted()
 
-        let exp = expectation(description: "Albedo debug view")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            XCTAssertNotNil(textureResources.lookTexture,
-                            "lookTexture must be non-nil after rendering in .albedo debug mode")
-            exp.fulfill()
-        }
-        wait(for: [exp], timeout: TimeInterval(timeoutFactor))
+        XCTAssertNotNil(textureResources.lookTexture,
+                        "lookTexture must be non-nil after rendering in .albedo debug mode")
     }
 
     func testDebugViewMode_Normal_ProducesLookTexture() {
@@ -387,14 +343,10 @@ final class PostFXTests: BaseRenderSetup {
         renderDebugViewMode = .normal
         defer { renderDebugViewMode = .lit }
         renderer.draw(in: renderer.metalView)
+        renderInfo.lastCommandBuffer?.waitUntilCompleted()
 
-        let exp = expectation(description: "Normal debug view")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            XCTAssertNotNil(textureResources.lookTexture,
-                            "lookTexture must be non-nil after rendering in .normal debug mode")
-            exp.fulfill()
-        }
-        wait(for: [exp], timeout: TimeInterval(timeoutFactor))
+        XCTAssertNotNil(textureResources.lookTexture,
+                        "lookTexture must be non-nil after rendering in .normal debug mode")
     }
 
     func testDebugViewMode_Position_ProducesLookTexture() {
@@ -402,14 +354,10 @@ final class PostFXTests: BaseRenderSetup {
         renderDebugViewMode = .position
         defer { renderDebugViewMode = .lit }
         renderer.draw(in: renderer.metalView)
+        renderInfo.lastCommandBuffer?.waitUntilCompleted()
 
-        let exp = expectation(description: "Position debug view")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            XCTAssertNotNil(textureResources.lookTexture,
-                            "lookTexture must be non-nil after rendering in .position debug mode")
-            exp.fulfill()
-        }
-        wait(for: [exp], timeout: TimeInterval(timeoutFactor))
+        XCTAssertNotNil(textureResources.lookTexture,
+                        "lookTexture must be non-nil after rendering in .position debug mode")
     }
 
     func testDebugViewMode_Depth_ProducesLookTexture() {
@@ -417,14 +365,10 @@ final class PostFXTests: BaseRenderSetup {
         renderDebugViewMode = .depth
         defer { renderDebugViewMode = .lit }
         renderer.draw(in: renderer.metalView)
+        renderInfo.lastCommandBuffer?.waitUntilCompleted()
 
-        let exp = expectation(description: "Depth debug view")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            XCTAssertNotNil(textureResources.lookTexture,
-                            "lookTexture must be non-nil after rendering in .depth debug mode")
-            exp.fulfill()
-        }
-        wait(for: [exp], timeout: TimeInterval(timeoutFactor))
+        XCTAssertNotNil(textureResources.lookTexture,
+                        "lookTexture must be non-nil after rendering in .depth debug mode")
     }
 
     func testDebugViewMode_SSAOBlurred_ProducesLookTexture() {
@@ -436,14 +380,10 @@ final class PostFXTests: BaseRenderSetup {
             SSAO.setEnabled(false)
         }
         renderer.draw(in: renderer.metalView)
+        renderInfo.lastCommandBuffer?.waitUntilCompleted()
 
-        let exp = expectation(description: "SSAO blurred debug view")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            XCTAssertNotNil(textureResources.lookTexture,
-                            "lookTexture must be non-nil after rendering in .ssaoBlurred debug mode")
-            exp.fulfill()
-        }
-        wait(for: [exp], timeout: TimeInterval(timeoutFactor))
+        XCTAssertNotNil(textureResources.lookTexture,
+                        "lookTexture must be non-nil after rendering in .ssaoBlurred debug mode")
     }
 
     func testDebugViewMode_SSAOBlurredAfterAlbedoAndNormal_ProducesLookTexture() {
@@ -467,15 +407,11 @@ final class PostFXTests: BaseRenderSetup {
 
         renderDebugViewMode = .ssaoBlurred
         renderer.draw(in: renderer.metalView)
+        renderInfo.lastCommandBuffer?.waitUntilCompleted()
 
-        let exp = expectation(description: "SSAO blurred debug view after G-buffer debug views")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            XCTAssertNotNil(textureResources.lookTexture,
-                            "lookTexture must be non-nil after albedo -> normal -> ssaoBlurred debug sequence")
-            XCTAssertTrue(textureResources.ssaoBlurTexture === initialSSAOBlurTexture,
-                          "G-buffer debug mode switching must not replace the SSAO blur texture")
-            exp.fulfill()
-        }
-        wait(for: [exp], timeout: TimeInterval(timeoutFactor))
+        XCTAssertNotNil(textureResources.lookTexture,
+                        "lookTexture must be non-nil after albedo -> normal -> ssaoBlurred debug sequence")
+        XCTAssertTrue(textureResources.ssaoBlurTexture === initialSSAOBlurTexture,
+                      "G-buffer debug mode switching must not replace the SSAO blur texture")
     }
 }
