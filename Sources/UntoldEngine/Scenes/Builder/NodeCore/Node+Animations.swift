@@ -11,7 +11,7 @@
 @MainActor
 public protocol NodeAnimations: NodeProtocol {
     func setAnimations(resource: String, name: String) -> Self
-    func changeAnimation(name: String, withPause pause: Bool) -> Self
+    func changeAnimation(name: String, transitionHalflife: Float, withPause pause: Bool) -> Self
     func setAnimationPlaybackSpeed(speed: Float) -> Self
 }
 
@@ -22,8 +22,8 @@ public extension NodeAnimations {
         return self
     }
 
-    func changeAnimation(name: String, withPause pause: Bool = false) -> Self {
-        UntoldEngine.changeAnimation(entityId: entityID, name: name, withPause: pause)
+    func changeAnimation(name: String, transitionHalflife: Float = defaultAnimationTransitionHalflife, withPause pause: Bool = false) -> Self {
+        UntoldEngine.changeAnimation(entityId: entityID, name: name, transitionHalflife: transitionHalflife, withPause: pause)
         return self
     }
 

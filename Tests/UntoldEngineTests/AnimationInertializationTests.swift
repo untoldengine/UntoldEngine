@@ -63,6 +63,23 @@ final class AnimationInertializationTests: XCTestCase {
         return AnimationClip(runtimeClip: RuntimeAnimationClip(name: name, duration: 2.0, channels: [rootChannel]))
     }
 
+    /// Clip whose root rises linearly from 0 to 2 over 2 s — a constant
+    /// upward velocity of 1 unit/s, for velocity-capture assertions.
+    private func makeRampClip(name: String) -> AnimationClip {
+        let rootChannel = RuntimeAnimationChannel(
+            jointPath: "root",
+            translations: [
+                .init(time: 0.0, value: simd_float3(0, 0, 0)),
+                .init(time: 2.0, value: simd_float3(0, 2, 0)),
+            ],
+            rotations: [
+                .init(time: 0.0, value: SIMD4<Float>(0, 0, 0, 1)),
+                .init(time: 2.0, value: SIMD4<Float>(0, 0, 0, 1)),
+            ]
+        )
+        return AnimationClip(runtimeClip: RuntimeAnimationClip(name: name, duration: 2.0, channels: [rootChannel]))
+    }
+
     private var animationComponent: AnimationComponent {
         scene.get(component: AnimationComponent.self, for: entityId)!
     }
@@ -216,6 +233,87 @@ final class AnimationInertializationTests: XCTestCase {
         let lateGap = abs(displayedRootHeight - 2.0)
 
         XCTAssertLessThan(lateGap, earlyGap * 0.1, "Offset must have decayed by an order of magnitude after 5 halflives")
+    }
+
+    // MARK: - Redundant calls
+
+    func testRedundantChangeAnimationDoesNotRestartPlayback() {
+        playAndSettle("low", frames: 30)
+        let timeBeforeCall = animationComponent.currentTime
+        XCTAssertGreaterThan(timeBeforeCall, 0)
+
+        changeAnimation(entityId: entityId, name: "low")
+
+        XCTAssertEqual(animationComponent.currentTime, timeBeforeCall,
+                       "Reasserting the playing clip must not reset its phase")
+        XCTAssertFalse(animationComponent.transition.isActive,
+                       "Reasserting the playing clip must not start a transition")
+    }
+
+    func testRedundantChangeAnimationKeepsInFlightTransition() {
+        playAndSettle("low")
+        changeAnimation(entityId: entityId, name: "high", transitionHalflife: 0.1)
+        for _ in 0 ..< 4 {
+            AnimationSystem.shared.update(deltaTime)
+        }
+        let timeMidTransition = animationComponent.currentTime
+        XCTAssertTrue(animationComponent.transition.isActive)
+
+        // A state machine reasserting "high" every frame must not restart it.
+        changeAnimation(entityId: entityId, name: "high", transitionHalflife: 0.1)
+
+        XCTAssertEqual(animationComponent.currentTime, timeMidTransition,
+                       "Redundant call mid-transition must not reset the clock")
+        XCTAssertTrue(animationComponent.transition.isActive,
+                      "The in-flight transition must keep decaying, not restart")
+    }
+
+    func testRedundantChangeAnimationStillAppliesPause() {
+        playAndSettle("low", frames: 30)
+        let timeBeforeCall = animationComponent.currentTime
+
+        changeAnimation(entityId: entityId, name: "low", withPause: true)
+        XCTAssertTrue(isAnimationComponentPaused(entityId: entityId))
+        XCTAssertEqual(animationComponent.currentTime, timeBeforeCall)
+
+        changeAnimation(entityId: entityId, name: "low", withPause: false)
+        XCTAssertFalse(isAnimationComponentPaused(entityId: entityId))
+        XCTAssertEqual(animationComponent.currentTime, timeBeforeCall)
+    }
+
+    // MARK: - Transitions from a frozen entity
+
+    func testTransitionFromPausedEntityIgnoresStaleVelocity() {
+        animationComponent.animationClips["ramp"] = makeRampClip(name: "ramp")
+
+        // Build up real upward velocity (1 unit/s), then freeze. The pose
+        // history now describes motion from before the pause.
+        changeAnimation(entityId: entityId, name: "ramp", transitionHalflife: 0)
+        for _ in 0 ..< 18 {
+            AnimationSystem.shared.update(deltaTime)
+        }
+        pauseAnimationComponent(entityId: entityId, isPaused: true)
+        for _ in 0 ..< 30 {
+            AnimationSystem.shared.update(deltaTime)
+        }
+        let heightAtSwitch = displayedRootHeight
+        XCTAssertGreaterThan(heightAtSwitch, 0.1)
+
+        // Switch to the static clip at height 0. The displayed pose has been
+        // static for the whole pause, so the captured source velocity must be
+        // zero — the offset decays straight down, never riding the stale
+        // upward velocity above the pose at the switch.
+        changeAnimation(entityId: entityId, name: "low", transitionHalflife: 0.1)
+        var maxHeight: Float = 0
+        for _ in 0 ..< 90 {
+            AnimationSystem.shared.update(deltaTime)
+            maxHeight = max(maxHeight, displayedRootHeight)
+        }
+
+        XCTAssertLessThanOrEqual(maxHeight, heightAtSwitch + 1e-4,
+                                 "Stale pre-pause velocity must not push the pose past where it froze")
+        XCTAssertEqual(displayedRootHeight, 0.0, accuracy: 0.02,
+                       "Pose must converge to the incoming clip")
     }
 
     func testRapidRetargetingStaysContinuous() {

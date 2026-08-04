@@ -284,6 +284,10 @@ public func isAnimationComponentPaused(entityId: EntityID) -> Bool {
     }
 }
 
+/// Default halflife for inertialized clip switches, shared by every public
+/// entry point (`changeAnimation`, the node builder, USC `.playAnimation`).
+public let defaultAnimationTransitionHalflife: Float = 0.1
+
 /// Switches the entity to the named clip.
 ///
 /// With a positive `transitionHalflife`, the switch is inertialized: the
@@ -291,7 +295,12 @@ public func isAnimationComponentPaused(entityId: EntityID) -> Bool {
 /// decayed to zero with a critically damped spring, so the character eases
 /// into the new clip instead of popping. `transitionHalflife: 0` reproduces
 /// a hard cut. Playback restarts at the beginning of the new clip.
-public func changeAnimation(entityId: EntityID, name: String, transitionHalflife: Float = 0.1, withPause: Bool = false) {
+///
+/// Calling this with the clip that is already playing is a no-op apart from
+/// the `withPause` flag: playback keeps its phase and any in-flight
+/// transition keeps decaying, so callers may reassert the current clip
+/// every frame without restarting it.
+public func changeAnimation(entityId: EntityID, name: String, transitionHalflife: Float = defaultAnimationTransitionHalflife, withPause: Bool = false) {
     guard hasAnyAnimationComponent(entityId: entityId) else {
         handleError(.noAnimationComponent, entityId)
         return
@@ -304,6 +313,10 @@ public func changeAnimation(entityId: EntityID, name: String, transitionHalflife
     }
 
     for (targetEntityId, animationComponent, animationClip) in matchingComponents {
+        guard animationComponent.currentAnimation !== animationClip else {
+            animationComponent.pause = withPause
+            continue
+        }
         beginAnimationTransition(
             entityId: targetEntityId,
             animationComponent: animationComponent,
@@ -364,11 +377,18 @@ private func beginAnimationTransition(
     let targetPose = animationComponent.transition.scratchTarget
     let targetNext = animationComponent.transition.scratchTargetNext
 
+    // While playback is frozen (pause or .forceOff) the update loop stops
+    // swapping pose history, so `previousPose`/`lastSampleDeltaTime` describe
+    // motion from before the freeze. The pose actually on screen is static —
+    // treat its velocity as zero instead of the stale history.
+    let isFrozen = animationComponent.pause
+        || animationPolicyAllowsPlayback(animationComponent) == false
+
     animationComponent.transition.begin(
         halflife: halflife,
         sourcePose: animationComponent.localPose,
         sourcePrevious: animationComponent.previousPose,
-        hasSourcePrevious: animationComponent.hasPreviousPose,
+        hasSourcePrevious: animationComponent.hasPreviousPose && !isFrozen,
         sourceDeltaTime: animationComponent.lastSampleDeltaTime,
         targetPose: targetPose,
         targetNext: targetNext,
