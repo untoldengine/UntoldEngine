@@ -1,4 +1,20 @@
-# Untold Engine
+<h1 align="center">
+  <a href="https://github.com/untoldengine/UntoldEngine">
+    <img src="images/untoldenginewhite.png" alt="Logo" width="600">
+  </a>
+</h1>
+
+<div align="center">
+  <br />
+  <a href="https://github.com/untoldengine/UntoldEngine/issues/new?assignees=&labels=bug&template=01_BUG_REPORT.md&title=bug%3A+">Report a Bug</a>
+  ·
+  <a href="https://github.com/untoldengine/UntoldEngine/issues/new?assignees=&labels=enhancement&template=02_FEATURE_REQUEST.md&title=feat%3A+">Request a Feature</a>
+  ·
+  <a href="https://github.com/untoldengine/UntoldEngine/issues/new?assignees=&labels=question&template=04_SUPPORT_QUESTION.md&title=support%3A+">Ask a Question</a>
+</div>
+
+<div align="center">
+<br />
 
 ![Build Status](https://github.com/untoldengine/UntoldEngine/actions/workflows/ci-build-test.yml/badge.svg?style=flat-square)
 [![Project license](https://img.shields.io/github/license/untoldengine/UntoldEngine.svg?style=flat-square)](https://github.com/untoldengine/UntoldEngine/blob/main/LICENSE)
@@ -7,21 +23,42 @@
 ![Commits](https://img.shields.io/github/commit-activity/t/untoldengine/UntoldEngine?style=flat-square&label=commits)
 ![Last Commit](https://img.shields.io/github/last-commit/untoldengine/UntoldEngine?style=flat-square&label=last+commit)
 
+</div>
+
 ---
 
-Untold Engine is a **Swift + Metal 3D engine for macOS, iOS, and visionOS** — with native Apple Vision Pro support and a growing focus on spatial computing — built for developers who:
+# Untold Engine
 
-- Want **full control over rendering and systems**
-- Prefer working directly with **Swift + Metal**
-- Are building **XR, 3D, or visualization applications**
-- Need to handle **large scenes, streaming data, or custom pipelines**
+Untold Engine is an **open-source Swift/Metal XR engine for
+high-performance Apple-platform spatial visualization apps**, giving
+developers full control over rendering, shaders, and the engine pipeline.
 
-If you've hit the ceiling of what existing engines allow on Apple platforms, this is for you.
+Untold Engine is built for developers and teams who:
 
-![untoldengine-image](images/engine-highlight-5.png)
+- Need **full control over Metal rendering, shaders, and engine systems**
+- Prefer a native **Swift + Metal** architecture on Apple platforms
+- Are building **XR, 3D, or spatial visualization applications**
+- Need to handle **large scenes, streaming data, or custom asset pipelines**
+- Want an open engine they can inspect, modify, extend, and embed
 
 Creator & Lead Developer:  
 [Harold Serrano](http://www.haroldserrano.com)
+
+![untoldengine-image](images/engine-highlight-5.png)
+
+---
+
+## Built For
+
+Untold Engine is designed for developers building custom spatial visualization
+software on Apple platforms, including:
+
+- Vision Pro and spatial computing apps
+- Architectural walkthroughs and large-scene visualizers
+- Custom rendering pipelines and research prototypes
+
+The engine owns the rendering and XR foundation. Your app owns the vertical
+workflow, product experience, and customer-specific behavior.
 
 ---
 
@@ -40,9 +77,7 @@ Creator & Lead Developer:
   </tr>
 </table>
 
----
-
-## 🚀 Try the Engine Right Now
+## Try the Engine Right Now
 
 The best first step is to run the Starter Demo. It is intentionally small and
 shows the basic shape of an Untold Engine app without the extra systems used by
@@ -57,7 +92,7 @@ Clone the repository and launch the Starter Demo:
 ```bash
 git clone https://github.com/untoldengine/UntoldEngine.git
 cd UntoldEngine
-git checkout v0.14.2
+git checkout v0.14.3
 swift run StarterDemo
 ```
 
@@ -77,19 +112,16 @@ The demos live under `Sources/Demos`. They are runnable when working inside the
 engine repository, but are not exposed as products to apps that add Untold
 Engine as a package dependency.
 
-![untoldengine-image-2](images/engine-highlight-2.png)
+![untoldengine-image-2](images/engine-highlight-6.png)
 
 ---
-
-![untoldengine-image-3](images/engine-highlight-4.png)
 
 ## Getting Started
 
-To create your own project/game using the Untold Engine, see [Getting Started](API/GettingStarted.md).
+To create your own XR, 3D, or spatial visualization app using Untold Engine, see
+[Getting Started](API/GettingStarted.md).
 
----
-
-## 🧱 Core Direction
+## Core Direction
 
 Untold Engine is built around three focused goals:
 
@@ -97,25 +129,26 @@ Untold Engine is built around three focused goals:
 
 - **XR / visionOS Support** — Spatial input, AR workflows, and Vision Pro support are functional today and expanding with each release.
 
-- **Metal-First Architecture** — The rendering layer stays close to Metal to maintain performance and control, without abstraction layers getting in the way.
+- **Metal-First Architecture** — The rendering layer stays close to Metal to maintain performance, shader control, and pipeline flexibility without abstraction layers getting in the way.
 
 ---
 
-## 🖼 Example Use Cases
+![untoldengine-image-2](images/engine-highlight-7.jpg)
+
+## Example Use Cases
 
 Untold Engine is well-suited for:
 
-- XR applications (Vision Pro, ARKit-based apps)
-- Large-scale scene visualization (cities, archviz, datasets)
-- Custom rendering pipelines and experiments
-- Simulation tools and interactive 3D systems
+- Vision Pro and ARKit-based visualization apps
+- Large-scale scene visualization: interiors, archviz, cities, datasets
+- Custom rendering pipelines and graphics experiments
 
 ---
 
-## Current Features
+# Current Features
 
 - **Apple Platform Coverage** — Unified Swift + Metal codebase for macOS, iOS, and visionOS
-- **Rendering Pipeline** — Metal renderer with PBR/IBL workflows and post-processing across standard and XR paths
+- **Rendering Pipeline Control** — Metal renderer with PBR/IBL workflows, shader-level control, rendering extensions, and post-processing across standard and XR paths
 - **AR and XR Runtime Support** — Built-in AR workflows plus visionOS integration and spatial interaction support
 - **ECS + Scene Graph Core** — Component-based architecture with hierarchical transforms and scene root transform controls
 - **Async Content Loading** — Asynchronous loading pipeline for scenes and assets to improve responsiveness on large worlds
@@ -130,7 +163,77 @@ Untold Engine is well-suited for:
 
 ---
 
-## Roadmap
+# Commercial Use, Sponsored Features, and Support
+
+Untold Engine is open source under MPL-2.0 and can be used in commercial apps.
+Paid commercial options are available for teams that need private engine
+modifications, sponsored engine features, priority support, or custom terms.
+
+- **Sponsored open-source features** — fund roadmap-aligned engine work that is
+  released into the public MPL engine.
+- **Commercial license** — keep private modifications to engine internals closed
+  under commercial terms.
+- **Priority support / retainers** — get focused help with engine integration,
+  rendering issues, performance, and production use.
+
+See [COMMERCIAL.md](https://github.com/untoldengine/UntoldEngine/blob/main/COMMERCIAL.md) for commercial licensing details.
+
+---
+
+# Engine API
+
+- [Getting Started](API/GettingStarted.md)
+- [Create Project with CLI](API/UsingUntoldEngineCLI.md)
+- [Registration System](API/UsingRegistrationSystem.md)
+- [Transform System](API/UsingTransformSystem.md)
+- [Scenegraph](API/UsingScenegraph.md)
+- [Camera System](API/UsingCameraSystem.md)
+- [Input System](API/UsingInputSystem.md)
+- [Rendering System](API/UsingRenderingSystem.md)
+- [Materials](API/UsingMaterials.md)
+- [Lighting System](API/UsingLightingSystem.md)
+- [Animation System](API/UsingAnimationSystem.md)
+- [Physics System](API/UsingPhysicsSystem.md)
+- [Steering System](API/UsingSteeringSystem.md)
+- [Post FX](API/UsingPostFX.md)
+- [LOD System](API/UsingLODSystem.md)
+- [Static Batching System](API/UsingStaticBatchingSystem.md)
+- [LOD-Batching-Streaming](API/UsingLOD-Batching-Streaming.md)
+- [Geometry Streaming System](API/UsingGeometryStreamingSystem.md)
+- [Async Loading](API/UsingAsyncLoading.md)
+- [Spatial Input](API/UsingSpatialInput.md)
+- [XR Immersion Modes](API/UsingXRImmersionMode.md)
+- [Light Portals](API/UsingLightPortals.md)
+- [Rendering Extensions](API/UsingRenderingExtensions.md)
+- [Rendering Extension Examples](https://github.com/untoldengine/UntoldEngine/blob/main/Examples/RenderingExtensions/README.md)
+- [Create a Rendering Extension Plugin](Extensions/CreatingRenderingExtensionPlugin.md)
+- [Gaussian System](API/UsingGaussianSystem.md)
+- [Profiler](API/UsingProfiler.md)
+- [Spatial Debugger](API/SpatialDebugger.md)
+- [Asset Exporter](API/UsingTheExporter.md)
+- [Bake Materials](API/UsingBakeMaterials.md)
+- [Color Management](API/UsingColorManagement.md)
+- [Optimizations](API/Optimizations.md)
+
+---
+
+# Engine Architecture
+
+- [Rendering System](Architecture/renderingSystem.md)
+- [Rendering Extensions](Architecture/RenderingExtensions.md)
+- [XR Rendering System](Architecture/xrRenderingSystem.md)
+- [Out of Core](Architecture/outOfCore.md)
+- [Geometry Streaming System](Architecture/geometryStreamingSystem.md)
+- [Streaming Cache Lifecycle](Architecture/streamingCacheLifecycle.md)
+- [Texture Streaming System](Architecture/textureStreamingSystem.md)
+- [Progressive Asset Loader](Architecture/progressiveAssetLoader.md)
+- [Asset Remote Streaming](Architecture/asset_remote_streaming.md)
+- [Static Batching System](Architecture/batchingSystem.md)
+- [LOD System](Architecture/lodSystem.md)
+
+---
+
+# Roadmap
 
 See open issues for planned features and known improvements.
 
@@ -139,13 +242,13 @@ See open issues for planned features and known improvements.
 
 ---
 
-## Support
+# Support
 
 For help or questions, open a [GitHub Issue](https://github.com/untoldengine/UntoldEngine/issues).
 
 ---
 
-## Contributing
+# Contributing
 
 Contributions are welcome — whether that's fixing bugs, improving systems, writing documentation, or proposing ideas.
 
@@ -155,13 +258,13 @@ All contributions are licensed under **MPL-2.0**.
 
 ---
 
-## Contributor License Agreement
+# Contributor License Agreement
 
 By submitting a pull request you agree that your contributions may be distributed under the **Mozilla Public License 2.0**. See [CONTRIBUTOR_LICENSE_AGREEMENT.md](https://github.com/untoldengine/UntoldEngine/blob/main/CONTRIBUTOR_LICENSE_AGREEMENT.md) for details.
 
 ---
 
-## GitHub Sponsors
+# GitHub Sponsors
 
 A huge thanks to the people helping shape the Untold Engine.
 
@@ -173,7 +276,7 @@ A huge thanks to the people helping shape the Untold Engine.
 
 ---
 
-## License
+# License
 
 Untold Engine is licensed under the **Mozilla Public License 2.0 (MPL-2.0)**.
 
@@ -181,25 +284,27 @@ This allows developers to build commercial applications while ensuring improveme
 
 | Use Case | Allowed | Obligation |
 |----------|---------|-----------|
+| Build commercial apps | Yes | App code can remain proprietary |
 | Build games | Yes | Game code can remain proprietary |
-| Commercial apps | Yes | No royalties |
-| Modify engine | Yes | Modified engine files remain MPL |
+| Use engine unmodified in a commercial product | Yes | No royalties |
+| Modify engine files | Yes | Modified engine files remain MPL when distributed |
+| Keep engine modifications private | Commercial license required | See [COMMERCIAL.md](https://github.com/untoldengine/UntoldEngine/blob/main/COMMERCIAL.md) |
 | Create plugins | Yes | Any license allowed |
 
 Full license: https://www.mozilla.org/MPL/2.0/
 
-**Need to keep engine modifications private?** A commercial license is available for teams that require it. See [COMMERCIAL.md](https://github.com/untoldengine/UntoldEngine/blob/main/COMMERCIAL.md) for details.
+**Need private engine modifications, sponsored feature work, or priority support?** See [COMMERCIAL.md](https://github.com/untoldengine/UntoldEngine/blob/main/COMMERCIAL.md) for details.
 
 ---
 
-## Trademark
+# Trademark
 
 "Untold Engine" and the Untold Engine logo are trademarks of **Untold Engine Studios**. Forks may not use the name in a way that implies official endorsement. See [TRADEMARKS.md](https://github.com/untoldengine/UntoldEngine/blob/main/TRADEMARKS.md).
 
 ---
 
-## Questions & Discussions
+# Community
 
 - [GitHub Discussions](https://github.com/untoldengine/UntoldEngine/discussions) — ideas and questions
 - [GitHub Issues](https://github.com/untoldengine/UntoldEngine/issues) — bugs and tasks
-- [Ask a Question](https://github.com/untoldengine/UntoldEngine/issues/new?assignees=&labels=question&template=04_SUPPORT_QUESTION.md&title=support%3A+)
+- [Discord](https://discord.gg/pSckCPFxj) — ask questions, share projects, and discuss engine development

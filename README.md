@@ -56,9 +56,6 @@ software on Apple platforms, including:
 
 - Vision Pro and spatial computing apps
 - Architectural walkthroughs and large-scene visualizers
-- Product configurators and digital showrooms
-- Industrial visualization and digital twin viewers
-- Training simulators and interactive 3D tools
 - Custom rendering pipelines and research prototypes
 
 The engine owns the rendering and XR foundation. Your app owns the vertical
@@ -145,9 +142,6 @@ Untold Engine is well-suited for:
 
 - Vision Pro and ARKit-based visualization apps
 - Large-scale scene visualization: interiors, archviz, cities, datasets
-- Product configurators and digital showrooms
-- Industrial visualization and digital twin viewers
-- Simulation tools and training applications
 - Custom rendering pipelines and graphics experiments
 
 ---
@@ -310,7 +304,8 @@ Full license: https://www.mozilla.org/MPL/2.0/
 
 ---
 
-# Questions & Discussions
+# Community
 
 - [GitHub Discussions](https://github.com/untoldengine/UntoldEngine/discussions) — ideas and questions
 - [GitHub Issues](https://github.com/untoldengine/UntoldEngine/issues) — bugs and tasks
+- [Discord](https://discord.gg/pSckCPFxj) — ask questions, share projects, and discuss engine development
