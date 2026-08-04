@@ -539,8 +539,8 @@ public final class USCBuilder {
     // MARK: - Animation
 
     @discardableResult
-    public func playAnimation(_ name: String, loop: Bool = true) -> USCBuilder {
-        instructions.append(.playAnimation(entity: "self", name: name, loop: loop))
+    public func playAnimation(_ name: String, loop: Bool = true, transitionHalflife: Float? = nil) -> USCBuilder {
+        instructions.append(.playAnimation(entity: "self", name: name, loop: loop, transitionHalflife: transitionHalflife))
         return self
     }
 

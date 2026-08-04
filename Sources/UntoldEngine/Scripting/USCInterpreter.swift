@@ -309,9 +309,12 @@ public class USCInterpreter: @unchecked Sendable {
                               offsetY: offsetYVal)
             return pc + 1
 
-        case let .playAnimation(entityRef, name, loop):
+        case let .playAnimation(entityRef, name, loop, transitionHalflife):
             let targetEntity = resolveEntity(entityRef, context: context)
-            changeAnimation(entityId: targetEntity, name: name, withPause: !loop)
+            changeAnimation(entityId: targetEntity,
+                            name: name,
+                            transitionHalflife: transitionHalflife ?? defaultAnimationTransitionHalflife,
+                            withPause: !loop)
             return pc + 1
 
         case let .stopAnimation(entityRef):

@@ -93,7 +93,9 @@ public enum USCInstruction: Codable {
     case lookAt(entity: String, target: String) // Orient towards target
 
     // Animation
-    case playAnimation(entity: String, name: String, loop: Bool)
+    // `transitionHalflife` is optional so scripts serialized before it
+    // existed still decode; nil means the engine default.
+    case playAnimation(entity: String, name: String, loop: Bool, transitionHalflife: Float?)
     case stopAnimation(entity: String)
 
     // Camera

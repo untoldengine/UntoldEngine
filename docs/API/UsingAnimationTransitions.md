@@ -47,6 +47,26 @@ changeAnimation(entityId: player, name: "teleport", transitionHalflife: 0)
 Playback of the new clip starts at its beginning, and `withPause` behaves
 as before.
 
+Calling `changeAnimation` with the clip that is **already playing** is a
+no-op apart from the `withPause` flag: playback keeps its phase and any
+in-flight transition keeps decaying. A state machine that defensively
+reasserts "make sure this entity is playing idle" every frame is safe — it
+won't restart the clip. To deliberately replay a clip from its beginning
+(a repeated hit reaction, for example), switch to another clip first or
+reset the component's time yourself.
+
+The same control is available from the other entry points:
+
+```swift
+// Scene-builder node API.
+MeshNode(name: "player", resource: "player.usdz")
+    .changeAnimation(name: "running", transitionHalflife: 0.05)
+
+// USC scripts — omit transitionHalflife to use the engine default.
+USCBuilder()
+    .playAnimation("running", transitionHalflife: 0.05)
+```
+
 ## What Happens Behind the Scenes
 
 1. On `changeAnimation`, the engine samples the incoming clip at its start
@@ -64,6 +84,10 @@ Transitions decay in real time, independent of the clip's playback speed.
 A transition that begins before the entity has ever displayed a pose (for
 example, right after scene load) falls back to a hard cut — there is
 nothing on screen to blend from.
+
+Switching clips on a **paused** (or `.forceOff`) entity captures the static
+pose on screen with zero velocity — the motion recorded before the freeze
+is not carried into the transition.
 
 ## Tips and Best Practices
 
