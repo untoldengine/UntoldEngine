@@ -86,6 +86,15 @@ class BaseRenderSetup: XCTestCase {
         antiAliasingMode = .fxaa
         renderDebugViewMode = .lit
         currentGlobalTime = 0.0
+        // Engine defaults (RuntimeGlobalsStore's cameraDefaultFOV/cameraNearPlane/cameraFarPlane
+        // initial values). A scene-authored asset load (e.g. loadSceneAuthored) overwrites these
+        // globals with its own camera's values and never restores them, so any later test in the
+        // same process would otherwise inherit the wrong frustum here in setUp(), before
+        // initializeAssets() even runs.
+        fov = 65.0
+        near = 0.1
+        far = 500.0
+        LightingSystem.shared.activeDirectionalLight = nil
     }
 
     private func psnrThreshold(for targetName: String, default defaultValue: String) -> String {
