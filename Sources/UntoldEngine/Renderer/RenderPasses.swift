@@ -4588,6 +4588,31 @@ public enum RenderPasses {
             renderPassDescriptor.tileHeight = 32
             renderPassDescriptor.imageblockSampleLength = initializePipelineState.imageblockSampleLength
 
+            // Snapshot the opaque depth before the pass so splats can be occluded by it.
+            // depthMap is also this pass's own .load'ed depth attachment below, and this
+            // engine never binds the same texture as both an attachment and a
+            // separately-sampled argument in one encoder (see copyOpaqueDepthForHZBExecution
+            // for the same precaution) — so the draw stage reads this copy instead.
+            if let sourceDepth = textureResources.depthMap,
+               let opaqueDepthSnapshot = textureResources.gaussianOpaqueDepthSnapshot
+            {
+                let width = min(sourceDepth.width, opaqueDepthSnapshot.width)
+                let height = min(sourceDepth.height, opaqueDepthSnapshot.height)
+                if width > 0, height > 0, let blitEncoder = commandBuffer.makeBlitCommandEncoder() {
+                    blitEncoder.label = "Copy Opaque Depth for Gaussian Occlusion"
+                    blitEncoder.copy(
+                        from: sourceDepth,
+                        sourceSlice: 0, sourceLevel: 0,
+                        sourceOrigin: MTLOrigin(x: 0, y: 0, z: 0),
+                        sourceSize: MTLSize(width: width, height: height, depth: 1),
+                        to: opaqueDepthSnapshot,
+                        destinationSlice: 0, destinationLevel: 0,
+                        destinationOrigin: MTLOrigin(x: 0, y: 0, z: 0)
+                    )
+                    blitEncoder.endEncoding()
+                }
+            }
+
             guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
                 handleError(.renderPassCreationFailed, "Gaussian Pass")
                 return
@@ -4606,6 +4631,17 @@ public enum RenderPasses {
             renderEncoder.pushDebugGroup("Draw Splats")
             renderEncoder.setRenderPipelineState(drawPipelineState)
             renderEncoder.setDepthStencilState(drawPipeline.depthState)
+
+            renderEncoder.setFragmentTexture(
+                textureResources.gaussianOpaqueDepthSnapshot,
+                index: Int(gaussianTBDRDrawOpaqueDepthTextureIndex.rawValue)
+            )
+            var gaussianDrawReverseZ = renderInfo.reverseZEnabled
+            renderEncoder.setFragmentBytes(
+                &gaussianDrawReverseZ,
+                length: MemoryLayout<Bool>.stride,
+                index: Int(gaussianTBDRRenderReverseZIndex.rawValue)
+            )
 
             let transformId = getComponentId(for: WorldTransformComponent.self)
             let gaussianId = getComponentId(for: GaussianComponent.self)

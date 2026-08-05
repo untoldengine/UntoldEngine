@@ -27,6 +27,7 @@ private func activeGaussianSortCount(_ component: GaussianComponent) -> Int {
 }
 
 private struct GaussianVisibleCountUpdate: @unchecked Sendable {
+    let entityId: EntityID
     let component: GaussianComponent
     let visibleCount: MTLBuffer
     let splatCount: UInt
@@ -154,6 +155,7 @@ public func executeGaussianFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
 
         visibleCountUpdates.append(
             GaussianVisibleCountUpdate(
+                entityId: entityId,
                 component: gaussianComponent,
                 visibleCount: visibleCount,
                 splatCount: gaussianComponent.splatCount
@@ -168,6 +170,16 @@ public func executeGaussianFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         for update in updates {
             let count = update.visibleCount.contents().load(as: UInt32.self)
             update.component.visibleSplatCountForRendering = min(UInt(count), update.splatCount)
+
+            // Streamed splat entities carry no RenderComponent, so they're structurally
+            // excluded from the RenderComponent-keyed culling query that normally feeds
+            // MemoryBudgetManager.markUsed (see CullingSystem.swift). Without this, a loaded
+            // splat's lastUsedFrame would never advance and evictLRU would treat it as the
+            // stalest entity in the budget regardless of actual visibility. Mark used only
+            // when at least one splat survived this frame's frustum test.
+            if update.component.visibleSplatCountForRendering > 0 {
+                MemoryBudgetManager.shared.markUsed(entityId: update.entityId)
+            }
         }
     }
 

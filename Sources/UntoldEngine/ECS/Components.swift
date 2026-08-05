@@ -780,6 +780,18 @@ public enum MeshStreamingState: String {
     case unloading // Being unloaded
 }
 
+/// Kind of asset a StreamingComponent loads/unloads.
+///
+/// Determines which loader `GeometryStreamingSystem.loadMesh`/`unloadMesh` dispatch to.
+/// `.mesh` goes through the existing `.untold`/OCC mesh pipeline; `.gaussianSplat` goes
+/// through `setEntityGaussianAsync`/`unloadGaussian`. The distance/radius scheduling,
+/// concurrency, and memory-budget eviction logic in `GeometryStreamingSystem` is shared
+/// across both kinds.
+public enum StreamingAssetKind {
+    case mesh
+    case gaussianSplat
+}
+
 /// Component that marks an entity for geometry streaming
 public class StreamingComponent: Component {
     /// Distance from camera at which mesh starts loading
@@ -794,11 +806,14 @@ public class StreamingComponent: Component {
     /// Filename of the asset (without extension)
     public var assetFilename: String = ""
 
-    /// File extension (e.g., "usdz")
+    /// File extension (e.g., "usdz", or "ply" for gaussian splats)
     public var assetExtension: String = ""
 
     /// Optional: specific mesh name within the asset
     public var assetName: String?
+
+    /// Which loader this entity streams through. See `StreamingAssetKind`.
+    public var assetKind: StreamingAssetKind = .mesh
 
     /// Current streaming state
     public var state: MeshStreamingState = .unloaded
@@ -817,7 +832,8 @@ public class StreamingComponent: Component {
         withExtension ext: String,
         streamingRadius: Float = 100.0,
         unloadRadius: Float = 150.0,
-        priority: Int = 0
+        priority: Int = 0,
+        assetKind: StreamingAssetKind = .mesh
     ) {
         self.init()
         assetFilename = filename
@@ -825,6 +841,7 @@ public class StreamingComponent: Component {
         self.streamingRadius = streamingRadius
         self.unloadRadius = unloadRadius
         self.priority = priority
+        self.assetKind = assetKind
     }
 }
 

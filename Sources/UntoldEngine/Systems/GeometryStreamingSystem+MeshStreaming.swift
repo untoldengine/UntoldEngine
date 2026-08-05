@@ -39,6 +39,11 @@ extension GeometryStreamingSystem {
             )
         }
 
+        if streaming.assetKind == .gaussianSplat {
+            loadGaussianStreamingEntity(entityId: entityId, streaming: streaming, isNearBand: isNearBand)
+            return
+        }
+
         let hasLOD = scene.get(component: LODComponent.self, for: entityId) != nil
 
         let filename = streaming.assetFilename
@@ -368,6 +373,11 @@ extension GeometryStreamingSystem {
         guard let streaming = scene.get(component: StreamingComponent.self, for: entityId),
               streaming.state == .loaded
         else { return }
+
+        if streaming.assetKind == .gaussianSplat {
+            unloadGaussian(entityId: entityId)
+            return
+        }
 
         // Clear first-detection timestamp so a future re-approach records a fresh baseline.
         firstRangeTimestamps.removeValue(forKey: entityId)

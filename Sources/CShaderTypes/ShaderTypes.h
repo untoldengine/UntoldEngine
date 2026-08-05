@@ -512,6 +512,10 @@ typedef enum{
   }GaussianTBDRRenderBufferIndices;
 
 typedef enum{
+      gaussianTBDRDrawOpaqueDepthTextureIndex = 0,
+  }GaussianTBDRDrawTextureIndices;
+
+typedef enum{
       outputTransformPassEncodingModeIndex
   }OutputTransformBufferIndices;
 
