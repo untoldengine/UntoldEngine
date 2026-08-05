@@ -448,6 +448,143 @@ final class GaussianRenderingTest: BaseRenderSetup {
                        "Sorted passes should equal total passes")
     }
 
+    // MARK: - Depth occlusion against opaque geometry
+
+    //
+    // These tests deliberately avoid assuming which exact screen pixel the splat cloud
+    // projects to (a real .ply point cloud isn't necessarily centered on its entity's
+    // transform origin). Instead, a large cube is used as an occluder, sized and
+    // positioned so its near face covers the entire view frustum near the camera — its
+    // depth is written at *every* pixel, so it occludes the splat wherever it actually
+    // renders, without needing pixel-perfect alignment. "Not occluded" is verified by the
+    // splat's own baseline visibility (maxAlphaAnywhere) with no occluder present at all.
+
+    // A sphere large enough (relative to its distance) to cover the whole frame puts the
+    // camera inside its own volume — its surface then faces away from the camera and gets
+    // back-face culled, i.e. it stops rendering entirely. A cube's flat near face avoids
+    // that: as long as the camera sits in front of that face (not inside the cube), it
+    // fully blocks the view within its angular footprint regardless of size.
+    @discardableResult
+    private func addFullFrameOccludingCube(at position: simd_float3, extent: Float = 8.0) -> EntityID {
+        let entity = createEntity()
+        var meshes = BasicPrimitives.createCube(extent: extent)
+        // BasicPrimitives meshes carry no material (ModelIO primitives don't set one),
+        // and combinedModelLightExecution silently skips any submesh with `material == nil`
+        // (RenderPasses.swift:2262) — no draw call, no depth write. Assign a plain opaque
+        // material so this occluder actually renders instead of being invisibly skipped.
+        let defaultMaterial = Material(runtimeMaterial: RuntimeMaterialSource(), device: renderInfo.device)
+        for meshIndex in meshes.indices {
+            for submeshIndex in meshes[meshIndex].submeshes.indices {
+                meshes[meshIndex].submeshes[submeshIndex].material = defaultMaterial
+            }
+        }
+        if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
+            renderComponent.mesh = meshes
+            renderComponent.assetURL = URL(fileURLWithPath: "/dev/null/occluder.untold")
+        }
+        if let local = scene.get(component: LocalTransformComponent.self, for: entity) {
+            local.position = position
+            local.boundingBox = Mesh.computeMeshBoundingBox(for: meshes)
+        }
+        if let world = scene.get(component: WorldTransformComponent.self, for: entity) {
+            var space = matrix_identity_float4x4
+            space.columns.3 = simd_float4(position, 1.0)
+            world.space = space
+        }
+        setVisibleEntities()
+        return entity
+    }
+
+    /// Scans the whole texture for the maximum alpha value found anywhere — a
+    /// registration-independent stand-in for "is the splat visible somewhere in frame."
+    private func maxAlphaAnywhere(in texture: MTLTexture) -> Float {
+        precondition(texture.pixelFormat == .rgba16Float, "Test assumes the Gaussian target is rgba16Float")
+        let width = texture.width
+        let height = texture.height
+        let bytesPerPixel = 8
+        let bytesPerRow = width * bytesPerPixel
+        let dataSize = bytesPerRow * height
+        let rawData = UnsafeMutableRawPointer.allocate(byteCount: dataSize, alignment: 1)
+        defer { rawData.deallocate() }
+        texture.getBytes(rawData, bytesPerRow: bytesPerRow, from: MTLRegionMake2D(0, 0, width, height), mipmapLevel: 0)
+        let ptr = rawData.bindMemory(to: Float16.self, capacity: width * height * 4)
+        var best: Float = 0
+        for i in 0 ..< (width * height) {
+            let a = Float(ptr[i * 4 + 3])
+            if a > best { best = a }
+        }
+        return best
+    }
+
+    private func renderAndReadMaxAlpha() -> Float {
+        renderer.draw(in: renderer.metalView)
+        let expectation = XCTestExpectation(description: "Gaussian render")
+        var result: Float = -1
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            result = self.maxAlphaAnywhere(in: renderInfo.gaussianRenderPassDescriptor.colorAttachments[Int(0)].texture!)
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: TimeInterval(timeoutFactor))
+        return result
+    }
+
+    /// Baseline: the test splat, alone, is visible somewhere in frame. Establishes that
+    /// the occlusion tests below have something real to occlude.
+    func testGaussianOcclusion_splatAloneIsVisible() {
+        let camera = createTestCamera()
+        cameraLookAt(entityId: camera, eye: simd_float3(0, 3, 7), target: simd_float3(0, 0, 0), up: simd_float3(0, 1, 0))
+
+        let alpha = renderAndReadMaxAlpha()
+        XCTAssertGreaterThan(alpha, 0.05, "❌ Splat alone with no occluder should be visible somewhere in frame, got \(alpha)")
+    }
+
+    /// A splat behind a closer opaque object covering the whole frame must be fully
+    /// occluded. Regression test for the depth-read added to `fragmentGaussianTBDRShader`
+    /// (previously the draw pipeline had `depthCompareFunction: .always, depthEnabled: false`
+    /// and never read the opaque depth at all, so splats always rendered on top regardless
+    /// of geometry in front).
+    func testGaussianOcclusion_hiddenBehindCloserOpaqueMesh() {
+        let eye = simd_float3(0, 3, 7)
+        let target = simd_float3(0, 0, 0)
+
+        let camera = createTestCamera()
+        cameraLookAt(entityId: camera, eye: eye, target: target, up: simd_float3(0, 1, 0))
+
+        // Cube center placed so its near face (facing the camera) sits ~1 unit in front
+        // of the camera, well outside the cube itself, with a wide enough face to cover
+        // the frame at that distance.
+        let nearPoint = eye + 0.657 * (target - eye) // distance ≈5.0 from eye; near face ≈1.0
+        addFullFrameOccludingCube(at: nearPoint, extent: 8.0)
+
+        let alpha = renderAndReadMaxAlpha()
+        XCTAssertLessThan(
+            alpha, 0.05,
+            "❌ Splat behind a closer full-frame opaque mesh should be fully occluded, got maxAlpha=\(alpha)"
+        )
+    }
+
+    /// The mirror case: a large opaque object placed *beyond* the splat (farther from
+    /// the camera) must not occlude it, even though it's big enough to otherwise span the
+    /// whole frame — exercises the actual depth comparison, not just "no occluder at all."
+    func testGaussianOcclusion_notOccludedByFartherOpaqueMesh() {
+        let eye = simd_float3(0, 3, 7)
+        let target = simd_float3(0, 0, 0)
+
+        let camera = createTestCamera()
+        cameraLookAt(entityId: camera, eye: eye, target: target, up: simd_float3(0, 1, 0))
+
+        // Well beyond the splat on the same eye→target line (near face still farther
+        // from the camera than the target) — must NOT occlude it, regardless of size.
+        let farPoint = eye + 2.0 * (target - eye)
+        addFullFrameOccludingCube(at: farPoint, extent: 8.0)
+
+        let alpha = renderAndReadMaxAlpha()
+        XCTAssertGreaterThan(
+            alpha, 0.05,
+            "❌ Splat should remain visible when the opaque mesh is farther away, got maxAlpha=\(alpha)"
+        )
+    }
+
     // MARK: - Helper Methods
 
     func createTestCamera() -> EntityID {

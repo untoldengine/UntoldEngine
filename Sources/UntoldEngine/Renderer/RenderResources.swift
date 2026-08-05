@@ -172,6 +172,12 @@ public struct TextureResources {
     public var msaaDepthMap: MTLTexture?
     public var msaaDeferredColorMap: MTLTexture?
     public var hzbSourceDepthMap: MTLTexture?
+    /// Snapshot of the opaque scene's depth, copied before the Gaussian pass so splats
+    /// can be occluded by opaque geometry. A dedicated copy (rather than reading
+    /// `depthMap` directly) mirrors `hzbSourceDepthMap`'s pattern — `depthMap` is also
+    /// this pass's own `.load`ed depth attachment, and no other pass in this engine
+    /// binds the same texture as both an attachment and a separately-sampled argument.
+    public var gaussianOpaqueDepthSnapshot: MTLTexture?
     public var environmentColorMap: MTLTexture?
 
     // deferred

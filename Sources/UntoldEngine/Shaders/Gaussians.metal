@@ -352,12 +352,37 @@ vertex GaussianOutData vertexGaussianTBDRShader(
 
 fragment GaussianTBDRFragmentStore fragmentGaussianTBDRShader(
     GaussianOutData in [[stage_in]],
-    GaussianTBDRFragmentValues previousValues [[imageblock_data]])
+    GaussianTBDRFragmentValues previousValues [[imageblock_data]],
+    depth2d<float> opaqueDepth [[texture(gaussianTBDRDrawOpaqueDepthTextureIndex)]],
+    constant bool &reverseZ [[buffer(gaussianTBDRRenderReverseZIndex)]])
 {
     GaussianTBDRFragmentStore out;
 
     if (!in.valid) {
         discard_fragment();
+    }
+
+    // Occlude against opaque geometry already in the depth buffer (a snapshot taken
+    // before this pass — see gaussianExecution). in.position.z is already normalized
+    // device depth from the same projection the opaque pass used, so it's directly
+    // comparable to the stored value with no linearization needed. A small bias avoids
+    // a hard cutoff exactly at surface intersections. Background pixels hold the clear
+    // value (the farthest depth in either convention), so splats over empty background
+    // are never occluded without any special-casing.
+    float storedOpaqueDepth = opaqueDepth.read(uint2(in.position.xy));
+    float splatDepth = in.position.z;
+    const float depthBias = 0.0005f;
+    bool occludedByOpaque = reverseZ
+        ? (splatDepth + depthBias < storedOpaqueDepth)
+        : (splatDepth > storedOpaqueDepth + depthBias);
+    if (occludedByOpaque) {
+        // discard_fragment() only suppresses standard color/depth attachment writes —
+        // it does NOT stop this function from computing and returning a value for the
+        // custom imageblock struct below, so relying on it alone here would let an
+        // occluded splat's contribution reach the accumulator anyway. Return the
+        // accumulator unchanged instead, so an occluded splat contributes nothing.
+        out.values = previousValues;
+        return out;
     }
 
     const float projYSign = 1.0f;

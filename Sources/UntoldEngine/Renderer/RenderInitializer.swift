@@ -790,6 +790,18 @@ func initTextureResources() {
         storageMode: .private
     )
 
+    // Gaussian pass reads a snapshot of the opaque depth to occlude splats behind
+    // walls/geometry. Copied fresh each frame from depthMap (see gaussianExecution).
+    textureResources.gaussianOpaqueDepthSnapshot = createTexture(
+        device: renderInfo.device,
+        label: "Gaussian Opaque Depth Snapshot",
+        pixelFormat: renderInfo.depthPixelFormat,
+        width: viewportWidth,
+        height: viewportHeight,
+        usage: [.shaderRead, .renderTarget],
+        storageMode: .private
+    )
+
     // Deferred Depth Texture
     textureResources.deferredDepthMap = createTexture(
         device: renderInfo.device,

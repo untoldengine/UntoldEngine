@@ -3195,10 +3195,28 @@ public func loadRawMesh(
     return Mesh.makeDefaultMesh()
 }
 
-public func setEntityGaussian(entityId: EntityID, filename: String, withExtension: String) {
+/// Built Metal resources for a parsed Gaussian splat asset, ready to attach to an entity.
+/// Shared by `setEntityGaussian` (synchronous) and `setEntityGaussianAsync` (off-thread) so
+/// there is a single implementation of the PLY-parse/buffer-build/SH-pack pipeline.
+private struct GaussianLoadResult {
+    let splatCount: UInt
+    let gaussianSortedIndices: MTLBuffer
+    let gaussianVisibleIndices: MTLBuffer
+    let gaussianVisibleCount: MTLBuffer
+    let encodedSplatBuffer: MTLBuffer
+    let sphericalHarmonicsBuffer: MTLBuffer?
+    let sphericalHarmonicsMetadata: GaussianSHMetadata?
+    let spaceUniform: [MTLBuffer?]
+    /// Sum of all GPU buffer bytes above, for `MemoryBudgetManager` registration.
+    let estimatedGPUBytes: Int
+}
+
+/// Reads a `.ply` Gaussian splat asset from disk and builds its GPU buffers.
+/// Returns `nil` on any failure, calling `handleError` internally — callers just guard-return.
+private func buildGaussianLoadResult(filename: String, withExtension: String) -> GaussianLoadResult? {
     guard let url = LoadingSystem.shared.resourceURL(forResource: filename, withExtension: withExtension, subResource: nil) else {
         handleError(.filenameNotFound, filename)
-        return
+        return nil
     }
 
     // Attempt to read Gaussian splats, handling errors internally
@@ -3207,20 +3225,20 @@ public func setEntityGaussian(entityId: EntityID, filename: String, withExtensio
         asset = try PLYReader.readGaussianAsset(from: url)
     } catch {
         handleError(.assetDataMissing, "Failed to read Gaussian splats from \(filename): \(error.localizedDescription)")
-        return
+        return nil
     }
     let splats = asset.splats
 
     // Check if we exceed the buffer capacity
     guard splats.count <= Int(maxNumOfGaussians) else {
         handleError(.bufferAllocationFailed, "Too many Gaussian splats: \(splats.count) exceeds maximum \(maxNumOfGaussians)")
-        return
+        return nil
     }
 
     let splatCount = UInt(splats.count)
     guard splatCount > 0 else {
         handleError(.assetDataMissing, "Gaussian splat file contains no vertices: \(filename)")
-        return
+        return nil
     }
 
     guard let gaussianSortedIndices = renderInfo.device.makeBuffer(
@@ -3228,7 +3246,7 @@ public func setEntityGaussian(entityId: EntityID, filename: String, withExtensio
         options: .storageModeShared
     ) else {
         handleError(.bufferAllocationFailed, "Gaussian sorted-index buffer is nil")
-        return
+        return nil
     }
 
     guard let gaussianVisibleIndices = renderInfo.device.makeBuffer(
@@ -3236,7 +3254,7 @@ public func setEntityGaussian(entityId: EntityID, filename: String, withExtensio
         options: .storageModeShared
     ) else {
         handleError(.bufferAllocationFailed, "Gaussian visible-index buffer is nil")
-        return
+        return nil
     }
 
     guard let gaussianVisibleCount = renderInfo.device.makeBuffer(
@@ -3244,13 +3262,13 @@ public func setEntityGaussian(entityId: EntityID, filename: String, withExtensio
         options: .storageModeShared
     ) else {
         handleError(.bufferAllocationFailed, "Gaussian visible-count buffer is nil")
-        return
+        return nil
     }
     gaussianVisibleCount.contents().storeBytes(of: UInt32(splatCount), as: UInt32.self)
 
     guard let encodedSplatBuffer = renderInfo.device.makeBuffer(length: MemoryLayout<EncodedGaussianSplat>.stride * Int(splatCount), options: .storageModeShared) else {
         handleError(.bufferAllocationFailed, "Encoded Gaussian splat buffer is nil")
-        return
+        return nil
     }
 
     let encodedPointer = encodedSplatBuffer.contents().bindMemory(
@@ -3269,7 +3287,7 @@ public func setEntityGaussian(entityId: EntityID, filename: String, withExtensio
         }
     } catch {
         handleError(.assetDataMissing, "Failed to pack spherical harmonics from \(filename): \(error.localizedDescription)")
-        return
+        return nil
     }
 
     let sphericalHarmonicsBuffer: MTLBuffer?
@@ -3281,7 +3299,7 @@ public func setEntityGaussian(entityId: EntityID, filename: String, withExtensio
         )
         guard sphericalHarmonicsBuffer != nil else {
             handleError(.bufferAllocationFailed, "Gaussian spherical-harmonics buffer is nil")
-            return
+            return nil
         }
         sphericalHarmonicsBuffer?.label = "Gaussian Spherical Harmonics"
     } else {
@@ -3293,23 +3311,141 @@ public func setEntityGaussian(entityId: EntityID, filename: String, withExtensio
                                      options: [MTLResourceOptions.storageModeShared])
     }
 
+    var estimatedGPUBytes = 0
+    estimatedGPUBytes += gaussianSortedIndices.length
+    estimatedGPUBytes += gaussianVisibleIndices.length
+    estimatedGPUBytes += gaussianVisibleCount.length
+    estimatedGPUBytes += encodedSplatBuffer.length
+    estimatedGPUBytes += sphericalHarmonicsBuffer?.length ?? 0
+    for buffer in spaceUniform {
+        estimatedGPUBytes += buffer.length
+    }
+
+    return GaussianLoadResult(
+        splatCount: splatCount,
+        gaussianSortedIndices: gaussianSortedIndices,
+        gaussianVisibleIndices: gaussianVisibleIndices,
+        gaussianVisibleCount: gaussianVisibleCount,
+        encodedSplatBuffer: encodedSplatBuffer,
+        sphericalHarmonicsBuffer: sphericalHarmonicsBuffer,
+        sphericalHarmonicsMetadata: packedSphericalHarmonics?.metadata,
+        spaceUniform: spaceUniform,
+        estimatedGPUBytes: estimatedGPUBytes
+    )
+}
+
+/// Registers `GaussianComponent` on `entityId` from a built `GaussianLoadResult` and records
+/// its GPU footprint with `MemoryBudgetManager`. Must be called from within a world-mutation
+/// gate (`withWorldMutationGate`).
+private func applyGaussianLoadResult(_ result: GaussianLoadResult, to entityId: EntityID) {
+    registerComponent(entityId: entityId, componentType: GaussianComponent.self)
+
+    guard let gaussianComponent = scene.get(component: GaussianComponent.self, for: entityId) else {
+        handleError(.noRenderComponent, entityId)
+        return
+    }
+
+    gaussianComponent.splatCount = result.splatCount
+    gaussianComponent.visibleSplatCountForRendering = result.splatCount
+    gaussianComponent.gaussianSortedIndices = result.gaussianSortedIndices
+    gaussianComponent.gaussianVisibleIndices = result.gaussianVisibleIndices
+    gaussianComponent.gaussianVisibleCount = result.gaussianVisibleCount
+    gaussianComponent.encodedSplatData = result.encodedSplatBuffer
+    gaussianComponent.sphericalHarmonicsData = result.sphericalHarmonicsBuffer
+    gaussianComponent.sphericalHarmonicsMetadata = result.sphericalHarmonicsMetadata
+    gaussianComponent.spaceUniform = result.spaceUniform
+
+    MemoryBudgetManager.shared.registerMesh(entityId: entityId, meshSizeBytes: result.estimatedGPUBytes)
+}
+
+public func setEntityGaussian(entityId: EntityID, filename: String, withExtension: String) {
+    guard let result = buildGaussianLoadResult(filename: filename, withExtension: withExtension) else {
+        return
+    }
+
     withWorldMutationGate {
-        registerComponent(entityId: entityId, componentType: GaussianComponent.self)
+        applyGaussianLoadResult(result, to: entityId)
+    }
+}
 
-        guard let gaussianComponent = scene.get(component: GaussianComponent.self, for: entityId) else {
-            handleError(.noRenderComponent, entityId)
-            return
-        }
+/// Asynchronously reads and encodes a `.ply` Gaussian splat asset and attaches it to
+/// `entityId` without blocking the main thread. Parsing, per-splat encoding, and spherical-
+/// harmonics packing all run before the world-mutation gate is acquired; only the final
+/// component registration runs under `withWorldMutationGate`, mirroring `setEntityMeshAsync`'s
+/// pattern of keeping GPU resource work outside the gate.
+///
+/// `async -> Bool` (rather than `setEntityMeshAsync`'s fire-and-forget/completion shape) so
+/// `GeometryStreamingSystem.loadMesh` can `await` it directly from its own dispatch `Task`,
+/// the same way it awaits the mesh path. Used both by direct callers that want a non-blocking
+/// one-off load, and internally by the streaming system for distance-streamed splat props —
+/// gaussians have no cache/OCC layer analogous to `MeshResourceManager`, so unlike mesh
+/// streaming there is no separate streaming-only loader.
+@discardableResult
+public func setEntityGaussianAsync(
+    entityId: EntityID,
+    filename: String,
+    withExtension: String,
+    completion: (@Sendable (Bool) -> Void)? = nil
+) async -> Bool {
+    guard let result = buildGaussianLoadResult(filename: filename, withExtension: withExtension) else {
+        completion?(false)
+        return false
+    }
 
-        gaussianComponent.splatCount = splatCount
-        gaussianComponent.visibleSplatCountForRendering = splatCount
-        gaussianComponent.gaussianSortedIndices = gaussianSortedIndices
-        gaussianComponent.gaussianVisibleIndices = gaussianVisibleIndices
-        gaussianComponent.gaussianVisibleCount = gaussianVisibleCount
-        gaussianComponent.encodedSplatData = encodedSplatBuffer
-        gaussianComponent.sphericalHarmonicsData = sphericalHarmonicsBuffer
-        gaussianComponent.sphericalHarmonicsMetadata = packedSphericalHarmonics?.metadata
-        gaussianComponent.spaceUniform = spaceUniform
+    withWorldMutationGate {
+        applyGaussianLoadResult(result, to: entityId)
+    }
+
+    completion?(true)
+    return true
+}
+
+/// Registers `entityId` as a distance-streamed Gaussian-splat prop, so
+/// `GeometryStreamingSystem` loads/unloads it based on camera distance the same way it
+/// does the surrounding tile geometry — rather than loading it immediately the way
+/// `setEntityGaussian`/`setEntityGaussianAsync` do.
+///
+/// `entityId` should already be positioned (e.g. via `translateTo`/`rotateTo`) before
+/// calling this — the entity's current `LocalTransformComponent.position` is used to find
+/// which tile it belongs to, via `findTileEntity(containing:)`. If no tile is found there,
+/// this logs a warning and leaves `entityId` as a plain, non-streaming entity.
+///
+/// `boundingBoxHalfExtent` has no default on purpose: `GeometryStreamingSystem`'s frustum
+/// gate needs a real local-space volume on the entity before it ever loads (the splat's
+/// true extent isn't known until the asset is parsed). A zero-size placeholder collapses
+/// the gate to a single exact point, making re-streaming unreliable once the camera moves
+/// away and back — pick a box roughly matching the prop's real-world size.
+public func setEntityGaussianStreamable(
+    entityId: EntityID,
+    filename: String,
+    withExtension ext: String,
+    streamingRadius: Float = 100.0,
+    unloadRadius: Float = 150.0,
+    boundingBoxHalfExtent: simd_float3,
+    priority: Int = 0
+) {
+    guard let local = scene.get(component: LocalTransformComponent.self, for: entityId) else {
+        handleError(.noLocalTransformComponent, entityId)
+        return
+    }
+
+    guard let tileEntity = findTileEntity(containing: local.position) else {
+        Logger.logWarning(message: "[RegistrationSystem] setEntityGaussianStreamable: no tile found containing position \(local.position) for entity \(entityId) — entity left non-streaming.")
+        return
+    }
+
+    local.boundingBox = (min: -boundingBoxHalfExtent, max: boundingBoxHalfExtent)
+
+    setParent(childId: entityId, parentId: tileEntity)
+    OctreeSystem.shared.registerEntity(entityId)
+
+    if let streaming = scene.assign(to: entityId, component: StreamingComponent.self) {
+        streaming.assetKind = .gaussianSplat
+        streaming.assetFilename = filename
+        streaming.assetExtension = ext
+        streaming.streamingRadius = streamingRadius
+        streaming.unloadRadius = unloadRadius
+        streaming.priority = priority
     }
 }
 
@@ -3535,6 +3671,10 @@ func removeEntityGaussian(entityId: EntityID) {
         gaussianComponent.visibleSplatCountForRendering = 0
         gaussianComponent.spaceUniform.removeAll()
         scene.remove(component: GaussianComponent.self, from: entityId)
+        // Idempotent — safe to call again if `unloadGaussian` already unregistered this
+        // entity as part of a streaming unload. Keeps MemoryBudgetManager's ledger accurate
+        // for entities destroyed directly (e.g. a non-streamed setEntityGaussian caller).
+        MemoryBudgetManager.shared.unregisterMesh(entityId: entityId)
     }
 }
 
