@@ -13,19 +13,41 @@ import SwiftUI
 
 @MainActor
 public struct UntoldView: View {
-    @State private var metalView: MTKView
     private var renderer: UntoldRenderer?
-    private var content: [any NodeProtocol] = []
+    var options: UntoldViewOptions
+    private var contentBuilder: @MainActor () -> [any NodeProtocol]
     private var updateHandler: (@MainActor (UpdateEvent) -> Void)?
 
-    public init(renderer: UntoldRenderer? = nil, @SceneBuilder _ content: @escaping @MainActor () -> [any NodeProtocol]) {
-        self.renderer = renderer ?? UntoldRenderer.create()
-        metalView = self.renderer?.metalView ?? MTKView()
-        self.content = content()
+    /// - Parameters:
+    ///   - renderer: An externally owned renderer, or nil to let the view
+    ///     create one. Either way the renderer is resolved once and survives
+    ///     SwiftUI re-evaluations of this struct.
+    ///   - options: Runtime-tunable view settings (target FPS, pause, clear
+    ///     color). When SwiftUI re-evaluates the view with changed options,
+    ///     only the difference is applied to the live `MTKView` — the
+    ///     renderer and the scene are never recreated. Also settable through
+    ///     the `options(_:)` / `preferredFramesPerSecond(_:)` / `paused(_:)`
+    ///     modifiers.
+    ///   - content: Scene content, built exactly once when the underlying
+    ///     platform view is created (after the renderer is ready, so mesh
+    ///     loading has a Metal device).
+    public init(
+        renderer: UntoldRenderer? = nil,
+        options: UntoldViewOptions = .default,
+        @SceneBuilder _ content: @escaping @MainActor () -> [any NodeProtocol]
+    ) {
+        self.renderer = renderer
+        self.options = options
+        contentBuilder = content
     }
 
     public var body: some View {
-        SceneView(renderer: renderer, updateHandler: updateHandler)
+        SceneView(
+            renderer: renderer,
+            options: options,
+            setup: { _ = contentBuilder() },
+            updateHandler: updateHandler
+        )
     }
 
     /// Subscribes to the engine's per-frame update event (RealityKit
@@ -39,6 +61,27 @@ public struct UntoldView: View {
     public func onUpdate(_ handler: @escaping @MainActor (UpdateEvent) -> Void) -> UntoldView {
         var copy = self
         copy.updateHandler = handler
+        return copy
+    }
+
+    /// Replaces all runtime view options.
+    public func options(_ options: UntoldViewOptions) -> UntoldView {
+        var copy = self
+        copy.options = options
+        return copy
+    }
+
+    /// Sets the target frame rate of the live view.
+    public func preferredFramesPerSecond(_ fps: Int) -> UntoldView {
+        var copy = self
+        copy.options.preferredFramesPerSecond = fps
+        return copy
+    }
+
+    /// Pauses or resumes the draw loop of the live view.
+    public func paused(_ paused: Bool) -> UntoldView {
+        var copy = self
+        copy.options.isPaused = paused
         return copy
     }
 }
