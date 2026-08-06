@@ -11,6 +11,7 @@ Start by creating an entity that represents your Gaussian Splat object.
 ```swift
 let myEntity = createEntity()
 ```
+
 ---
 
 ### Step 2: Link a Gaussian Splat to the Entity

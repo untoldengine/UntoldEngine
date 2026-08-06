@@ -13,18 +13,6 @@
   <a href="https://github.com/untoldengine/UntoldEngine/issues/new?assignees=&labels=question&template=04_SUPPORT_QUESTION.md&title=support%3A+">Ask a Question</a>
 </div>
 
-<div align="center">
-<br />
-
-![Build Status](https://github.com/untoldengine/UntoldEngine/actions/workflows/ci-build-test.yml/badge.svg?style=flat-square)
-[![Project license](https://img.shields.io/github/license/untoldengine/UntoldEngine.svg?style=flat-square)](https://github.com/untoldengine/UntoldEngine/blob/main/LICENSE)
-[![Pull Requests welcome](https://img.shields.io/badge/PRs-welcome-ff69b4.svg?style=flat-square)](https://github.com/untoldengine/UntoldEngine/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22)
-![Version](https://img.shields.io/github/v/release/untoldengine/UntoldEngine?style=flat-square&label=version)
-![Commits](https://img.shields.io/github/commit-activity/t/untoldengine/UntoldEngine?style=flat-square&label=commits)
-![Last Commit](https://img.shields.io/github/last-commit/untoldengine/UntoldEngine?style=flat-square&label=last+commit)
-
-</div>
-
 ---
 
 # Untold Engine
