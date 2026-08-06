@@ -12,6 +12,8 @@
   <a href="https://github.com/untoldengine/UntoldEngine/issues/new?assignees=&labels=enhancement&template=02_FEATURE_REQUEST.md&title=feat%3A+">Request a Feature</a>
   ·
   <a href="https://github.com/untoldengine/UntoldEngine/issues/new?assignees=&labels=question&template=04_SUPPORT_QUESTION.md&title=support%3A+">Ask a Question</a>
+  ·
+  <a href="https://discord.gg/pSckCPFxj">Join Our Discord</a>
 </div>
 
 <div align="center">
@@ -45,7 +47,9 @@ Untold Engine is built for developers and teams who:
 Creator & Lead Developer:  
 https://www.haroldserrano.com
 
-![untoldengine-image](/docs/images/engine-highlight-5.png)
+[![untoldengine-image](/docs/images/engine-highlight-5.png)](https://vimeo.com/1176995991?fl=ip&fe=ec)
+
+Click to Play
 
 ---
 
@@ -77,6 +81,13 @@ workflow, product experience, and customer-specific behavior.
     <td></td>
   </tr>
 </table>
+
+## Requirements
+
+- macOS 26 or newer
+- Swift 6 / Xcode 26 or newer
+- Apple Silicon Mac
+- Supported platforms: macOS, iOS, and visionOS
 
 ## Try the Engine Right Now
 
@@ -164,22 +175,7 @@ Untold Engine is well-suited for:
 
 ---
 
-# Commercial Use, Sponsored Features, and Support
 
-Untold Engine is open source under MPL-2.0 and can be used in commercial apps.
-Paid commercial options are available for teams that need private engine
-modifications, sponsored engine features, priority support, or custom terms.
-
-- **Sponsored open-source features** — fund roadmap-aligned engine work that is
-  released into the public MPL engine.
-- **Commercial license** — keep private modifications to engine internals closed
-  under commercial terms.
-- **Priority support / retainers** — get focused help with engine integration,
-  rendering issues, performance, and production use.
-
-See [COMMERCIAL.md](COMMERCIAL.md) for commercial licensing details.
-
----
 
 # Engine API
 
@@ -298,6 +294,23 @@ Full license: https://www.mozilla.org/MPL/2.0/
 
 ---
 
+# Commercial Use, Sponsored Features, and Support
+
+Untold Engine is open source under MPL-2.0 and can be used in commercial apps.
+Paid commercial options are available for teams that need private engine
+modifications, sponsored engine features, priority support, or custom terms.
+
+- **Sponsored open-source features** — fund roadmap-aligned engine work that is
+  released into the public MPL engine.
+- **Commercial license** — keep private modifications to engine internals closed
+  under commercial terms.
+- **Priority support / retainers** — get focused help with engine integration,
+  rendering issues, performance, and production use.
+
+See [COMMERCIAL.md](COMMERCIAL.md) for commercial licensing details.
+
+---
+
 # Trademark
 
 "Untold Engine" and the Untold Engine logo are trademarks of **Untold Engine Studios**. Forks may not use the name in a way that implies official endorsement. See [TRADEMARKS.md](TRADEMARKS.md).
@@ -308,4 +321,3 @@ Full license: https://www.mozilla.org/MPL/2.0/
 
 - [GitHub Discussions](https://github.com/untoldengine/UntoldEngine/discussions) — ideas and questions
 - [GitHub Issues](https://github.com/untoldengine/UntoldEngine/issues) — bugs and tasks
-- [Discord](https://discord.gg/pSckCPFxj) — ask questions, share projects, and discuss engine development
