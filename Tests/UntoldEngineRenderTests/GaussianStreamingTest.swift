@@ -155,7 +155,7 @@ final class GaussianStreamingTest: BaseRenderSetup {
     /// under that tile, register it with the octree, and configure it as a real gaussian
     /// streaming candidate — equivalent to `makeUnloadedGaussianEntity`'s manual assembly,
     /// but via the one public call callers are meant to use.
-    func testSetEntityGaussianStreamable_attachesToContainingTileAndStreamsCorrectly() async throws {
+    func testSetEntityGaussianStreamable_attachesToContainingTileAndStreamsCorrectly() async {
         let tileRoot = createEntity()
         if let tileComp = scene.assign(to: tileRoot, component: TileComponent.self) {
             tileComp.state = .parsed
