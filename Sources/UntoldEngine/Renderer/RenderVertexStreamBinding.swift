@@ -1,11 +1,12 @@
-
 //
 //  RenderVertexStreamBinding.swift
 //  UntoldEngine
 //
-//  Shared per-mesh vertex-stream binding for the model-family and shadow-family
-//  render passes.
+// Copyright (C) Untold Engine Studios
 //
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import CShaderTypes
 import Metal
