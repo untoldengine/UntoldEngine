@@ -121,14 +121,22 @@ public func executeGaussianFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         profileTotals.dispatchCount += 1
 
         let modelMatrix = simd_mul(worldTransformComponent.space, .identity)
-        let viewMatrix = cameraComponent.viewSpace
+        // Entity transforms are never modified when the scene root moves (SceneRootTransform
+        // applies its offset to the camera instead, as a "virtual camera" trick — see
+        // SceneRootTransform.swift). worldTransformComponent.space above is therefore in
+        // entity space, so the camera side of this product must go through
+        // effectiveViewMatrix, not the raw per-eye viewSpace — otherwise this cull silently
+        // drifts out of sync with where the draw pass (which already uses
+        // effectiveViewMatrix) actually renders the splats as soon as the scene root is
+        // translated/rotated (e.g. via SpatialManipulationSystem's pinch-drag).
+        let viewMatrix = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
         let modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
 
         var gaussianUniform = Uniforms()
         gaussianUniform.modelViewMatrix = modelViewMatrix
         gaussianUniform.viewMatrix = viewMatrix
         gaussianUniform.modelMatrix = modelMatrix
-        gaussianUniform.cameraPosition = cameraComponent.localPosition
+        gaussianUniform.cameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
         gaussianUniform.projectionMatrix = renderInfo.perspectiveSpace
 
         var totalSplats = UInt32(gaussianComponent.splatCount)
@@ -251,7 +259,10 @@ public func executeGaussianDepth(_ commandBuffer: MTLCommandBuffer) {
 
         let modelMatrix = simd_mul(worldTransformComponent.space, .identity)
 
-        let viewMatrix: simd_float4x4 = cameraComponent.viewSpace
+        // See the matching comment in executeGaussianFrustumCulling: worldTransformComponent
+        // is in entity space, so this must be the scene-root-corrected view, not the raw
+        // per-eye viewSpace.
+        let viewMatrix: simd_float4x4 = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
 
         let modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
 
@@ -269,7 +280,7 @@ public func executeGaussianDepth(_ commandBuffer: MTLCommandBuffer) {
 
         gaussianUniform.modelMatrix = modelMatrix
 
-        gaussianUniform.cameraPosition = cameraComponent.localPosition
+        gaussianUniform.cameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
 
         gaussianUniform.projectionMatrix = renderInfo.perspectiveSpace
 
