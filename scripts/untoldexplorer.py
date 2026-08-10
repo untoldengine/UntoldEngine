@@ -42,7 +42,10 @@ except ImportError:
 
 
 MAGIC = b"UNTOLD\x00\x00"
-FORMAT_VERSION = 1
+# Bumped from 1 to 2 when the exporter started multiplying emissive_factor by
+# Emission Strength (see extract_material). Readers use this to know whether
+# a file's emissiveFactor is trustworthy or a leftover Blender default.
+FORMAT_VERSION = 2
 FILE_ALIGNMENT = 16
 INVALID_INDEX = 0xFFFFFFFF
 HEADER_SIZE = 204
@@ -4298,6 +4301,7 @@ def extract_material(mesh_object: object, asset_path: Path) -> ExportedMaterial:
     inputs = principled.inputs
     base_color_input = inputs.get("Base Color")
     emissive_input = inputs.get("Emission Color") or inputs.get("Emission")
+    emission_strength_input = inputs.get("Emission Strength")
     metallic_input = inputs.get("Metallic")
     roughness_input = inputs.get("Roughness")
     normal_input = inputs.get("Normal")
@@ -4311,6 +4315,17 @@ def extract_material(mesh_object: object, asset_path: Path) -> ExportedMaterial:
         base_color = (1.0, 1.0, 1.0, 1.0)
     else:
         base_color = vector4(base_color_input.default_value)
+    # Blender 4.0+ splits Emission into "Emission Color" (defaults to white)
+    # and "Emission Strength" (defaults to 0.0) — a material is only actually
+    # emissive if the artist raised Strength above zero. Reading Color alone
+    # exports a bogus white emissive_factor on every material that has never
+    # touched the Emission input at all. Older single-socket "Emission" inputs
+    # have no separate strength control, so treat those as already-scaled.
+    if emission_strength_input is not None and not emission_strength_input.is_linked:
+        emission_strength = float(emission_strength_input.default_value)
+    else:
+        emission_strength = 1.0
+
     # Same stale-default_value issue as Base Color above: when a texture is
     # connected to Emission, Blender leaves the socket's default_value at
     # whatever was last set in the editor, not (0, 0, 0). Reading it in that
@@ -4318,10 +4333,14 @@ def extract_material(mesh_object: object, asset_path: Path) -> ExportedMaterial:
     if emissive_input is None:
         emissive = (0.0, 0.0, 0.0)
     elif emissive_input.is_linked:
-        emissive = (1.0, 1.0, 1.0)
+        emissive = (emission_strength, emission_strength, emission_strength)
     else:
         emissive_default = emissive_input.default_value
-        emissive = (float(emissive_default[0]), float(emissive_default[1]), float(emissive_default[2]))
+        emissive = (
+            float(emissive_default[0]) * emission_strength,
+            float(emissive_default[1]) * emission_strength,
+            float(emissive_default[2]) * emission_strength,
+        )
     metallic = float(metallic_input.default_value) if metallic_input is not None else 0.0
     roughness = float(roughness_input.default_value) if roughness_input is not None else 0.5
     alpha = float(alpha_input.default_value) if alpha_input is not None else 1.0
