@@ -25,7 +25,8 @@ final class AssetIntegrationTests: XCTestCase {
 
         let decoded = try UntoldReader().readAsset(from: url)
 
-        XCTAssertEqual(decoded.header.formatVersion, UntoldFormat.version)
+        XCTAssertGreaterThanOrEqual(decoded.header.formatVersion, UntoldFormat.minSupportedVersion)
+        XCTAssertLessThanOrEqual(decoded.header.formatVersion, UntoldFormat.version)
         XCTAssertEqual(decoded.header.fileType, .tile)
         XCTAssertEqual(decoded.header.vertexLayout, .pbrStaticV1)
 

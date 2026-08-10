@@ -18,7 +18,16 @@ import simd
 
 public enum UntoldFormat {
     public static let magic = "UNTOLD\0"
-    public static let version: UInt32 = 1
+    /// Current format version written by the exporter. Bumped to 2 when the
+    /// Blender exporter started multiplying emissive_factor by Emission
+    /// Strength — files below `minTrustedEmissiveVersion` were written before
+    /// that fix and can carry a bogus (1,1,1) emissiveFactor left over from
+    /// Blender's default Emission Color, so readers must not trust it.
+    public static let version: UInt32 = 2
+    /// Oldest format version this reader will still load.
+    public static let minSupportedVersion: UInt32 = 1
+    /// First format version whose emissiveFactor is safe to use as authored.
+    public static let minTrustedEmissiveVersion: UInt32 = 2
     public static let fileAlignment: UInt64 = 16
     public static let invalidIndex: UInt32 = .max
     public static let hashByteCount = 32
