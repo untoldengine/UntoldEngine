@@ -121,13 +121,13 @@ public class PLYReader {
         return GaussianSplatAsset(splats: filteredSplats, sphericalHarmonics: sphericalHarmonics)
     }
 
-    // A splat's peak alpha (at its own center, where the Gaussian falloff is 1) equals its
-    // opacity — see fragmentGaussianTBDRShader's `alpha = opacity * exp(power)`, power <= 0.
-    // The shader itself discards any fragment below this same threshold, so a splat whose
-    // opacity never reaches it can never contribute a visible pixel anywhere in its extent.
-    // Dropping it here removes it from vertex shading, rasterization, and per-fragment ALU
-    // entirely instead of paying that cost every frame only to discard the result — this is
-    // a lossless cull (identical rendered image), not a quality/perf tradeoff.
+    /// A splat's peak alpha (at its own center, where the Gaussian falloff is 1) equals its
+    /// opacity — see fragmentGaussianTBDRShader's `alpha = opacity * exp(power)`, power <= 0.
+    /// The shader itself discards any fragment below this same threshold, so a splat whose
+    /// opacity never reaches it can never contribute a visible pixel anywhere in its extent.
+    /// Dropping it here removes it from vertex shading, rasterization, and per-fragment ALU
+    /// entirely instead of paying that cost every frame only to discard the result — this is
+    /// a lossless cull (identical rendered image), not a quality/perf tradeoff.
     private static let minRetainedOpacity: Float = 1.0 / 255.0
 
     private static func filterNegligibleOpacitySplats(
