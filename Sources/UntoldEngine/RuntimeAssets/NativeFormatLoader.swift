@@ -447,10 +447,18 @@ public struct NativeFormatLoader: NamedRuntimeAssetLoading {
         decoded: UntoldDecodedAsset,
         baseURL: URL
     ) throws -> RuntimeMaterialSource {
-        try RuntimeMaterialSource(
+        // Files older than minTrustedEmissiveVersion were exported before the
+        // Blender exporter multiplied emissive_factor by Emission Strength, so
+        // untouched materials carry a bogus (1,1,1) left over from Blender's
+        // default Emission Color rather than genuine authored emissive.
+        let emissiveFactor = decoded.header.formatVersion >= UntoldFormat.minTrustedEmissiveVersion
+            ? material.emissiveFactor
+            : SIMD3<Float>(repeating: 0)
+
+        return try RuntimeMaterialSource(
             name: decoded.string(at: material.nameOffset),
             baseColorFactor: material.baseColorFactor,
-            emissiveFactor: material.emissiveFactor,
+            emissiveFactor: emissiveFactor,
             normalScale: material.normalScale,
             metallicFactor: material.metallicFactor,
             roughnessFactor: material.roughnessFactor,

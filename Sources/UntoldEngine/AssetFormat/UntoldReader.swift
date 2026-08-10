@@ -156,7 +156,9 @@ public final class UntoldReader: @unchecked Sendable {
         guard header.magic == expectedMagic else {
             throw UntoldValidationError.invalidMagic
         }
-        guard header.formatVersion == UntoldFormat.version else {
+        guard header.formatVersion >= UntoldFormat.minSupportedVersion,
+              header.formatVersion <= UntoldFormat.version
+        else {
             throw UntoldValidationError.unsupportedVersion(header.formatVersion)
         }
     }
