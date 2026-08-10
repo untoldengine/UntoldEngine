@@ -4311,8 +4311,17 @@ def extract_material(mesh_object: object, asset_path: Path) -> ExportedMaterial:
         base_color = (1.0, 1.0, 1.0, 1.0)
     else:
         base_color = vector4(base_color_input.default_value)
-    emissive_default = emissive_input.default_value if emissive_input is not None else (0.0, 0.0, 0.0, 1.0)
-    emissive = (float(emissive_default[0]), float(emissive_default[1]), float(emissive_default[2]))
+    # Same stale-default_value issue as Base Color above: when a texture is
+    # connected to Emission, Blender leaves the socket's default_value at
+    # whatever was last set in the editor, not (0, 0, 0). Reading it in that
+    # case exports a bogus emissive_factor untied to the actual texture.
+    if emissive_input is None:
+        emissive = (0.0, 0.0, 0.0)
+    elif emissive_input.is_linked:
+        emissive = (1.0, 1.0, 1.0)
+    else:
+        emissive_default = emissive_input.default_value
+        emissive = (float(emissive_default[0]), float(emissive_default[1]), float(emissive_default[2]))
     metallic = float(metallic_input.default_value) if metallic_input is not None else 0.0
     roughness = float(roughness_input.default_value) if roughness_input is not None else 0.5
     alpha = float(alpha_input.default_value) if alpha_input is not None else 1.0
