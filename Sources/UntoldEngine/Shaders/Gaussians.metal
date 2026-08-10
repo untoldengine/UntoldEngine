@@ -33,6 +33,14 @@ constant float GAUSSIAN_SH_C3[7] = {
    -0.5900435899266435f
 };
 
+// Hard ceiling on a splat's screen-space half-extent, in pixels. Without this, radius
+// grows roughly as 1/distance as the camera approaches a splat (see the Jacobian in
+// computeCov2D), so a single splat can balloon to cover a huge fraction of the screen at
+// close range — every one of those extra pixels pays full fragment-shading cost. Trades a
+// little softness/tail accuracy at extreme close range for a bounded worst-case overdraw
+// cost per splat.
+constant float kGaussianMaxScreenRadius = 128.0f;
+
 inline uint unpackIndex(uint64_t packed)  { return (uint)(packed & 0xffffffffu); }
 inline uint unpackDepthKey(uint64_t packed) { return (uint)(packed >> 32); }
 
@@ -190,9 +198,9 @@ float3 computeCov2D(float4      splatCenter,
     return float3(cov[0][0], cov[0][1], cov[1][1]);
 }
 
-// Compute inverse covariance and a scalar radius (~3σ) in pixels
+// Compute inverse covariance and a per-axis screen-space half-extent (~3σ) in pixels
 float3 computeInverseCovarianceConic(float3 cov2D,
-                                     thread float &radius,
+                                     thread float2 &radius,
                                      thread bool  &valid)
 {
     float a  = cov2D.x;
@@ -202,7 +210,7 @@ float3 computeInverseCovarianceConic(float3 cov2D,
     float det = a * c - b * b;
     if (det == 0.0f) {
         valid = false;
-        radius = 0.0f;
+        radius = float2(0.0f);
         return float3(0.0f);
     }
 
@@ -214,14 +222,17 @@ float3 computeInverseCovarianceConic(float3 cov2D,
         a * detInv
     );
 
-    // Eigenvalues of the 2×2 covariance
-    float mid     = 0.5f * (a + c);
-    float disc    = max(0.1f, mid * mid - det);
-    float lambda1 = mid + sqrt(disc);
-    float lambda2 = mid - sqrt(disc);
-
-    // Radius in pixels covering ~3σ of the larger axis
-    radius = ceil(3.0f * sqrt(max(lambda1, lambda2)));
+    // Tight axis-aligned half-extent covering ~3σ along each screen axis independently.
+    // This is the *exact* per-axis extent of the ellipse {d : dᵀ·conic·d <= 9} — it depends
+    // only on cov2D's diagonal (a, c), not its off-diagonal correlation term (b), regardless
+    // of how the ellipse is rotated. That makes it strictly tighter than (or equal to) the
+    // previous square sized by the larger eigenvalue: an anisotropic splat (e.g. a thin,
+    // flat-surface splat) no longer forces both screen axes out to the size of its longest
+    // axis, so fewer wasted fragments get rasterized, shaded, and discarded.
+    radius = float2(
+        min(ceil(3.0f * sqrt(a)), kGaussianMaxScreenRadius),
+        min(ceil(3.0f * sqrt(c)), kGaussianMaxScreenRadius)
+    );
 
     valid = true;
     return conic;
@@ -326,11 +337,11 @@ vertex GaussianOutData vertexGaussianTBDRShader(
                                 uniforms.projectionMatrix,
                                 viewport);
 
-    float extent = 0.0f;
+    float2 extent = float2(0.0f);
     bool valid = true;
     out.conic = computeInverseCovarianceConic(cov2D, extent, valid);
 
-    if (!valid || extent <= 0.0f) {
+    if (!valid || extent.x <= 0.0f || extent.y <= 0.0f) {
         return out;
     }
 
@@ -362,6 +373,32 @@ fragment GaussianTBDRFragmentStore fragmentGaussianTBDRShader(
         discard_fragment();
     }
 
+    // Early-terminate once this pixel is effectively opaque: every splat still to come in
+    // sorted order would contribute (1 - accumulatedAlpha) ~ 0 regardless of its own color
+    // or occlusion, so there's no need to pay for the opaque-depth read or the power/exp
+    // blend math below. This is the same "early stop" reference Gaussian-splat rasterizers
+    // use per-pixel, and is what keeps heavily overlapping splats (close-range viewing)
+    // from each paying full shading cost for zero visible contribution.
+    if (previousValues.color.a >= half(0.999h)) {
+        out.values = previousValues;
+        return out;
+    }
+
+    // Evaluate the Gaussian falloff before touching the opaque-depth texture: this is pure
+    // ALU (no memory fetch), and most of a splat's rasterized area — out near the 3σ quad
+    // edge — has negligible alpha. Rejecting those tail fragments here means they never pay
+    // for the depth-texture read at all, on top of never reaching the blend math below.
+    const float projYSign = 1.0f;
+    float2 d = calcScreenSpaceDelta(in.position.xy, in.coordxy, projYSign);
+    float power = calcPowerFromConic(in.conic, d);
+
+    half alpha = half(saturate(in.alpha * exp(power)));
+    if (alpha < half(1.0f / 255.0f)) {
+        // Contribution rounds to nothing — skip the opaque-depth read and blend math below.
+        out.values = previousValues;
+        return out;
+    }
+
     // Occlude against opaque geometry already in the depth buffer (a snapshot taken
     // before this pass — see gaussianExecution). in.position.z is already normalized
     // device depth from the same projection the opaque pass used, so it's directly
@@ -376,22 +413,9 @@ fragment GaussianTBDRFragmentStore fragmentGaussianTBDRShader(
         ? (splatDepth + depthBias < storedOpaqueDepth)
         : (splatDepth > storedOpaqueDepth + depthBias);
     if (occludedByOpaque) {
-        // discard_fragment() only suppresses standard color/depth attachment writes —
-        // it does NOT stop this function from computing and returning a value for the
-        // custom imageblock struct below, so relying on it alone here would let an
-        // occluded splat's contribution reach the accumulator anyway. Return the
-        // accumulator unchanged instead, so an occluded splat contributes nothing.
+        // Return the accumulator unchanged so an occluded splat contributes nothing.
         out.values = previousValues;
         return out;
-    }
-
-    const float projYSign = 1.0f;
-    float2 d = calcScreenSpaceDelta(in.position.xy, in.coordxy, projYSign);
-    float power = calcPowerFromConic(in.conic, d);
-
-    half alpha = half(saturate(in.alpha * exp(power)));
-    if (alpha < half(1.0f / 255.0f)) {
-        discard_fragment();
     }
 
     half oneMinusAccumulatedAlpha = half(1.0h - previousValues.color.a);
