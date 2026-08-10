@@ -99,19 +99,71 @@ public class PLYReader {
             parsed = try parseBinaryGaussians(data: data, bodyOffset: bodyOffset, element: vertexElement, bigEndian: true, shSchema: shSchema)
         }
 
-        let sphericalHarmonics = shSchema.map {
-            GaussianSphericalHarmonics(
-                degree: $0.degree,
-                coefficientsPerChannel: $0.coefficientsPerChannel,
-                coefficients: parsed.1
-            )
-        }
         if let shSchema,
            parsed.1.count != vertexElement.count * shSchema.coefficientsPerSplat
         {
             throw PLYError.invalidData("Spherical-harmonic coefficient data is incomplete")
         }
-        return GaussianSplatAsset(splats: parsed.0, sphericalHarmonics: sphericalHarmonics)
+
+        let (filteredSplats, filteredCoefficients) = filterNegligibleOpacitySplats(
+            splats: parsed.0,
+            shCoefficients: parsed.1,
+            coefficientsPerSplat: shSchema?.coefficientsPerSplat ?? 0
+        )
+
+        let sphericalHarmonics = shSchema.map {
+            GaussianSphericalHarmonics(
+                degree: $0.degree,
+                coefficientsPerChannel: $0.coefficientsPerChannel,
+                coefficients: filteredCoefficients
+            )
+        }
+        return GaussianSplatAsset(splats: filteredSplats, sphericalHarmonics: sphericalHarmonics)
+    }
+
+    // A splat's peak alpha (at its own center, where the Gaussian falloff is 1) equals its
+    // opacity — see fragmentGaussianTBDRShader's `alpha = opacity * exp(power)`, power <= 0.
+    // The shader itself discards any fragment below this same threshold, so a splat whose
+    // opacity never reaches it can never contribute a visible pixel anywhere in its extent.
+    // Dropping it here removes it from vertex shading, rasterization, and per-fragment ALU
+    // entirely instead of paying that cost every frame only to discard the result — this is
+    // a lossless cull (identical rendered image), not a quality/perf tradeoff.
+    private static let minRetainedOpacity: Float = 1.0 / 255.0
+
+    private static func filterNegligibleOpacitySplats(
+        splats: [GaussianSplat],
+        shCoefficients: [Float],
+        coefficientsPerSplat: Int
+    ) -> ([GaussianSplat], [Float]) {
+        guard splats.contains(where: { $0.opacity < minRetainedOpacity }) else {
+            return (splats, shCoefficients)
+        }
+
+        var keptSplats: [GaussianSplat] = []
+        keptSplats.reserveCapacity(splats.count)
+        var keptCoefficients: [Float] = []
+        if coefficientsPerSplat > 0 {
+            keptCoefficients.reserveCapacity(shCoefficients.count)
+        }
+
+        for (index, splat) in splats.enumerated() {
+            guard splat.opacity >= minRetainedOpacity else { continue }
+            keptSplats.append(splat)
+            if coefficientsPerSplat > 0 {
+                let start = index * coefficientsPerSplat
+                keptCoefficients.append(contentsOf: shCoefficients[start ..< start + coefficientsPerSplat])
+            }
+        }
+
+        Logger.log(
+            message: String(
+                format: "[Gaussian][PLY] Culled %d/%d splats below visibility threshold (opacity < %.4f)",
+                splats.count - keptSplats.count, splats.count, minRetainedOpacity
+            ),
+            category: LogCategory.gaussian.rawValue
+        )
+
+        return (keptSplats, keptCoefficients)
     }
 
     // MARK: - Header Parsing
