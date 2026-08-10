@@ -751,8 +751,6 @@ fragment TBDRLightOutput fragmentLightShaderTBDR(
     color.diff += areaLightColor.diff;
     color.spec += areaLightColor.spec;
 
-    // set emissive to zero for now - need  to revisit this
-    emissive = 0.0;
     float3 finalRGB = (float3)color.diff + color.spec + indirectLighting + emissive;
 
     TBDRLightOutput out;
