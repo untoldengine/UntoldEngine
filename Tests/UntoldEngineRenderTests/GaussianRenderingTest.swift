@@ -214,7 +214,7 @@ final class GaussianRenderingTest: BaseRenderSetup {
         guard let entity = entities.first,
               let component = scene.get(component: GaussianComponent.self, for: entity),
               let encodedSplats = component.encodedSplatData,
-              let sortedIndices = component.gaussianSortedIndices
+              let sortedIndices = component.gaussianSortedIndices.first ?? nil
         else {
             XCTFail("Expected the Gaussian test asset to be loaded")
             return
