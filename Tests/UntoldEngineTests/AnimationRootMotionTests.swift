@@ -65,6 +65,26 @@ final class AnimationRootMotionTests: XCTestCase {
         return AnimationClip(runtimeClip: RuntimeAnimationClip(name: "walk", duration: 2.0, channels: [rootChannel]))
     }
 
+    /// One-shot lunge: root travels 1 m over the first second of a 2 s
+    /// clip, channel marked non-repeating — the sampler clamps it at its
+    /// last key for the rest of the clip instead of cycling.
+    private func makeOneShotClip() -> AnimationClip {
+        let rootChannel = RuntimeAnimationChannel(
+            jointPath: "root",
+            translations: [
+                .init(time: 0.0, value: simd_float3(0, 0.9, 0)),
+                .init(time: 1.0, value: simd_float3(0, 0.9, 1)),
+            ],
+            rotations: [
+                .init(time: 0.0, value: SIMD4<Float>(0, 0, 0, 1)),
+                .init(time: 1.0, value: SIMD4<Float>(0, 0, 0, 1)),
+            ]
+        )
+        let clip = AnimationClip(runtimeClip: RuntimeAnimationClip(name: "lunge", duration: 2.0, channels: [rootChannel]))
+        clip.jointAnimation["root"]?.repeatAnimation = false
+        return clip
+    }
+
     /// Turn in place: root yaws 90° about +Y over the 2 s loop, no travel.
     private func makeTurnClip() -> AnimationClip {
         func yawKey(_ angle: Float) -> SIMD4<Float> {
@@ -215,6 +235,67 @@ final class AnimationRootMotionTests: XCTestCase {
 
         let jump = abs(getLocalPosition(entityId: entityId).z - zBeforeSwitch)
         XCTAssertLessThan(jump, 1e-4, "Switching clips must re-baseline, not apply a spurious delta")
+    }
+
+    // MARK: - Non-repeating clips
+
+    func testNonRepeatingChannelDoesNotInjectLoopJump() {
+        animationComponent.animationClips["lunge"] = makeOneShotClip()
+
+        setRootMotionEnabled(entityId: entityId, enabled: true)
+        changeAnimation(entityId: entityId, name: "lunge", transitionHalflife: 0)
+
+        // 1.89 s: well past the channel's 1 s last key (the clamp window the
+        // old fmod misread as a loop wrap), still before the 2 s outer wrap.
+        var previousZ = getLocalPosition(entityId: entityId).z
+        var maxStep: Float = 0
+        run(frames: 170) { _ in
+            let z = getLocalPosition(entityId: self.entityId).z
+            maxStep = max(maxStep, abs(z - previousZ))
+            previousZ = z
+        }
+
+        XCTAssertEqual(
+            getLocalPosition(entityId: entityId).z, 1.0 - deltaTime, accuracy: 1e-3,
+            "Entity travels the authored 1 m; the clamped channel contributes no further delta"
+        )
+        XCTAssertLessThan(
+            maxStep, deltaTime * 1.5,
+            "Clamping at the last key must not read as a loop wrap and inject the per-loop displacement"
+        )
+    }
+
+    // MARK: - Pitch and roll preservation
+
+    /// The swing–twist split must remove only yaw. Pure pitch (and pure
+    /// roll) composed with yaw decomposes exactly — the twist is the yaw
+    /// factor — so grounding must return the authored lean untouched; a
+    /// sign error or axis mixup in the twist projection would break this.
+    func testPitchAndRollSurviveGrounding() {
+        let yaw = simd_quatf(angle: 0.7, axis: simd_float3(0, 1, 0))
+        let leans: [(name: String, swing: simd_quatf)] = [
+            ("pitch", simd_quatf(angle: 0.4, axis: simd_float3(1, 0, 0))),
+            ("roll", simd_quatf(angle: -0.3, axis: simd_float3(0, 0, 1))),
+        ]
+
+        for (name, swing) in leans {
+            var pose = PoseBuffer()
+            pose.resize(jointCount: 1)
+            pose.translations[0] = simd_float3(0.3, 0.9, 1.2)
+            pose.rotations[0] = simd_normalize(swing * yaw)
+
+            stripRootMotion(from: &pose, rootIndex: 0)
+
+            XCTAssertEqual(pose.translations[0].x, 0, accuracy: 1e-6)
+            XCTAssertEqual(pose.translations[0].z, 0, accuracy: 1e-6)
+            XCTAssertEqual(pose.translations[0].y, 0.9, accuracy: 1e-6, "Vertical offset must survive grounding")
+
+            let (residualYaw, _) = yawTwist(pose.rotations[0])
+            XCTAssertEqual(residualYaw, 0, accuracy: 1e-5, "Yaw must be fully stripped (\(name) case)")
+
+            let dot = abs(simd_dot(pose.rotations[0].vector, swing.vector))
+            XCTAssertEqual(dot, 1.0, accuracy: 1e-5, "\(name) must come through the swing–twist split untouched")
+        }
     }
 
     // MARK: - Hierarchical assets

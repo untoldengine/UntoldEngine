@@ -147,10 +147,12 @@ func applyRootMotion(
     let (yaw, _) = yawTwist(animationComponent.localPose.rotations[rootIndex])
 
     // Channel-wrapped sample times, replicating the sampler's per-channel
-    // wrap, to detect when the clip looped between frames.
+    // wrap, to detect when the clip looped between frames. Non-repeating
+    // channels clamp at their last key (like the sampler), so a one-shot
+    // clip never fakes a wrap and never injects a per-loop correction.
     let channelTime = fmod(animationComponent.currentTime, clipDuration) * clipSpeed
-    let translationTime = wrappedChannelTime(channelTime, lastKeyTime: channel.translationTimes.last)
-    let rotationTime = wrappedChannelTime(channelTime, lastKeyTime: channel.rotationTimes.last)
+    let translationTime = wrappedChannelTime(channelTime, lastKeyTime: channel.translationTimes.last, repeats: channel.repeats)
+    let rotationTime = wrappedChannelTime(channelTime, lastKeyTime: channel.rotationTimes.last, repeats: channel.repeats)
 
     let motionEntity = animationComponent.rootMotion.anchorEntity == .invalid
         ? entityId
@@ -198,7 +200,8 @@ func applyRootMotion(
 }
 
 @inline(__always)
-private func wrappedChannelTime(_ time: Float, lastKeyTime: Float?) -> Float {
+private func wrappedChannelTime(_ time: Float, lastKeyTime: Float?, repeats: Bool) -> Float {
     guard let lastKeyTime, lastKeyTime > 0 else { return 0 }
+    guard repeats else { return min(time, lastKeyTime) }
     return fmod(time, lastKeyTime)
 }
