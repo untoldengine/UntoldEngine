@@ -131,6 +131,7 @@ nav:
     - Plugin Authoring Guidelines: Extensions/PluginAuthoringGuidelines.md
     - Creating a Rendering Extension Plugin: Extensions/CreatingRenderingExtensionPlugin.md
     - Creating an Engine Extension Plugin: Extensions/CreatingAnEngineExtensionPlugin.md
+    - Creating a Physics Backend Plugin: Extensions/CreatingAPhysicsBackendPlugin.md
   - Contributing:
     - Guidelines: Contributor/ContributionGuidelines.md
     - Versioning: Contributor/versioning.md
