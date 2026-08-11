@@ -114,19 +114,25 @@ jobs:
           UNTOLD_PERF_CPU_MEASURED_FRAMES: "600"
         run: swift test -v --disable-swift-testing --parallel --num-workers 1 --filter 'UntoldEngineRenderTests.PerformanceTests'
 
-      # ✅ Run async renderer tests in one XCTest process.
-      # These tests previously hung on CI under SwiftPM's parallel test runner, even
-      # with --num-workers 1. Keep them out of the broad parallel renderer sweep and
-      # run them without --parallel so their global async loading state is serialized.
-      - name: Run async renderer tests
-        timeout-minutes: 20
-        env:
-          CI: true
-          UNTOLD_PSNR_THRESHOLD: "33.5"
-          UNTOLD_PYTHON: "python3"
-        run: |
-          command -v "${UNTOLD_PYTHON}" >/dev/null 2>&1 || { echo "python not found"; exit 1; }
-          swift test -v --disable-swift-testing --filter 'UntoldEngineRenderTests.(AsyncMeshLoadingTest|AssetLoadingGateRenderingTests)'
+      # ⚠️ Disabled: AsyncMeshLoadingTest/AssetLoadingGateRenderingTests hang on the
+      # CI runner — under investigation, not reproducible locally.
+      #
+      # Re-confirmed in run 31457690218 (2026-08-11): zero test-case output for the
+      # full 20-minute step timeout, same failure mode as run 30206576385 and
+      # 30208337975 (2026-07-26) — different tests hung across those two runs under
+      # different worker configs, ruling out a single flaky test or worker-count as
+      # the cause. Something about async asset loading is systemically unreliable on
+      # this CI runner specifically. Run locally with `make testrenderer-async`
+      # instead until this gets its own investigation.
+      # - name: Run async renderer tests
+      #   timeout-minutes: 20
+      #   env:
+      #     CI: true
+      #     UNTOLD_PSNR_THRESHOLD: "33.5"
+      #     UNTOLD_PYTHON: "python3"
+      #   run: |
+      #     command -v "${UNTOLD_PYTHON}" >/dev/null 2>&1 || { echo "python not found"; exit 1; }
+      #     swift test -v --disable-swift-testing --filter 'UntoldEngineRenderTests.(AsyncMeshLoadingTest|AssetLoadingGateRenderingTests)'
 
   swift6-guardrails:
     runs-on: macos-26
