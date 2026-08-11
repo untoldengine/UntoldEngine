@@ -155,6 +155,17 @@ public func executeGaussianFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         var totalSplats = UInt32(gaussianComponent.splatCount)
         var clipGuardBand: Float = 0.25
 
+        // Coarse per-splat HZB occlusion pre-cull, fused into this same dispatch — see
+        // the comment in gaussianFrustumCull (BitonicSort.metal). Reuses the exact same
+        // temporal HZB pyramid mesh occlusion culling builds each frame
+        // (buildHZBDepthPyramid); hzbIsValid guarantees hzbDepthPyramid is non-nil when
+        // true, so the fallback texture below is only ever actually read when the flag
+        // (and therefore the shader's own occlusion branch) is off.
+        let hzbValid = renderInfo.hzbIsValid && textureResources.hzbDepthPyramid != nil
+        var hzbValidFlag: UInt32 = hzbValid ? 1 : 0
+        var hzbReverseZFlag: UInt32 = renderInfo.reverseZEnabled ? 1 : 0
+        var hzbOcclusionBias: Float = 0.02
+
         computeEncoder.setComputePipelineState(cullPipelineState)
         computeEncoder.setBuffer(encodedSplatData, offset: 0, index: Int(gaussianEncodedSplatIndex.rawValue))
         computeEncoder.setBytes(&gaussianUniform, length: MemoryLayout<Uniforms>.stride, index: Int(gaussianUniformIndex.rawValue))
@@ -162,6 +173,13 @@ public func executeGaussianFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         computeEncoder.setBuffer(visibleIndices, offset: 0, index: Int(gaussianVisibleIndicesIndex.rawValue))
         computeEncoder.setBuffer(visibleCount, offset: 0, index: Int(gaussianVisibleCountIndex.rawValue))
         computeEncoder.setBytes(&clipGuardBand, length: MemoryLayout<Float>.stride, index: Int(gaussianIndicesIndex.rawValue))
+        computeEncoder.setBytes(&hzbReverseZFlag, length: MemoryLayout<UInt32>.stride, index: Int(gaussianCullHZBReverseZIndex.rawValue))
+        computeEncoder.setBytes(&hzbOcclusionBias, length: MemoryLayout<Float>.stride, index: Int(gaussianCullHZBOcclusionBiasIndex.rawValue))
+        computeEncoder.setBytes(&hzbValidFlag, length: MemoryLayout<UInt32>.stride, index: Int(gaussianCullHZBValidIndex.rawValue))
+        computeEncoder.setTexture(
+            textureResources.hzbDepthPyramid ?? textureResources.depthMap,
+            index: Int(gaussianCullHZBDepthPyramidTextureIndex.rawValue)
+        )
 
         let tew = cullPipelineState.threadExecutionWidth
         let maxT = cullPipelineState.maxTotalThreadsPerThreadgroup
