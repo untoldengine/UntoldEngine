@@ -73,6 +73,9 @@ blend grounded poses, so switching clips never teleports the character.
   shorter clips.
 - Switching clips re-baselines the extraction: the first frame after a
   `changeAnimation` contributes no delta.
+- One-shot channels (`repeatAnimation` off) clamp at their last key, and
+  root motion clamps with them: a lunge travels its authored distance and
+  stops, with no spurious loop correction.
 - Gameplay code can still move the entity (steering, knockback); root
   motion adds deltas rather than overwriting the transform.
 - Hierarchical assets (loaded via `setEntityMeshAsync`) keep their
