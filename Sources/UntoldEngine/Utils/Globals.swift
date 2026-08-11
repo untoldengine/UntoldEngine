@@ -53,6 +53,7 @@ private final class CoreRuntimeGlobals: @unchecked Sendable {
     var hzbOcclusionCullingPipeline = ComputePipeline()
     var gaussianResetVisibleCountPipeline = ComputePipeline()
     var gaussianFrustumCullPipeline = ComputePipeline()
+    var gaussianPreprocessPipeline = ComputePipeline()
     var gaussianDepthPipeline = ComputePipeline()
     var radixClearHistogramPipeline = ComputePipeline()
     var radixHistogramPipeline = ComputePipeline()
@@ -574,6 +575,27 @@ var gaussianFrustumCullPipeline: ComputePipeline {
         state.lock.lock()
         defer { state.lock.unlock() }
         yield &state.gaussianFrustumCullPipeline
+    }
+}
+
+var gaussianPreprocessPipeline: ComputePipeline {
+    get {
+        let state = CoreRuntimeGlobals.shared
+        state.lock.lock()
+        defer { state.lock.unlock() }
+        return state.gaussianPreprocessPipeline
+    }
+    set {
+        let state = CoreRuntimeGlobals.shared
+        state.lock.lock()
+        state.gaussianPreprocessPipeline = newValue
+        state.lock.unlock()
+    }
+    _modify {
+        let state = CoreRuntimeGlobals.shared
+        state.lock.lock()
+        defer { state.lock.unlock() }
+        yield &state.gaussianPreprocessPipeline
     }
 }
 

@@ -3204,6 +3204,7 @@ private struct GaussianLoadResult {
     let gaussianVisibleIndices: MTLBuffer
     let gaussianVisibleCount: MTLBuffer
     let encodedSplatBuffer: MTLBuffer
+    let gaussianPrecomputedData: MTLBuffer
     let sphericalHarmonicsBuffer: MTLBuffer?
     let sphericalHarmonicsMetadata: GaussianSHMetadata?
     let spaceUniform: [MTLBuffer?]
@@ -3280,6 +3281,14 @@ private func buildGaussianLoadResult(filename: String, withExtension: String) ->
         encodedPointer[index] = encodeGaussianSplatForTBDR(splat)
     }
 
+    guard let gaussianPrecomputedData = renderInfo.device.makeBuffer(
+        length: MemoryLayout<GaussianPrecomputedSplat>.stride * Int(splatCount),
+        options: .storageModeShared
+    ) else {
+        handleError(.bufferAllocationFailed, "Gaussian precomputed-splat buffer is nil")
+        return nil
+    }
+
     let packedSphericalHarmonics: PackedGaussianSphericalHarmonics?
     do {
         packedSphericalHarmonics = try asset.sphericalHarmonics.map {
@@ -3316,6 +3325,7 @@ private func buildGaussianLoadResult(filename: String, withExtension: String) ->
     estimatedGPUBytes += gaussianVisibleIndices.length
     estimatedGPUBytes += gaussianVisibleCount.length
     estimatedGPUBytes += encodedSplatBuffer.length
+    estimatedGPUBytes += gaussianPrecomputedData.length
     estimatedGPUBytes += sphericalHarmonicsBuffer?.length ?? 0
     for buffer in spaceUniform {
         estimatedGPUBytes += buffer.length
@@ -3327,6 +3337,7 @@ private func buildGaussianLoadResult(filename: String, withExtension: String) ->
         gaussianVisibleIndices: gaussianVisibleIndices,
         gaussianVisibleCount: gaussianVisibleCount,
         encodedSplatBuffer: encodedSplatBuffer,
+        gaussianPrecomputedData: gaussianPrecomputedData,
         sphericalHarmonicsBuffer: sphericalHarmonicsBuffer,
         sphericalHarmonicsMetadata: packedSphericalHarmonics?.metadata,
         spaceUniform: spaceUniform,
@@ -3351,6 +3362,7 @@ private func applyGaussianLoadResult(_ result: GaussianLoadResult, to entityId: 
     gaussianComponent.gaussianVisibleIndices = result.gaussianVisibleIndices
     gaussianComponent.gaussianVisibleCount = result.gaussianVisibleCount
     gaussianComponent.encodedSplatData = result.encodedSplatBuffer
+    gaussianComponent.gaussianPrecomputedData = result.gaussianPrecomputedData
     gaussianComponent.sphericalHarmonicsData = result.sphericalHarmonicsBuffer
     gaussianComponent.sphericalHarmonicsMetadata = result.sphericalHarmonicsMetadata
     gaussianComponent.spaceUniform = result.spaceUniform
@@ -3668,6 +3680,7 @@ func removeEntityGaussian(entityId: EntityID) {
         gaussianComponent.gaussianSortedIndices = nil
         gaussianComponent.gaussianVisibleIndices = nil
         gaussianComponent.gaussianVisibleCount = nil
+        gaussianComponent.gaussianPrecomputedData = nil
         gaussianComponent.visibleSplatCountForRendering = 0
         gaussianComponent.spaceUniform.removeAll()
         scene.remove(component: GaussianComponent.self, from: entityId)

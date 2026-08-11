@@ -4510,30 +4510,13 @@ public enum RenderPasses {
                 )
                 renderEncoder.setVertexBytes(&renderInfo.viewPort, length: MemoryLayout<simd_float2>.stride, index: Int(gaussianTBDRRenderViewPortIndex.rawValue))
 
-                var shMetadata = gaussianComponent.sphericalHarmonicsMetadata ?? GaussianSHMetadata(
-                    degree: 0,
-                    coefficientsPerChannel: 0,
-                    higherOrderCoefficientsPerSplat: 0,
-                    _pad0: 0
-                )
+                // Conic/radius/color are precomputed once per splat per frame by
+                // executeGaussianPreprocess (see GaussianSystem.swift) instead of being
+                // recomputed here 4x per splat (once per instanced quad vertex).
                 renderEncoder.setVertexBuffer(
-                    gaussianComponent.sphericalHarmonicsData ?? gaussianComponent.encodedSplatData,
+                    gaussianComponent.gaussianPrecomputedData,
                     offset: 0,
-                    index: Int(gaussianTBDRRenderSHIndex.rawValue)
-                )
-                renderEncoder.setVertexBytes(
-                    &shMetadata,
-                    length: MemoryLayout<GaussianSHMetadata>.stride,
-                    index: Int(gaussianTBDRRenderSHMetadataIndex.rawValue)
-                )
-                var localCameraPosition = gaussianLocalCameraPosition(
-                    cameraWorldPosition: effectiveCameraPosition,
-                    modelMatrix: modelMatrix
-                )
-                renderEncoder.setVertexBytes(
-                    &localCameraPosition,
-                    length: MemoryLayout<simd_float3>.stride,
-                    index: Int(gaussianTBDRRenderLocalCameraIndex.rawValue)
+                    index: Int(gaussianTBDRRenderPrecomputedIndex.rawValue)
                 )
 
                 renderEncoder.drawPrimitivesTracked(type: .triangleStrip,

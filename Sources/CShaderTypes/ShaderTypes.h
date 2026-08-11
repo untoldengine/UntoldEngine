@@ -500,15 +500,39 @@ typedef struct{
     uint _pad0;
 }GaussianSHMetadata;
 
+// Per-splat conic/radius/color, computed once per splat per frame by the gaussianPreprocess
+// compute kernel instead of redundantly 4x per splat (once per instanced quad vertex) in the
+// draw vertex shader — see gaussianPreprocess in Gaussians.metal. Indexed by the same
+// original splat index as EncodedGaussianSplat.
+typedef struct{
+    simd_float3 conic;
+    float _pad0;
+    simd_float3 color;
+    float _pad1;
+    simd_float2 radius;
+    simd_float2 _pad2;
+}GaussianPrecomputedSplat;
+
+typedef enum{
+    gaussianPreprocessSplatIndex = 0,
+    gaussianPreprocessUniformIndex,
+    gaussianPreprocessNumOfSplatsIndex,
+    gaussianPreprocessVisibleIndicesIndex,
+    gaussianPreprocessVisibleCountIndex,
+    gaussianPreprocessViewportIndex,
+    gaussianPreprocessSHIndex,
+    gaussianPreprocessSHMetadataIndex,
+    gaussianPreprocessLocalCameraIndex,
+    gaussianPreprocessOutputIndex,
+}GaussianPreprocessBufferIndices;
+
 typedef enum{
       gaussianTBDRRenderIndicesIndex = 0,
       gaussianTBDRRenderSplatIndex,
       gaussianTBDRRenderUniformIndex,
       gaussianTBDRRenderViewPortIndex,
       gaussianTBDRRenderReverseZIndex,
-      gaussianTBDRRenderSHIndex,
-      gaussianTBDRRenderSHMetadataIndex,
-      gaussianTBDRRenderLocalCameraIndex,
+      gaussianTBDRRenderPrecomputedIndex,
   }GaussianTBDRRenderBufferIndices;
 
 typedef enum{

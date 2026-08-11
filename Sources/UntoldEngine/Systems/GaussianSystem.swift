@@ -48,6 +48,8 @@ func initGuassianComputePipelines() {
 
     createComputePipeline(into: &gaussianFrustumCullPipeline, device: renderInfo.device, library: renderInfo.library, functionName: "gaussianFrustumCull", pipelineName: "Gaussian Frustum Cull")
 
+    createComputePipeline(into: &gaussianPreprocessPipeline, device: renderInfo.device, library: renderInfo.library, functionName: "gaussianPreprocess", pipelineName: "Gaussian Preprocess")
+
     createComputePipeline(into: &gaussianDepthPipeline, device: renderInfo.device, library: renderInfo.library, functionName: "gaussianDepthKeys", pipelineName: "Gaussian Depth")
 
     createComputePipeline(into: &radixClearHistogramPipeline, device: renderInfo.device, library: renderInfo.library, functionName: "gaussianRadixClearHistogram", pipelineName: "Radix Clear")
@@ -196,6 +198,131 @@ public func executeGaussianFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         startTime: profileStart,
         totals: profileTotals,
         extra: "previousActiveSplats=\(activeSplatTotal)"
+    )
+}
+
+/// Computes conic/radius/color once per visible splat per frame — previously the draw
+/// vertex shader recomputed all three redundantly on each of its 4 instanced quad vertices
+/// per splat (see gaussianPreprocess in Gaussians.metal). Must run after
+/// executeGaussianFrustumCulling (consumes its visible-index output) and before the Gaussian
+/// draw pass (which reads gaussianComponent.gaussianPrecomputedData).
+public func executeGaussianPreprocess(_ commandBuffer: MTLCommandBuffer) {
+    let profileStart = gaussianProfilingStartTime()
+    var profileTotals = GaussianProfileTotals()
+    var activeSplatTotal = 0
+
+    guard gaussianPreprocessPipeline.success else {
+        handleError(.pipelineStateNulled, gaussianPreprocessPipeline.name!); return
+    }
+    guard let camera = CameraSystem.shared.activeCamera,
+          let cameraComponent = scene.get(component: CameraComponent.self, for: camera)
+    else {
+        handleError(.noActiveCamera)
+        return
+    }
+    guard let preprocessPipelineState = gaussianPreprocessPipeline.pipelineState else {
+        handleError(.pipelineStateNulled, "Gaussian preprocess pipeline state is nil")
+        return
+    }
+
+    let transformId = getComponentId(for: WorldTransformComponent.self)
+    let gaussianId = getComponentId(for: GaussianComponent.self)
+    let entities = queryEntitiesWithComponentIds([transformId, gaussianId], in: scene)
+    guard !entities.isEmpty else { return }
+
+    guard let computeEncoder = commandBuffer.makeComputeCommandEncoder() else { return }
+    computeEncoder.label = "Gaussian Preprocess"
+    computeEncoder.setComputePipelineState(preprocessPipelineState)
+
+    for entityId in entities {
+        guard let gaussianComponent = scene.get(component: GaussianComponent.self, for: entityId) else {
+            handleError(.noGaussianComponent, entityId)
+            continue
+        }
+        profileTotals.include(component: gaussianComponent)
+
+        // Same latent-by-one-frame dispatch-sizing convention as executeGaussianDepth: this
+        // is a CPU-side upper bound for how many threadgroups to launch, not the source of
+        // truth — the kernel itself re-checks against the current frame's visibleCount.
+        let activeCount = activeGaussianSortCount(gaussianComponent)
+        guard activeCount > 0 else { continue }
+        activeSplatTotal += activeCount
+
+        guard let worldTransformComponent = scene.get(component: WorldTransformComponent.self, for: entityId) else {
+            handleError(.noWorldTransformComponent, entityId)
+            continue
+        }
+        guard let encodedSplatData = gaussianComponent.encodedSplatData,
+              let visibleIndices = gaussianComponent.gaussianVisibleIndices,
+              let visibleCount = gaussianComponent.gaussianVisibleCount,
+              let precomputedData = gaussianComponent.gaussianPrecomputedData
+        else {
+            handleError(.bufferAllocationFailed, "Gaussian preprocess buffers")
+            continue
+        }
+
+        let modelMatrix = simd_mul(worldTransformComponent.space, .identity)
+
+        // Same effectiveViewMatrix/effectiveCameraPosition requirement as the cull/depth
+        // passes — see the comment on executeGaussianFrustumCulling.
+        let viewMatrix = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
+        let modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
+        let effectiveCameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
+
+        var gaussianUniform = Uniforms()
+        gaussianUniform.modelViewMatrix = modelViewMatrix
+        gaussianUniform.viewMatrix = viewMatrix
+        gaussianUniform.modelMatrix = modelMatrix
+        gaussianUniform.cameraPosition = effectiveCameraPosition
+        gaussianUniform.projectionMatrix = renderInfo.perspectiveSpace
+
+        var localNumGaussians = UInt32(activeCount)
+        var viewport = renderInfo.viewPort
+        var shMetadata = gaussianComponent.sphericalHarmonicsMetadata ?? GaussianSHMetadata(
+            degree: 0,
+            coefficientsPerChannel: 0,
+            higherOrderCoefficientsPerSplat: 0,
+            _pad0: 0
+        )
+        var localCameraPosition = gaussianLocalCameraPosition(
+            cameraWorldPosition: effectiveCameraPosition,
+            modelMatrix: modelMatrix
+        )
+
+        computeEncoder.setBuffer(encodedSplatData, offset: 0, index: Int(gaussianPreprocessSplatIndex.rawValue))
+        computeEncoder.setBytes(&gaussianUniform, length: MemoryLayout<Uniforms>.stride, index: Int(gaussianPreprocessUniformIndex.rawValue))
+        computeEncoder.setBytes(&localNumGaussians, length: MemoryLayout<UInt32>.stride, index: Int(gaussianPreprocessNumOfSplatsIndex.rawValue))
+        computeEncoder.setBuffer(visibleIndices, offset: 0, index: Int(gaussianPreprocessVisibleIndicesIndex.rawValue))
+        computeEncoder.setBuffer(visibleCount, offset: 0, index: Int(gaussianPreprocessVisibleCountIndex.rawValue))
+        computeEncoder.setBytes(&viewport, length: MemoryLayout<simd_float2>.stride, index: Int(gaussianPreprocessViewportIndex.rawValue))
+        computeEncoder.setBuffer(
+            gaussianComponent.sphericalHarmonicsData ?? encodedSplatData,
+            offset: 0,
+            index: Int(gaussianPreprocessSHIndex.rawValue)
+        )
+        computeEncoder.setBytes(&shMetadata, length: MemoryLayout<GaussianSHMetadata>.stride, index: Int(gaussianPreprocessSHMetadataIndex.rawValue))
+        computeEncoder.setBytes(&localCameraPosition, length: MemoryLayout<simd_float3>.stride, index: Int(gaussianPreprocessLocalCameraIndex.rawValue))
+        computeEncoder.setBuffer(precomputedData, offset: 0, index: Int(gaussianPreprocessOutputIndex.rawValue))
+
+        let tew = preprocessPipelineState.threadExecutionWidth
+        let maxT = preprocessPipelineState.maxTotalThreadsPerThreadgroup
+        var block = min(256, maxT)
+        block = max((block / tew) * tew, tew)
+        let numThreadgroups = (activeCount + block - 1) / block
+        computeEncoder.dispatchThreadgroups(
+            MTLSizeMake(numThreadgroups, 1, 1),
+            threadsPerThreadgroup: MTLSizeMake(block, 1, 1)
+        )
+        profileTotals.dispatchCount += 1
+    }
+
+    computeEncoder.endEncoding()
+
+    logGaussianProfile(
+        stage: "Preprocess",
+        startTime: profileStart,
+        totals: profileTotals,
+        extra: "activeSplats=\(activeSplatTotal)"
     )
 }
 

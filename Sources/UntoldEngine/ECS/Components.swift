@@ -100,6 +100,9 @@ public class GaussianComponent: Component {
     var gaussianSortedIndices: MTLBuffer?
     var gaussianVisibleIndices: MTLBuffer?
     var gaussianVisibleCount: MTLBuffer?
+    /// Per-splat conic/radius/color, written once per frame by executeGaussianPreprocess
+    /// and read by the draw vertex shader — see GaussianPrecomputedSplat.
+    var gaussianPrecomputedData: MTLBuffer?
     var visibleSplatCountForRendering: UInt = 0
     public var spaceUniform: [MTLBuffer?] = Array(repeating: nil, count: totalPerMeshUniformBuffers())
     var splatCount: UInt = 0
