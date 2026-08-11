@@ -79,7 +79,7 @@ jobs:
           # UNTOLD_KEEP_ARTIFACTS: "1"    # rarely needed on CI
         run: |
           command -v "${UNTOLD_PYTHON}" >/dev/null 2>&1 || { echo "python not found"; exit 1; }
-          swift test -v --disable-swift-testing --filter UntoldEngineRenderTests \
+          swift test -v --disable-swift-testing --parallel --num-workers 4 --filter UntoldEngineRenderTests \
             --skip 'UntoldEngineRenderTests.(AsyncMeshLoadingTest|AssetLoadingGateRenderingTests)' \
             --skip 'UntoldEngineRenderTests.RemoteStreamFlyThroughTests' \
             --skip 'UntoldEngineRenderTests.PerformanceTests'
