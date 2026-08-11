@@ -469,7 +469,14 @@ typedef enum{
     gaussianIndicesIndex,
     gaussianVisibleIndicesIndex,
     gaussianVisibleCountIndex,
+    gaussianCullHZBReverseZIndex,
+    gaussianCullHZBOcclusionBiasIndex,
+    gaussianCullHZBValidIndex,
 }GaussianDepthBufferIndices;
+
+typedef enum{
+    gaussianCullHZBDepthPyramidTextureIndex = 0,
+}GaussianCullTextureIndices;
 
 typedef struct{
     simd_float4 center;

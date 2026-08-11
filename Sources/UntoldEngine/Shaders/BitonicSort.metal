@@ -54,6 +54,10 @@ kernel void gaussianFrustumCull(
     constant float &clipGuardBand [[buffer(gaussianIndicesIndex)]],
     device uint *visibleIndices [[buffer(gaussianVisibleIndicesIndex)]],
     device atomic_uint *visibleCount [[buffer(gaussianVisibleCountIndex)]],
+    constant uint &hzbReverseZ [[buffer(gaussianCullHZBReverseZIndex)]],
+    constant float &hzbOcclusionBias [[buffer(gaussianCullHZBOcclusionBiasIndex)]],
+    constant uint &hzbValid [[buffer(gaussianCullHZBValidIndex)]],
+    texture2d<float, access::sample> hzbDepthPyramid [[texture(gaussianCullHZBDepthPyramidTextureIndex)]],
     uint index [[thread_position_in_grid]])
 {
     if (index >= numOfSplats) return;
@@ -68,6 +72,26 @@ kernel void gaussianFrustumCull(
     float2 ndc = centerClip.xy / centerClip.w;
     if (abs(ndc.x) > limit || abs(ndc.y) > limit) return;
     if (centerClip.z < -centerClip.w * clipGuardBand || centerClip.z > centerClip.w * limit) return;
+
+    // Coarse per-splat occlusion pre-cull against the same (previous-frame, temporal) HZB
+    // pyramid mesh occlusion culling already builds and uses (see HZBCompute.metal). A
+    // single center-point sample at HZB mip 0 is enough here — unlike mesh AABBs, which
+    // sample a 5x5 grid to avoid landing entirely on a porous occluder, an individual
+    // splat is small enough that its footprint rarely spans more than the texel this
+    // samples. This is a cheap, conservative pre-filter that keeps wholly-occluded splats
+    // (e.g. behind a wall) out of preprocess/depth/sort/draw entirely; the fragment
+    // shader's own per-pixel opaque-depth test still runs afterward and remains the
+    // source of truth for partial occlusion.
+    if (hzbValid != 0u) {
+        float2 uv = float2(ndc.x * 0.5f + 0.5f, 1.0f - (ndc.y * 0.5f + 0.5f));
+        float splatDepth = clamp(centerClip.z / centerClip.w, 0.0f, 1.0f);
+        constexpr sampler pointSampler(coord::normalized, address::clamp_to_edge, filter::nearest);
+        float hzbDepth = hzbDepthPyramid.sample(pointSampler, uv, level(0)).x;
+        bool occluded = (hzbReverseZ != 0u)
+            ? (splatDepth < hzbDepth - hzbOcclusionBias)
+            : (splatDepth > hzbDepth + hzbOcclusionBias);
+        if (occluded) return;
+    }
 
     uint writeIndex = atomic_fetch_add_explicit(visibleCount, 1u, memory_order_relaxed);
     visibleIndices[writeIndex] = index;
