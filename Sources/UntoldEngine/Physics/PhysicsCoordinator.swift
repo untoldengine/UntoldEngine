@@ -11,24 +11,6 @@
 import Foundation
 import simd
 
-/// Counts overflow reports and discards everything else. Event delivery to
-/// subscribers (and USC `OnCollision`) is wired in the physics-events PR;
-/// until then a backend's events are drained but go nowhere.
-final class InertPhysicsEventSink: PhysicsEventSink {
-    private(set) var droppedEventCount = 0
-
-    func receiveContact(_: PhysicsContactEvent) {}
-    func receiveTrigger(_: PhysicsTriggerEvent) {}
-    func receiveActivation(_: PhysicsBodyActivationEvent) {}
-    func reportDroppedEvents(count: Int) {
-        droppedEventCount += count
-    }
-
-    func reset() {
-        droppedEventCount = 0
-    }
-}
-
 /// Drives the installed external physics backend from the engine's
 /// fixed-timestep loop as an `EngineExtension` — no engine-core seams.
 ///
@@ -69,7 +51,7 @@ public final class PhysicsCoordinator: EngineExtension, @unchecked Sendable {
     private var readbackTransforms: [PhysicsBodyTransform] = []
     private var kinematicEntities: [EntityID] = []
     private var kinematicTransforms: [PhysicsBodyTransform] = []
-    let eventSink = InertPhysicsEventSink()
+    let eventSink = PhysicsEventDispatchSink()
 
     private init() {}
 
@@ -102,7 +84,6 @@ public final class PhysicsCoordinator: EngineExtension, @unchecked Sendable {
     func backendDidInstall(_ backend: any PhysicsBackend) {
         backend.configure(worldConfiguration())
         knownBodies.removeAll()
-        eventSink.reset()
         EngineExtensionRegistry.shared.register(self)
     }
 
@@ -136,7 +117,7 @@ public final class PhysicsCoordinator: EngineExtension, @unchecked Sendable {
         worldConfig = PhysicsWorldConfiguration()
         configLock.unlock()
         knownBodies.removeAll()
-        eventSink.reset()
+        PhysicsEvents.shared.reset()
     }
 
     // MARK: - Body lifecycle

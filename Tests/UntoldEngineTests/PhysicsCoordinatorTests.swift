@@ -344,7 +344,7 @@ final class PhysicsCoordinatorTests: XCTestCase {
         XCTAssertEqual(backend.callOrder, ["configure", "addBody", "writeKinematic", "step", "read", "drain"])
         XCTAssertEqual(backend.stepDeltas, [1.0 / 60.0])
         XCTAssertEqual(backend.drainCount, 1)
-        XCTAssertEqual(PhysicsCoordinator.shared.eventSink.droppedEventCount, 3)
+        XCTAssertEqual(PhysicsEvents.shared.droppedEventCount, 3)
     }
 
     // MARK: - Built-in integrator gravity seam
