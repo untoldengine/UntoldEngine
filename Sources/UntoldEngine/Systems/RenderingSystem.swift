@@ -70,9 +70,19 @@ func UpdateRenderingSystem(in view: MTKView) {
                 }
             #endif
 
+            EngineProfiler.shared.beginScope(.gaussianCull)
             executeGaussianFrustumCulling(commandBuffer)
+            EngineProfiler.shared.endScope(.gaussianCull)
+
+            executeGaussianPreprocess(commandBuffer)
+
+            EngineProfiler.shared.beginScope(.gaussianDepth)
             executeGaussianDepth(commandBuffer)
+            EngineProfiler.shared.endScope(.gaussianDepth)
+
+            EngineProfiler.shared.beginScope(.gaussianSort)
             executeRadixSort(commandBuffer)
+            EngineProfiler.shared.endScope(.gaussianSort)
             EngineProfiler.shared.endScope(.renderPrep)
             #if ENGINE_STATS_ENABLED
                 let renderPrepMs = (CACurrentMediaTime() - renderPrepStart) * 1000.0

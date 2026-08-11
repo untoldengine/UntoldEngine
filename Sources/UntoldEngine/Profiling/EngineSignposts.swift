@@ -32,6 +32,14 @@ public enum ProfileScope {
     // Batching subsystem
     case batchingTick
     case batchingRebuild
+
+    // Gaussian-splat subsystem — separate lane from mesh culling/encode so a trace can
+    // show which of cull/depth-key/radix-sort/draw is actually costing frame time,
+    // rather than everything showing up lumped into renderPrep/encode.
+    case gaussianCull
+    case gaussianDepth
+    case gaussianSort
+    case gaussianDraw
 }
 
 final class EngineSignposts {
@@ -43,6 +51,7 @@ final class EngineSignposts {
     private static let cullingLog = OSLog(subsystem: subsystem, category: "Culling")
     private static let streamingLog = OSLog(subsystem: subsystem, category: "Streaming")
     private static let batchingLog = OSLog(subsystem: subsystem, category: "Batching")
+    private static let gaussianLog = OSLog(subsystem: subsystem, category: "Gaussian")
 
     // One stable signpost ID per scope.
     private static let frameID = OSSignpostID(log: frameLog)
@@ -56,6 +65,10 @@ final class EngineSignposts {
     private static let geometryStreamingID = OSSignpostID(log: streamingLog)
     private static let batchingTickID = OSSignpostID(log: batchingLog)
     private static let batchingRebuildID = OSSignpostID(log: batchingLog)
+    private static let gaussianCullID = OSSignpostID(log: gaussianLog)
+    private static let gaussianDepthID = OSSignpostID(log: gaussianLog)
+    private static let gaussianSortID = OSSignpostID(log: gaussianLog)
+    private static let gaussianDrawID = OSSignpostID(log: gaussianLog)
 
     func beginScope(_ scope: ProfileScope) {
         let (log, id, name) = descriptor(for: scope)
@@ -80,6 +93,10 @@ final class EngineSignposts {
         case .geometryStreaming: return (Self.streamingLog, Self.geometryStreamingID, "GeometryStreaming")
         case .batchingTick: return (Self.batchingLog, Self.batchingTickID, "BatchingTick")
         case .batchingRebuild: return (Self.batchingLog, Self.batchingRebuildID, "BatchingRebuild")
+        case .gaussianCull: return (Self.gaussianLog, Self.gaussianCullID, "GaussianCull")
+        case .gaussianDepth: return (Self.gaussianLog, Self.gaussianDepthID, "GaussianDepth")
+        case .gaussianSort: return (Self.gaussianLog, Self.gaussianSortID, "GaussianSort")
+        case .gaussianDraw: return (Self.gaussianLog, Self.gaussianDrawID, "GaussianDraw")
         }
     }
 }
