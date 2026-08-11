@@ -3200,11 +3200,17 @@ public func loadRawMesh(
 /// there is a single implementation of the PLY-parse/buffer-build/SH-pack pipeline.
 private struct GaussianLoadResult {
     let splatCount: UInt
-    let gaussianSortedIndices: MTLBuffer
-    let gaussianVisibleIndices: MTLBuffer
-    let gaussianVisibleCount: MTLBuffer
+    // One buffer per in-flight frame slot (see the comment on GaussianComponent's matching
+    // fields) — written fresh every frame by the cull/depth-key/radix-sort passes, so a
+    // single shared buffer would let an overlapping newer frame's writes clobber data an
+    // older in-flight frame's draw is still reading.
+    let gaussianSortedIndices: [MTLBuffer]
+    let gaussianVisibleIndices: [MTLBuffer]
+    let gaussianVisibleCount: [MTLBuffer]
     let encodedSplatBuffer: MTLBuffer
-    let gaussianPrecomputedData: MTLBuffer
+    // Same per-in-flight-frame slotting as the buffers above — written by
+    // executeGaussianPreprocess every frame, read by that same frame's draw pass.
+    let gaussianPrecomputedData: [MTLBuffer]
     let sphericalHarmonicsBuffer: MTLBuffer?
     let sphericalHarmonicsMetadata: GaussianSHMetadata?
     let spaceUniform: [MTLBuffer?]
@@ -3242,30 +3248,38 @@ private func buildGaussianLoadResult(filename: String, withExtension: String) ->
         return nil
     }
 
-    guard let gaussianSortedIndices = renderInfo.device.makeBuffer(
-        length: MemoryLayout<UInt64>.stride * Int(splatCount),
-        options: .storageModeShared
-    ) else {
-        handleError(.bufferAllocationFailed, "Gaussian sorted-index buffer is nil")
-        return nil
-    }
+    var gaussianSortedIndices: [MTLBuffer] = []
+    var gaussianVisibleIndices: [MTLBuffer] = []
+    var gaussianVisibleCount: [MTLBuffer] = []
+    for _ in 0 ..< maxInFlightCommandBuffers {
+        guard let sortedIndicesSlot = renderInfo.device.makeBuffer(
+            length: MemoryLayout<UInt64>.stride * Int(splatCount),
+            options: .storageModeShared
+        ) else {
+            handleError(.bufferAllocationFailed, "Gaussian sorted-index buffer is nil")
+            return nil
+        }
+        gaussianSortedIndices.append(sortedIndicesSlot)
 
-    guard let gaussianVisibleIndices = renderInfo.device.makeBuffer(
-        length: MemoryLayout<UInt32>.stride * Int(splatCount),
-        options: .storageModeShared
-    ) else {
-        handleError(.bufferAllocationFailed, "Gaussian visible-index buffer is nil")
-        return nil
-    }
+        guard let visibleIndicesSlot = renderInfo.device.makeBuffer(
+            length: MemoryLayout<UInt32>.stride * Int(splatCount),
+            options: .storageModeShared
+        ) else {
+            handleError(.bufferAllocationFailed, "Gaussian visible-index buffer is nil")
+            return nil
+        }
+        gaussianVisibleIndices.append(visibleIndicesSlot)
 
-    guard let gaussianVisibleCount = renderInfo.device.makeBuffer(
-        length: MemoryLayout<UInt32>.stride,
-        options: .storageModeShared
-    ) else {
-        handleError(.bufferAllocationFailed, "Gaussian visible-count buffer is nil")
-        return nil
+        guard let visibleCountSlot = renderInfo.device.makeBuffer(
+            length: MemoryLayout<UInt32>.stride,
+            options: .storageModeShared
+        ) else {
+            handleError(.bufferAllocationFailed, "Gaussian visible-count buffer is nil")
+            return nil
+        }
+        visibleCountSlot.contents().storeBytes(of: UInt32(splatCount), as: UInt32.self)
+        gaussianVisibleCount.append(visibleCountSlot)
     }
-    gaussianVisibleCount.contents().storeBytes(of: UInt32(splatCount), as: UInt32.self)
 
     guard let encodedSplatBuffer = renderInfo.device.makeBuffer(length: MemoryLayout<EncodedGaussianSplat>.stride * Int(splatCount), options: .storageModeShared) else {
         handleError(.bufferAllocationFailed, "Encoded Gaussian splat buffer is nil")
@@ -3281,12 +3295,16 @@ private func buildGaussianLoadResult(filename: String, withExtension: String) ->
         encodedPointer[index] = encodeGaussianSplatForTBDR(splat)
     }
 
-    guard let gaussianPrecomputedData = renderInfo.device.makeBuffer(
-        length: MemoryLayout<GaussianPrecomputedSplat>.stride * Int(splatCount),
-        options: .storageModeShared
-    ) else {
-        handleError(.bufferAllocationFailed, "Gaussian precomputed-splat buffer is nil")
-        return nil
+    var gaussianPrecomputedData: [MTLBuffer] = []
+    for _ in 0 ..< maxInFlightCommandBuffers {
+        guard let precomputedSlot = renderInfo.device.makeBuffer(
+            length: MemoryLayout<GaussianPrecomputedSplat>.stride * Int(splatCount),
+            options: .storageModeShared
+        ) else {
+            handleError(.bufferAllocationFailed, "Gaussian precomputed-splat buffer is nil")
+            return nil
+        }
+        gaussianPrecomputedData.append(precomputedSlot)
     }
 
     let packedSphericalHarmonics: PackedGaussianSphericalHarmonics?
@@ -3321,11 +3339,19 @@ private func buildGaussianLoadResult(filename: String, withExtension: String) ->
     }
 
     var estimatedGPUBytes = 0
-    estimatedGPUBytes += gaussianSortedIndices.length
-    estimatedGPUBytes += gaussianVisibleIndices.length
-    estimatedGPUBytes += gaussianVisibleCount.length
+    for buffer in gaussianSortedIndices {
+        estimatedGPUBytes += buffer.length
+    }
+    for buffer in gaussianVisibleIndices {
+        estimatedGPUBytes += buffer.length
+    }
+    for buffer in gaussianVisibleCount {
+        estimatedGPUBytes += buffer.length
+    }
     estimatedGPUBytes += encodedSplatBuffer.length
-    estimatedGPUBytes += gaussianPrecomputedData.length
+    for buffer in gaussianPrecomputedData {
+        estimatedGPUBytes += buffer.length
+    }
     estimatedGPUBytes += sphericalHarmonicsBuffer?.length ?? 0
     for buffer in spaceUniform {
         estimatedGPUBytes += buffer.length
@@ -3358,11 +3384,11 @@ private func applyGaussianLoadResult(_ result: GaussianLoadResult, to entityId: 
 
     gaussianComponent.splatCount = result.splatCount
     gaussianComponent.visibleSplatCountForRendering = result.splatCount
-    gaussianComponent.gaussianSortedIndices = result.gaussianSortedIndices
-    gaussianComponent.gaussianVisibleIndices = result.gaussianVisibleIndices
-    gaussianComponent.gaussianVisibleCount = result.gaussianVisibleCount
+    gaussianComponent.gaussianSortedIndices = result.gaussianSortedIndices.map { $0 as MTLBuffer? }
+    gaussianComponent.gaussianVisibleIndices = result.gaussianVisibleIndices.map { $0 as MTLBuffer? }
+    gaussianComponent.gaussianVisibleCount = result.gaussianVisibleCount.map { $0 as MTLBuffer? }
     gaussianComponent.encodedSplatData = result.encodedSplatBuffer
-    gaussianComponent.gaussianPrecomputedData = result.gaussianPrecomputedData
+    gaussianComponent.gaussianPrecomputedData = result.gaussianPrecomputedData.map { $0 as MTLBuffer? }
     gaussianComponent.sphericalHarmonicsData = result.sphericalHarmonicsBuffer
     gaussianComponent.sphericalHarmonicsMetadata = result.sphericalHarmonicsMetadata
     gaussianComponent.spaceUniform = result.spaceUniform
@@ -3677,10 +3703,10 @@ func removeEntityGaussian(entityId: EntityID) {
         gaussianComponent.encodedSplatData = nil
         gaussianComponent.sphericalHarmonicsData = nil
         gaussianComponent.sphericalHarmonicsMetadata = nil
-        gaussianComponent.gaussianSortedIndices = nil
-        gaussianComponent.gaussianVisibleIndices = nil
-        gaussianComponent.gaussianVisibleCount = nil
-        gaussianComponent.gaussianPrecomputedData = nil
+        gaussianComponent.gaussianSortedIndices.removeAll()
+        gaussianComponent.gaussianVisibleIndices.removeAll()
+        gaussianComponent.gaussianVisibleCount.removeAll()
+        gaussianComponent.gaussianPrecomputedData.removeAll()
         gaussianComponent.visibleSplatCountForRendering = 0
         gaussianComponent.spaceUniform.removeAll()
         scene.remove(component: GaussianComponent.self, from: entityId)

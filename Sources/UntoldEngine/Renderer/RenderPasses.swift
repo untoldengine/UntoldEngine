@@ -4498,8 +4498,13 @@ public enum RenderPasses {
                 }
 
                 // bind data here
+                // Same frame-slot indexing as executeGaussianFrustumCulling/executeGaussianDepth/
+                // executeRadixSort — renderInfo.currentInFlightFrameSlot is set once per frame
+                // and stays constant across both eyes, so this correctly reads back whichever
+                // slot this frame's cull/sort pipeline wrote into.
+                let gaussianFrameSlot = min(renderInfo.currentInFlightFrameSlot, gaussianComponent.gaussianSortedIndices.count - 1)
                 renderEncoder.setVertexBuffer(
-                    gaussianComponent.gaussianSortedIndices,
+                    gaussianComponent.gaussianSortedIndices[gaussianFrameSlot],
                     offset: 0,
                     index: Int(gaussianTBDRRenderIndicesIndex.rawValue)
                 )
@@ -4514,7 +4519,7 @@ public enum RenderPasses {
                 // executeGaussianPreprocess (see GaussianSystem.swift) instead of being
                 // recomputed here 4x per splat (once per instanced quad vertex).
                 renderEncoder.setVertexBuffer(
-                    gaussianComponent.gaussianPrecomputedData,
+                    gaussianComponent.gaussianPrecomputedData[gaussianFrameSlot],
                     offset: 0,
                     index: Int(gaussianTBDRRenderPrecomputedIndex.rawValue)
                 )

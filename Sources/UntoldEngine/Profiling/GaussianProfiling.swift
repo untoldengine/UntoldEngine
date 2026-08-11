@@ -35,9 +35,9 @@ struct GaussianProfileTotals {
         entityCount += 1
         splatCount += Int(component.splatCount)
         encodedBytes += component.encodedSplatData?.length ?? 0
-        sortedIndexBytes += component.gaussianSortedIndices?.length ?? 0
-        visibleIndexBytes += component.gaussianVisibleIndices?.length ?? 0
-        visibleCountBytes += component.gaussianVisibleCount?.length ?? 0
+        sortedIndexBytes += component.gaussianSortedIndices.reduce(0) { $0 + ($1?.length ?? 0) }
+        visibleIndexBytes += component.gaussianVisibleIndices.reduce(0) { $0 + ($1?.length ?? 0) }
+        visibleCountBytes += component.gaussianVisibleCount.reduce(0) { $0 + ($1?.length ?? 0) }
         if let shBuffer = component.sphericalHarmonicsData {
             sphericalHarmonicsBytes += shBuffer.length
         }

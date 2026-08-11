@@ -106,9 +106,20 @@ public func executeGaussianFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
             handleError(.noWorldTransformComponent, entityId)
             continue
         }
+        guard !gaussianComponent.gaussianVisibleIndices.isEmpty,
+              !gaussianComponent.gaussianVisibleCount.isEmpty
+        else {
+            handleError(.bufferAllocationFailed, "Gaussian culling buffers")
+            continue
+        }
+        // Cull/depth-key/radix-sort write these buffers fresh every frame; slot per
+        // in-flight frame (mirrors spaceUniform's indexing) so an overlapping newer frame
+        // can't clobber data an older in-flight frame's draw is still reading — see the
+        // comment on GaussianComponent's declaration.
+        let frameSlot = min(renderInfo.currentInFlightFrameSlot, gaussianComponent.gaussianVisibleIndices.count - 1)
         guard let encodedSplatData = gaussianComponent.encodedSplatData,
-              let visibleIndices = gaussianComponent.gaussianVisibleIndices,
-              let visibleCount = gaussianComponent.gaussianVisibleCount
+              let visibleIndices = gaussianComponent.gaussianVisibleIndices[frameSlot],
+              let visibleCount = gaussianComponent.gaussianVisibleCount[frameSlot]
         else {
             handleError(.bufferAllocationFailed, "Gaussian culling buffers")
             continue
@@ -252,10 +263,13 @@ public func executeGaussianPreprocess(_ commandBuffer: MTLCommandBuffer) {
             handleError(.noWorldTransformComponent, entityId)
             continue
         }
+        // Same frame-slot indexing as executeGaussianFrustumCulling — must match, since this
+        // reads that same frame's cull output and writes this same frame's precompute output.
+        let frameSlot = min(renderInfo.currentInFlightFrameSlot, gaussianComponent.gaussianVisibleIndices.count - 1)
         guard let encodedSplatData = gaussianComponent.encodedSplatData,
-              let visibleIndices = gaussianComponent.gaussianVisibleIndices,
-              let visibleCount = gaussianComponent.gaussianVisibleCount,
-              let precomputedData = gaussianComponent.gaussianPrecomputedData
+              let visibleIndices = gaussianComponent.gaussianVisibleIndices[frameSlot],
+              let visibleCount = gaussianComponent.gaussianVisibleCount[frameSlot],
+              let precomputedData = gaussianComponent.gaussianPrecomputedData[frameSlot]
         else {
             handleError(.bufferAllocationFailed, "Gaussian preprocess buffers")
             continue
@@ -372,9 +386,12 @@ public func executeGaussianDepth(_ commandBuffer: MTLCommandBuffer) {
             continue
         }
 
-        computeEncoder.setBuffer(gaussianComponent.gaussianSortedIndices, offset: 0, index: Int(gaussianIndicesIndex.rawValue))
-        computeEncoder.setBuffer(gaussianComponent.gaussianVisibleIndices, offset: 0, index: Int(gaussianVisibleIndicesIndex.rawValue))
-        computeEncoder.setBuffer(gaussianComponent.gaussianVisibleCount, offset: 0, index: Int(gaussianVisibleCountIndex.rawValue))
+        // Same frame-slot indexing as executeGaussianFrustumCulling — must match, since
+        // these are the same frame's cull output being consumed here.
+        let frameSlot = min(renderInfo.currentInFlightFrameSlot, gaussianComponent.gaussianSortedIndices.count - 1)
+        computeEncoder.setBuffer(gaussianComponent.gaussianSortedIndices[frameSlot], offset: 0, index: Int(gaussianIndicesIndex.rawValue))
+        computeEncoder.setBuffer(gaussianComponent.gaussianVisibleIndices[frameSlot], offset: 0, index: Int(gaussianVisibleIndicesIndex.rawValue))
+        computeEncoder.setBuffer(gaussianComponent.gaussianVisibleCount[frameSlot], offset: 0, index: Int(gaussianVisibleCountIndex.rawValue))
         computeEncoder.setBuffer(
             gaussianComponent.encodedSplatData,
             offset: 0,
@@ -519,7 +536,10 @@ public func executeRadixSort(_ commandBuffer: MTLCommandBuffer) {
 
     for entityId in entities {
         guard let gc = scene.get(component: GaussianComponent.self, for: entityId) else { continue }
-        guard let sortedIndices = gc.gaussianSortedIndices else { continue }
+        // Same frame-slot indexing as executeGaussianFrustumCulling/executeGaussianDepth —
+        // sorting in place on this frame's own cull/depth-key output.
+        let frameSlot = min(renderInfo.currentInFlightFrameSlot, gc.gaussianSortedIndices.count - 1)
+        guard let sortedIndices = gc.gaussianSortedIndices[frameSlot] else { continue }
 
         let n = activeGaussianSortCount(gc)
         guard n >= 2 else { continue }
