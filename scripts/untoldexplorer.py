@@ -4194,10 +4194,15 @@ def stage_mesh_for_output(exported_mesh: ExportedMesh, output_path: Path, contex
     )
 
 
-def stage_nodes_for_output(exported_nodes: list[ExportedNode], output_path: Path) -> list[ExportedNode]:
+def stage_nodes_for_output(
+    exported_nodes: list[ExportedNode],
+    output_path: Path,
+    progress_callback: Optional[ProgressCallback] = None,
+) -> list[ExportedNode]:
     context = TextureStagingContext()
     staged_nodes: list[ExportedNode] = []
-    for exported_node in exported_nodes:
+    total = len(exported_nodes)
+    for i, exported_node in enumerate(exported_nodes, 1):
         if exported_node.mesh is None:
             staged_nodes.append(exported_node)
         else:
@@ -4207,6 +4212,8 @@ def stage_nodes_for_output(exported_nodes: list[ExportedNode], output_path: Path
                     mesh=stage_mesh_for_output(exported_node.mesh, output_path, context),
                 )
             )
+        if progress_callback is not None:
+            progress_callback("Stage nodes", i, total, exported_node.entity_name)
     return staged_nodes
 
 
@@ -5927,9 +5934,7 @@ def export_objects_to_untold(
             output_path.parent / "Textures",
         )
 
-    if progress_callback is not None:
-        progress_callback("Stage nodes", 0, 1, output_path.name)
-    exported_nodes = stage_nodes_for_output(exported_nodes, output_path)
+    exported_nodes = stage_nodes_for_output(exported_nodes, output_path, progress_callback=progress_callback)
     cleanup_material_bake_temp_dir()
     untold_bytes = build_untold_file(
         exported_nodes,
