@@ -41,6 +41,16 @@ constant float GAUSSIAN_SH_C3[7] = {
 // cost per splat.
 constant float kGaussianMaxScreenRadius = 128.0f;
 
+// Hard ceiling on how many splats may blend into a single pixel. [[raster_order_group(0)]]
+// forces every fragment touching a given pixel to execute serially (a correct ordered
+// read-modify-write into the imageblock), so per-pixel overdraw isn't just extra work — it's
+// extra *latency*, since the GPU can't parallelize across fragments fighting over the same
+// pixel. The accumulated-alpha early-out already stops this once a pixel is visually opaque,
+// but in low-per-splat-opacity regions that can take a while to converge (e.g. opacity ~0.3
+// needs ~20 splats to reach 0.999). This caps the worst case directly: trades a small amount
+// of accuracy in pathologically dense overlap regions for a hard bound on the serial chain.
+constant uchar kGaussianMaxBlendedSplatsPerPixel = 64;
+
 inline uint unpackIndex(uint64_t packed)  { return (uint)(packed & 0xffffffffu); }
 inline uint unpackDepthKey(uint64_t packed) { return (uint)(packed >> 32); }
 
@@ -238,6 +248,79 @@ float3 computeInverseCovarianceConic(float3 cov2D,
     return conic;
 }
 
+// Computes conic/radius/color once per visible splat per frame — the same quantities the
+// draw vertex shader used to recompute redundantly on every one of its 4 instanced quad
+// vertices. Writes into a buffer indexed by original splat index; the vertex shader then
+// just reads by index instead of redoing the Jacobian/covariance math and SH evaluation 4x.
+kernel void gaussianPreprocess(
+    const device EncodedGaussianSplat *splats       [[buffer(gaussianPreprocessSplatIndex)]],
+    constant Uniforms                 &uniforms     [[buffer(gaussianPreprocessUniformIndex)]],
+    constant uint                     &numOfSplats  [[buffer(gaussianPreprocessNumOfSplatsIndex)]],
+    const device uint                 *visibleIndices [[buffer(gaussianPreprocessVisibleIndicesIndex)]],
+    const device uint                 *visibleCount [[buffer(gaussianPreprocessVisibleCountIndex)]],
+    constant float2                   &viewport     [[buffer(gaussianPreprocessViewportIndex)]],
+    const device half                 *shCoefficients [[buffer(gaussianPreprocessSHIndex)]],
+    constant GaussianSHMetadata       &shMetadata   [[buffer(gaussianPreprocessSHMetadataIndex)]],
+    constant float3                   &localCameraPosition [[buffer(gaussianPreprocessLocalCameraIndex)]],
+    device GaussianPrecomputedSplat   *precomputed  [[buffer(gaussianPreprocessOutputIndex)]],
+    uint                                index        [[thread_position_in_grid]])
+{
+    if (index >= numOfSplats || index >= visibleCount[0]) {
+        return;
+    }
+
+    uint splatIndex = visibleIndices[index];
+    const EncodedGaussianSplat splat = splats[splatIndex];
+
+    GaussianPrecomputedSplat out;
+    out.conic = float3(0.0f);
+    out.radius = float2(0.0f);
+    out.color = float3(0.0f);
+
+    float3 centerLocal = splat.position;
+    float4 centerClip = uniforms.projectionMatrix *
+                        uniforms.modelViewMatrix *
+                        float4(centerLocal, 1.0);
+
+    if (centerClip.w <= 0.0f) {
+        precomputed[splatIndex] = out;
+        return;
+    }
+
+    float3x3 cov3D = float3x3(
+        splat.covA.x, splat.covA.y, splat.covA.z,
+        splat.covA.y, splat.covB.x, splat.covB.y,
+        splat.covA.z, splat.covB.y, splat.covB.z
+    );
+
+    float3 cov2D = computeCov2D(float4(centerLocal, 1.0),
+                                cov3D,
+                                uniforms.modelViewMatrix,
+                                uniforms.projectionMatrix,
+                                viewport);
+
+    float2 radius = float2(0.0f);
+    bool valid = true;
+    float3 conic = computeInverseCovarianceConic(cov2D, radius, valid);
+
+    if (!valid || radius.x <= 0.0f || radius.y <= 0.0f) {
+        precomputed[splatIndex] = out;
+        return;
+    }
+
+    out.conic = conic;
+    out.radius = radius;
+    out.color = gaussianSRGBToLinear(evaluateGaussianSphericalHarmonics(
+        splat.color,
+        shCoefficients,
+        shMetadata,
+        splatIndex,
+        centerLocal - localCameraPosition
+    ));
+
+    precomputed[splatIndex] = out;
+}
+
 // Vertex: builds a quad around the splat center and passes center + conic
 inline float2 getCurrentQuadVertex(uint vertexId)
 {
@@ -264,6 +347,7 @@ typedef struct
 {
     half4 color [[raster_order_group(0)]];
     float weightedDepth [[raster_order_group(0)]];
+    uchar contributingSplatCount [[raster_order_group(0)]];
 } GaussianTBDRFragmentValues;
 
 typedef struct
@@ -284,6 +368,7 @@ kernel void initializeGaussianFragmentStore(
     threadgroup_imageblock GaussianTBDRFragmentValues *values = blockData.data(localThreadID);
     values->color = half4(0.0h);
     values->weightedDepth = 0.0f;
+    values->contributingSplatCount = 0;
 }
 
 vertex GaussianOutData vertexGaussianTBDRShader(
@@ -291,9 +376,7 @@ vertex GaussianOutData vertexGaussianTBDRShader(
     const device EncodedGaussianSplat *splats     [[buffer(gaussianTBDRRenderSplatIndex)]],
     constant Uniforms                 &uniforms   [[buffer(gaussianTBDRRenderUniformIndex)]],
     constant float2                   &viewport   [[buffer(gaussianTBDRRenderViewPortIndex)]],
-    const device half                 *shCoefficients [[buffer(gaussianTBDRRenderSHIndex)]],
-    constant GaussianSHMetadata       &shMetadata [[buffer(gaussianTBDRRenderSHMetadataIndex)]],
-    constant float3                   &localCameraPosition [[buffer(gaussianTBDRRenderLocalCameraIndex)]],
+    const device GaussianPrecomputedSplat *precomputedSplats [[buffer(gaussianTBDRRenderPrecomputedIndex)]],
     uint                               vid        [[vertex_id]],
     uint                               iid        [[instance_id]])
 {
@@ -307,6 +390,14 @@ vertex GaussianOutData vertexGaussianTBDRShader(
         return out;
     }
     const EncodedGaussianSplat splat = splats[splatIndex];
+    const GaussianPrecomputedSplat precomputed = precomputedSplats[splatIndex];
+
+    // radius <= 0 means gaussianPreprocess found this splat invalid this frame (behind the
+    // camera, or a degenerate covariance) — same condition the old inline computation
+    // guarded against.
+    if (precomputed.radius.x <= 0.0f || precomputed.radius.y <= 0.0f) {
+        return out;
+    }
 
     float2 quad = getCurrentQuadVertex(vid);
     quad = quad * 2.0f - 1.0f;
@@ -325,36 +416,12 @@ vertex GaussianOutData vertexGaussianTBDRShader(
     float2 centerUV = centerNDC * float2(0.5f, 0.5f * projYSign) + 0.5f;
     out.coordxy = centerUV * viewport;
 
-    float3x3 cov3D = float3x3(
-        splat.covA.x, splat.covA.y, splat.covA.z,
-        splat.covA.y, splat.covB.x, splat.covB.y,
-        splat.covA.z, splat.covB.y, splat.covB.z
-    );
+    out.conic = precomputed.conic;
 
-    float3 cov2D = computeCov2D(float4(centerLocal, 1.0),
-                                cov3D,
-                                uniforms.modelViewMatrix,
-                                uniforms.projectionMatrix,
-                                viewport);
-
-    float2 extent = float2(0.0f);
-    bool valid = true;
-    out.conic = computeInverseCovarianceConic(cov2D, extent, valid);
-
-    if (!valid || extent.x <= 0.0f || extent.y <= 0.0f) {
-        return out;
-    }
-
-    float2 ndcOffset = quad * extent * 2.0f / viewport;
+    float2 ndcOffset = quad * precomputed.radius * 2.0f / viewport;
     out.position = centerClip;
     out.position.xy += ndcOffset * centerClip.w;
-    out.color = gaussianSRGBToLinear(evaluateGaussianSphericalHarmonics(
-        splat.color,
-        shCoefficients,
-        shMetadata,
-        splatIndex,
-        centerLocal - localCameraPosition
-    ));
+    out.color = precomputed.color;
     out.alpha = splat.opacity;
     out.valid = true;
 
@@ -418,11 +485,20 @@ fragment GaussianTBDRFragmentStore fragmentGaussianTBDRShader(
         return out;
     }
 
+    // Hard bound on the raster_order_group's serial chain length for this pixel — see
+    // kGaussianMaxBlendedSplatsPerPixel. Only counts splats that actually reach the blend
+    // below (occluded/negligible-alpha splats above never increment this).
+    if (previousValues.contributingSplatCount >= kGaussianMaxBlendedSplatsPerPixel) {
+        out.values = previousValues;
+        return out;
+    }
+
     half oneMinusAccumulatedAlpha = half(1.0h - previousValues.color.a);
     half4 colorWithPremultipliedAlpha = half4(half3(in.color) * alpha, alpha);
 
     out.values.color = previousValues.color + colorWithPremultipliedAlpha * oneMinusAccumulatedAlpha;
     out.values.weightedDepth = previousValues.weightedDepth + in.position.z * float(alpha * oneMinusAccumulatedAlpha);
+    out.values.contributingSplatCount = previousValues.contributingSplatCount + 1;
 
     return out;
 }
