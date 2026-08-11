@@ -69,6 +69,7 @@ import sys
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Callable
 
 try:
     from PIL import Image
@@ -578,6 +579,7 @@ def bake_directory(
     directory: Path,
     quality: str,
     keep_temp: bool,
+    progress_callback: Callable[[int, int, str], None] | None = None,
 ) -> None:
     sources = sorted(
         p for p in directory.iterdir()
@@ -595,8 +597,9 @@ def bake_directory(
 
     print(f"Batch baking {len(sources)} texture(s) in {directory}\n")
     errors: list[tuple[Path, str]] = []
+    total = len(sources)
 
-    for src in sources:
+    for index, src in enumerate(sources):
         stem  = src.stem.lower()
         flags = flags_map.get(stem)
         slot  = (_slot_from_texture_flags(flags) if flags is not None else None) or detect_slot(src)
@@ -608,6 +611,8 @@ def bake_directory(
             errors.append((src, str(exc)))
             print(f"  [error] {exc}")
         print()
+        if progress_callback is not None:
+            progress_callback(index + 1, total, src.name)
 
     if errors:
         print(f"\n{len(errors)} error(s):")

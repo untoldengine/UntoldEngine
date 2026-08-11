@@ -177,11 +177,12 @@ def export_asset(
     if not objects:
         raise RuntimeError("No exportable objects were found for the selected scope")
 
+    source_asset_path = source_asset_path_for_export(output_path)
     export_objects = module.prepare_export_objects_from_blender_objects(objects)
     export_objects = append_unique_objects(export_objects, scene_payload_candidates(context, scope))
     result = module.export_objects_to_untold(
         export_objects,
-        source_asset_path=source_asset_path_for_export(output_path),
+        source_asset_path=source_asset_path,
         output_path=output_path,
         file_type_name=file_type_name,
         convert_orientation=convert_orientation,
@@ -195,6 +196,11 @@ def export_asset(
         color_lut_size=module.validate_lut_size(color_lut_size),
         progress_callback=progress_callback,
     )
+
+    if progress_callback is not None:
+        progress_callback("Stage HDR environment", 0, 1, output_path.name)
+    staged_hdr_assets = module.stage_hdr_assets_for_output(output_path.parent, source_asset_path)
+    result["hdr_asset_count"] = len(staged_hdr_assets)
     result["texture_bake_status"] = "skipped"
 
     if bake_textures:
@@ -208,8 +214,18 @@ def export_asset(
         texbake = texbake_module()
         if progress_callback is not None:
             progress_callback("Bake textures", 0, 1, textures_dir.name)
+
+        def texture_bake_progress(done: int, total: int, detail: str) -> None:
+            if progress_callback is not None:
+                progress_callback("Bake textures", done, total, detail)
+
         try:
-            texbake.bake_directory(textures_dir, texture_quality, keep_texture_temp)
+            texbake.bake_directory(
+                textures_dir,
+                texture_quality,
+                keep_texture_temp,
+                progress_callback=texture_bake_progress,
+            )
             texbake.patch_refs(output_path)
         except SystemExit as exc:
             code = exc.code if isinstance(exc.code, int) else 1

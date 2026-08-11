@@ -89,7 +89,7 @@ class UNTOLD_OT_export_asset(bpy.types.Operator, ExportHelper):
         name="File Type",
         description="Untold asset file type to emit",
         items=[
-            ("tile", "Tile", "Standard runtime asset/tile payload"),
+            ("tile", "Standard", "Standard runtime asset/tile payload"),
             ("shared", "Shared", "Shared streamed payload"),
             ("lod", "LOD", "LOD payload"),
             ("hlod", "HLOD", "HLOD payload"),
@@ -113,16 +113,30 @@ class UNTOLD_OT_export_asset(bpy.types.Operator, ExportHelper):
         default="blender-native",
     )
 
-    validate: BoolProperty(
-        name="Write Validation JSON",
-        description="Write a companion validation JSON file for debugging and tests",
-        default=False,
-    )
-
     compress_geometry: BoolProperty(
         name="Compress Geometry",
         description="Compress vertex and index chunks with LZ4 if the lz4 Python package is available",
         default=False,
+    )
+
+    bake_textures: BoolProperty(
+        name="Compress Textures",
+        description="Compress the textures to ASTC compression format to save memory. Converts staged "
+                    "textures to engine-native .utex files and patches the .untold references",
+        default=False,
+    )
+
+    texture_quality: EnumProperty(
+        name="Texture Quality",
+        description="astcenc quality level for .utex baking",
+        items=[
+            ("fastest", "Fastest", "Lowest ASTC encode time"),
+            ("fast", "Fast", "Fast ASTC encode"),
+            ("medium", "Medium", "Balanced ASTC encode"),
+            ("thorough", "Thorough", "Higher quality ASTC encode"),
+            ("exhaustive", "Exhaustive", "Slowest ASTC encode"),
+        ],
+        default="thorough",
     )
 
     bake_materials: BoolProperty(
@@ -169,23 +183,10 @@ class UNTOLD_OT_export_asset(bpy.types.Operator, ExportHelper):
         soft_max=64,
     )
 
-    bake_textures: BoolProperty(
-        name="Compress Textures",
-        description="After export, bake staged textures to engine-native .utex files and patch the .untold references",
+    validate: BoolProperty(
+        name="Write Validation JSON",
+        description="Write a companion validation JSON file for debugging and tests",
         default=False,
-    )
-
-    texture_quality: EnumProperty(
-        name="Texture Quality",
-        description="astcenc quality level for .utex baking",
-        items=[
-            ("fastest", "Fastest", "Lowest ASTC encode time"),
-            ("fast", "Fast", "Fast ASTC encode"),
-            ("medium", "Medium", "Balanced ASTC encode"),
-            ("thorough", "Thorough", "Higher quality ASTC encode"),
-            ("exhaustive", "Exhaustive", "Slowest ASTC encode"),
-        ],
-        default="thorough",
     )
 
     keep_texture_temp: BoolProperty(
@@ -204,13 +205,22 @@ class UNTOLD_OT_export_asset(bpy.types.Operator, ExportHelper):
         output_path = self._asset_output_path(self.filepath)
         compression_summary = {"detail": None}
 
+        wm = context.window_manager
+        workspace = context.workspace
+        wm.progress_begin(0, 100)
+
         def progress(stage: str, done: int, total: int, detail: str) -> None:
             if stage == "Compress geometry" and done >= total:
                 compression_summary["detail"] = detail
-            if total > 1:
-                print(f"[Untold Exporter] {stage} {done}/{total} - {detail}", flush=True)
-            else:
-                print(f"[Untold Exporter] {stage} - {detail}", flush=True)
+            percent = (100.0 * done) / max(total, 1)
+            suffix = f" - {detail}" if detail else ""
+            wm.progress_update(percent)
+            workspace.status_text_set(f"Untold Export: {stage} {percent:5.1f}%{suffix}")
+            print(f"[Untold Exporter] {percent:5.1f}% {stage}{suffix}", flush=True)
+            # Force the status bar to redraw now; the UI does not refresh on
+            # its own while this blocking export operator is running.
+            if not bpy.app.background:
+                bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=1)
 
         try:
             result = exporter_bridge().export_asset(
@@ -236,6 +246,9 @@ class UNTOLD_OT_export_asset(bpy.types.Operator, ExportHelper):
             self.report({"ERROR"}, str(exc))
             print(f"[Untold Exporter] Error: {exc}", flush=True)
             return {"CANCELLED"}
+        finally:
+            wm.progress_end()
+            workspace.status_text_set(None)
 
         message = (
             f"Exported {result['mesh_count']} mesh(es), "
@@ -245,6 +258,8 @@ class UNTOLD_OT_export_asset(bpy.types.Operator, ExportHelper):
             message += f" | Geometry: {compression_summary['detail']}"
         if result.get("baked_material_count"):
             message += f" | Materials: baked {result['baked_material_count']}"
+        if result.get("hdr_asset_count"):
+            message += f" | HDR: staged {result['hdr_asset_count']}"
         if result.get("texture_bake_status") == "baked":
             message += " | Textures: baked to .utex"
         elif result.get("texture_bake_status") == "no textures":
@@ -310,11 +325,20 @@ class UNTOLD_OT_export_animation(bpy.types.Operator, ExportHelper):
     def execute(self, context: bpy.types.Context) -> set[str]:
         output_path = self._animation_output_path(self.filepath)
 
+        wm = context.window_manager
+        workspace = context.workspace
+        wm.progress_begin(0, 100)
+
         def progress(stage: str, done: int, total: int, detail: str) -> None:
-            if total > 1:
-                print(f"[Untold Exporter] {stage} {done}/{total} - {detail}", flush=True)
-            else:
-                print(f"[Untold Exporter] {stage} - {detail}", flush=True)
+            percent = (100.0 * done) / max(total, 1)
+            suffix = f" - {detail}" if detail else ""
+            wm.progress_update(percent)
+            workspace.status_text_set(f"Untold Export: {stage} {percent:5.1f}%{suffix}")
+            print(f"[Untold Exporter] {percent:5.1f}% {stage}{suffix}", flush=True)
+            # Force the status bar to redraw now; the UI does not refresh on
+            # its own while this blocking export operator is running.
+            if not bpy.app.background:
+                bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=1)
 
         try:
             result = exporter_bridge().export_animation(
@@ -330,6 +354,9 @@ class UNTOLD_OT_export_animation(bpy.types.Operator, ExportHelper):
             self.report({"ERROR"}, str(exc))
             print(f"[Untold Exporter] Error: {exc}", flush=True)
             return {"CANCELLED"}
+        finally:
+            wm.progress_end()
+            workspace.status_text_set(None)
 
         message = (
             f"Exported {result['clip_count']} clip(s), "
