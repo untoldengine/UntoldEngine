@@ -48,6 +48,14 @@ testrenderer:
 	python3 -m pip install --user --break-system-packages opencv-python-headless scikit-image
 	UNTOLD_KEEP_ARTIFACTS=$(KEEP) swift test --parallel --num-workers $(WORKERS) --filter UntoldEngineRenderTests
 
+# AsyncMeshLoadingTest/AssetLoadingGateRenderingTests only — the two classes CI runs
+# serially, without --parallel, in their own step (see ci-build-test.yml) because they
+# hang on the CI runner otherwise. Mirrors that exact invocation so a local pass/fail
+# is directly comparable, without paying for the full testrenderer suite or its PSNR
+# pip installs (neither class does image comparison).
+testrenderer-async:
+	swift test --disable-swift-testing --filter 'UntoldEngineRenderTests.(AsyncMeshLoadingTest|AssetLoadingGateRenderingTests)'
+
 # Required SwiftFormat version
 SWIFTFORMAT_VERSION := 0.60.1
 
