@@ -4319,6 +4319,9 @@ public enum RenderPasses {
             _ = commandBuffer
             return
         #else
+            EngineProfiler.shared.beginScope(.gaussianDraw)
+            defer { EngineProfiler.shared.endScope(.gaussianDraw) }
+
             let profileStart = gaussianProfilingStartTime()
             var profileTotals = GaussianProfileTotals()
             var activeSplatTotal = 0
