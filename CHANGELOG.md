@@ -1,4 +1,23 @@
 # Changelog
+## v0.16.0 - 2026-08-12
+### 🐞 Fixes
+- [Patch] fixed gaussian not rendering (74d821b…)
+- [Patch] Reduce Gaussian splat fragment-shading overdraw (ed716ab…)
+- [Patch] Cull negligible-opacity Gaussian splats at load time (6ca0713…)
+- [Patch] Address review: clamp non-repeating channels, test pitch/roll (7d54789…)
+- [Patch] Precompute Gaussian splat conic/color; cap blends per pixel (40fa5e3…)
+- [Patch] Added triple buffer to gaussian system (9ce1713…)
+- [Patch] HZB occlusion culling for Gaussian splats (0763066…)
+- [Patch] Fixed standard export blender-addon (e5087e7…)
+- [Patch] Updated blender-add on (a495546…)
+### 📚 Docs
+- [Docs] Updated getting started (78111d1…)
+### 🚀 Features
+- [Feature] Version-gate emissive trust so existing .untold assets don't need re-export (f7fe446…)
+- [Feature] Add UntoldViewOptions for runtime view settings in SwiftUI (1720ba4…)
+- [Feature] Add root motion extraction and application (dc21a5a…)
+### 🧰 Maintenance
+- [Refactor] Share per-mesh vertex-stream binding across render passes (a5b9844…)
 ## v0.15.0 - 2026-08-06
 ### 🐞 Fixes
 - [Patch] Added material fidelity report to the exporter (a36166f…)
