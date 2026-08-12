@@ -4697,7 +4697,16 @@ def run():
     staged_hdr_assets: list[Path] = []
     if not DRY_RUN or DRY_RUN_WRITE_MANIFEST:
         print_export_stage("Stage HDR environment")
-        hdr_asset_path = Path(source_scene_path) if source_scene_path else Path(output_dir)
+        if source_scene_path:
+            hdr_asset_path = Path(source_scene_path)
+        elif bpy.data.filepath:
+            # The add-on forces source_scene_path to "" to skip re-importing
+            # the already-open scene, but the .blend may still be saved --
+            # use its real path so relative ("//") HDR image references
+            # resolve correctly, same as the single-asset export flow.
+            hdr_asset_path = Path(bpy.data.filepath)
+        else:
+            hdr_asset_path = Path(output_dir)
         staged_hdr_assets = stage_hdr_assets_for_output(Path(output_dir), hdr_asset_path)
 
     # ------------------------------------------------------------------
