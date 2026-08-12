@@ -45,7 +45,7 @@ from source.
 Build the plugin zip from the repo root:
 
 ```bash
-scripts/untold-blender-addon/package.sh
+untoldengine blender-addon
 ```
 
 In Blender:
