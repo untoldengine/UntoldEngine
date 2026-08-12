@@ -559,6 +559,22 @@ public enum RenderPasses {
         runtimeState.lock.unlock()
     }
 
+    /// Returns the current shadow entity candidate cache, rebuilding first if dirty.
+    /// Internal — exposed for testing via @testable import. Lets tests pin the exact
+    /// staleness bug this cache has had before: a non-streaming load that skips
+    /// invalidateShadowEntityCache() is silently absent from shadow candidates.
+    static func shadowEntityCandidatesForTesting() -> [EntityID] {
+        runtimeState.lock.lock()
+        let dirty = runtimeState.shadowCacheDirty
+        runtimeState.lock.unlock()
+        if dirty {
+            rebuildShadowEntityCache()
+        }
+        runtimeState.lock.lock()
+        defer { runtimeState.lock.unlock() }
+        return runtimeState.shadowEntityCandidates
+    }
+
     private static func shadowCasterEntityIds(for cascadeIdx: Int) -> [EntityID] {
         ensureShadowCacheConfigured()
         guard let frustum = shadowFrustum(for: cascadeIdx) else { return [] }

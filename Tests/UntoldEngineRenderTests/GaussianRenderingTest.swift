@@ -585,6 +585,177 @@ final class GaussianRenderingTest: BaseRenderSetup {
         )
     }
 
+    // MARK: - SceneRootTransform (effective camera) correctness
+
+    /// Runs `executeGaussianFrustumCulling` synchronously on a fresh command buffer and
+    /// reads back the GPU visible-splat counter it writes (`GaussianComponent.gaussianVisibleCount`,
+    /// an `atomic_uint` in `gaussianFrustumCull`, see BitonicSort.metal). The reset pass inside
+    /// `executeGaussianFrustumCulling` zeroes this counter before culling runs, so calling this
+    /// repeatedly with different camera/scene-root state is safe.
+    private func runGaussianFrustumCullingAndReadVisibleCount() -> UInt32 {
+        guard let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() else {
+            XCTFail("Expected to allocate a command buffer")
+            return .max
+        }
+        executeGaussianFrustumCulling(commandBuffer)
+        commandBuffer.commit()
+        commandBuffer.waitUntilCompleted()
+        XCTAssertEqual(commandBuffer.status, .completed)
+
+        let transformId = getComponentId(for: WorldTransformComponent.self)
+        let gaussianId = getComponentId(for: GaussianComponent.self)
+        let entities = queryEntitiesWithComponentIds([transformId, gaussianId], in: scene)
+        guard let entity = entities.first,
+              let component = scene.get(component: GaussianComponent.self, for: entity)
+        else {
+            XCTFail("Expected the Gaussian test asset to be loaded")
+            return .max
+        }
+
+        let frameSlot = min(renderInfo.currentInFlightFrameSlot, component.gaussianVisibleCount.count - 1)
+        guard let visibleCountBuffer = component.gaussianVisibleCount[frameSlot] else {
+            XCTFail("Expected a visible-count buffer for the active frame slot")
+            return .max
+        }
+        return visibleCountBuffer.contents().load(as: UInt32.self)
+    }
+
+    /// Regression test for the bugfix in 302e097eb: `executeGaussianFrustumCulling` used to
+    /// build its model-view matrix from the raw `cameraComponent.viewSpace`, ignoring
+    /// `SceneRootTransform`. Per SceneRootTransform.swift's "virtual camera" trick, entity
+    /// transforms are never touched when the scene root moves — only the effective camera —
+    /// so a splat's world position is `rootMatrix * modelMatrix * localPosition`, projected
+    /// through the *unmodified* raw camera view when the bug is present. A large scene-root
+    /// translation therefore has no effect on culling at all under the bug (every splat stays
+    /// visible, exactly as if the root were still identity), while the fix pushes every splat
+    /// out of the frustum. This directly reads the GPU visible-splat counter rather than going
+    /// through a full render + occlusion-cube check, because that path (see the removed
+    /// `testGaussianOcclusion_respectsSceneRootTransformOffset` attempt) turned out to be
+    /// insensitive to this bug: a full-frame occluder covers the frustum regardless of exactly
+    /// where within it the (mis-projected) splat lands.
+    func testGaussianFrustumCulling_offsetSceneRootCullsAllSplats() {
+        let camera = createTestCamera()
+        cameraLookAt(entityId: camera, eye: simd_float3(0, 3, 7), target: simd_float3(0, 0, 0), up: simd_float3(0, 1, 0))
+
+        let baselineVisible = runGaussianFrustumCullingAndReadVisibleCount()
+        XCTAssertGreaterThan(
+            baselineVisible, 0,
+            "Sanity check: the test splat should have visible splats within the frustum before any scene-root offset"
+        )
+
+        SceneRootTransform.shared.position = simd_float3(500, 0, 0)
+        SceneRootTransform.shared.updateIfNeeded()
+        defer {
+            SceneRootTransform.shared.position = .zero
+            SceneRootTransform.shared.rotation = simd_quatf()
+            SceneRootTransform.shared.scale = .one
+            SceneRootTransform.shared.updateIfNeeded()
+        }
+
+        let offsetVisible = runGaussianFrustumCullingAndReadVisibleCount()
+        XCTAssertEqual(
+            offsetVisible, 0,
+            "❌ Every splat should be culled once the scene root is translated far outside the " +
+                "camera frustum. A nonzero count here means Gaussian frustum culling is not tracking " +
+                "SceneRootTransform — it fell back to the raw (unmoved) camera view, got \(offsetVisible) " +
+                "visible splats (baseline was \(baselineVisible))"
+        )
+    }
+
+    // MARK: - HZB occlusion pre-cull (0763066cb)
+
+    /// A 1x1 depth texture — `clamp_to_edge` sampling means every UV the gaussianFrustumCull
+    /// kernel samples reads back this single value, exactly like CullingTest's
+    /// `makeHZBTestTexture` for the equivalent mesh-AABB HZB tests.
+    private func makeHZBTestTexture(depthValue: Float) -> MTLTexture {
+        let descriptor = MTLTextureDescriptor.texture2DDescriptor(
+            pixelFormat: .r32Float,
+            width: 1,
+            height: 1,
+            mipmapped: false
+        )
+        descriptor.usage = [.shaderRead]
+        descriptor.storageMode = .shared
+        let texture = renderInfo.device.makeTexture(descriptor: descriptor)!
+
+        var value = depthValue
+        withUnsafeBytes(of: &value) { bytes in
+            texture.replace(
+                region: MTLRegionMake2D(0, 0, 1, 1),
+                mipmapLevel: 0,
+                withBytes: bytes.baseAddress!,
+                bytesPerRow: MemoryLayout<Float>.stride
+            )
+        }
+        return texture
+    }
+
+    /// Regression coverage for 0763066cb: `gaussianFrustumCull` fuses a coarse per-splat HZB
+    /// occlusion pre-cull into the same dispatch as frustum culling, gated by `hzbValid`
+    /// (`renderInfo.hzbIsValid && textureResources.hzbDepthPyramid != nil`). Existing
+    /// occlusion tests (`testGaussianOcclusion_*`) render a single frame, so `hzbIsValid` is
+    /// still false and this whole code path never runs — it needs the HZB injected directly,
+    /// the same way CullingTest does for the equivalent mesh-AABB HZB pass.
+    func testGaussianFrustumCulling_hzbOccludedSplatIsCulled() {
+        let originalHZBTexture = textureResources.hzbDepthPyramid
+        let originalHZBValid = renderInfo.hzbIsValid
+        defer {
+            textureResources.hzbDepthPyramid = originalHZBTexture
+            renderInfo.hzbIsValid = originalHZBValid
+        }
+
+        let camera = createTestCamera()
+        cameraLookAt(entityId: camera, eye: simd_float3(0, 3, 7), target: simd_float3(0, 0, 0), up: simd_float3(0, 1, 0))
+
+        // "Clear" HZB — nothing occluding, camera sees to the far plane. Sanity baseline:
+        // the splat must actually be visible before an occluder is introduced.
+        let clearDepth: Float = renderInfo.reverseZEnabled ? 0.0 : 1.0
+        textureResources.hzbDepthPyramid = makeHZBTestTexture(depthValue: clearDepth)
+        renderInfo.hzbIsValid = true
+        let clearVisible = runGaussianFrustumCullingAndReadVisibleCount()
+        XCTAssertGreaterThan(clearVisible, 0, "Sanity check: splat should be visible against a clear (far-plane) HZB")
+
+        // "Solid" HZB — an occluder close to the camera sits in front of everything.
+        // Standard-Z: close = small value. Reverse-Z: close = large value.
+        let occluderDepth: Float = renderInfo.reverseZEnabled ? 0.95 : 0.05
+        textureResources.hzbDepthPyramid = makeHZBTestTexture(depthValue: occluderDepth)
+        renderInfo.hzbIsValid = true
+        let occludedVisible = runGaussianFrustumCullingAndReadVisibleCount()
+        XCTAssertEqual(
+            occludedVisible, 0,
+            "❌ Splats behind a full-frame HZB occluder should be pre-culled before preprocess/depth/sort/draw, " +
+                "got \(occludedVisible) visible splats"
+        )
+    }
+
+    /// Companion regression test: the `hzbValid` flag itself must gate the occlusion branch.
+    /// If a stale/first-frame HZB were sampled without checking `hzbIsValid`, an occluding
+    /// depth value left over in the texture would incorrectly cull splats even before the
+    /// HZB pyramid has ever been built for this camera position.
+    func testGaussianFrustumCulling_ignoresHZBWhenInvalid() {
+        let originalHZBTexture = textureResources.hzbDepthPyramid
+        let originalHZBValid = renderInfo.hzbIsValid
+        defer {
+            textureResources.hzbDepthPyramid = originalHZBTexture
+            renderInfo.hzbIsValid = originalHZBValid
+        }
+
+        let camera = createTestCamera()
+        cameraLookAt(entityId: camera, eye: simd_float3(0, 3, 7), target: simd_float3(0, 0, 0), up: simd_float3(0, 1, 0))
+
+        // Same "occluding" HZB texture as the culled case above, but marked invalid.
+        let occluderDepth: Float = renderInfo.reverseZEnabled ? 0.95 : 0.05
+        textureResources.hzbDepthPyramid = makeHZBTestTexture(depthValue: occluderDepth)
+        renderInfo.hzbIsValid = false
+
+        let visible = runGaussianFrustumCullingAndReadVisibleCount()
+        XCTAssertGreaterThan(
+            visible, 0,
+            "❌ hzbIsValid=false should disable the occlusion pre-cull entirely, regardless of what's " +
+                "in the HZB texture — got 0 visible splats"
+        )
+    }
+
     // MARK: - Helper Methods
 
     func createTestCamera() -> EntityID {

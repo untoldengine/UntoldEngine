@@ -132,8 +132,9 @@ if [[ "${DO_CLIFF}" == "true" ]]; then
   # Update stable release tag in README and GettingStarted doc
   sed -i '' 's/git checkout v[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*/git checkout v'"${NEXT}"'/' \
     README.md \
-    docs/API/GettingStarted.md
-  echo "Updated checkout tag to v${NEXT} in README.md and docs/API/GettingStarted.md."
+    docs/API/GettingStarted.md \
+    docs/index.md
+  echo "Updated checkout tag to v${NEXT} in README.md, docs/API/GettingStarted.md, and docs/index.md."
 fi
 
 # Optionally run Docusaurus docs:version
