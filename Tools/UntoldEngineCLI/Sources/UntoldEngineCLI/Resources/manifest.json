@@ -8,6 +8,22 @@
       "version": "1.0.0",
       "downloadURL": "https://d8pyi1c08k1w.cloudfront.net/StarterPack.zip",
       "size": "108 MB"
+    },
+    {
+      "id": "starter-archviz",
+      "name": "ArchViz Starter Assets",
+      "description": "Interior/exterior architectural props and a sample scene.",
+      "version": "1.0.0",
+      "downloadURL": "https://d8pyi1c08k1w.cloudfront.net/ArchvizPack.zip",
+      "size": "253.4 MB"
+    },
+    {
+      "id": "starter-tiled-scene",
+      "name": "Tiled Scene Starter Assets",
+      "description": "A tile-streamed city scene for the Geometry Streaming System.",
+      "version": "1.0.0",
+      "downloadURL": "https://d8pyi1c08k1w.cloudfront.net/TiledScenePack.zip",
+      "size": "34.1 MB"
     }
   ]
 }
