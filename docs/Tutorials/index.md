@@ -20,6 +20,13 @@ the demos are built and how the same API calls transfer into your own project.
 | [Interaction / Gameplay Demo](InteractionGameplayDemo.md) | `swift run InteractionGameplayDemo` | Gameplay-style input, animation switching, physics pause/resume, parented entities, and update-loop behavior. |
 | [Large Scene Streaming Demo](LargeSceneStreamingDemo.md) | `swift run LargeSceneStreamingDemo` | Tiled scene manifests, geometry streaming, LOD, static batching, cache budgets, and streaming diagnostics. |
 | [Showcase Demo](ShowcaseDemo.md) | `swift run ShowcaseDemo` | A combined demonstration of multiple systems after you understand the focused demos. |
+| [Scene Channels And Passthrough Rendering](SceneChannelsTutorial.md) | API workflow | Scene channels, custom channels, channel render modes, passthrough ghosting, and channel picking. |
+| [Light Portals](LightPortalsTutorial.md) | API workflow | Window/opening channels, portal proxy lights, XR real-world tint, diagnostics, and performance limits. |
+| [Blender Add-On Workflow](BlenderAddonTutorial.md) | Authoring workflow | Installing the add-on, exporting models, animations, tiled scenes, tile previews, and export hints. |
+| [Materials, Textures, And Color Management](MaterialsPipelineTutorial.md) | Asset workflow | Runtime material edits, textures, material baking, color LUTs, scene-authored data, and optimization. |
+| [XR App Basics](XRTutorial.md) | Vision Pro workflow | Immersion mode, environment rendering, real-world lighting, spatial input setup, and scene placement. |
+| [Spatial Input And Manipulation](SpatialInputTutorial.md) | Vision Pro workflow | Tap selection, pinch manipulation, parent/root manipulation, and picking participation. |
+| [Performance Diagnostics](PerformanceDiagnosticsTutorial.md) | Debug workflow | Metrics, frame stats, spatial overlays, streaming diagnostics, batching diagnostics, and logger categories. |
 
 ## How To Use These Tutorials
 
@@ -47,3 +54,7 @@ engine APIs so you can use them directly in your own app.
 - [Camera System](../API/UsingCameraSystem.md)
 - [Input System](../API/UsingInputSystem.md)
 - [Rendering System](../API/UsingRenderingSystem.md)
+- [Scene Channels](../API/UsingSceneChannels.md)
+- [Light Portals](../API/UsingLightPortals.md)
+- [Spatial Input](../API/UsingSpatialInput.md)
+- [Profiler](../API/UsingProfiler.md)
