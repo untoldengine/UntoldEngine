@@ -43,6 +43,15 @@ markdown_extensions:
 
 nav:
   - Introduction: index.md
+  - Tutorials:
+    - Overview: Tutorials/index.md
+    - Starter Demo: Tutorials/StarterDemo.md
+    - Lighting Demo: Tutorials/LightingDemo.md
+    - Rendering Quality Demo: Tutorials/RenderingQualityDemo.md
+    - Exporter Pipeline Demo: Tutorials/ExporterPipelineDemo.md
+    - Interaction / Gameplay Demo: Tutorials/InteractionGameplayDemo.md
+    - Large Scene Streaming Demo: Tutorials/LargeSceneStreamingDemo.md
+    - Showcase Demo: Tutorials/ShowcaseDemo.md
   - API:
     - Getting Started: API/GettingStarted.md
     - Untold Engine CLI: API/UsingUntoldEngineCLI.md

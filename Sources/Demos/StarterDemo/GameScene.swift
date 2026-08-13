@@ -37,8 +37,6 @@
                 angle: 25.0 * deltaTime,
                 axis: simd_float3(0.0, 1.0, 0.0)
             )
-
-            setSceneReady(true)
         }
 
         func handleInput() {
