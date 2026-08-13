@@ -52,6 +52,13 @@ nav:
     - Interaction / Gameplay Demo: Tutorials/InteractionGameplayDemo.md
     - Large Scene Streaming Demo: Tutorials/LargeSceneStreamingDemo.md
     - Showcase Demo: Tutorials/ShowcaseDemo.md
+    - Scene Channels And Passthrough Rendering: Tutorials/SceneChannelsTutorial.md
+    - Light Portals: Tutorials/LightPortalsTutorial.md
+    - Blender Add-On Workflow: Tutorials/BlenderAddonTutorial.md
+    - Materials, Textures, And Color Management: Tutorials/MaterialsPipelineTutorial.md
+    - XR App Basics: Tutorials/XRTutorial.md
+    - Spatial Input And Manipulation: Tutorials/SpatialInputTutorial.md
+    - Performance Diagnostics: Tutorials/PerformanceDiagnosticsTutorial.md
   - API:
     - Getting Started: API/GettingStarted.md
     - Untold Engine CLI: API/UsingUntoldEngineCLI.md
