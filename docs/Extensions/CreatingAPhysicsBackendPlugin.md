@@ -126,6 +126,10 @@ delivery order.
 
 Declare `.raycast` and `PhysicsQuery.raycast(_:filter:)` routes to your
 `raycast` implementation — your answer (including a miss) is authoritative.
+Like every other backend method, `raycast` is called on the frame thread, and
+`PhysicsQuery.raycast` itself must only be called from there (game update
+code, engine extensions, USC actions — not from your worker threads or
+arbitrary dispatch queues).
 Without the capability, the engine answers from its octree of entity bounds
 instead. Honor `PhysicsQueryFilter`: skip `excludedEntities`, and test
 `layerMask` against each body's layer. Shapecast and overlap capability bits
