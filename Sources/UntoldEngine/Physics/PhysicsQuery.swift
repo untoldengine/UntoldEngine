@@ -34,9 +34,10 @@ import simd
 /// Shapecast and overlap queries are deliberately not exposed yet; the
 /// capability bits exist so backends can declare them ahead of phase 2.
 public enum PhysicsQuery {
-    /// Longest segment the octree fallback searches when the ray's
-    /// `maxDistance` is unbounded — comfortably beyond the octree's world
-    /// bounds, while keeping the query AABB finite.
+    /// Longest segment the octree fallback searches. `PhysicsRay`'s
+    /// "unbounded" sentinel is `.greatestFiniteMagnitude` — which is finite —
+    /// so the cap is applied with `min`, not a finiteness test; 1e6 m is
+    /// comfortably beyond the octree's world bounds.
     static let fallbackUnboundedDistance: Float = 1.0e6
 
     public static func raycast(
@@ -61,26 +62,29 @@ public enum PhysicsQuery {
         guard directionLength > .ulpOfOne else { return nil }
         let direction = ray.direction / directionLength
 
-        let maxDistance = ray.maxDistance.isFinite
-            ? ray.maxDistance
-            : fallbackUnboundedDistance
+        let maxDistance = min(ray.maxDistance, fallbackUnboundedDistance)
         guard maxDistance > 0 else { return nil }
 
-        // Gather candidates whose bounds overlap the ray segment's AABB
-        // (padded so axis-aligned rays produce a non-degenerate box).
-        let end = ray.origin + direction * maxDistance
-        let padding = simd_float3(repeating: 1.0e-3)
-        let segmentBounds = AABB(
-            min: simd_min(ray.origin, end) - padding,
-            max: simd_max(ray.origin, end) + padding
-        )
-
+        // Tree-pruned broad phase: candidates arrive sorted by their ray-AABB
+        // distance. For a ray starting outside a box that distance equals the
+        // hit distance below; for a ray starting inside it is the exit
+        // distance, an upper bound of the reported 0 — so in both cases it
+        // never undercuts the final distance, and the scan can stop as soon
+        // as the sorted distance passes the best hit found.
         var best: PhysicsRayHit?
-        for entity in OctreeSystem.shared.query(range: segmentBounds) {
+        for (entity, sortedDistance) in OctreeSystem.shared.query(
+            rayOrigin: ray.origin,
+            rayDirection: direction,
+            maxDistance: maxDistance
+        ) {
+            if let currentBest = best, sortedDistance >= currentBest.distance { break }
             guard passesFilter(entity, filter),
                   let bounds = OctreeSystem.shared.getBounds(for: entity)
             else { continue }
 
+            // Narrow phase recomputes the entry distance: the broad-phase
+            // value is the exit distance for inside-the-box origins, where
+            // the documented contract reports the hit at the origin instead.
             var tmin: Float = 0
             guard rayIntersectsAABB(
                 rayOrigin: ray.origin,
