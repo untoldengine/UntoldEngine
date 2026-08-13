@@ -1026,9 +1026,18 @@ final class TextureLoader {
               let commandBuffer = downsampleCommandQueue?.makeCommandBuffer()
         else { return texture }
 
-        // MPS can read an sRGB texture but cannot write to one, so target was
-        // allocated in the linear sibling format; view it back as the original
-        // (possibly sRGB) format for the caller.
+        // MPS reads sRGB source textures through the texture unit, which auto-decodes
+        // sRGB → linear before filtering, and writes raw (already-linear) bytes to the
+        // destination. Metal also disallows a writable sRGB destination, so target was
+        // allocated in the linear sibling format (mpsWritableFormat).
+        //
+        // target's bytes are therefore genuinely linear, not sRGB-encoded — do NOT view
+        // it back as the source's sRGB format. Doing so previously caused the material
+        // shader's hardware sRGB decode to run a second time on already-linear data,
+        // silently darkening/shifting every base color texture capped at import time
+        // (see TextureStreamingSystem.downsampleTexture for the same fix on the
+        // streaming-tier resample path). Returning target in its natural linear format
+        // is correct as-is.
         let scale = MPSImageBilinearScale(device: device)
         scale.encode(commandBuffer: commandBuffer, sourceTexture: texture, destinationTexture: target)
 
@@ -1040,8 +1049,7 @@ final class TextureLoader {
         commandBuffer.commit()
         commandBuffer.waitUntilCompleted()
 
-        guard target.pixelFormat != texture.pixelFormat else { return target }
-        return target.makeTextureView(pixelFormat: texture.pixelFormat) ?? target
+        return target
     }
 
     /// Log a summary of all textures loaded by this loader instance
@@ -1065,13 +1073,19 @@ final class TextureLoader {
         sourceDimensionsCache[cacheKey] = sourceDims
         _ = nameForLog
 
-        if texture.width < fullTexture.width || texture.height < fullTexture.height {
+        let wasDownsampled = texture.width < fullTexture.width || texture.height < fullTexture.height
+        if wasDownsampled {
             savedBytesByCapping += fullTexture.allocatedSize - texture.allocatedSize
         }
         loadedTextureCount += 1
         loadedTextureBytes += texture.allocatedSize
 
-        let texView = textureViewMatchingSRGB(texture, wantSRGB: isSRGB)
+        // A downsampled texture already carries the correct linear pixel format from
+        // downsampleIfNeeded — its bytes are genuinely linear (see the comment there).
+        // Only a texture returned at full resolution (never resampled) needs the sRGB
+        // view reconciliation, and it's a no-op there since the loader-assigned format
+        // already matches.
+        let texView = wasDownsampled ? texture : textureViewMatchingSRGB(texture, wantSRGB: isSRGB)
         textureCache[cacheKey] = texView
         return texView
     }

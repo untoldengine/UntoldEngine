@@ -191,9 +191,9 @@ After all textures in the task are loaded/resampled, execution returns to the ma
 
 ```
 For each LoadedTexture:
-  1. textureViewMatchingSRGB(texture, wantSRGB:)
-     └─ creates a MTLTextureView with sRGB or linear pixel format
-        without copying pixel data (zero cost)
+  1. textureViewMatchingSRGB(texture, wantSRGB:) — full-resolution textures only
+     (targetMaxDimension == nil). Resampled (medium/minimum tier) textures skip
+     this step; see "The sRGB View" below.
 
   2. updateMaterial(entityId:meshIndex:submeshIndex:) { material in
        // Three-tier level: .full (nil cap), .capped (medium), .minimum
@@ -219,7 +219,11 @@ After applying, the entity's membership in `upgradedEntities` is updated: if any
 
 ## The sRGB View
 
-`textureViewMatchingSRGB` handles a subtle correctness issue: after GPU resampling, the output texture may have a linear pixel format even if the original was sRGB (e.g., `rgba8Unorm` instead of `rgba8Unorm_srgb`). Rather than re-encoding with the correct format, the system creates a `MTLTextureView` — a zero-copy reinterpretation of the same underlying memory with the correct format. This costs nothing in GPU memory.
+`downsampleTexture` resamples via `MPSImageBilinearScale`. Metal disallows a compute-writable sRGB texture, so the destination is allocated in the linear sibling format (`mpsWritableFormat`). MPS reads an sRGB source through the texture unit, which auto-decodes sRGB → linear before filtering, and writes the raw (already-linear) result to the linear destination — no re-encoding occurs. **The output bytes are genuinely linear, not sRGB-encoded**, so the destination's linear pixel format is already correct as-is.
+
+An earlier version of this code re-viewed that result back to the source's sRGB pixel format via `MTLTextureView`, on the assumption it was just restoring a format label MPS had stripped. That was wrong: it caused the material shader's hardware sRGB decode to run a second time on data that was already linear, visibly darkening/shifting base color textures on every downgrade or partial upgrade. Base color is the only texture type marked `isSRGB`, which is why the symptom was a pure color/tint shift with no effect on roughness, metallic, or normal maps — and why it only appeared once tier oscillation (e.g. `SpatialManipulationSystem` drags with amplified sensitivity) caused frequent resamples.
+
+`textureViewMatchingSRGB` is now only invoked for textures returned at full source resolution (`targetMaxDimension == nil`), where it reconciles `loadSourceTexture`'s loader-assigned format — a case that's normally already a no-op since the loader honors the `.SRGB` option directly. Resampled (medium/minimum tier) textures are used as returned by `downsampleTexture`, unmodified.
 
 ---
 
