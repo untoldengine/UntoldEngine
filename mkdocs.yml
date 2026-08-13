@@ -52,6 +52,8 @@ nav:
     - Interaction / Gameplay Demo: Tutorials/InteractionGameplayDemo.md
     - Large Scene Streaming Demo: Tutorials/LargeSceneStreamingDemo.md
     - Showcase Demo: Tutorials/ShowcaseDemo.md
+    - Create A New Xcode Project: Tutorials/CreateXcodeProjectTutorial.md
+    - Export Assets With The CLI: Tutorials/CLIExporterTutorial.md
     - Scene Channels And Passthrough Rendering: Tutorials/SceneChannelsTutorial.md
     - Light Portals: Tutorials/LightPortalsTutorial.md
     - Blender Add-On Workflow: Tutorials/BlenderAddonTutorial.md

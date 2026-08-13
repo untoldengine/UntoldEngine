@@ -11,6 +11,8 @@ the demos are built and how the same API calls transfer into your own project.
 
 ## Learning Path
 
+### Learn The Engine API
+
 | Tutorial | Run Command | Main API Focus |
 | --- | --- | --- |
 | [Starter Demo](StarterDemo.md) | `swift run StarterDemo` | Renderer setup, frame callbacks, scene readiness, entities, meshes, transforms, camera movement, mouse input. |
@@ -19,7 +21,18 @@ the demos are built and how the same API calls transfer into your own project.
 | [Exporter Pipeline Demo](ExporterPipelineDemo.md) | `swift run ExporterPipelineDemo` | Loading `.untold` assets, exported animation clips, validation metadata, and authored asset workflows. |
 | [Interaction / Gameplay Demo](InteractionGameplayDemo.md) | `swift run InteractionGameplayDemo` | Gameplay-style input, animation switching, physics pause/resume, parented entities, and update-loop behavior. |
 | [Large Scene Streaming Demo](LargeSceneStreamingDemo.md) | `swift run LargeSceneStreamingDemo` | Tiled scene manifests, geometry streaming, LOD, static batching, cache budgets, and streaming diagnostics. |
-| [Showcase Demo](ShowcaseDemo.md) | `swift run ShowcaseDemo` | A combined demonstration of multiple systems after you understand the focused demos. |
+
+### Build Your Own Project
+
+| Tutorial | Run Command | Main API Focus |
+| --- | --- | --- |
+| [Create A New Xcode Project](CreateXcodeProjectTutorial.md) | `untoldengine create` | Generate a standalone Xcode project, choose a platform, understand dependencies, and use `GameData`. |
+| [Export Assets With The CLI](CLIExporterTutorial.md) | `untoldengine export` | Export single assets, animations, optimized assets, and tiled scenes into the generated project's `GameData` layout. |
+
+### Production Workflows
+
+| Tutorial | Run Command | Main API Focus |
+| --- | --- | --- |
 | [Scene Channels And Passthrough Rendering](SceneChannelsTutorial.md) | API workflow | Scene channels, custom channels, channel render modes, passthrough ghosting, and channel picking. |
 | [Light Portals](LightPortalsTutorial.md) | API workflow | Window/opening channels, portal proxy lights, XR real-world tint, diagnostics, and performance limits. |
 | [Blender Add-On Workflow](BlenderAddonTutorial.md) | Authoring workflow | Installing the add-on, exporting models, animations, tiled scenes, tile previews, and export hints. |
@@ -48,6 +61,8 @@ engine APIs so you can use them directly in your own app.
 ## Related Documentation
 
 - [Getting Started](../API/GettingStarted.md)
+- [Untold Engine CLI](../API/UsingUntoldEngineCLI.md)
+- [Exporter](../API/UsingTheExporter.md)
 - [Usage Examples](../API/UsageExamples.md)
 - [Registration System](../API/UsingRegistrationSystem.md)
 - [Transform System](../API/UsingTransformSystem.md)
