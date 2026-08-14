@@ -1,33 +1,103 @@
-# Adding Parent-Child Relationships in Untold Engine
+# Scene Graph
 
-The Untold Engine includes a Scene Graph data structure, designed to manage hierarchical transformations efficiently. This enables parent-child relationships between entities, where a child's transformation (position, rotation, scale) is relative to its parent. For example, a car's wheels (children) move and rotate relative to the car body (parent).
+The scene graph manages parent-child relationships between entities. A child keeps its own local transform, and the engine composes it with the parent's world transform during scene-graph updates.
 
-## Why Use Parent-Child Relationships?
+Use parent-child relationships when entities should move as a group:
 
-Parent-child relationships are useful when you want multiple entities to move or transform together. When a parent entity changes its position, rotation, or scale, its child entities inherit those changes automatically. This is ideal for scenarios like:
+- A vehicle body with wheel children.
+- A hand-held tool attached to a character hand.
+- A marker, label, or interaction proxy attached to a loaded model.
+- A group of objects that should keep a fixed relative layout.
 
-- A car (parent) and its wheels (children)
-- A robot (parent) with movable arms and legs (children)
-- A group of objects that should remain in a fixed configuration relative to each other
-
-## Assigning Parent-Child Relationships
-
-To assign a parent to an entity, use the setParent function. This function establishes a hierarchical relationship between the specified entities.
+## Create A Parent Relationship
 
 ```swift
-// Create child and parent entities
-let childEntity = createEntity()
-let parentEntity = createEntity()
+let parent = createEntity()
+let child = createEntity()
 
-// Set parent-child relationship
-setParent(childId: childEntity, parentId: parentEntity)
+setEntityMeshAsync(entityId: parent, filename: "vehicle", withExtension: "untold")
+setEntityMeshAsync(entityId: child, filename: "wheel", withExtension: "untold")
+
+setParent(childId: child, parentId: parent)
 ```
 
-## What Happens Behind the Scenes?
+After this call, transforms applied to `parent` affect `child`.
 
-1. Transformation Inheritance:
-- Once the relationship is established, any transformation applied to the parent entity (e.g., movement, rotation) will automatically affect the child entity.
-- The child’s transformation is expressed relative to the parent.
+```swift
+translateTo(entityId: parent, position: simd_float3(0.0, 0.0, -2.0))
+rotateBy(entityId: parent, angle: 45.0, axis: simd_float3(0.0, 1.0, 0.0))
+```
 
-2. Independent Local Transformations:
-- While the child inherits the parent's transformations, it can also have its own independent local transformations, such as offset positions or rotations relative to the parent.
+The child's transform remains local to the parent.
+
+```swift
+translateTo(entityId: child, position: simd_float3(0.6, -0.4, 0.8))
+```
+
+## Parent With An Offset
+
+`setParent` accepts an optional local offset. This is useful when you want to attach an entity and place it relative to the parent in one call.
+
+```swift
+setParent(
+    childId: child,
+    parentId: parent,
+    offset: simd_float3(0.6, -0.4, 0.8)
+)
+```
+
+## Remove A Parent
+
+Use `removeParent` when an entity should stop inheriting from its parent.
+
+```swift
+removeParent(childId: child)
+```
+
+The entity remains alive; only the scene-graph relationship is removed.
+
+## Query Relationships
+
+Use the query helpers when gameplay code needs to inspect the hierarchy.
+
+```swift
+let children = getEntityChildren(parentId: parent)
+let currentParent = getEntityParent(entityId: child)
+```
+
+`getEntityParent` returns `nil` when the entity is not parented.
+
+## Loaded Assets
+
+`.untold` assets can create multiple entities when they preserve hierarchy. You can still parent the root entity to another gameplay entity:
+
+```swift
+let roomAnchor = createEntity()
+let room = createEntity()
+
+setEntityMeshAsync(entityId: room, filename: "room", withExtension: "untold") { success in
+    guard success else { return }
+    setParent(childId: room, parentId: roomAnchor)
+}
+```
+
+If you need to find a named child exported from Blender, use entity names:
+
+```swift
+if let door = findEntity(name: "Door_Main") {
+    setParent(childId: door, parentId: roomAnchor)
+}
+```
+
+## Scene Builder
+
+`UntoldView` and `SceneBuilder` create parent relationships automatically for nested nodes:
+
+```swift
+MeshNode(resource: "vehicle.untold", name: "Vehicle") {
+    CubeNode(size: 0.25, name: "Marker")
+        .translateTo(x: 0.0, y: 1.25, z: 0.0)
+}
+```
+
+See [Scene Builder / UntoldView](UsingSceneBuilder.md) for the declarative scene setup workflow.

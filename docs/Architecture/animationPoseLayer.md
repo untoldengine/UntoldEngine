@@ -156,7 +156,7 @@ public func changeAnimation(entityId: EntityID, name: String,
 Opt-in per entity (default off — existing content behaves exactly as today):
 
 ```swift
-public func setRootMotionEnabled(entityId: EntityID, _ enabled: Bool)
+public func setRootMotionEnabled(entityId: EntityID, enabled: Bool, rootJointPath: String? = nil)
 ```
 
 When enabled, for the designated root joint (the first joint with a `nil`

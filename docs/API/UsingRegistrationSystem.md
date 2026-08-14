@@ -28,10 +28,13 @@ registerComponent(entityId: entity, componentType: RenderComponent.self)
 ```
 Example:
 
-When you load a mesh for rendering, the system automatically registers the required components:
+When you load a mesh for rendering, the system automatically registers the required components. For normal runtime code, use the async path:
 
 ```swift
-setEntityMesh(entityId: entity, filename: "model", withExtension: "untold")
+setEntityMeshAsync(entityId: entity, filename: "model", withExtension: "untold") { success in
+    guard success else { return }
+    // RenderComponent, TransformComponent, material data, and mesh resources are ready.
+}
 ```
 
 This function:
@@ -39,15 +42,15 @@ This function:
 - Loads the mesh from the specified `.untold` file.
 - Associates the mesh with the entity.
 - Registers default components like RenderComponent and TransformComponent.
-- Uses the immediate path; the mesh is GPU-resident when the function returns.
+- Calls the completion handler when the mesh has been registered.
 
-For asynchronous always-resident loading, use:
+For immediate loading, use:
 
 ```swift
-setEntityMeshAsync(entityId: entity, filename: "model", withExtension: "untold") { success in
-    // Mesh is registered on success.
-}
+setEntityMesh(entityId: entity, filename: "model", withExtension: "untold")
 ```
+
+The immediate path is useful for tools and tests that need the mesh to be GPU-resident when the function returns.
 
 For large streamed scenes, use `setEntityStreamScene(...)`. The streaming/OCC path is owned by the tile manifest pipeline, not by direct `StreamingComponent` authoring.
 

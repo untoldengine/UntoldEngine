@@ -141,9 +141,10 @@ private func configureEngineSystems() {
     gameMode = true
     
     // Register XR input gestures
-    InputSystem.shared.registerXREvents()
-    InputSystem.shared.setXRSpatialPickingBackendPreference(.octreeGPUPreferred)
-    InputSystem.shared.setXRTwoHandRotateAxisMode(.dynamicSnapped)
+    registerXREvents()
+    setInput(.xr(.pickingBackend(.octreeGPUPreferred)))
+    setInput(.xr(.twoHandRotateAxisMode(.dynamicSnapped)))
+    setInput(.xr(.sceneReady(true)))
     
     // Enable post processing and anti-aliasing
     setRendering(.postProcessing(.enabled))

@@ -32,7 +32,7 @@ Untold Engine is built for developers and teams who:
 Creator & Lead Developer:  
 [Harold Serrano](http://www.haroldserrano.com)
 
-![untoldengine-image](images/engine-highlight-5.png)
+[![untoldengine-image](images/engine-highlight-5.png)](https://vimeo.com/1176995991?fl=ip&fe=ec)
 
 ---
 
@@ -121,8 +121,6 @@ Untold Engine is built around three focused goals:
 
 ---
 
-![untoldengine-image-2](images/engine-highlight-7.jpg)
-
 ## Example Use Cases
 
 Untold Engine is well-suited for:
@@ -163,6 +161,10 @@ modifications, sponsored engine features, priority support, or custom terms.
   under commercial terms.
 - **Priority support / retainers** — get focused help with engine integration,
   rendering issues, performance, and production use.
+
+If your team needs an engine feature that is not currently available, contact
+[Harold Serrano](https://www.haroldserrano.com/contact) to discuss sponsored feature development, private engine
+work, commercial licensing, or ongoing support.
 
 See [COMMERCIAL.md](https://github.com/untoldengine/UntoldEngine/blob/main/COMMERCIAL.md) for commercial licensing details.
 
