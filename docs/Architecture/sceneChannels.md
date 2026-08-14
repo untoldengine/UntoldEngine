@@ -48,20 +48,20 @@ The built-in `NM_` prefix is evaluated first to preserve selectable-object compa
 
 ## Rendering
 
-Channel rendering is controlled globally. The compatibility visibility API maps to render modes:
+Channel rendering is controlled globally through `setSceneChannel(_:_:)`:
 
 ```swift
-setSceneChannelVisible(.contextGeometry, false) // .hidden
-setSceneChannelVisible(.contextGeometry, true)  // .normal
+setSceneChannel(.contextGeometry, .renderMode(.normal))
+setSceneChannel(.contextGeometry, .renderMode(.hidden))
+setSceneChannel(.contextGeometry, .renderMode(.wireframe))
+setSceneChannel(.ghostGeometry, .renderMode(.passthroughGhost(opacity: 0.35)))
 ```
 
-New code can set the render mode directly:
+The older compatibility APIs map to the same render-mode state and should only be used while migrating older code:
 
 ```swift
-setSceneChannelRenderMode(.contextGeometry, .normal)
-setSceneChannelRenderMode(.contextGeometry, .hidden)
-setSceneChannelRenderMode(.contextGeometry, .wireframe)
-setSceneChannel(.ghostGeometry, .renderMode(.passthroughGhost(opacity: 0.35)))
+setSceneChannelVisible(.contextGeometry, false) // Deprecated; use .renderMode(.hidden)
+setSceneChannelVisible(.contextGeometry, true)  // Deprecated; use .renderMode(.normal)
 ```
 
 The render passes call `shouldHideSceneEntity(entityId:)` for individual entities. Hidden entities are skipped before draw encoding. This is different from opacity: no transparent draw is submitted, so the feature avoids transparency sorting issues.

@@ -1,6 +1,6 @@
-# Enabling Rendering System in Untold Engine
+# Rendering System
 
-The Rendering System in the Untold Engine is responsible for displaying your models on the screen. It supports advanced features such as Physically Based Rendering (PBR), tile-based deferred lighting, screen-space ambient occlusion, and multiple types of lights to illuminate your scenes.
+The rendering system displays your entities through Metal. It supports runtime `.untold` assets, PBR materials, tile-based deferred lighting, screen-space ambient occlusion, anti-aliasing, scene-channel render modes, light portals, XR lighting, and debug views.
 
 ## How to Enable the Rendering System
 
@@ -13,33 +13,66 @@ let entity = createEntity()
 ```
 ---
 
-### Step 2: Link a Mesh to the Entity
+### Step 2: Load A Mesh
 
-To display a model, load its `.untold` runtime asset and link it to the entity using `setEntityMesh`.
+To display a model, load its `.untold` runtime asset and link it to the entity. For normal app and game code, use `setEntityMeshAsync`:
 
 ```swift
-setEntityMesh(entityId: entity, filename: "entity", withExtension: "untold")
+setEntityMeshAsync(entityId: entity, filename: "robot", withExtension: "untold") { success in
+    guard success else { return }
+    translateTo(entityId: entity, position: simd_float3(0.0, 0.0, -2.0))
+}
 ```
 
 Parameters:
 
-- entityId: The ID of the entity created earlier.
-- filename: The name of the `.untold` file without the extension.
-- withExtension: The file extension, typically `"untold"` for runtime assets.
+- `entityId`: The ID of the entity created earlier.
+- `filename`: The name of the `.untold` file without the extension.
+- `withExtension`: The file extension, typically `"untold"` for runtime assets.
+- `completion`: Called when the mesh has been loaded and registered.
 
-> Note: If PBR textures (e.g., albedo, normal, roughness, metallic maps) are included, the rendering system will automatically use the appropriate PBR shader to render the model with realistic lighting and material properties.
+`setEntityMeshAsync` registers the render and transform data needed by the renderer. If the asset includes PBR textures, the renderer uses the material maps automatically.
 
----
+For tooling, tests, or cases that require immediate GPU residency, `setEntityMesh` is still available:
 
-### Running the Rendering System
-
-Once everything is set up:
-
-1. Run the project.
-2. Your model will appear in the game window, illuminated by the configured lights.
-3. If the model is not visible or appears flat, revisit the lighting and texture setup to ensure everything is loaded correctly.
+```swift
+setEntityMesh(entityId: entity, filename: "robot", withExtension: "untold")
+```
 
 ---
+
+## Scene-Authored Data
+
+`setEntityMesh` and `setEntityMeshAsync` load geometry and materials. Scene-authored lights, cameras, and baked color grading are loaded separately:
+
+```swift
+loadSceneAuthored(filename: "office", withExtension: "untold") { success in
+    // Scene-authored lights/cameras and any baked color LUT are registered.
+}
+```
+
+For streamed tile manifests:
+
+```swift
+loadSceneAuthored(url: manifestURL) { success in
+    // Scene-authored data from the manifest is registered.
+}
+```
+
+See [Registration System](UsingRegistrationSystem.md) and [Color Management](UsingColorManagement.md) for the full scene-authored workflow.
+
+## Lighting
+
+Renderable assets need lighting unless their material is emissive or the scene is using a specialized debug view. The most common setup is a directional light:
+
+```swift
+let sun = createEntity()
+createDirLight(entityId: sun)
+setLight(entityId: sun, .intensity(1.4))
+setLight(entityId: sun, .color(simd_float3(1.0, 0.95, 0.85)))
+```
+
+See [Lighting System](UsingLightingSystem.md) and [Light Portals](UsingLightPortals.md) for the full lighting API.
 
 ## Common Issues and Fixes
 
@@ -53,7 +86,7 @@ Once everything is set up:
 - Cause: PBR textures are missing or not linked properly.
 - Solution: Ensure the `.untold` asset references the correct PBR textures, and verify their paths during the loading process.
 
-#### Debugging Tip:
+#### Debugging Tip
 
 - Log the addition of lights and entities to verify the scene setup.
 - Ensure the position of the point light is within the visible range of the camera and the objects it is meant to illuminate.
@@ -120,7 +153,6 @@ Restore normal rendering with `setRendering(.debugView(.lit))`.
 
 For the broader settings style, see [Engine Settings API](UsingEngineAPI.md).
 
-For optional renderer features that add their own graph passes or resources,
-see [Rendering Extensions](UsingRenderingExtensions.md).
+For optional renderer features that add their own graph passes or resources, see [Rendering Extensions](UsingRenderingExtensions.md).
 
 ---

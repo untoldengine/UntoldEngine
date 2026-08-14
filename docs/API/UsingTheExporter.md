@@ -352,7 +352,7 @@ This lets you keep background geometry (walls, floors, ceilings) optimized while
 
 To change the prefix or disable selective merging, edit `NO_MERGE_PREFIX` at the top of `scripts/tilestreamingpartition.py`. Set it to `""` to merge all objects regardless of name.
 
-At runtime, `NM_` objects default to `.selectableGeometry` and `.preserveIdentity` scene channels. Regular render/streaming geometry defaults to `.contextGeometry`. This lets an app hide context geometry with `setSceneChannelVisible(.contextGeometry, false)` while keeping `NM_` objects visible and selectable. See [Scene Channels](UsingSceneChannels.md).
+At runtime, `NM_` objects default to `.selectableGeometry` and `.preserveIdentity` scene channels. Regular render/streaming geometry defaults to `.contextGeometry`. This lets an app hide context geometry with `setSceneChannel(.contextGeometry, .renderMode(.hidden))` while keeping `NM_` objects visible and selectable. See [Scene Channels](UsingSceneChannels.md).
 
 ## Optimization Workflows
 

@@ -47,7 +47,7 @@ Untold Engine is built for developers and teams who:
 Creator & Lead Developer:  
 https://www.haroldserrano.com
 
-[![untoldengine-image](/docs/images/engine-highlight-5.png)](https://vimeo.com/1176995991?fl=ip&fe=ec)
+[![untoldengine-image](/docs/images/UntoldEngine-features.png)](https://vimeo.com/1176995991?fl=ip&fe=ec)
 
 Click to Play
 
@@ -130,8 +130,22 @@ Engine as a package dependency.
 
 ## Getting Started
 
-To create your own XR, 3D, or spatial visualization app using Untold Engine, see
-[Getting Started](https://untoldengine.github.io/UntoldEngine/API/GettingStarted/).
+To create your own XR, 3D, or spatial visualization app using Untold Engine,
+start with the documentation path that matches where you are:
+
+- **Build a complete Vision Pro app:** follow the
+  [Archviz To Vision Pro learning path](https://untoldengine.github.io/UntoldEngine/LearningPaths/ArchvizToVisionPro/)
+  to take a Blender archviz model into a standalone visionOS project.
+- **Learn the engine API through focused demos:** use the
+  [Tutorials](https://untoldengine.github.io/UntoldEngine/Tutorials/)
+  to understand Starter Demo, lighting, rendering quality, exporter workflows,
+  scene channels, light portals, XR input, and performance diagnostics.
+- **Create your own project from scratch:** see
+  [Getting Started](https://untoldengine.github.io/UntoldEngine/API/GettingStarted/)
+  and [Create A New Xcode Project](https://untoldengine.github.io/UntoldEngine/Tutorials/CreateXcodeProjectTutorial/).
+
+If your team is evaluating Untold Engine and needs an engine capability that is
+not currently available, see [Commercial Use, Sponsored Features, and Support](COMMERCIAL.md).
 
 ## Core Direction
 
@@ -144,8 +158,6 @@ Untold Engine is built around three focused goals:
 - **Metal-First Architecture** — The rendering layer stays close to Metal to maintain performance, shader control, and pipeline flexibility without abstraction layers getting in the way.
 
 ---
-
-![untoldengine-image-2](/docs/images/engine-highlight-7.png)
 
 ## Example Use Cases
 
@@ -306,6 +318,9 @@ modifications, sponsored engine features, priority support, or custom terms.
   under commercial terms.
 - **Priority support / retainers** — get focused help with engine integration,
   rendering issues, performance, and production use.
+
+If your team needs an engine feature that is not currently available, contact 
+[Harold Serrano](https://www.haroldserrano.com/contact) to discuss sponsored feature development, private engine work, commercial licensing, or ongoing support. 
 
 See [COMMERCIAL.md](COMMERCIAL.md) for commercial licensing details.
 
