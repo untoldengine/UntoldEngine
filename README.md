@@ -47,7 +47,7 @@ Untold Engine is built for developers and teams who:
 Creator & Lead Developer:  
 https://www.haroldserrano.com
 
-[![untoldengine-image](/docs/images/UntoldEngine-features.png)](https://vimeo.com/1176995991?fl=ip&fe=ec)
+[![untoldengine-image](/docs/images/engine-highlight-5.png)](https://vimeo.com/1176995991?fl=ip&fe=ec)
 
 Click to Play
 
