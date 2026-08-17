@@ -269,6 +269,15 @@ FUTURE_SPLIT_TILE_THRESHOLD = 15
 # to the shared bucket to avoid thousands of clip+export iterations for truly
 # scene-spanning meshes (ground planes, terrain slabs).
 #
+# This routing is only honored when CLIP_LOCAL_MESHES is also True (see below).
+# Without clipping, "routed to tiles" means the *entire* spanning mesh is
+# duplicated whole into every overlapping tile instead of being cut into
+# per-tile pieces — for an object that already overlaps dozens of tiles, that
+# is dozens of full-size coplanar copies at the same world position, which
+# z-fights and pops in/out independently as each tile streams. With
+# CLIP_LOCAL_MESHES == False, spanning objects always stay in the shared
+# bucket regardless of SPLIT_MAX_TILES.
+#
 # Rule of thumb for SPLIT_MAX_TILES: (max_building_width / TILE_SIZE)²
 # At TILE_SIZE=25, default 400 allows objects up to 500 m × 500 m to be split.
 SPLIT_SPANNING_OBJECTS = True
@@ -298,6 +307,16 @@ MERGE_BY_MATERIAL = True
 # retain their original name in the .untold file.  Set to "" to disable.
 # Example: name an object "NM_Pipe_001" in Blender to keep it separate.
 NO_MERGE_PREFIX = "NM_"
+
+# The exporter always writes uv_layers[0] as a merged mesh's texture coordinates
+# (see untoldexplorer.py).  Source assets combined into one scene often name their
+# primary UV layer differently ("UVMap", "UVChannel_1", "UVW", ...).  When objects
+# with different primary-layer names are joined by merge_objects_by_material(),
+# bmesh unifies layers *by name*, so only the objects whose layer name landed at
+# index 0 keep real UVs — everyone else's merged-in faces get all-zero UVs and
+# render untextured.  Renaming every object's active layer to this canonical name
+# before merging keeps the primary UV channel unified across the whole tile.
+MERGE_CANONICAL_UV_LAYER_NAME = "UVMap"
 
 # Clip tolerance at tile boundaries.
 # for objects at large world coordinates (e.g. buildings at x=1500).
@@ -2420,6 +2439,7 @@ def build_assignments(objects, object_bounds, origin_x, origin_y, origin_z,
             result["policy"] == "local_overlap"
             or (
                 SPLIT_SPANNING_OBJECTS
+                and CLIP_LOCAL_MESHES
                 and result["policy"] in ("shared_bucket", "future_split_candidate")
                 and result["xz_overlap_count"] <= SPLIT_MAX_TILES
             )
@@ -3034,6 +3054,53 @@ def split_objects_by_material(objects, temp_scene):
     return result
 
 
+def normalize_primary_uv_layer(obj):
+    """Rename obj's active UV layer to MERGE_CANONICAL_UV_LAYER_NAME and move it to index 0.
+
+    See the comment on MERGE_CANONICAL_UV_LAYER_NAME for why this matters: bmesh
+    merges UV layers by name, and the exporter always reads index 0, so every
+    object about to be joined with others must agree on the primary layer's name.
+    Other (secondary) UV layers are preserved under their original names.
+    No-op if the mesh has no UV layers, or already satisfies both conditions.
+    """
+    mesh = obj.data
+    uv_layers = getattr(mesh, "uv_layers", None)
+    if not uv_layers or len(uv_layers) == 0:
+        return
+
+    # Compare by name, not identity: each attribute access on uv_layers.active /
+    # uv_layers[i] returns a fresh RNA wrapper, so `is` can be False even when
+    # both refer to the same underlying layer.
+    active_name = (uv_layers.active or uv_layers[0]).name
+    if uv_layers[0].name == active_name and active_name == MERGE_CANONICAL_UV_LAYER_NAME:
+        return
+
+    loop_count = len(mesh.loops)
+    saved = []
+    for layer in uv_layers:
+        data = [0.0] * (loop_count * 2)
+        layer.data.foreach_get("uv", data)
+        saved.append((layer.name, data, layer.name == active_name))
+
+    for layer in list(uv_layers):
+        uv_layers.remove(layer)
+
+    active_entry = next(entry for entry in saved if entry[2])
+    new_active = uv_layers.new(name=MERGE_CANONICAL_UV_LAYER_NAME)
+    new_active.data.foreach_set("uv", active_entry[1])
+
+    for name, data, was_active in saved:
+        if was_active:
+            continue
+        # Avoid a name collision with the canonical layer we just created
+        # (e.g. a mesh that already had a secondary layer literally named "UVMap").
+        restored_name = name if name != MERGE_CANONICAL_UV_LAYER_NAME else f"{name}.orig"
+        layer = uv_layers.new(name=restored_name)
+        layer.data.foreach_set("uv", data)
+
+    uv_layers.active = new_active
+
+
 def merge_objects_by_material(objects, temp_scene):
     """Join objects that share identical material(s) into single meshes.
 
@@ -3073,6 +3140,8 @@ def merge_objects_by_material(objects, temp_scene):
             continue
 
         try:
+            for obj in group:
+                normalize_primary_uv_layer(obj)
             merged = _merge_objects_in_scene(group, temp_scene)
             total_merged_away += len(group) - 1
             result.append(merged)
@@ -4863,24 +4932,33 @@ def run():
     if PERIMETER_MODE:
         tile_assignments = filter_tile_assignments_perimeter(tile_assignments, depth=PERIMETER_DEPTH)
 
+    # Spanning objects are only ever routed to per-tile local export when
+    # CLIP_LOCAL_MESHES is also on — see the comment on SPLIT_SPANNING_OBJECTS.
+    split_spanning_active = SPLIT_SPANNING_OBJECTS and CLIP_LOCAL_MESHES
     local_count   = sum(1 for r in classification_map.values() if r["policy"] == "local_overlap")
     spanning_routed = sum(
         1 for r in classification_map.values()
-        if SPLIT_SPANNING_OBJECTS
+        if split_spanning_active
         and r["policy"] in ("shared_bucket", "future_split_candidate")
         and r["xz_overlap_count"] <= SPLIT_MAX_TILES
     )
     capped_count = sum(
         1 for r in classification_map.values()
         if r["policy"] in ("shared_bucket", "future_split_candidate")
-        and (not SPLIT_SPANNING_OBJECTS or r["xz_overlap_count"] > SPLIT_MAX_TILES)
+        and (not split_spanning_active or r["xz_overlap_count"] > SPLIT_MAX_TILES)
     )
+    if SPLIT_SPANNING_OBJECTS and not CLIP_LOCAL_MESHES and capped_count:
+        print(
+            "  Note: SPLIT_SPANNING_OBJECTS is on but CLIP_LOCAL_MESHES is off — "
+            "spanning objects stay in the shared bucket rather than being "
+            "duplicated whole into every overlapping tile."
+        )
     print(
         f"Classification: {len(objects)} objects → "
         f"{local_count} local"
         + (f", {spanning_routed} spanning→tiles, {capped_count} spanning→shared bucket"
            f" (SPLIT_MAX_TILES={SPLIT_MAX_TILES})"
-           if SPLIT_SPANNING_OBJECTS else f", {capped_count} spanning→shared bucket")
+           if split_spanning_active else f", {capped_count} spanning→shared bucket")
     )
 
     # ------------------------------------------------------------------
