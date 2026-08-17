@@ -46,6 +46,84 @@ class FakeObject(dict):
         self.name = name
 
 
+# ---------------------------------------------------------------------------
+# Minimal fakes for Blender's mesh.uv_layers collection API, faithful enough
+# (new/remove/active/foreach_get/foreach_set) to exercise
+# normalize_primary_uv_layer() without a real Blender process. bpy itself is
+# a bare MagicMock in this suite, which would silently no-op these calls
+# instead of catching regressions.
+# ---------------------------------------------------------------------------
+
+class FakeUVLoopData:
+    def __init__(self, loop_count: int) -> None:
+        self._uv = [0.0] * (loop_count * 2)
+
+    def foreach_get(self, attr: str, out_list) -> None:
+        assert attr == "uv"
+        for i in range(len(out_list)):
+            out_list[i] = self._uv[i]
+
+    def foreach_set(self, attr: str, in_list) -> None:
+        assert attr == "uv"
+        self._uv = list(in_list)
+
+
+class FakeUVLayer:
+    def __init__(self, name: str, loop_count: int) -> None:
+        self.name = name
+        self.data = FakeUVLoopData(loop_count)
+
+
+class FakeUVLayers:
+    def __init__(self, loop_count: int) -> None:
+        self._loop_count = loop_count
+        self._layers: list[FakeUVLayer] = []
+        self._active_name = None
+
+    def new(self, name: str) -> FakeUVLayer:
+        layer = FakeUVLayer(name, self._loop_count)
+        self._layers.append(layer)
+        if self._active_name is None:
+            self._active_name = name
+        return layer
+
+    def remove(self, layer: FakeUVLayer) -> None:
+        self._layers = [l for l in self._layers if l is not layer]
+        if self._active_name == layer.name:
+            self._active_name = self._layers[0].name if self._layers else None
+
+    def __len__(self) -> int:
+        return len(self._layers)
+
+    def __iter__(self):
+        return iter(list(self._layers))
+
+    def __getitem__(self, key):
+        if isinstance(key, int):
+            return self._layers[key]
+        for layer in self._layers:
+            if layer.name == key:
+                return layer
+        raise KeyError(key)
+
+    @property
+    def active(self):
+        for layer in self._layers:
+            if layer.name == self._active_name:
+                return layer
+        return None
+
+    @active.setter
+    def active(self, layer) -> None:
+        self._active_name = layer.name if layer else None
+
+
+class FakeMesh:
+    def __init__(self, loop_count: int) -> None:
+        self.loops = [None] * loop_count
+        self.uv_layers = FakeUVLayers(loop_count)
+
+
 class TileStreamingPartitionTests(unittest.TestCase):
 
     # ------------------------------------------------------------------
@@ -337,6 +415,94 @@ class TileStreamingPartitionTests(unittest.TestCase):
             self.assertIn(key, result)
 
     # ------------------------------------------------------------------
+    # Spanning-object routing (shared bucket vs. per-tile duplication)
+    #
+    # Regression coverage for the flickering-ground-plane bug: a spanning
+    # object (e.g. a ground plane wide enough to be classified shared_bucket)
+    # must stay in the shared bucket unless CLIP_LOCAL_MESHES is also on.
+    # Routing it to per-tile local export without clipping means the *entire*
+    # mesh gets duplicated whole into every overlapping tile — dozens of
+    # coplanar copies that z-fight and stream in/out independently.
+    # ------------------------------------------------------------------
+
+    def _spanning_routing_fixture(self):
+        # Small object fully inside tile (0,0,0) → local_overlap.
+        local_obj = FakeObject("Prop")
+        local_aabb = {"min": (1.0, 0.0, 1.0), "max": (4.0, 3.0, 4.0)}
+
+        # 90x90 object spanning many tiles at tile_size=10 → width_threshold
+        # (90/10 = 9 > SPANNING_THRESHOLD_TILES=4) → shared_bucket, well under
+        # SPLIT_MAX_TILES (400) so the routing branch under test is exercised.
+        ground_obj = FakeObject("Ground")
+        ground_aabb = {"min": (0.0, 0.0, 0.0), "max": (90.0, 1.0, 90.0)}
+
+        object_bounds = {"Prop": local_aabb, "Ground": ground_aabb}
+        return local_obj, ground_obj, object_bounds
+
+    def test_build_assignments_keeps_spanning_object_in_shared_bucket_when_unclipped(self) -> None:
+        local_obj, ground_obj, object_bounds = self._spanning_routing_fixture()
+        previous = (t.SPLIT_SPANNING_OBJECTS, t.SPLIT_MAX_TILES, t.CLIP_LOCAL_MESHES)
+        try:
+            t.SPLIT_SPANNING_OBJECTS = True
+            t.SPLIT_MAX_TILES = 400
+            t.CLIP_LOCAL_MESHES = False  # the default
+
+            tile_assignments, shared_objects, classification_map = t.build_assignments(
+                [local_obj, ground_obj], object_bounds,
+                0.0, 0.0, 0.0,
+                10.0, 100.0, 10.0,
+            )
+
+            self.assertEqual(classification_map["Ground"]["policy"], "shared_bucket")
+            # FakeObject subclasses dict for _obj_prop's `key in obj` support, so
+            # membership must be checked by name — plain `in`/`==` would compare
+            # dict contents and both fixture objects are empty dicts.
+            self.assertIn("Ground", [obj.name for obj in shared_objects])
+            for tile_objs in tile_assignments.values():
+                self.assertNotIn("Ground", [obj.name for obj in tile_objs])
+        finally:
+            t.SPLIT_SPANNING_OBJECTS, t.SPLIT_MAX_TILES, t.CLIP_LOCAL_MESHES = previous
+
+    def test_build_assignments_routes_spanning_object_to_tiles_when_clipped(self) -> None:
+        local_obj, ground_obj, object_bounds = self._spanning_routing_fixture()
+        previous = (t.SPLIT_SPANNING_OBJECTS, t.SPLIT_MAX_TILES, t.CLIP_LOCAL_MESHES)
+        try:
+            t.SPLIT_SPANNING_OBJECTS = True
+            t.SPLIT_MAX_TILES = 400
+            t.CLIP_LOCAL_MESHES = True  # local meshes are actually clipped
+
+            tile_assignments, shared_objects, classification_map = t.build_assignments(
+                [local_obj, ground_obj], object_bounds,
+                0.0, 0.0, 0.0,
+                10.0, 100.0, 10.0,
+            )
+
+            self.assertEqual(classification_map["Ground"]["policy"], "shared_bucket")
+            self.assertNotIn("Ground", [obj.name for obj in shared_objects])
+            routed_names = [obj.name for objs in tile_assignments.values() for obj in objs]
+            self.assertIn("Ground", routed_names)
+        finally:
+            t.SPLIT_SPANNING_OBJECTS, t.SPLIT_MAX_TILES, t.CLIP_LOCAL_MESHES = previous
+
+    def test_build_assignments_keeps_spanning_object_shared_when_split_disabled(self) -> None:
+        local_obj, ground_obj, object_bounds = self._spanning_routing_fixture()
+        previous = (t.SPLIT_SPANNING_OBJECTS, t.SPLIT_MAX_TILES, t.CLIP_LOCAL_MESHES)
+        try:
+            t.SPLIT_SPANNING_OBJECTS = False
+            t.SPLIT_MAX_TILES = 400
+            t.CLIP_LOCAL_MESHES = True
+
+            _tile_assignments, shared_objects, _classification_map = t.build_assignments(
+                [local_obj, ground_obj], object_bounds,
+                0.0, 0.0, 0.0,
+                10.0, 100.0, 10.0,
+            )
+
+            self.assertIn("Ground", [obj.name for obj in shared_objects])
+        finally:
+            t.SPLIT_SPANNING_OBJECTS, t.SPLIT_MAX_TILES, t.CLIP_LOCAL_MESHES = previous
+
+    # ------------------------------------------------------------------
     # Output helpers
     # ------------------------------------------------------------------
 
@@ -560,6 +726,141 @@ class TileStreamingPartitionTests(unittest.TestCase):
             self.assertFalse(t.BAKE_CACHE)
         finally:
             t.BAKE_CACHE = previous
+
+    # ------------------------------------------------------------------
+    # UV layer normalization before cross-object merge
+    #
+    # Regression coverage for the missing-texture bug: merge_objects_by_material()
+    # joins objects sharing a material via repeated bmesh.from_mesh() calls, which
+    # unify UV layers *by name*, and the exporter always reads uv_layers[0]. Source
+    # assets that name their primary UV layer differently ("UVMap", "UVChannel_1",
+    # "UVW", ...) must have that layer renamed to a shared canonical name before
+    # merging, or every object whose layer lands at a non-zero index gets all-zero
+    # UVs and renders untextured.
+    # ------------------------------------------------------------------
+
+    def test_normalize_primary_uv_layer_renames_active_layer_to_canonical(self) -> None:
+        mesh = FakeMesh(loop_count=3)
+        layer = mesh.uv_layers.new(name="UVChannel_1")
+        layer.data.foreach_set("uv", [0.1, 0.2, 0.3, 0.4, 0.5, 0.6])
+        mesh.uv_layers.active = layer
+
+        obj = FakeObject("Palm")
+        obj.data = mesh
+
+        t.normalize_primary_uv_layer(obj)
+
+        self.assertEqual(len(mesh.uv_layers), 1)
+        self.assertEqual(mesh.uv_layers[0].name, t.MERGE_CANONICAL_UV_LAYER_NAME)
+        out = [0.0] * 6
+        mesh.uv_layers[0].data.foreach_get("uv", out)
+        self.assertEqual(out, [0.1, 0.2, 0.3, 0.4, 0.5, 0.6])
+
+    def test_normalize_primary_uv_layer_is_noop_when_already_canonical(self) -> None:
+        mesh = FakeMesh(loop_count=2)
+        layer = mesh.uv_layers.new(name=t.MERGE_CANONICAL_UV_LAYER_NAME)
+        mesh.uv_layers.active = layer
+
+        obj = FakeObject("AMT")
+        obj.data = mesh
+
+        t.normalize_primary_uv_layer(obj)
+
+        self.assertEqual(len(mesh.uv_layers), 1)
+        self.assertIs(mesh.uv_layers[0], layer, "already-canonical layer must be left untouched")
+
+    def test_normalize_primary_uv_layer_preserves_secondary_layer(self) -> None:
+        mesh = FakeMesh(loop_count=2)
+        secondary = mesh.uv_layers.new(name="Lightmap")
+        secondary.data.foreach_set("uv", [0.9, 0.9, 0.8, 0.8])
+        primary = mesh.uv_layers.new(name="UVW")
+        primary.data.foreach_set("uv", [0.1, 0.1, 0.2, 0.2])
+        mesh.uv_layers.active = primary
+
+        obj = FakeObject("Building")
+        obj.data = mesh
+
+        t.normalize_primary_uv_layer(obj)
+
+        self.assertEqual(mesh.uv_layers[0].name, t.MERGE_CANONICAL_UV_LAYER_NAME)
+        out0 = [0.0] * 4
+        mesh.uv_layers[0].data.foreach_get("uv", out0)
+        self.assertEqual(out0, [0.1, 0.1, 0.2, 0.2], "canonical layer must carry the formerly-active data")
+
+        names = [layer.name for layer in mesh.uv_layers]
+        self.assertIn("Lightmap", names)
+        lightmap = mesh.uv_layers["Lightmap"]
+        out1 = [0.0] * 4
+        lightmap.data.foreach_get("uv", out1)
+        self.assertEqual(out1, [0.9, 0.9, 0.8, 0.8], "secondary layer data must survive untouched")
+
+    def test_normalize_primary_uv_layer_handles_name_collision_with_existing_canonical(self) -> None:
+        # Active layer is "UVW", but a *secondary* layer already happens to be
+        # named "UVMap" — renaming the active layer must not silently clobber it.
+        mesh = FakeMesh(loop_count=2)
+        existing_canonical = mesh.uv_layers.new(name=t.MERGE_CANONICAL_UV_LAYER_NAME)
+        existing_canonical.data.foreach_set("uv", [0.3, 0.3, 0.4, 0.4])
+        primary = mesh.uv_layers.new(name="UVW")
+        primary.data.foreach_set("uv", [0.1, 0.1, 0.2, 0.2])
+        mesh.uv_layers.active = primary
+
+        obj = FakeObject("Weird")
+        obj.data = mesh
+
+        t.normalize_primary_uv_layer(obj)
+
+        self.assertEqual(len(mesh.uv_layers), 2)
+        self.assertEqual(mesh.uv_layers[0].name, t.MERGE_CANONICAL_UV_LAYER_NAME)
+        out0 = [0.0] * 4
+        mesh.uv_layers[0].data.foreach_get("uv", out0)
+        self.assertEqual(out0, [0.1, 0.1, 0.2, 0.2], "index 0 must carry the formerly-active UVW data")
+
+        names = [layer.name for layer in mesh.uv_layers]
+        self.assertIn(f"{t.MERGE_CANONICAL_UV_LAYER_NAME}.orig", names,
+                      "the pre-existing secondary 'UVMap' layer must be preserved under a renamed slot")
+
+    def test_normalize_primary_uv_layer_noop_when_mesh_has_no_uv_layers(self) -> None:
+        mesh = FakeMesh(loop_count=2)
+        obj = FakeObject("NoUV")
+        obj.data = mesh
+
+        t.normalize_primary_uv_layer(obj)  # must not raise
+
+        self.assertEqual(len(mesh.uv_layers), 0)
+
+    def test_merge_objects_by_material_normalizes_uv_before_merging(self) -> None:
+        """Wiring guard: merge_objects_by_material() must call
+        normalize_primary_uv_layer() on every object in a merge group before
+        handing off to _merge_objects_in_scene(). This is the actual fix — a
+        future refactor that drops the call would reintroduce the
+        missing-texture bug with none of the per-unit UV tests noticing."""
+        original_normalize = t.normalize_primary_uv_layer
+        original_merge_key = t.material_merge_key
+        original_merge_in_scene = t._merge_objects_in_scene
+        try:
+            normalized_names = []
+            t.normalize_primary_uv_layer = lambda obj: normalized_names.append(obj.name)
+            t.material_merge_key = lambda obj: "same-material"
+            merged_placeholder = FakeObject("merged")
+            t._merge_objects_in_scene = MagicMock(return_value=merged_placeholder)
+
+            obj_a = FakeObject("A")
+            obj_a.type = "MESH"
+            obj_a.data = object()
+            obj_b = FakeObject("B")
+            obj_b.type = "MESH"
+            obj_b.data = object()
+
+            result = t.merge_objects_by_material([obj_a, obj_b], temp_scene=MagicMock())
+
+            self.assertEqual(sorted(normalized_names), ["A", "B"],
+                             "every object in the merge group must be UV-normalized before merging")
+            t._merge_objects_in_scene.assert_called_once()
+            self.assertEqual(result, [merged_placeholder])
+        finally:
+            t.normalize_primary_uv_layer = original_normalize
+            t.material_merge_key = original_merge_key
+            t._merge_objects_in_scene = original_merge_in_scene
 
 
 if __name__ == "__main__":
