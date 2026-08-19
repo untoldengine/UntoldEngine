@@ -52,24 +52,18 @@ workflow, product experience, and customer-specific behavior.
 
 ## Watch It in Action — Apple Vision Pro Demos
 
-<table>
-  <tr>
-    <td align="center" width="360">
-      <a href="https://github.com/untoldengine/UntoldArcade/tree/main/CoolSaber">
-        <img src="images/gifs/coolsaber-demo.gif" width="360"><br>
-        <b>CoolSaber</b><br>PSVR2 lightsaber duels over SharePlay
-      </a>
-    </td>
-    <td align="center" width="360">
-      <a href="https://untoldengine.github.io/UntoldEngine/LearningPaths/ArchvizToVisionPro/">
-        <img src="images/gifs/archviz-demo.gif" width="360"><br>
-        <b>Archviz Viewer</b><br>Blender scene in mixed reality
-      </a>
-    </td>
-  </tr>
-</table>
+| Demo | Description |
+| --- | --- |
+| [CoolSaber](https://github.com/untoldengine/UntoldArcade/tree/main/CoolSaber) | PSVR2-driven lightsaber duels, blades clashing over SharePlay |
+| [CoolWater](https://github.com/untoldengine/UntoldArcade/tree/main/CoolWater) | Real-time animated water with reflection, refraction, and ripples |
+| [CoolCloth](https://github.com/untoldengine/UntoldArcade/tree/main/CoolCloth) | GPU cloth simulation (XPBD) you can punch a ball through |
+| [Archviz Viewer](https://untoldengine.github.io/UntoldEngine/LearningPaths/ArchvizToVisionPro/) | Blender-authored architectural scene walked through in mixed reality |
+| [Bedroom Digital Twin](https://untoldengine.github.io/UntoldEngine/LearningPaths/BedroomDigitalTwin/) | Tap-to-inspect digital twin bedroom with live mock status data |
+| [City Streaming](https://untoldengine.github.io/UntoldEngine/LearningPaths/CityStreamingOnVisionPro/) | City-scale scene streamed in tile by tile with LOD/HLOD |
 
-More demos — CoolWater, Bedroom Digital Twin, City Streaming, and CoolCloth — in the [UntoldArcade](https://github.com/untoldengine/UntoldArcade) repo.
+Full source for every demo above lives in the [UntoldArcade](https://github.com/untoldengine/UntoldArcade) repo.
+
+![coolsaber-demo](images/gifs/coolsaber-demo.gif)
 
 ## Try the Engine Right Now
 
@@ -106,7 +100,7 @@ The demos live under `Sources/Demos`. They are runnable when working inside the
 engine repository, but are not exposed as products to apps that add Untold
 Engine as a package dependency.
 
-![untoldengine-image-2](images/engine-highlight-6.png)
+![archviz-demo](images/gifs/archviz-demo.gif)
 
 ---
 
