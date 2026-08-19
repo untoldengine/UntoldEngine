@@ -31,6 +31,8 @@ The goal is a simple but complete archviz viewer:
 
 This path uses the starter archviz asset so you can focus on the engine workflow first. After this is working, you can replace the starter asset with your own Blender export.
 
+Want to run it right away instead of building it step by step? The finished project, **ArchvizViewer**, is in the [UntoldArcade](https://github.com/untoldengine/UntoldArcade) demo collection: [github.com/untoldengine/UntoldArcade/tree/main/ArchvizViewer](https://github.com/untoldengine/UntoldArcade/tree/main/ArchvizViewer). Clone it, open the Xcode project, and run.
+
 ## Prerequisites
 
 You need:

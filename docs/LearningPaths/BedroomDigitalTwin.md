@@ -33,6 +33,8 @@ The main engine systems are:
 
 This path uses the starter digital-twin asset pack so you can focus on the engine workflow first. After this is working, you can replace the starter asset with your own Blender export.
 
+Want to run it right away instead of building it step by step? The finished project, **BedroomTwin**, is in the [UntoldArcade](https://github.com/untoldengine/UntoldArcade) demo collection: [github.com/untoldengine/UntoldArcade/tree/main/BedroomTwin](https://github.com/untoldengine/UntoldArcade/tree/main/BedroomTwin). Clone it, open the Xcode project, and run.
+
 ## Create The Vision Pro Project
 
 Create a standalone visionOS project:

@@ -28,6 +28,8 @@ The example scene is a simplified city district with:
 
 This path is the large-scene counterpart to the single-asset archviz path. Use `setEntityMeshAsync` for smaller assets that should stay resident. Use `setEntityStreamScene` when the scene is large enough that only nearby geometry should be loaded.
 
+Want to run it right away instead of building it step by step? The finished project, **CityStreaming**, is in the [UntoldArcade](https://github.com/untoldengine/UntoldArcade) demo collection: [github.com/untoldengine/UntoldArcade/tree/main/CityStreaming](https://github.com/untoldengine/UntoldArcade/tree/main/CityStreaming). Clone it, open the Xcode project, and run.
+
 ## Create The Vision Pro Project
 
 Create a standalone visionOS project:
