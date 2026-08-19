@@ -32,7 +32,7 @@ Untold Engine is built for developers and teams who:
 Creator & Lead Developer:  
 [Harold Serrano](http://www.haroldserrano.com)
 
-[![untoldengine-image](images/engine-highlight-5.png)](https://vimeo.com/1176995991?fl=ip&fe=ec)
+![archviz-demo](images/gifs/archviz-demo.gif)
 
 ---
 
@@ -99,8 +99,6 @@ After that, run the focused demos based on what you want to learn:
 The demos live under `Sources/Demos`. They are runnable when working inside the
 engine repository, but are not exposed as products to apps that add Untold
 Engine as a package dependency.
-
-![archviz-demo](images/gifs/archviz-demo.gif)
 
 ---
 
