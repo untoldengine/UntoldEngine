@@ -193,7 +193,7 @@ Let's download a Stream Starter Scene
 
 ```bash
 
-untoldengine assets install starter-tiled-scene
+untoldengine assets install starter-streamed-city
 
 ```
 
@@ -205,10 +205,10 @@ To load a Tiled-Stream scene, you need to use `setEntityStreamScene` and pass th
 
 
 let sceneRoot = createEntity()
-setEntityName(entityId: sceneRoot, name: "City")
+setEntityName(entityId: sceneRoot, name: "LowPolyCity")
 
 // Local manifest
-setEntityStreamScene(entityId: sceneRoot, manifest: "City", withExtension: "json") { success in
+setEntityStreamScene(entityId: sceneRoot, manifest: "LowPolyCity", withExtension: "json") { success in
     setSceneReady(success)
 }
 ```
