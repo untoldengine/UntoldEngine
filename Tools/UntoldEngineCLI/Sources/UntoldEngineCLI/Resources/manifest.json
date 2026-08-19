@@ -18,12 +18,20 @@
       "size": "253.4 MB"
     },
     {
-      "id": "starter-tiled-scene",
-      "name": "Tiled Scene Starter Assets",
-      "description": "A tile-streamed city scene for the Geometry Streaming System.",
+      "id": "starter-streamed-city",
+      "name": "Streamed City Starter Assets",
+      "description": "A low-poly city scene for the tile-based Geometry Streaming System.",
       "version": "1.0.0",
-      "downloadURL": "https://d8pyi1c08k1w.cloudfront.net/TiledScenePack.zip",
-      "size": "34.1 MB"
+      "downloadURL": "https://d8pyi1c08k1w.cloudfront.net/LowPolyCity.zip",
+      "size": "58.9 MB"
+    },
+    {
+      "id": "starter-digital-twin",
+      "name": "Digital Twin Starter Assets",
+      "description": "Bedroom digital-twin scene with light portal and selectable devices.",
+      "version": "1.0.0",
+      "downloadURL": "https://d8pyi1c08k1w.cloudfront.net/DigitalTwinPack.zip",
+      "size": "424.3 MB"
     }
   ]
 }
