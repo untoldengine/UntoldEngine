@@ -46,6 +46,8 @@ nav:
   - Learning Paths:
     - Overview: LearningPaths/index.md
     - Archviz To Vision Pro: LearningPaths/ArchvizToVisionPro.md
+    - Bedroom Digital Twin: LearningPaths/BedroomDigitalTwin.md
+    - City Streaming On Vision Pro: LearningPaths/CityStreamingOnVisionPro.md
   - Tutorials:
     - Overview: Tutorials/index.md
     - Starter Demo: Tutorials/StarterDemo.md
