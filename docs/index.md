@@ -54,16 +54,22 @@ workflow, product experience, and customer-specific behavior.
 
 <table>
   <tr>
-    <td><a href="https://vimeo.com/1186637984?share=copy&fl=sv&fe=ci"><img src="https://vumbnail.com/1186637984.jpg" width="280"></a></td>
-    <td><a href="https://vimeo.com/1186592834?share=copy&fl=sv&fe=ci"><img src="https://vumbnail.com/1186592834.jpg" width="280"></a></td>
-    <td><a href="https://vimeo.com/1176823067?share=copy&fl=sv&fe=ci"><img src="https://vumbnail.com/1176823067.jpg" width="280"></a></td>
-  </tr>
-  <tr>
-    <td><a href="https://vimeo.com/1176823994?share=copy&fl=sv&fe=ci"><img src="https://vumbnail.com/1176823994.jpg" width="280"></a></td>
-    <td><a href="https://vimeo.com/1176995991?fl=ip&fe=ec"><img src="https://vumbnail.com/1176995991.jpg" width="280"></a></td>
-    <td></td>
+    <td align="center" width="360">
+      <a href="https://github.com/untoldengine/UntoldArcade/tree/main/CoolSaber">
+        <img src="images/gifs/coolsaber-demo.gif" width="360"><br>
+        <b>CoolSaber</b><br>PSVR2 lightsaber duels over SharePlay
+      </a>
+    </td>
+    <td align="center" width="360">
+      <a href="https://untoldengine.github.io/UntoldEngine/LearningPaths/ArchvizToVisionPro/">
+        <img src="images/gifs/archviz-demo.gif" width="360"><br>
+        <b>Archviz Viewer</b><br>Blender scene in mixed reality
+      </a>
+    </td>
   </tr>
 </table>
+
+More demos — CoolWater, Bedroom Digital Twin, City Streaming, and CoolCloth — in the [UntoldArcade](https://github.com/untoldengine/UntoldArcade) repo.
 
 ## Try the Engine Right Now
 
