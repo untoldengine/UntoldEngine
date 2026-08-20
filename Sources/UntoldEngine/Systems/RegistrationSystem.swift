@@ -3602,6 +3602,63 @@ public func setEntityGaussianAsync(
     return true
 }
 
+public enum GaussianStreamingSource {
+    case single(filename: String, withExtension: String)
+    case progressive(baseFilename: String, withExtension: String = "untoldgs", levelCount: Int, maxDistances: [Float])
+}
+
+public struct GaussianStreamingOptions {
+    public var streamingRadius: Float
+    public var unloadRadius: Float
+    public var boundingBoxHalfExtent: simd_float3
+    public var priority: Int
+
+    public init(
+        streamingRadius: Float = 100.0,
+        unloadRadius: Float = 150.0,
+        boundingBoxHalfExtent: simd_float3,
+        priority: Int = 0
+    ) {
+        self.streamingRadius = streamingRadius
+        self.unloadRadius = unloadRadius
+        self.boundingBoxHalfExtent = boundingBoxHalfExtent
+        self.priority = priority
+    }
+}
+
+/// Registers a distance-streamed Gaussian splat entity, either as one whole asset or as a
+/// progressive multi-tier asset. Prefer this API for new call sites.
+public func setEntityGaussianStreaming(
+    entityId: EntityID,
+    source: GaussianStreamingSource,
+    options: GaussianStreamingOptions
+) {
+    switch source {
+    case let .single(filename, ext):
+        setEntityGaussianStreamable(
+            entityId: entityId,
+            filename: filename,
+            withExtension: ext,
+            streamingRadius: options.streamingRadius,
+            unloadRadius: options.unloadRadius,
+            boundingBoxHalfExtent: options.boundingBoxHalfExtent,
+            priority: options.priority
+        )
+    case let .progressive(baseFilename, ext, levelCount, maxDistances):
+        setEntityGaussianProgressiveStreamable(
+            entityId: entityId,
+            baseFilename: baseFilename,
+            withExtension: ext,
+            levelCount: levelCount,
+            maxDistances: maxDistances,
+            streamingRadius: options.streamingRadius,
+            unloadRadius: options.unloadRadius,
+            boundingBoxHalfExtent: options.boundingBoxHalfExtent,
+            priority: options.priority
+        )
+    }
+}
+
 /// Registers `entityId` as a distance-streamed Gaussian-splat prop, so
 /// `GeometryStreamingSystem` loads/unloads it based on camera distance the same way it
 /// does the surrounding tile geometry — rather than loading it immediately the way

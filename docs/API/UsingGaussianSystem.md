@@ -50,15 +50,51 @@ scattered across a large tile-streamed scene (chairs, tables, decor inside a str
 building). Loading every one of those up front defeats the point of streaming, and the
 engine has no way to unload them again on its own.
 
-For that case, use `setEntityGaussianStreamable` instead. It registers the entity with
+For that case, use `setEntityGaussianStreaming` instead. It registers the entity with
 `GeometryStreamingSystem`, which loads and unloads it automatically based on camera
-distance — the same way it already handles the surrounding streamed tile geometry.
+distance — the same way it already handles the surrounding streamed tile geometry. It can
+stream either one whole Gaussian file or a progressive `.untoldgs` tier set.
+
+### API overview
+
+```swift
+setEntityGaussianStreaming(
+    entityId: EntityID,
+    source: GaussianStreamingSource,
+    options: GaussianStreamingOptions
+)
+```
+
+`GaussianStreamingSource` selects what kind of Gaussian asset the streaming system should
+load:
+
+```swift
+.single(filename: String, withExtension: String)
+
+.progressive(
+    baseFilename: String,
+    withExtension: String = "untoldgs",
+    levelCount: Int,
+    maxDistances: [Float]
+)
+```
+
+`GaussianStreamingOptions` controls the entity's streaming behavior:
+
+```swift
+GaussianStreamingOptions(
+    streamingRadius: Float = 100.0,
+    unloadRadius: Float = 150.0,
+    boundingBoxHalfExtent: simd_float3,
+    priority: Int = 0
+)
+```
 
 ### Prerequisites
 
 This only makes sense in a scene that is already using tile-based streaming — i.e. one
 loaded with `setEntityStreamScene` (see [Using the Geometry Streaming System](UsingGeometryStreamingSystem.md)).
-`setEntityGaussianStreamable` attaches the splat to whichever tile stub's bounds contain
+`setEntityGaussianStreaming` attaches the splat to whichever tile stub's bounds contain
 the entity's position, so it needs those tile stubs to already exist. Call it **after**
 `setEntityStreamScene`'s completion handler has fired — tile stubs are guaranteed to be
 registered by then.
@@ -66,7 +102,7 @@ registered by then.
 ### Step 1: Create and position the entity
 
 Position and orient the entity *before* registering it for streaming — the position at the
-time you call `setEntityGaussianStreamable` is what determines which tile it gets attached
+time you call `setEntityGaussianStreaming` is what determines which tile it gets attached
 to.
 
 ```swift
@@ -78,21 +114,23 @@ rotateTo(entityId: streamSplat, angle: 180.0, axis: simd_float3(1.0, 0.0, 0.0))
 ### Step 2: Register it for streaming
 
 ```swift
-setEntityGaussianStreamable(
+setEntityGaussianStreaming(
     entityId: streamSplat,
-    filename: "chair",
-    withExtension: "ply",
-    streamingRadius: 30.0,
-    unloadRadius: 45.0,
-    boundingBoxHalfExtent: simd_float3(0.5, 0.8, 0.5)
+    source: .single(filename: "chair", withExtension: "ply"),
+    options: GaussianStreamingOptions(
+        streamingRadius: 30.0,
+        unloadRadius: 45.0,
+        boundingBoxHalfExtent: simd_float3(0.5, 0.8, 0.5)
+    )
 )
 ```
 
 Parameters:
 
 - `entityId`: The entity created and positioned in Step 1.
-- `filename` / `withExtension`: Same as `setEntityGaussian` — the `.ply` file to stream in
-  once the camera is in range.
+- `source`: Use `.single(filename:withExtension:)` for a whole `.ply`/`.untoldgs` asset, or
+  `.progressive(baseFilename:levelCount:maxDistances:)` for progressive tiers named
+  `<baseFilename>_lod0.untoldgs`, `<baseFilename>_lod1.untoldgs`, etc.
 - `streamingRadius`: Distance from the camera at which the splat starts loading.
 - `unloadRadius`: Distance beyond which the splat unloads. Should be larger than
   `streamingRadius` to avoid load/unload thrashing at the boundary.
@@ -105,10 +143,91 @@ Parameters:
 - `priority`: Optional. Higher-priority entities load first when multiple candidates are
   in range at once. Defaults to `0`.
 
-> Note: If no tile is found containing the entity's position, `setEntityGaussianStreamable`
+> Note: If no tile is found containing the entity's position, `setEntityGaussianStreaming`
 > logs a warning and leaves the entity as a plain, non-streaming entity (no `StreamingComponent`
 > is attached) — it will not crash, but it also will not load. Double-check the position
 > against the streamed scene's tile bounds if this happens.
+
+### Progressive Gaussian splat streaming
+
+Use `.progressive(...)` when the Gaussian asset has been baked into multiple `.untoldgs`
+tiers. The engine loads the coarsest tier first, then swaps in finer resident tiers as the
+camera gets closer.
+
+Progressive tier filenames must follow this pattern:
+
+```text
+<baseFilename>_lod0.untoldgs
+<baseFilename>_lod1.untoldgs
+<baseFilename>_lod2.untoldgs
+...
+```
+
+For example, if `baseFilename` is `"chair"` and `levelCount` is `4`, the engine expects:
+
+```text
+chair_lod0.untoldgs
+chair_lod1.untoldgs
+chair_lod2.untoldgs
+chair_lod3.untoldgs
+```
+
+`lod0` is the finest/full-resolution tier. Higher LOD numbers are progressively coarser.
+
+You can generate these files from a `.ply` source with the exporter:
+
+```bash
+untoldengine export --input "chair.ply" --output "chair.untoldgs" --lod-levels 4
+```
+
+The exporter writes the progressive tier files next to the requested output path using the
+`_lodN.untoldgs` suffix.
+
+```swift
+setEntityGaussianStreaming(
+    entityId: streamSplat,
+    source: .progressive(
+        baseFilename: "chair",
+        levelCount: 4,
+        maxDistances: [5.0, 15.0, 25.0, .greatestFiniteMagnitude]
+    ),
+    options: GaussianStreamingOptions(
+        streamingRadius: 30.0,
+        unloadRadius: 45.0,
+        boundingBoxHalfExtent: simd_float3(0.5, 0.8, 0.5)
+    )
+)
+```
+
+`maxDistances` must have one entry per LOD. Each value is the farthest camera distance at
+which that LOD is allowed to be selected:
+
+```swift
+maxDistances: [5.0, 15.0, 25.0, .greatestFiniteMagnitude]
+```
+
+With the distances above:
+
+- `lod0` can be used inside `5.0` units.
+- `lod1` can be used from `5.0` to `15.0` units.
+- `lod2` can be used from `15.0` to `25.0` units.
+- `lod3` is used beyond `25.0` units, or while finer tiers are still loading.
+
+The system always falls back to the best tier already resident in memory. That means the
+entity can become visible quickly with the coarsest tier, then refine toward `lod0` when
+closer tiers finish loading.
+
+### Debugging progressive LOD
+
+Gaussian progressive LODs participate in the same LOD debug visualization used by mesh
+LODs:
+
+```swift
+setSpatialDebug(.lodLevels(true))
+```
+
+When enabled, the renderer tints Gaussian splats by their currently selected progressive
+LOD. This is useful for confirming that the engine is switching tiers as the camera moves.
 
 ### Which function should I use?
 
@@ -117,8 +236,6 @@ Parameters:
 - **`setEntityGaussianAsync`** — same immediate/resident behavior, but the parse and GPU
   upload happen off the main thread. Use for a one-off splat load where you don't want a
   frame hitch, but still don't need distance-based unloading.
-- **`setEntityGaussianStreamable`** — registers the entity with `GeometryStreamingSystem`
-  instead of loading anything itself. Use for splat props inside a large, tile-streamed
-  scene, where you want the same load-when-near/unload-when-far behavior the rest of the
-  scene already gets.
-
+- **`setEntityGaussianStreaming`** — registers the entity with `GeometryStreamingSystem`
+  instead of loading everything immediately. Use `.single(...)` for a whole-file streamed
+  prop, or `.progressive(...)` for coarse-to-fine Gaussian tiers.

@@ -148,10 +148,10 @@ final class GaussianStreamingTest: BaseRenderSetup {
         XCTAssertEqual(component.assetKind, .mesh, "❌ Default assetKind should be .mesh so existing mesh streaming call sites are unaffected")
     }
 
-    // MARK: - setEntityGaussianStreamable / findTileEntity
+    // MARK: - setEntityGaussianStreaming / findTileEntity
 
     /// End-to-end check of the consolidated API: given a positioned entity and a tile
-    /// whose bounds contain that position, `setEntityGaussianStreamable` should parent it
+    /// whose bounds contain that position, `setEntityGaussianStreaming` should parent it
     /// under that tile, register it with the octree, and configure it as a real gaussian
     /// streaming candidate — equivalent to `makeUnloadedGaussianEntity`'s manual assembly,
     /// but via the one public call callers are meant to use.
@@ -168,13 +168,14 @@ final class GaussianStreamingTest: BaseRenderSetup {
         let entity = createEntity()
         translateTo(entityId: entity, position: .zero)
 
-        setEntityGaussianStreamable(
+        setEntityGaussianStreaming(
             entityId: entity,
-            filename: "test_gaussians",
-            withExtension: "ply",
-            streamingRadius: 10.0,
-            unloadRadius: 20.0,
-            boundingBoxHalfExtent: simd_float3(1, 1, 1)
+            source: .single(filename: "test_gaussians", withExtension: "ply"),
+            options: GaussianStreamingOptions(
+                streamingRadius: 10.0,
+                unloadRadius: 20.0,
+                boundingBoxHalfExtent: simd_float3(1, 1, 1)
+            )
         )
 
         XCTAssertEqual(
@@ -201,15 +202,16 @@ final class GaussianStreamingTest: BaseRenderSetup {
 
     /// If no tile contains the entity's position, the entity should be left as a plain,
     /// non-streaming entity rather than crashing or silently half-configuring it.
-    func testSetEntityGaussianStreamable_noContainingTileLeavesEntityNonStreaming() {
+    func testSetEntityGaussianStreaming_noContainingTileLeavesEntityNonStreaming() {
         let entity = createEntity()
         translateTo(entityId: entity, position: simd_float3(1000, 1000, 1000)) // no tile out here
 
-        setEntityGaussianStreamable(
+        setEntityGaussianStreaming(
             entityId: entity,
-            filename: "test_gaussians",
-            withExtension: "ply",
-            boundingBoxHalfExtent: simd_float3(1, 1, 1)
+            source: .single(filename: "test_gaussians", withExtension: "ply"),
+            options: GaussianStreamingOptions(
+                boundingBoxHalfExtent: simd_float3(1, 1, 1)
+            )
         )
 
         XCTAssertNil(
