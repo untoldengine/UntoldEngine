@@ -4540,6 +4540,19 @@ public enum RenderPasses {
                     index: Int(gaussianTBDRRenderPrecomputedIndex.rawValue)
                 )
 
+                var gaussianLODDebugColor = simd_float4(0, 0, 0, 0)
+                if SpatialDebugVisualization.shared.colorRenderablesByLOD,
+                   let gaussianLOD = scene.get(component: GaussianLODComponent.self, for: entityId)
+                {
+                    let color = lodDebugColor(for: gaussianLOD.currentLOD)
+                    gaussianLODDebugColor = simd_float4(color.x, color.y, color.z, 1.0)
+                }
+                renderEncoder.setVertexBytes(
+                    &gaussianLODDebugColor,
+                    length: MemoryLayout<simd_float4>.stride,
+                    index: Int(gaussianTBDRRenderDebugColorIndex.rawValue)
+                )
+
                 renderEncoder.drawPrimitivesTracked(type: .triangleStrip,
                                                     vertexStart: 0,
                                                     vertexCount: 4,
