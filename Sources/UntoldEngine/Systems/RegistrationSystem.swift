@@ -3560,6 +3560,13 @@ func copyGaussianLoadResult(_ result: GaussianLoadResult, to gaussianComponent: 
     gaussianComponent.spaceUniform = result.spaceUniform
 }
 
+public enum GaussianSource {
+    case single(filename: String, withExtension: String)
+    case progressive(baseFilename: String, withExtension: String = "untoldgs", levelCount: Int, maxDistances: [Float])
+}
+
+public typealias GaussianStreamingSource = GaussianSource
+
 public func setEntityGaussian(entityId: EntityID, filename: String, withExtension: String) {
     guard let result = buildGaussianLoadResult(filename: filename, withExtension: withExtension) else {
         return
@@ -3567,6 +3574,25 @@ public func setEntityGaussian(entityId: EntityID, filename: String, withExtensio
 
     withWorldMutationGate {
         applyGaussianLoadResult(result, to: entityId)
+    }
+}
+
+/// Registers a Gaussian splat entity that is always present, either as one whole asset or
+/// as a progressive multi-tier `.untoldgs` asset. Progressive entities do not require a
+/// streamed tile scene: the coarsest tier is loaded immediately, then `GaussianLODSystem`
+/// requests finer tiers based on camera distance.
+public func setEntityGaussian(entityId: EntityID, source: GaussianSource) {
+    switch source {
+    case let .single(filename, ext):
+        setEntityGaussian(entityId: entityId, filename: filename, withExtension: ext)
+    case let .progressive(baseFilename, ext, levelCount, maxDistances):
+        setEntityGaussianProgressive(
+            entityId: entityId,
+            baseFilename: baseFilename,
+            withExtension: ext,
+            levelCount: levelCount,
+            maxDistances: maxDistances
+        )
     }
 }
 
@@ -3602,11 +3628,6 @@ public func setEntityGaussianAsync(
     return true
 }
 
-public enum GaussianStreamingSource {
-    case single(filename: String, withExtension: String)
-    case progressive(baseFilename: String, withExtension: String = "untoldgs", levelCount: Int, maxDistances: [Float])
-}
-
 public struct GaussianStreamingOptions {
     public var streamingRadius: Float
     public var unloadRadius: Float
@@ -3630,7 +3651,7 @@ public struct GaussianStreamingOptions {
 /// progressive multi-tier asset. Prefer this API for new call sites.
 public func setEntityGaussianStreaming(
     entityId: EntityID,
-    source: GaussianStreamingSource,
+    source: GaussianSource,
     options: GaussianStreamingOptions
 ) {
     switch source {
@@ -3656,6 +3677,32 @@ public func setEntityGaussianStreaming(
             boundingBoxHalfExtent: options.boundingBoxHalfExtent,
             priority: options.priority
         )
+    }
+}
+
+/// Registers a tile-independent progressive Gaussian splat entity.
+///
+/// The expected files are `<baseFilename>_lod0.untoldgs`, `<baseFilename>_lod1.untoldgs`,
+/// etc. LOD0 is full detail; the highest index is the coarsest tier and is loaded
+/// immediately so the entity can become visible before finer tiers finish loading.
+public func setEntityGaussianProgressive(
+    entityId: EntityID,
+    baseFilename: String,
+    withExtension ext: String = "untoldgs",
+    levelCount: Int,
+    maxDistances: [Float]
+) {
+    guard configureEntityGaussianProgressiveLOD(
+        entityId: entityId,
+        baseFilename: baseFilename,
+        withExtension: ext,
+        levelCount: levelCount,
+        maxDistances: maxDistances,
+        errorPrefix: "setEntityGaussianProgressive"
+    ) else { return }
+
+    Task {
+        _ = await GeometryStreamingSystem.shared.loadInitialGaussianProgressiveTier(entityId: entityId)
     }
 }
 
@@ -3725,14 +3772,6 @@ public func setEntityGaussianProgressiveStreamable(
     boundingBoxHalfExtent: simd_float3,
     priority: Int = 0
 ) {
-    guard levelCount > 0 else {
-        handleError(.assetDataMissing, "setEntityGaussianProgressiveStreamable: levelCount must be at least 1, got \(levelCount)")
-        return
-    }
-    guard maxDistances.count == levelCount else {
-        handleError(.assetDataMissing, "setEntityGaussianProgressiveStreamable: maxDistances must have \(levelCount) entries, got \(maxDistances.count)")
-        return
-    }
     guard let local = scene.get(component: LocalTransformComponent.self, for: entityId) else {
         handleError(.noLocalTransformComponent, entityId)
         return
@@ -3742,26 +3781,18 @@ public func setEntityGaussianProgressiveStreamable(
         return
     }
 
-    var levels: [GaussianLODLevel] = []
-    for index in 0 ..< levelCount {
-        let filename = levelCount == 1 ? baseFilename : "\(baseFilename)_lod\(index)"
-        guard let url = LoadingSystem.shared.resourceURL(forResource: filename, withExtension: ext, subResource: nil) else {
-            handleError(.filenameNotFound, filename)
-            return
-        }
-        levels.append(GaussianLODLevel(maxDistance: maxDistances[index], url: url))
-    }
-
     local.boundingBox = (min: -boundingBoxHalfExtent, max: boundingBoxHalfExtent)
     setParent(childId: entityId, parentId: tileEntity)
     OctreeSystem.shared.registerEntity(entityId)
 
-    guard let lodComponent = scene.assign(to: entityId, component: GaussianLODComponent.self) else {
-        return
-    }
-    lodComponent.lodLevels = levels
-    lodComponent.currentLOD = -1
-    lodComponent.desiredLOD = levelCount - 1
+    guard configureEntityGaussianProgressiveLOD(
+        entityId: entityId,
+        baseFilename: baseFilename,
+        withExtension: ext,
+        levelCount: levelCount,
+        maxDistances: maxDistances,
+        errorPrefix: "setEntityGaussianProgressiveStreamable"
+    ) else { return }
 
     if let streaming = scene.assign(to: entityId, component: StreamingComponent.self) {
         streaming.assetKind = .gaussianSplat
@@ -3771,6 +3802,44 @@ public func setEntityGaussianProgressiveStreamable(
         streaming.unloadRadius = unloadRadius
         streaming.priority = priority
     }
+}
+
+@discardableResult
+private func configureEntityGaussianProgressiveLOD(
+    entityId: EntityID,
+    baseFilename: String,
+    withExtension ext: String,
+    levelCount: Int,
+    maxDistances: [Float],
+    errorPrefix: String
+) -> Bool {
+    guard levelCount > 0 else {
+        handleError(.assetDataMissing, "\(errorPrefix): levelCount must be at least 1, got \(levelCount)")
+        return false
+    }
+    guard maxDistances.count == levelCount else {
+        handleError(.assetDataMissing, "\(errorPrefix): maxDistances must have \(levelCount) entries, got \(maxDistances.count)")
+        return false
+    }
+
+    var levels: [GaussianLODLevel] = []
+    for index in 0 ..< levelCount {
+        let filename = levelCount == 1 ? baseFilename : "\(baseFilename)_lod\(index)"
+        guard let url = LoadingSystem.shared.resourceURL(forResource: filename, withExtension: ext, subResource: nil) else {
+            handleError(.filenameNotFound, filename)
+            return false
+        }
+        levels.append(GaussianLODLevel(maxDistance: maxDistances[index], url: url))
+    }
+
+    guard let lodComponent = scene.assign(to: entityId, component: GaussianLODComponent.self) else {
+        return false
+    }
+    lodComponent.lodLevels = levels
+    lodComponent.currentLOD = -1
+    lodComponent.desiredLOD = levelCount - 1
+    lodComponent.isUsingFallback = false
+    return true
 }
 
 private func gaussianImportanceScore(_ splat: GaussianSplat) -> Float {
