@@ -142,14 +142,18 @@ final class GaussianProgressiveLODTest: BaseRenderSetup {
 
         let entity = createEntity()
         translateTo(entityId: entity, position: .zero)
-        setEntityGaussianProgressiveStreamable(
+        setEntityGaussianStreaming(
             entityId: entity,
-            baseFilename: base,
-            levelCount: 3,
-            maxDistances: [20, 50, .greatestFiniteMagnitude],
-            streamingRadius: 200,
-            unloadRadius: 300,
-            boundingBoxHalfExtent: simd_float3(1, 1, 1)
+            source: .progressive(
+                baseFilename: base,
+                levelCount: 3,
+                maxDistances: [20, 50, .greatestFiniteMagnitude]
+            ),
+            options: GaussianStreamingOptions(
+                streamingRadius: 200,
+                unloadRadius: 300,
+                boundingBoxHalfExtent: simd_float3(1, 1, 1)
+            )
         )
 
         GeometryStreamingSystem.shared.update(cameraPosition: .zero, deltaTime: 0.1)

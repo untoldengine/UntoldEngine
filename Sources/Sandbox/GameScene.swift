@@ -22,10 +22,7 @@
             setupDefaultSceneObjects()
             setSceneReady(false)
 
-            let splat = createEntity()
-            setEntityGaussian(entityId: splat, filename: "/Users/haroldserrano/Downloads/Pooltable", withExtension: "ply")
-            rotateBy(entityId: splat, angle: 180, axis: simd_float3(1.0,0.0,0.0))
-            setSceneReady(true)
+
             // Make sure to convert your usdz files to .untold format as explained in docs/API/UsingTheExporter
 
             // Uncomment to render a simple mesh.
@@ -39,18 +36,39 @@
                  setSceneReady(success)
              }
              */
-            /*
+            
              let sceneRoot = createEntity()
              setEntityStreamScene(
                    entityId: sceneRoot,
-                   url: URL(fileURLWithPath: "/path/to/local/json")
+                   url: URL(fileURLWithPath: "/Users/haroldserrano/Desktop/UntoldEngineStudio/StreamingAssets/Dungeon/dungeon.json")
                ) { success in
                    if success {
-                       loadSceneAuthored(url: URL(fileURLWithPath: "/path/to/local/json"))
+                       loadSceneAuthored(url: URL(fileURLWithPath: "/Users/haroldserrano/Desktop/UntoldEngineStudio/StreamingAssets/Dungeon/dungeon.json"))
                    }
+                   
+                   
+                   let splat = createEntity()
+                   
+                   setEntityGaussianStreaming(
+                         entityId: splat,
+                         source: .progressive(
+                            baseFilename: "/Users/haroldserrano/Downloads/Pooltable",
+                            levelCount: 4,
+                            maxDistances: [5, 15, 25, .greatestFiniteMagnitude]
+                         ),
+                         options: GaussianStreamingOptions(
+                            streamingRadius: 100,
+                            unloadRadius: 140,
+                            boundingBoxHalfExtent: simd_float3(2, 1, 3)
+                         )
+                     )
+                   
+                   rotateBy(entityId: splat, angle: 180, axis: simd_float3(1.0,0.0,0.0))
+                   setSceneReady(true)
+                   
                    setSceneReady(success)
                }
-             */
+             
 
             // Uncomment to render a streamed scene
         }
@@ -61,6 +79,7 @@
             InputSystem.shared.registerKeyboardEvents()
             InputSystem.shared.registerMouseEvents()
             bypassPostProcessing = false
+            setSpatialDebug(.lodLevels(false))
         }
 
         private func setupDefaultSceneObjects() {
