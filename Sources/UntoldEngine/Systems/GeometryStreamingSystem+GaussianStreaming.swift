@@ -27,6 +27,11 @@ extension GeometryStreamingSystem {
     /// incrementing it here would inflate the numerator past a denominator it never grew,
     /// corrupting the tile's `visualState` completion fraction.
     func loadGaussianStreamingEntity(entityId: EntityID, streaming: StreamingComponent, isNearBand: Bool) {
+        if scene.get(component: GaussianLODComponent.self, for: entityId) != nil {
+            loadGaussianProgressiveStreamingEntity(entityId: entityId, streaming: streaming, isNearBand: isNearBand)
+            return
+        }
+
         let filename = streaming.assetFilename
         let ext = streaming.assetExtension
 
@@ -82,11 +87,145 @@ extension GeometryStreamingSystem {
         streaming.loadTask = task
     }
 
+    /// Loads only the coarsest tier for a progressive Gaussian prop. Finer tiers are pulled
+    /// later by `GaussianLODSystem` as the camera moves close enough to need them.
+    func loadGaussianProgressiveStreamingEntity(entityId: EntityID, streaming: StreamingComponent, isNearBand: Bool) {
+        let task = Task {
+            let success = await loadInitialGaussianProgressiveTier(entityId: entityId)
+
+            withWorldMutationGate {
+                guard scene.exists(entityId) else {
+                    releaseActiveLoad(entityId: entityId)
+                    if isNearBand { releaseNearBandLoad(entityId: entityId) }
+                    return
+                }
+                guard let s = scene.get(component: StreamingComponent.self, for: entityId),
+                      s.state == .loading
+                else {
+                    releaseActiveLoad(entityId: entityId)
+                    if isNearBand { releaseNearBandLoad(entityId: entityId) }
+                    return
+                }
+
+                if success {
+                    s.state = .loaded
+                    s.lastVisibleFrame = currentFrame
+                    SystemEventBus.shared.queueResidencyChange(
+                        AssetResidencyChangedEvent(
+                            entityId: entityId,
+                            assetURL: URL(fileURLWithPath: ""),
+                            meshName: s.assetFilename,
+                            isResident: true
+                        )
+                    )
+                    markLoadedStreamingEntity(entityId)
+                    SystemIntegrationMonitor.shared.recordStreamingLoad()
+                } else {
+                    s.state = .unloaded
+                    handleError(.meshStreamingFailed, entityId)
+                }
+
+                releaseActiveLoad(entityId: entityId)
+                if isNearBand { releaseNearBandLoad(entityId: entityId) }
+            }
+        }
+
+        streaming.loadTask = task
+    }
+
+    func loadInitialGaussianProgressiveTier(entityId: EntityID) async -> Bool {
+        let coarsestIndex: Int? = withWorldMutationGate {
+            guard let lod = scene.get(component: GaussianLODComponent.self, for: entityId),
+                  !lod.lodLevels.isEmpty
+            else { return nil }
+            return lod.lodLevels.count - 1
+        }
+        guard let coarsestIndex else { return false }
+        return await loadGaussianLODLevel(entityId: entityId, lodIndex: coarsestIndex, makeCurrent: true)
+    }
+
+    public func requestGaussianLODLevelLoad(entityId: EntityID, lodIndex: Int) {
+        withWorldMutationGate {
+            guard scene.exists(entityId),
+                  let lod = scene.get(component: GaussianLODComponent.self, for: entityId),
+                  lodIndex >= 0,
+                  lodIndex < lod.lodLevels.count
+            else { return }
+
+            guard lod.lodLevels[lodIndex].residencyState != .resident,
+                  lod.lodLevels[lodIndex].residencyState != .loading
+            else { return }
+
+            lod.lodLevels[lodIndex].residencyState = .loading
+            let task = Task { [weak self] in
+                _ = await self?.loadGaussianLODLevel(entityId: entityId, lodIndex: lodIndex, makeCurrent: false)
+            }
+            lod.lodLevels[lodIndex].loadTask = task
+        }
+    }
+
+    @discardableResult
+    func loadGaussianLODLevel(entityId: EntityID, lodIndex: Int, makeCurrent: Bool) async -> Bool {
+        let url: URL? = withWorldMutationGate {
+            guard scene.exists(entityId),
+                  let lod = scene.get(component: GaussianLODComponent.self, for: entityId),
+                  lodIndex >= 0,
+                  lodIndex < lod.lodLevels.count
+            else { return nil }
+            return lod.lodLevels[lodIndex].url
+        }
+        guard let url, let built = buildGaussianComponentFromUntoldGS(url: url) else {
+            withWorldMutationGate {
+                if let lod = scene.get(component: GaussianLODComponent.self, for: entityId),
+                   lodIndex >= 0,
+                   lodIndex < lod.lodLevels.count
+                {
+                    lod.lodLevels[lodIndex].residencyState = .notResident
+                    lod.lodLevels[lodIndex].loadTask = nil
+                }
+            }
+            return false
+        }
+
+        withWorldMutationGate {
+            guard scene.exists(entityId),
+                  let lod = scene.get(component: GaussianLODComponent.self, for: entityId),
+                  lodIndex >= 0,
+                  lodIndex < lod.lodLevels.count
+            else { return }
+
+            lod.lodLevels[lodIndex].buffers = built.component
+            lod.lodLevels[lodIndex].residencyState = .resident
+            lod.lodLevels[lodIndex].loadTask = nil
+
+            if makeCurrent {
+                if let live = scene.assign(to: entityId, component: GaussianComponent.self) {
+                    copyGaussianComponentBuffers(from: built.component, to: live)
+                    lod.currentLOD = lodIndex
+                }
+            }
+
+            var totalBytes = 0
+            for level in lod.lodLevels {
+                guard let buffers = level.buffers else { continue }
+                totalBytes += gaussianComponentEstimatedBytes(buffers)
+            }
+            MemoryBudgetManager.shared.registerMesh(entityId: entityId, meshSizeBytes: totalBytes)
+        }
+
+        return true
+    }
+
     /// Tears down a streamed Gaussian-splat entity's GPU resources and removes it from the
     /// shared memory budget. Mirrors `unloadMesh` (`GeometryStreamingSystem+MeshStreaming.swift`)
     /// but skips the mesh-only bits (RenderComponent, LODComponent, MeshResourceManager,
     /// BatchingSystem static-batch retirement) that don't apply to splats.
     func unloadGaussian(entityId: EntityID) {
+        if scene.get(component: GaussianLODComponent.self, for: entityId) != nil {
+            unloadGaussianProgressive(entityId: entityId)
+            return
+        }
+
         guard let streaming = scene.get(component: StreamingComponent.self, for: entityId),
               streaming.state == .loaded
         else { return }
@@ -123,4 +262,55 @@ extension GeometryStreamingSystem {
         let unloadMs = (CFAbsoluteTimeGetCurrent() - unloadStart) * 1000.0
         updateLastUnloadDuration(unloadMs)
     }
+
+    func unloadGaussianProgressive(entityId: EntityID) {
+        guard let streaming = scene.get(component: StreamingComponent.self, for: entityId),
+              streaming.state == .loaded
+        else { return }
+
+        firstRangeTimestamps.removeValue(forKey: entityId)
+
+        withWorldMutationGate {
+            streaming.state = .unloading
+            streaming.loadTask?.cancel()
+            streaming.loadTask = nil
+
+            if let lod = scene.get(component: GaussianLODComponent.self, for: entityId) {
+                for index in lod.lodLevels.indices {
+                    lod.lodLevels[index].loadTask?.cancel()
+                    lod.lodLevels[index].loadTask = nil
+                    lod.lodLevels[index].buffers = nil
+                    lod.lodLevels[index].residencyState = .notResident
+                }
+                lod.currentLOD = -1
+                lod.desiredLOD = max(0, lod.lodLevels.count - 1)
+            }
+
+            removeEntityGaussian(entityId: entityId)
+            MemoryBudgetManager.shared.unregisterMesh(entityId: entityId)
+            unmarkLoadedStreamingEntity(entityId)
+            streaming.state = .unloaded
+            SystemEventBus.shared.queueResidencyChange(
+                AssetResidencyChangedEvent(
+                    entityId: entityId,
+                    assetURL: URL(fileURLWithPath: ""),
+                    meshName: streaming.assetFilename,
+                    isResident: false
+                )
+            )
+            SystemIntegrationMonitor.shared.recordStreamingUnload()
+        }
+    }
+}
+
+private func gaussianComponentEstimatedBytes(_ component: GaussianComponent) -> Int {
+    var total = 0
+    total += component.encodedSplatData?.length ?? 0
+    total += component.sphericalHarmonicsData?.length ?? 0
+    for buffer in component.gaussianSortedIndices { total += buffer?.length ?? 0 }
+    for buffer in component.gaussianVisibleIndices { total += buffer?.length ?? 0 }
+    for buffer in component.gaussianVisibleCount { total += buffer?.length ?? 0 }
+    for buffer in component.gaussianPrecomputedData { total += buffer?.length ?? 0 }
+    for buffer in component.spaceUniform { total += buffer?.length ?? 0 }
+    return total
 }

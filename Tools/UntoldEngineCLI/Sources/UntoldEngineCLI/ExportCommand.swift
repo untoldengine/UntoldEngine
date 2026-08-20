@@ -10,6 +10,7 @@
 
 import ArgumentParser
 import Foundation
+import UntoldEngine
 
 struct ExportCommand: ParsableCommand {
     static let configuration = CommandConfiguration(
@@ -24,16 +25,20 @@ struct ExportCommand: ParsableCommand {
         references — equivalent to running --compress-geometry followed by
         `untoldengine texbake --dir` and `untoldengine texbake --patch-refs`.
 
+        Gaussian `.ply` inputs skip Blender and export directly to `.untoldgs`.
+
         Example:
           untoldengine export --input model.usdz --output model.untold --convert-orientation --optimize
           untoldengine export --input model.blend --output model.untold --convert-orientation --optimize
+          untoldengine export --input splats.ply --output splats.untoldgs
+          untoldengine export --input splats.ply --output splats.untoldgs --lod-levels 4
         """
     )
 
-    @Option(name: .long, help: "Source .usd, .usda, .usdc, .usdz, or .blend asset")
+    @Option(name: .long, help: "Source .usd, .usda, .usdc, .usdz, .blend, or Gaussian .ply asset")
     var input: String
 
-    @Option(name: .long, help: "Destination .untold file")
+    @Option(name: .long, help: "Destination .untold or .untoldgs file")
     var output: String
 
     @Option(name: .long, help: "Override the Blender executable path")
@@ -81,6 +86,9 @@ struct ExportCommand: ParsableCommand {
     /// Keep in sync with MAX_BAKE_RESOLUTION in scripts/untoldexplorer.py.
     static let maxBakeResolution = 8192
 
+    @Option(name: .customLong("lod-levels"), help: "Gaussian .ply export only: number of progressive .untoldgs tiers to generate. Default 1 writes --output directly; values greater than 1 write <name>_lod0.untoldgs, <name>_lod1.untoldgs, ...")
+    var lodLevels: Int = 1
+
     func run() throws {
         let inputURL = resolvePath(input).standardizedFileURL
         let outputURL = resolvePath(output).standardizedFileURL
@@ -94,6 +102,17 @@ struct ExportCommand: ParsableCommand {
         let clampedBakeResolution = min(bakeResolution, Self.maxBakeResolution)
         if clampedBakeResolution != bakeResolution {
             printInfo("--bake-resolution \(bakeResolution) is very high; clamping to \(clampedBakeResolution).")
+        }
+
+        if inputURL.pathExtension.lowercased() == "ply" {
+            guard outputURL.pathExtension.lowercased() == "untoldgs" else {
+                throw ExportError.unsupportedPLYExportOutput(outputURL.pathExtension)
+            }
+            guard lodLevels > 0 else {
+                throw ExportError.invalidLODLevels(lodLevels)
+            }
+            try runGaussianSplatExport(inputURL: inputURL, outputURL: outputURL)
+            return
         }
 
         let blenderURL = try resolveBlender()
@@ -151,6 +170,18 @@ struct ExportCommand: ParsableCommand {
         }
     }
 
+    private func runGaussianSplatExport(inputURL: URL, outputURL: URL) throws {
+        printInfo("Exporting Gaussian splats \(inputURL.path)")
+        let tierURLs = try bakeGaussianSplatProgressiveTiers(
+            plyURL: inputURL,
+            outputBaseURL: outputURL,
+            levelCount: lodLevels
+        )
+        for tierURL in tierURLs {
+            printSuccess("Exported: \(tierURL.path)")
+        }
+    }
+
     private func optimizeTextures(outputURL: URL) throws {
         let texturesDir = outputURL.deletingLastPathComponent().appendingPathComponent("Textures")
         guard validateDirectory(texturesDir) else {
@@ -199,6 +230,8 @@ enum ExportError: LocalizedError {
     case exportFailed(Int32)
     case optimizeFailed(Int32)
     case invalidBakeResolution(Int)
+    case unsupportedPLYExportOutput(String)
+    case invalidLODLevels(Int)
 
     var errorDescription: String? {
         switch self {
@@ -212,6 +245,11 @@ enum ExportError: LocalizedError {
             return "Texture optimization (texbake) failed with exit status \(status)"
         case let .invalidBakeResolution(value):
             return "--bake-resolution must be a positive integer, got \(value)"
+        case let .unsupportedPLYExportOutput(pathExtension):
+            let suffix = pathExtension.isEmpty ? "<none>" : ".\(pathExtension)"
+            return "Gaussian .ply export supports only .untoldgs output, got \(suffix)"
+        case let .invalidLODLevels(value):
+            return "--lod-levels must be a positive integer, got \(value)"
         }
     }
 }
