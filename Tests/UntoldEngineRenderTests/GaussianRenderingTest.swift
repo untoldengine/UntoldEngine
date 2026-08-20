@@ -245,7 +245,7 @@ final class GaussianRenderingTest: BaseRenderSetup {
             return
         }
         component.sphericalHarmonicsData = renderInfo.device.makeBuffer(
-            length: MemoryLayout<Float16>.stride,
+            length: MemoryLayout<UInt8>.stride,
             options: .storageModeShared
         )
         component.sphericalHarmonicsMetadata = GaussianSHMetadata(
@@ -261,6 +261,8 @@ final class GaussianRenderingTest: BaseRenderSetup {
     }
 
     func testPackedSphericalHarmonicsRoundTripsThroughMetalBuffer() throws {
+        // Coefficients 0.125...1.5 span in-range and clamped values so the
+        // round trip exercises both regimes.
         let sphericalHarmonics = GaussianSphericalHarmonics(
             degree: 1,
             coefficientsPerChannel: 4,
@@ -269,15 +271,15 @@ final class GaussianRenderingTest: BaseRenderSetup {
         let packed = try packGaussianSphericalHarmonics(sphericalHarmonics, splatCount: 1)
         guard let buffer = renderInfo.device.makeBuffer(
             bytes: packed.coefficients,
-            length: packed.coefficients.count * MemoryLayout<Float16>.stride,
+            length: packed.coefficients.count * MemoryLayout<UInt8>.stride,
             options: .storageModeShared
         ) else {
             XCTFail("Expected SH buffer allocation")
             return
         }
 
-        XCTAssertEqual(buffer.length, 9 * MemoryLayout<Float16>.stride)
-        let pointer = buffer.contents().bindMemory(to: Float16.self, capacity: 9)
+        XCTAssertEqual(buffer.length, 9 * MemoryLayout<UInt8>.stride)
+        let pointer = buffer.contents().bindMemory(to: UInt8.self, capacity: 9)
         let roundTripped = (0 ..< 9).map { pointer[$0] }
         XCTAssertEqual(roundTripped, packed.coefficients)
     }
@@ -299,16 +301,20 @@ final class GaussianRenderingTest: BaseRenderSetup {
         let packed = try packGaussianSphericalHarmonics(sphericalHarmonics, splatCount: 1)
         let baseColor = simd_float4(0.35, 0.5, 0.65, 1)
         let direction = simd_float4(0.25, -0.5, 0.75, 0)
+        // Dequantize the same way loadGaussianSHCoefficient does on the GPU,
+        // so the CPU and GPU sides evaluate the same quantized inputs and can
+        // be compared without any tolerance for the quantization step itself.
+        let dequantized = packed.coefficients.map { (Float($0) - 128) / 128 }
         let cpuResult = evaluateGaussianSphericalHarmonics(
             baseColor: simd_float3(baseColor.x, baseColor.y, baseColor.z),
-            higherOrderCoefficients: packed.coefficients.map(Float.init),
+            higherOrderCoefficients: dequantized,
             degree: 3,
             direction: simd_float3(direction.x, direction.y, direction.z)
         )
 
         guard let coefficients = renderInfo.device.makeBuffer(
             bytes: packed.coefficients,
-            length: packed.coefficients.count * MemoryLayout<Float16>.stride,
+            length: packed.coefficients.count * MemoryLayout<UInt8>.stride,
             options: .storageModeShared
         ), let output = renderInfo.device.makeBuffer(
             length: 2 * MemoryLayout<simd_float4>.stride,
@@ -371,11 +377,11 @@ final class GaussianRenderingTest: BaseRenderSetup {
         XCTAssertEqual(metadata.degree, 3)
         XCTAssertEqual(metadata.coefficientsPerChannel, 16)
         XCTAssertEqual(metadata.higherOrderCoefficientsPerSplat, 45)
-        XCTAssertEqual(coefficientBuffer.length, splatCount * 45 * MemoryLayout<Float16>.stride)
+        XCTAssertEqual(coefficientBuffer.length, splatCount * 45 * MemoryLayout<UInt8>.stride)
         XCTAssertEqual(splatBuffer.length, splatCount * MemoryLayout<EncodedGaussianSplat>.stride)
 
         let coefficients = coefficientBuffer.contents().bindMemory(
-            to: Float16.self,
+            to: UInt8.self,
             capacity: splatCount * 45
         )
         let sampledValues = [0, splatCount * 45 / 2, splatCount * 45 - 1].map { coefficients[$0] }

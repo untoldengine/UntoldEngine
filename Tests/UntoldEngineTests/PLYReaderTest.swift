@@ -341,12 +341,13 @@ final class PLYReaderTest: XCTestCase {
         for splatIndex in sampleIndices {
             let sourceBase = splatIndex * 48
             let packedBase = splatIndex * 45
-            let higherOrder = packed.coefficients[packedBase ..< packedBase + 45].map(Float.init)
+            let higherOrder = packed.coefficients[packedBase ..< packedBase + 45].map { (Float($0) - 128) / 128 }
             for channel in 0 ..< 3 {
                 for coefficient in 0 ..< 15 {
+                    let sourceValue = sphericalHarmonics.coefficients[sourceBase + channel * 16 + coefficient + 1]
                     XCTAssertEqual(
-                        higherOrder[channel * 15 + coefficient],
-                        Float(Float16(sphericalHarmonics.coefficients[sourceBase + channel * 16 + coefficient + 1]))
+                        packed.coefficients[packedBase + channel * 15 + coefficient],
+                        quantizeGaussianSHCoefficient(sourceValue)
                     )
                 }
             }
@@ -365,7 +366,7 @@ final class PLYReaderTest: XCTestCase {
 
         print("Gaussian diagnostic: splats=\(asset.splats.count), degree=\(sphericalHarmonics.degree), "
             + "sourceCoefficients=\(sphericalHarmonics.coefficients.count), "
-            + "packedCoefficients=\(packed.coefficients.count), packedBytes=\(packed.coefficients.count * MemoryLayout<Float16>.stride)")
+            + "packedCoefficients=\(packed.coefficients.count), packedBytes=\(packed.coefficients.count * MemoryLayout<UInt8>.stride)")
     }
 
     func test_readGaussianAsset_binaryAndASCIIHaveIdenticalSphericalHarmonics() throws {
@@ -428,10 +429,12 @@ final class PLYReaderTest: XCTestCase {
     }
 
     func test_packGaussianSphericalHarmonics_preservesHigherOrderChannelMajorLayout() throws {
-        XCTAssertEqual(MemoryLayout<Float16>.stride, 2)
+        XCTAssertEqual(MemoryLayout<UInt8>.stride, 1)
 
-        let first = (0 ..< 12).map { Float($0) }
-        let second = (100 ..< 112).map { Float($0) }
+        // Coefficient 0 of each channel (the DC term, dropped by packing) is
+        // set to an out-of-range value so an off-by-one would be obvious.
+        let first: [Float] = [999, 0.1, 0.2, 0.3, 999, 0.4, 0.5, 0.6, 999, 0.7, 0.8, 0.9]
+        let second: [Float] = [999, -0.1, -0.2, -0.3, 999, -0.4, -0.5, -0.6, 999, -0.7, -0.8, -0.9]
         let sphericalHarmonics = GaussianSphericalHarmonics(
             degree: 1,
             coefficientsPerChannel: 4,
@@ -440,9 +443,9 @@ final class PLYReaderTest: XCTestCase {
 
         let packed = try packGaussianSphericalHarmonics(sphericalHarmonics, splatCount: 2)
         let expected = [
-            1, 2, 3, 5, 6, 7, 9, 10, 11,
-            101, 102, 103, 105, 106, 107, 109, 110, 111,
-        ].map(Float16.init)
+            0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9,
+            -0.1, -0.2, -0.3, -0.4, -0.5, -0.6, -0.7, -0.8, -0.9,
+        ].map(quantizeGaussianSHCoefficient)
 
         XCTAssertEqual(packed.coefficients, expected)
         XCTAssertEqual(packed.metadata.degree, 1)
@@ -465,7 +468,7 @@ final class PLYReaderTest: XCTestCase {
         XCTAssertEqual(packed.metadata.higherOrderCoefficientsPerSplat, 0)
     }
 
-    func test_packGaussianSphericalHarmonics_rejectsInvalidCountAndFloat16Overflow() {
+    func test_packGaussianSphericalHarmonics_rejectsInvalidCountAndNonFiniteCoefficients() {
         let invalidCount = GaussianSphericalHarmonics(
             degree: 1,
             coefficientsPerChannel: 4,
@@ -473,14 +476,26 @@ final class PLYReaderTest: XCTestCase {
         )
         XCTAssertThrowsError(try packGaussianSphericalHarmonics(invalidCount, splatCount: 1))
 
-        var overflowCoefficients = [Float](repeating: 0, count: 12)
-        overflowCoefficients[1] = Float.greatestFiniteMagnitude
-        let overflow = GaussianSphericalHarmonics(
+        // Out-of-[-1,1] magnitudes are clamped, not rejected — only a
+        // non-finite coefficient (NaN) can't be meaningfully quantized.
+        var outOfRangeCoefficients = [Float](repeating: 0, count: 12)
+        outOfRangeCoefficients[1] = Float.greatestFiniteMagnitude
+        let outOfRange = GaussianSphericalHarmonics(
             degree: 1,
             coefficientsPerChannel: 4,
-            coefficients: overflowCoefficients
+            coefficients: outOfRangeCoefficients
         )
-        XCTAssertThrowsError(try packGaussianSphericalHarmonics(overflow, splatCount: 1))
+        let packed = try? packGaussianSphericalHarmonics(outOfRange, splatCount: 1)
+        XCTAssertEqual(packed?.coefficients.first, 255, "Extreme positive values should clamp to the top of the byte range")
+
+        var nanCoefficients = [Float](repeating: 0, count: 12)
+        nanCoefficients[1] = .nan
+        let nan = GaussianSphericalHarmonics(
+            degree: 1,
+            coefficientsPerChannel: 4,
+            coefficients: nanCoefficients
+        )
+        XCTAssertThrowsError(try packGaussianSphericalHarmonics(nan, splatCount: 1))
     }
 
     // MARK: - Test Error Handling

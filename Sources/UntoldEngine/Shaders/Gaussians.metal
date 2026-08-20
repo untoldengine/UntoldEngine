@@ -64,8 +64,15 @@ constant uchar kGaussianMaxBlendedSplatsPerPixel = 64;
 inline uint unpackIndex(uint64_t packed)  { return (uint)(packed & 0xffffffffu); }
 inline uint unpackDepthKey(uint64_t packed) { return (uint)(packed >> 32); }
 
+// Dequantizes a byte packed by quantizeGaussianSHCoefficient (Swift) back
+// into the fixed [-1, 1] range.
+inline float dequantizeGaussianSHCoefficient(uchar packed)
+{
+    return (float(packed) - 128.0f) / 128.0f;
+}
+
 float3 loadGaussianSHCoefficient(
-    const device half *coefficients,
+    const device uchar *coefficients,
     constant GaussianSHMetadata &metadata,
     uint splatIndex,
     uint coefficientIndex)
@@ -74,15 +81,15 @@ float3 loadGaussianSHCoefficient(
     uint splatBase = splatIndex * metadata.higherOrderCoefficientsPerSplat;
     uint offset = coefficientIndex - 1;
     return float3(
-        coefficients[splatBase + offset],
-        coefficients[splatBase + perChannel + offset],
-        coefficients[splatBase + 2 * perChannel + offset]
+        dequantizeGaussianSHCoefficient(coefficients[splatBase + offset]),
+        dequantizeGaussianSHCoefficient(coefficients[splatBase + perChannel + offset]),
+        dequantizeGaussianSHCoefficient(coefficients[splatBase + 2 * perChannel + offset])
     );
 }
 
 float3 evaluateGaussianSphericalHarmonics(
     float3 baseColor,
-    const device half *coefficients,
+    const device uchar *coefficients,
     constant GaussianSHMetadata &metadata,
     uint splatIndex,
     float3 direction)
@@ -144,7 +151,7 @@ float3 gaussianSRGBToLinear(float3 color)
 // Diagnostic entry point for validating the packed GPU SH contract against
 // the exact evaluator used by the Gaussian vertex shader.
 kernel void gaussianSphericalHarmonicsDiagnostic(
-    const device half *coefficients       [[buffer(0)]],
+    const device uchar *coefficients      [[buffer(0)]],
     constant GaussianSHMetadata &metadata [[buffer(1)]],
     constant float4 &baseColor            [[buffer(2)]],
     constant float4 &direction            [[buffer(3)]],
@@ -328,7 +335,7 @@ kernel void gaussianPreprocess(
     const device uint                 *visibleIndices [[buffer(gaussianPreprocessVisibleIndicesIndex)]],
     const device uint                 *visibleCount [[buffer(gaussianPreprocessVisibleCountIndex)]],
     constant float2                   &viewport     [[buffer(gaussianPreprocessViewportIndex)]],
-    const device half                 *shCoefficients [[buffer(gaussianPreprocessSHIndex)]],
+    const device uchar                 *shCoefficients [[buffer(gaussianPreprocessSHIndex)]],
     constant GaussianSHMetadata       &shMetadata   [[buffer(gaussianPreprocessSHMetadataIndex)]],
     constant float3                   &localCameraPosition [[buffer(gaussianPreprocessLocalCameraIndex)]],
     device GaussianPrecomputedSplat   *precomputed  [[buffer(gaussianPreprocessOutputIndex)]],
