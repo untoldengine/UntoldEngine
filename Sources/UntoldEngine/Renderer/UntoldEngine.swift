@@ -594,6 +594,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
 
         // 3. LOD selection (decides which representation is active, checks residency)
         LODSystem.shared.update(deltaTime: fixedStep)
+        GaussianLODSystem.shared.update(deltaTime: fixedStep)
 
         // 4. Flush events (residency and LOD change events are processed)
         SystemEventBus.shared.flushEvents()

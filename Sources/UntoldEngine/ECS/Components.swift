@@ -474,6 +474,53 @@ public class LODComponent: Component {
     }
 }
 
+// MARK: - Progressive Gaussian LOD Component
+
+/// One pre-baked quality tier for a progressive Gaussian splat asset.
+/// LOD0 is expected to be the full-resolution tier; later indices are progressively coarser.
+public struct GaussianLODLevel {
+    public var buffers: GaussianComponent?
+    public var maxDistance: Float
+    public var url: URL?
+    public var residencyState: LODResidencyState = .unknown
+    var loadTask: Task<Void, Never>?
+
+    public init(maxDistance: Float, url: URL? = nil) {
+        self.maxDistance = maxDistance
+        self.url = url
+    }
+}
+
+/// Runtime state for a progressively streamed Gaussian splat prop.
+/// The renderer still consumes a normal `GaussianComponent`; this component owns the
+/// per-tier residency and `GaussianLODSystem` copies the selected tier onto the live
+/// `GaussianComponent`.
+public class GaussianLODComponent: Component {
+    public var lodLevels: [GaussianLODLevel] = []
+    public var currentLOD: Int = -1
+    public var desiredLOD: Int = 0
+    public var forcedLOD: Int?
+    public var isUsingFallback: Bool = false
+
+    public required init() {}
+
+    public func isLODResident(_ lodIndex: Int) -> Bool {
+        guard lodIndex >= 0, lodIndex < lodLevels.count else { return false }
+        let level = lodLevels[lodIndex]
+        return level.residencyState == .resident && level.buffers != nil
+    }
+
+    public func findFallbackLOD(from desiredIndex: Int) -> Int? {
+        for i in (desiredIndex + 1) ..< lodLevels.count {
+            if isLODResident(i) { return i }
+        }
+        for i in (0 ..< desiredIndex).reversed() {
+            if isLODResident(i) { return i }
+        }
+        return nil
+    }
+}
+
 // MARK: Tile LOD Tag Component
 
 /// Lightweight tag placed on the render-descendant mesh entities spawned by

@@ -174,6 +174,10 @@ private func registerComponentCleanupHandlers() {
         removeEntityLOD(entityId: entityId)
     }
 
+    ComponentRegistry.register(componentType: GaussianLODComponent.self, handlerId: "gaussianLOD", priority: 30) { entityId in
+        removeEntityGaussianLOD(entityId: entityId)
+    }
+
     ComponentRegistry.register(componentType: GaussianComponent.self, handlerId: "gaussian", priority: 30) { entityId in
         removeEntityGaussian(entityId: entityId)
     }
@@ -3198,7 +3202,7 @@ public func loadRawMesh(
 /// Built Metal resources for a parsed Gaussian splat asset, ready to attach to an entity.
 /// Shared by `setEntityGaussian` (synchronous) and `setEntityGaussianAsync` (off-thread) so
 /// there is a single implementation of the PLY-parse/buffer-build/SH-pack pipeline.
-private struct GaussianLoadResult {
+struct GaussianLoadResult {
     let splatCount: UInt
     // One buffer per in-flight frame slot (see the comment on GaussianComponent's matching
     // fields) — written fresh every frame by the cull/depth-key/radix-sort passes, so a
@@ -3218,35 +3222,152 @@ private struct GaussianLoadResult {
     let estimatedGPUBytes: Int
 }
 
-/// Reads a `.ply` Gaussian splat asset from disk and builds its GPU buffers.
+public enum UntoldGSError: Error, CustomStringConvertible {
+    case badMagic
+    case unsupportedVersion(UInt32)
+    case truncated
+    case sizeMismatch(String)
+
+    public var description: String {
+        switch self {
+        case .badMagic: "Not an Untold Gaussian splat file"
+        case let .unsupportedVersion(version): "Unsupported Untold Gaussian splat version \(version)"
+        case .truncated: "Untold Gaussian splat file is truncated"
+        case let .sizeMismatch(reason): "Untold Gaussian splat size mismatch: \(reason)"
+        }
+    }
+}
+
+public struct UntoldGSAsset {
+    public let encodedSplats: [EncodedGaussianSplat]
+    public let shCoefficients: [UInt8]
+    public let shMetadata: GaussianSHMetadata?
+
+    public var splatCount: Int { encodedSplats.count }
+}
+
+public enum UntoldGSFormat {
+    private static let magic: UInt32 = 0x5347_5455 // "UTGS"
+    private static let version: UInt32 = 1
+    private static let headerByteCount = 48
+
+    public static func write(
+        encodedSplats: [EncodedGaussianSplat],
+        sphericalHarmonics: PackedGaussianSphericalHarmonics?,
+        to url: URL
+    ) throws {
+        var data = Data()
+        appendUInt32(magic, to: &data)
+        appendUInt32(version, to: &data)
+        appendUInt64(UInt64(encodedSplats.count), to: &data)
+        appendUInt32(sphericalHarmonics?.metadata.degree ?? 0, to: &data)
+        appendUInt32(sphericalHarmonics?.metadata.coefficientsPerChannel ?? 0, to: &data)
+        appendUInt32(sphericalHarmonics?.metadata.higherOrderCoefficientsPerSplat ?? 0, to: &data)
+        appendUInt32(0, to: &data)
+        appendUInt64(UInt64(encodedSplats.count * MemoryLayout<EncodedGaussianSplat>.stride), to: &data)
+        appendUInt64(UInt64(sphericalHarmonics?.coefficients.count ?? 0), to: &data)
+
+        encodedSplats.withUnsafeBytes { data.append(contentsOf: $0) }
+        if let sphericalHarmonics {
+            data.append(contentsOf: sphericalHarmonics.coefficients)
+        }
+
+        try FileManager.default.createDirectory(
+            at: url.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        try data.write(to: url, options: .atomic)
+    }
+
+    public static func read(from url: URL) throws -> UntoldGSAsset {
+        let data = try Data(contentsOf: url)
+        guard data.count >= headerByteCount else { throw UntoldGSError.truncated }
+
+        let magicValue = readUInt32(data, at: 0)
+        guard magicValue == magic else { throw UntoldGSError.badMagic }
+        let versionValue = readUInt32(data, at: 4)
+        guard versionValue == version else { throw UntoldGSError.unsupportedVersion(versionValue) }
+
+        let splatCount = Int(readUInt64(data, at: 8))
+        let shDegree = readUInt32(data, at: 16)
+        let shCoefficientsPerChannel = readUInt32(data, at: 20)
+        let shHigherOrderPerSplat = readUInt32(data, at: 24)
+        let encodedByteCount = Int(readUInt64(data, at: 32))
+        let shByteCount = Int(readUInt64(data, at: 40))
+
+        let expectedEncodedBytes = splatCount * MemoryLayout<EncodedGaussianSplat>.stride
+        guard encodedByteCount == expectedEncodedBytes else {
+            throw UntoldGSError.sizeMismatch("encoded splat bytes \(encodedByteCount), expected \(expectedEncodedBytes)")
+        }
+        guard data.count == headerByteCount + encodedByteCount + shByteCount else {
+            throw UntoldGSError.sizeMismatch("file has \(data.count) bytes, expected \(headerByteCount + encodedByteCount + shByteCount)")
+        }
+
+        let encodedStart = headerByteCount
+        let encodedEnd = encodedStart + encodedByteCount
+        let encodedSplats = data[encodedStart ..< encodedEnd].withUnsafeBytes { rawBuffer in
+            Array(rawBuffer.bindMemory(to: EncodedGaussianSplat.self))
+        }
+
+        let shStart = encodedEnd
+        let shCoefficients = shByteCount > 0 ? Array(data[shStart ..< shStart + shByteCount]) : []
+        let shMetadata: GaussianSHMetadata? = shByteCount > 0
+            ? GaussianSHMetadata(
+                degree: shDegree,
+                coefficientsPerChannel: shCoefficientsPerChannel,
+                higherOrderCoefficientsPerSplat: shHigherOrderPerSplat,
+                _pad0: 0
+            )
+            : nil
+
+        return UntoldGSAsset(
+            encodedSplats: encodedSplats,
+            shCoefficients: shCoefficients,
+            shMetadata: shMetadata
+        )
+    }
+
+    private static func appendUInt32(_ value: UInt32, to data: inout Data) {
+        var littleEndian = value.littleEndian
+        withUnsafeBytes(of: &littleEndian) { data.append(contentsOf: $0) }
+    }
+
+    private static func appendUInt64(_ value: UInt64, to data: inout Data) {
+        var littleEndian = value.littleEndian
+        withUnsafeBytes(of: &littleEndian) { data.append(contentsOf: $0) }
+    }
+
+    private static func readUInt32(_ data: Data, at offset: Int) -> UInt32 {
+        data.withUnsafeBytes { rawBuffer in
+            UInt32(littleEndian: rawBuffer.loadUnaligned(fromByteOffset: offset, as: UInt32.self))
+        }
+    }
+
+    private static func readUInt64(_ data: Data, at offset: Int) -> UInt64 {
+        data.withUnsafeBytes { rawBuffer in
+            UInt64(littleEndian: rawBuffer.loadUnaligned(fromByteOffset: offset, as: UInt64.self))
+        }
+    }
+}
+
+/// Builds GPU buffers from already-encoded Gaussian splat data.
 /// Returns `nil` on any failure, calling `handleError` internally — callers just guard-return.
-private func buildGaussianLoadResult(filename: String, withExtension: String) -> GaussianLoadResult? {
-    guard let url = LoadingSystem.shared.resourceURL(forResource: filename, withExtension: withExtension, subResource: nil) else {
-        handleError(.filenameNotFound, filename)
+func buildGaussianLoadResult(
+    encodedSplats: [EncodedGaussianSplat],
+    packedSphericalHarmonics: PackedGaussianSphericalHarmonics?,
+    sourceDescription: String
+) -> GaussianLoadResult? {
+    guard encodedSplats.count <= Int(maxNumOfGaussians) else {
+        handleError(.bufferAllocationFailed, "Too many Gaussian splats: \(encodedSplats.count) exceeds maximum \(maxNumOfGaussians)")
         return nil
     }
 
-    // Attempt to read Gaussian splats, handling errors internally
-    let asset: GaussianSplatAsset
-    do {
-        asset = try PLYReader.readGaussianAsset(from: url)
-    } catch {
-        handleError(.assetDataMissing, "Failed to read Gaussian splats from \(filename): \(error.localizedDescription)")
-        return nil
-    }
-    let splats = asset.splats
-
-    // Check if we exceed the buffer capacity
-    guard splats.count <= Int(maxNumOfGaussians) else {
-        handleError(.bufferAllocationFailed, "Too many Gaussian splats: \(splats.count) exceeds maximum \(maxNumOfGaussians)")
-        return nil
-    }
-
-    let splatCount = UInt(splats.count)
+    let splatCount = UInt(encodedSplats.count)
     guard splatCount > 0 else {
-        handleError(.assetDataMissing, "Gaussian splat file contains no vertices: \(filename)")
+        handleError(.assetDataMissing, "Gaussian splat file contains no vertices: \(sourceDescription)")
         return nil
     }
+
 
     var gaussianSortedIndices: [MTLBuffer] = []
     var gaussianVisibleIndices: [MTLBuffer] = []
@@ -3286,13 +3407,8 @@ private func buildGaussianLoadResult(filename: String, withExtension: String) ->
         return nil
     }
 
-    let encodedPointer = encodedSplatBuffer.contents().bindMemory(
-        to: EncodedGaussianSplat.self,
-        capacity: splats.count
-    )
-
-    for (index, splat) in splats.enumerated() {
-        encodedPointer[index] = encodeGaussianSplatForTBDR(splat)
+    encodedSplats.withUnsafeBytes { bytes in
+        encodedSplatBuffer.contents().copyMemory(from: bytes.baseAddress!, byteCount: bytes.count)
     }
 
     var gaussianPrecomputedData: [MTLBuffer] = []
@@ -3305,16 +3421,6 @@ private func buildGaussianLoadResult(filename: String, withExtension: String) ->
             return nil
         }
         gaussianPrecomputedData.append(precomputedSlot)
-    }
-
-    let packedSphericalHarmonics: PackedGaussianSphericalHarmonics?
-    do {
-        packedSphericalHarmonics = try asset.sphericalHarmonics.map {
-            try packGaussianSphericalHarmonics($0, splatCount: splats.count)
-        }
-    } catch {
-        handleError(.assetDataMissing, "Failed to pack spherical harmonics from \(filename): \(error.localizedDescription)")
-        return nil
     }
 
     let sphericalHarmonicsBuffer: MTLBuffer?
@@ -3371,6 +3477,61 @@ private func buildGaussianLoadResult(filename: String, withExtension: String) ->
     )
 }
 
+/// Reads a `.ply` Gaussian splat asset from disk and builds its GPU buffers.
+/// Returns `nil` on any failure, calling `handleError` internally — callers just guard-return.
+private func buildGaussianLoadResult(filename: String, withExtension: String) -> GaussianLoadResult? {
+    guard let url = LoadingSystem.shared.resourceURL(forResource: filename, withExtension: withExtension, subResource: nil) else {
+        handleError(.filenameNotFound, filename)
+        return nil
+    }
+
+    do {
+        return try buildGaussianLoadResultFromPLY(url: url, sourceDescription: filename)
+    } catch {
+        handleError(.assetDataMissing, "Failed to read Gaussian splats from \(filename): \(error.localizedDescription)")
+        return nil
+    }
+}
+
+func buildGaussianLoadResultFromPLY(url: URL, sourceDescription: String) throws -> GaussianLoadResult? {
+    let asset = try PLYReader.readGaussianAsset(from: url)
+    let encodedSplats = asset.splats.map(encodeGaussianSplatForTBDR)
+    let packedSphericalHarmonics = try asset.sphericalHarmonics.map {
+        try packGaussianSphericalHarmonics($0, splatCount: asset.splats.count)
+    }
+    return buildGaussianLoadResult(
+        encodedSplats: encodedSplats,
+        packedSphericalHarmonics: packedSphericalHarmonics,
+        sourceDescription: sourceDescription
+    )
+}
+
+func buildGaussianComponentFromUntoldGS(url: URL) -> (component: GaussianComponent, estimatedGPUBytes: Int)? {
+    let asset: UntoldGSAsset
+    do {
+        asset = try UntoldGSFormat.read(from: url)
+    } catch {
+        handleError(.assetDataMissing, "Failed to read .untoldgs Gaussian tier from \(url.lastPathComponent): \(error)")
+        return nil
+    }
+
+    let packedSphericalHarmonics = asset.shMetadata.map {
+        PackedGaussianSphericalHarmonics(coefficients: asset.shCoefficients, metadata: $0)
+    }
+
+    guard let result = buildGaussianLoadResult(
+        encodedSplats: asset.encodedSplats,
+        packedSphericalHarmonics: packedSphericalHarmonics,
+        sourceDescription: url.lastPathComponent
+    ) else {
+        return nil
+    }
+
+    let component = GaussianComponent()
+    copyGaussianLoadResult(result, to: component)
+    return (component, result.estimatedGPUBytes)
+}
+
 /// Registers `GaussianComponent` on `entityId` from a built `GaussianLoadResult` and records
 /// its GPU footprint with `MemoryBudgetManager`. Must be called from within a world-mutation
 /// gate (`withWorldMutationGate`).
@@ -3382,6 +3543,11 @@ private func applyGaussianLoadResult(_ result: GaussianLoadResult, to entityId: 
         return
     }
 
+    copyGaussianLoadResult(result, to: gaussianComponent)
+    MemoryBudgetManager.shared.registerMesh(entityId: entityId, meshSizeBytes: result.estimatedGPUBytes)
+}
+
+func copyGaussianLoadResult(_ result: GaussianLoadResult, to gaussianComponent: GaussianComponent) {
     gaussianComponent.splatCount = result.splatCount
     gaussianComponent.visibleSplatCountForRendering = result.splatCount
     gaussianComponent.gaussianSortedIndices = result.gaussianSortedIndices.map { $0 as MTLBuffer? }
@@ -3392,8 +3558,6 @@ private func applyGaussianLoadResult(_ result: GaussianLoadResult, to entityId: 
     gaussianComponent.sphericalHarmonicsData = result.sphericalHarmonicsBuffer
     gaussianComponent.sphericalHarmonicsMetadata = result.sphericalHarmonicsMetadata
     gaussianComponent.spaceUniform = result.spaceUniform
-
-    MemoryBudgetManager.shared.registerMesh(entityId: entityId, meshSizeBytes: result.estimatedGPUBytes)
 }
 
 public func setEntityGaussian(entityId: EntityID, filename: String, withExtension: String) {
@@ -3487,9 +3651,179 @@ public func setEntityGaussianStreamable(
     }
 }
 
-struct PackedGaussianSphericalHarmonics {
-    let coefficients: [UInt8]
-    let metadata: GaussianSHMetadata
+/// Registers `entityId` as a distance-streamed progressive Gaussian splat prop.
+///
+/// The expected files are `<baseFilename>_lod0.untoldgs`, `<baseFilename>_lod1.untoldgs`,
+/// etc. LOD0 is full detail; the highest index is the coarsest tier and is loaded first
+/// when the prop enters streaming range. Finer tiers are requested later by
+/// `GaussianLODSystem` based on camera distance.
+public func setEntityGaussianProgressiveStreamable(
+    entityId: EntityID,
+    baseFilename: String,
+    withExtension ext: String = "untoldgs",
+    levelCount: Int,
+    maxDistances: [Float],
+    streamingRadius: Float = 100.0,
+    unloadRadius: Float = 150.0,
+    boundingBoxHalfExtent: simd_float3,
+    priority: Int = 0
+) {
+    guard levelCount > 0 else {
+        handleError(.assetDataMissing, "setEntityGaussianProgressiveStreamable: levelCount must be at least 1, got \(levelCount)")
+        return
+    }
+    guard maxDistances.count == levelCount else {
+        handleError(.assetDataMissing, "setEntityGaussianProgressiveStreamable: maxDistances must have \(levelCount) entries, got \(maxDistances.count)")
+        return
+    }
+    guard let local = scene.get(component: LocalTransformComponent.self, for: entityId) else {
+        handleError(.noLocalTransformComponent, entityId)
+        return
+    }
+    guard let tileEntity = findTileEntity(containing: local.position) else {
+        Logger.logWarning(message: "[RegistrationSystem] setEntityGaussianProgressiveStreamable: no tile found containing position \(local.position) for entity \(entityId) — entity left non-streaming.")
+        return
+    }
+
+    var levels: [GaussianLODLevel] = []
+    for index in 0 ..< levelCount {
+        let filename = levelCount == 1 ? baseFilename : "\(baseFilename)_lod\(index)"
+        guard let url = LoadingSystem.shared.resourceURL(forResource: filename, withExtension: ext, subResource: nil) else {
+            handleError(.filenameNotFound, filename)
+            return
+        }
+        levels.append(GaussianLODLevel(maxDistance: maxDistances[index], url: url))
+    }
+
+    local.boundingBox = (min: -boundingBoxHalfExtent, max: boundingBoxHalfExtent)
+    setParent(childId: entityId, parentId: tileEntity)
+    OctreeSystem.shared.registerEntity(entityId)
+
+    guard let lodComponent = scene.assign(to: entityId, component: GaussianLODComponent.self) else {
+        return
+    }
+    lodComponent.lodLevels = levels
+    lodComponent.currentLOD = -1
+    lodComponent.desiredLOD = levelCount - 1
+
+    if let streaming = scene.assign(to: entityId, component: StreamingComponent.self) {
+        streaming.assetKind = .gaussianSplat
+        streaming.assetFilename = baseFilename
+        streaming.assetExtension = ext
+        streaming.streamingRadius = streamingRadius
+        streaming.unloadRadius = unloadRadius
+        streaming.priority = priority
+    }
+}
+
+private func gaussianImportanceScore(_ splat: GaussianSplat) -> Float {
+    let majorAxis = max(abs(splat.scale.x), max(abs(splat.scale.y), abs(splat.scale.z)))
+    return splat.opacity * majorAxis * majorAxis
+}
+
+private func subsetSphericalHarmonics(
+    _ sh: GaussianSphericalHarmonics,
+    keeping indices: [Int]
+) -> GaussianSphericalHarmonics {
+    let perSplat = sh.coefficientsPerSplat
+    var subset: [Float] = []
+    subset.reserveCapacity(indices.count * perSplat)
+    for index in indices {
+        let base = index * perSplat
+        subset.append(contentsOf: sh.coefficients[base ..< base + perSplat])
+    }
+    return GaussianSphericalHarmonics(
+        degree: sh.degree,
+        coefficientsPerChannel: sh.coefficientsPerChannel,
+        coefficients: subset
+    )
+}
+
+/// Bakes progressive `.untoldgs` Gaussian tiers from a source `.ply`.
+///
+/// `lodFractions` are ordered finest to coarsest. With `[1.0, 0.5, 0.25]`, output files are
+/// `<base>_lod0.untoldgs`, `<base>_lod1.untoldgs`, and `<base>_lod2.untoldgs`.
+public func bakeGaussianSplatProgressiveTiers(
+    plyURL: URL,
+    outputBaseURL: URL,
+    lodFractions: [Float]
+) throws -> [URL] {
+    guard !lodFractions.isEmpty else {
+        throw UntoldGSError.sizeMismatch("lodFractions must contain at least one entry")
+    }
+
+    if lodFractions == [1.0] {
+        let resultURL = outputBaseURL
+        let asset = try PLYReader.readGaussianAsset(from: plyURL)
+        let encodedSplats = asset.splats.map(encodeGaussianSplatForTBDR)
+        let packedSphericalHarmonics = try asset.sphericalHarmonics.map {
+            try packGaussianSphericalHarmonics($0, splatCount: asset.splats.count)
+        }
+        try UntoldGSFormat.write(
+            encodedSplats: encodedSplats,
+            sphericalHarmonics: packedSphericalHarmonics,
+            to: resultURL
+        )
+        return [resultURL]
+    }
+
+    let asset = try PLYReader.readGaussianAsset(from: plyURL)
+    guard !asset.splats.isEmpty else {
+        throw UntoldGSError.sizeMismatch("source .ply contains no splats")
+    }
+
+    let rankedIndices = asset.splats.indices.sorted { lhs, rhs in
+        gaussianImportanceScore(asset.splats[lhs]) > gaussianImportanceScore(asset.splats[rhs])
+    }
+
+    let baseWithoutExtension = outputBaseURL.deletingPathExtension()
+    let baseName = baseWithoutExtension.lastPathComponent
+    let baseDirectory = baseWithoutExtension.deletingLastPathComponent()
+
+    var outputURLs: [URL] = []
+    for (tierIndex, fraction) in lodFractions.enumerated() {
+        let clampedFraction = min(max(fraction, 0), 1)
+        let keepCount = max(1, Int((Float(asset.splats.count) * clampedFraction).rounded(.up)))
+        let keptIndices = Array(rankedIndices.prefix(keepCount))
+        let encodedSplats = keptIndices.map { encodeGaussianSplatForTBDR(asset.splats[$0]) }
+        let packedSphericalHarmonics = try asset.sphericalHarmonics.map { sh in
+            try packGaussianSphericalHarmonics(
+                subsetSphericalHarmonics(sh, keeping: keptIndices),
+                splatCount: keptIndices.count
+            )
+        }
+        let tierURL = baseDirectory
+            .appendingPathComponent("\(baseName)_lod\(tierIndex)")
+            .appendingPathExtension("untoldgs")
+        try UntoldGSFormat.write(
+            encodedSplats: encodedSplats,
+            sphericalHarmonics: packedSphericalHarmonics,
+            to: tierURL
+        )
+        outputURLs.append(tierURL)
+    }
+    return outputURLs
+}
+
+public func bakeGaussianSplatProgressiveTiers(
+    plyURL: URL,
+    outputBaseURL: URL,
+    levelCount: Int
+) throws -> [URL] {
+    guard levelCount > 0 else {
+        throw UntoldGSError.sizeMismatch("levelCount must be at least 1, got \(levelCount)")
+    }
+    let fractions = (0 ..< levelCount).map { Float(1.0) / Float(1 << $0) }
+    return try bakeGaussianSplatProgressiveTiers(
+        plyURL: plyURL,
+        outputBaseURL: outputBaseURL,
+        lodFractions: fractions
+    )
+}
+
+public struct PackedGaussianSphericalHarmonics {
+    public let coefficients: [UInt8]
+    public let metadata: GaussianSHMetadata
 }
 
 /// Quantizes a higher-order SH coefficient into the GPU's fixed [-1, 1] byte
@@ -3705,6 +4039,19 @@ func removeEntityLOD(entityId: EntityID) {
         // Clear LOD levels (meshes will be cleaned up by RenderComponent cleanup)
         lodComponent.lodLevels.removeAll()
         scene.remove(component: LODComponent.self, from: entityId)
+    }
+}
+
+func removeEntityGaussianLOD(entityId: EntityID) {
+    if let lodComponent = scene.get(component: GaussianLODComponent.self, for: entityId) {
+        for index in lodComponent.lodLevels.indices {
+            lodComponent.lodLevels[index].loadTask?.cancel()
+            lodComponent.lodLevels[index].loadTask = nil
+            lodComponent.lodLevels[index].buffers = nil
+            lodComponent.lodLevels[index].residencyState = .notResident
+        }
+        lodComponent.lodLevels.removeAll()
+        scene.remove(component: GaussianLODComponent.self, from: entityId)
     }
 }
 
