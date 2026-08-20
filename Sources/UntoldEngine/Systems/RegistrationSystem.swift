@@ -3721,6 +3721,123 @@ private func gaussianImportanceScore(_ splat: GaussianSplat) -> Float {
     return splat.opacity * majorAxis * majorAxis
 }
 
+private struct GaussianSpatialBucketKey: Hashable {
+    let x: Int
+    let y: Int
+    let z: Int
+}
+
+private func spatiallyInterleavedGaussianRanking(_ splats: [GaussianSplat]) -> [Int] {
+    guard splats.count > 1 else { return Array(splats.indices) }
+
+    var minBounds = simd_float3(Float.greatestFiniteMagnitude, Float.greatestFiniteMagnitude, Float.greatestFiniteMagnitude)
+    var maxBounds = simd_float3(-Float.greatestFiniteMagnitude, -Float.greatestFiniteMagnitude, -Float.greatestFiniteMagnitude)
+    for splat in splats {
+        let center = simd_float3(splat.center.x, splat.center.y, splat.center.z)
+        minBounds = simd_min(minBounds, center)
+        maxBounds = simd_max(maxBounds, center)
+    }
+
+    let extent = maxBounds - minBounds
+    let occupiedAxisCount = [extent.x, extent.y, extent.z].filter { $0 > 0.0001 }.count
+    guard occupiedAxisCount > 0 else {
+        return splats.indices.sorted {
+            gaussianImportanceScore(splats[$0]) > gaussianImportanceScore(splats[$1])
+        }
+    }
+
+    let targetCellCount = max(8, min(512, splats.count / 24))
+    let cellsPerAxis = max(1, Int(ceil(pow(Double(targetCellCount), 1.0 / Double(occupiedAxisCount)))))
+    let safeExtent = simd_float3(
+        max(extent.x, 0.0001),
+        max(extent.y, 0.0001),
+        max(extent.z, 0.0001)
+    )
+
+    var buckets: [GaussianSpatialBucketKey: [Int]] = [:]
+    for index in splats.indices {
+        let center = simd_float3(splats[index].center.x, splats[index].center.y, splats[index].center.z)
+        let normalized = (center - minBounds) / safeExtent
+        let maxCellIndex = cellsPerAxis - 1
+        let cellX = min(maxCellIndex, max(0, Int(normalized.x * Float(cellsPerAxis))))
+        let cellY = min(maxCellIndex, max(0, Int(normalized.y * Float(cellsPerAxis))))
+        let cellZ = min(maxCellIndex, max(0, Int(normalized.z * Float(cellsPerAxis))))
+        let key = GaussianSpatialBucketKey(x: cellX, y: cellY, z: cellZ)
+        buckets[key, default: []].append(index)
+    }
+
+    let sortedBuckets = buckets.mapValues { indices in
+        indices.sorted {
+            gaussianImportanceScore(splats[$0]) > gaussianImportanceScore(splats[$1])
+        }
+    }
+
+    let bucketCenters = sortedBuckets.mapValues { indices in
+        var center = simd_float3.zero
+        for index in indices {
+            center += simd_float3(splats[index].center.x, splats[index].center.y, splats[index].center.z)
+        }
+        return center / Float(max(1, indices.count))
+    }
+
+    var remainingBuckets = Array(sortedBuckets.keys)
+    var bucketOrder: [GaussianSpatialBucketKey] = []
+    if let first = remainingBuckets.max(by: { lhs, rhs in
+        guard let lhsIndex = sortedBuckets[lhs]?.first,
+              let rhsIndex = sortedBuckets[rhs]?.first
+        else { return false }
+        return gaussianImportanceScore(splats[lhsIndex]) < gaussianImportanceScore(splats[rhsIndex])
+    }) {
+        bucketOrder.append(first)
+        remainingBuckets.removeAll { $0 == first }
+    }
+
+    while !remainingBuckets.isEmpty {
+        let next = remainingBuckets.max { lhs, rhs in
+            let lhsDistance = nearestSelectedBucketDistanceSquared(lhs, centers: bucketCenters, selected: bucketOrder)
+            let rhsDistance = nearestSelectedBucketDistanceSquared(rhs, centers: bucketCenters, selected: bucketOrder)
+            if lhsDistance == rhsDistance {
+                let lhsIndex = sortedBuckets[lhs]?.first ?? 0
+                let rhsIndex = sortedBuckets[rhs]?.first ?? 0
+                return gaussianImportanceScore(splats[lhsIndex]) < gaussianImportanceScore(splats[rhsIndex])
+            }
+            return lhsDistance < rhsDistance
+        }!
+        bucketOrder.append(next)
+        remainingBuckets.removeAll { $0 == next }
+    }
+
+    var ranking: [Int] = []
+    ranking.reserveCapacity(splats.count)
+    var depth = 0
+    while ranking.count < splats.count {
+        var appendedThisRound = false
+        for key in bucketOrder {
+            guard let indices = sortedBuckets[key], depth < indices.count else { continue }
+            ranking.append(indices[depth])
+            appendedThisRound = true
+        }
+        guard appendedThisRound else { break }
+        depth += 1
+    }
+
+    return ranking
+}
+
+private func nearestSelectedBucketDistanceSquared(
+    _ key: GaussianSpatialBucketKey,
+    centers: [GaussianSpatialBucketKey: simd_float3],
+    selected: [GaussianSpatialBucketKey]
+) -> Float {
+    guard let center = centers[key], !selected.isEmpty else { return Float.greatestFiniteMagnitude }
+    var best = Float.greatestFiniteMagnitude
+    for selectedKey in selected {
+        guard let selectedCenter = centers[selectedKey] else { continue }
+        best = min(best, simd_distance_squared(center, selectedCenter))
+    }
+    return best
+}
+
 private func subsetSphericalHarmonics(
     _ sh: GaussianSphericalHarmonics,
     keeping indices: [Int]
@@ -3772,9 +3889,7 @@ public func bakeGaussianSplatProgressiveTiers(
         throw UntoldGSError.sizeMismatch("source .ply contains no splats")
     }
 
-    let rankedIndices = asset.splats.indices.sorted { lhs, rhs in
-        gaussianImportanceScore(asset.splats[lhs]) > gaussianImportanceScore(asset.splats[rhs])
-    }
+    let rankedIndices = spatiallyInterleavedGaussianRanking(asset.splats)
 
     let baseWithoutExtension = outputBaseURL.deletingPathExtension()
     let baseName = baseWithoutExtension.lastPathComponent
