@@ -181,4 +181,43 @@ final class GaussianProgressiveLODTest: BaseRenderSetup {
         XCTAssertEqual(lod.currentLOD, 0)
         XCTAssertEqual(scene.get(component: GaussianComponent.self, for: entity)?.splatCount, lod.lodLevels[0].buffers?.splatCount)
     }
+
+    func testProgressiveGaussianDoesNotRequireTileStreaming() async throws {
+        let base = try bakeProgressiveBase(levelCount: 3)
+
+        let entity = createEntity()
+        translateTo(entityId: entity, position: .zero)
+        setEntityGaussian(
+            entityId: entity,
+            source: .progressive(
+                baseFilename: base,
+                levelCount: 3,
+                maxDistances: [20, 50, .greatestFiniteMagnitude]
+            )
+        )
+
+        let lod = try XCTUnwrap(scene.get(component: GaussianLODComponent.self, for: entity))
+        XCTAssertNil(scene.get(component: StreamingComponent.self, for: entity))
+
+        for _ in 0 ..< 20 where lod.currentLOD != 2 {
+            try await Task.sleep(nanoseconds: 10_000_000)
+        }
+
+        XCTAssertEqual(lod.currentLOD, 2)
+        XCTAssertEqual(lod.lodLevels[2].residencyState, .resident)
+        XCTAssertEqual(scene.get(component: GaussianComponent.self, for: entity)?.splatCount, lod.lodLevels[2].buffers?.splatCount)
+
+        let camera = createEntity()
+        scene.assign(to: camera, component: CameraComponent.self)?.localPosition = .zero
+        _ = scene.assign(to: camera, component: LocalTransformComponent.self)
+        CameraSystem.shared.activeCamera = camera
+
+        GaussianLODSystem.shared.update(deltaTime: 0.1)
+        await lod.lodLevels[0].loadTask?.value
+        GaussianLODSystem.shared.update(deltaTime: 0.1)
+
+        XCTAssertEqual(lod.lodLevels[0].residencyState, .resident)
+        XCTAssertEqual(lod.currentLOD, 0)
+        XCTAssertEqual(scene.get(component: GaussianComponent.self, for: entity)?.splatCount, lod.lodLevels[0].buffers?.splatCount)
+    }
 }

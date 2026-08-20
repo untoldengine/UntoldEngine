@@ -22,6 +22,15 @@ To display a Gaussian Splat model, load its .ply file and link it to the entity 
 setEntityGaussian(entityId: myEntity, filename: "splat", withExtension: "ply")
 ```
 
+You can also use the source-based API:
+
+```swift
+setEntityGaussian(
+    entityId: myEntity,
+    source: .single(filename: "splat", withExtension: "ply")
+)
+```
+
 Parameters:
 
 - entityId: The ID of the entity created earlier.
@@ -29,6 +38,72 @@ Parameters:
 - withExtension: The file extension, typically "ply".
 
 > Note: The Gaussian System renders point cloud data stored in the .ply format. Ensure your Gaussian Splat file is properly formatted and contains the necessary attributes (position, color, opacity, scale, rotation).
+
+---
+
+## Progressive Gaussian Splats
+
+Progressive Gaussian loading is available without a tile-streamed scene. Use it when you
+want a Gaussian to appear quickly at a coarse tier, then refine toward full resolution as
+the camera gets closer.
+
+Progressive assets use `.untoldgs` tier files:
+
+```text
+<baseFilename>_lod0.untoldgs
+<baseFilename>_lod1.untoldgs
+<baseFilename>_lod2.untoldgs
+...
+```
+
+`lod0` is the finest/full-resolution tier. Higher LOD numbers are progressively coarser.
+The engine loads the coarsest tier first, then `GaussianLODSystem` requests finer tiers
+based on camera distance.
+
+Generate tiers from a `.ply` source with the exporter:
+
+```bash
+untoldengine export --input "chair.ply" --output "chair.untoldgs" --lod-levels 4
+```
+
+Then register the entity with a progressive source:
+
+```swift
+let chair = createEntity()
+translateTo(entityId: chair, position: simd_float3(0.0, 0.0, -3.0))
+
+setEntityGaussian(
+    entityId: chair,
+    source: .progressive(
+        baseFilename: "chair",
+        levelCount: 4,
+        maxDistances: [5.0, 15.0, 25.0, .greatestFiniteMagnitude]
+    )
+)
+```
+
+`maxDistances` must have one entry per LOD. Each value is the farthest camera distance at
+which that LOD is allowed to be selected:
+
+- `lod0` can be used inside `5.0` units.
+- `lod1` can be used from `5.0` to `15.0` units.
+- `lod2` can be used from `15.0` to `25.0` units.
+- `lod3` is used beyond `25.0` units, or while finer tiers are still loading.
+
+The system always falls back to the best tier already resident in memory, so the entity can
+become visible quickly with the coarsest tier and refine toward `lod0`.
+
+### Debugging progressive LOD
+
+Gaussian progressive LODs participate in the same LOD debug visualization used by mesh
+LODs:
+
+```swift
+setSpatialDebug(.lodLevels(true))
+```
+
+When enabled, the renderer tints Gaussian splats by their currently selected progressive
+LOD. This is useful for confirming that the engine is switching tiers as the camera moves.
 
 ---
 
@@ -60,13 +135,12 @@ stream either one whole Gaussian file or a progressive `.untoldgs` tier set.
 ```swift
 setEntityGaussianStreaming(
     entityId: EntityID,
-    source: GaussianStreamingSource,
+    source: GaussianSource,
     options: GaussianStreamingOptions
 )
 ```
 
-`GaussianStreamingSource` selects what kind of Gaussian asset the streaming system should
-load:
+`GaussianSource` selects what kind of Gaussian asset the streaming system should load:
 
 ```swift
 .single(filename: String, withExtension: String)
@@ -150,9 +224,8 @@ Parameters:
 
 ### Progressive Gaussian splat streaming
 
-Use `.progressive(...)` when the Gaussian asset has been baked into multiple `.untoldgs`
-tiers. The engine loads the coarsest tier first, then swaps in finer resident tiers as the
-camera gets closer.
+Use `.progressive(...)` with `setEntityGaussianStreaming` when you want tile-driven
+load/unload behavior plus the same coarse-to-fine refinement described above.
 
 Progressive tier filenames must follow this pattern:
 
@@ -172,17 +245,6 @@ chair_lod2.untoldgs
 chair_lod3.untoldgs
 ```
 
-`lod0` is the finest/full-resolution tier. Higher LOD numbers are progressively coarser.
-
-You can generate these files from a `.ply` source with the exporter:
-
-```bash
-untoldengine export --input "chair.ply" --output "chair.untoldgs" --lod-levels 4
-```
-
-The exporter writes the progressive tier files next to the requested output path using the
-`_lodN.untoldgs` suffix.
-
 ```swift
 setEntityGaussianStreaming(
     entityId: streamSplat,
@@ -199,36 +261,6 @@ setEntityGaussianStreaming(
 )
 ```
 
-`maxDistances` must have one entry per LOD. Each value is the farthest camera distance at
-which that LOD is allowed to be selected:
-
-```swift
-maxDistances: [5.0, 15.0, 25.0, .greatestFiniteMagnitude]
-```
-
-With the distances above:
-
-- `lod0` can be used inside `5.0` units.
-- `lod1` can be used from `5.0` to `15.0` units.
-- `lod2` can be used from `15.0` to `25.0` units.
-- `lod3` is used beyond `25.0` units, or while finer tiers are still loading.
-
-The system always falls back to the best tier already resident in memory. That means the
-entity can become visible quickly with the coarsest tier, then refine toward `lod0` when
-closer tiers finish loading.
-
-### Debugging progressive LOD
-
-Gaussian progressive LODs participate in the same LOD debug visualization used by mesh
-LODs:
-
-```swift
-setSpatialDebug(.lodLevels(true))
-```
-
-When enabled, the renderer tints Gaussian splats by their currently selected progressive
-LOD. This is useful for confirming that the engine is switching tiers as the camera moves.
-
 ### Which function should I use?
 
 - **`setEntityGaussian`** — load immediately, stays resident. Use for a small number of
@@ -236,6 +268,9 @@ LOD. This is useful for confirming that the engine is switching tiers as the cam
 - **`setEntityGaussianAsync`** — same immediate/resident behavior, but the parse and GPU
   upload happen off the main thread. Use for a one-off splat load where you don't want a
   frame hitch, but still don't need distance-based unloading.
+- **`setEntityGaussian(entityId:source:)`** — load an always-present Gaussian from either
+  `.single(...)` or `.progressive(...)`. Use this when you want progressive refinement
+  without tile-based scene streaming.
 - **`setEntityGaussianStreaming`** — registers the entity with `GeometryStreamingSystem`
   instead of loading everything immediately. Use `.single(...)` for a whole-file streamed
   prop, or `.progressive(...)` for coarse-to-fine Gaussian tiers.
