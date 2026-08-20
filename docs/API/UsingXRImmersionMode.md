@@ -81,6 +81,130 @@ XRHolder.shared.xr?.setImmersionMode(
 
 ---
 
+## Shutting Down and Re-entering the Immersive Space
+
+The examples above cover creating the XR session once. If your app lets the
+user leave the immersive space and come back later — dismissing it to show a
+picker or menu, then opening it again for the same or a different scene —
+you must tear the session down properly first. Otherwise the
+`CompositorLayer` renderer closure's usual `if XRHolder.shared.xr == nil`
+guard stays false forever, and nothing gets rebuilt on the next entry. This
+is a common integration bug: the space visually dismisses fine, but nothing
+ever loads again afterward.
+
+### The Shutdown API
+
+```swift
+import UntoldEngineXR
+
+@MainActor
+public func shutdownUntoldEngineXR(_ xr: UntoldEngineXR, completion: (() -> Void)? = nil)
+```
+
+This performs a full, orderly teardown: resets scene-ready state, unregisters
+XR input, clears geometry streaming, destroys all entities, clears batches,
+octree, picking, and camera state, then stops the XR runtime. **The caller is
+responsible for releasing its own XR references (`XRHolder.shared.xr = nil`,
+etc.) inside `completion`** — the engine has no knowledge of your app's
+holder type, so it can't do this for you.
+
+### Recommended Pattern
+
+Extend your `XRHolder` with a guarded shutdown method, and call it *before*
+`dismissImmersiveSpace()` — not after:
+
+```swift
+@MainActor
+final class XRHolder {
+    static let shared = XRHolder()
+    var xr: UntoldEngineXR?
+    var renderThread: Thread?
+
+    private var isShuttingDown = false
+    private var pendingShutdownCompletions: [() -> Void] = []
+
+    var hasActiveSession: Bool {
+        xr != nil || renderThread != nil
+    }
+
+    func shutdownEngine(completion: (() -> Void)? = nil) {
+        if isShuttingDown {
+            if let completion { pendingShutdownCompletions.append(completion) }
+            return
+        }
+        isShuttingDown = true
+        if let completion { pendingShutdownCompletions.append(completion) }
+
+        let finish = { [weak self] in
+            Task { @MainActor in
+                guard let self else { return }
+                destroyAllEntities()
+                self.xr = nil
+                self.renderThread = nil
+                self.isShuttingDown = false
+                let completions = self.pendingShutdownCompletions
+                self.pendingShutdownCompletions.removeAll()
+                completions.forEach { $0() }
+            }
+        }
+
+        guard let xr else { finish(); return }
+        shutdownUntoldEngineXR(xr) { finish() }
+    }
+
+    /// Synchronous fallback for sessions left without going through
+    /// shutdownEngine (e.g. the system's own dismiss gesture).
+    func resetStaleEngineState() {
+        xr?.stop()
+        destroyAllEntities()
+        xr = nil
+        renderThread = nil
+        isShuttingDown = false
+    }
+}
+```
+
+Wherever your UI triggers "leave the experience":
+
+```swift
+XRHolder.shared.shutdownEngine {
+    Task { @MainActor in
+        await dismissImmersiveSpace()
+        // reset your own app-level selection/navigation state here
+    }
+}
+```
+
+And defensively, at the top of the `CompositorLayer` renderer closure — in
+case the space was ever left without going through your own shutdown flow
+(the system's own dismiss gesture, for example):
+
+```swift
+CompositorLayer(configuration: UntoldEngineConfiguration(), renderer: { layerRenderer in
+    if XRHolder.shared.hasActiveSession {
+        XRHolder.shared.resetStaleEngineState()
+    }
+
+    if XRHolder.shared.xr == nil {
+        // ... build a fresh session, as in the examples above
+    }
+})
+```
+
+The re-entrancy guard (`isShuttingDown`/`pendingShutdownCompletions`) matters
+because a user can trigger "leave" more than once before the async teardown
+finishes — without it, a second call could race the first and null out `xr`
+while the first shutdown is still using it.
+
+> **Note:** `resetUntoldWorldForXR(completion:)` is a lighter-weight sibling
+> API — it clears world state (entities, streaming, batching, picking) but
+> *keeps the XR runtime alive*. Use it when swapping to a different
+> scene/asset without leaving the immersive space at all; use
+> `shutdownUntoldEngineXR` (above) when the user is actually exiting the
+> space.
+
+---
+
 ## Enabling the Environment
 
 Enable environment rendering from your `GameScene` setup:
