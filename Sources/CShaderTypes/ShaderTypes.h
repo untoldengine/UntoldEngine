@@ -557,6 +557,7 @@ typedef enum{
       gaussianTBDRRenderViewPortIndex,
       gaussianTBDRRenderReverseZIndex,
       gaussianTBDRRenderPrecomputedIndex,
+      gaussianTBDRRenderDebugColorIndex,
   }GaussianTBDRRenderBufferIndices;
 
 typedef enum{

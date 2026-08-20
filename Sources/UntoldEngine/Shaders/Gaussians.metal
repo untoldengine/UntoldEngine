@@ -456,6 +456,7 @@ vertex GaussianOutData vertexGaussianTBDRShader(
     constant Uniforms                 &uniforms   [[buffer(gaussianTBDRRenderUniformIndex)]],
     constant float2                   &viewport   [[buffer(gaussianTBDRRenderViewPortIndex)]],
     const device GaussianPrecomputedSplat *precomputedSplats [[buffer(gaussianTBDRRenderPrecomputedIndex)]],
+    constant float4                   &debugColor [[buffer(gaussianTBDRRenderDebugColorIndex)]],
     uint                               vid        [[vertex_id]],
     uint                               iid        [[instance_id]])
 {
@@ -506,7 +507,7 @@ vertex GaussianOutData vertexGaussianTBDRShader(
     float2 ndcOffset = pixelOffset * 2.0f / viewport;
     out.position = centerClip;
     out.position.xy += ndcOffset * centerClip.w;
-    out.color = precomputed.color;
+    out.color = debugColor.w > 0.0f ? debugColor.xyz : precomputed.color;
     out.alpha = float(splat.colorAndOpacity.w);
     out.valid = true;
 
