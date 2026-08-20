@@ -85,6 +85,57 @@ final class GaussianProgressiveLODTest: BaseRenderSetup {
         XCTAssertGreaterThan(tiers[1].splatCount, tiers[2].splatCount)
     }
 
+    func testBakeProgressiveTiersPreservesSpatialCoverageInCoarseTier() throws {
+        let ply = FileManager.default.temporaryDirectory
+            .appendingPathComponent("GaussianSpatialCoverage-\(UUID().uuidString)")
+            .appendingPathExtension("ply")
+        let output = FileManager.default.temporaryDirectory
+            .appendingPathComponent("GaussianSpatialCoverage-\(UUID().uuidString)")
+            .appendingPathExtension("untoldgs")
+
+        let lines = [
+            "ply",
+            "format ascii 1.0",
+            "element vertex 8",
+            "property float x",
+            "property float y",
+            "property float z",
+            "property float scale_0",
+            "property float scale_1",
+            "property float scale_2",
+            "property float f_dc_0",
+            "property float f_dc_1",
+            "property float f_dc_2",
+            "property float opacity",
+            "property float rot_0",
+            "property float rot_1",
+            "property float rot_2",
+            "property float rot_3",
+            "end_header",
+            "0 0 0 0 0 0 0 0 0 5 1 0 0 0",
+            "0 1 0 0 0 0 0 0 0 5 1 0 0 0",
+            "0 2 0 0 0 0 0 0 0 5 1 0 0 0",
+            "0 3 0 0 0 0 0 0 0 5 1 0 0 0",
+            "0 4 0 0 0 0 0 0 0 5 1 0 0 0",
+            "0 5 0 0 0 0 0 0 0 5 1 0 0 0",
+            "10 0 0 -4 -4 -4 0 0 0 -4 1 0 0 0",
+            "10 1 0 -4 -4 -4 0 0 0 -4 1 0 0 0",
+        ]
+        try lines.joined(separator: "\n").write(to: ply, atomically: true, encoding: .utf8)
+
+        let urls = try bakeGaussianSplatProgressiveTiers(
+            plyURL: ply,
+            outputBaseURL: output,
+            lodFractions: [1.0, 0.25]
+        )
+        let coarse = try UntoldGSFormat.read(from: urls[1])
+        XCTAssertEqual(coarse.splatCount, 2)
+
+        let xs = coarse.encodedSplats.map { $0.position.x }
+        XCTAssertTrue(xs.contains { $0 < 1 }, "Coarse tier should keep coverage from the dense left cluster")
+        XCTAssertTrue(xs.contains { $0 > 9 }, "Coarse tier should keep coverage from the sparse right cluster")
+    }
+
     func testProgressiveStreamingLoadsCoarsestFirstThenRefinesOnDemand() async throws {
         _ = makeContainingTile()
         let base = try bakeProgressiveBase(levelCount: 3)
