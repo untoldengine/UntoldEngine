@@ -503,7 +503,9 @@ typedef struct{
     simd_half4  colorAndOpacity; // .xyz = SH0 base color, .w = opacity
 }EncodedGaussianSplat;
 
-// Higher-order SH coefficients are stored in a separate packed half buffer.
+// Higher-order SH coefficients are stored in a separate packed byte buffer,
+// quantized to a fixed [-1, 1] range: byte = round(clamp(x,-1,1)*127)+128,
+// dequantized on read as (byte-128)/128 — see loadGaussianSHCoefficient.
 // Layout per splat: R[1...n], G[1...n], B[1...n]. The DC coefficient remains
 // represented by EncodedGaussianSplat.colorAndOpacity.xyz.
 typedef struct{

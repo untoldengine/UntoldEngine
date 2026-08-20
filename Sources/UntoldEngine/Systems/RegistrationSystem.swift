@@ -3321,7 +3321,7 @@ private func buildGaussianLoadResult(filename: String, withExtension: String) ->
     if let packedSphericalHarmonics, !packedSphericalHarmonics.coefficients.isEmpty {
         sphericalHarmonicsBuffer = renderInfo.device.makeBuffer(
             bytes: packedSphericalHarmonics.coefficients,
-            length: packedSphericalHarmonics.coefficients.count * MemoryLayout<Float16>.stride,
+            length: packedSphericalHarmonics.coefficients.count * MemoryLayout<UInt8>.stride,
             options: .storageModeShared
         )
         guard sphericalHarmonicsBuffer != nil else {
@@ -3488,12 +3488,25 @@ public func setEntityGaussianStreamable(
 }
 
 struct PackedGaussianSphericalHarmonics {
-    let coefficients: [Float16]
+    let coefficients: [UInt8]
     let metadata: GaussianSHMetadata
+}
+
+/// Quantizes a higher-order SH coefficient into the GPU's fixed [-1, 1] byte
+/// contract. Mirrors `loadGaussianSHCoefficient`'s dequantization in
+/// Gaussians.metal: `(byte - 128) / 128`. Values outside [-1, 1] are clamped
+/// rather than rejected — real trained assets occasionally have rare
+/// higher-order outliers (e.g. strong specular splats), and clamping only
+/// caps the affected highlight rather than discarding the whole asset.
+func quantizeGaussianSHCoefficient(_ value: Float) -> UInt8 {
+    let clamped = min(max(value, -1), 1)
+    return UInt8(clamping: Int(clamped * 127) + 128)
 }
 
 /// Packs higher-order SH coefficients to the GPU contract while leaving DC
 /// color in `EncodedGaussianSplat`. Input and output are both channel-major.
+/// Higher-order coefficients are quantized to one byte each; see
+/// `quantizeGaussianSHCoefficient`.
 func packGaussianSphericalHarmonics(
     _ sphericalHarmonics: GaussianSphericalHarmonics,
     splatCount: Int
@@ -3511,7 +3524,7 @@ func packGaussianSphericalHarmonics(
     }
 
     let outputPerSplat = higherOrderPerChannel * 3
-    var packed: [Float16] = []
+    var packed: [UInt8] = []
     packed.reserveCapacity(splatCount * outputPerSplat)
 
     for splatIndex in 0 ..< splatCount {
@@ -3519,11 +3532,11 @@ func packGaussianSphericalHarmonics(
         for channel in 0 ..< 3 {
             let channelBase = splatBase + channel * coefficientsPerChannel
             for coefficient in 1 ..< coefficientsPerChannel {
-                let value = Float16(sphericalHarmonics.coefficients[channelBase + coefficient])
+                let value = sphericalHarmonics.coefficients[channelBase + coefficient]
                 guard value.isFinite else {
-                    throw PLYError.invalidData("Spherical-harmonic coefficient cannot be represented as Float16")
+                    throw PLYError.invalidData("Spherical-harmonic coefficient is not finite")
                 }
-                packed.append(value)
+                packed.append(quantizeGaussianSHCoefficient(value))
             }
         }
     }

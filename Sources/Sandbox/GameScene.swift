@@ -22,6 +22,10 @@
             setupDefaultSceneObjects()
             setSceneReady(false)
 
+            let splat = createEntity()
+            setEntityGaussian(entityId: splat, filename: "/Users/haroldserrano/Downloads/Pooltable", withExtension: "ply")
+            rotateBy(entityId: splat, angle: 180, axis: simd_float3(1.0,0.0,0.0))
+            setSceneReady(true)
             // Make sure to convert your usdz files to .untold format as explained in docs/API/UsingTheExporter
 
             // Uncomment to render a simple mesh.
