@@ -3288,19 +3288,36 @@ public enum UntoldGSFormat {
         let versionValue = readUInt32(data, at: 4)
         guard versionValue == version else { throw UntoldGSError.unsupportedVersion(versionValue) }
 
-        let splatCount = Int(readUInt64(data, at: 8))
+        let splatCountRaw = readUInt64(data, at: 8)
         let shDegree = readUInt32(data, at: 16)
         let shCoefficientsPerChannel = readUInt32(data, at: 20)
         let shHigherOrderPerSplat = readUInt32(data, at: 24)
-        let encodedByteCount = Int(readUInt64(data, at: 32))
-        let shByteCount = Int(readUInt64(data, at: 40))
+        let encodedByteCountRaw = readUInt64(data, at: 32)
+        let shByteCountRaw = readUInt64(data, at: 40)
 
-        let expectedEncodedBytes = splatCount * MemoryLayout<EncodedGaussianSplat>.stride
-        guard encodedByteCount == expectedEncodedBytes else {
-            throw UntoldGSError.sizeMismatch("encoded splat bytes \(encodedByteCount), expected \(expectedEncodedBytes)")
+        // Validate every header-declared count against the actual file size using
+        // overflow-checked UInt64 arithmetic before converting anything to Int — a corrupt or
+        // malicious header can declare values that overflow a plain multiply/add or don't fit
+        // Int, and an unchecked Int(...) conversion would trap the process instead of throwing
+        // a catchable UntoldGSError.
+        let stride = UInt64(MemoryLayout<EncodedGaussianSplat>.stride)
+        let (expectedEncodedBytes, splatByteOverflow) = splatCountRaw.multipliedReportingOverflow(by: stride)
+        guard !splatByteOverflow, encodedByteCountRaw == expectedEncodedBytes else {
+            throw UntoldGSError.sizeMismatch("encoded splat bytes \(encodedByteCountRaw), expected \(expectedEncodedBytes)")
         }
-        guard data.count == headerByteCount + encodedByteCount + shByteCount else {
-            throw UntoldGSError.sizeMismatch("file has \(data.count) bytes, expected \(headerByteCount + encodedByteCount + shByteCount)")
+
+        let (headerPlusEncoded, headerOverflow) = UInt64(headerByteCount).addingReportingOverflow(encodedByteCountRaw)
+        let (totalExpectedBytes, totalOverflow) = headerPlusEncoded.addingReportingOverflow(shByteCountRaw)
+        guard !headerOverflow, !totalOverflow, UInt64(data.count) == totalExpectedBytes else {
+            throw UntoldGSError.sizeMismatch("file has \(data.count) bytes, expected \(totalExpectedBytes)")
+        }
+
+        // Both counts are now provably <= data.count (a valid Int), so these conversions
+        // cannot trap.
+        guard let encodedByteCount = Int(exactly: encodedByteCountRaw),
+              let shByteCount = Int(exactly: shByteCountRaw)
+        else {
+            throw UntoldGSError.sizeMismatch("header-declared byte counts do not fit in memory")
         }
 
         let encodedStart = headerByteCount
@@ -3496,9 +3513,20 @@ private func buildGaussianLoadResult(filename: String, withExtension: String) ->
 func buildGaussianLoadResultFromPLY(url: URL, sourceDescription: String) throws -> GaussianLoadResult? {
     let asset = try PLYReader.readGaussianAsset(from: url)
     let encodedSplats = asset.splats.map(encodeGaussianSplatForTBDR)
-    let packedSphericalHarmonics = try asset.sphericalHarmonics.map {
-        try packGaussianSphericalHarmonics($0, splatCount: asset.splats.count)
+
+    // Reported here, distinctly from a raw PLY-parse failure (which propagates to the
+    // caller's catch instead), so a debugger sees "failed to pack SH" rather than a generic
+    // "failed to read" message when the file parses fine but has bad SH data (e.g. NaN).
+    let packedSphericalHarmonics: PackedGaussianSphericalHarmonics?
+    do {
+        packedSphericalHarmonics = try asset.sphericalHarmonics.map {
+            try packGaussianSphericalHarmonics($0, splatCount: asset.splats.count)
+        }
+    } catch {
+        handleError(.assetDataMissing, "Failed to pack spherical harmonics from \(sourceDescription): \(error.localizedDescription)")
+        return nil
     }
+
     return buildGaussianLoadResult(
         encodedSplats: encodedSplats,
         packedSphericalHarmonics: packedSphericalHarmonics,
@@ -3701,8 +3729,21 @@ public func setEntityGaussianProgressive(
         errorPrefix: "setEntityGaussianProgressive"
     ) else { return }
 
-    Task {
-        _ = await GeometryStreamingSystem.shared.loadInitialGaussianProgressiveTier(entityId: entityId)
+    // Store the load on the coarsest tier's loadTask, mirroring requestGaussianLODLevelLoad's
+    // pattern, so removeEntityGaussianLOD can cancel it if entityId is destroyed while this is
+    // still in flight. The assignment happens inside the same gate that spawns the Task: since
+    // the Task's own body needs this same lock to touch scene state, it can't run ahead and
+    // clear loadTask before this closure finishes assigning it.
+    withWorldMutationGate {
+        guard let lod = scene.get(component: GaussianLODComponent.self, for: entityId),
+              !lod.lodLevels.isEmpty
+        else { return }
+
+        let coarsestIndex = lod.lodLevels.count - 1
+        let task = Task {
+            _ = await GeometryStreamingSystem.shared.loadInitialGaussianProgressiveTier(entityId: entityId)
+        }
+        lod.lodLevels[coarsestIndex].loadTask = task
     }
 }
 
@@ -4285,12 +4326,7 @@ func removeEntityLOD(entityId: EntityID) {
 
 func removeEntityGaussianLOD(entityId: EntityID) {
     if let lodComponent = scene.get(component: GaussianLODComponent.self, for: entityId) {
-        for index in lodComponent.lodLevels.indices {
-            lodComponent.lodLevels[index].loadTask?.cancel()
-            lodComponent.lodLevels[index].loadTask = nil
-            lodComponent.lodLevels[index].buffers = nil
-            lodComponent.lodLevels[index].residencyState = .notResident
-        }
+        lodComponent.releaseAllLevelResources()
         lodComponent.lodLevels.removeAll()
         scene.remove(component: GaussianLODComponent.self, from: entityId)
     }

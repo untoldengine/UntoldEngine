@@ -115,7 +115,7 @@ public class LODSystem: @unchecked Sendable {
         }
 
         // Calculate distance
-        let distance = calculateDistance(entityId: entityId, cameraPosition: cameraPosition)
+        let distance = entityDistanceToCamera(entityId: entityId, cameraPosition: cameraPosition)
 
         // Select desired LOD level based on distance
         let desiredLOD = selectLODLevel(
@@ -161,58 +161,16 @@ public class LODSystem: @unchecked Sendable {
         return lodComponent.currentLOD
     }
 
-    private func calculateDistance(entityId: EntityID, cameraPosition: simd_float3) -> Float {
-        guard let worldTransform = scene.get(component: WorldTransformComponent.self, for: entityId),
-              let localTransform = scene.get(component: LocalTransformComponent.self, for: entityId)
-        else { return 0.0 }
-
-        // Get entity center from AABB
-        let boundingBox = localTransform.boundingBox
-        let localCenter = (boundingBox.min + boundingBox.max) * 0.5
-
-        // Transform to world space
-        let worldCenter = worldTransform.space * simd_float4(localCenter, 1.0)
-
-        // Calculate distance from camera to entity center
-        return simd_distance(cameraPosition, simd_float3(worldCenter.x, worldCenter.y, worldCenter.z))
-    }
-
     private func selectLODLevel(distance: Float, lodComponent: LODComponent, currentLOD: Int) -> Int {
-        // Check for forced LOD override
-        if let forced = lodComponent.forcedLOD, forced >= 0 {
-            return min(forced, lodComponent.lodLevels.count - 1)
-        }
-
-        // Apply LOD bias
-        let adjustedDistance = distance * LODConfig.shared.lodBias
-        let globalDistances = LODConfig.shared.lodDistances
-
-        // Find appropriate LOD level.
-        // Per-level maxDistance takes priority; fall back to LODConfig.lodDistances[index]
-        // when maxDistance is 0 (unset). This lets users configure distances either
-        // per-level at registration time OR globally via LODConfig.
-        for (index, lodLevel) in lodComponent.lodLevels.enumerated() {
-            let baseThreshold: Float
-            if lodLevel.maxDistance > 0 {
-                baseThreshold = lodLevel.maxDistance
-            } else if index < globalDistances.count {
-                baseThreshold = globalDistances[index]
-            } else {
-                continue // No threshold available for this level — skip
-            }
-
-            // Apply hysteresis when switching to higher detail (prevents flickering)
-            let threshold = index < currentLOD
-                ? baseThreshold - LODConfig.shared.hysteresis
-                : baseThreshold
-
-            if adjustedDistance <= threshold {
-                return index
-            }
-        }
-
-        // Beyond all thresholds, use lowest LOD
-        return lodComponent.lodLevels.count - 1
+        selectLODIndex(
+            levels: lodComponent.lodLevels,
+            distance: distance,
+            currentLOD: currentLOD,
+            forcedLOD: lodComponent.forcedLOD,
+            lodBias: LODConfig.shared.lodBias,
+            hysteresis: LODConfig.shared.hysteresis,
+            globalDistances: LODConfig.shared.lodDistances
+        )
     }
 
     private func applyLOD(entityId: EntityID, newLOD: Int, deltaTime _: Float) {
@@ -303,4 +261,78 @@ func shouldDeferLODSelectionDuringTransition(
     previousLOD: Int?
 ) -> Bool {
     fadeTransitionsEnabled && previousLOD != nil
+}
+
+/// Shared by `LODComponent` and `GaussianLODComponent` — see `LODResidencyLevel`.
+func isLODLevelResident<T: LODResidencyLevel>(_ levels: [T], _ index: Int) -> Bool {
+    guard index >= 0, index < levels.count else { return false }
+    let level = levels[index]
+    return level.residencyState == .resident && level.isPopulated
+}
+
+/// Shared by `LODComponent` and `GaussianLODComponent` — see `LODResidencyLevel`. Prefers a
+/// coarser resident level (higher index, lower detail) over a finer one, since showing
+/// something-but-coarser while the desired level streams in beats swapping to a different
+/// detail level entirely.
+func findFallbackLODLevel<T: LODResidencyLevel>(_ levels: [T], from desiredIndex: Int) -> Int? {
+    for i in (desiredIndex + 1) ..< levels.count where isLODLevelResident(levels, i) {
+        return i
+    }
+    for i in (0 ..< desiredIndex).reversed() where isLODLevelResident(levels, i) {
+        return i
+    }
+    return nil
+}
+
+/// Shared by `LODSystem` and `GaussianLODSystem` — distance from the camera to an entity's
+/// local-space bounding-box center, in world space.
+func entityDistanceToCamera(entityId: EntityID, cameraPosition: simd_float3) -> Float {
+    guard let worldTransform = scene.get(component: WorldTransformComponent.self, for: entityId),
+          let localTransform = scene.get(component: LocalTransformComponent.self, for: entityId)
+    else { return 0.0 }
+
+    let boundingBox = localTransform.boundingBox
+    let localCenter = (boundingBox.min + boundingBox.max) * 0.5
+    let worldCenter = worldTransform.space * simd_float4(localCenter, 1.0)
+    return simd_distance(cameraPosition, simd_float3(worldCenter.x, worldCenter.y, worldCenter.z))
+}
+
+/// Shared by `LODSystem.selectLODLevel` and `GaussianLODSystem.selectDesiredLOD` — walks
+/// `levels` in distance order and returns the first whose threshold isn't yet exceeded by
+/// `distance * lodBias`. Applies `hysteresis` when a candidate level would mean switching to
+/// higher detail (lower index) than `currentLOD`, so a distance oscillating right at a
+/// threshold doesn't flip the selection every re-evaluation. Falls back to
+/// `globalDistances[index]` when a level's own `maxDistance` is unset (0).
+func selectLODIndex<T: LODDistanceLevel>(
+    levels: [T],
+    distance: Float,
+    currentLOD: Int,
+    forcedLOD: Int?,
+    lodBias: Float,
+    hysteresis: Float,
+    globalDistances: [Float]
+) -> Int {
+    if let forced = forcedLOD, forced >= 0 {
+        return min(forced, levels.count - 1)
+    }
+
+    let adjustedDistance = distance * lodBias
+
+    for (index, level) in levels.enumerated() {
+        let baseThreshold: Float
+        if level.maxDistance > 0 {
+            baseThreshold = level.maxDistance
+        } else if index < globalDistances.count {
+            baseThreshold = globalDistances[index]
+        } else {
+            continue
+        }
+
+        let threshold = index < currentLOD ? baseThreshold - hysteresis : baseThreshold
+        if adjustedDistance <= threshold {
+            return index
+        }
+    }
+
+    return levels.count - 1
 }
