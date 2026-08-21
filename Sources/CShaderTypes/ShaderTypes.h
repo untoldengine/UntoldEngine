@@ -486,20 +486,26 @@ typedef struct{
     float opacity;
 }GaussianSplat;
 
+// position stays full float precision (fed directly into world/view/clip-space matrix math,
+// where half-precision error would visibly drift); covariance and color/opacity are
+// half-precision, matching the density another native Metal/simd Gaussian-splat renderer
+// (MetalSplatter) uses for the same fields. simd_half3/simd_half4 pack tightly (8 bytes each,
+// no padding between them) unlike simd_float3 (16-byte-aligned even for a 3-component vector),
+// so this is 48 bytes total per splat vs. the previous 128 — not just "half the bytes" of the
+// 3 vector fields, but a ~2.7x reduction overall once the float3 alignment padding that also
+// disappears is accounted for. colorAndOpacity folds opacity into color's 4th component
+// (again matching MetalSplatter) since a lone scalar field here would otherwise force the
+// same kind of alignment padding this change is trying to eliminate.
 typedef struct{
     simd_float3 position;
-    float opacity;
-    simd_float3 color;
-    float _pad0;
-    simd_float3 covA;
-    float _pad1;
-    simd_float3 covB;
-    float _pad2;
+    simd_half3  covA;
+    simd_half3  covB;
+    simd_half4  colorAndOpacity; // .xyz = SH0 base color, .w = opacity
 }EncodedGaussianSplat;
 
 // Higher-order SH coefficients are stored in a separate packed half buffer.
 // Layout per splat: R[1...n], G[1...n], B[1...n]. The DC coefficient remains
-// represented by EncodedGaussianSplat.color.
+// represented by EncodedGaussianSplat.colorAndOpacity.xyz.
 typedef struct{
     uint degree;
     uint coefficientsPerChannel;
@@ -507,17 +513,26 @@ typedef struct{
     uint _pad0;
 }GaussianSHMetadata;
 
-// Per-splat conic/radius/color, computed once per splat per frame by the gaussianPreprocess
+// Per-splat conic/axes/color, computed once per splat per frame by the gaussianPreprocess
 // compute kernel instead of redundantly 4x per splat (once per instanced quad vertex) in the
 // draw vertex shader — see gaussianPreprocess in Gaussians.metal. Indexed by the same
 // original splat index as EncodedGaussianSplat.
+//
+// axis1/axis2 are the projected covariance ellipse's two (orthogonal) kGaussianQuadSigma-sigma
+// semi-axis vectors in screen pixels — i.e. eigenvectors of the 2D covariance scaled by
+// kGaussianQuadSigma*sqrt(eigenvalue) — used to build a tight, rotated quad instead of an
+// axis-aligned bounding box. An axis-aligned box has
+// to cover a rotated ellipse's full extent along screen X/Y, which for an anisotropic splat
+// (the common case — Gaussians are oriented however the surface they came from sits) can be
+// several times larger in area than the ellipse itself, costing that many more rasterized/
+// shaded fragments regardless of how cheap the per-fragment TBDR blend itself is.
 typedef struct{
     simd_float3 conic;
     float _pad0;
     simd_float3 color;
     float _pad1;
-    simd_float2 radius;
-    simd_float2 _pad2;
+    simd_float2 axis1;
+    simd_float2 axis2;
 }GaussianPrecomputedSplat;
 
 typedef enum{

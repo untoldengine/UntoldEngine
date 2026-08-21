@@ -3552,13 +3552,11 @@ private func encodeGaussianSplatForTBDR(_ splat: GaussianSplat) -> EncodedGaussi
 
     return EncodedGaussianSplat(
         position: simd_float3(splat.center.x, splat.center.y, splat.center.z),
-        opacity: splat.opacity,
-        color: simd_float3(splat.color.x, splat.color.y, splat.color.z),
-        _pad0: 0.0,
-        covA: simd_float3(covariance[0, 0], covariance[0, 1], covariance[0, 2]),
-        _pad1: 0.0,
-        covB: simd_float3(covariance[1, 1], covariance[1, 2], covariance[2, 2]),
-        _pad2: 0.0
+        covA: simd_half3(Float16(covariance[0, 0]), Float16(covariance[0, 1]), Float16(covariance[0, 2])),
+        covB: simd_half3(Float16(covariance[1, 1]), Float16(covariance[1, 2]), Float16(covariance[2, 2])),
+        colorAndOpacity: simd_half4(
+            Float16(splat.color.x), Float16(splat.color.y), Float16(splat.color.z), Float16(splat.opacity)
+        )
     )
 }
 
