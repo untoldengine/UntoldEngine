@@ -861,13 +861,9 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         let splats = positions.map { pos in
             EncodedGaussianSplat(
                 position: pos,
-                opacity: 1.0,
-                color: simd_float3(1, 0, 0),
-                _pad0: 0.0,
-                covA: simd_float3(1, 0, 0),
-                _pad1: 0.0,
-                covB: simd_float3(1, 0, 1),
-                _pad2: 0.0
+                covA: simd_half3(1, 0, 0),
+                covB: simd_half3(1, 0, 1),
+                colorAndOpacity: simd_half4(1, 0, 0, 1)
             )
         }
 
