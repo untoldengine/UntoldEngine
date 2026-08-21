@@ -75,7 +75,7 @@ final class GaussianProgressiveLODTest: BaseRenderSetup {
             .appendingPathComponent("GaussianProgressiveLODTest-\(UUID().uuidString)")
             .appendingPathExtension("untoldgs")
         _ = try bakeGaussianSplatProgressiveTiers(
-            plyURL: try testPLYURL(),
+            plyURL: testPLYURL(),
             outputBaseURL: output,
             levelCount: levelCount
         )
@@ -87,7 +87,7 @@ final class GaussianProgressiveLODTest: BaseRenderSetup {
             .appendingPathComponent("GaussianProgressiveBake-\(UUID().uuidString)")
             .appendingPathExtension("untoldgs")
         let bakeResult = try bakeGaussianSplatProgressiveTiers(
-            plyURL: try testPLYURL(),
+            plyURL: testPLYURL(),
             outputBaseURL: output,
             levelCount: 3
         )
@@ -144,7 +144,7 @@ final class GaussianProgressiveLODTest: BaseRenderSetup {
         let coarse = try UntoldGSFormat.read(from: bakeResult.tiers[1].url)
         XCTAssertEqual(coarse.splatCount, 2)
 
-        let xs = coarse.encodedSplats.map { $0.position.x }
+        let xs = coarse.encodedSplats.map(\.position.x)
         XCTAssertTrue(xs.contains { $0 < 1 }, "Coarse tier should keep coverage from the dense left cluster")
         XCTAssertTrue(xs.contains { $0 > 9 }, "Coarse tier should keep coverage from the sparse right cluster")
     }
@@ -235,14 +235,14 @@ final class GaussianProgressiveLODTest: BaseRenderSetup {
     }
 
     func testBakeProgressiveTiersReturnsAssetLevelBoundingBox() throws {
-        let asset = try PLYReader.readGaussianAsset(from: try testPLYURL())
+        let asset = try PLYReader.readGaussianAsset(from: testPLYURL())
         let expected = computeGaussianSplatBoundingBox(asset.splats)
 
         let output = FileManager.default.temporaryDirectory
             .appendingPathComponent("GaussianBakeBoundingBox-\(UUID().uuidString)")
             .appendingPathExtension("untoldgs")
         let bakeResult = try bakeGaussianSplatProgressiveTiers(
-            plyURL: try testPLYURL(),
+            plyURL: testPLYURL(),
             outputBaseURL: output,
             levelCount: 3
         )
@@ -257,7 +257,7 @@ final class GaussianProgressiveLODTest: BaseRenderSetup {
         // only has post-encode splat positions (no per-splat scale) -- it pads a centers-only
         // box by an RMS radius derived from the mean squared extent, rather than the exact
         // per-splat expansion computeGaussianSplatBoundingBox(_ splats:) does at bake time.
-        let asset = try PLYReader.readGaussianAsset(from: try testPLYURL())
+        let asset = try PLYReader.readGaussianAsset(from: testPLYURL())
         let allIndices = Array(asset.splats.indices)
         let positions = asset.splats.map { simd_float3($0.center.x, $0.center.y, $0.center.z) }
         let extentSum = allIndices.reduce(Float(0)) { partial, index in
@@ -281,7 +281,7 @@ final class GaussianProgressiveLODTest: BaseRenderSetup {
             .appendingPathComponent("GaussianMeanSquaredExtentRoundTrip-\(UUID().uuidString)")
             .appendingPathExtension("untoldgs")
         let bakeResult = try bakeGaussianSplatProgressiveTiers(
-            plyURL: try testPLYURL(),
+            plyURL: testPLYURL(),
             outputBaseURL: output,
             levelCount: 3
         )
@@ -449,9 +449,13 @@ final class GaussianProgressiveLODTest: BaseRenderSetup {
         // Drive it to LOD0 (distance 5, within maxDistances[0] = 10). This requires an actual
         // tier load, so a handful of update() calls (crossing the interval) plus an await is
         // expected here -- this part isn't what's under test.
-        for _ in 0 ..< 5 { GaussianLODSystem.shared.update(deltaTime: 0.1) }
+        for _ in 0 ..< 5 {
+            GaussianLODSystem.shared.update(deltaTime: 0.1)
+        }
         await lod.lodLevels[0].loadTask?.value
-        for _ in 0 ..< 5 { GaussianLODSystem.shared.update(deltaTime: 0.1) }
+        for _ in 0 ..< 5 {
+            GaussianLODSystem.shared.update(deltaTime: 0.1)
+        }
         XCTAssertEqual(lod.currentLOD, 0)
 
         // "Drag" the entity back out to distance 60 in one move. LOD2 (coarsest) is already
@@ -466,7 +470,7 @@ final class GaussianProgressiveLODTest: BaseRenderSetup {
         XCTAssertEqual(lod.currentLOD, 2, "A single post-drag update should pick up the entity's own displacement without waiting on the camera-driven throttle")
     }
 
-    func testCameraDriftAccumulatesAcrossThrottledFramesInsteadOfResettingEachFrame() {
+    func testCameraDriftAccumulatesAcrossThrottledFramesInsteadOfResettingEachFrame() throws {
         // Disable the per-entity fast path so only the camera-driven cumulative-displacement
         // fast path can possibly catch this, and set the interval high enough that it can't
         // fire on its own within the handful of update() calls below.
@@ -484,7 +488,7 @@ final class GaussianProgressiveLODTest: BaseRenderSetup {
             min: simd_float3(-0.1, -0.1, -0.1), max: simd_float3(0.1, 0.1, 0.1)
         )
 
-        let lod = scene.assign(to: entity, component: GaussianLODComponent.self)!
+        let lod = try XCTUnwrap(scene.assign(to: entity, component: GaussianLODComponent.self))
         var near = GaussianLODLevel(maxDistance: 3)
         near.buffers = GaussianComponent()
         near.residencyState = .resident
@@ -523,7 +527,7 @@ final class GaussianProgressiveLODTest: BaseRenderSetup {
         // of splats, loaded first) rather than the full asset, so it won't match the full
         // asset's box exactly -- just check it's in the same ballpark rather than requiring
         // precise equality.
-        let asset = try PLYReader.readGaussianAsset(from: try testPLYURL())
+        let asset = try PLYReader.readGaussianAsset(from: testPLYURL())
         let trueBox = computeGaussianSplatBoundingBox(asset.splats)
         let trueExtent = simd_length(trueBox.max - trueBox.min)
 
@@ -547,7 +551,7 @@ final class GaussianProgressiveLODTest: BaseRenderSetup {
         XCTAssertLessThan(gotExtent, trueExtent * 2.0, "Auto-populated box should be a reasonable approximation of the true asset extent")
     }
 
-    func testOverdrawClampDoesNotContaminateDistanceHysteresisAnchor() {
+    func testOverdrawClampDoesNotContaminateDistanceHysteresisAnchor() throws {
         LODConfig.shared.gaussianOverdrawBudget = 0.001 // force the clamp to walk to the coarsest tier
 
         let entity = createEntity()
@@ -556,7 +560,7 @@ final class GaussianProgressiveLODTest: BaseRenderSetup {
             min: simd_float3(-1, -1, -1), max: simd_float3(1, 1, 1)
         )
 
-        let lod = scene.assign(to: entity, component: GaussianLODComponent.self)!
+        let lod = try XCTUnwrap(scene.assign(to: entity, component: GaussianLODComponent.self))
         var level0 = GaussianLODLevel(maxDistance: 10)
         level0.meanSquaredSplatExtent = 1.0
         level0.buffers = GaussianComponent()

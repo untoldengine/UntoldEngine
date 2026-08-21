@@ -264,7 +264,7 @@ func shouldDeferLODSelectionDuringTransition(
 }
 
 /// Shared by `LODComponent` and `GaussianLODComponent` — see `LODResidencyLevel`.
-func isLODLevelResident<T: LODResidencyLevel>(_ levels: [T], _ index: Int) -> Bool {
+func isLODLevelResident(_ levels: [some LODResidencyLevel], _ index: Int) -> Bool {
     guard index >= 0, index < levels.count else { return false }
     let level = levels[index]
     return level.residencyState == .resident && level.isPopulated
@@ -274,7 +274,7 @@ func isLODLevelResident<T: LODResidencyLevel>(_ levels: [T], _ index: Int) -> Bo
 /// coarser resident level (higher index, lower detail) over a finer one, since showing
 /// something-but-coarser while the desired level streams in beats swapping to a different
 /// detail level entirely.
-func findFallbackLODLevel<T: LODResidencyLevel>(_ levels: [T], from desiredIndex: Int) -> Int? {
+func findFallbackLODLevel(_ levels: [some LODResidencyLevel], from desiredIndex: Int) -> Int? {
     for i in (desiredIndex + 1) ..< levels.count where isLODLevelResident(levels, i) {
         return i
     }
@@ -303,8 +303,8 @@ func entityDistanceToCamera(entityId: EntityID, cameraPosition: simd_float3) -> 
 /// higher detail (lower index) than `currentLOD`, so a distance oscillating right at a
 /// threshold doesn't flip the selection every re-evaluation. Falls back to
 /// `globalDistances[index]` when a level's own `maxDistance` is unset (0).
-func selectLODIndex<T: LODDistanceLevel>(
-    levels: [T],
+func selectLODIndex(
+    levels: [some LODDistanceLevel],
     distance: Float,
     currentLOD: Int,
     forcedLOD: Int?,
