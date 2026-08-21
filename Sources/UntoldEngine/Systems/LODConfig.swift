@@ -65,4 +65,21 @@ public struct LODConfig {
     /// Camera must move at least this many world units since the last LOD update
     /// before a new update is forced ahead of the frame-interval throttle.
     public var minimumCameraDisplacementForLODUpdate: Float = 0.5
+
+    /// An entity's distance-to-camera must change by at least this many world units since its
+    /// own last LOD evaluation before a refresh is forced ahead of the frame-interval throttle
+    /// — mirrors `minimumCameraDisplacementForLODUpdate` but for the target moving instead of
+    /// the camera (e.g. dragging a Gaussian splat prop while the camera stays put, which the
+    /// camera-only fast path can't see).
+    public var minimumEntityDisplacementForLODUpdate: Float = 0.5
+
+    /// Ceiling on `estimatedGaussianOverdraw` (mean blended fragments per pixel across a
+    /// Gaussian entity's screen footprint) before `GaussianLODSystem` forces a coarser tier
+    /// than pure distance-based selection would pick. This is a starting guess, not a derived
+    /// constant — the engine's serial TBDR blend caps at `kGaussianMaxBlendedSplatsPerPixel`
+    /// (64) per pixel, but sustained GPU frame-time overrun (the actual failure mode this
+    /// guards against) was observed well below that cap. Tune on-device by watching GPU frame
+    /// time while varying this value; only takes effect for LOD levels with a non-nil
+    /// `GaussianLODLevel.meanSquaredSplatExtent` supplied.
+    public var gaussianOverdrawBudget: Float = 12.0
 }

@@ -3220,6 +3220,9 @@ struct GaussianLoadResult {
     let spaceUniform: [MTLBuffer?]
     /// Sum of all GPU buffer bytes above, for `MemoryBudgetManager` registration.
     let estimatedGPUBytes: Int
+    /// Local-space bounding box computed from the actual loaded splat positions, for
+    /// `LocalTransformComponent.boundingBox` — see `computeGaussianSplatBoundingBox`.
+    let boundingBox: (min: simd_float3, max: simd_float3)
 }
 
 public enum UntoldGSError: Error, CustomStringConvertible {
@@ -3242,6 +3245,11 @@ public struct UntoldGSAsset {
     public let encodedSplats: [EncodedGaussianSplat]
     public let shCoefficients: [UInt8]
     public let shMetadata: GaussianSHMetadata?
+    /// Mean of this tier's splats' squared major-axis extent, baked in by
+    /// `bakeGaussianSplatProgressiveTiers` — see `estimatedGaussianOverdraw`. 0 for files
+    /// baked before this field existed (indistinguishable from a real 0, but a real 0 can only
+    /// happen for a tier with no splats, which never gets written).
+    public let meanSquaredSplatExtent: Float
 
     public var splatCount: Int { encodedSplats.count }
 }
@@ -3254,6 +3262,7 @@ public enum UntoldGSFormat {
     public static func write(
         encodedSplats: [EncodedGaussianSplat],
         sphericalHarmonics: PackedGaussianSphericalHarmonics?,
+        meanSquaredSplatExtent: Float = 0,
         to url: URL
     ) throws {
         var data = Data()
@@ -3263,7 +3272,7 @@ public enum UntoldGSFormat {
         appendUInt32(sphericalHarmonics?.metadata.degree ?? 0, to: &data)
         appendUInt32(sphericalHarmonics?.metadata.coefficientsPerChannel ?? 0, to: &data)
         appendUInt32(sphericalHarmonics?.metadata.higherOrderCoefficientsPerSplat ?? 0, to: &data)
-        appendUInt32(0, to: &data)
+        appendFloat(meanSquaredSplatExtent, to: &data)
         appendUInt64(UInt64(encodedSplats.count * MemoryLayout<EncodedGaussianSplat>.stride), to: &data)
         appendUInt64(UInt64(sphericalHarmonics?.coefficients.count ?? 0), to: &data)
 
@@ -3292,6 +3301,7 @@ public enum UntoldGSFormat {
         let shDegree = readUInt32(data, at: 16)
         let shCoefficientsPerChannel = readUInt32(data, at: 20)
         let shHigherOrderPerSplat = readUInt32(data, at: 24)
+        let meanSquaredSplatExtent = readFloat(data, at: 28)
         let encodedByteCountRaw = readUInt64(data, at: 32)
         let shByteCountRaw = readUInt64(data, at: 40)
 
@@ -3340,13 +3350,22 @@ public enum UntoldGSFormat {
         return UntoldGSAsset(
             encodedSplats: encodedSplats,
             shCoefficients: shCoefficients,
-            shMetadata: shMetadata
+            shMetadata: shMetadata,
+            meanSquaredSplatExtent: meanSquaredSplatExtent
         )
     }
 
     private static func appendUInt32(_ value: UInt32, to data: inout Data) {
         var littleEndian = value.littleEndian
         withUnsafeBytes(of: &littleEndian) { data.append(contentsOf: $0) }
+    }
+
+    private static func appendFloat(_ value: Float, to data: inout Data) {
+        appendUInt32(value.bitPattern, to: &data)
+    }
+
+    private static func readFloat(_ data: Data, at offset: Int) -> Float {
+        Float(bitPattern: readUInt32(data, at: offset))
     }
 
     private static func appendUInt64(_ value: UInt64, to data: inout Data) {
@@ -3372,6 +3391,7 @@ public enum UntoldGSFormat {
 func buildGaussianLoadResult(
     encodedSplats: [EncodedGaussianSplat],
     packedSphericalHarmonics: PackedGaussianSphericalHarmonics?,
+    meanSquaredSplatExtent: Float = 0,
     sourceDescription: String
 ) -> GaussianLoadResult? {
     guard encodedSplats.count <= Int(maxNumOfGaussians) else {
@@ -3490,8 +3510,50 @@ func buildGaussianLoadResult(
         sphericalHarmonicsBuffer: sphericalHarmonicsBuffer,
         sphericalHarmonicsMetadata: packedSphericalHarmonics?.metadata,
         spaceUniform: spaceUniform,
-        estimatedGPUBytes: estimatedGPUBytes
+        estimatedGPUBytes: estimatedGPUBytes,
+        // Splat centers alone under-size the true silhouette wherever a large-scale splat sits
+        // near the edge — pad uniformly by an approximate per-splat radius derived from the
+        // tier's mean squared extent (sqrt of the mean of major-axis², i.e. an RMS radius),
+        // since only splat centers/positions (not per-splat scale) are available post-encode.
+        boundingBox: computeGaussianSplatPositionBoundingBox(
+            encodedSplats.map(\.position),
+            padding: meanSquaredSplatExtent > 0 ? sqrt(meanSquaredSplatExtent) : 0
+        )
     )
+}
+
+/// Min/max bounding box over a set of local-space splat positions, expanded by `padding` in
+/// every direction (see call site doc for why: splat centers alone under-size the true
+/// silhouette). Mirrors `Mesh.computeMeshBoundingBox`'s shape/purpose for the mesh path.
+func computeGaussianSplatPositionBoundingBox(_ positions: [simd_float3], padding: Float = 0) -> (min: simd_float3, max: simd_float3) {
+    guard !positions.isEmpty else { return (min: .zero, max: .zero) }
+    var boundsMin = simd_float3(repeating: .infinity)
+    var boundsMax = simd_float3(repeating: -.infinity)
+    for position in positions {
+        boundsMin = simd_min(boundsMin, position)
+        boundsMax = simd_max(boundsMax, position)
+    }
+    let paddingVector = simd_float3(repeating: padding)
+    return (min: boundsMin - paddingVector, max: boundsMax + paddingVector)
+}
+
+/// Min/max bounding box over a set of source `GaussianSplat`s (bake-time, pre-encode form),
+/// expanded per-splat by its own major-axis extent (`gaussianMajorAxis`) rather than just its
+/// center — a splat whose center sits near the silhouette boundary but has a large individual
+/// scale visually extends past a centers-only box. Used for the asset-level box in
+/// `bakeGaussianSplatProgressiveTiers`, where the position hasn't been encoded into
+/// `EncodedGaussianSplat` yet and real per-splat scale is still available.
+func computeGaussianSplatBoundingBox(_ splats: [GaussianSplat]) -> (min: simd_float3, max: simd_float3) {
+    guard !splats.isEmpty else { return (min: .zero, max: .zero) }
+    var boundsMin = simd_float3(repeating: .infinity)
+    var boundsMax = simd_float3(repeating: -.infinity)
+    for splat in splats {
+        let center = simd_float3(splat.center.x, splat.center.y, splat.center.z)
+        let radius = simd_float3(repeating: gaussianMajorAxis(splat))
+        boundsMin = simd_min(boundsMin, center - radius)
+        boundsMax = simd_max(boundsMax, center + radius)
+    }
+    return (min: boundsMin, max: boundsMax)
 }
 
 /// Reads a `.ply` Gaussian splat asset from disk and builds its GPU buffers.
@@ -3530,11 +3592,17 @@ func buildGaussianLoadResultFromPLY(url: URL, sourceDescription: String) throws 
     return buildGaussianLoadResult(
         encodedSplats: encodedSplats,
         packedSphericalHarmonics: packedSphericalHarmonics,
+        meanSquaredSplatExtent: meanSquaredSplatExtent(asset.splats, keeping: Array(asset.splats.indices)),
         sourceDescription: sourceDescription
     )
 }
 
-func buildGaussianComponentFromUntoldGS(url: URL) -> (component: GaussianComponent, estimatedGPUBytes: Int)? {
+func buildGaussianComponentFromUntoldGS(url: URL) -> (
+    component: GaussianComponent,
+    estimatedGPUBytes: Int,
+    meanSquaredSplatExtent: Float,
+    boundingBox: (min: simd_float3, max: simd_float3)
+)? {
     let asset: UntoldGSAsset
     do {
         asset = try UntoldGSFormat.read(from: url)
@@ -3550,6 +3618,7 @@ func buildGaussianComponentFromUntoldGS(url: URL) -> (component: GaussianCompone
     guard let result = buildGaussianLoadResult(
         encodedSplats: asset.encodedSplats,
         packedSphericalHarmonics: packedSphericalHarmonics,
+        meanSquaredSplatExtent: asset.meanSquaredSplatExtent,
         sourceDescription: url.lastPathComponent
     ) else {
         return nil
@@ -3557,7 +3626,7 @@ func buildGaussianComponentFromUntoldGS(url: URL) -> (component: GaussianCompone
 
     let component = GaussianComponent()
     copyGaussianLoadResult(result, to: component)
-    return (component, result.estimatedGPUBytes)
+    return (component, result.estimatedGPUBytes, asset.meanSquaredSplatExtent, result.boundingBox)
 }
 
 /// Registers `GaussianComponent` on `entityId` from a built `GaussianLoadResult` and records
@@ -3573,6 +3642,10 @@ private func applyGaussianLoadResult(_ result: GaussianLoadResult, to entityId: 
 
     copyGaussianLoadResult(result, to: gaussianComponent)
     MemoryBudgetManager.shared.registerMesh(entityId: entityId, meshSizeBytes: result.estimatedGPUBytes)
+
+    if let localTransform = scene.get(component: LocalTransformComponent.self, for: entityId) {
+        localTransform.boundingBox = result.boundingBox
+    }
 }
 
 func copyGaussianLoadResult(_ result: GaussianLoadResult, to gaussianComponent: GaussianComponent) {
@@ -3590,7 +3663,19 @@ func copyGaussianLoadResult(_ result: GaussianLoadResult, to gaussianComponent: 
 
 public enum GaussianSource {
     case single(filename: String, withExtension: String)
-    case progressive(baseFilename: String, withExtension: String = "untoldgs", levelCount: Int, maxDistances: [Float])
+    /// `boundingBoxHalfExtent` is only used by `setEntityGaussian(source:)` (the non-streaming
+    /// path, which can also auto-compute a box on its own); `setEntityGaussianStreaming(source:
+    /// options:)` ignores it since streaming always requires a real box up front via
+    /// `GaussianStreamingOptions`. Overdraw-aware LOD stats (`meanSquaredSplatExtent`) are
+    /// baked directly into each `.untoldgs` tier by `bakeGaussianSplatProgressiveTiers` and
+    /// read automatically when a tier loads — nothing to pass here.
+    case progressive(
+        baseFilename: String,
+        withExtension: String = "untoldgs",
+        levelCount: Int,
+        maxDistances: [Float],
+        boundingBoxHalfExtent: simd_float3? = nil
+    )
 }
 
 public typealias GaussianStreamingSource = GaussianSource
@@ -3613,13 +3698,14 @@ public func setEntityGaussian(entityId: EntityID, source: GaussianSource) {
     switch source {
     case let .single(filename, ext):
         setEntityGaussian(entityId: entityId, filename: filename, withExtension: ext)
-    case let .progressive(baseFilename, ext, levelCount, maxDistances):
+    case let .progressive(baseFilename, ext, levelCount, maxDistances, boundingBoxHalfExtent):
         setEntityGaussianProgressive(
             entityId: entityId,
             baseFilename: baseFilename,
             withExtension: ext,
             levelCount: levelCount,
-            maxDistances: maxDistances
+            maxDistances: maxDistances,
+            boundingBoxHalfExtent: boundingBoxHalfExtent
         )
     }
 }
@@ -3693,7 +3779,7 @@ public func setEntityGaussianStreaming(
             boundingBoxHalfExtent: options.boundingBoxHalfExtent,
             priority: options.priority
         )
-    case let .progressive(baseFilename, ext, levelCount, maxDistances):
+    case let .progressive(baseFilename, ext, levelCount, maxDistances, _):
         setEntityGaussianProgressiveStreamable(
             entityId: entityId,
             baseFilename: baseFilename,
@@ -3718,7 +3804,8 @@ public func setEntityGaussianProgressive(
     baseFilename: String,
     withExtension ext: String = "untoldgs",
     levelCount: Int,
-    maxDistances: [Float]
+    maxDistances: [Float],
+    boundingBoxHalfExtent: simd_float3? = nil
 ) {
     guard configureEntityGaussianProgressiveLOD(
         entityId: entityId,
@@ -3728,6 +3815,11 @@ public func setEntityGaussianProgressive(
         maxDistances: maxDistances,
         errorPrefix: "setEntityGaussianProgressive"
     ) else { return }
+
+    if let boundingBoxHalfExtent, let local = scene.get(component: LocalTransformComponent.self, for: entityId) {
+        local.boundingBox = (min: -boundingBoxHalfExtent, max: boundingBoxHalfExtent)
+        scene.get(component: GaussianLODComponent.self, for: entityId)?.hasExplicitBoundingBox = true
+    }
 
     // Store the load on the coarsest tier's loadTask, mirroring requestGaussianLODLevelLoad's
     // pattern, so removeEntityGaussianLOD can cancel it if entityId is destroyed while this is
@@ -3835,6 +3927,10 @@ public func setEntityGaussianProgressiveStreamable(
         errorPrefix: "setEntityGaussianProgressiveStreamable"
     ) else { return }
 
+    // boundingBoxHalfExtent is required (non-optional) here and already applied above — mark
+    // it explicit so loadGaussianLODLevel never overwrites it with an auto-computed one.
+    scene.get(component: GaussianLODComponent.self, for: entityId)?.hasExplicitBoundingBox = true
+
     if let streaming = scene.assign(to: entityId, component: StreamingComponent.self) {
         streaming.assetKind = .gaussianSplat
         streaming.assetFilename = baseFilename
@@ -3870,6 +3966,8 @@ private func configureEntityGaussianProgressiveLOD(
             handleError(.filenameNotFound, filename)
             return false
         }
+        // meanSquaredSplatExtent is populated automatically by loadGaussianLODLevel when this
+        // tier's .untoldgs file is actually read — it's baked into the file, not caller-supplied.
         levels.append(GaussianLODLevel(maxDistance: maxDistances[index], url: url))
     }
 
@@ -3883,8 +3981,15 @@ private func configureEntityGaussianProgressiveLOD(
     return true
 }
 
+/// Largest per-axis scale magnitude of a splat, used both as the size term in
+/// `gaussianImportanceScore` and, aggregated across a tier, as
+/// `GaussianLODTier.meanSquaredSplatExtent` for overdraw estimation.
+func gaussianMajorAxis(_ splat: GaussianSplat) -> Float {
+    max(abs(splat.scale.x), max(abs(splat.scale.y), abs(splat.scale.z)))
+}
+
 private func gaussianImportanceScore(_ splat: GaussianSplat) -> Float {
-    let majorAxis = max(abs(splat.scale.x), max(abs(splat.scale.y), abs(splat.scale.z)))
+    let majorAxis = gaussianMajorAxis(splat)
     return splat.opacity * majorAxis * majorAxis
 }
 
@@ -4023,37 +4128,73 @@ private func subsetSphericalHarmonics(
     )
 }
 
+/// One baked `.untoldgs` tier plus the bake-time statistic needed for overdraw estimation —
+/// see `estimatedGaussianOverdraw`.
+public struct GaussianLODTier {
+    public let url: URL
+    public let meanSquaredSplatExtent: Float
+}
+
+/// Result of `bakeGaussianSplatProgressiveTiers`: the baked tiers plus a single asset-level
+/// bounding box (from the full, unsubsetted source splats) shared by all tiers so it stays
+/// stable across LOD switches.
+public struct GaussianProgressiveBakeResult {
+    public let tiers: [GaussianLODTier]
+    public let boundingBoxMin: simd_float3
+    public let boundingBoxMax: simd_float3
+}
+
+private func meanSquaredSplatExtent(_ splats: [GaussianSplat], keeping indices: [Int]) -> Float {
+    guard !indices.isEmpty else { return 0 }
+    let sumOfSquares = indices.reduce(Float(0)) { partial, index in
+        let majorAxis = gaussianMajorAxis(splats[index])
+        return partial + majorAxis * majorAxis
+    }
+    return sumOfSquares / Float(indices.count)
+}
+
 /// Bakes progressive `.untoldgs` Gaussian tiers from a source `.ply`.
 ///
 /// `lodFractions` are ordered finest to coarsest. With `[1.0, 0.5, 0.25]`, output files are
 /// `<base>_lod0.untoldgs`, `<base>_lod1.untoldgs`, and `<base>_lod2.untoldgs`.
+///
+/// Throws `UntoldGSError.sizeMismatch` if `plyURL` contains no splats, regardless of
+/// `lodFractions` — including the single-tier (`[1.0]`) case, which needs the same guard since
+/// it now also computes an asset-level bounding box that's meaningless for zero splats.
 public func bakeGaussianSplatProgressiveTiers(
     plyURL: URL,
     outputBaseURL: URL,
     lodFractions: [Float]
-) throws -> [URL] {
+) throws -> GaussianProgressiveBakeResult {
     guard !lodFractions.isEmpty else {
         throw UntoldGSError.sizeMismatch("lodFractions must contain at least one entry")
-    }
-
-    if lodFractions == [1.0] {
-        let resultURL = outputBaseURL
-        let asset = try PLYReader.readGaussianAsset(from: plyURL)
-        let encodedSplats = asset.splats.map(encodeGaussianSplatForTBDR)
-        let packedSphericalHarmonics = try asset.sphericalHarmonics.map {
-            try packGaussianSphericalHarmonics($0, splatCount: asset.splats.count)
-        }
-        try UntoldGSFormat.write(
-            encodedSplats: encodedSplats,
-            sphericalHarmonics: packedSphericalHarmonics,
-            to: resultURL
-        )
-        return [resultURL]
     }
 
     let asset = try PLYReader.readGaussianAsset(from: plyURL)
     guard !asset.splats.isEmpty else {
         throw UntoldGSError.sizeMismatch("source .ply contains no splats")
+    }
+    let assetBoundingBox = computeGaussianSplatBoundingBox(asset.splats)
+
+    if lodFractions == [1.0] {
+        let resultURL = outputBaseURL
+        let allIndices = Array(asset.splats.indices)
+        let encodedSplats = asset.splats.map(encodeGaussianSplatForTBDR)
+        let packedSphericalHarmonics = try asset.sphericalHarmonics.map {
+            try packGaussianSphericalHarmonics($0, splatCount: asset.splats.count)
+        }
+        let tierExtent = meanSquaredSplatExtent(asset.splats, keeping: allIndices)
+        try UntoldGSFormat.write(
+            encodedSplats: encodedSplats,
+            sphericalHarmonics: packedSphericalHarmonics,
+            meanSquaredSplatExtent: tierExtent,
+            to: resultURL
+        )
+        return GaussianProgressiveBakeResult(
+            tiers: [GaussianLODTier(url: resultURL, meanSquaredSplatExtent: tierExtent)],
+            boundingBoxMin: assetBoundingBox.min,
+            boundingBoxMax: assetBoundingBox.max
+        )
     }
 
     let rankedIndices = spatiallyInterleavedGaussianRanking(asset.splats)
@@ -4062,7 +4203,7 @@ public func bakeGaussianSplatProgressiveTiers(
     let baseName = baseWithoutExtension.lastPathComponent
     let baseDirectory = baseWithoutExtension.deletingLastPathComponent()
 
-    var outputURLs: [URL] = []
+    var tiers: [GaussianLODTier] = []
     for (tierIndex, fraction) in lodFractions.enumerated() {
         let clampedFraction = min(max(fraction, 0), 1)
         let keepCount = max(1, Int((Float(asset.splats.count) * clampedFraction).rounded(.up)))
@@ -4077,21 +4218,27 @@ public func bakeGaussianSplatProgressiveTiers(
         let tierURL = baseDirectory
             .appendingPathComponent("\(baseName)_lod\(tierIndex)")
             .appendingPathExtension("untoldgs")
+        let tierExtent = meanSquaredSplatExtent(asset.splats, keeping: keptIndices)
         try UntoldGSFormat.write(
             encodedSplats: encodedSplats,
             sphericalHarmonics: packedSphericalHarmonics,
+            meanSquaredSplatExtent: tierExtent,
             to: tierURL
         )
-        outputURLs.append(tierURL)
+        tiers.append(GaussianLODTier(url: tierURL, meanSquaredSplatExtent: tierExtent))
     }
-    return outputURLs
+    return GaussianProgressiveBakeResult(
+        tiers: tiers,
+        boundingBoxMin: assetBoundingBox.min,
+        boundingBoxMax: assetBoundingBox.max
+    )
 }
 
 public func bakeGaussianSplatProgressiveTiers(
     plyURL: URL,
     outputBaseURL: URL,
     levelCount: Int
-) throws -> [URL] {
+) throws -> GaussianProgressiveBakeResult {
     guard levelCount > 0 else {
         throw UntoldGSError.sizeMismatch("levelCount must be at least 1, got \(levelCount)")
     }

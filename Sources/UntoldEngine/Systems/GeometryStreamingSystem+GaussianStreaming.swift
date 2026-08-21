@@ -197,8 +197,23 @@ extension GeometryStreamingSystem {
             lod.lodLevels[lodIndex].buffers = built.component
             lod.lodLevels[lodIndex].residencyState = .resident
             lod.lodLevels[lodIndex].loadTask = nil
+            // Baked into the .untoldgs file itself (see UntoldGSFormat) — no caller-supplied
+            // value needed, and it can't drift out of sync with the tier it describes.
+            lod.lodLevels[lodIndex].meanSquaredSplatExtent = built.meanSquaredSplatExtent
 
             if makeCurrent {
+                // The entity's very first tier to ever load — if the caller didn't supply a
+                // real box up front (setEntityGaussianProgressive's boundingBoxHalfExtent is
+                // optional; setEntityGaussianProgressiveStreamable's is required and already
+                // marks hasExplicitBoundingBox, so this never overwrites it), auto-populate one
+                // from this tier's actual splat data instead of leaving the entity on its
+                // default placeholder box forever.
+                if !lod.hasExplicitBoundingBox,
+                   let local = scene.get(component: LocalTransformComponent.self, for: entityId)
+                {
+                    local.boundingBox = built.boundingBox
+                }
+
                 // Reuse the entity's existing GaussianComponent if it already has one — scene.assign
                 // unconditionally re-initializes the component slot, which would drop the previous
                 // instance (and every Metal buffer it retained) without releasing it.

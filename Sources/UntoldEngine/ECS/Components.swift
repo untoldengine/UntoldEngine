@@ -493,6 +493,13 @@ public struct GaussianLODLevel {
     public var url: URL?
     public var residencyState: LODResidencyState = .unknown
     var loadTask: Task<Void, Never>?
+    /// Bake-time mean of this tier's kept splats' squared major-axis extent — see
+    /// `estimatedGaussianOverdraw`. Baked into the `.untoldgs` file itself
+    /// (`UntoldGSFormat`/`bakeGaussianSplatProgressiveTiers`) and populated automatically by
+    /// `loadGaussianLODLevel` once this tier's file is actually read. `nil` only before that —
+    /// i.e. this tier hasn't loaded yet — in which case `clampGaussianLODForOverdraw` falls
+    /// back to distance-only LOD selection for it.
+    public var meanSquaredSplatExtent: Float?
 
     public init(maxDistance: Float, url: URL? = nil) {
         self.maxDistance = maxDistance
@@ -516,6 +523,34 @@ public class GaussianLODComponent: Component {
     public var desiredLOD: Int = 0
     public var forcedLOD: Int?
     public var isUsingFallback: Bool = false
+
+    /// The LOD index pure distance+hysteresis selection last landed on, before the
+    /// overdraw-aware clamp is applied — see `GaussianLODSystem.selectDesiredLOD`. Kept
+    /// separate from `desiredLOD` (the final, possibly overdraw-forced-coarser target used for
+    /// residency/streaming/`applyLOD`) so an overdraw-forced tier doesn't retroactively bias
+    /// the hysteresis anchor `selectLODIndex` uses next frame — otherwise a frame where overdraw
+    /// forces LOD 3 would make LOD 3 "the tier we're logically at" for the *next* frame's
+    /// distance-only hysteresis math too, even though distance alone would have picked LOD 1.
+    var distanceSelectedLOD: Int = 0
+
+    /// Distance to camera the last time this entity's LOD was fully re-evaluated — see
+    /// `GaussianLODSystem.update`'s per-entity fast path, which forces a refresh when this
+    /// entity (not just the camera) has moved enough to plausibly cross a LOD threshold,
+    /// independent of the camera-movement/frame-interval throttle. `nil` forces an evaluation
+    /// the first time this entity is seen.
+    var lastEvaluatedDistance: Float?
+
+    /// `true` when the caller explicitly supplied a `boundingBoxHalfExtent` (always the case
+    /// for the streaming path, optional for the non-streaming path). When `false`,
+    /// `loadGaussianLODLevel` auto-populates `LocalTransformComponent.boundingBox` from the
+    /// first (coarsest) tier's real splat data once it loads, instead of leaving the entity on
+    /// its default placeholder box forever.
+    var hasExplicitBoundingBox: Bool = false
+
+    /// Last state GaussianLODSystem's diagnostic log reported for this entity — used only to
+    /// dedup consecutive identical log lines (log on change, not every evaluation).
+    var lastLoggedDesiredLOD: Int = -2
+    var lastLoggedActualLOD: Int = -2
 
     public required init() {}
 

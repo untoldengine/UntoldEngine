@@ -172,14 +172,24 @@ struct ExportCommand: ParsableCommand {
 
     private func runGaussianSplatExport(inputURL: URL, outputURL: URL) throws {
         printInfo("Exporting Gaussian splats \(inputURL.path)")
-        let tierURLs = try bakeGaussianSplatProgressiveTiers(
+        let bakeResult = try bakeGaussianSplatProgressiveTiers(
             plyURL: inputURL,
             outputBaseURL: outputURL,
             levelCount: lodLevels
         )
-        for tierURL in tierURLs {
-            printSuccess("Exported: \(tierURL.path)")
+        // meanSquaredSplatExtent is baked into each .untoldgs file and read automatically when
+        // the engine loads it — printed here only as a diagnostic (e.g. to compare density
+        // across source captures), not something to copy anywhere.
+        for tier in bakeResult.tiers {
+            printSuccess("Exported: \(tier.url.path) (meanSquaredSplatExtent: \(tier.meanSquaredSplatExtent))")
         }
+
+        // boundingBoxHalfExtent is NOT baked into the files (the engine can auto-compute it for
+        // non-streaming loads instead) — pass this into setEntityGaussianProgressive/
+        // setEntityGaussianStreaming's boundingBoxHalfExtent if you want it set explicitly, e.g.
+        // for the streaming path, which requires a real box before any tier is ever read.
+        let halfExtent = (bakeResult.boundingBoxMax - bakeResult.boundingBoxMin) * 0.5
+        printInfo("boundingBoxHalfExtent: (\(halfExtent.x), \(halfExtent.y), \(halfExtent.z))")
     }
 
     private func optimizeTextures(outputURL: URL) throws {
