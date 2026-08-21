@@ -3251,7 +3251,9 @@ public struct UntoldGSAsset {
     /// happen for a tier with no splats, which never gets written).
     public let meanSquaredSplatExtent: Float
 
-    public var splatCount: Int { encodedSplats.count }
+    public var splatCount: Int {
+        encodedSplats.count
+    }
 }
 
 public enum UntoldGSFormat {
@@ -3404,7 +3406,6 @@ func buildGaussianLoadResult(
         handleError(.assetDataMissing, "Gaussian splat file contains no vertices: \(sourceDescription)")
         return nil
     }
-
 
     var gaussianSortedIndices: [MTLBuffer] = []
     var gaussianVisibleIndices: [MTLBuffer] = []

@@ -449,7 +449,9 @@ public struct LODLevel {
 }
 
 extension LODLevel: LODResidencyLevel {
-    var isPopulated: Bool { !mesh.isEmpty }
+    var isPopulated: Bool {
+        !mesh.isEmpty
+    }
 }
 
 extension LODLevel: LODDistanceLevel {}
@@ -508,7 +510,9 @@ public struct GaussianLODLevel {
 }
 
 extension GaussianLODLevel: LODResidencyLevel {
-    var isPopulated: Bool { buffers != nil }
+    var isPopulated: Bool {
+        buffers != nil
+    }
 }
 
 extension GaussianLODLevel: LODDistanceLevel {}
