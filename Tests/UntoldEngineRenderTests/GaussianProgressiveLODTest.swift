@@ -220,4 +220,38 @@ final class GaussianProgressiveLODTest: BaseRenderSetup {
         XCTAssertEqual(lod.currentLOD, 0)
         XCTAssertEqual(scene.get(component: GaussianComponent.self, for: entity)?.splatCount, lod.lodLevels[0].buffers?.splatCount)
     }
+
+    // MARK: - UntoldGSFormat corrupt-header handling
+
+    func testReadThrowsInsteadOfTrappingOnOverflowingHeaderCounts() throws {
+        // Hand-crafted 48-byte header (magic "UTGS", version 1) declaring a splatCount of
+        // UInt64.max, which overflows when multiplied by EncodedGaussianSplat's stride to
+        // compute the expected encoded-splat byte count. Before the overflow-checked rewrite,
+        // the unchecked `Int(UInt64)`/`*` in UntoldGSFormat.read would trap the process on a
+        // file like this instead of throwing a catchable error.
+        var bytes: [UInt8] = []
+        bytes += [0x55, 0x54, 0x47, 0x53] // magic "UTGS", little-endian
+        bytes += [1, 0, 0, 0] // version = 1
+        bytes += [UInt8](repeating: 0xFF, count: 8) // splatCount = UInt64.max
+        bytes += [0, 0, 0, 0] // shDegree
+        bytes += [0, 0, 0, 0] // shCoefficientsPerChannel
+        bytes += [0, 0, 0, 0] // shHigherOrderCoefficientsPerSplat
+        bytes += [0, 0, 0, 0] // padding
+        bytes += [UInt8](repeating: 0, count: 8) // encodedByteCount
+        bytes += [UInt8](repeating: 0, count: 8) // shByteCount
+        XCTAssertEqual(bytes.count, 48)
+
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("UntoldGSFormat-overflow-\(UUID().uuidString)")
+            .appendingPathExtension("untoldgs")
+        try Data(bytes).write(to: url)
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        XCTAssertThrowsError(try UntoldGSFormat.read(from: url)) { error in
+            guard case UntoldGSError.sizeMismatch = error else {
+                XCTFail("Expected .sizeMismatch, got \(error)")
+                return
+            }
+        }
+    }
 }

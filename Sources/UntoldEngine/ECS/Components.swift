@@ -412,6 +412,23 @@ public enum LODResidencyState {
     case loading // Mesh is being loaded
 }
 
+/// Shared by `LODLevel` and `GaussianLODLevel` so `isLODLevelResident`/`findFallbackLODLevel`
+/// (`LODSystem.swift`) can implement residency/fallback selection once for both mesh and
+/// Gaussian LOD instead of each component re-declaring the same algorithm.
+protocol LODResidencyLevel {
+    var residencyState: LODResidencyState { get }
+    /// Whether this level actually has a usable payload — `residencyState` alone isn't
+    /// trusted, mirroring the double-check both components already made before this was shared.
+    var isPopulated: Bool { get }
+}
+
+/// Shared by `LODLevel` and `GaussianLODLevel` so `selectLODIndex` (`LODSystem.swift`) can pick
+/// a distance-based tier once for both mesh and Gaussian LOD instead of each system
+/// re-declaring the same threshold/hysteresis algorithm.
+protocol LODDistanceLevel {
+    var maxDistance: Float { get }
+}
+
 public struct LODLevel {
     public var mesh: [Mesh] // Meshes for this lod
     public var maxDistance: Float // Switch to next LOD beyond this
@@ -430,6 +447,12 @@ public struct LODLevel {
         residencyState = mesh.isEmpty ? .notResident : .resident
     }
 }
+
+extension LODLevel: LODResidencyLevel {
+    var isPopulated: Bool { !mesh.isEmpty }
+}
+
+extension LODLevel: LODDistanceLevel {}
 
 public class LODComponent: Component {
     public var lodLevels: [LODLevel] = [] // Sorted by distance (LOD0 first)
@@ -451,26 +474,12 @@ public class LODComponent: Component {
 
     /// Check if the desired LOD level has a resident mesh
     public func isLODResident(_ lodIndex: Int) -> Bool {
-        guard lodIndex >= 0, lodIndex < lodLevels.count else { return false }
-        let level = lodLevels[lodIndex]
-        return level.residencyState == .resident && !level.mesh.isEmpty
+        isLODLevelResident(lodLevels, lodIndex)
     }
 
     /// Find the best available fallback LOD (coarser than desired)
     public func findFallbackLOD(from desiredIndex: Int) -> Int? {
-        // Try coarser LODs first (higher index = lower detail)
-        for i in (desiredIndex + 1) ..< lodLevels.count {
-            if isLODResident(i) {
-                return i
-            }
-        }
-        // Then try finer LODs (lower index = higher detail)
-        for i in (0 ..< desiredIndex).reversed() {
-            if isLODResident(i) {
-                return i
-            }
-        }
-        return nil
+        findFallbackLODLevel(lodLevels, from: desiredIndex)
     }
 }
 
@@ -491,6 +500,12 @@ public struct GaussianLODLevel {
     }
 }
 
+extension GaussianLODLevel: LODResidencyLevel {
+    var isPopulated: Bool { buffers != nil }
+}
+
+extension GaussianLODLevel: LODDistanceLevel {}
+
 /// Runtime state for a progressively streamed Gaussian splat prop.
 /// The renderer still consumes a normal `GaussianComponent`; this component owns the
 /// per-tier residency and `GaussianLODSystem` copies the selected tier onto the live
@@ -505,19 +520,23 @@ public class GaussianLODComponent: Component {
     public required init() {}
 
     public func isLODResident(_ lodIndex: Int) -> Bool {
-        guard lodIndex >= 0, lodIndex < lodLevels.count else { return false }
-        let level = lodLevels[lodIndex]
-        return level.residencyState == .resident && level.buffers != nil
+        isLODLevelResident(lodLevels, lodIndex)
     }
 
     public func findFallbackLOD(from desiredIndex: Int) -> Int? {
-        for i in (desiredIndex + 1) ..< lodLevels.count {
-            if isLODResident(i) { return i }
+        findFallbackLODLevel(lodLevels, from: desiredIndex)
+    }
+
+    /// Cancels in-flight loads and drops residency for every tier. Does not touch
+    /// currentLOD/desiredLOD — callers decide those based on whether this is a
+    /// stream-out (reset to coarsest) or full teardown (component removed right after).
+    func releaseAllLevelResources() {
+        for index in lodLevels.indices {
+            lodLevels[index].loadTask?.cancel()
+            lodLevels[index].loadTask = nil
+            lodLevels[index].buffers = nil
+            lodLevels[index].residencyState = .notResident
         }
-        for i in (0 ..< desiredIndex).reversed() {
-            if isLODResident(i) { return i }
-        }
-        return nil
     }
 }
 

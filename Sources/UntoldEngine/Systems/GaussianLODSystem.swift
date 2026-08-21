@@ -61,7 +61,7 @@ public class GaussianLODSystem: @unchecked Sendable {
         else { return }
 
         let desiredLOD = selectDesiredLOD(
-            distance: calculateDistance(entityId: entityId, cameraPosition: cameraPosition),
+            distance: entityDistanceToCamera(entityId: entityId, cameraPosition: cameraPosition),
             lodComponent: lodComponent
         )
         lodComponent.desiredLOD = desiredLOD
@@ -84,29 +84,20 @@ public class GaussianLODSystem: @unchecked Sendable {
         applyLOD(entityId: entityId, newLOD: actualLOD)
     }
 
-    private func calculateDistance(entityId: EntityID, cameraPosition: simd_float3) -> Float {
-        guard let worldTransform = scene.get(component: WorldTransformComponent.self, for: entityId),
-              let localTransform = scene.get(component: LocalTransformComponent.self, for: entityId)
-        else { return 0 }
-
-        let localCenter = (localTransform.boundingBox.min + localTransform.boundingBox.max) * 0.5
-        let worldCenter = worldTransform.space * simd_float4(localCenter, 1)
-        return simd_distance(cameraPosition, simd_float3(worldCenter.x, worldCenter.y, worldCenter.z))
-    }
-
     private func selectDesiredLOD(distance: Float, lodComponent: GaussianLODComponent) -> Int {
-        if let forced = lodComponent.forcedLOD, forced >= 0 {
-            return min(forced, lodComponent.lodLevels.count - 1)
-        }
-
-        let adjustedDistance = distance * LODConfig.shared.lodBias
-        for (index, level) in lodComponent.lodLevels.enumerated() {
-            guard level.maxDistance > 0 else { continue }
-            if adjustedDistance <= level.maxDistance {
-                return index
-            }
-        }
-        return lodComponent.lodLevels.count - 1
+        // lodComponent.desiredLOD still holds the previous frame's decision here — the caller
+        // overwrites it with this call's result right after — so passing it as currentLOD
+        // gives selectLODIndex the hysteresis reference point it needs, same as the mesh
+        // LODSystem.updateEntityLOD -> selectLODLevel call.
+        selectLODIndex(
+            levels: lodComponent.lodLevels,
+            distance: distance,
+            currentLOD: lodComponent.desiredLOD,
+            forcedLOD: lodComponent.forcedLOD,
+            lodBias: LODConfig.shared.lodBias,
+            hysteresis: LODConfig.shared.hysteresis,
+            globalDistances: LODConfig.shared.lodDistances
+        )
     }
 
     private func applyLOD(entityId: EntityID, newLOD: Int) {
@@ -121,7 +112,12 @@ public class GaussianLODSystem: @unchecked Sendable {
         }
 
         withWorldMutationGate {
-            guard let destination = scene.assign(to: entityId, component: GaussianComponent.self) else {
+            // Reuse the entity's existing GaussianComponent if it already has one — scene.assign
+            // unconditionally re-initializes the component slot, which would drop the previous
+            // instance (and every Metal buffer it retained) without releasing it.
+            guard let destination = scene.get(component: GaussianComponent.self, for: entityId)
+                ?? scene.assign(to: entityId, component: GaussianComponent.self)
+            else {
                 return
             }
 
