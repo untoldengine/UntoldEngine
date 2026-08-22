@@ -36,37 +36,6 @@
              }
              */
 
-            let sceneRoot = createEntity()
-            setEntityStreamScene(
-                entityId: sceneRoot,
-                url: URL(fileURLWithPath: "/Users/haroldserrano/Desktop/UntoldEngineStudio/StreamingAssets/Dungeon/dungeon.json")
-            ) { success in
-                if success {
-                    loadSceneAuthored(url: URL(fileURLWithPath: "/Users/haroldserrano/Desktop/UntoldEngineStudio/StreamingAssets/Dungeon/dungeon.json"))
-                }
-
-                let splat = createEntity()
-
-                setEntityGaussianStreaming(
-                    entityId: splat,
-                    source: .progressive(
-                        baseFilename: "/Users/haroldserrano/Downloads/Pooltable",
-                        levelCount: 4,
-                        maxDistances: [5, 15, 25, .greatestFiniteMagnitude]
-                    ),
-                    options: GaussianStreamingOptions(
-                        streamingRadius: 100,
-                        unloadRadius: 140,
-                        boundingBoxHalfExtent: simd_float3(2, 1, 3)
-                    )
-                )
-
-                rotateBy(entityId: splat, angle: 180, axis: simd_float3(1.0, 0.0, 0.0))
-                setSceneReady(true)
-
-                setSceneReady(success)
-            }
-
             // Uncomment to render a streamed scene
         }
 

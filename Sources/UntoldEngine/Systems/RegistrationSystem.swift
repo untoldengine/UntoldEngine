@@ -3250,6 +3250,13 @@ public struct UntoldGSAsset {
     /// baked before this field existed (indistinguishable from a real 0, but a real 0 can only
     /// happen for a tier with no splats, which never gets written).
     public let meanSquaredSplatExtent: Float
+    /// Asset-level local-space bounding box (shared by every tier of the same bake, not
+    /// per-tier — see `bakeGaussianSplatProgressiveTiers`), baked in at version 2. Lets any
+    /// registration path — including streaming, which needs a real box before it can decide
+    /// whether to load anything — read a real box via `UntoldGSFormat.readHeader` without a
+    /// caller-supplied value.
+    public let boundingBoxMin: simd_float3
+    public let boundingBoxMax: simd_float3
 
     public var splatCount: Int {
         encodedSplats.count
@@ -3258,13 +3265,19 @@ public struct UntoldGSAsset {
 
 public enum UntoldGSFormat {
     private static let magic: UInt32 = 0x5347_5455 // "UTGS"
-    private static let version: UInt32 = 1
-    private static let headerByteCount = 48
+    // v2 appended boundingBoxMin/boundingBoxMax (24 bytes) after the v1 header — every v1 field
+    // offset is unchanged. No dual-version reader: .untoldgs is a regeneratable cache of the
+    // source .ply, not hand-authored data, so a version bump just means "re-bake," the same way
+    // an EncodedGaussianSplat layout change already does.
+    private static let version: UInt32 = 2
+    private static let headerByteCount = 72
 
     public static func write(
         encodedSplats: [EncodedGaussianSplat],
         sphericalHarmonics: PackedGaussianSphericalHarmonics?,
         meanSquaredSplatExtent: Float = 0,
+        boundingBoxMin: simd_float3,
+        boundingBoxMax: simd_float3,
         to url: URL
     ) throws {
         var data = Data()
@@ -3277,6 +3290,12 @@ public enum UntoldGSFormat {
         appendFloat(meanSquaredSplatExtent, to: &data)
         appendUInt64(UInt64(encodedSplats.count * MemoryLayout<EncodedGaussianSplat>.stride), to: &data)
         appendUInt64(UInt64(sphericalHarmonics?.coefficients.count ?? 0), to: &data)
+        appendFloat(boundingBoxMin.x, to: &data)
+        appendFloat(boundingBoxMin.y, to: &data)
+        appendFloat(boundingBoxMin.z, to: &data)
+        appendFloat(boundingBoxMax.x, to: &data)
+        appendFloat(boundingBoxMax.y, to: &data)
+        appendFloat(boundingBoxMax.z, to: &data)
 
         encodedSplats.withUnsafeBytes { data.append(contentsOf: $0) }
         if let sphericalHarmonics {
@@ -3290,14 +3309,43 @@ public enum UntoldGSFormat {
         try data.write(to: url, options: .atomic)
     }
 
-    public static func read(from url: URL) throws -> UntoldGSAsset {
-        let data = try Data(contentsOf: url)
-        guard data.count >= headerByteCount else { throw UntoldGSError.truncated }
-
+    /// Check just enough to identify the version before checking the full v2 header length — an
+    /// old, valid-but-shorter v1 file (48 bytes) must report .unsupportedVersion (a clear
+    /// "re-bake me" signal), not .truncated, which would otherwise fire first purely because
+    /// it's shorter than the current header size. Shared by read() and readHeader() so both
+    /// report the same error for the same malformed input.
+    private static func validateMagicAndVersion(_ data: Data) throws {
+        guard data.count >= 8 else { throw UntoldGSError.truncated }
         let magicValue = readUInt32(data, at: 0)
         guard magicValue == magic else { throw UntoldGSError.badMagic }
         let versionValue = readUInt32(data, at: 4)
         guard versionValue == version else { throw UntoldGSError.unsupportedVersion(versionValue) }
+    }
+
+    /// Reads only `boundingBoxMin`/`boundingBoxMax` from the fixed-size header via a bounded
+    /// `FileHandle` read — not `Data(contentsOf:)`, which would pull the entire (potentially
+    /// multi-megabyte) splat/SH payload into memory just to look at 24 header bytes. Lets
+    /// registration paths (including streaming, which needs a real box before it can decide
+    /// whether to load anything) get one synchronously without a caller-supplied value.
+    public static func readHeader(from url: URL) throws -> (boundingBoxMin: simd_float3, boundingBoxMax: simd_float3) {
+        guard let fileHandle = FileHandle(forReadingAtPath: url.path) else {
+            throw UntoldGSError.truncated
+        }
+        defer { try? fileHandle.close() }
+
+        let data = try (fileHandle.read(upToCount: headerByteCount)) ?? Data()
+        try validateMagicAndVersion(data)
+        guard data.count >= headerByteCount else { throw UntoldGSError.truncated }
+
+        let boundingBoxMin = simd_float3(readFloat(data, at: 48), readFloat(data, at: 52), readFloat(data, at: 56))
+        let boundingBoxMax = simd_float3(readFloat(data, at: 60), readFloat(data, at: 64), readFloat(data, at: 68))
+        return (boundingBoxMin, boundingBoxMax)
+    }
+
+    public static func read(from url: URL) throws -> UntoldGSAsset {
+        let data = try Data(contentsOf: url)
+        try validateMagicAndVersion(data)
+        guard data.count >= headerByteCount else { throw UntoldGSError.truncated }
 
         let splatCountRaw = readUInt64(data, at: 8)
         let shDegree = readUInt32(data, at: 16)
@@ -3306,6 +3354,8 @@ public enum UntoldGSFormat {
         let meanSquaredSplatExtent = readFloat(data, at: 28)
         let encodedByteCountRaw = readUInt64(data, at: 32)
         let shByteCountRaw = readUInt64(data, at: 40)
+        let boundingBoxMin = simd_float3(readFloat(data, at: 48), readFloat(data, at: 52), readFloat(data, at: 56))
+        let boundingBoxMax = simd_float3(readFloat(data, at: 60), readFloat(data, at: 64), readFloat(data, at: 68))
 
         // Validate every header-declared count against the actual file size using
         // overflow-checked UInt64 arithmetic before converting anything to Int — a corrupt or
@@ -3353,7 +3403,9 @@ public enum UntoldGSFormat {
             encodedSplats: encodedSplats,
             shCoefficients: shCoefficients,
             shMetadata: shMetadata,
-            meanSquaredSplatExtent: meanSquaredSplatExtent
+            meanSquaredSplatExtent: meanSquaredSplatExtent,
+            boundingBoxMin: boundingBoxMin,
+            boundingBoxMax: boundingBoxMax
         )
     }
 
@@ -3664,18 +3716,19 @@ func copyGaussianLoadResult(_ result: GaussianLoadResult, to gaussianComponent: 
 
 public enum GaussianSource {
     case single(filename: String, withExtension: String)
-    /// `boundingBoxHalfExtent` is only used by `setEntityGaussian(source:)` (the non-streaming
-    /// path, which can also auto-compute a box on its own); `setEntityGaussianStreaming(source:
-    /// options:)` ignores it since streaming always requires a real box up front via
-    /// `GaussianStreamingOptions`. Overdraw-aware LOD stats (`meanSquaredSplatExtent`) are
-    /// baked directly into each `.untoldgs` tier by `bakeGaussianSplatProgressiveTiers` and
-    /// read automatically when a tier loads — nothing to pass here.
+    /// No `boundingBoxHalfExtent` here: both `setEntityGaussian(source:)` and
+    /// `setEntityGaussianStreaming(source:options:)` can read a real box baked into the
+    /// `.untoldgs` header itself (see `UntoldGSFormat.readHeader`) — an explicit override, when
+    /// one is genuinely needed, is a parameter on the underlying registration path instead
+    /// (`GaussianStreamingOptions.boundingBoxHalfExtent` for streaming). Overdraw-aware LOD
+    /// stats (`meanSquaredSplatExtent`) are baked directly into each `.untoldgs` tier by
+    /// `bakeGaussianSplatProgressiveTiers` and read automatically when a tier loads — nothing to
+    /// pass here either.
     case progressive(
         baseFilename: String,
         withExtension: String = "untoldgs",
         levelCount: Int,
-        maxDistances: [Float],
-        boundingBoxHalfExtent: simd_float3? = nil
+        maxDistances: [Float]
     )
 }
 
@@ -3699,14 +3752,13 @@ public func setEntityGaussian(entityId: EntityID, source: GaussianSource) {
     switch source {
     case let .single(filename, ext):
         setEntityGaussian(entityId: entityId, filename: filename, withExtension: ext)
-    case let .progressive(baseFilename, ext, levelCount, maxDistances, boundingBoxHalfExtent):
+    case let .progressive(baseFilename, ext, levelCount, maxDistances):
         setEntityGaussianProgressive(
             entityId: entityId,
             baseFilename: baseFilename,
             withExtension: ext,
             levelCount: levelCount,
-            maxDistances: maxDistances,
-            boundingBoxHalfExtent: boundingBoxHalfExtent
+            maxDistances: maxDistances
         )
     }
 }
@@ -3746,13 +3798,17 @@ public func setEntityGaussianAsync(
 public struct GaussianStreamingOptions {
     public var streamingRadius: Float
     public var unloadRadius: Float
-    public var boundingBoxHalfExtent: simd_float3
+    /// Explicit override for the entity's local-space bounding box. Optional: `.untoldgs`
+    /// sources (single-file or progressive) can read a real box baked into the file itself —
+    /// see `UntoldGSFormat.readHeader` — so this is only required for a raw `.ply` `.single`
+    /// source, which has no baked box to fall back to.
+    public var boundingBoxHalfExtent: simd_float3?
     public var priority: Int
 
     public init(
         streamingRadius: Float = 100.0,
         unloadRadius: Float = 150.0,
-        boundingBoxHalfExtent: simd_float3,
+        boundingBoxHalfExtent: simd_float3? = nil,
         priority: Int = 0
     ) {
         self.streamingRadius = streamingRadius
@@ -3780,7 +3836,7 @@ public func setEntityGaussianStreaming(
             boundingBoxHalfExtent: options.boundingBoxHalfExtent,
             priority: options.priority
         )
-    case let .progressive(baseFilename, ext, levelCount, maxDistances, _):
+    case let .progressive(baseFilename, ext, levelCount, maxDistances):
         setEntityGaussianProgressiveStreamable(
             entityId: entityId,
             baseFilename: baseFilename,
@@ -3795,18 +3851,19 @@ public func setEntityGaussianStreaming(
     }
 }
 
-/// Registers a tile-independent progressive Gaussian splat entity.
+/// Registers a tile-independent progressive Gaussian splat entity. Not part of the public API
+/// — reached only through `setEntityGaussian(entityId:source:)`'s `.progressive` case, which is
+/// the entry point callers should use.
 ///
 /// The expected files are `<baseFilename>_lod0.untoldgs`, `<baseFilename>_lod1.untoldgs`,
 /// etc. LOD0 is full detail; the highest index is the coarsest tier and is loaded
 /// immediately so the entity can become visible before finer tiers finish loading.
-public func setEntityGaussianProgressive(
+func setEntityGaussianProgressive(
     entityId: EntityID,
     baseFilename: String,
     withExtension ext: String = "untoldgs",
     levelCount: Int,
-    maxDistances: [Float],
-    boundingBoxHalfExtent: simd_float3? = nil
+    maxDistances: [Float]
 ) {
     guard configureEntityGaussianProgressiveLOD(
         entityId: entityId,
@@ -3817,8 +3874,17 @@ public func setEntityGaussianProgressive(
         errorPrefix: "setEntityGaussianProgressive"
     ) else { return }
 
-    if let boundingBoxHalfExtent, let local = scene.get(component: LocalTransformComponent.self, for: entityId) {
-        local.boundingBox = (min: -boundingBoxHalfExtent, max: boundingBoxHalfExtent)
+    // Read the box baked into the coarsest tier's header (cheap, synchronous) so the entity has
+    // a real box from frame 1 instead of waiting on the async coarsest-tier load below to
+    // populate one via GeometryStreamingSystem+GaussianStreaming.swift's hasExplicitBoundingBox
+    // fallback. If unavailable (e.g. a pre-v2 .untoldgs file), that fallback still applies
+    // unchanged. No caller-supplied override here — GaussianSource.progressive has no
+    // boundingBoxHalfExtent of its own to forward (see its doc comment).
+    let coarsestTierURL = gaussianProgressiveTierURL(baseFilename: baseFilename, withExtension: ext, levelCount: levelCount, tierIndex: levelCount - 1)
+    if let box = resolveGaussianBoundingBox(override: nil, untoldgsURL: coarsestTierURL),
+       let local = scene.get(component: LocalTransformComponent.self, for: entityId)
+    {
+        local.boundingBox = box
         scene.get(component: GaussianLODComponent.self, for: entityId)?.hasExplicitBoundingBox = true
     }
 
@@ -3850,18 +3916,25 @@ public func setEntityGaussianProgressive(
 /// which tile it belongs to, via `findTileEntity(containing:)`. If no tile is found there,
 /// this logs a warning and leaves `entityId` as a plain, non-streaming entity.
 ///
-/// `boundingBoxHalfExtent` has no default on purpose: `GeometryStreamingSystem`'s frustum
-/// gate needs a real local-space volume on the entity before it ever loads (the splat's
-/// true extent isn't known until the asset is parsed). A zero-size placeholder collapses
-/// the gate to a single exact point, making re-streaming unreliable once the camera moves
-/// away and back — pick a box roughly matching the prop's real-world size.
-public func setEntityGaussianStreamable(
+/// `boundingBoxHalfExtent` is optional: a `.untoldgs` source has a real box baked into its
+/// header (see `UntoldGSFormat.readHeader`), read synchronously here since
+/// `GeometryStreamingSystem`'s frustum gate needs a real local-space volume on the entity
+/// before it ever loads. A raw `.ply` source has no baked box, so an explicit value is still
+/// required there — omitting it leaves the entity non-streaming rather than registering a
+/// zero-size placeholder, which would collapse the gate to a single exact point and make
+/// re-streaming unreliable once the camera moves away and back.
+///
+/// Not part of the public API — reached only through
+/// `setEntityGaussianStreaming(entityId:source:options:)`'s `.single` case, which forwards
+/// `GaussianStreamingOptions.boundingBoxHalfExtent` here; that's the entry point callers should
+/// use.
+func setEntityGaussianStreamable(
     entityId: EntityID,
     filename: String,
     withExtension ext: String,
     streamingRadius: Float = 100.0,
     unloadRadius: Float = 150.0,
-    boundingBoxHalfExtent: simd_float3,
+    boundingBoxHalfExtent: simd_float3? = nil,
     priority: Int = 0
 ) {
     guard let local = scene.get(component: LocalTransformComponent.self, for: entityId) else {
@@ -3874,7 +3947,14 @@ public func setEntityGaussianStreamable(
         return
     }
 
-    local.boundingBox = (min: -boundingBoxHalfExtent, max: boundingBoxHalfExtent)
+    let untoldgsURL = ext.lowercased() == "untoldgs"
+        ? LoadingSystem.shared.resourceURL(forResource: filename, withExtension: ext, subResource: nil)
+        : nil
+    guard let box = resolveGaussianBoundingBox(override: boundingBoxHalfExtent, untoldgsURL: untoldgsURL) else {
+        Logger.logWarning(message: "[RegistrationSystem] setEntityGaussianStreamable: no boundingBoxHalfExtent supplied and no baked box available for '\(filename).\(ext)' — entity left non-streaming. A raw .ply source requires an explicit boundingBoxHalfExtent.")
+        return
+    }
+    local.boundingBox = box
 
     setParent(childId: entityId, parentId: tileEntity)
     OctreeSystem.shared.registerEntity(entityId)
@@ -3895,7 +3975,12 @@ public func setEntityGaussianStreamable(
 /// etc. LOD0 is full detail; the highest index is the coarsest tier and is loaded first
 /// when the prop enters streaming range. Finer tiers are requested later by
 /// `GaussianLODSystem` based on camera distance.
-public func setEntityGaussianProgressiveStreamable(
+///
+/// Not part of the public API — reached only through
+/// `setEntityGaussianStreaming(entityId:source:options:)`'s `.progressive` case, which forwards
+/// `GaussianStreamingOptions.boundingBoxHalfExtent` here; that's the entry point callers should
+/// use.
+func setEntityGaussianProgressiveStreamable(
     entityId: EntityID,
     baseFilename: String,
     withExtension ext: String = "untoldgs",
@@ -3903,7 +3988,7 @@ public func setEntityGaussianProgressiveStreamable(
     maxDistances: [Float],
     streamingRadius: Float = 100.0,
     unloadRadius: Float = 150.0,
-    boundingBoxHalfExtent: simd_float3,
+    boundingBoxHalfExtent: simd_float3? = nil,
     priority: Int = 0
 ) {
     guard let local = scene.get(component: LocalTransformComponent.self, for: entityId) else {
@@ -3915,10 +4000,9 @@ public func setEntityGaussianProgressiveStreamable(
         return
     }
 
-    local.boundingBox = (min: -boundingBoxHalfExtent, max: boundingBoxHalfExtent)
-    setParent(childId: entityId, parentId: tileEntity)
-    OctreeSystem.shared.registerEntity(entityId)
-
+    // Resolve LOD levels (and validate levelCount/maxDistances/tier files) before touching
+    // parent/octree/box state, so a validation failure here leaves the entity exactly as it
+    // was before this call — no half-registered state to clean up.
     guard configureEntityGaussianProgressiveLOD(
         entityId: entityId,
         baseFilename: baseFilename,
@@ -3928,9 +4012,23 @@ public func setEntityGaussianProgressiveStreamable(
         errorPrefix: "setEntityGaussianProgressiveStreamable"
     ) else { return }
 
-    // boundingBoxHalfExtent is required (non-optional) here and already applied above — mark
-    // it explicit so loadGaussianLODLevel never overwrites it with an auto-computed one.
+    // configureEntityGaussianProgressiveLOD already confirmed every tier's file exists (it
+    // resolves and validates each URL, including the coarsest), so this is a header-parse
+    // concern only, not a file-lookup one.
+    let coarsestTierURL = scene.get(component: GaussianLODComponent.self, for: entityId)?.lodLevels.last?.url
+    guard let box = resolveGaussianBoundingBox(override: boundingBoxHalfExtent, untoldgsURL: coarsestTierURL) else {
+        Logger.logWarning(message: "[RegistrationSystem] setEntityGaussianProgressiveStreamable: no boundingBoxHalfExtent supplied and no baked box available for '\(baseFilename)' — entity left non-streaming.")
+        removeEntityGaussianLOD(entityId: entityId)
+        return
+    }
+    local.boundingBox = box
+    // boundingBoxHalfExtent may come from either an explicit override or the baked header —
+    // mark it explicit either way so loadGaussianLODLevel never overwrites it with a redundant
+    // auto-computed one once the first tier actually loads.
     scene.get(component: GaussianLODComponent.self, for: entityId)?.hasExplicitBoundingBox = true
+
+    setParent(childId: entityId, parentId: tileEntity)
+    OctreeSystem.shared.registerEntity(entityId)
 
     if let streaming = scene.assign(to: entityId, component: StreamingComponent.self) {
         streaming.assetKind = .gaussianSplat
@@ -3940,6 +4038,39 @@ public func setEntityGaussianProgressiveStreamable(
         streaming.unloadRadius = unloadRadius
         streaming.priority = priority
     }
+}
+
+/// Resolves the on-disk URL for one progressive tier, given the same `<baseFilename>_lod<N>`
+/// naming `configureEntityGaussianProgressiveLOD` uses (or just `baseFilename` when
+/// `levelCount == 1`, matching `bakeGaussianSplatProgressiveTiers`'s single-tier output).
+/// Factored out so callers can resolve a specific tier's URL (typically the coarsest, for a
+/// bounding-box header read) without going through full LOD-component setup first.
+private func gaussianProgressiveTierURL(
+    baseFilename: String,
+    withExtension ext: String,
+    levelCount: Int,
+    tierIndex: Int
+) -> URL? {
+    let filename = levelCount == 1 ? baseFilename : "\(baseFilename)_lod\(tierIndex)"
+    return LoadingSystem.shared.resourceURL(forResource: filename, withExtension: ext, subResource: nil)
+}
+
+/// Resolves a local-space bounding box for Gaussian entity registration: an explicit
+/// caller-supplied `override` always wins; otherwise, if `untoldgsURL` points at a real,
+/// header-readable `.untoldgs` file, reads its baked box (see `UntoldGSFormat.readHeader`) —
+/// cheap enough to call synchronously at registration time. Returns `nil` when neither is
+/// available (e.g. a raw `.ply` source with no override) — callers decide how to handle that.
+private func resolveGaussianBoundingBox(
+    override: simd_float3?,
+    untoldgsURL: URL?
+) -> (min: simd_float3, max: simd_float3)? {
+    if let override {
+        return (min: -override, max: override)
+    }
+    guard let untoldgsURL, let header = try? UntoldGSFormat.readHeader(from: untoldgsURL) else {
+        return nil
+    }
+    return (min: header.boundingBoxMin, max: header.boundingBoxMax)
 }
 
 @discardableResult
@@ -3962,8 +4093,8 @@ private func configureEntityGaussianProgressiveLOD(
 
     var levels: [GaussianLODLevel] = []
     for index in 0 ..< levelCount {
-        let filename = levelCount == 1 ? baseFilename : "\(baseFilename)_lod\(index)"
-        guard let url = LoadingSystem.shared.resourceURL(forResource: filename, withExtension: ext, subResource: nil) else {
+        guard let url = gaussianProgressiveTierURL(baseFilename: baseFilename, withExtension: ext, levelCount: levelCount, tierIndex: index) else {
+            let filename = levelCount == 1 ? baseFilename : "\(baseFilename)_lod\(index)"
             handleError(.filenameNotFound, filename)
             return false
         }
@@ -4189,6 +4320,8 @@ public func bakeGaussianSplatProgressiveTiers(
             encodedSplats: encodedSplats,
             sphericalHarmonics: packedSphericalHarmonics,
             meanSquaredSplatExtent: tierExtent,
+            boundingBoxMin: assetBoundingBox.min,
+            boundingBoxMax: assetBoundingBox.max,
             to: resultURL
         )
         return GaussianProgressiveBakeResult(
@@ -4224,6 +4357,8 @@ public func bakeGaussianSplatProgressiveTiers(
             encodedSplats: encodedSplats,
             sphericalHarmonics: packedSphericalHarmonics,
             meanSquaredSplatExtent: tierExtent,
+            boundingBoxMin: assetBoundingBox.min,
+            boundingBoxMax: assetBoundingBox.max,
             to: tierURL
         )
         tiers.append(GaussianLODTier(url: tierURL, meanSquaredSplatExtent: tierExtent))
