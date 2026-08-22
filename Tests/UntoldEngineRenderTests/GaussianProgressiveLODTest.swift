@@ -522,14 +522,14 @@ final class GaussianProgressiveLODTest: BaseRenderSetup {
         XCTAssertEqual(lod.currentLOD, 0, "Cumulative camera displacement across throttled-out frames should still trip the fast path")
     }
 
-    func testProgressiveEntityWithoutExplicitBoundingBoxGetsAutoPopulatedFromLoadedTier() async throws {
-        // The auto-populated box comes from the coarsest tier (a spatially-interleaved subset
-        // of splats, loaded first) rather than the full asset, so it won't match the full
-        // asset's box exactly -- just check it's in the same ballpark rather than requiring
-        // precise equality.
+    func testProgressiveEntityWithoutExplicitBoundingBoxAutoResolvesFromBakedHeaderImmediately() throws {
+        // Since M2, the box comes from the coarsest tier's baked v2 header (see
+        // UntoldGSFormat.readHeader) synchronously at registration time -- it's the exact
+        // asset-level box every tier's header carries (see bakeGaussianSplatProgressiveTiers),
+        // not an approximation derived from whichever tier happens to load first, and it's
+        // available immediately, with no need to wait for the coarsest tier's async load.
         let asset = try PLYReader.readGaussianAsset(from: testPLYURL())
         let trueBox = computeGaussianSplatBoundingBox(asset.splats)
-        let trueExtent = simd_length(trueBox.max - trueBox.min)
 
         let base = try bakeProgressiveBase(levelCount: 3)
         let entity = createEntity()
@@ -537,18 +537,10 @@ final class GaussianProgressiveLODTest: BaseRenderSetup {
         // Deliberately omit boundingBoxHalfExtent.
         setEntityGaussianProgressive(entityId: entity, baseFilename: base, levelCount: 3, maxDistances: [20, 50, .greatestFiniteMagnitude])
 
-        let lod = try XCTUnwrap(scene.get(component: GaussianLODComponent.self, for: entity))
-        for _ in 0 ..< 20 where lod.currentLOD != 2 {
-            try await Task.sleep(nanoseconds: 10_000_000)
-        }
-
         let boundingBox = try XCTUnwrap(scene.get(component: LocalTransformComponent.self, for: entity)?.boundingBox)
-        XCTAssertNotEqual(boundingBox.min, simd_float3(-1, -1, -1), "Should not still be the default placeholder box")
-        XCTAssertNotEqual(boundingBox.min, boundingBox.max, "Should not be degenerate")
-
-        let gotExtent = simd_length(boundingBox.max - boundingBox.min)
-        XCTAssertGreaterThan(gotExtent, trueExtent * 0.5, "Auto-populated box should be a reasonable approximation of the true asset extent")
-        XCTAssertLessThan(gotExtent, trueExtent * 2.0, "Auto-populated box should be a reasonable approximation of the true asset extent")
+        XCTAssertEqual(boundingBox.min, trueBox.min)
+        XCTAssertEqual(boundingBox.max, trueBox.max)
+        XCTAssertEqual(scene.get(component: GaussianLODComponent.self, for: entity)?.hasExplicitBoundingBox, true, "Should be marked explicit so the async coarsest-tier load never overwrites it with a redundant auto-computed box")
     }
 
     func testOverdrawClampDoesNotContaminateDistanceHysteresisAnchor() throws {
@@ -636,14 +628,16 @@ final class GaussianProgressiveLODTest: BaseRenderSetup {
     // MARK: - UntoldGSFormat corrupt-header handling
 
     func testReadThrowsInsteadOfTrappingOnOverflowingHeaderCounts() throws {
-        // Hand-crafted 48-byte header (magic "UTGS", version 1) declaring a splatCount of
+        // Hand-crafted 72-byte v2 header (magic "UTGS", version 2) declaring a splatCount of
         // UInt64.max, which overflows when multiplied by EncodedGaussianSplat's stride to
         // compute the expected encoded-splat byte count. Before the overflow-checked rewrite,
         // the unchecked `Int(UInt64)`/`*` in UntoldGSFormat.read would trap the process on a
-        // file like this instead of throwing a catchable error.
+        // file like this instead of throwing a catchable error. Must be a well-formed v2 header
+        // (real version, real byte count) so this test actually exercises the overflow guard in
+        // .sizeMismatch, not just the unrelated .unsupportedVersion check.
         var bytes: [UInt8] = []
         bytes += [0x55, 0x54, 0x47, 0x53] // magic "UTGS", little-endian
-        bytes += [1, 0, 0, 0] // version = 1
+        bytes += [2, 0, 0, 0] // version = 2
         bytes += [UInt8](repeating: 0xFF, count: 8) // splatCount = UInt64.max
         bytes += [0, 0, 0, 0] // shDegree
         bytes += [0, 0, 0, 0] // shCoefficientsPerChannel
@@ -651,7 +645,8 @@ final class GaussianProgressiveLODTest: BaseRenderSetup {
         bytes += [0, 0, 0, 0] // meanSquaredSplatExtent (0.0 as Float bit pattern)
         bytes += [UInt8](repeating: 0, count: 8) // encodedByteCount
         bytes += [UInt8](repeating: 0, count: 8) // shByteCount
-        XCTAssertEqual(bytes.count, 48)
+        bytes += [UInt8](repeating: 0, count: 24) // boundingBoxMin/boundingBoxMax (6 floats)
+        XCTAssertEqual(bytes.count, 72)
 
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("UntoldGSFormat-overflow-\(UUID().uuidString)")
@@ -665,5 +660,70 @@ final class GaussianProgressiveLODTest: BaseRenderSetup {
                 return
             }
         }
+    }
+
+    func testReadRejectsV1HeaderAsUnsupportedVersion() throws {
+        // A well-formed pre-bounding-box v1 file (48-byte header, no boundingBoxMin/Max) must
+        // fail loudly with .unsupportedVersion rather than silently misreading 24 bytes of
+        // splat/SH payload as a bounding box. .untoldgs is a regeneratable cache of the source
+        // .ply — the fix for a file like this is re-running `untoldengine export`, not a
+        // best-effort read.
+        var bytes: [UInt8] = []
+        bytes += [0x55, 0x54, 0x47, 0x53] // magic "UTGS", little-endian
+        bytes += [1, 0, 0, 0] // version = 1
+        bytes += [UInt8](repeating: 0, count: 8) // splatCount = 0
+        bytes += [0, 0, 0, 0] // shDegree
+        bytes += [0, 0, 0, 0] // shCoefficientsPerChannel
+        bytes += [0, 0, 0, 0] // shHigherOrderCoefficientsPerSplat
+        bytes += [0, 0, 0, 0] // meanSquaredSplatExtent
+        bytes += [UInt8](repeating: 0, count: 8) // encodedByteCount = 0
+        bytes += [UInt8](repeating: 0, count: 8) // shByteCount = 0
+        XCTAssertEqual(bytes.count, 48)
+
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("UntoldGSFormat-v1-\(UUID().uuidString)")
+            .appendingPathExtension("untoldgs")
+        try Data(bytes).write(to: url)
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        XCTAssertThrowsError(try UntoldGSFormat.read(from: url)) { error in
+            guard case let UntoldGSError.unsupportedVersion(version) = error else {
+                XCTFail("Expected .unsupportedVersion, got \(error)")
+                return
+            }
+            XCTAssertEqual(version, 1)
+        }
+    }
+
+    func testWriteBakesBoundingBoxIntoHeaderAtExpectedOffsets() throws {
+        let output = FileManager.default.temporaryDirectory
+            .appendingPathComponent("UntoldGSFormat-boxheader-\(UUID().uuidString)")
+            .appendingPathExtension("untoldgs")
+        let bakeResult = try bakeGaussianSplatProgressiveTiers(
+            plyURL: testPLYURL(),
+            outputBaseURL: output,
+            lodFractions: [1.0]
+        )
+        let tierURL = try XCTUnwrap(bakeResult.tiers.first?.url)
+
+        // Read the raw bytes independently of UntoldGSFormat.read to guard the actual on-disk
+        // contract (version + fixed offsets), not just whatever read() happens to decode.
+        let data = try Data(contentsOf: tierURL)
+        let versionBits = data[4 ..< 8].withUnsafeBytes { $0.loadUnaligned(fromByteOffset: 0, as: UInt32.self) }
+        XCTAssertEqual(UInt32(littleEndian: versionBits), 2)
+
+        func readFloat(at offset: Int) -> Float {
+            let bits = data[offset ..< offset + 4].withUnsafeBytes { $0.loadUnaligned(fromByteOffset: 0, as: UInt32.self) }
+            return Float(bitPattern: UInt32(littleEndian: bits))
+        }
+        let boundingBoxMin = simd_float3(readFloat(at: 48), readFloat(at: 52), readFloat(at: 56))
+        let boundingBoxMax = simd_float3(readFloat(at: 60), readFloat(at: 64), readFloat(at: 68))
+        XCTAssertEqual(boundingBoxMin, bakeResult.boundingBoxMin)
+        XCTAssertEqual(boundingBoxMax, bakeResult.boundingBoxMax)
+
+        // Round-trip through the public read() API should agree with the raw bytes.
+        let readBack = try UntoldGSFormat.read(from: tierURL)
+        XCTAssertEqual(readBack.boundingBoxMin, bakeResult.boundingBoxMin)
+        XCTAssertEqual(readBack.boundingBoxMax, bakeResult.boundingBoxMax)
     }
 }
