@@ -2792,6 +2792,58 @@ def _mesh_uv_fingerprint(mesh_data: object) -> str:
     return hashlib.sha1(",".join(parts).encode("utf-8")).hexdigest()
 
 
+# Tolerance for treating a UV bounding box as "within the unit square" — small
+# enough to still catch real tiled unwraps (which typically overshoot by whole
+# units), generous enough to absorb float roundoff from unwrap/pack operators.
+_UV_UNIT_SQUARE_TOLERANCE = 1.0e-3
+
+
+def _mesh_active_uv_bbox(mesh_data: object) -> Optional[tuple[float, float, float, float]]:
+    """Bounding box (min_x, max_x, min_y, max_y) of a mesh's active UV layer.
+
+    Returns None when the mesh has no UV layer or the layer is empty.
+    """
+    uv_layers = getattr(mesh_data, "uv_layers", None)
+    if not uv_layers:
+        return None
+    layer = uv_layers.active or uv_layers[0]
+    data = layer.data
+    n = len(data)
+    if n == 0:
+        return None
+    if _HAS_NUMPY:
+        flat = np.empty(n * 2, dtype=np.float32)
+        data.foreach_get("uv", flat)
+        coords = flat.reshape(-1, 2)
+        return (
+            float(coords[:, 0].min()), float(coords[:, 0].max()),
+            float(coords[:, 1].min()), float(coords[:, 1].max()),
+        )
+    xs = [data[i].uv[0] for i in range(n)]
+    ys = [data[i].uv[1] for i in range(n)]
+    return (min(xs), max(xs), min(ys), max(ys))
+
+
+def _uv_bbox_exceeds_unit_square(bbox: tuple[float, float, float, float], tolerance: float = _UV_UNIT_SQUARE_TOLERANCE) -> bool:
+    """True when a UV bounding box extends outside [0,1]x[0,1].
+
+    Image baking always writes into a [0,1]x[0,1] target regardless of how the
+    mesh's UVs are laid out — unlike live shading, it does not wrap coordinates
+    outside that range. Meshes tiled via oversized UVs (a common technique:
+    scaling the UV unwrap itself up in real-world units and relying on the
+    texture sampler's Repeat/Wrap mode, instead of a Mapping node) look correct
+    in Blender but bake mostly/entirely black, since only the sliver of the
+    mesh whose UVs happen to fall inside the unit square is captured.
+    """
+    min_x, max_x, min_y, max_y = bbox
+    return (
+        min_x < -tolerance
+        or min_y < -tolerance
+        or max_x > 1.0 + tolerance
+        or max_y > 1.0 + tolerance
+    )
+
+
 def _object_transform_fingerprint(mesh_object: object) -> str:
     """Cheap fingerprint of world transform, since Object-coordinate-driven
     procedural nodes (Texture Coordinate 'Object', Object Info) bake
@@ -3051,6 +3103,18 @@ def bake_divergent_materials(
             continue
         if len(getattr(mesh_object.data, "uv_layers", [])) == 0:
             print(f"    Skipping '{mesh_object.name}': no UV map", flush=True)
+            continue
+        uv_bbox = _mesh_active_uv_bbox(mesh_object.data)
+        if uv_bbox is not None and _uv_bbox_exceeds_unit_square(uv_bbox):
+            min_x, max_x, min_y, max_y = uv_bbox
+            print(
+                f"    Skipping '{mesh_object.name}': UV layout extends outside the [0,1] unit square "
+                f"(x=[{min_x:.3f}, {max_x:.3f}] y=[{min_y:.3f}, {max_y:.3f}]) — likely a tiled unwrap "
+                f"relying on texture-sampler wraparound. Baking only captures the portion inside "
+                f"[0,1] and would leave most of the surface black; falling back to a direct texture "
+                f"reference for '{material.name}' on this mesh instead.",
+                flush=True,
+            )
             continue
         candidates.append((mesh_object, material, plan))
     if not candidates:
