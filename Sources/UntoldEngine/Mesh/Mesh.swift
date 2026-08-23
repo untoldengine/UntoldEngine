@@ -756,7 +756,7 @@ public struct Material {
         baseColor = createTextureDescriptor(device: device, texture: baseTexture, wrapMode: .repeat)
         roughness = createTextureDescriptor(device: device, texture: roughnessTexture, wrapMode: .repeat)
         metallic = createTextureDescriptor(device: device, texture: metallicTexture, wrapMode: .repeat)
-        normal = createTextureDescriptor(device: device, texture: normalTexture, wrapMode: .clampToEdge)
+        normal = createTextureDescriptor(device: device, texture: normalTexture, wrapMode: .repeat)
         emissive = createTextureDescriptor(device: device, texture: emissiveTexture, wrapMode: .repeat)
 
         baseColorURL = runtimeMaterial.baseColorTexture?.sourceURL
@@ -825,7 +825,7 @@ public struct Material {
             outputSourceDimensions: &normalDims,
             mapType: "Normal map"
         )
-        normal = createTextureDescriptor(device: renderInfo.device, texture: normalTex, wrapMode: .clampToEdge)
+        normal = createTextureDescriptor(device: renderInfo.device, texture: normalTex, wrapMode: .repeat)
 
         let roughnessTex = textureLoader.loadTexture(
             from: mdlMaterial.property(with: .roughness),
