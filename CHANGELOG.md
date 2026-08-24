@@ -1,4 +1,25 @@
 # Changelog
+## v0.17.0 - 2026-08-24
+### 🐞 Fixes
+- [Patch] Fixed tile-streamer texture exporter (42c3fbf…)
+- [Patch] Added lod debug for splats (0f57d0a…)
+- [Patch] Implemented spatial bucketing for progressive Gaussian tier generation (b9f6373…)
+- [Patch] Implemented new API for gaussian system (820424c…)
+- [Patch] Progressive Gaussian loading is now tile-independent (fd9b2b8…)
+- [Patch] Fix Gaussian LOD memory leak, stale-task race, and code-review findings (cee64e1…)
+### 📚 Docs
+- [Docs] Add tutorials for demos (cb0c6c0…)
+- [Docs] Add more tutorials (a43537b…)
+- [Docs] Add even more tutorials (d9158e3…)
+- [Docs] added architecture docs (cfb9122…)
+- [Docs] fix image url (09dd132…)
+- [Docs] Added additional tutorials (e5e3b37…)
+- [Docs] Updated url paths to demos (fca1fbd…)
+- [Docs] Updated readme with gifs (85c6a1d…)
+### 🚀 Features
+- [Feature] Deliver physics backend events to subscribers and USC scripts (75917cf…)
+- [Feature] Progressive loading for splats (f4d3148…)
+- [Feature] Overdraw-aware Gaussian LOD selection (dc2ca60…)
 ## v0.16.0 - 2026-08-12
 ### 🐞 Fixes
 - [Patch] fixed gaussian not rendering (74d821b…)
