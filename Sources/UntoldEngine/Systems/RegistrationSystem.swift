@@ -1166,6 +1166,14 @@ private func registerUntoldLight(_ light: RuntimeLightSource) {
     switch light.kind {
     case .directional:
         scene.get(component: DirectionalLightComponent.self, for: lightEntityId)?.castsShadow = light.castsShadow
+        // A scene only ever has one meaningful "sun". Importing a new directional light
+        // (e.g. re-running Load Scene Authored) should replace the previous one outright
+        // rather than leaving it behind as an orphaned, no-longer-active duplicate.
+        if let previousDirectionalLight = LightingSystem.shared.activeDirectionalLight,
+           previousDirectionalLight != lightEntityId
+        {
+            destroyEntity(entityId: previousDirectionalLight)
+        }
         setDirectionalLight(.active(lightEntityId))
 
     case .point:
