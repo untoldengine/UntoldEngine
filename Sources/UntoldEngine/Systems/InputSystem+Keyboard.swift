@@ -21,7 +21,7 @@ public struct KeyState {
     public var jPressed = false, kPressed = false, lPressed = false
     public var qPressed = false, ePressed = false
     public var spacePressed = false, shiftPressed = false, ctrlPressed = false
-    public var altPressed = false
+    public var altPressed = false, commandPressed = false
     public var leftMousePressed = false, rightMousePressed = false, middleMousePressed = false
 }
 
@@ -123,6 +123,13 @@ public extension InputSystem {
                 keyState.ctrlPressed = true
             } else {
                 keyState.ctrlPressed = false
+            }
+
+            // Command key
+            if event.modifierFlags.contains(.command) {
+                keyState.commandPressed = true
+            } else {
+                keyState.commandPressed = false
             }
         }
 
