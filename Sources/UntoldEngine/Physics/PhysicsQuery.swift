@@ -66,21 +66,31 @@ public enum PhysicsQuery {
         guard maxDistance > 0 else { return nil }
 
         // Tree-pruned broad phase: candidates arrive sorted by their ray-AABB
-        // distance. For a ray starting outside a box that distance equals the
-        // hit distance below; for a ray starting inside it is the exit
-        // distance, an upper bound of the reported 0 — so in both cases it
-        // never undercuts the final distance, and the scan can stop as soon
-        // as the sorted distance passes the best hit found.
+        // distance. For a ray starting OUTSIDE a box that distance equals the
+        // hit distance below, so once it passes the best hit the candidate
+        // cannot win and is skipped. For a ray starting INSIDE a box it is
+        // the EXIT distance — an upper bound that can sort the box behind
+        // farther candidates even though its reported hit distance is 0 — so
+        // inside-origin candidates are always examined and the scan never
+        // breaks out of the sorted order early.
         var best: PhysicsRayHit?
         for (entity, sortedDistance) in OctreeSystem.shared.query(
             rayOrigin: ray.origin,
             rayDirection: direction,
             maxDistance: maxDistance
         ) {
-            if let currentBest = best, sortedDistance >= currentBest.distance { break }
             guard passesFilter(entity, filter),
                   let bounds = OctreeSystem.shared.getBounds(for: entity)
             else { continue }
+
+            let originInside = ray.origin.x >= bounds.min.x && ray.origin.x <= bounds.max.x
+                && ray.origin.y >= bounds.min.y && ray.origin.y <= bounds.max.y
+                && ray.origin.z >= bounds.min.z && ray.origin.z <= bounds.max.z
+            if let currentBest = best, !originInside,
+               sortedDistance >= currentBest.distance
+            {
+                continue
+            }
 
             // Narrow phase recomputes the entry distance: the broad-phase
             // value is the exit distance for inside-the-box origins, where
