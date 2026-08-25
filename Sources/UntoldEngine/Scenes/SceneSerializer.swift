@@ -166,6 +166,11 @@ struct MaterialData: Codable {
     var roughnessURL: URL? = nil
     var metallicURL: URL? = nil
     var normalURL: URL? = nil
+    var stScale: Float? = nil
+    var baseColorWrapMode: Int? = nil // WrapMode rawValue
+    var roughnessWrapMode: Int? = nil // WrapMode rawValue
+    var metallicWrapMode: Int? = nil // WrapMode rawValue
+    var normalWrapMode: Int? = nil // WrapMode rawValue
 }
 
 // MARK: - Asset Instance Data
@@ -583,6 +588,12 @@ public func serializeScene() -> SceneData {
                 normalURL = normalTexture
             }
 
+            let stScale: Float = getMaterialSTScale(entityId: entityId)
+            let baseColorWrapMode = getTextureWrapMode(entityId: entityId, textureType: .baseColor)?.rawValue
+            let roughnessWrapMode = getTextureWrapMode(entityId: entityId, textureType: .roughness)?.rawValue
+            let metallicWrapMode = getTextureWrapMode(entityId: entityId, textureType: .metallic)?.rawValue
+            let normalWrapMode = getTextureWrapMode(entityId: entityId, textureType: .normal)?.rawValue
+
             entityData.materialData = MaterialData(
                 baseColorValue: baseColor,
                 emissiveValue: emissiveValue,
@@ -594,7 +605,12 @@ public func serializeScene() -> SceneData {
                 baseColorURL: baseColorURL,
                 roughnessURL: roughnessURL,
                 metallicURL: metallicURL,
-                normalURL: normalURL
+                normalURL: normalURL,
+                stScale: stScale,
+                baseColorWrapMode: baseColorWrapMode,
+                roughnessWrapMode: roughnessWrapMode,
+                metallicWrapMode: metallicWrapMode,
+                normalWrapMode: normalWrapMode
             )
         }
 
@@ -857,6 +873,11 @@ public func serializeScene() -> SceneData {
                             let opacity = getMaterialOpacity(entityId: childId)
                             let alphaCutoff = getMaterialAlphaCutoff(entityId: childId)
                             let alphaModeRawValue = getMaterialAlphaMode(entityId: childId).rawValue
+                            let stScale = getMaterialSTScale(entityId: childId)
+                            let baseColorWrapMode = getTextureWrapMode(entityId: childId, textureType: .baseColor)?.rawValue
+                            let roughnessWrapMode = getTextureWrapMode(entityId: childId, textureType: .roughness)?.rawValue
+                            let metallicWrapMode = getTextureWrapMode(entityId: childId, textureType: .metallic)?.rawValue
+                            let normalWrapMode = getTextureWrapMode(entityId: childId, textureType: .normal)?.rawValue
                             materialOverride = MaterialData(
                                 baseColorValue: baseColor,
                                 emissiveValue: emissive,
@@ -864,7 +885,12 @@ public func serializeScene() -> SceneData {
                                 metallicValue: metallic,
                                 opacity: opacity,
                                 alphaCutoff: alphaCutoff,
-                                alphaMode: alphaModeRawValue
+                                alphaMode: alphaModeRawValue,
+                                stScale: stScale,
+                                baseColorWrapMode: baseColorWrapMode,
+                                roughnessWrapMode: roughnessWrapMode,
+                                metallicWrapMode: metallicWrapMode,
+                                normalWrapMode: normalWrapMode
                             )
                         }
 
@@ -1442,6 +1468,34 @@ public func deserializeScene(
                     if let normalURL = materialData.normalURL {
                         updateMaterialTexture(entityId: entityId, textureType: .normal, path: normalURL)
                     }
+
+                    if let stScale = materialData.stScale {
+                        updateMaterialSTScale(entityId: entityId, stScale: stScale)
+                    }
+
+                    if let baseColorWrapModeRawValue = materialData.baseColorWrapMode,
+                       let wrapMode = WrapMode(rawValue: baseColorWrapModeRawValue)
+                    {
+                        updateTextureSampler(entityId: entityId, textureType: .baseColor, wrapMode: wrapMode)
+                    }
+
+                    if let roughnessWrapModeRawValue = materialData.roughnessWrapMode,
+                       let wrapMode = WrapMode(rawValue: roughnessWrapModeRawValue)
+                    {
+                        updateTextureSampler(entityId: entityId, textureType: .roughness, wrapMode: wrapMode)
+                    }
+
+                    if let metallicWrapModeRawValue = materialData.metallicWrapMode,
+                       let wrapMode = WrapMode(rawValue: metallicWrapModeRawValue)
+                    {
+                        updateTextureSampler(entityId: entityId, textureType: .metallic, wrapMode: wrapMode)
+                    }
+
+                    if let normalWrapModeRawValue = materialData.normalWrapMode,
+                       let wrapMode = WrapMode(rawValue: normalWrapModeRawValue)
+                    {
+                        updateTextureSampler(entityId: entityId, textureType: .normal, wrapMode: wrapMode)
+                    }
                 }
             }
 
@@ -1471,6 +1525,14 @@ public func deserializeScene(
                     let intensity: Float = light.intensity
 
                     createDirLight(entityId: entityId)
+                    // createDirLight() only activates a light if activeDirectionalLight is nil.
+                    // Callers that clear the scene (destroyAllEntities()) right before
+                    // deserializing only mark the previous entities for deferred destruction —
+                    // the pointer isn't nulled until finalizePendingDestroys() runs on a later
+                    // frame — so this can silently see a stale non-nil pointer and skip
+                    // activation. A scene file that declares a directional light should always
+                    // become the active one when loaded, so force it explicitly.
+                    setDirectionalLight(.active(entityId))
 
                     guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
                         handleError(.noLightComponent)
@@ -1913,6 +1975,34 @@ private func applyAssetInstanceOverrides(entityId: EntityID, overrides: [AssetOv
                 }
                 if let normalURL = material.normalURL {
                     updateMaterialTexture(entityId: derivedEntityId, textureType: .normal, path: normalURL)
+                }
+
+                if let stScale = material.stScale {
+                    updateMaterialSTScale(entityId: derivedEntityId, stScale: stScale)
+                }
+
+                if let baseColorWrapModeRawValue = material.baseColorWrapMode,
+                   let wrapMode = WrapMode(rawValue: baseColorWrapModeRawValue)
+                {
+                    updateTextureSampler(entityId: derivedEntityId, textureType: .baseColor, wrapMode: wrapMode)
+                }
+
+                if let roughnessWrapModeRawValue = material.roughnessWrapMode,
+                   let wrapMode = WrapMode(rawValue: roughnessWrapModeRawValue)
+                {
+                    updateTextureSampler(entityId: derivedEntityId, textureType: .roughness, wrapMode: wrapMode)
+                }
+
+                if let metallicWrapModeRawValue = material.metallicWrapMode,
+                   let wrapMode = WrapMode(rawValue: metallicWrapModeRawValue)
+                {
+                    updateTextureSampler(entityId: derivedEntityId, textureType: .metallic, wrapMode: wrapMode)
+                }
+
+                if let normalWrapModeRawValue = material.normalWrapMode,
+                   let wrapMode = WrapMode(rawValue: normalWrapModeRawValue)
+                {
+                    updateTextureSampler(entityId: derivedEntityId, textureType: .normal, wrapMode: wrapMode)
                 }
             }
         }
