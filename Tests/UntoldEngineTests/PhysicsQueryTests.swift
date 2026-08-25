@@ -164,6 +164,31 @@ final class PhysicsQueryTests: XCTestCase {
         XCTAssertEqual(hit?.normal, -direction)
     }
 
+    func testInsideBoxHitBeatsCloserSortedOutsideCandidate() throws {
+        // Regression for the sorted-scan early exit (owner's review case):
+        // the ray starts inside a big box whose broad-phase distance is its
+        // far EXIT distance, sorting it behind a small box further down the
+        // ray. The inside-origin hit (distance 0) must still win.
+        let bigBox = makeObstacle(
+            center: simd_float3(0, 0, -50),
+            halfExtents: simd_float3(50, 50, 100)
+        )
+        _ = makeObstacle(
+            center: simd_float3(0, 0, -50),
+            halfExtents: simd_float3(repeating: 0.5)
+        )
+
+        let direction = simd_float3(0, 0, -1)
+        let hit = try XCTUnwrap(PhysicsQuery.raycast(
+            PhysicsRay(origin: .zero, direction: direction)
+        ))
+
+        XCTAssertEqual(hit.entity, bigBox)
+        XCTAssertEqual(hit.distance, 0.0)
+        XCTAssertEqual(hit.position, .zero)
+        XCTAssertEqual(hit.normal, -direction)
+    }
+
     func testFallbackMissReturnsNil() {
         _ = makeObstacle(center: simd_float3(0.0, 10.0, -5.0))
 
