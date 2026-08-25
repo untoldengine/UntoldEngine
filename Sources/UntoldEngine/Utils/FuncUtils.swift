@@ -1472,14 +1472,12 @@ public func getTextureWrapMode(
     case .baseColor:
         return material.baseColor.wrapMode
     case .normal:
-        break
+        return material.normal.wrapMode
     case .roughness:
-        break
+        return material.roughness.wrapMode
     case .metallic:
-        break
+        return material.metallic.wrapMode
     }
-
-    return nil
 }
 
 public func updateTextureSampler(
