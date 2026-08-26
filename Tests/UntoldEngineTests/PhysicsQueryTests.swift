@@ -189,6 +189,29 @@ final class PhysicsQueryTests: XCTestCase {
         XCTAssertEqual(hit.normal, -direction)
     }
 
+    func testInsideBoxHitSurvivesTightMaxDistance() throws {
+        // Regression: the broad-phase cull inside OctreeSystem.query compares
+        // maxDistance against the sorted distance, which for an inside-origin
+        // box is its far EXIT distance, not the true hit distance (0). Passing
+        // the caller's maxDistance straight through to that query would drop
+        // this box before the narrow phase ever saw it, even though the real
+        // hit (distance 0, at the ray origin) is well inside a tight budget.
+        let bigBox = makeObstacle(
+            center: simd_float3(0, 0, -50),
+            halfExtents: simd_float3(50, 50, 100)
+        )
+
+        let direction = simd_float3(0, 0, -1)
+        let hit = try XCTUnwrap(PhysicsQuery.raycast(
+            PhysicsRay(origin: .zero, direction: direction, maxDistance: 5.0)
+        ))
+
+        XCTAssertEqual(hit.entity, bigBox)
+        XCTAssertEqual(hit.distance, 0.0)
+        XCTAssertEqual(hit.position, .zero)
+        XCTAssertEqual(hit.normal, -direction)
+    }
+
     func testFallbackMissReturnsNil() {
         _ = makeObstacle(center: simd_float3(0.0, 10.0, -5.0))
 
