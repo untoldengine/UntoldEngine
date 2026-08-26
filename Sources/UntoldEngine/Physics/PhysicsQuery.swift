@@ -73,11 +73,19 @@ public enum PhysicsQuery {
         // farther candidates even though its reported hit distance is 0 — so
         // inside-origin candidates are always examined and the scan never
         // breaks out of the sorted order early.
+        //
+        // The query itself is asked for the unbounded distance, not the
+        // caller's maxDistance: its own internal cull compares maxDistance
+        // against that same entry-or-exit value, so an inside-origin box
+        // whose EXIT point lies beyond a tight maxDistance would otherwise be
+        // dropped before the narrow phase ever sees it — even though its true
+        // hit distance (0, at the ray origin) is well within range. The real
+        // cap is enforced below, against the recomputed entry distance.
         var best: PhysicsRayHit?
         for (entity, sortedDistance) in OctreeSystem.shared.query(
             rayOrigin: ray.origin,
             rayDirection: direction,
-            maxDistance: maxDistance
+            maxDistance: fallbackUnboundedDistance
         ) {
             guard passesFilter(entity, filter),
                   let bounds = OctreeSystem.shared.getBounds(for: entity)
