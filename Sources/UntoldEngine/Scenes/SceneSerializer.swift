@@ -492,6 +492,79 @@ private func applyDeserializedRenderProperties(entityId: EntityID, entityData: E
     }
 }
 
+/// Applies saved material overrides (colors, scalars, texture URLs, wrap modes) to an entity.
+/// Must run only once the entity's mesh/submeshes actually exist — updateMaterial's material-slot
+/// lookup silently no-ops otherwise, which previously dropped every texture reassignment made
+/// through the Inspector because this ran before setEntityMeshAsync's completion fired.
+private func applyDeserializedMaterialData(entityId: EntityID, entityData: EntityData) {
+    guard let materialData = entityData.materialData else { return }
+
+    let baseColorValue: simd_float4 = materialData.baseColorValue
+    let roughnessValue: Float = materialData.roughnessValue
+    let metallicValue: Float = materialData.metallicValue
+    let emissiveValue: simd_float3 = materialData.emissiveValue
+
+    updateMaterialColor(entityId: entityId, color: colorFromSimd(baseColorValue))
+    updateMaterialRoughness(entityId: entityId, roughness: roughnessValue)
+    updateMaterialMetallic(entityId: entityId, metallic: metallicValue)
+    updateMaterialEmmisive(entityId: entityId, emmissive: emissiveValue)
+    if let opacity = materialData.opacity {
+        updateMaterialOpacity(entityId: entityId, opacity: opacity)
+    }
+    if let alphaCutoff = materialData.alphaCutoff {
+        updateMaterialAlphaCutoff(entityId: entityId, cutoff: alphaCutoff)
+    }
+    if let alphaModeRawValue = materialData.alphaMode,
+       let alphaMode = MaterialAlphaMode(rawValue: alphaModeRawValue)
+    {
+        updateMaterialAlphaMode(entityId: entityId, mode: alphaMode)
+    }
+
+    if let baseColorURL = materialData.baseColorURL {
+        updateMaterialTexture(entityId: entityId, textureType: .baseColor, path: baseColorURL)
+    }
+
+    if let roughnessURL = materialData.roughnessURL {
+        updateMaterialTexture(entityId: entityId, textureType: .roughness, path: roughnessURL)
+    }
+
+    if let metallicURL = materialData.metallicURL {
+        updateMaterialTexture(entityId: entityId, textureType: .metallic, path: metallicURL)
+    }
+
+    if let normalURL = materialData.normalURL {
+        updateMaterialTexture(entityId: entityId, textureType: .normal, path: normalURL)
+    }
+
+    if let stScale = materialData.stScale {
+        updateMaterialSTScale(entityId: entityId, stScale: stScale)
+    }
+
+    if let baseColorWrapModeRawValue = materialData.baseColorWrapMode,
+       let wrapMode = WrapMode(rawValue: baseColorWrapModeRawValue)
+    {
+        updateTextureSampler(entityId: entityId, textureType: .baseColor, wrapMode: wrapMode)
+    }
+
+    if let roughnessWrapModeRawValue = materialData.roughnessWrapMode,
+       let wrapMode = WrapMode(rawValue: roughnessWrapModeRawValue)
+    {
+        updateTextureSampler(entityId: entityId, textureType: .roughness, wrapMode: wrapMode)
+    }
+
+    if let metallicWrapModeRawValue = materialData.metallicWrapMode,
+       let wrapMode = WrapMode(rawValue: metallicWrapModeRawValue)
+    {
+        updateTextureSampler(entityId: entityId, textureType: .metallic, wrapMode: wrapMode)
+    }
+
+    if let normalWrapModeRawValue = materialData.normalWrapMode,
+       let wrapMode = WrapMode(rawValue: normalWrapModeRawValue)
+    {
+        updateTextureSampler(entityId: entityId, textureType: .normal, wrapMode: wrapMode)
+    }
+}
+
 public func serializeScene() -> SceneData {
     var sceneData = SceneData()
     sceneData.sceneAuthoredSource = SceneAuthoredSourceStore.shared.source
@@ -562,29 +635,20 @@ public func serializeScene() -> SceneData {
             var roughnessURL: URL?
             var metallicURL: URL?
             var normalURL: URL?
-            let shouldSerializeMaterialTextureURLs = entityData.asset?.kind != .model
 
-            if shouldSerializeMaterialTextureURLs,
-               let baseColorTexture: URL = getMaterialTextureURL(entityId: entityId, type: .baseColor)
-            {
+            if let baseColorTexture: URL = getMaterialTextureURL(entityId: entityId, type: .baseColor) {
                 baseColorURL = baseColorTexture
             }
 
-            if shouldSerializeMaterialTextureURLs,
-               let roughnessTexture: URL = getMaterialTextureURL(entityId: entityId, type: .roughness)
-            {
+            if let roughnessTexture: URL = getMaterialTextureURL(entityId: entityId, type: .roughness) {
                 roughnessURL = roughnessTexture
             }
 
-            if shouldSerializeMaterialTextureURLs,
-               let metallicTexture: URL = getMaterialTextureURL(entityId: entityId, type: .metallic)
-            {
+            if let metallicTexture: URL = getMaterialTextureURL(entityId: entityId, type: .metallic) {
                 metallicURL = metallicTexture
             }
 
-            if shouldSerializeMaterialTextureURLs,
-               let normalTexture: URL = getMaterialTextureURL(entityId: entityId, type: .normal)
-            {
+            if let normalTexture: URL = getMaterialTextureURL(entityId: entityId, type: .normal) {
                 normalURL = normalTexture
             }
 
@@ -878,6 +942,10 @@ public func serializeScene() -> SceneData {
                             let roughnessWrapMode = getTextureWrapMode(entityId: childId, textureType: .roughness)?.rawValue
                             let metallicWrapMode = getTextureWrapMode(entityId: childId, textureType: .metallic)?.rawValue
                             let normalWrapMode = getTextureWrapMode(entityId: childId, textureType: .normal)?.rawValue
+                            let baseColorURL = getMaterialTextureURL(entityId: childId, type: .baseColor)
+                            let roughnessURL = getMaterialTextureURL(entityId: childId, type: .roughness)
+                            let metallicURL = getMaterialTextureURL(entityId: childId, type: .metallic)
+                            let normalURL = getMaterialTextureURL(entityId: childId, type: .normal)
                             materialOverride = MaterialData(
                                 baseColorValue: baseColor,
                                 emissiveValue: emissive,
@@ -886,6 +954,10 @@ public func serializeScene() -> SceneData {
                                 opacity: opacity,
                                 alphaCutoff: alphaCutoff,
                                 alphaMode: alphaModeRawValue,
+                                baseColorURL: baseColorURL,
+                                roughnessURL: roughnessURL,
+                                metallicURL: metallicURL,
+                                normalURL: normalURL,
                                 stScale: stScale,
                                 baseColorWrapMode: baseColorWrapMode,
                                 roughnessWrapMode: roughnessWrapMode,
@@ -1372,6 +1444,7 @@ public func deserializeScene(
                         setEntityMeshDirect(entityId: entityId, meshes: meshes, assetName: sceneDataEntity.assetName)
                         applyDeserializedLocalTransform(entityId: entityId, entityData: sceneDataEntity)
                         applyDeserializedRenderProperties(entityId: entityId, entityData: sceneDataEntity)
+                        applyDeserializedMaterialData(entityId: entityId, entityData: sceneDataEntity)
 
                         // Restore Static Batch Component (procedural mesh already loaded)
                         if sceneDataEntity.hasStaticBatchComponent == true {
@@ -1383,6 +1456,7 @@ public func deserializeScene(
                             applyDeserializedLocalTransform(entityId: entityId, entityData: sceneDataEntity)
                             applyDeserializedRenderProperties(entityId: entityId, entityData: sceneDataEntity)
                             if success {
+                                applyDeserializedMaterialData(entityId: entityId, entityData: sceneDataEntity)
                                 if sceneDataEntity.hasStaticBatchComponent == true {
                                     setEntityStaticBatchComponent(entityId: entityId)
                                 }
@@ -1399,6 +1473,7 @@ public func deserializeScene(
                         setEntityMeshDirect(entityId: entityId, meshes: meshes, assetName: sceneDataEntity.assetName)
                         applyDeserializedLocalTransform(entityId: entityId, entityData: sceneDataEntity)
                         applyDeserializedRenderProperties(entityId: entityId, entityData: sceneDataEntity)
+                        applyDeserializedMaterialData(entityId: entityId, entityData: sceneDataEntity)
 
                         // Restore Static Batch Component (procedural mesh already loaded)
                         if sceneDataEntity.hasStaticBatchComponent == true {
@@ -1413,6 +1488,8 @@ public func deserializeScene(
                             applyDeserializedRenderProperties(entityId: entityId, entityData: sceneDataEntity)
                             if success {
                                 Logger.log(message: "✅ Mesh loaded for \(meshLabel)")
+
+                                applyDeserializedMaterialData(entityId: entityId, entityData: sceneDataEntity)
 
                                 // Restore Static Batch Component (mesh now loaded)
                                 if sceneDataEntity.hasStaticBatchComponent == true {
@@ -1431,72 +1508,6 @@ public func deserializeScene(
                     }
                 }
 
-                if let materialData = sceneDataEntity.materialData {
-                    let baseColorValue: simd_float4 = materialData.baseColorValue
-                    let roughnessValue: Float = materialData.roughnessValue
-                    let metallicValue: Float = materialData.metallicValue
-                    let emissiveValue: simd_float3 = materialData.emissiveValue
-
-                    updateMaterialColor(entityId: entityId, color: colorFromSimd(baseColorValue))
-                    updateMaterialRoughness(entityId: entityId, roughness: roughnessValue)
-                    updateMaterialMetallic(entityId: entityId, metallic: metallicValue)
-                    updateMaterialEmmisive(entityId: entityId, emmissive: emissiveValue)
-                    if let opacity = materialData.opacity {
-                        updateMaterialOpacity(entityId: entityId, opacity: opacity)
-                    }
-                    if let alphaCutoff = materialData.alphaCutoff {
-                        updateMaterialAlphaCutoff(entityId: entityId, cutoff: alphaCutoff)
-                    }
-                    if let alphaModeRawValue = materialData.alphaMode,
-                       let alphaMode = MaterialAlphaMode(rawValue: alphaModeRawValue)
-                    {
-                        updateMaterialAlphaMode(entityId: entityId, mode: alphaMode)
-                    }
-
-                    if let baseColorURL = materialData.baseColorURL {
-                        updateMaterialTexture(entityId: entityId, textureType: .baseColor, path: baseColorURL)
-                    }
-
-                    if let roughnessURL = materialData.roughnessURL {
-                        updateMaterialTexture(entityId: entityId, textureType: .roughness, path: roughnessURL)
-                    }
-
-                    if let metallicURL = materialData.metallicURL {
-                        updateMaterialTexture(entityId: entityId, textureType: .metallic, path: metallicURL)
-                    }
-
-                    if let normalURL = materialData.normalURL {
-                        updateMaterialTexture(entityId: entityId, textureType: .normal, path: normalURL)
-                    }
-
-                    if let stScale = materialData.stScale {
-                        updateMaterialSTScale(entityId: entityId, stScale: stScale)
-                    }
-
-                    if let baseColorWrapModeRawValue = materialData.baseColorWrapMode,
-                       let wrapMode = WrapMode(rawValue: baseColorWrapModeRawValue)
-                    {
-                        updateTextureSampler(entityId: entityId, textureType: .baseColor, wrapMode: wrapMode)
-                    }
-
-                    if let roughnessWrapModeRawValue = materialData.roughnessWrapMode,
-                       let wrapMode = WrapMode(rawValue: roughnessWrapModeRawValue)
-                    {
-                        updateTextureSampler(entityId: entityId, textureType: .roughness, wrapMode: wrapMode)
-                    }
-
-                    if let metallicWrapModeRawValue = materialData.metallicWrapMode,
-                       let wrapMode = WrapMode(rawValue: metallicWrapModeRawValue)
-                    {
-                        updateTextureSampler(entityId: entityId, textureType: .metallic, wrapMode: wrapMode)
-                    }
-
-                    if let normalWrapModeRawValue = materialData.normalWrapMode,
-                       let wrapMode = WrapMode(rawValue: normalWrapModeRawValue)
-                    {
-                        updateTextureSampler(entityId: entityId, textureType: .normal, wrapMode: wrapMode)
-                    }
-                }
             }
 
             // Animation setup is now handled inside mesh loading completion handlers
