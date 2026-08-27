@@ -39,6 +39,8 @@ fragment float4 fragmentDebugShader(VertexDebugOutput vertexOut [[stage_in]],
     const int roughnessMode = 11;
     const int metallicMode = 12;
     const int preTonemapHDRLuminanceMode = 13;
+    const int heightDebugMode = 15;
+    const int pomOffsetDebugMode = 16;
 
     if (debugMode == depthMode) {
         float near = frustumPlanes.x;
@@ -57,6 +59,10 @@ fragment float4 fragmentDebugShader(VertexDebugOutput vertexOut [[stage_in]],
         sampled = float4(sampled.r, sampled.r, sampled.r, 1.0);
     } else if (debugMode == metallicMode) {
         sampled = float4(sampled.g, sampled.g, sampled.g, 1.0);
+    } else if (debugMode == heightDebugMode) {
+        sampled = float4(sampled.b, sampled.b, sampled.b, 1.0);
+    } else if (debugMode == pomOffsetDebugMode) {
+        sampled = float4(sampled.a, sampled.a, sampled.a, 1.0);
     } else if (debugMode == preTonemapHDRLuminanceMode) {
         float luminance = dot(max(sampled.rgb, 0.0), float3(0.2126, 0.7152, 0.0722));
         float mapped = log2(1.0 + luminance) / 6.0;

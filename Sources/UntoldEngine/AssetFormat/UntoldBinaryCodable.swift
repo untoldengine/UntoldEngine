@@ -256,11 +256,103 @@ extension UntoldMaterialRecordV1: UntoldBinaryEncodable, UntoldBinaryDecodable {
         writer.writeUInt32LE(roughnessTextureIndex)
         writer.writeUInt32LE(emissiveTextureIndex)
         writer.writeUInt32LE(occlusionTextureIndex)
+        writer.writeUInt32LE(heightTextureIndex)
+        writer.writeFloat32LE(heightScale)
+        writer.writeFloat32LE(heightBias)
+        writer.writeFloat32LE(heightRemapMin)
+        writer.writeFloat32LE(heightRemapMax)
         writer.writeUInt32LE(reserved0[safe: 0] ?? 0)
         writer.writeUInt32LE(reserved0[safe: 1] ?? 0)
     }
 
+    /// Decodes the current (>= `UntoldFormat.minHeightRemapVersion`) on-disk layout, which
+    /// includes both the height-map and height-remap fields. Do not call this against files
+    /// written by an older exporter — use `decodeLegacyWithHeightNoRemap(from:)` or
+    /// `decodeLegacyWithoutHeight(from:)` instead, gated on the file header's `formatVersion`,
+    /// or every record after the first will be misaligned.
     public static func decode(from reader: UntoldBinaryReader) throws -> UntoldMaterialRecordV1 {
+        var record = try UntoldMaterialRecordV1(
+            nameOffset: reader.readUInt32LE(),
+            flags: reader.readUInt32LE(),
+            baseColorFactor: SIMD4<Float>(
+                reader.readFloat32LE(),
+                reader.readFloat32LE(),
+                reader.readFloat32LE(),
+                reader.readFloat32LE()
+            ),
+            emissiveFactor: SIMD3<Float>(
+                reader.readFloat32LE(),
+                reader.readFloat32LE(),
+                reader.readFloat32LE()
+            ),
+            normalScale: reader.readFloat32LE(),
+            metallicFactor: reader.readFloat32LE(),
+            roughnessFactor: reader.readFloat32LE(),
+            occlusionStrength: reader.readFloat32LE(),
+            alphaCutoff: reader.readFloat32LE(),
+            baseColorTextureIndex: reader.readUInt32LE(),
+            normalTextureIndex: reader.readUInt32LE(),
+            metallicTextureIndex: reader.readUInt32LE(),
+            roughnessTextureIndex: reader.readUInt32LE(),
+            emissiveTextureIndex: reader.readUInt32LE(),
+            occlusionTextureIndex: reader.readUInt32LE(),
+            heightTextureIndex: reader.readUInt32LE(),
+            heightScale: reader.readFloat32LE(),
+            heightBias: reader.readFloat32LE(),
+            heightRemapMin: reader.readFloat32LE(),
+            heightRemapMax: reader.readFloat32LE()
+        )
+        record.reserved0 = try [
+            reader.readUInt32LE(),
+            reader.readUInt32LE(),
+        ]
+        return record
+    }
+
+    /// Decodes the on-disk layout for `minHeightMapVersion <= formatVersion < minHeightRemapVersion`:
+    /// height-map fields present, height-remap fields not yet on disk (defaulted to identity).
+    public static func decodeLegacyWithHeightNoRemap(from reader: UntoldBinaryReader) throws -> UntoldMaterialRecordV1 {
+        var record = try UntoldMaterialRecordV1(
+            nameOffset: reader.readUInt32LE(),
+            flags: reader.readUInt32LE(),
+            baseColorFactor: SIMD4<Float>(
+                reader.readFloat32LE(),
+                reader.readFloat32LE(),
+                reader.readFloat32LE(),
+                reader.readFloat32LE()
+            ),
+            emissiveFactor: SIMD3<Float>(
+                reader.readFloat32LE(),
+                reader.readFloat32LE(),
+                reader.readFloat32LE()
+            ),
+            normalScale: reader.readFloat32LE(),
+            metallicFactor: reader.readFloat32LE(),
+            roughnessFactor: reader.readFloat32LE(),
+            occlusionStrength: reader.readFloat32LE(),
+            alphaCutoff: reader.readFloat32LE(),
+            baseColorTextureIndex: reader.readUInt32LE(),
+            normalTextureIndex: reader.readUInt32LE(),
+            metallicTextureIndex: reader.readUInt32LE(),
+            roughnessTextureIndex: reader.readUInt32LE(),
+            emissiveTextureIndex: reader.readUInt32LE(),
+            occlusionTextureIndex: reader.readUInt32LE(),
+            heightTextureIndex: reader.readUInt32LE(),
+            heightScale: reader.readFloat32LE(),
+            heightBias: reader.readFloat32LE()
+        )
+        record.reserved0 = try [
+            reader.readUInt32LE(),
+            reader.readUInt32LE(),
+        ]
+        return record
+    }
+
+    /// Decodes the pre-height-map on-disk layout (`formatVersion < UntoldFormat.minHeightMapVersion`).
+    /// Height fields are not present on disk for these files and are defaulted; `hasHeightMap`
+    /// on the resulting runtime material will correctly report `false` since `heightTextureIndex`
+    /// defaults to `UntoldFormat.invalidIndex`.
+    public static func decodeLegacyWithoutHeight(from reader: UntoldBinaryReader) throws -> UntoldMaterialRecordV1 {
         var record = try UntoldMaterialRecordV1(
             nameOffset: reader.readUInt32LE(),
             flags: reader.readUInt32LE(),

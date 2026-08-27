@@ -472,7 +472,12 @@ public struct NativeFormatLoader: NamedRuntimeAssetLoading {
             metallicTexture: textureReference(at: material.metallicTextureIndex, decoded: decoded, baseURL: baseURL, isSRGB: false),
             roughnessTexture: textureReference(at: material.roughnessTextureIndex, decoded: decoded, baseURL: baseURL, isSRGB: false),
             emissiveTexture: textureReference(at: material.emissiveTextureIndex, decoded: decoded, baseURL: baseURL, isSRGB: true),
-            occlusionTexture: textureReference(at: material.occlusionTextureIndex, decoded: decoded, baseURL: baseURL, isSRGB: false)
+            occlusionTexture: textureReference(at: material.occlusionTextureIndex, decoded: decoded, baseURL: baseURL, isSRGB: false),
+            heightTexture: textureReference(at: material.heightTextureIndex, decoded: decoded, baseURL: baseURL, isSRGB: false),
+            heightScale: material.heightScale,
+            heightBias: material.heightBias,
+            heightRemapMin: material.heightRemapMin,
+            heightRemapMax: material.heightRemapMax
         )
     }
 

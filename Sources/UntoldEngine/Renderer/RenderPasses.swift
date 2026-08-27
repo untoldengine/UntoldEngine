@@ -837,7 +837,7 @@ public enum RenderPasses {
             Int32(material.hasBaseMap ? 1 : 0),
             Int32(material.hasRoughMap ? 1 : 0),
             Int32(material.hasMetalMap ? 1 : 0),
-            0
+            Int32((material.hasHeightMap && material.heightEnabled) ? 1 : 0)
         )
         materialParameters.textureChannels = simd_int4(
             Int32(material.roughnessChannel.rawValue),
@@ -845,6 +845,23 @@ public enum RenderPasses {
             0,
             0
         )
+        materialParameters.heightScale = material.heightScale
+        materialParameters.heightBias = material.heightBias
+        materialParameters.heightRemapMin = material.heightRemapMin
+        materialParameters.heightRemapMax = material.heightRemapMax
+    }
+
+    /// Builds the GPU-side POM quality uniform from the current global `POMQualitySettings`
+    /// (a renderer-level setting, not per-material — see docs on `setPOMQuality`).
+    @inline(__always)
+    private static func currentPOMQualityUniform() -> POMQualityUniform {
+        let settings = getPOMQuality()
+        var uniform = POMQualityUniform()
+        uniform.minSteps = settings.minSteps
+        uniform.maxSteps = settings.maxSteps
+        uniform.maxDistance = settings.maxDistance
+        uniform.fadeStartDistance = settings.fadeStartDistance
+        return uniform
     }
 
     @inline(__always)
@@ -1735,6 +1752,9 @@ public enum RenderPasses {
 
                         renderEncoder.setFragmentBytes(&stScale, length: MemoryLayout<Float>.stride, index: Int(modelPassFragmentSTScaleIndex.rawValue))
 
+                        var pomQuality = Self.currentPOMQualityUniform()
+                        renderEncoder.setFragmentBytes(&pomQuality, length: MemoryLayout<POMQualityUniform>.stride, index: Int(modelPassFragmentPOMQualityIndex.rawValue))
+
                         // set base texture
                         renderEncoder.setFragmentTexture(
                             material.baseColor.texture, index: Int(modelPassBaseTextureIndex.rawValue)
@@ -1798,6 +1818,12 @@ public enum RenderPasses {
                         )
 
                         renderEncoder.setFragmentSamplerState(material.normal.sampler, index: Int(modelPassNormalSamplerIndex.rawValue))
+
+                        renderEncoder.setFragmentTexture(
+                            material.height.texture, index: Int(modelPassHeightTextureIndex.rawValue)
+                        )
+
+                        renderEncoder.setFragmentSamplerState(material.height.sampler, index: Int(modelPassHeightSamplerIndex.rawValue))
 
                         renderEncoder.drawIndexedPrimitivesTracked(
                             type: subMesh.metalKitSubmesh.primitiveType,
@@ -1970,6 +1996,9 @@ public enum RenderPasses {
             var stScale: Float = material.stScale
             renderEncoder.setFragmentBytes(&stScale, length: MemoryLayout<Float>.stride, index: Int(modelPassFragmentSTScaleIndex.rawValue))
 
+            var pomQuality = Self.currentPOMQualityUniform()
+            renderEncoder.setFragmentBytes(&pomQuality, length: MemoryLayout<POMQualityUniform>.stride, index: Int(modelPassFragmentPOMQualityIndex.rawValue))
+
             renderEncoder.setFragmentTexture(material.baseColor.texture, index: Int(modelPassBaseTextureIndex.rawValue))
             renderEncoder.setFragmentSamplerState(material.baseColor.sampler, index: Int(modelPassBaseSamplerIndex.rawValue))
 
@@ -2017,6 +2046,8 @@ public enum RenderPasses {
 
             renderEncoder.setFragmentTexture(material.normal.texture, index: Int(modelPassNormalTextureIndex.rawValue))
             renderEncoder.setFragmentSamplerState(material.normal.sampler, index: Int(modelPassNormalSamplerIndex.rawValue))
+            renderEncoder.setFragmentTexture(material.height.texture, index: Int(modelPassHeightTextureIndex.rawValue))
+            renderEncoder.setFragmentSamplerState(material.height.sampler, index: Int(modelPassHeightSamplerIndex.rawValue))
 
             // SINGLE DRAW CALL FOR ENTIRE BATCH
             // Logger.log(message: "✅ Drawing batch \(batchGroup.id): \(batchGroup.indexCount) indices, \(batchGroup.vertexCount) vertices")
@@ -2154,6 +2185,8 @@ public enum RenderPasses {
 
                         var stScale: Float = material.stScale
                         renderEncoder.setFragmentBytes(&stScale, length: MemoryLayout<Float>.stride, index: Int(modelPassFragmentSTScaleIndex.rawValue))
+                        var pomQuality = Self.currentPOMQualityUniform()
+                        renderEncoder.setFragmentBytes(&pomQuality, length: MemoryLayout<POMQualityUniform>.stride, index: Int(modelPassFragmentPOMQualityIndex.rawValue))
                         renderEncoder.setFragmentTexture(material.baseColor.texture, index: Int(modelPassBaseTextureIndex.rawValue))
                         renderEncoder.setFragmentSamplerState(material.baseColor.sampler, index: Int(modelPassBaseSamplerIndex.rawValue))
                         renderEncoder.setFragmentTexture(material.roughness.texture, index: Int(modelPassRoughnessTextureIndex.rawValue))
@@ -2191,6 +2224,8 @@ public enum RenderPasses {
                         renderEncoder.setFragmentBytes(&materialParameters, length: MemoryLayout<MaterialParametersUniform>.stride, index: Int(modelPassFragmentMaterialParameterIndex.rawValue))
                         renderEncoder.setFragmentTexture(material.normal.texture, index: Int(modelPassNormalTextureIndex.rawValue))
                         renderEncoder.setFragmentSamplerState(material.normal.sampler, index: Int(modelPassNormalSamplerIndex.rawValue))
+                        renderEncoder.setFragmentTexture(material.height.texture, index: Int(modelPassHeightTextureIndex.rawValue))
+                        renderEncoder.setFragmentSamplerState(material.height.sampler, index: Int(modelPassHeightSamplerIndex.rawValue))
 
                         renderEncoder.drawIndexedPrimitivesTracked(
                             type: subMesh.metalKitSubmesh.primitiveType,
@@ -2247,6 +2282,8 @@ public enum RenderPasses {
 
                     var stScale: Float = material.stScale
                     renderEncoder.setFragmentBytes(&stScale, length: MemoryLayout<Float>.stride, index: Int(modelPassFragmentSTScaleIndex.rawValue))
+                    var pomQuality = Self.currentPOMQualityUniform()
+                    renderEncoder.setFragmentBytes(&pomQuality, length: MemoryLayout<POMQualityUniform>.stride, index: Int(modelPassFragmentPOMQualityIndex.rawValue))
                     renderEncoder.setFragmentTexture(material.baseColor.texture, index: Int(modelPassBaseTextureIndex.rawValue))
                     renderEncoder.setFragmentSamplerState(material.baseColor.sampler, index: Int(modelPassBaseSamplerIndex.rawValue))
                     renderEncoder.setFragmentTexture(material.roughness.texture, index: Int(modelPassRoughnessTextureIndex.rawValue))
@@ -2282,6 +2319,8 @@ public enum RenderPasses {
                     renderEncoder.setFragmentBytes(&materialParameters, length: MemoryLayout<MaterialParametersUniform>.stride, index: Int(modelPassFragmentMaterialParameterIndex.rawValue))
                     renderEncoder.setFragmentTexture(material.normal.texture, index: Int(modelPassNormalTextureIndex.rawValue))
                     renderEncoder.setFragmentSamplerState(material.normal.sampler, index: Int(modelPassNormalSamplerIndex.rawValue))
+                    renderEncoder.setFragmentTexture(material.height.texture, index: Int(modelPassHeightTextureIndex.rawValue))
+                    renderEncoder.setFragmentSamplerState(material.height.sampler, index: Int(modelPassHeightSamplerIndex.rawValue))
 
                     renderEncoder.drawIndexedPrimitivesTracked(
                         type: .triangle,

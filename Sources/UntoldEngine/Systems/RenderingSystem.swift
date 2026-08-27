@@ -1252,7 +1252,7 @@ private func debugSourceTexture(for mode: RenderDebugViewMode) -> MTLTexture? {
         return textureResources.normalMap
     case .position:
         return textureResources.positionMap
-    case .roughness, .metallic:
+    case .roughness, .metallic, .heightDebug, .pomOffsetDebug:
         return textureResources.materialMap
     case .ssaoBlurred:
         return textureResources.ssaoBlurTexture
@@ -1281,7 +1281,8 @@ private func lookPassShouldRenderLitOutput(for mode: RenderDebugViewMode) -> Boo
     switch mode {
     case .lit, .fxaaEdgeDebug, .smaaEdges, .smaaBlend, .smaaDifference, .occlusionDebug, .postTonemapOutput:
         return true
-    case .albedo, .normal, .position, .roughness, .metallic, .ssaoBlurred, .depth, .preTonemapHDRLuminance:
+    case .albedo, .normal, .position, .roughness, .metallic, .ssaoBlurred, .depth, .preTonemapHDRLuminance,
+         .heightDebug, .pomOffsetDebug:
         return false
     }
 }

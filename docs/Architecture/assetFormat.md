@@ -273,14 +273,35 @@ metallicTextureIndex              UInt32
 roughnessTextureIndex             UInt32
 emissiveTextureIndex              UInt32
 occlusionTextureIndex             UInt32
+heightTextureIndex                UInt32
+heightScale                       Float32
+heightBias                        Float32
+heightRemapMin                    Float32
+heightRemapMax                    Float32
 reserved0                         UInt32 x 2
 ```
+
+`heightTextureIndex`/`heightScale`/`heightBias` were added at `formatVersion = 3`
+(`UntoldFormat.minHeightMapVersion`) and drive Parallax Occlusion Mapping — see
+[HeightMapParallaxOcclusionMapping.md](../proposals/HeightMapParallaxOcclusionMapping.md).
+`heightRemapMin`/`heightRemapMax` were added at `formatVersion = 4`
+(`UntoldFormat.minHeightRemapVersion`) — a contrast-stretch applied to the raw height sample
+before `heightBias`, needed because many real-world displacement maps only use a narrow slice
+of `[0,1]`. Files older than `minHeightMapVersion` have none of these bytes on disk; files
+between `minHeightMapVersion` and `minHeightRemapVersion` have the height fields but not the
+remap fields. The reader picks one of three version-gated decode paths accordingly
+(`UntoldMaterialRecordV1.decode` / `.decodeLegacyWithHeightNoRemap` /
+`.decodeLegacyWithoutHeight`) so older files still load correctly, defaulting
+`heightRemapMin/Max` to the identity `(0.0, 1.0)` when absent.
 
 Rules:
 
 - texture indices point into `TEXTURE_TABLE`
 - any texture index may be `UInt32.max`
-- `flags` holds alpha mode, double-sided, transparent, and similar runtime bits
+- `flags` holds alpha mode, double-sided, transparent, and similar runtime bits — not yet
+  populated by the exporter as of this writing; the whole 32-bit field is currently `0`
+- of the two `reserved0` words, the first packs the roughness/metallic texture-channel
+  selector (`UntoldMaterialRecordV1.packTextureChannels`); only the second is genuinely spare
 
 ## Texture Reference Encoding
 

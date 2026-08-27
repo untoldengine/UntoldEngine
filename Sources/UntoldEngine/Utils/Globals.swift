@@ -851,6 +851,7 @@ private final class RuntimeGlobalsStore: @unchecked Sendable {
     private var bypassPostProcessingValue: Bool = false
     private var antiAliasingModeValue: AntiAliasingMode = .fxaa
     private var renderDebugViewModeValue: RenderDebugViewMode = .lit
+    private var pomQualitySettingsValue: POMQualitySettings = .platformDefault
     private var cameraDefaultFOVValue: Float = 65.0
     private var cameraNearPlaneValue: Float = 0.1
     private var cameraFarPlaneValue: Float = 500.0
@@ -1337,6 +1338,20 @@ private final class RuntimeGlobalsStore: @unchecked Sendable {
         }
     }
 
+    var pomQualitySettings: POMQualitySettings {
+        get {
+            lock.lock()
+            let value = pomQualitySettingsValue
+            lock.unlock()
+            return value
+        }
+        set {
+            lock.lock()
+            pomQualitySettingsValue = newValue
+            lock.unlock()
+        }
+    }
+
     var entityMeshMap: [EntityID: [Mesh]] {
         get {
             lock.lock()
@@ -1476,6 +1491,7 @@ public enum TextureType: String, CaseIterable, Identifiable {
     case roughness
     case metallic
     case normal
+    case height
 
     public var id: Self {
         self
@@ -1487,6 +1503,7 @@ public enum TextureType: String, CaseIterable, Identifiable {
         case .roughness: return "Roughness"
         case .metallic: return "Metallic"
         case .normal: return "Normal"
+        case .height: return "Height"
         }
     }
 }
@@ -1513,6 +1530,52 @@ public enum RenderDebugViewMode: Int, CaseIterable, Sendable {
     case preTonemapHDRLuminance = 13
     /// Routes the normal post-tonemap output explicitly for color-pipeline checks.
     case postTonemapOutput = 14
+    /// Visualizes the raw height-map sample used by Parallax Occlusion Mapping.
+    case heightDebug = 15
+    /// Visualizes the magnitude of the POM UV displacement as a heatmap.
+    case pomOffsetDebug = 16
+}
+
+/// Runtime tuning for Parallax Occlusion Mapping's per-pixel ray-march cost.
+///
+/// `minSteps`/`maxSteps` bound the adaptive step count (fewer near-normal, more at grazing
+/// angles). `maxDistance`/`fadeStartDistance` fade POM out entirely beyond a configurable
+/// distance — the single highest-leverage performance control, since most height-mapped
+/// surfaces in a scene (background walls, distant floors) don't need a per-pixel ray march at
+/// all. The fade is smooth (no popping at the cutoff) and gates the ray march itself, not just
+/// the visual result, so distant fragments skip the cost entirely.
+public struct POMQualitySettings: Equatable, Sendable {
+    public var minSteps: Float
+    public var maxSteps: Float
+    /// Distance beyond which POM fully fades to flat (normal-mapping-only).
+    public var maxDistance: Float
+    /// Distance at which the fade begins. Must be less than `maxDistance`.
+    public var fadeStartDistance: Float
+
+    public init(
+        minSteps: Float = 8.0,
+        maxSteps: Float = 32.0,
+        maxDistance: Float = 20.0,
+        fadeStartDistance: Float = 12.0
+    ) {
+        self.minSteps = minSteps
+        self.maxSteps = maxSteps
+        self.maxDistance = maxDistance
+        self.fadeStartDistance = fadeStartDistance
+    }
+
+    /// Platform-appropriate default. visionOS renders stereo (effectively doubling
+    /// per-pixel fragment work), so it defaults to a lower max step count and a tighter
+    /// distance cutoff than desktop/iOS — mirroring the same XR-vs-desktop default-profile
+    /// pattern used elsewhere in the renderer (e.g. `TextureLoader.defaultMaxTextureDimension`,
+    /// CSM cascade count).
+    public static var platformDefault: POMQualitySettings {
+        #if os(visionOS)
+            POMQualitySettings(minSteps: 4.0, maxSteps: 16.0, maxDistance: 15.0, fadeStartDistance: 9.0)
+        #else
+            POMQualitySettings(minSteps: 8.0, maxSteps: 32.0, maxDistance: 20.0, fadeStartDistance: 12.0)
+        #endif
+    }
 }
 
 // TODO: try to remove this var, because only make sense on the editor side
@@ -1758,6 +1821,14 @@ public var antiAliasingMode: AntiAliasingMode {
 public var renderDebugViewMode: RenderDebugViewMode {
     get { RuntimeGlobalsStore.shared.renderDebugViewMode }
     set { RuntimeGlobalsStore.shared.renderDebugViewMode = newValue }
+}
+
+public func setPOMQuality(_ settings: POMQualitySettings) {
+    RuntimeGlobalsStore.shared.pomQualitySettings = settings
+}
+
+public func getPOMQuality() -> POMQualitySettings {
+    RuntimeGlobalsStore.shared.pomQualitySettings
 }
 
 public final class ToneMappingParams: ObservableObject, @unchecked Sendable {
