@@ -23,11 +23,26 @@ public enum UntoldFormat {
     /// Strength — files below `minTrustedEmissiveVersion` were written before
     /// that fix and can carry a bogus (1,1,1) emissiveFactor left over from
     /// Blender's default Emission Color, so readers must not trust it.
-    public static let version: UInt32 = 2
+    /// Bumped to 3 when the material record grew height-map fields
+    /// (`heightTextureIndex`, `heightScale`, `heightBias`) — see
+    /// `minHeightMapVersion`. Files below that version don't have these bytes
+    /// on disk at all, so the reader must not attempt to decode them.
+    /// Bumped to 4 when the material record grew height-remap fields
+    /// (`heightRemapMin`, `heightRemapMax`) — see `minHeightRemapVersion`.
+    public static let version: UInt32 = 4
     /// Oldest format version this reader will still load.
     public static let minSupportedVersion: UInt32 = 1
     /// First format version whose emissiveFactor is safe to use as authored.
     public static let minTrustedEmissiveVersion: UInt32 = 2
+    /// First format version whose material record includes height-map fields.
+    /// Files older than this must be decoded with the legacy (pre-height) material
+    /// record layout, or the reader will misalign every subsequent record in the
+    /// MATERIAL_TABLE chunk.
+    public static let minHeightMapVersion: UInt32 = 3
+    /// First format version whose material record includes height-remap fields
+    /// (heightRemapMin/heightRemapMax). Files between minHeightMapVersion and this
+    /// version have height fields but not remap fields on disk.
+    public static let minHeightRemapVersion: UInt32 = 4
     public static let fileAlignment: UInt64 = 16
     public static let invalidIndex: UInt32 = .max
     public static let hashByteCount = 32
@@ -360,6 +375,15 @@ public struct UntoldMaterialRecordV1: Sendable, Equatable {
     public var roughnessTextureIndex: UInt32
     public var emissiveTextureIndex: UInt32
     public var occlusionTextureIndex: UInt32
+    /// Total Parallax Occlusion Mapping ray-march depth, in UV-normalized units.
+    public var heightScale: Float
+    /// Height-sample offset, mirroring Blender's Displacement node "Midlevel" convention.
+    public var heightBias: Float
+    public var heightTextureIndex: UInt32
+    /// Contrast-stretch bounds applied to the raw height sample before heightBias.
+    /// Identity is (0.0, 1.0).
+    public var heightRemapMin: Float
+    public var heightRemapMax: Float
     /// Reserved fixed-length 2-word field for forward compatibility.
     public var reserved0: [UInt32]
     public var roughnessTextureChannel: UntoldTextureChannel {
@@ -396,6 +420,11 @@ public struct UntoldMaterialRecordV1: Sendable, Equatable {
         roughnessTextureIndex: UInt32 = UntoldFormat.invalidIndex,
         emissiveTextureIndex: UInt32 = UntoldFormat.invalidIndex,
         occlusionTextureIndex: UInt32 = UntoldFormat.invalidIndex,
+        heightTextureIndex: UInt32 = UntoldFormat.invalidIndex,
+        heightScale: Float = 0.05,
+        heightBias: Float = 0.5,
+        heightRemapMin: Float = 0.0,
+        heightRemapMax: Float = 1.0,
         roughnessTextureChannel: UntoldTextureChannel = .r,
         metallicTextureChannel: UntoldTextureChannel = .r
     ) {
@@ -414,6 +443,11 @@ public struct UntoldMaterialRecordV1: Sendable, Equatable {
         self.roughnessTextureIndex = roughnessTextureIndex
         self.emissiveTextureIndex = emissiveTextureIndex
         self.occlusionTextureIndex = occlusionTextureIndex
+        self.heightTextureIndex = heightTextureIndex
+        self.heightScale = heightScale
+        self.heightBias = heightBias
+        self.heightRemapMin = heightRemapMin
+        self.heightRemapMax = heightRemapMax
         reserved0 = [
             Self.packTextureChannels(
                 roughness: roughnessTextureChannel,

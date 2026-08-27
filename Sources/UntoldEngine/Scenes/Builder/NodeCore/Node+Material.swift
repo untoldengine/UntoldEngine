@@ -25,7 +25,8 @@ public extension NodeMaterial {
         baseColorResource: String? = nil,
         roughnessResource: String? = nil,
         metallicResource: String? = nil,
-        normalResource: String? = nil
+        normalResource: String? = nil,
+        heightResource: String? = nil
     ) -> Self {
         updateMaterialColor(entityId: entityID, color: colorFromSimd(simd_float4(baseColor.0, baseColor.1, baseColor.2, baseColor.3)))
         updateMaterialRoughness(entityId: entityID, roughness: roughness)
@@ -42,6 +43,7 @@ public extension NodeMaterial {
         updateMaterialResource(roughnessResource, .roughness)
         updateMaterialResource(metallicResource, .metallic)
         updateMaterialResource(normalResource, .normal)
+        updateMaterialResource(heightResource, .height)
 
         return self
     }

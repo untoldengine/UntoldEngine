@@ -166,11 +166,18 @@ struct MaterialData: Codable {
     var roughnessURL: URL? = nil
     var metallicURL: URL? = nil
     var normalURL: URL? = nil
+    var heightURL: URL? = nil
     var stScale: Float? = nil
     var baseColorWrapMode: Int? = nil // WrapMode rawValue
     var roughnessWrapMode: Int? = nil // WrapMode rawValue
     var metallicWrapMode: Int? = nil // WrapMode rawValue
     var normalWrapMode: Int? = nil // WrapMode rawValue
+    var heightWrapMode: Int? = nil // WrapMode rawValue
+    var heightScale: Float? = nil
+    var heightBias: Float? = nil
+    var heightEnabled: Bool? = nil
+    var heightRemapMin: Float? = nil
+    var heightRemapMax: Float? = nil
 }
 
 // MARK: - Asset Instance Data
@@ -536,8 +543,32 @@ private func applyDeserializedMaterialData(entityId: EntityID, entityData: Entit
         updateMaterialTexture(entityId: entityId, textureType: .normal, path: normalURL)
     }
 
+    if let heightURL = materialData.heightURL {
+        updateMaterialTexture(entityId: entityId, textureType: .height, path: heightURL)
+    }
+
     if let stScale = materialData.stScale {
         updateMaterialSTScale(entityId: entityId, stScale: stScale)
+    }
+
+    if let heightScale = materialData.heightScale {
+        updateMaterialHeightScale(entityId: entityId, heightScale: heightScale)
+    }
+
+    if let heightBias = materialData.heightBias {
+        updateMaterialHeightBias(entityId: entityId, heightBias: heightBias)
+    }
+
+    if let heightEnabled = materialData.heightEnabled {
+        updateMaterialHeightEnabled(entityId: entityId, heightEnabled: heightEnabled)
+    }
+
+    if let heightRemapMin = materialData.heightRemapMin {
+        updateMaterialHeightRemapMin(entityId: entityId, heightRemapMin: heightRemapMin)
+    }
+
+    if let heightRemapMax = materialData.heightRemapMax {
+        updateMaterialHeightRemapMax(entityId: entityId, heightRemapMax: heightRemapMax)
     }
 
     if let baseColorWrapModeRawValue = materialData.baseColorWrapMode,
@@ -562,6 +593,12 @@ private func applyDeserializedMaterialData(entityId: EntityID, entityData: Entit
        let wrapMode = WrapMode(rawValue: normalWrapModeRawValue)
     {
         updateTextureSampler(entityId: entityId, textureType: .normal, wrapMode: wrapMode)
+    }
+
+    if let heightWrapModeRawValue = materialData.heightWrapMode,
+       let wrapMode = WrapMode(rawValue: heightWrapModeRawValue)
+    {
+        updateTextureSampler(entityId: entityId, textureType: .height, wrapMode: wrapMode)
     }
 }
 
@@ -635,6 +672,7 @@ public func serializeScene() -> SceneData {
             var roughnessURL: URL?
             var metallicURL: URL?
             var normalURL: URL?
+            var heightURL: URL?
 
             if let baseColorTexture: URL = getMaterialTextureURL(entityId: entityId, type: .baseColor) {
                 baseColorURL = baseColorTexture
@@ -652,11 +690,21 @@ public func serializeScene() -> SceneData {
                 normalURL = normalTexture
             }
 
+            if let heightTexture: URL = getMaterialTextureURL(entityId: entityId, type: .height) {
+                heightURL = heightTexture
+            }
+
             let stScale: Float = getMaterialSTScale(entityId: entityId)
+            let heightScale: Float = getMaterialHeightScale(entityId: entityId)
+            let heightBias: Float = getMaterialHeightBias(entityId: entityId)
+            let heightEnabled: Bool = getMaterialHeightEnabled(entityId: entityId)
+            let heightRemapMin: Float = getMaterialHeightRemapMin(entityId: entityId)
+            let heightRemapMax: Float = getMaterialHeightRemapMax(entityId: entityId)
             let baseColorWrapMode = getTextureWrapMode(entityId: entityId, textureType: .baseColor)?.rawValue
             let roughnessWrapMode = getTextureWrapMode(entityId: entityId, textureType: .roughness)?.rawValue
             let metallicWrapMode = getTextureWrapMode(entityId: entityId, textureType: .metallic)?.rawValue
             let normalWrapMode = getTextureWrapMode(entityId: entityId, textureType: .normal)?.rawValue
+            let heightWrapMode = getTextureWrapMode(entityId: entityId, textureType: .height)?.rawValue
 
             entityData.materialData = MaterialData(
                 baseColorValue: baseColor,
@@ -670,11 +718,18 @@ public func serializeScene() -> SceneData {
                 roughnessURL: roughnessURL,
                 metallicURL: metallicURL,
                 normalURL: normalURL,
+                heightURL: heightURL,
                 stScale: stScale,
                 baseColorWrapMode: baseColorWrapMode,
                 roughnessWrapMode: roughnessWrapMode,
                 metallicWrapMode: metallicWrapMode,
-                normalWrapMode: normalWrapMode
+                normalWrapMode: normalWrapMode,
+                heightWrapMode: heightWrapMode,
+                heightScale: heightScale,
+                heightBias: heightBias,
+                heightEnabled: heightEnabled,
+                heightRemapMin: heightRemapMin,
+                heightRemapMax: heightRemapMax
             )
         }
 
@@ -938,14 +993,21 @@ public func serializeScene() -> SceneData {
                             let alphaCutoff = getMaterialAlphaCutoff(entityId: childId)
                             let alphaModeRawValue = getMaterialAlphaMode(entityId: childId).rawValue
                             let stScale = getMaterialSTScale(entityId: childId)
+                            let heightScale = getMaterialHeightScale(entityId: childId)
+                            let heightBias = getMaterialHeightBias(entityId: childId)
+                            let heightEnabled = getMaterialHeightEnabled(entityId: childId)
+                            let heightRemapMin = getMaterialHeightRemapMin(entityId: childId)
+                            let heightRemapMax = getMaterialHeightRemapMax(entityId: childId)
                             let baseColorWrapMode = getTextureWrapMode(entityId: childId, textureType: .baseColor)?.rawValue
                             let roughnessWrapMode = getTextureWrapMode(entityId: childId, textureType: .roughness)?.rawValue
                             let metallicWrapMode = getTextureWrapMode(entityId: childId, textureType: .metallic)?.rawValue
                             let normalWrapMode = getTextureWrapMode(entityId: childId, textureType: .normal)?.rawValue
+                            let heightWrapMode = getTextureWrapMode(entityId: childId, textureType: .height)?.rawValue
                             let baseColorURL = getMaterialTextureURL(entityId: childId, type: .baseColor)
                             let roughnessURL = getMaterialTextureURL(entityId: childId, type: .roughness)
                             let metallicURL = getMaterialTextureURL(entityId: childId, type: .metallic)
                             let normalURL = getMaterialTextureURL(entityId: childId, type: .normal)
+                            let heightURL = getMaterialTextureURL(entityId: childId, type: .height)
                             materialOverride = MaterialData(
                                 baseColorValue: baseColor,
                                 emissiveValue: emissive,
@@ -958,11 +1020,18 @@ public func serializeScene() -> SceneData {
                                 roughnessURL: roughnessURL,
                                 metallicURL: metallicURL,
                                 normalURL: normalURL,
+                                heightURL: heightURL,
                                 stScale: stScale,
                                 baseColorWrapMode: baseColorWrapMode,
                                 roughnessWrapMode: roughnessWrapMode,
                                 metallicWrapMode: metallicWrapMode,
-                                normalWrapMode: normalWrapMode
+                                normalWrapMode: normalWrapMode,
+                                heightWrapMode: heightWrapMode,
+                                heightScale: heightScale,
+                                heightBias: heightBias,
+                                heightEnabled: heightEnabled,
+                                heightRemapMin: heightRemapMin,
+                                heightRemapMax: heightRemapMax
                             )
                         }
 

@@ -46,11 +46,10 @@ public final class UntoldReader: @unchecked Sendable {
             from: data,
             entries: chunks
         )
-        let materials = try decodeTableIfPresent(
-            UntoldMaterialRecordV1.self,
-            chunkType: .materialTable,
+        let materials = try decodeMaterialTable(
             from: data,
-            entries: chunks
+            entries: chunks,
+            formatVersion: header.formatVersion
         )
         let textures = try decodeTableIfPresent(
             UntoldTextureRefRecordV1.self,
@@ -364,6 +363,42 @@ public final class UntoldReader: @unchecked Sendable {
         records.reserveCapacity(Int(entry.elementCount))
         for _ in 0 ..< entry.elementCount {
             try records.append(T.decode(from: chunkReader))
+        }
+        return records
+    }
+
+    /// The material record's on-disk layout grew height-map fields at
+    /// `UntoldFormat.minHeightMapVersion`. Files written before that version don't have
+    /// those bytes at all — reading them unconditionally via the generic decode path would
+    /// misalign every record after the first in the MATERIAL_TABLE chunk. This dedicated
+    /// path picks the correct decoder for the whole chunk based on the file's header version
+    /// (all records in one file share one exporter run, hence one layout).
+    private func decodeMaterialTable(
+        from fileData: Data,
+        entries: [UntoldChunkEntryV1],
+        formatVersion: UInt32
+    ) throws -> [UntoldMaterialRecordV1] {
+        guard entries.contains(where: { $0.chunkType == .materialTable }) else {
+            return []
+        }
+        let chunkData = try loadRequiredChunk(.materialTable, from: fileData, entries: entries)
+        let chunkReader = UntoldBinaryReader(data: chunkData)
+        guard let entry = entries.first(where: { $0.chunkType == .materialTable }) else {
+            throw UntoldValidationError.missingRequiredChunk(.materialTable)
+        }
+
+        var records: [UntoldMaterialRecordV1] = []
+        records.reserveCapacity(Int(entry.elementCount))
+        let decodeRecord: (UntoldBinaryReader) throws -> UntoldMaterialRecordV1
+        if formatVersion >= UntoldFormat.minHeightRemapVersion {
+            decodeRecord = UntoldMaterialRecordV1.decode
+        } else if formatVersion >= UntoldFormat.minHeightMapVersion {
+            decodeRecord = UntoldMaterialRecordV1.decodeLegacyWithHeightNoRemap
+        } else {
+            decodeRecord = UntoldMaterialRecordV1.decodeLegacyWithoutHeight
+        }
+        for _ in 0 ..< entry.elementCount {
+            try records.append(decodeRecord(chunkReader))
         }
         return records
     }

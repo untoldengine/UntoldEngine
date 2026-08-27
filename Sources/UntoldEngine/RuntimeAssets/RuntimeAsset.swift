@@ -214,6 +214,11 @@ public struct RuntimeMaterialSource: Sendable, Equatable {
     public var roughnessTexture: RuntimeTextureReference?
     public var emissiveTexture: RuntimeTextureReference?
     public var occlusionTexture: RuntimeTextureReference?
+    public var heightTexture: RuntimeTextureReference?
+    public var heightScale: Float
+    public var heightBias: Float
+    public var heightRemapMin: Float
+    public var heightRemapMax: Float
 
     public init(
         name: String? = nil,
@@ -232,7 +237,12 @@ public struct RuntimeMaterialSource: Sendable, Equatable {
         metallicTexture: RuntimeTextureReference? = nil,
         roughnessTexture: RuntimeTextureReference? = nil,
         emissiveTexture: RuntimeTextureReference? = nil,
-        occlusionTexture: RuntimeTextureReference? = nil
+        occlusionTexture: RuntimeTextureReference? = nil,
+        heightTexture: RuntimeTextureReference? = nil,
+        heightScale: Float = 0.05,
+        heightBias: Float = 0.5,
+        heightRemapMin: Float = 0.0,
+        heightRemapMax: Float = 1.0
     ) {
         self.name = name
         self.baseColorFactor = baseColorFactor
@@ -251,6 +261,11 @@ public struct RuntimeMaterialSource: Sendable, Equatable {
         self.roughnessTexture = roughnessTexture
         self.emissiveTexture = emissiveTexture
         self.occlusionTexture = occlusionTexture
+        self.heightTexture = heightTexture
+        self.heightScale = heightScale
+        self.heightBias = heightBias
+        self.heightRemapMin = heightRemapMin
+        self.heightRemapMax = heightRemapMax
     }
 }
 

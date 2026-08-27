@@ -175,7 +175,7 @@ updateMaterialOpacity(entityId: entity, opacity: 0.5, meshIndex: 0, submeshIndex
 
 ## Textures
 
-Each material slot (`.baseColor`, `.roughness`, `.metallic`, `.normal` — the `TextureType` enum) can carry an image texture in addition to its scalar/color value. When a texture is present it modulates or replaces the scalar value in the shader, as noted above for roughness and metallic.
+Each material slot (`.baseColor`, `.roughness`, `.metallic`, `.normal`, `.height` — the `TextureType` enum) can carry an image texture in addition to its scalar/color value. When a texture is present it modulates or replaces the scalar value in the shader, as noted above for roughness and metallic.
 
 ### Set a Texture
 
@@ -224,6 +224,71 @@ updateTextureSampler(entityId: entity, textureType: .baseColor, wrapMode: .repea
 
 ---
 
+## Height / Parallax Occlusion Mapping
+
+A material's `.height` texture drives Parallax Occlusion Mapping (POM) — a shading-time
+technique that displaces the sampled UV based on a height field to make surfaces like brick
+or stone read as having real depth, without adding any geometry. See
+[docs/proposals/HeightMapParallaxOcclusionMapping.md](../proposals/HeightMapParallaxOcclusionMapping.md)
+for the full design rationale.
+
+```swift
+updateMaterialTexture(
+    entityId: entity,
+    textureType: .height,
+    path: URL(fileURLWithPath: "/path/to/GameData/Textures/brick_height.png")
+)
+```
+
+Height textures are treated as linear data (like normal/roughness/metallic), not sRGB.
+
+### Height Scale and Bias
+
+- `heightScale` — total ray-march depth, in UV-normalized units. Interacts with `stScale`:
+  retuning a material's UV tiling requires retuning `heightScale` too.
+- `heightBias` — mirrors Blender's Displacement node "Midlevel" convention (default `0.5` = no
+  shift). Values above `0.5` raise the reference plane (less apparent depth); values below
+  lower it.
+
+```swift
+updateMaterialHeightScale(entityId: entity, heightScale: 0.08)
+updateMaterialHeightBias(entityId: entity, heightBias: 0.5)
+```
+
+POM only runs when a material actually has a height texture, and can be disabled without
+discarding the texture assignment:
+
+```swift
+updateMaterialHeightEnabled(entityId: entity, heightEnabled: false)
+```
+
+### Height Remap
+
+Many real-world displacement maps (Substance Designer / Poliigon exports especially) only use
+a narrow slice of the full `[0,1]` range — e.g. raw values clustered around `0.51`–`0.54` —
+even though `heightScale` is set reasonably. POM has almost no local (brick-to-brick) contrast
+to work with in that case, since `heightScale` controls the *maximum* offset, not the
+underlying data's dynamic range. `heightRemapMin`/`heightRemapMax` contrast-stretch the raw
+sample back to `[0,1]` before `heightBias` is applied. Identity is `(0.0, 1.0)`.
+
+```swift
+// A displacement map whose raw values only span roughly 0.50-0.56
+updateMaterialHeightRemapMin(entityId: entity, heightRemapMin: 0.50)
+updateMaterialHeightRemapMax(entityId: entity, heightRemapMax: 0.56)
+```
+
+You can find a reasonable min/max by sampling the raw texture's histogram (e.g. via
+`sips -g all` on the source file's decoded range, or a pixel readback), but trial-and-error
+in the Inspector while watching the `pomOffsetDebug` render debug view works too.
+
+### Known limitations
+
+- Shadows are computed from the true (flat) geometry, so a height-mapped surface's shadow
+  won't reflect its perceived depth (e.g. no shadow inside a mortar recess). POM
+  self-shadowing is not implemented.
+- Picking hits the true low-poly geometry, not the perceived POM surface.
+- Height-mapped materials must be opaque — POM does not run in the forward transparency pass.
+
 ## Quick Reference
 
 - `getMaterialBaseColor(entityId:meshIndex:submeshIndex:)` → `simd_float4`
@@ -249,3 +314,13 @@ updateTextureSampler(entityId: entity, textureType: .baseColor, wrapMode: .repea
 - `updateMaterialSTScale(entityId:stScale:meshIndex:submeshIndex:)`
 - `getTextureWrapMode(entityId:textureType:meshIndex:submeshIndex:)` → `WrapMode?`
 - `updateTextureSampler(entityId:textureType:wrapMode:meshIndex:submeshIndex:)`
+- `getMaterialHeightScale(entityId:meshIndex:submeshIndex:)` → `Float`
+- `updateMaterialHeightScale(entityId:heightScale:meshIndex:submeshIndex:)`
+- `getMaterialHeightBias(entityId:meshIndex:submeshIndex:)` → `Float`
+- `updateMaterialHeightBias(entityId:heightBias:meshIndex:submeshIndex:)`
+- `getMaterialHeightEnabled(entityId:meshIndex:submeshIndex:)` → `Bool`
+- `updateMaterialHeightEnabled(entityId:heightEnabled:meshIndex:submeshIndex:)`
+- `getMaterialHeightRemapMin(entityId:meshIndex:submeshIndex:)` → `Float`
+- `updateMaterialHeightRemapMin(entityId:heightRemapMin:meshIndex:submeshIndex:)`
+- `getMaterialHeightRemapMax(entityId:meshIndex:submeshIndex:)` → `Float`
+- `updateMaterialHeightRemapMax(entityId:heightRemapMax:meshIndex:submeshIndex:)`

@@ -631,6 +631,13 @@ public class TextureStreamingSystem: @unchecked Sendable {
                         material.normalSourceDimensions,
                         false
                     ),
+                    (
+                        .height,
+                        material.height.texture,
+                        material.heightMDLTexture.map { TextureSource.mdl($0) } ?? urlSource(material.heightURL),
+                        material.heightSourceDimensions,
+                        false
+                    ),
                 ]
 
                 for descriptor in descriptors {
@@ -785,6 +792,7 @@ public class TextureStreamingSystem: @unchecked Sendable {
                 total += mat.roughness.texture?.allocatedSize ?? 0
                 total += mat.metallic.texture?.allocatedSize ?? 0
                 total += mat.normal.texture?.allocatedSize ?? 0
+                total += mat.height.texture?.allocatedSize ?? 0
             }
         }
         return total
@@ -969,6 +977,9 @@ public class TextureStreamingSystem: @unchecked Sendable {
                             case .normal:
                                 material.normal.texture = item.texture
                                 material.normalStreamingLevel = streamLevel
+                            case .height:
+                                material.height.texture = item.texture
+                                material.heightStreamingLevel = streamLevel
                             }
                         }
 
@@ -1004,6 +1015,9 @@ public class TextureStreamingSystem: @unchecked Sendable {
                             case .normal:
                                 batchMaterial.normal.texture = item.texture
                                 batchMaterial.normalStreamingLevel = streamLevel
+                            case .height:
+                                batchMaterial.height.texture = item.texture
+                                batchMaterial.heightStreamingLevel = streamLevel
                             }
                         }
                     }
