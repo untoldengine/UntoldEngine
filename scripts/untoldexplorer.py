@@ -656,10 +656,19 @@ class ExportedMaterial:
     # knowing the mesh's texel density. This value is carried through as a reasonable
     # starting point, not a precise conversion; expect to retune heightScale after import.
     height_scale: float = 0.05
-    # Blender's Displacement node Midlevel IS a [0,1]-normalized value with the same
-    # semantic meaning as the engine's heightMidlevel (default 0.5 = neutral), so this maps
-    # directly with no unit mismatch.
+    # Always the neutral default (0.5 = no additional shift) for Displacement-sourced height —
+    # Blender's Midlevel is NOT copied here. The engine's POM is unidirectional (cannot bulge
+    # outward past the true polygon surface the way Blender's signed displacement-around-
+    # Midlevel can), so heightMidlevel is just an additive shift, not a true zero-reference;
+    # copying Blender's Midlevel into it would not reproduce "neutral gray = no visible depth".
+    # Blender's Midlevel is used to derive height_remap_max instead — see extract_material's
+    # Displacement-node detection block.
     height_midlevel: float = 0.5
+    # Derived from Blender's Displacement Midlevel when present (clamped to (0, 1]): raw values
+    # at/above this clip to "no depth", values below get contrast-stretched into the full depth
+    # range. Identity (0.0, 1.0) when no Midlevel is available (e.g. Bump-sourced height).
+    height_remap_min: float = 0.0
+    height_remap_max: float = 1.0
     roughness_texture_channel: int = TEXTURE_CHANNEL_R
     metallic_texture_channel: int = TEXTURE_CHANNEL_R
 
@@ -4613,6 +4622,8 @@ def extract_material(mesh_object: object, asset_path: Path) -> ExportedMaterial:
     height_texture: Optional[ExportedTexture] = None
     height_scale = 0.05
     height_midlevel = 0.5
+    height_remap_min = 0.0
+    height_remap_max = 1.0
 
     material_output = _material_output_node(material.node_tree) if getattr(material, "node_tree", None) is not None else None
     displacement_input = material_output.inputs.get("Displacement") if material_output is not None else None
@@ -4630,7 +4641,22 @@ def extract_material(mesh_object: object, asset_path: Path) -> ExportedMaterial:
                 if scale_input is not None and not scale_input.is_linked:
                     height_scale = float(scale_input.default_value)
                 if midlevel_input is not None and not midlevel_input.is_linked:
-                    height_midlevel = float(midlevel_input.default_value)
+                    # The engine's POM is unidirectional (ray-marches INTO the surface from an
+                    # apparent flat top; it cannot bulge outward past the true polygon surface
+                    # the way Blender's signed displacement-around-Midlevel can). Copying
+                    # Blender's Midlevel straight into heightMidlevel does NOT reproduce
+                    # "neutral gray = no visible depth" — heightMidlevel is just an additive
+                    # shift, not a zero-reference (see HeightMapParallaxOcclusionMapping.md).
+                    # Instead, use it as the remap ceiling: raw values at/above Midlevel clip to
+                    # "no depth" (the closest unidirectional approximation of "flush or bulging
+                    # outward"), and values below it get contrast-stretched into the full depth
+                    # range. heightMidlevel itself stays at its neutral default so it remains
+                    # available as a separate, manual runtime tuning shift. Clamped to (0, 1]
+                    # since raw texture samples are always in that range — an out-of-range
+                    # authored Midlevel (e.g. an artist overshooting a slider) would otherwise
+                    # make the remap divide by a value that never matches any real sample.
+                    blender_midlevel = float(midlevel_input.default_value)
+                    height_remap_max = min(max(blender_midlevel, 0.01), 1.0)
 
     if height_texture is None and normal_input is not None and normal_input.is_linked:
         normal_source = normal_input.links[0].from_node
@@ -4641,7 +4667,8 @@ def extract_material(mesh_object: object, asset_path: Path) -> ExportedMaterial:
                 distance_input = normal_source.inputs.get("Distance")
                 if distance_input is not None and not distance_input.is_linked:
                     height_scale = float(distance_input.default_value)
-                # Bump has no Midlevel-equivalent input; height_midlevel stays at the neutral default.
+                # Bump has no Midlevel-equivalent input; height_midlevel/height_remap_max stay
+                # at their neutral defaults.
 
     baked = _baked_material_textures.get(mesh_object.name)
     if baked is not None:
@@ -4682,6 +4709,8 @@ def extract_material(mesh_object: object, asset_path: Path) -> ExportedMaterial:
         height_texture=height_texture,
         height_scale=height_scale,
         height_midlevel=height_midlevel,
+        height_remap_min=height_remap_min,
+        height_remap_max=height_remap_max,
         roughness_texture_channel=roughness_texture.channel if roughness_texture is not None else TEXTURE_CHANNEL_R,
         metallic_texture_channel=metallic_texture.channel if metallic_texture is not None else TEXTURE_CHANNEL_R,
     )
@@ -5557,6 +5586,8 @@ def build_untold_file(
             height_texture_index,
             material.height_scale,
             material.height_midlevel,
+            material.height_remap_min,
+            material.height_remap_max,
             material.roughness_texture_channel,
             material.metallic_texture_channel,
         )
@@ -5586,6 +5617,8 @@ def build_untold_file(
                 height_texture_index=height_texture_index,
                 height_scale=material.height_scale,
                 height_midlevel=material.height_midlevel,
+                height_remap_min=material.height_remap_min,
+                height_remap_max=material.height_remap_max,
                 roughness_texture_channel=material.roughness_texture_channel,
                 metallic_texture_channel=material.metallic_texture_channel,
             )
