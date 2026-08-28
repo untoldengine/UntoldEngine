@@ -1313,5 +1313,187 @@ class MaterialGraphAnalysisTests(unittest.TestCase):
         self.assertEqual(lines, ["Material fidelity report: 1 supported, 0 bakeable, 0 unbakeable"])
 
 
+def _build_minimal_png(bit_depth: int, color_type: int) -> bytes:
+    """A syntactically valid PNG containing only a magic + IHDR chunk. _png_ihdr only
+    reads the first 26 bytes, so the rest of a real PNG (IDAT/IEND, valid CRCs) is
+    unnecessary."""
+    return (
+        b"\x89PNG\r\n\x1a\n"
+        + b"\x00\x00\x00\x0d"  # chunk length (unused by the reader)
+        + b"IHDR"
+        + b"\x00\x00\x00\x01\x00\x00\x00\x01"  # width=1, height=1 (unused)
+        + bytes([bit_depth, color_type])
+        + b"\x00\x00\x00\x00\x00"  # compression, filter, interlace + padding (unused)
+    )
+
+
+def _build_minimal_tiff(bits_per_sample: list[int], *, big_endian: bool = False) -> bytes:
+    """A minimal little/big-endian TIFF with BitsPerSample(258) and SamplesPerPixel(277)
+    tags, matching exactly what _tiff_bits_per_sample_and_channels reads. No image data —
+    the reader only walks the first IFD's tag table."""
+    endian = ">" if big_endian else "<"
+    samples_per_pixel = len(bits_per_sample)
+    entries: list[tuple[int, bytes]] = []
+    extra_data = b""
+
+    if samples_per_pixel == 1:
+        entries.append((258, struct.pack(endian + "HHI", 258, 3, 1) + struct.pack(endian + "HH", bits_per_sample[0], 0)))
+    else:
+        ifd_entry_count = 2
+        bits_offset = 8 + 2 + ifd_entry_count * 12 + 4
+        entries.append((258, struct.pack(endian + "HHI", 258, 3, samples_per_pixel) + struct.pack(endian + "I", bits_offset)))
+        extra_data = b"".join(struct.pack(endian + "H", v) for v in bits_per_sample)
+
+    entries.append((277, struct.pack(endian + "HHI", 277, 3, 1) + struct.pack(endian + "HH", samples_per_pixel, 0)))
+    entries.sort(key=lambda e: e[0])
+
+    header = (b"MM" if big_endian else b"II") + struct.pack(endian + "HI", 42, 8)
+    ifd_body = struct.pack(endian + "H", len(entries)) + b"".join(e[1] for e in entries) + struct.pack(endian + "I", 0)
+    return header + ifd_body + extra_data
+
+
+class TextureBitDepthDetectionTests(unittest.TestCase):
+    """Regression coverage for the needs_conversion detection bug: Blender's own
+    image.depth/image.channels report 32/4 ("already 8-bit RGBA") for genuinely
+    16-bit-per-channel PNG/TIFF sources, silently defeating the safety net that
+    downconverts 16-bit/grayscale textures to avoid the Metal sRGB-16-bit and
+    grayscale-loads-as-red bugs. _source_bit_depth_and_channels reads the true values
+    from the source file's own header instead of trusting Blender's post-load metadata."""
+
+    def test_tiff_single_channel_16bit_inline(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "height.tiff"
+            path.write_bytes(_build_minimal_tiff([16]))
+            self.assertEqual(u._tiff_bits_per_sample_and_channels(path), (16, 1))
+
+    def test_tiff_multi_channel_8bit_via_offset(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "color.tiff"
+            path.write_bytes(_build_minimal_tiff([8, 8, 8]))
+            self.assertEqual(u._tiff_bits_per_sample_and_channels(path), (8, 3))
+
+    def test_tiff_big_endian(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "height_be.tiff"
+            path.write_bytes(_build_minimal_tiff([16], big_endian=True))
+            self.assertEqual(u._tiff_bits_per_sample_and_channels(path), (16, 1))
+
+    def test_tiff_invalid_file_returns_none(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "not_a_tiff.tiff"
+            path.write_bytes(b"not a tiff file")
+            self.assertIsNone(u._tiff_bits_per_sample_and_channels(path))
+
+    def test_png_ihdr_16bit_grayscale(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "height.png"
+            path.write_bytes(_build_minimal_png(bit_depth=16, color_type=0))
+            self.assertEqual(u._png_ihdr(path), (16, 0))
+            self.assertEqual(u._png_bit_depth(path), 16)
+
+    def test_png_ihdr_8bit_rgb(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "color.png"
+            path.write_bytes(_build_minimal_png(bit_depth=8, color_type=2))
+            self.assertEqual(u._png_ihdr(path), (8, 2))
+
+    def test_png_ihdr_invalid_file_returns_none(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "not_a_png.png"
+            path.write_bytes(b"not a png file")
+            self.assertIsNone(u._png_ihdr(path))
+
+    def test_source_bit_depth_dispatches_to_tiff_reader(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "height.tiff"
+            path.write_bytes(_build_minimal_tiff([16]))
+            image = FakeData(filepath_raw=str(path), filepath=str(path), library=None)
+            original_bpy = u.bpy
+            try:
+                u.bpy = None  # exercise the no-bpy fallback path (Path(filepath) directly)
+                self.assertEqual(u._source_bit_depth_and_channels(image), (16, 1))
+            finally:
+                u.bpy = original_bpy
+
+    def test_source_bit_depth_dispatches_to_png_reader_with_channel_mapping(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "height.png"
+            path.write_bytes(_build_minimal_png(bit_depth=16, color_type=0))  # grayscale
+            image = FakeData(filepath_raw=str(path), filepath=str(path), library=None)
+            original_bpy = u.bpy
+            try:
+                u.bpy = None
+                self.assertEqual(u._source_bit_depth_and_channels(image), (16, 1))
+            finally:
+                u.bpy = original_bpy
+
+    def test_source_bit_depth_uses_bpy_path_abspath_when_available(self) -> None:
+        """Inside real Blender, filepath_raw can be a blend-relative '//' path that only
+        bpy.path.abspath knows how to resolve — this must be preferred over treating the
+        raw string as a plain OS path when bpy is available."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "height.tiff"
+            path.write_bytes(_build_minimal_tiff([16]))
+            image = FakeData(filepath_raw="//not/a/real/relative/path.tiff", filepath="", library=None)
+            original_bpy = u.bpy
+            try:
+                u.bpy = FakeData(path=FakeData(abspath=lambda p, library=None: str(path)))
+                self.assertEqual(u._source_bit_depth_and_channels(image), (16, 1))
+            finally:
+                u.bpy = original_bpy
+
+    def test_source_bit_depth_returns_none_for_unsupported_suffix(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "photo.jpg"
+            path.write_bytes(b"not actually decoded, suffix-only dispatch")
+            image = FakeData(filepath_raw=str(path), filepath=str(path), library=None)
+            original_bpy = u.bpy
+            try:
+                u.bpy = None
+                self.assertIsNone(u._source_bit_depth_and_channels(image))
+            finally:
+                u.bpy = original_bpy
+
+    def test_source_bit_depth_returns_none_when_no_filepath(self) -> None:
+        image = FakeData(filepath_raw="", filepath="", library=None)
+        original_bpy = u.bpy
+        try:
+            u.bpy = None
+            self.assertIsNone(u._source_bit_depth_and_channels(image))
+        finally:
+            u.bpy = original_bpy
+
+    def test_source_bit_depth_returns_none_when_file_missing(self) -> None:
+        image = FakeData(filepath_raw="/nonexistent/path/height.tiff", filepath="", library=None)
+        original_bpy = u.bpy
+        try:
+            u.bpy = None
+            self.assertIsNone(u._source_bit_depth_and_channels(image))
+        finally:
+            u.bpy = original_bpy
+
+    def test_needs_conversion_now_fires_for_real_world_16bit_grayscale_tiff(self) -> None:
+        """The actual regression: a genuinely 16-bit single-channel source (e.g. a
+        Poliigon displacement map) must compute depth=16, channels=1 -> needs_conversion
+        True, even though Blender's own image.depth/channels report 32/4 for this exact
+        case (confirmed against real Blender 5.1 + a real Poliigon TIFF asset)."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "displacement.tiff"
+            path.write_bytes(_build_minimal_tiff([16]))
+            image = FakeData(filepath_raw=str(path), filepath=str(path), library=None,
+                              depth=32, channels=4)  # Blender's (misleading) post-load metadata
+            original_bpy = u.bpy
+            try:
+                u.bpy = None
+                source_info = u._source_bit_depth_and_channels(image)
+                self.assertEqual(source_info, (16, 1))
+                bits_per_sample, image_channels = source_info
+                image_depth = bits_per_sample * image_channels
+                needs_conversion = image_depth > 32 or image_channels < 3
+                self.assertTrue(needs_conversion, "16-bit grayscale source must trigger the 8-bit safety downconvert")
+            finally:
+                u.bpy = original_bpy
+
+
 if __name__ == "__main__":
     unittest.main()
