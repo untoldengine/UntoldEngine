@@ -835,7 +835,7 @@ public func removeMaterialTexture(
         case .normal:
             updatedMaterial.normal.texture = nil
             updatedMaterial.normalURL = nil
-            // Keep normalMDLTexture for restore functionality
+        // Keep normalMDLTexture for restore functionality
         case .height:
             updatedMaterial.height.texture = nil
             updatedMaterial.heightURL = nil
@@ -893,7 +893,7 @@ func updateMaterialTexture(
             case .normal:
                 updatedMaterial.normal.texture = texture
                 updatedMaterial.normalURL = url
-                // Keep normalMDLTexture for restore functionality
+            // Keep normalMDLTexture for restore functionality
             case .height:
                 updatedMaterial.height.texture = texture
                 updatedMaterial.heightURL = url

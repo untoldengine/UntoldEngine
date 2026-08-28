@@ -1576,7 +1576,6 @@ public func deserializeScene(
                         }
                     }
                 }
-
             }
 
             // Animation setup is now handled inside mesh loading completion handlers

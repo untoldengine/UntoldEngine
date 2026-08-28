@@ -587,7 +587,7 @@ public struct Material {
     public var metallic: TextureDescriptor
     public var normal: TextureDescriptor
     public var emissive: TextureDescriptor
-    public var height: TextureDescriptor = TextureDescriptor()
+    public var height: TextureDescriptor = .init()
 
     // Texture URLs
     public var baseColorURL: URL?
