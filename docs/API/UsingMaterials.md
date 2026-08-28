@@ -242,17 +242,17 @@ updateMaterialTexture(
 
 Height textures are treated as linear data (like normal/roughness/metallic), not sRGB.
 
-### Height Scale and Bias
+### Height Scale and Midlevel
 
 - `heightScale` — total ray-march depth, in UV-normalized units. Interacts with `stScale`:
   retuning a material's UV tiling requires retuning `heightScale` too.
-- `heightBias` — mirrors Blender's Displacement node "Midlevel" convention (default `0.5` = no
+- `heightMidlevel` — mirrors Blender's Displacement node "Midlevel" convention (default `0.5` = no
   shift). Values above `0.5` raise the reference plane (less apparent depth); values below
   lower it.
 
 ```swift
 updateMaterialHeightScale(entityId: entity, heightScale: 0.08)
-updateMaterialHeightBias(entityId: entity, heightBias: 0.5)
+updateMaterialHeightMidlevel(entityId: entity, heightMidlevel: 0.5)
 ```
 
 POM only runs when a material actually has a height texture, and can be disabled without
@@ -269,7 +269,7 @@ a narrow slice of the full `[0,1]` range — e.g. raw values clustered around `0
 even though `heightScale` is set reasonably. POM has almost no local (brick-to-brick) contrast
 to work with in that case, since `heightScale` controls the *maximum* offset, not the
 underlying data's dynamic range. `heightRemapMin`/`heightRemapMax` contrast-stretch the raw
-sample back to `[0,1]` before `heightBias` is applied. Identity is `(0.0, 1.0)`.
+sample back to `[0,1]` before `heightMidlevel` is applied. Identity is `(0.0, 1.0)`.
 
 ```swift
 // A displacement map whose raw values only span roughly 0.50-0.56
@@ -316,8 +316,8 @@ in the Inspector while watching the `pomOffsetDebug` render debug view works too
 - `updateTextureSampler(entityId:textureType:wrapMode:meshIndex:submeshIndex:)`
 - `getMaterialHeightScale(entityId:meshIndex:submeshIndex:)` → `Float`
 - `updateMaterialHeightScale(entityId:heightScale:meshIndex:submeshIndex:)`
-- `getMaterialHeightBias(entityId:meshIndex:submeshIndex:)` → `Float`
-- `updateMaterialHeightBias(entityId:heightBias:meshIndex:submeshIndex:)`
+- `getMaterialHeightMidlevel(entityId:meshIndex:submeshIndex:)` → `Float`
+- `updateMaterialHeightMidlevel(entityId:heightMidlevel:meshIndex:submeshIndex:)`
 - `getMaterialHeightEnabled(entityId:meshIndex:submeshIndex:)` → `Bool`
 - `updateMaterialHeightEnabled(entityId:heightEnabled:meshIndex:submeshIndex:)`
 - `getMaterialHeightRemapMin(entityId:meshIndex:submeshIndex:)` → `Float`

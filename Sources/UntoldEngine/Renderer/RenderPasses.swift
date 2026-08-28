@@ -846,7 +846,7 @@ public enum RenderPasses {
             0
         )
         materialParameters.heightScale = material.heightScale
-        materialParameters.heightBias = material.heightBias
+        materialParameters.heightMidlevel = material.heightMidlevel
         materialParameters.heightRemapMin = material.heightRemapMin
         materialParameters.heightRemapMax = material.heightRemapMax
     }

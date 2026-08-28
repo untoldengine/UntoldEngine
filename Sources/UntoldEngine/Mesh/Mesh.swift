@@ -648,11 +648,12 @@ public struct Material {
     public var alphaCutoff: Float = 0.5
 
     /// Parallax Occlusion Mapping height parameters. `heightScale` is the total ray-march
-    /// depth in UV-normalized units; `heightBias` mirrors Blender's Displacement node
-    /// "Midlevel" convention. See docs/proposals/HeightMapParallaxOcclusionMapping.md.
+    /// depth in UV-normalized units, matching Blender's Displacement node "Scale";
+    /// `heightMidlevel` matches its "Midlevel" input. See
+    /// docs/proposals/HeightMapParallaxOcclusionMapping.md.
     public var heightScale: Float = 0.05
-    public var heightBias: Float = 0.5
-    /// Contrast-stretch applied to the raw height sample before `heightBias`:
+    public var heightMidlevel: Float = 0.5
+    /// Contrast-stretch applied to the raw height sample before `heightMidlevel`:
     /// `(raw - heightRemapMin) / (heightRemapMax - heightRemapMin)`, saturated to [0,1].
     /// Identity by default (0,1). Many real-world displacement maps (e.g. Substance/Poliigon
     /// exports) only use a narrow slice of the full [0,1] range — POM has almost no local
@@ -824,7 +825,7 @@ public struct Material {
         metallicChannel = runtimeMaterial.metallicTextureChannel
         alphaCutoff = runtimeMaterial.alphaCutoff
         heightScale = runtimeMaterial.heightScale
-        heightBias = runtimeMaterial.heightBias
+        heightMidlevel = runtimeMaterial.heightMidlevel
         heightRemapMin = runtimeMaterial.heightRemapMin
         heightRemapMax = runtimeMaterial.heightRemapMax
 

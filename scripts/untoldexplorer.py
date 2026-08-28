@@ -45,7 +45,10 @@ MAGIC = b"UNTOLD\x00\x00"
 # Bumped from 1 to 2 when the exporter started multiplying emissive_factor by
 # Emission Strength (see extract_material). Readers use this to know whether
 # a file's emissiveFactor is trustworthy or a leftover Blender default.
-FORMAT_VERSION = 2
+# Bumped to 4 when the material record grew height-map fields (heightTextureIndex,
+# heightScale, heightMidlevel) and height-remap fields (heightRemapMin, heightRemapMax) —
+# see extract_material's Displacement/Bump detection and write_material_record.
+FORMAT_VERSION = 4
 FILE_ALIGNMENT = 16
 INVALID_INDEX = 0xFFFFFFFF
 HEADER_SIZE = 204
@@ -104,6 +107,7 @@ TEXTURE_FORMAT_RGBA16_FLOAT = 8
 TEXTURE_FLAG_SRGB = 1 << 0
 TEXTURE_FLAG_NORMAL_MAP = 1 << 1
 TEXTURE_FLAG_LUT = 1 << 2
+TEXTURE_FLAG_HEIGHT = 1 << 3
 TEXTURE_FLAG_EMISSIVE = 1 << 6
 TEXTURE_FLAG_OCCLUSION = 1 << 7
 TEXTURE_CHANNEL_R = 0
@@ -509,6 +513,11 @@ class MaterialRecord:
     roughness_texture_index: int = INVALID_INDEX
     emissive_texture_index: int = INVALID_INDEX
     occlusion_texture_index: int = INVALID_INDEX
+    height_texture_index: int = INVALID_INDEX
+    height_scale: float = 0.05
+    height_midlevel: float = 0.5
+    height_remap_min: float = 0.0
+    height_remap_max: float = 1.0
     roughness_texture_channel: int = TEXTURE_CHANNEL_R
     metallic_texture_channel: int = TEXTURE_CHANNEL_R
 
@@ -640,6 +649,17 @@ class ExportedMaterial:
     roughness_texture: Optional[ExportedTexture] = None
     emissive_texture: Optional[ExportedTexture] = None
     occlusion_texture: Optional[ExportedTexture] = None
+    height_texture: Optional[ExportedTexture] = None
+    # Blender's Displacement node Scale is a world-space displacement distance (typically
+    # a fraction of a meter), while the engine's heightScale is a UV-normalized ray-march
+    # depth fraction — these are not the same unit and there is no exact conversion without
+    # knowing the mesh's texel density. This value is carried through as a reasonable
+    # starting point, not a precise conversion; expect to retune heightScale after import.
+    height_scale: float = 0.05
+    # Blender's Displacement node Midlevel IS a [0,1]-normalized value with the same
+    # semantic meaning as the engine's heightMidlevel (default 0.5 = neutral), so this maps
+    # directly with no unit mismatch.
+    height_midlevel: float = 0.5
     roughness_texture_channel: int = TEXTURE_CHANNEL_R
     metallic_texture_channel: int = TEXTURE_CHANNEL_R
 
@@ -1170,6 +1190,11 @@ def write_material_record(writer: BinaryWriter, material: MaterialRecord) -> Non
     writer.write_u32(material.roughness_texture_index)
     writer.write_u32(material.emissive_texture_index)
     writer.write_u32(material.occlusion_texture_index)
+    writer.write_u32(material.height_texture_index)
+    writer.write_f32(material.height_scale)
+    writer.write_f32(material.height_midlevel)
+    writer.write_f32(material.height_remap_min)
+    writer.write_f32(material.height_remap_max)
     writer.write_u32(pack_material_texture_channels(material.roughness_texture_channel, material.metallic_texture_channel))
     writer.write_u32(0)
 
@@ -2111,6 +2136,12 @@ _GRAPH_FAITHFUL_NODE_IDS = {
     "ShaderNodeGroup",
     "NodeGroupInput",
     "NodeGroupOutput",
+    # extract_material reads these directly (Displacement -> height texture/Scale/Midlevel,
+    # or Bump -> height texture/Distance as a fallback) — see the height/displacement
+    # detection block. Their own Height/Scale/Midlevel/Distance inputs are still walked and
+    # classified individually below; only the node type itself is exempted here.
+    "ShaderNodeDisplacement",
+    "ShaderNodeBump",
 }
 
 # Traced through by _resolve_texture_from_socket, but their math is dropped.
@@ -4374,6 +4405,7 @@ def stage_material_for_output(material: ExportedMaterial, output_path: Path, con
         roughness_texture=stage_texture_for_output(material.roughness_texture, output_path, context) if material.roughness_texture is not None else None,
         emissive_texture=stage_texture_for_output(material.emissive_texture, output_path, context) if material.emissive_texture is not None else None,
         occlusion_texture=stage_texture_for_output(material.occlusion_texture, output_path, context) if material.occlusion_texture is not None else None,
+        height_texture=stage_texture_for_output(material.height_texture, output_path, context) if material.height_texture is not None else None,
     )
 
 
@@ -4554,6 +4586,44 @@ def extract_material(mesh_object: object, asset_path: Path) -> ExportedMaterial:
             strength_input = source.inputs.get("Strength")
             normal_scale = float(strength_input.default_value) if strength_input is not None else 1.0
 
+    # Height/displacement detection: prefer the Material Output's Displacement input (the
+    # standard ArchViz/Poliigon authoring pattern — an Image Texture feeding a Displacement
+    # node's Height socket), falling back to a Bump node feeding the Principled BSDF's Normal
+    # input directly (common in materials authored without a separate Displacement setup).
+    # See docs/proposals/HeightMapParallaxOcclusionMapping.md for the domain rationale.
+    height_texture: Optional[ExportedTexture] = None
+    height_scale = 0.05
+    height_midlevel = 0.5
+
+    material_output = _material_output_node(material.node_tree) if getattr(material, "node_tree", None) is not None else None
+    displacement_input = material_output.inputs.get("Displacement") if material_output is not None else None
+    if displacement_input is not None and displacement_input.is_linked:
+        displacement_source = displacement_input.links[0].from_node
+        if displacement_source.bl_idname == "ShaderNodeDisplacement":
+            height_input = displacement_source.inputs.get("Height")
+            height_texture = resolve_texture_from_socket(height_input, asset_path) if height_input is not None else None
+            if height_texture is not None:
+                # Blender's Displacement Scale is a world-space distance, not the engine's
+                # UV-normalized heightScale — carried through as a starting point only (see
+                # ExportedMaterial.height_scale docstring), not a precise unit conversion.
+                scale_input = displacement_source.inputs.get("Scale")
+                midlevel_input = displacement_source.inputs.get("Midlevel")
+                if scale_input is not None and not scale_input.is_linked:
+                    height_scale = float(scale_input.default_value)
+                if midlevel_input is not None and not midlevel_input.is_linked:
+                    height_midlevel = float(midlevel_input.default_value)
+
+    if height_texture is None and normal_input is not None and normal_input.is_linked:
+        normal_source = normal_input.links[0].from_node
+        if normal_source.bl_idname == "ShaderNodeBump":
+            height_input = normal_source.inputs.get("Height")
+            height_texture = resolve_texture_from_socket(height_input, asset_path) if height_input is not None else None
+            if height_texture is not None:
+                distance_input = normal_source.inputs.get("Distance")
+                if distance_input is not None and not distance_input.is_linked:
+                    height_scale = float(distance_input.default_value)
+                # Bump has no Midlevel-equivalent input; height_midlevel stays at the neutral default.
+
     baked = _baked_material_textures.get(mesh_object.name)
     if baked is not None:
         # Baked images already contain every node-graph contribution, including
@@ -4590,6 +4660,9 @@ def extract_material(mesh_object: object, asset_path: Path) -> ExportedMaterial:
         roughness_texture=roughness_texture,
         emissive_texture=emissive_texture,
         occlusion_texture=occlusion_texture,
+        height_texture=height_texture,
+        height_scale=height_scale,
+        height_midlevel=height_midlevel,
         roughness_texture_channel=roughness_texture.channel if roughness_texture is not None else TEXTURE_CHANNEL_R,
         metallic_texture_channel=metallic_texture.channel if metallic_texture is not None else TEXTURE_CHANNEL_R,
     )
@@ -5445,6 +5518,7 @@ def build_untold_file(
         roughness_texture_index = add_texture(material.roughness_texture)
         emissive_texture_index = add_texture(material.emissive_texture, TEXTURE_FLAG_EMISSIVE | TEXTURE_FLAG_SRGB)
         occlusion_texture_index = add_texture(material.occlusion_texture, TEXTURE_FLAG_OCCLUSION)
+        height_texture_index = add_texture(material.height_texture, TEXTURE_FLAG_HEIGHT)
 
         key = (
             material.name,
@@ -5461,6 +5535,9 @@ def build_untold_file(
             roughness_texture_index,
             emissive_texture_index,
             occlusion_texture_index,
+            height_texture_index,
+            material.height_scale,
+            material.height_midlevel,
             material.roughness_texture_channel,
             material.metallic_texture_channel,
         )
@@ -5487,6 +5564,9 @@ def build_untold_file(
                 roughness_texture_index=roughness_texture_index,
                 emissive_texture_index=emissive_texture_index,
                 occlusion_texture_index=occlusion_texture_index,
+                height_texture_index=height_texture_index,
+                height_scale=material.height_scale,
+                height_midlevel=material.height_midlevel,
                 roughness_texture_channel=material.roughness_texture_channel,
                 metallic_texture_channel=material.metallic_texture_channel,
             )

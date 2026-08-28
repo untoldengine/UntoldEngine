@@ -258,7 +258,7 @@ extension UntoldMaterialRecordV1: UntoldBinaryEncodable, UntoldBinaryDecodable {
         writer.writeUInt32LE(occlusionTextureIndex)
         writer.writeUInt32LE(heightTextureIndex)
         writer.writeFloat32LE(heightScale)
-        writer.writeFloat32LE(heightBias)
+        writer.writeFloat32LE(heightMidlevel)
         writer.writeFloat32LE(heightRemapMin)
         writer.writeFloat32LE(heightRemapMax)
         writer.writeUInt32LE(reserved0[safe: 0] ?? 0)
@@ -298,7 +298,7 @@ extension UntoldMaterialRecordV1: UntoldBinaryEncodable, UntoldBinaryDecodable {
             occlusionTextureIndex: reader.readUInt32LE(),
             heightTextureIndex: reader.readUInt32LE(),
             heightScale: reader.readFloat32LE(),
-            heightBias: reader.readFloat32LE(),
+            heightMidlevel: reader.readFloat32LE(),
             heightRemapMin: reader.readFloat32LE(),
             heightRemapMax: reader.readFloat32LE()
         )
@@ -339,7 +339,7 @@ extension UntoldMaterialRecordV1: UntoldBinaryEncodable, UntoldBinaryDecodable {
             occlusionTextureIndex: reader.readUInt32LE(),
             heightTextureIndex: reader.readUInt32LE(),
             heightScale: reader.readFloat32LE(),
-            heightBias: reader.readFloat32LE()
+            heightMidlevel: reader.readFloat32LE()
         )
         record.reserved0 = try [
             reader.readUInt32LE(),

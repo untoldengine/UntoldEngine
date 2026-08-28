@@ -717,7 +717,8 @@ class UntoldExplorerTests(unittest.TestCase):
         u.write_entity_record(we, entity)
         self.assertEqual(we.count, 136)
 
-        # Material record: 88 bytes (per assetFormat.md schema)
+        # Material record: 108 bytes (per assetFormat.md schema — grew from 88 to 108
+        # bytes at FORMAT_VERSION 3/4 with the height-map and height-remap fields).
         wm = u.BinaryWriter()
         mat = u.MaterialRecord(
             name_offset=0, flags=0,
@@ -731,12 +732,15 @@ class UntoldExplorerTests(unittest.TestCase):
             roughness_texture_index=u.INVALID_INDEX,
             emissive_texture_index=u.INVALID_INDEX,
             occlusion_texture_index=u.INVALID_INDEX,
+            height_texture_index=u.INVALID_INDEX,
+            height_scale=0.05, height_midlevel=0.5,
+            height_remap_min=0.0, height_remap_max=1.0,
             roughness_texture_channel=u.TEXTURE_CHANNEL_G,
             metallic_texture_channel=u.TEXTURE_CHANNEL_B,
         )
         u.write_material_record(wm, mat)
-        self.assertEqual(wm.count, 88)
-        self.assertEqual(struct.unpack_from("<I", wm.data, 80)[0], 0b1001)
+        self.assertEqual(wm.count, 108)
+        self.assertEqual(struct.unpack_from("<I", wm.data, 100)[0], 0b1001)
 
         # Texture record: 8×u32 = 32 bytes
         wt = u.BinaryWriter()
@@ -974,6 +978,93 @@ class MaterialGraphAnalysisTests(unittest.TestCase):
         self.assertEqual(exported.metallic_factor, 1.0)
         self.assertIs(exported.normal_texture, baked.normal)
         self.assertEqual(exported.normal_scale, 1.0)
+
+    def test_extract_material_reads_height_from_displacement_node(self) -> None:
+        """The standard ArchViz/Poliigon authoring pattern: an Image Texture feeds a
+        Displacement node's Height socket, which feeds Material Output's Displacement
+        input. Scale/Midlevel on the Displacement node become heightScale/heightMidlevel."""
+        height_tex = _make_image_node("height_map")
+        height_input = FakeSocket("Height")
+        height_input.link_from(height_tex, "Color")
+        scale_socket = FakeSocket("Scale")
+        scale_socket.default_value = 0.02
+        midlevel_socket = FakeSocket("Midlevel")
+        midlevel_socket.default_value = 0.5
+        displacement_node = FakeNode(
+            "ShaderNodeDisplacement",
+            inputs={"Height": height_input, "Scale": scale_socket, "Midlevel": midlevel_socket},
+        )
+        displacement_node.name = "Displacement"
+
+        principled, output = _make_principled_output(None)
+        principled.inputs["Base Color"].default_value = (1.0, 1.0, 1.0, 1.0)
+        displacement_socket = FakeSocket("Displacement")
+        displacement_socket.link_from(displacement_node, "Displacement")
+        output.inputs["Displacement"] = displacement_socket
+
+        material = _make_material("disp_mat", [output, principled, displacement_node, height_tex])
+        mesh_object = FakeSceneObject("Wall", "MESH", FakeData(materials=[material]))
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            exported = u.extract_material(mesh_object, Path(tmpdir) / "asset.untold")
+
+        self.assertIsNotNone(exported.height_texture)
+        self.assertEqual(exported.height_texture.name, "height_map.png")
+        self.assertAlmostEqual(exported.height_scale, 0.02)
+        self.assertAlmostEqual(exported.height_midlevel, 0.5)
+
+        # The Displacement node's own type is not flagged as bakeable — it's now
+        # faithfully handled (extracted as height) — but its Height chain is still
+        # walked and would be individually classified if unsupported.
+        analysis = u.analyze_material(material)
+        self.assertEqual(analysis.classification, u.MATERIAL_GRAPH_SUPPORTED)
+
+    def test_extract_material_falls_back_to_bump_height_when_no_displacement(self) -> None:
+        """Materials authored without a separate Displacement setup sometimes feed a
+        Bump node's Height socket into the Principled BSDF's Normal input directly."""
+        height_tex = _make_image_node("bump_height")
+        height_input = FakeSocket("Height")
+        height_input.link_from(height_tex, "Color")
+        distance_socket = FakeSocket("Distance")
+        distance_socket.default_value = 0.03
+        bump_node = FakeNode("ShaderNodeBump", inputs={"Height": height_input, "Distance": distance_socket})
+        bump_node.name = "Bump"
+
+        normal_socket = FakeSocket("Normal")
+        normal_socket.link_from(bump_node, "Normal")
+        base_color_socket = FakeSocket("Base Color")
+        base_color_socket.default_value = (1.0, 1.0, 1.0, 1.0)
+        principled = FakeNode("ShaderNodeBsdfPrincipled", inputs={"Base Color": base_color_socket, "Normal": normal_socket})
+        principled.name = "Principled BSDF"
+        surface = FakeSocket("Surface")
+        surface.link_from(principled, "BSDF")
+        output = FakeNode("ShaderNodeOutputMaterial", inputs={"Surface": surface})
+        output.name = "Material Output"
+
+        material = _make_material("bump_mat", [output, principled, bump_node, height_tex])
+        mesh_object = FakeSceneObject("Wall", "MESH", FakeData(materials=[material]))
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            exported = u.extract_material(mesh_object, Path(tmpdir) / "asset.untold")
+
+        self.assertIsNotNone(exported.height_texture)
+        self.assertEqual(exported.height_texture.name, "bump_height.png")
+        self.assertAlmostEqual(exported.height_scale, 0.03)
+        # Bump has no Midlevel-equivalent input; height_midlevel stays at the neutral default.
+        self.assertAlmostEqual(exported.height_midlevel, 0.5)
+
+    def test_extract_material_without_displacement_or_bump_has_no_height(self) -> None:
+        tex = _make_image_node("original")
+        principled, output = _make_principled_output(tex)
+        material = _make_material("plain_mat", [output, principled, tex])
+        mesh_object = FakeSceneObject("Wall", "MESH", FakeData(materials=[material]))
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            exported = u.extract_material(mesh_object, Path(tmpdir) / "asset.untold")
+
+        self.assertIsNone(exported.height_texture)
+        self.assertEqual(exported.height_scale, 0.05)
+        self.assertEqual(exported.height_midlevel, 0.5)
 
     def test_bake_plan_marks_only_divergent_channels(self) -> None:
         # Mix on base color, math node on roughness, clean normal/emissive.

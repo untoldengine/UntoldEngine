@@ -216,7 +216,7 @@ public struct RuntimeMaterialSource: Sendable, Equatable {
     public var occlusionTexture: RuntimeTextureReference?
     public var heightTexture: RuntimeTextureReference?
     public var heightScale: Float
-    public var heightBias: Float
+    public var heightMidlevel: Float
     public var heightRemapMin: Float
     public var heightRemapMax: Float
 
@@ -240,7 +240,7 @@ public struct RuntimeMaterialSource: Sendable, Equatable {
         occlusionTexture: RuntimeTextureReference? = nil,
         heightTexture: RuntimeTextureReference? = nil,
         heightScale: Float = 0.05,
-        heightBias: Float = 0.5,
+        heightMidlevel: Float = 0.5,
         heightRemapMin: Float = 0.0,
         heightRemapMax: Float = 1.0
     ) {
@@ -263,7 +263,7 @@ public struct RuntimeMaterialSource: Sendable, Equatable {
         self.occlusionTexture = occlusionTexture
         self.heightTexture = heightTexture
         self.heightScale = heightScale
-        self.heightBias = heightBias
+        self.heightMidlevel = heightMidlevel
         self.heightRemapMin = heightRemapMin
         self.heightRemapMax = heightRemapMax
     }

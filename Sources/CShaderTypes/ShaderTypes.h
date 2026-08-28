@@ -343,10 +343,11 @@ typedef struct{
     simd_float4 lodDither; // x=threshold, y=mode: 0 off, 1 keep below, 2 keep at/above
     bool interactWithLight;
     // Parallax Occlusion Mapping. heightScale is the total ray-march depth in UV-normalized
-    // units; heightBias mirrors Blender's Displacement node "Midlevel" convention.
+    // units, matching Blender's Displacement node "Scale"; heightMidlevel matches its
+    // "Midlevel" input.
     float heightScale;
-    float heightBias;
-    // Contrast-stretch applied to the raw height sample before heightBias: many real-world
+    float heightMidlevel;
+    // Contrast-stretch applied to the raw height sample before heightMidlevel: many real-world
     // displacement maps only use a narrow slice of [0,1], leaving POM almost no local
     // contrast to work with unless that slice is remapped back out first. Identity is (0,1).
     float heightRemapMin;
