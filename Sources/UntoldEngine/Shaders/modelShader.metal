@@ -169,8 +169,14 @@ vertex VertexOutModel vertexModelShader(
     //out.shadowCoords = lightOrthoView * uniforms.modelMatrix * position;
     out.uvCoords = in.uv;
 
-    // Compute TBN
-    simd_float3 T = normalize(uniforms.normalMatrix * in.tangent.xyz);
+    // Compute TBN. Tangents are directions, not normals, so transform them with the model
+    // matrix linear part. The inverse-transpose normal matrix is only correct for normals.
+    float3x3 modelLinear = float3x3(
+        uniforms.modelMatrix.columns[0].xyz,
+        uniforms.modelMatrix.columns[1].xyz,
+        uniforms.modelMatrix.columns[2].xyz
+    );
+    simd_float3 T = normalize(modelLinear * in.tangent.xyz);
     simd_float3 N = normalize(uniforms.normalMatrix * normals.xyz);
     //simd_float3 B = cross(N, T) * in.tangent.w;
 
