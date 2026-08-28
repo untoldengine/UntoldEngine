@@ -188,6 +188,33 @@ class TexbakePatchRefsTests(unittest.TestCase):
         self.assertEqual(config.pixel_format, t.MTL_RGBA16_FLOAT)
         self.assertEqual(t._untold_format_for_config(config), t._UNTOLD_FORMAT_RGBA16_FLOAT)
 
+    def test_height_slot_maps_to_uncompressed_r16unorm(self) -> None:
+        config = t._SLOT_CONFIG["height"]
+        self.assertEqual(config.encoding, "r16")
+        self.assertEqual(config.pixel_format, t.MTL_R16_UNORM)
+        self.assertEqual(t._untold_format_for_config(config), t._UNTOLD_FORMAT_R16_UNORM)
+
+
+class TexbakeSlotDetectionTests(unittest.TestCase):
+    def test_detect_slot_routes_displacement_keywords_to_height(self) -> None:
+        for name in ("Poliigon_BrickWallThin_11512_Displacement", "wall_height", "height_map", "rock_disp"):
+            with self.subTest(name=name):
+                self.assertEqual(t.detect_slot(Path(f"{name}.tiff")), "height")
+
+    def test_detect_slot_routes_bump_keywords_to_height_not_normal(self) -> None:
+        for name in ("metal_bump", "bump_metal"):
+            with self.subTest(name=name):
+                self.assertEqual(t.detect_slot(Path(f"{name}.png")), "height")
+
+    def test_detect_slot_still_routes_normal_keywords_to_normal(self) -> None:
+        self.assertEqual(t.detect_slot(Path("wall_normal.png")), "normal")
+
+    def test_slot_from_texture_flags_routes_height_flag(self) -> None:
+        self.assertEqual(t._slot_from_texture_flags(t._UNTOLD_TEX_FLAG_HEIGHT), "height")
+
+    def test_slot_from_texture_flags_returns_none_when_no_flag_set(self) -> None:
+        self.assertIsNone(t._slot_from_texture_flags(0))
+
 
 if __name__ == "__main__":
     unittest.main()

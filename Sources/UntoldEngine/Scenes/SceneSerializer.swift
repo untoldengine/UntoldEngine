@@ -174,7 +174,7 @@ struct MaterialData: Codable {
     var normalWrapMode: Int? = nil // WrapMode rawValue
     var heightWrapMode: Int? = nil // WrapMode rawValue
     var heightScale: Float? = nil
-    var heightBias: Float? = nil
+    var heightMidlevel: Float? = nil
     var heightEnabled: Bool? = nil
     var heightRemapMin: Float? = nil
     var heightRemapMax: Float? = nil
@@ -555,8 +555,8 @@ private func applyDeserializedMaterialData(entityId: EntityID, entityData: Entit
         updateMaterialHeightScale(entityId: entityId, heightScale: heightScale)
     }
 
-    if let heightBias = materialData.heightBias {
-        updateMaterialHeightBias(entityId: entityId, heightBias: heightBias)
+    if let heightMidlevel = materialData.heightMidlevel {
+        updateMaterialHeightMidlevel(entityId: entityId, heightMidlevel: heightMidlevel)
     }
 
     if let heightEnabled = materialData.heightEnabled {
@@ -696,7 +696,7 @@ public func serializeScene() -> SceneData {
 
             let stScale: Float = getMaterialSTScale(entityId: entityId)
             let heightScale: Float = getMaterialHeightScale(entityId: entityId)
-            let heightBias: Float = getMaterialHeightBias(entityId: entityId)
+            let heightMidlevel: Float = getMaterialHeightMidlevel(entityId: entityId)
             let heightEnabled: Bool = getMaterialHeightEnabled(entityId: entityId)
             let heightRemapMin: Float = getMaterialHeightRemapMin(entityId: entityId)
             let heightRemapMax: Float = getMaterialHeightRemapMax(entityId: entityId)
@@ -726,7 +726,7 @@ public func serializeScene() -> SceneData {
                 normalWrapMode: normalWrapMode,
                 heightWrapMode: heightWrapMode,
                 heightScale: heightScale,
-                heightBias: heightBias,
+                heightMidlevel: heightMidlevel,
                 heightEnabled: heightEnabled,
                 heightRemapMin: heightRemapMin,
                 heightRemapMax: heightRemapMax
@@ -994,7 +994,7 @@ public func serializeScene() -> SceneData {
                             let alphaModeRawValue = getMaterialAlphaMode(entityId: childId).rawValue
                             let stScale = getMaterialSTScale(entityId: childId)
                             let heightScale = getMaterialHeightScale(entityId: childId)
-                            let heightBias = getMaterialHeightBias(entityId: childId)
+                            let heightMidlevel = getMaterialHeightMidlevel(entityId: childId)
                             let heightEnabled = getMaterialHeightEnabled(entityId: childId)
                             let heightRemapMin = getMaterialHeightRemapMin(entityId: childId)
                             let heightRemapMax = getMaterialHeightRemapMax(entityId: childId)
@@ -1028,7 +1028,7 @@ public func serializeScene() -> SceneData {
                                 normalWrapMode: normalWrapMode,
                                 heightWrapMode: heightWrapMode,
                                 heightScale: heightScale,
-                                heightBias: heightBias,
+                                heightMidlevel: heightMidlevel,
                                 heightEnabled: heightEnabled,
                                 heightRemapMin: heightRemapMin,
                                 heightRemapMax: heightRemapMax

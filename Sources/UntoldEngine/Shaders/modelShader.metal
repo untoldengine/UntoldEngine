@@ -33,10 +33,10 @@ static inline float lodBayerThreshold(float2 position) {
 }
 
 // Height convention: 1.0 = surface top (no displacement), 0.0 = maximum depth.
-// heightBias mirrors Blender's Displacement node "Midlevel" (default 0.5 = no shift):
+// heightMidlevel matches Blender's Displacement node "Midlevel" input (default 0.5 = no shift):
 // values above 0.5 raise the reference plane (less apparent depth), values below lower it.
 //
-// heightRemapMin/Max contrast-stretch the raw sample BEFORE heightBias is applied. Many
+// heightRemapMin/Max contrast-stretch the raw sample BEFORE heightMidlevel is applied. Many
 // real-world displacement maps (Substance/Poliigon exports especially) only use a narrow
 // slice of the full [0,1] range — e.g. raw values clustered around 0.51-0.54 — leaving POM
 // almost no local (brick-to-brick) contrast to work with even though heightScale is set
@@ -45,13 +45,13 @@ static inline float pomSampleHeight(
     texture2d<float> heightTexture,
     sampler heightSampler,
     float2 uv,
-    float heightBias,
+    float heightMidlevel,
     float heightRemapMin,
     float heightRemapMax
 ) {
     float raw = heightTexture.sample(heightSampler, uv, level(0.0)).r;
     float remapped = saturate((raw - heightRemapMin) / max(heightRemapMax - heightRemapMin, 1e-5));
-    return saturate(remapped + (heightBias - 0.5));
+    return saturate(remapped + (heightMidlevel - 0.5));
 }
 
 // Parallax Occlusion Mapping: ray-marches the height field in tangent space to find the
@@ -68,7 +68,7 @@ static inline float2 parallaxOcclusionMap(
     float2 st,
     float3 viewTangent,
     float heightScale,
-    float heightBias,
+    float heightMidlevel,
     float heightRemapMin,
     float heightRemapMax,
     float minSteps,
@@ -106,7 +106,7 @@ static inline float2 parallaxOcclusionMap(
 
     float2 currentUV = st;
     float currentLayerDepth = 0.0;
-    float currentHeight = pomSampleHeight(heightTexture, heightSampler, currentUV, heightBias, heightRemapMin, heightRemapMax);
+    float currentHeight = pomSampleHeight(heightTexture, heightSampler, currentUV, heightMidlevel, heightRemapMin, heightRemapMax);
 
     float2 prevUV = currentUV;
     float prevLayerDepth = currentLayerDepth;
@@ -123,7 +123,7 @@ static inline float2 parallaxOcclusionMap(
 
         currentUV -= deltaUV;
         currentLayerDepth += layerDepth;
-        currentHeight = pomSampleHeight(heightTexture, heightSampler, currentUV, heightBias, heightRemapMin, heightRemapMax);
+        currentHeight = pomSampleHeight(heightTexture, heightSampler, currentUV, heightMidlevel, heightRemapMin, heightRemapMax);
     }
 
     // Intersection refinement: linear interpolation between the last two samples using how
@@ -276,7 +276,7 @@ fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
             // the cutoff.
             sampleUV = parallaxOcclusionMap(
                 heightTexture, heightSampler, st, viewTangent,
-                materialParameter.heightScale * distanceFade, materialParameter.heightBias,
+                materialParameter.heightScale * distanceFade, materialParameter.heightMidlevel,
                 materialParameter.heightRemapMin, materialParameter.heightRemapMax,
                 pomQuality.minSteps, pomQuality.maxSteps,
                 pomHeightSample

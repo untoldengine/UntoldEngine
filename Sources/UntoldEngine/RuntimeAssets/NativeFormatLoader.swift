@@ -475,7 +475,7 @@ public struct NativeFormatLoader: NamedRuntimeAssetLoading {
             occlusionTexture: textureReference(at: material.occlusionTextureIndex, decoded: decoded, baseURL: baseURL, isSRGB: false),
             heightTexture: textureReference(at: material.heightTextureIndex, decoded: decoded, baseURL: baseURL, isSRGB: false),
             heightScale: material.heightScale,
-            heightBias: material.heightBias,
+            heightMidlevel: material.heightMidlevel,
             heightRemapMin: material.heightRemapMin,
             heightRemapMax: material.heightRemapMax
         )

@@ -24,7 +24,7 @@ public enum UntoldFormat {
     /// that fix and can carry a bogus (1,1,1) emissiveFactor left over from
     /// Blender's default Emission Color, so readers must not trust it.
     /// Bumped to 3 when the material record grew height-map fields
-    /// (`heightTextureIndex`, `heightScale`, `heightBias`) — see
+    /// (`heightTextureIndex`, `heightScale`, `heightMidlevel`) — see
     /// `minHeightMapVersion`. Files below that version don't have these bytes
     /// on disk at all, so the reader must not attempt to decode them.
     /// Bumped to 4 when the material record grew height-remap fields
@@ -117,6 +117,9 @@ public enum UntoldTextureFormat: UInt32, Sendable {
     case astc6x6 = 6
     case astc8x8 = 7
     case rgba16Float = 8
+    /// Single-channel, 16-bit, linear, uncompressed — height/displacement map data.
+    /// Bypasses ASTC deliberately; see NativeTexFormat.r16UnormPixelFormat.
+    case r16Unorm = 9
 
     /// True for formats stored in the engine-native .utex container and uploaded
     /// directly to Metal without passing through MTKTextureLoader or CGImage.
@@ -129,7 +132,7 @@ public enum UntoldTextureFormat: UInt32, Sendable {
 
     /// True when the referenced file is an engine-native `.utex` container.
     public var isNativeContainer: Bool {
-        isASTCNative || self == .rgba16Float
+        isASTCNative || self == .rgba16Float || self == .r16Unorm
     }
 }
 
@@ -377,10 +380,10 @@ public struct UntoldMaterialRecordV1: Sendable, Equatable {
     public var occlusionTextureIndex: UInt32
     /// Total Parallax Occlusion Mapping ray-march depth, in UV-normalized units.
     public var heightScale: Float
-    /// Height-sample offset, mirroring Blender's Displacement node "Midlevel" convention.
-    public var heightBias: Float
+    /// Height-sample offset, matching Blender's Displacement node "Midlevel" input.
+    public var heightMidlevel: Float
     public var heightTextureIndex: UInt32
-    /// Contrast-stretch bounds applied to the raw height sample before heightBias.
+    /// Contrast-stretch bounds applied to the raw height sample before heightMidlevel.
     /// Identity is (0.0, 1.0).
     public var heightRemapMin: Float
     public var heightRemapMax: Float
@@ -422,7 +425,7 @@ public struct UntoldMaterialRecordV1: Sendable, Equatable {
         occlusionTextureIndex: UInt32 = UntoldFormat.invalidIndex,
         heightTextureIndex: UInt32 = UntoldFormat.invalidIndex,
         heightScale: Float = 0.05,
-        heightBias: Float = 0.5,
+        heightMidlevel: Float = 0.5,
         heightRemapMin: Float = 0.0,
         heightRemapMax: Float = 1.0,
         roughnessTextureChannel: UntoldTextureChannel = .r,
@@ -445,7 +448,7 @@ public struct UntoldMaterialRecordV1: Sendable, Equatable {
         self.occlusionTextureIndex = occlusionTextureIndex
         self.heightTextureIndex = heightTextureIndex
         self.heightScale = heightScale
-        self.heightBias = heightBias
+        self.heightMidlevel = heightMidlevel
         self.heightRemapMin = heightRemapMin
         self.heightRemapMax = heightRemapMax
         reserved0 = [

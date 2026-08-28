@@ -275,18 +275,18 @@ emissiveTextureIndex              UInt32
 occlusionTextureIndex             UInt32
 heightTextureIndex                UInt32
 heightScale                       Float32
-heightBias                        Float32
+heightMidlevel                    Float32
 heightRemapMin                    Float32
 heightRemapMax                    Float32
 reserved0                         UInt32 x 2
 ```
 
-`heightTextureIndex`/`heightScale`/`heightBias` were added at `formatVersion = 3`
+`heightTextureIndex`/`heightScale`/`heightMidlevel` were added at `formatVersion = 3`
 (`UntoldFormat.minHeightMapVersion`) and drive Parallax Occlusion Mapping — see
 [HeightMapParallaxOcclusionMapping.md](../proposals/HeightMapParallaxOcclusionMapping.md).
 `heightRemapMin`/`heightRemapMax` were added at `formatVersion = 4`
 (`UntoldFormat.minHeightRemapVersion`) — a contrast-stretch applied to the raw height sample
-before `heightBias`, needed because many real-world displacement maps only use a narrow slice
+before `heightMidlevel`, needed because many real-world displacement maps only use a narrow slice
 of `[0,1]`. Files older than `minHeightMapVersion` have none of these bytes on disk; files
 between `minHeightMapVersion` and `minHeightRemapVersion` have the height fields but not the
 remap fields. The reader picks one of three version-gated decode paths accordingly

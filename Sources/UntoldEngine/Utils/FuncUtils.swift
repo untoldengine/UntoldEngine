@@ -1486,19 +1486,19 @@ public func updateMaterialHeightScale(entityId: EntityID, heightScale: Float, me
     refreshStaticBatchingForMaterialChange(entityId: entityId)
 }
 
-/// Height-sample offset, mirroring Blender's Displacement node "Midlevel" convention.
-public func getMaterialHeightBias(entityId: EntityID, meshIndex: Int = 0, submeshIndex: Int = 0) -> Float {
-    getMaterial(entityId: entityId, meshIndex: meshIndex, submeshIndex: submeshIndex)?.heightBias ?? 0.5
+/// Height-sample offset, matching Blender's Displacement node "Midlevel" convention.
+public func getMaterialHeightMidlevel(entityId: EntityID, meshIndex: Int = 0, submeshIndex: Int = 0) -> Float {
+    getMaterial(entityId: entityId, meshIndex: meshIndex, submeshIndex: submeshIndex)?.heightMidlevel ?? 0.5
 }
 
-public func updateMaterialHeightBias(entityId: EntityID, heightBias: Float, meshIndex: Int = 0, submeshIndex: Int = 0) {
-    guard updateMaterial(entityId: entityId, meshIndex: meshIndex, submeshIndex: submeshIndex, mutate: { $0.heightBias = heightBias }) else {
+public func updateMaterialHeightMidlevel(entityId: EntityID, heightMidlevel: Float, meshIndex: Int = 0, submeshIndex: Int = 0) {
+    guard updateMaterial(entityId: entityId, meshIndex: meshIndex, submeshIndex: submeshIndex, mutate: { $0.heightMidlevel = heightMidlevel }) else {
         return
     }
     refreshStaticBatchingForMaterialChange(entityId: entityId)
 }
 
-/// Lower bound of the contrast-stretch applied to the raw height sample before `heightBias`.
+/// Lower bound of the contrast-stretch applied to the raw height sample before `heightMidlevel`.
 /// Identity is 0.0. Useful for real-world displacement maps that only use a narrow slice of
 /// the full [0,1] range.
 public func getMaterialHeightRemapMin(entityId: EntityID, meshIndex: Int = 0, submeshIndex: Int = 0) -> Float {
@@ -1512,7 +1512,7 @@ public func updateMaterialHeightRemapMin(entityId: EntityID, heightRemapMin: Flo
     refreshStaticBatchingForMaterialChange(entityId: entityId)
 }
 
-/// Upper bound of the contrast-stretch applied to the raw height sample before `heightBias`.
+/// Upper bound of the contrast-stretch applied to the raw height sample before `heightMidlevel`.
 /// Identity is 1.0.
 public func getMaterialHeightRemapMax(entityId: EntityID, meshIndex: Int = 0, submeshIndex: Int = 0) -> Float {
     getMaterial(entityId: entityId, meshIndex: meshIndex, submeshIndex: submeshIndex)?.heightRemapMax ?? 1.0
