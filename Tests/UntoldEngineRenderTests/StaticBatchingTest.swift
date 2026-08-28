@@ -1717,6 +1717,102 @@ final class StaticBatchingTest: BaseRenderSetup {
         print("   Chair batch ID: \(chairBatchId?.uuidString ?? "nil")")
     }
 
+    private func addCubeEntity(material: Material, position: simd_float3) -> EntityID {
+        let entity = createEntity()
+        var meshes = BasicPrimitives.createCube()
+        for meshIndex in meshes.indices {
+            for submeshIndex in meshes[meshIndex].submeshes.indices {
+                meshes[meshIndex].submeshes[submeshIndex].material = material
+            }
+        }
+        if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
+            renderComponent.mesh = meshes
+        }
+        if let transform = scene.assign(to: entity, component: LocalTransformComponent.self) {
+            transform.position = position
+        }
+        _ = scene.assign(to: entity, component: WorldTransformComponent.self)
+        setEntityStaticBatchComponent(entityId: entity)
+        return entity
+    }
+
+    func testHeightMaterialDifferencesPreventBatching() {
+        // Regression test: getMaterialHash() previously had no awareness of height/POM
+        // parameters at all, so two materials differing only in heightScale (or
+        // heightEnabled, heightMidlevel, heightRemapMin/Max) hashed identically and could
+        // be merged into the same batch group — silently applying one material's POM
+        // tuning (or lack of POM) to geometry that should render differently.
+        //
+        // Batching only forms a batch group once 2+ entities share a material hash (see
+        // testGenerateBatchesWithSingleStaticEntity), so this needs 2 entities per distinct
+        // height configuration to actually exercise batch formation, not just hashing.
+        func makeMaterial(heightScale: Float) -> Material {
+            Material(
+                runtimeMaterial: RuntimeMaterialSource(
+                    baseColorFactor: simd_float4(1, 1, 1, 1),
+                    metallicFactor: 0.0,
+                    roughnessFactor: 1.0,
+                    heightScale: heightScale
+                ),
+                device: renderInfo.device
+            )
+        }
+
+        let entitySubtleA = addCubeEntity(material: makeMaterial(heightScale: 0.02), position: simd_float3(0, 0, 0))
+        let entitySubtleB = addCubeEntity(material: makeMaterial(heightScale: 0.02), position: simd_float3(2, 0, 0))
+        let entityStrongA = addCubeEntity(material: makeMaterial(heightScale: 0.20), position: simd_float3(4, 0, 0))
+        let entityStrongB = addCubeEntity(material: makeMaterial(heightScale: 0.20), position: simd_float3(6, 0, 0))
+
+        generateBatches()
+
+        let batchSubtleA = BatchingSystem.shared.getBatchInfo(for: entitySubtleA)?.batchId
+        let batchSubtleB = BatchingSystem.shared.getBatchInfo(for: entitySubtleB)?.batchId
+        let batchStrongA = BatchingSystem.shared.getBatchInfo(for: entityStrongA)?.batchId
+        let batchStrongB = BatchingSystem.shared.getBatchInfo(for: entityStrongB)?.batchId
+
+        XCTAssertNotNil(batchSubtleA, "❌ Subtle-height entity A should be batched")
+        XCTAssertNotNil(batchStrongA, "❌ Strong-height entity A should be batched")
+
+        XCTAssertEqual(batchSubtleA, batchSubtleB, "❌ Entities with identical heightScale should share a batch")
+        XCTAssertEqual(batchStrongA, batchStrongB, "❌ Entities with identical heightScale should share a batch")
+        XCTAssertNotEqual(batchSubtleA, batchStrongA, "❌ Materials differing only in heightScale must not share a batch")
+    }
+
+    func testHeightEnabledDifferencePreventsBatching() {
+        let sharedScale: Float = 0.08
+        func makeMaterial(heightEnabled: Bool) -> Material {
+            var material = Material(
+                runtimeMaterial: RuntimeMaterialSource(
+                    baseColorFactor: simd_float4(1, 1, 1, 1),
+                    metallicFactor: 0.0,
+                    roughnessFactor: 1.0,
+                    heightScale: sharedScale
+                ),
+                device: renderInfo.device
+            )
+            material.heightEnabled = heightEnabled
+            return material
+        }
+
+        let entityOnA = addCubeEntity(material: makeMaterial(heightEnabled: true), position: simd_float3(0, 2, 0))
+        let entityOnB = addCubeEntity(material: makeMaterial(heightEnabled: true), position: simd_float3(2, 2, 0))
+        let entityOffA = addCubeEntity(material: makeMaterial(heightEnabled: false), position: simd_float3(4, 2, 0))
+        let entityOffB = addCubeEntity(material: makeMaterial(heightEnabled: false), position: simd_float3(6, 2, 0))
+
+        generateBatches()
+
+        let batchOnA = BatchingSystem.shared.getBatchInfo(for: entityOnA)?.batchId
+        let batchOnB = BatchingSystem.shared.getBatchInfo(for: entityOnB)?.batchId
+        let batchOffA = BatchingSystem.shared.getBatchInfo(for: entityOffA)?.batchId
+        let batchOffB = BatchingSystem.shared.getBatchInfo(for: entityOffB)?.batchId
+
+        XCTAssertNotNil(batchOnA, "❌ POM-enabled entity should be batched")
+        XCTAssertNotNil(batchOffA, "❌ POM-disabled entity should be batched")
+        XCTAssertEqual(batchOnA, batchOnB, "❌ Entities with identical heightEnabled should share a batch")
+        XCTAssertEqual(batchOffA, batchOffB, "❌ Entities with identical heightEnabled should share a batch")
+        XCTAssertNotEqual(batchOnA, batchOffA, "❌ heightEnabled true/false must not share a batch")
+    }
+
     func testRuntimeOpacityChangeRemovesBatchedEntity() {
         // Verify that calling updateMaterialOpacity on a batched entity correctly
         // removes it from the batch so the transparency pass can render it.

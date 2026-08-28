@@ -2785,6 +2785,7 @@ public class BatchingSystem: @unchecked Sendable {
         components.append(textureIdentity(material.roughness.texture, material.roughnessURL))
         components.append(textureIdentity(material.metallic.texture, material.metallicURL))
         components.append(textureIdentity(material.normal.texture, material.normalURL))
+        components.append(textureIdentity(material.height.texture, material.heightURL))
 
         // Base color value (important for meshes without textures)
         components.append(String(format: "%.2f,%.2f,%.2f,%.2f",
@@ -2804,11 +2805,22 @@ public class BatchingSystem: @unchecked Sendable {
         components.append("\(material.alphaMode.rawValue)")
         components.append(String(format: "%.2f", material.alphaCutoff))
 
+        // Height / Parallax Occlusion Mapping parameters. Without these, two materials
+        // differing only in height texture or POM tuning hash identically and can be
+        // merged into the same batch group, silently applying one material's POM state
+        // (or lack of it) to geometry that should render differently.
+        components.append("\(material.heightEnabled)")
+        components.append(String(format: "%.3f", material.heightScale))
+        components.append(String(format: "%.3f", material.heightMidlevel))
+        components.append(String(format: "%.3f", material.heightRemapMin))
+        components.append(String(format: "%.3f", material.heightRemapMax))
+
         // Texture flags are included to prevent grouping materials that differ only by map presence.
         components.append("\(material.hasBaseMap)")
         components.append("\(material.hasRoughMap)")
         components.append("\(material.hasMetalMap)")
         components.append("\(material.hasNormalMap)")
+        components.append("\(material.hasHeightMap)")
 
         // Flags
         components.append("\(material.interactWithLight)")
