@@ -1737,15 +1737,15 @@ final class StaticBatchingTest: BaseRenderSetup {
     }
 
     func testHeightMaterialDifferencesPreventBatching() {
-        // Regression test: getMaterialHash() previously had no awareness of height/POM
-        // parameters at all, so two materials differing only in heightScale (or
-        // heightEnabled, heightMidlevel, heightRemapMin/Max) hashed identically and could
-        // be merged into the same batch group — silently applying one material's POM
-        // tuning (or lack of POM) to geometry that should render differently.
-        //
-        // Batching only forms a batch group once 2+ entities share a material hash (see
-        // testGenerateBatchesWithSingleStaticEntity), so this needs 2 entities per distinct
-        // height configuration to actually exercise batch formation, not just hashing.
+        /// Regression test: getMaterialHash() previously had no awareness of height/POM
+        /// parameters at all, so two materials differing only in heightScale (or
+        /// heightEnabled, heightMidlevel, heightRemapMin/Max) hashed identically and could
+        /// be merged into the same batch group — silently applying one material's POM
+        /// tuning (or lack of POM) to geometry that should render differently.
+        ///
+        /// Batching only forms a batch group once 2+ entities share a material hash (see
+        /// testGenerateBatchesWithSingleStaticEntity), so this needs 2 entities per distinct
+        /// height configuration to actually exercise batch formation, not just hashing.
         func makeMaterial(heightScale: Float) -> Material {
             Material(
                 runtimeMaterial: RuntimeMaterialSource(
