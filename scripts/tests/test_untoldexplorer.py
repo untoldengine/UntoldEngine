@@ -982,14 +982,20 @@ class MaterialGraphAnalysisTests(unittest.TestCase):
     def test_extract_material_reads_height_from_displacement_node(self) -> None:
         """The standard ArchViz/Poliigon authoring pattern: an Image Texture feeds a
         Displacement node's Height socket, which feeds Material Output's Displacement
-        input. Scale/Midlevel on the Displacement node become heightScale/heightMidlevel."""
+        input. Scale becomes heightScale directly. Midlevel does NOT get copied into
+        heightMidlevel (which stays at its neutral default) — the engine's POM is
+        unidirectional and heightMidlevel is just an additive shift, not a true
+        zero-reference, so copying Blender's Midlevel there would not reproduce "neutral
+        gray = no visible depth". Instead Midlevel becomes the height_remap_max ceiling:
+        raw values at/above it clip to "no depth", values below get contrast-stretched
+        into the full depth range."""
         height_tex = _make_image_node("height_map")
         height_input = FakeSocket("Height")
         height_input.link_from(height_tex, "Color")
         scale_socket = FakeSocket("Scale")
         scale_socket.default_value = 0.02
         midlevel_socket = FakeSocket("Midlevel")
-        midlevel_socket.default_value = 0.5
+        midlevel_socket.default_value = 0.7
         displacement_node = FakeNode(
             "ShaderNodeDisplacement",
             inputs={"Height": height_input, "Scale": scale_socket, "Midlevel": midlevel_socket},
@@ -1011,13 +1017,60 @@ class MaterialGraphAnalysisTests(unittest.TestCase):
         self.assertIsNotNone(exported.height_texture)
         self.assertEqual(exported.height_texture.name, "height_map.png")
         self.assertAlmostEqual(exported.height_scale, 0.02)
-        self.assertAlmostEqual(exported.height_midlevel, 0.5)
+        self.assertAlmostEqual(exported.height_midlevel, 0.5, msg="heightMidlevel stays neutral, Blender's Midlevel is not copied here")
+        self.assertAlmostEqual(exported.height_remap_min, 0.0)
+        self.assertAlmostEqual(exported.height_remap_max, 0.7, msg="Blender's Midlevel becomes the remap ceiling")
 
         # The Displacement node's own type is not flagged as bakeable — it's now
         # faithfully handled (extracted as height) — but its Height chain is still
         # walked and would be individually classified if unsupported.
         analysis = u.analyze_material(material)
         self.assertEqual(analysis.classification, u.MATERIAL_GRAPH_SUPPORTED)
+
+    def _make_displacement_material(self, *, midlevel: float, name: str = "disp_mat") -> FakeData:
+        height_tex = _make_image_node("height_map")
+        height_input = FakeSocket("Height")
+        height_input.link_from(height_tex, "Color")
+        scale_socket = FakeSocket("Scale")
+        scale_socket.default_value = 0.02
+        midlevel_socket = FakeSocket("Midlevel")
+        midlevel_socket.default_value = midlevel
+        displacement_node = FakeNode(
+            "ShaderNodeDisplacement",
+            inputs={"Height": height_input, "Scale": scale_socket, "Midlevel": midlevel_socket},
+        )
+        displacement_node.name = "Displacement"
+
+        principled, output = _make_principled_output(None)
+        principled.inputs["Base Color"].default_value = (1.0, 1.0, 1.0, 1.0)
+        displacement_socket = FakeSocket("Displacement")
+        displacement_socket.link_from(displacement_node, "Displacement")
+        output.inputs["Displacement"] = displacement_socket
+
+        return _make_material(name, [output, principled, displacement_node, height_tex])
+
+    def test_extract_material_clamps_out_of_range_midlevel_to_remap_ceiling(self) -> None:
+        """Regression: a real Poliigon .blend was found with Midlevel authored as 7.4
+        (an artist overshooting a slider, not a valid [0,1] height reference). Raw texture
+        samples are always in [0,1], so an unclamped remap ceiling of 7.4 would make
+        virtually every real sample divide down toward "maximum depth" — a badly broken
+        result, not a validation error, so it must be clamped rather than trusted as-is."""
+        material = self._make_displacement_material(midlevel=7.4, name="overshoot_mat")
+        mesh_object = FakeSceneObject("Wall", "MESH", FakeData(materials=[material]))
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            exported = u.extract_material(mesh_object, Path(tmpdir) / "asset.untold")
+
+        self.assertAlmostEqual(exported.height_remap_max, 1.0)
+
+    def test_extract_material_clamps_near_zero_midlevel_to_remap_floor(self) -> None:
+        material = self._make_displacement_material(midlevel=0.0, name="zero_mat")
+        mesh_object = FakeSceneObject("Wall", "MESH", FakeData(materials=[material]))
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            exported = u.extract_material(mesh_object, Path(tmpdir) / "asset.untold")
+
+        self.assertAlmostEqual(exported.height_remap_max, 0.01)
 
     def test_extract_material_falls_back_to_bump_height_when_no_displacement(self) -> None:
         """Materials authored without a separate Displacement setup sometimes feed a
@@ -1050,8 +1103,11 @@ class MaterialGraphAnalysisTests(unittest.TestCase):
         self.assertIsNotNone(exported.height_texture)
         self.assertEqual(exported.height_texture.name, "bump_height.png")
         self.assertAlmostEqual(exported.height_scale, 0.03)
-        # Bump has no Midlevel-equivalent input; height_midlevel stays at the neutral default.
+        # Bump has no Midlevel-equivalent input; height_midlevel/height_remap_max stay at
+        # their neutral defaults.
         self.assertAlmostEqual(exported.height_midlevel, 0.5)
+        self.assertAlmostEqual(exported.height_remap_min, 0.0)
+        self.assertAlmostEqual(exported.height_remap_max, 1.0)
 
     def test_extract_material_without_displacement_or_bump_has_no_height(self) -> None:
         tex = _make_image_node("original")
