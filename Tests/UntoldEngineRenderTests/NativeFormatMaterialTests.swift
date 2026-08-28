@@ -55,6 +55,63 @@ final class NativeFormatMaterialTests: XCTestCase {
         XCTAssertTrue(material.hasEmissiveMap)
     }
 
+    func testRuntimeMaterialLoadsHeightTexture() throws {
+        // Companion to testRuntimeMaterialLoadsEmissiveTexture, for the height-map/POM
+        // material fields: hasHeightMap (Mesh.swift) and the RuntimeMaterialSource ->
+        // Material height field pass-through had no test coverage anywhere.
+        guard let device = MTLCreateSystemDefaultDevice() else {
+            throw XCTSkip("Metal device unavailable")
+        }
+
+        let tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let heightURL = tempDir.appendingPathComponent("height.png")
+        try writeMinimalPNG(to: heightURL, rgba: (128, 128, 128, 255))
+
+        let runtimeMaterial = RuntimeMaterialSource(
+            name: "RuntimeMaterial",
+            heightTexture: RuntimeTextureReference(
+                name: "height",
+                sourceURL: heightURL,
+                isSRGB: false,
+                width: 1,
+                height: 1,
+                mipCount: 1
+            ),
+            heightScale: 0.08,
+            heightMidlevel: 0.65,
+            heightRemapMin: 0.1,
+            heightRemapMax: 0.9
+        )
+
+        let material = Material(runtimeMaterial: runtimeMaterial, device: device)
+
+        XCTAssertNotNil(material.height.texture)
+        XCTAssertEqual(material.heightURL, heightURL)
+        XCTAssertEqual(material.heightScale, 0.08, accuracy: 0.0001)
+        XCTAssertEqual(material.heightMidlevel, 0.65, accuracy: 0.0001)
+        XCTAssertEqual(material.heightRemapMin, 0.1, accuracy: 0.0001)
+        XCTAssertEqual(material.heightRemapMax, 0.9, accuracy: 0.0001)
+        XCTAssertTrue(material.hasHeightMap)
+    }
+
+    func testRuntimeMaterialWithoutHeightTextureReportsNoHeightMap() throws {
+        guard let device = MTLCreateSystemDefaultDevice() else {
+            throw XCTSkip("Metal device unavailable")
+        }
+
+        let runtimeMaterial = RuntimeMaterialSource(name: "PlainMaterial")
+        let material = Material(runtimeMaterial: runtimeMaterial, device: device)
+
+        XCTAssertNil(material.height.texture)
+        XCTAssertFalse(material.hasHeightMap)
+        XCTAssertEqual(material.heightScale, 0.05, accuracy: 0.0001, "should be the documented default")
+        XCTAssertEqual(material.heightMidlevel, 0.5, accuracy: 0.0001, "should be the documented default")
+    }
+
     private func writeMinimalPNG(to url: URL, rgba: (UInt8, UInt8, UInt8, UInt8)) throws {
         let bytes = [rgba.0, rgba.1, rgba.2, rgba.3]
         let colorSpace = CGColorSpaceCreateDeviceRGB()
