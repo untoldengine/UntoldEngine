@@ -343,7 +343,10 @@ typedef struct{
     simd_float4 lodDither; // x=threshold, y=mode: 0 off, 1 keep below, 2 keep at/above
     bool interactWithLight;
     // Parallax Occlusion Mapping. heightScale is the total ray-march depth in UV-normalized
-    // units, matching Blender's Displacement node "Scale"; heightMidlevel matches its
+    // units — named after Blender's Displacement node "Scale" input, but NOT unit-equivalent:
+    // Blender's Scale is a world-space distance, this is a UV-space fraction. A raw Scale
+    // value carried through from Blender needs retuning, not a straight copy (see the
+    // exporter's ExportedMaterial.height_scale docstring). heightMidlevel matches its
     // "Midlevel" input.
     float heightScale;
     float heightMidlevel;

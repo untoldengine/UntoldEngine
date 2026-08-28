@@ -648,8 +648,11 @@ public struct Material {
     public var alphaCutoff: Float = 0.5
 
     /// Parallax Occlusion Mapping height parameters. `heightScale` is the total ray-march
-    /// depth in UV-normalized units, matching Blender's Displacement node "Scale";
-    /// `heightMidlevel` matches its "Midlevel" input. See
+    /// depth in UV-normalized units — named after Blender's Displacement node "Scale" input,
+    /// but NOT unit-equivalent: Blender's Scale is a world-space distance, this is a
+    /// UV-space fraction. A raw Scale value carried through from Blender needs retuning, not
+    /// a straight copy (see the exporter's `ExportedMaterial.height_scale` docstring).
+    /// `heightMidlevel` matches Blender's "Midlevel" input. See
     /// docs/proposals/HeightMapParallaxOcclusionMapping.md.
     public var heightScale: Float = 0.05
     public var heightMidlevel: Float = 0.5
