@@ -3853,7 +3853,7 @@ _UNSUPPORTED_TEXTURE_SUFFIXES = {".exr", ".hdr", ".cin", ".dpx"}
 _HDR_IMAGE_SUFFIXES = {".exr", ".hdr"}
 
 
-def write_blender_image_to_path(image_name: str, destination_path: Path) -> None:
+def write_blender_image_to_path(image_name: str, destination_path: Path, *, preserve_precision: bool = False) -> None:
     blender_required()
     image = bpy.data.images.get(image_name)
     if image is None:
@@ -3952,7 +3952,15 @@ def write_blender_image_to_path(image_name: str, destination_path: Path) -> None
                     f"by the engine texture pipeline (only 8-bit PNG/JPEG/TGA/etc. "
                     f"are supported). Skipping texture."
                 )
-            print(f"  Converting image '{image_name}' (depth={image_depth}, channels={image_channels}) to 8-bit RGB for Metal compatibility", flush=True)
+            # Height/displacement is the one channel that wants to keep its precision
+            # instead of being flattened to 8-bit: POM ray-marches this data, and 8-bit
+            # quantization becomes visible stair-stepping at grazing angles once amplified
+            # by the parallax offset math (see HeightMapParallaxOcclusionMapping.md §2.2).
+            # The sRGB-16-bit Metal gap that forces 8-bit for color textures doesn't apply
+            # here — height is always linear/non-color data. PNG supports 16-bit grayscale
+            # natively, so only skip the downconvert when there's real precision to keep.
+            target_depth = "16" if (preserve_precision and image_channels < 3 and image_depth >= 16) else "8"
+            print(f"  Converting image '{image_name}' (depth={image_depth}, channels={image_channels}) to {target_depth}-bit RGB for Metal compatibility", flush=True)
             scene = bpy.context.scene
             img_settings = scene.render.image_settings
             saved = (img_settings.file_format, img_settings.color_depth, img_settings.color_mode)
@@ -3989,7 +3997,7 @@ def write_blender_image_to_path(image_name: str, destination_path: Path) -> None
                     pass  # fall back to whatever _set_scene_color_management_raw set
             try:
                 img_settings.file_format = out_format
-                img_settings.color_depth = "8"
+                img_settings.color_depth = target_depth
                 img_settings.color_mode = "RGBA" if image_channels == 4 else "RGB"
                 image.save_render(str(destination_path), scene=scene)
             finally:
@@ -4134,10 +4142,21 @@ def unique_hdr_destination_name(source_name: str, context: HDRStagingContext) ->
     return unique_asset_destination_name(source_name, context.used_names, "environment")
 
 
-def stage_texture_for_output(texture: ExportedTexture, output_path: Path, context: TextureStagingContext) -> Optional[ExportedTexture]:
+def stage_texture_for_output(
+    texture: ExportedTexture,
+    output_path: Path,
+    context: TextureStagingContext,
+    *,
+    preserve_precision: bool = False,
+) -> Optional[ExportedTexture]:
     """Stage a texture for output.  Returns None if the texture format is not
     supported by the engine pipeline (e.g. EXR, HDR) — callers should treat
     None as "no texture" for that material slot.
+
+    preserve_precision: keep 16-bit depth for a genuinely-16-bit grayscale source
+    instead of the usual 8-bit downconvert (see write_blender_image_to_path). Only
+    the height/displacement slot sets this — texbake.py's height path is the only
+    consumer built to preserve and use that extra precision.
     """
     source_path = texture.source_path
     texture_dir = output_path.parent / "Textures"
@@ -4192,17 +4211,17 @@ def stage_texture_for_output(texture: ExportedTexture, output_path: Path, contex
         if source_path is not None and source_path.is_file():
             if source_path != destination_path:
                 if texture.source_image_name:
-                    write_blender_image_to_path(texture.source_image_name, destination_path)
+                    write_blender_image_to_path(texture.source_image_name, destination_path, preserve_precision=preserve_precision)
                 elif bpy is not None:
                     tmp_image = bpy.data.images.load(str(source_path))
                     try:
-                        write_blender_image_to_path(tmp_image.name, destination_path)
+                        write_blender_image_to_path(tmp_image.name, destination_path, preserve_precision=preserve_precision)
                     finally:
                         bpy.data.images.remove(tmp_image)
                 else:
                     shutil.copy2(source_path, destination_path)
         elif texture.source_image_name:
-            write_blender_image_to_path(texture.source_image_name, destination_path)
+            write_blender_image_to_path(texture.source_image_name, destination_path, preserve_precision=preserve_precision)
         else:
             missing_path = str(source_path) if source_path is not None else "<none>"
             raise RuntimeError(f"Texture source does not exist and no Blender image fallback is available: {missing_path}")
@@ -4405,7 +4424,7 @@ def stage_material_for_output(material: ExportedMaterial, output_path: Path, con
         roughness_texture=stage_texture_for_output(material.roughness_texture, output_path, context) if material.roughness_texture is not None else None,
         emissive_texture=stage_texture_for_output(material.emissive_texture, output_path, context) if material.emissive_texture is not None else None,
         occlusion_texture=stage_texture_for_output(material.occlusion_texture, output_path, context) if material.occlusion_texture is not None else None,
-        height_texture=stage_texture_for_output(material.height_texture, output_path, context) if material.height_texture is not None else None,
+        height_texture=stage_texture_for_output(material.height_texture, output_path, context, preserve_precision=True) if material.height_texture is not None else None,
     )
 
 
