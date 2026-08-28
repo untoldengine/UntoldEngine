@@ -432,6 +432,135 @@ final class NativeFormatTests: XCTestCase {
         XCTAssertEqual(material.metallicTextureChannel, .b)
     }
 
+    func testMaterialHeightAndRemapFieldsRoundtripThroughRuntimeLoader() throws {
+        // Regression coverage: the height/remap fields (added for Parallax Occlusion
+        // Mapping) previously flowed through every test only at their struct defaults —
+        // nothing exercised the actual encode/decode of non-default values through the
+        // current (>= minHeightRemapVersion) on-disk layout, nor NativeFormatLoader's
+        // UntoldMaterialRecordV1 -> RuntimeMaterialSource wiring for them.
+        let fixture = makeTinyFixture(mutator: { _, _, _, material, _, _, _ in
+            material = UntoldMaterialRecordV1(
+                nameOffset: material.nameOffset,
+                flags: material.flags,
+                baseColorFactor: material.baseColorFactor,
+                emissiveFactor: material.emissiveFactor,
+                normalScale: material.normalScale,
+                metallicFactor: material.metallicFactor,
+                roughnessFactor: material.roughnessFactor,
+                occlusionStrength: material.occlusionStrength,
+                alphaCutoff: material.alphaCutoff,
+                baseColorTextureIndex: material.baseColorTextureIndex,
+                normalTextureIndex: material.normalTextureIndex,
+                metallicTextureIndex: material.metallicTextureIndex,
+                roughnessTextureIndex: material.roughnessTextureIndex,
+                emissiveTextureIndex: material.emissiveTextureIndex,
+                occlusionTextureIndex: material.occlusionTextureIndex,
+                heightTextureIndex: 0, // reuse the fixture's one texture record; only its
+                // presence (resolving to a non-nil reference) matters for this test.
+                heightScale: 0.08,
+                heightMidlevel: 0.65,
+                heightRemapMin: 0.1,
+                heightRemapMax: 0.9
+            )
+        })
+
+        let decoded = try UntoldReader().readAsset(from: fixture.fileData)
+        let decodedMaterial = try XCTUnwrap(decoded.materials.first)
+        XCTAssertEqual(decodedMaterial.heightTextureIndex, 0)
+        XCTAssertEqual(decodedMaterial.heightScale, 0.08, accuracy: 0.0001)
+        XCTAssertEqual(decodedMaterial.heightMidlevel, 0.65, accuracy: 0.0001)
+        XCTAssertEqual(decodedMaterial.heightRemapMin, 0.1, accuracy: 0.0001)
+        XCTAssertEqual(decodedMaterial.heightRemapMax, 0.9, accuracy: 0.0001)
+
+        let loaded = try NativeFormatLoader().loadAssetSync(from: writeFixtureToTemporaryFile(fixture.fileData))
+        let material = try XCTUnwrap(loaded.nodes.first?.primitives.first?.material)
+        XCTAssertNotNil(material.heightTexture, "heightTextureIndex should resolve to a texture reference")
+        XCTAssertEqual(material.heightScale, 0.08, accuracy: 0.0001)
+        XCTAssertEqual(material.heightMidlevel, 0.65, accuracy: 0.0001)
+        XCTAssertEqual(material.heightRemapMin, 0.1, accuracy: 0.0001)
+        XCTAssertEqual(material.heightRemapMax, 0.9, accuracy: 0.0001)
+    }
+
+    func testDecodeLegacyWithHeightNoRemapDefaultsRemapFields() throws {
+        // formatVersion in [minHeightMapVersion, minHeightRemapVersion) — height-map fields
+        // are on disk, but height-remap fields were added later and are NOT: they must come
+        // back at their identity defaults rather than reading garbage from adjacent bytes.
+        let writer = UntoldBinaryWriter()
+        writer.writeUInt32LE(7) // nameOffset
+        writer.writeUInt32LE(0) // flags
+        writer.writeFloat32LE(1) // baseColorFactor.x
+        writer.writeFloat32LE(1) // baseColorFactor.y
+        writer.writeFloat32LE(1) // baseColorFactor.z
+        writer.writeFloat32LE(1) // baseColorFactor.w
+        writer.writeFloat32LE(0) // emissiveFactor.x
+        writer.writeFloat32LE(0) // emissiveFactor.y
+        writer.writeFloat32LE(0) // emissiveFactor.z
+        writer.writeFloat32LE(1) // normalScale
+        writer.writeFloat32LE(0.9) // metallicFactor
+        writer.writeFloat32LE(0.4) // roughnessFactor
+        writer.writeFloat32LE(1) // occlusionStrength
+        writer.writeFloat32LE(0.5) // alphaCutoff
+        writer.writeUInt32LE(UntoldFormat.invalidIndex) // baseColorTextureIndex
+        writer.writeUInt32LE(UntoldFormat.invalidIndex) // normalTextureIndex
+        writer.writeUInt32LE(UntoldFormat.invalidIndex) // metallicTextureIndex
+        writer.writeUInt32LE(UntoldFormat.invalidIndex) // roughnessTextureIndex
+        writer.writeUInt32LE(UntoldFormat.invalidIndex) // emissiveTextureIndex
+        writer.writeUInt32LE(UntoldFormat.invalidIndex) // occlusionTextureIndex
+        writer.writeUInt32LE(3) // heightTextureIndex
+        writer.writeFloat32LE(0.12) // heightScale
+        writer.writeFloat32LE(0.42) // heightMidlevel
+        // No heightRemapMin/Max on disk at this version.
+        writer.writeUInt32LE(0) // reserved0[0]
+        writer.writeUInt32LE(0) // reserved0[1]
+
+        let reader = UntoldBinaryReader(data: writer.data)
+        let record = try UntoldMaterialRecordV1.decodeLegacyWithHeightNoRemap(from: reader)
+
+        XCTAssertEqual(record.heightTextureIndex, 3)
+        XCTAssertEqual(record.heightScale, 0.12, accuracy: 0.0001)
+        XCTAssertEqual(record.heightMidlevel, 0.42, accuracy: 0.0001)
+        XCTAssertEqual(record.heightRemapMin, 0.0, "must default to identity, not read adjacent bytes")
+        XCTAssertEqual(record.heightRemapMax, 1.0, "must default to identity, not read adjacent bytes")
+    }
+
+    func testDecodeLegacyWithoutHeightDefaultsAllHeightFields() throws {
+        // formatVersion < minHeightMapVersion — no height-map or height-remap fields exist
+        // on disk at all for these files, predating the whole feature.
+        let writer = UntoldBinaryWriter()
+        writer.writeUInt32LE(7) // nameOffset
+        writer.writeUInt32LE(0) // flags
+        writer.writeFloat32LE(1) // baseColorFactor.x
+        writer.writeFloat32LE(1) // baseColorFactor.y
+        writer.writeFloat32LE(1) // baseColorFactor.z
+        writer.writeFloat32LE(1) // baseColorFactor.w
+        writer.writeFloat32LE(0) // emissiveFactor.x
+        writer.writeFloat32LE(0) // emissiveFactor.y
+        writer.writeFloat32LE(0) // emissiveFactor.z
+        writer.writeFloat32LE(1) // normalScale
+        writer.writeFloat32LE(0.9) // metallicFactor
+        writer.writeFloat32LE(0.4) // roughnessFactor
+        writer.writeFloat32LE(1) // occlusionStrength
+        writer.writeFloat32LE(0.5) // alphaCutoff
+        writer.writeUInt32LE(UntoldFormat.invalidIndex) // baseColorTextureIndex
+        writer.writeUInt32LE(UntoldFormat.invalidIndex) // normalTextureIndex
+        writer.writeUInt32LE(UntoldFormat.invalidIndex) // metallicTextureIndex
+        writer.writeUInt32LE(UntoldFormat.invalidIndex) // roughnessTextureIndex
+        writer.writeUInt32LE(UntoldFormat.invalidIndex) // emissiveTextureIndex
+        writer.writeUInt32LE(UntoldFormat.invalidIndex) // occlusionTextureIndex
+        // No height fields on disk at all at this version.
+        writer.writeUInt32LE(0) // reserved0[0]
+        writer.writeUInt32LE(0) // reserved0[1]
+
+        let reader = UntoldBinaryReader(data: writer.data)
+        let record = try UntoldMaterialRecordV1.decodeLegacyWithoutHeight(from: reader)
+
+        XCTAssertEqual(record.heightTextureIndex, UntoldFormat.invalidIndex, "hasHeightMap-equivalent should be false")
+        XCTAssertEqual(record.heightScale, 0.05, accuracy: 0.0001)
+        XCTAssertEqual(record.heightMidlevel, 0.5, accuracy: 0.0001)
+        XCTAssertEqual(record.heightRemapMin, 0.0)
+        XCTAssertEqual(record.heightRemapMax, 1.0)
+    }
+
     private func encodeChunk(_ records: [some UntoldBinaryEncodable]) -> Data {
         let writer = UntoldBinaryWriter()
         for record in records {
