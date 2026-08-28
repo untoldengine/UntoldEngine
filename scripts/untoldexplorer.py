@@ -3170,6 +3170,100 @@ def _png_ihdr(path: Path) -> tuple[int, int] | None:
         return None
 
 
+def _tiff_bits_per_sample_and_channels(path: Path) -> tuple[int, int] | None:
+    """Return (bitsPerSample, samplesPerPixel) read directly from TIFF IFD tags 258/277,
+    or None on failure. Dependency-free (no Pillow) since this runs inside Blender's own
+    Python, which may not have Pillow installed.
+    """
+    _TAG_BITS_PER_SAMPLE = 258
+    _TAG_SAMPLES_PER_PIXEL = 277
+    _TYPE_SHORT = 3
+    _TYPE_SIZES = {1: 1, 2: 1, 3: 2, 4: 4, 5: 8}  # BYTE, ASCII, SHORT, LONG, RATIONAL
+    try:
+        with open(path, "rb") as f:
+            byte_order = f.read(2)
+            if byte_order == b"II":
+                endian = "<"
+            elif byte_order == b"MM":
+                endian = ">"
+            else:
+                return None
+            magic, first_ifd_offset = struct.unpack(endian + "HI", f.read(6))
+            if magic != 42:
+                return None
+            f.seek(first_ifd_offset)
+            (entry_count,) = struct.unpack(endian + "H", f.read(2))
+            bits_per_sample: int | None = None
+            samples_per_pixel: int | None = None
+            for _ in range(entry_count):
+                tag, field_type, count = struct.unpack(endian + "HHI", f.read(8))
+                value_bytes = f.read(4)
+                if tag == _TAG_SAMPLES_PER_PIXEL and field_type == _TYPE_SHORT:
+                    samples_per_pixel = struct.unpack(endian + "H", value_bytes[:2])[0]
+                elif tag == _TAG_BITS_PER_SAMPLE and field_type == _TYPE_SHORT:
+                    type_size = _TYPE_SIZES.get(field_type, 4)
+                    if type_size * count <= 4:
+                        # Value fits inline in the entry itself (single-channel case).
+                        bits_per_sample = struct.unpack(endian + "H", value_bytes[:2])[0]
+                    else:
+                        # Value is an offset to an array (multi-channel case) — every
+                        # channel in a real texture shares one bit depth, so the first
+                        # entry is sufficient.
+                        (offset,) = struct.unpack(endian + "I", value_bytes)
+                        cur = f.tell()
+                        f.seek(offset)
+                        bits_per_sample = struct.unpack(endian + "H", f.read(2))[0]
+                        f.seek(cur)
+            if bits_per_sample is None or samples_per_pixel is None:
+                return None
+            return bits_per_sample, samples_per_pixel
+    except Exception:
+        return None
+
+
+def _source_bit_depth_and_channels(image: object) -> tuple[int, int] | None:
+    """Best-effort read of the TRUE on-disk bit depth and channel count for an image's
+    source file, bypassing Blender's post-load image.depth/image.channels — which, as of
+    the Blender version this was diagnosed against, unreliably reports 32/4 ("already
+    8-bit RGBA") for genuinely 16-bit-per-channel sources, both grayscale TIFF and
+    grayscale PNG. That silently defeats the needs_conversion safety net below: a 16-bit
+    sRGB color texture can keep its 16-bit depth on disk, and Metal has no sRGB 16-bit
+    pixel format, so MTKTextureLoader silently treats it as linear (washed-out/too-bright
+    at runtime) instead of the intended 8-bit downconvert catching it at export time.
+
+    Returns None when there's no inspectable file-backed source (packed/generated images,
+    or a format other than PNG/TIFF) — callers should fall back to Blender's own
+    image.depth/image.channels in that case, same as before this function existed.
+    """
+    filepath = getattr(image, "filepath_raw", "") or getattr(image, "filepath", "")
+    if not filepath:
+        return None
+    try:
+        if bpy is not None:
+            # Resolves blend-file-relative "//" paths; only meaningful inside Blender.
+            source_path = Path(bpy.path.abspath(filepath, library=getattr(image, "library", None)))
+        else:
+            source_path = Path(filepath)
+    except Exception:
+        return None
+    if not source_path.is_file():
+        return None
+
+    suffix = source_path.suffix.lower()
+    if suffix == ".png":
+        info = _png_ihdr(source_path)
+        if info is None:
+            return None
+        bit_depth, color_type = info
+        channels = {0: 1, 2: 3, 3: 3, 4: 2, 6: 4}.get(color_type)
+        if channels is None:
+            return None
+        return bit_depth, channels
+    if suffix in (".tif", ".tiff"):
+        return _tiff_bits_per_sample_and_channels(source_path)
+    return None
+
+
 def _set_scene_color_management_raw(scene: object) -> tuple[object, ...]:
     """Temporarily force identity color management so image saves preserve texture values."""
     view_settings = getattr(scene, "view_settings", None)
@@ -3676,6 +3770,11 @@ def write_blender_image_to_path(image_name: str, destination_path: Path) -> None
 
     original_filepath_raw = getattr(image, "filepath_raw", "")
     original_file_format = getattr(image, "file_format", "PNG")
+    # Must read the source file's own header before filepath_raw is overwritten to the
+    # destination path below — image.filepath/.filepath_raw both then point at the (not
+    # yet written) output PNG, not the original source, and the header would resolve to
+    # the wrong file or nothing at all.
+    source_info = _source_bit_depth_and_channels(image)
     try:
         image.filepath_raw = str(destination_path)
         if destination_path.suffix:
@@ -3713,10 +3812,23 @@ def write_blender_image_to_path(image_name: str, destination_path: Path) -> None
         # RGB/RGBA 16-bit images.
         # Fix: downconvert any 16-bit or grayscale image to 8-bit RGB(A) via
         # save_render so the file on disk is a standard format Metal handles correctly.
-        image_depth = getattr(image, "depth", 0)
-        image_channels = getattr(image, "channels", 4)
+        #
+        # image.depth/image.channels are Blender's OWN post-load metadata, and in
+        # current Blender versions they unreliably report 32/4 ("already 8-bit RGBA")
+        # for genuinely 16-bit-per-channel PNG/TIFF sources — both grayscale and color
+        # — which silently defeats the needs_conversion check below. Read the true
+        # values from the source file's own header when one is available, and only
+        # fall back to Blender's metadata for formats/sources that can't be inspected
+        # directly (JPEG, packed images, generated images, etc.). Captured above, before
+        # filepath_raw was overwritten to point at the destination instead of the source.
+        if source_info is not None:
+            bits_per_sample, image_channels = source_info
+            image_depth = bits_per_sample * image_channels
+        else:
+            image_depth = getattr(image, "depth", 0)
+            image_channels = getattr(image, "channels", 4)
         # Convert when: 16-bit RGB/RGBA (depth > 32), OR any grayscale image
-        # (channels < 3, any bit depth).  In Blender, depth = bits-per-pixel:
+        # (channels < 3, any bit depth).  depth = bits-per-pixel:
         #   8-bit grayscale  → depth=8,  channels=1  (missed by depth>32)
         #   16-bit grayscale → depth=16, channels=1
         #   16-bit RGB/RGBA  → depth=48/64
