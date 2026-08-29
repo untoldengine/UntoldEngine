@@ -150,7 +150,7 @@ private func effectiveAssetBaseURL(_ basePath: URL) -> URL {
 }
 
 private func resourceSuffixComponents(from url: URL) -> [String]? {
-    let knownResourceDirectories: Set<String> = [
+    let knownResourceDirectories: Set = [
         "Models",
         "StreamModels",
         "Animations",
