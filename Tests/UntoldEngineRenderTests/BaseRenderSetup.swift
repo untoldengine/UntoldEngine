@@ -129,6 +129,7 @@ class BaseRenderSetup: XCTestCase {
         "ChromaticAberration": "32.0",
         "ColorGrading": "24.0",
         "DepthOfField": "32.0",
+        "DisplacementMap": "32.0",
         "FlythroughWaypoint1": "28.5",
         "FlythroughWaypoint2": "24.0",
         "FlythroughWaypoint3": "23.5",
@@ -267,6 +268,7 @@ class BaseRenderSetup: XCTestCase {
             targetName.contains("LightPassColor") ||
             targetName.contains("NormalTarget") ||
             targetName.contains("TransparencyTarget") ||
+            targetName == "DisplacementMap" ||
             targetName == "DepthOfField" ||
             targetName == "ChromaticAberration" ||
             targetName == "Bloom" ||
