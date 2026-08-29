@@ -60,6 +60,25 @@ public func getResourceURL(resourceName: String, ext: String, subName: String?) 
         if fm.fileExists(atPath: urlWithExt.path) {
             return urlWithExt
         }
+
+        if let assetBasePath {
+            let base = effectiveAssetBaseURL(assetBasePath)
+            // If a scene stores an absolute path from another machine, preserve any
+            // known GameData suffix first, then fall back to flattened SwiftPM resources.
+            let requestedURL = absoluteURL.pathExtension.isEmpty ? urlWithExt : absoluteURL
+            if let relativeComponents = resourceSuffixComponents(from: requestedURL) {
+                let structuredCandidate = relativeComponents.reduce(base) { $0.appendingPathComponent($1) }
+                if fm.fileExists(atPath: structuredCandidate.path) {
+                    return structuredCandidate
+                }
+            }
+
+            let flatName = requestedURL.deletingPathExtension().lastPathComponent
+            let flatCandidate = base.appendingPathComponent(flatName).appendingPathExtension(ext)
+            if fm.fileExists(atPath: flatCandidate.path) {
+                return flatCandidate
+            }
+        }
     }
 
     // Flat layout (no top-level "Assets")
@@ -71,6 +90,7 @@ public func getResourceURL(resourceName: String, ext: String, subName: String?) 
         ["Gaussians", "\(resourceName).\(ext)"],
         ["Scripts", "\(resourceName).\(ext)"],
         ["Scenes", "\(resourceName).\(ext)"],
+        ["Textures", "\(resourceName).\(ext)"],
     ]
     if let subName {
         searchPaths.append(["Materials", subName, "\(resourceName).\(ext)"])
@@ -78,16 +98,7 @@ public func getResourceURL(resourceName: String, ext: String, subName: String?) 
 
     // 1) External base path (folder OR .bundle OR already a Resources dir)
     if let basePath = assetBasePath {
-        // If .bundle, hop into Contents/Resources on macOS
-        let base: URL = {
-            if basePath.pathExtension == "bundle",
-               let bundle = Bundle(url: basePath),
-               let res = bundle.resourceURL
-            {
-                return res
-            }
-            return basePath
-        }()
+        let base = effectiveAssetBaseURL(basePath)
 
         // Try FLAT root first (handles your current packaging)
         let flat = base.appendingPathComponent("\(resourceName).\(ext)")
@@ -102,6 +113,7 @@ public func getResourceURL(resourceName: String, ext: String, subName: String?) 
             ["Gaussians", "\(resourceName).\(ext)"],
             ["Scripts", "\(resourceName).\(ext)"],
             ["Scenes", "\(resourceName).\(ext)"],
+            ["Textures", "\(resourceName).\(ext)"],
         ] + (subName.map { [["Materials", $0, "\(resourceName).\(ext)"]] } ?? [])
 
         for components in searchPaths {
@@ -124,6 +136,39 @@ public func getResourceURL(resourceName: String, ext: String, subName: String?) 
 
     // 4) Module bundle (UNCHANGED: top-level only, for engine-internal content)
     return Bundle.module.url(forResource: resourceName, withExtension: ext)
+}
+
+private func effectiveAssetBaseURL(_ basePath: URL) -> URL {
+    if basePath.pathExtension == "bundle",
+       let bundle = Bundle(url: basePath),
+       let resourceURL = bundle.resourceURL
+    {
+        return resourceURL
+    }
+
+    return basePath
+}
+
+private func resourceSuffixComponents(from url: URL) -> [String]? {
+    let knownResourceDirectories: Set<String> = [
+        "Models",
+        "StreamModels",
+        "Animations",
+        "HDR",
+        "Gaussians",
+        "Scripts",
+        "Scenes",
+        "Materials",
+        "Textures",
+        "Shaders",
+    ]
+    let components = url.pathComponents
+
+    guard let resourceDirectoryIndex = components.firstIndex(where: { knownResourceDirectories.contains($0) }) else {
+        return nil
+    }
+
+    return Array(components[resourceDirectoryIndex...])
 }
 
 private func urlInBundle(_ bundle: Bundle, components: [String]) -> URL? {

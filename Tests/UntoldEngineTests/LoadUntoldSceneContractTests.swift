@@ -67,11 +67,42 @@ final class LoadUntoldSceneContractTests: XCTestCase {
         wait(for: [expectation], timeout: 1.0)
     }
 
-    private func writeScene(named name: String) throws {
-        let scenesDirectory = tempRoot.appendingPathComponent("Scenes", isDirectory: true)
-        try FileManager.default.createDirectory(at: scenesDirectory, withIntermediateDirectories: true)
+    func testLoadUntoldSceneFallsBackToFlatGameDataResource() throws {
+        try writeScene(named: "FlatLevel", inScenesDirectory: false)
 
-        let sceneURL = scenesDirectory
+        let expectation = expectation(description: "flat scene load completes")
+        loadUntoldScene(named: "FlatLevel", meshLoadingMode: .sync) { success in
+            XCTAssertTrue(success)
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: 1.0)
+    }
+
+    func testLoadUntoldScenePrefersScenesDirectoryOverFlatResource() throws {
+        try writeScene(named: "PreferredLevel", inScenesDirectory: true)
+
+        let flatSceneURL = tempRoot
+            .appendingPathComponent("PreferredLevel")
+            .appendingPathExtension("untoldscene")
+        try Data("not valid scene json".utf8).write(to: flatSceneURL)
+
+        let expectation = expectation(description: "structured scene load completes")
+        loadUntoldScene(named: "PreferredLevel", meshLoadingMode: .sync) { success in
+            XCTAssertTrue(success)
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: 1.0)
+    }
+
+    private func writeScene(named name: String, inScenesDirectory: Bool = true) throws {
+        let directory = inScenesDirectory
+            ? tempRoot.appendingPathComponent("Scenes", isDirectory: true)
+            : tempRoot!
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+
+        let sceneURL = directory
             .appendingPathComponent(name)
             .appendingPathExtension("untoldscene")
         let sceneData = SceneData()

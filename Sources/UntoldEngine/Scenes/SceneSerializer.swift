@@ -1804,13 +1804,22 @@ public func loadUntoldScene(
         return
     }
 
-    let sceneURL = gameDataURL
+    let preferredSceneURL = gameDataURL
         .appendingPathComponent("Scenes", isDirectory: true)
         .appendingPathComponent(sceneBaseName)
         .appendingPathExtension(untoldSceneFileExtension)
 
-    guard FileManager.default.fileExists(atPath: sceneURL.path) else {
-        Logger.log(message: "❌ Scene file not found: \(sceneURL.path)")
+    let sceneURL: URL?
+    if FileManager.default.fileExists(atPath: preferredSceneURL.path) {
+        sceneURL = preferredSceneURL
+    } else {
+        // SwiftPM test resources can be flattened by `.process("Resources")`; fall back
+        // through the shared resolver after preserving the BuildSystem `Scenes/` priority.
+        sceneURL = LoadingSystem.shared.resourceURL(forResource: sceneBaseName, withExtension: untoldSceneFileExtension)
+    }
+
+    guard let sceneURL else {
+        Logger.log(message: "❌ Scene file not found: \(sceneBaseName).\(untoldSceneFileExtension)")
         completion?(false)
         return
     }
