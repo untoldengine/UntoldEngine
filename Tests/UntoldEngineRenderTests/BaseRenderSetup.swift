@@ -95,6 +95,15 @@ class BaseRenderSetup: XCTestCase {
         near = 0.1
         far = 500.0
         LightingSystem.shared.activeDirectionalLight = nil
+
+        // Same leak as fov/near/far above: initSizeableResources() (called in setUp(),
+        // before initializeAssets()) bakes IBL textures from whatever hdrURL/resourceURL
+        // currently hold. UnitTestRender.untoldscene has no HDR, so deserializeScene sets
+        // hdrURL = "" and never restores it — the next test's setUp() then calls
+        // generateHDR("", ...), which fails (Error 1018) and leaves that test's IBL
+        // textures blank, regardless of what that test's own scene actually wants.
+        hdrURL = "teatro_massimo_2k.hdr"
+        resourceURL = nil
     }
 
     private func psnrThreshold(for targetName: String, default defaultValue: String) -> String {
@@ -126,6 +135,7 @@ class BaseRenderSetup: XCTestCase {
         "FXAA": "29.5",
         "GaussianTarget": "26.5",
         "LightPassColor": "32.0",
+        "MSAA": "29.5",
         "SMAA": "29.5",
         "TransparencyTarget": "32.0",
         "Vignette": "32.5",
@@ -499,62 +509,22 @@ class BaseRenderSetup: XCTestCase {
     }
 
     func initializeAssets() {
-        let camera = findGameCamera()
+        // Mesh/animation loading inside deserializeScene is always dispatched via Task {},
+        // even in .sync mode — so the completion here is the only reliable signal that
+        // entities have their RenderComponent attached. Without waiting for it, setVisibleEntities()
+        // (called right after in setUp()) can run before the scene's meshes finish loading.
+        let sceneLoaded = expectation(description: "UnitTestRender scene loaded")
+        loadUntoldScene(named: "UnitTestRender", meshLoadingMode: .sync) { success in
+            if !success {
+                XCTFail("Failed to load UnitTestRender scene")
+            }
+            sceneLoaded.fulfill()
+        }
+        wait(for: [sceneLoaded], timeout: 15.0)
 
-        CameraSystem.shared.activeCamera = camera
-
-        cameraLookAt(entityId: camera, eye: simd_float3(0.0, 3.0, 7.0), target: simd_float3(0.0, 0.0, 0.0), up: simd_float3(0.0, 1.0, 0.0))
-
-        // Stadium — cube placeholder (no .usdz anymore)
-        let stadium = createEntity()
-        let stadiumExp = XCTestExpectation(description: "stadium loaded")
-
-        setEntityMesh(entityId: stadium, filename: "stadium", withExtension: "untold")
-
-        rotateBy(entityId: stadium, angle: -90.0, axis: simd_float3(1.0, 0.0, 0.0))
-        setEntityName(entityId: stadium, name: "stadium")
-
-        // Player (animated) — load actual .untold asset so AnimationComponent is registered
-        let player = createEntity()
-        setEntityName(entityId: player, name: "player")
-        setEntityMesh(entityId: player, filename: "redplayer", withExtension: "untold")
-
-        // Ball — sphere placeholder
-        let ball = createEntity()
-        setEntityMesh(entityId: ball, filename: "ball", withExtension: "untold")
-        setEntityName(entityId: ball, name: "ball")
-        translateBy(entityId: ball, position: simd_float3(0.0, 0.4, 3.0))
-
-        // helmet pbr
-//        let helmet = createEntity()
-//        setEntityMesh(entityId: helmet, filename: "helmet", withExtension: "untold")
-//        setEntityName(entityId: helmet, name: "helmet")
-//        translateBy(entityId: helmet, position: simd_float3(-1.0, 1.75, 4.0))
-//        rotateBy(entityId: helmet, angle: 45.0, axis: simd_float3(0.0, 1.0, 0.0))
-
-        // transparent grass
-//        let grass = createEntity()
-//        setEntityMesh(entityId: grass, filename: "grass", withExtension: "untold")
-//        translateBy(entityId: grass, position: simd_float3(2.0, 1.0, 3.0))
-
-        ambientIntensity = 0.4
-
-        let sunEntity: EntityID = createEntity()
-
-        createDirLight(entityId: sunEntity)
-
-        let pointLight = createEntity()
-        createPointLight(entityId: pointLight)
-
-        translateTo(entityId: pointLight, position: simd_float3(4.0, 0.2, 0.0))
-
-        let spotLight = createEntity()
-        createSpotLight(entityId: spotLight)
-
-        translateTo(entityId: spotLight, position: simd_float3(-3.0, 1.0, 0.0))
-
-        renderEnvironment = true
-
-        SSAOParams.shared.enabled = false
+        // deserializeScene() creates the camera entity from the scene's cameraData but does
+        // not bind it as the active camera — only playSceneAt() does that rebind. Since this
+        // scene is loaded via loadUntoldScene() directly, do it here too.
+        CameraSystem.shared.activeCamera = findGameCamera()
     }
 }
