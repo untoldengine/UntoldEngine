@@ -110,6 +110,7 @@ TEXTURE_CHANNEL_R = 0
 TEXTURE_CHANNEL_G = 1
 TEXTURE_CHANNEL_B = 2
 TEXTURE_CHANNEL_A = 3
+UNTOLD_EXPORT_TEMP_OBJECT_PROP = "_untold_export_temp_object"
 
 ProgressCallback = Callable[[str, int, int, str], None]
 
@@ -800,6 +801,19 @@ class HDRStagingContext:
     def __init__(self) -> None:
         self.staged_by_key = {}
         self.used_names = set()
+
+
+def clean_generated_sidecar_dirs(output_path: Path) -> None:
+    """Remove sidecar directories fully owned by a single-asset export.
+
+    Re-exporting into an existing asset folder must not leave stale staged
+    textures, baked .utex files, color LUTs, or HDR environments from earlier
+    runs. The .untold file itself is overwritten separately.
+    """
+    for dirname in ("Textures", "HDR"):
+        sidecar_dir = output_path.parent / dirname
+        if sidecar_dir.is_dir():
+            shutil.rmtree(sidecar_dir)
 
 
 def aabb_from_points(points: Iterable[tuple[float, float, float]]) -> AABB:
@@ -5033,11 +5047,34 @@ def split_blender_objects_by_material(objects: list[object]) -> list[object]:
                         p.material_index = 0
                 new_obj = bpy.data.objects.new(f"{obj.name}_mat{mat_idx}", new_mesh)
                 new_obj.matrix_world = obj.matrix_world.copy()
+                new_obj[UNTOLD_EXPORT_TEMP_OBJECT_PROP] = True
                 bpy.context.scene.collection.objects.link(new_obj)
                 result.append(new_obj)
             finally:
                 bm.free()
     return result
+
+
+def cleanup_temporary_export_objects(objects: Iterable[object]) -> None:
+    """Remove temporary Blender objects created for one export pass."""
+    if bpy is None:
+        return
+    for obj in list(objects):
+        try:
+            if not obj.get(UNTOLD_EXPORT_TEMP_OBJECT_PROP):
+                continue
+        except ReferenceError:
+            continue
+        mesh = getattr(obj, "data", None)
+        try:
+            bpy.data.objects.remove(obj, do_unlink=True)
+        except ReferenceError:
+            pass
+        if mesh is not None and getattr(mesh, "users", 0) == 0:
+            try:
+                bpy.data.meshes.remove(mesh)
+            except ReferenceError:
+                pass
 
 
 def extract_nodes(
@@ -5059,17 +5096,20 @@ def extract_nodes(
     if progress_callback is not None:
         progress_callback("Select objects", 0, 1, f"{len(imported_objects)} imported object(s)")
     export_objects = prepare_export_objects_from_blender_objects(imported_objects, mesh_name)
-    return extract_nodes_from_objects(
-        export_objects,
-        asset_path,
-        convert_orientation=convert_orientation,
-        source_orientation=source_orientation,
-        validate=validate,
-        bake_materials=bake_materials,
-        bake_resolution=bake_resolution,
-        bake_cache=bake_cache,
-        progress_callback=progress_callback,
-    )
+    try:
+        return extract_nodes_from_objects(
+            export_objects,
+            asset_path,
+            convert_orientation=convert_orientation,
+            source_orientation=source_orientation,
+            validate=validate,
+            bake_materials=bake_materials,
+            bake_resolution=bake_resolution,
+            bake_cache=bake_cache,
+            progress_callback=progress_callback,
+        )
+    finally:
+        cleanup_temporary_export_objects(export_objects)
 
 
 def extract_scene_payload_from_current_scene(
@@ -6016,6 +6056,7 @@ def export_objects_to_untold(
     bake_cache: bool = True,
     bake_color_management: bool = False,
     color_lut_size: int = 32,
+    clean_sidecars: bool = False,
     progress_callback: Optional[ProgressCallback] = None,
 ) -> dict[str, object]:
     exported_lights, exported_cameras = extract_scene_payload_from_objects(
@@ -6024,18 +6065,23 @@ def export_objects_to_untold(
         source_orientation=source_orientation,
         include_scene_payload=True,
     )
-    exported_nodes = extract_nodes_from_objects(
-        export_objects,
-        source_asset_path,
-        convert_orientation=convert_orientation,
-        source_orientation=source_orientation,
-        validate=validate,
-        bake_materials=bake_materials,
-        bake_resolution=bake_resolution,
-        bake_cache=bake_cache,
-        progress_callback=progress_callback,
-    )
+    try:
+        exported_nodes = extract_nodes_from_objects(
+            export_objects,
+            source_asset_path,
+            convert_orientation=convert_orientation,
+            source_orientation=source_orientation,
+            validate=validate,
+            bake_materials=bake_materials,
+            bake_resolution=bake_resolution,
+            bake_cache=bake_cache,
+            progress_callback=progress_callback,
+        )
+    finally:
+        cleanup_temporary_export_objects(export_objects)
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    if clean_sidecars:
+        clean_generated_sidecar_dirs(output_path)
 
     color_management_bake: Optional[ColorManagementBake] = None
     if bake_color_management:
@@ -6216,6 +6262,7 @@ def main(argv: list[str]) -> int:
             convert_orientation=args.convert_orientation,
             source_orientation=args.source_orientation,
         )
+        clean_generated_sidecar_dirs(output_path)
         print(f"Staging {len(exported_nodes)} node(s) ...", flush=True)
         exported_nodes = stage_nodes_for_output(exported_nodes, output_path)
         staged_hdr_assets = stage_hdr_assets_for_output(output_path.parent, input_path)

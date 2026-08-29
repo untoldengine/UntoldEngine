@@ -143,6 +143,57 @@ class UntoldExplorerTests(unittest.TestCase):
         self.assertTrue(key.startswith("path:"))
         self.assertIn("forest.exr", key)
 
+    def test_clean_generated_sidecar_dirs_removes_stale_export_assets(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_path = Path(tmpdir) / "asset" / "asset.untold"
+            textures_dir = output_path.parent / "Textures"
+            hdr_dir = output_path.parent / "HDR"
+            textures_dir.mkdir(parents=True)
+            hdr_dir.mkdir()
+            (textures_dir / "old.png").write_bytes(b"stale texture")
+            (hdr_dir / "old.exr").write_bytes(b"stale hdr")
+            output_path.write_bytes(b"previous export")
+
+            u.clean_generated_sidecar_dirs(output_path)
+
+            self.assertFalse(textures_dir.exists())
+            self.assertFalse(hdr_dir.exists())
+            self.assertTrue(output_path.exists())
+
+    def test_cleanup_temporary_export_objects_removes_tagged_split_meshes(self) -> None:
+        class FakeBpyCollection:
+            def __init__(self) -> None:
+                self.removed = []
+
+            def remove(self, item, do_unlink=False) -> None:
+                self.removed.append((item, do_unlink))
+
+        class FakeBpy:
+            def __init__(self) -> None:
+                self.data = FakeData(objects=FakeBpyCollection(), meshes=FakeBpyCollection())
+
+        class FakeTempObject(dict):
+            def __init__(self, name: str, data=None, tagged: bool = False) -> None:
+                super().__init__()
+                self.name = name
+                self.data = data
+                if tagged:
+                    self[u.UNTOLD_EXPORT_TEMP_OBJECT_PROP] = True
+
+        previous_bpy = u.bpy
+        fake_bpy = FakeBpy()
+        mesh = FakeData(users=0)
+        temp_obj = FakeTempObject("Wall_mat0", mesh, tagged=True)
+        real_obj = FakeTempObject("Wall", FakeData(users=0), tagged=False)
+        try:
+            u.bpy = fake_bpy
+            u.cleanup_temporary_export_objects([real_obj, temp_obj])
+        finally:
+            u.bpy = previous_bpy
+
+        self.assertEqual(fake_bpy.data.objects.removed, [(temp_obj, True)])
+        self.assertEqual(fake_bpy.data.meshes.removed, [(mesh, False)])
+
     def test_normalize_and_pack_helpers_use_fallbacks_and_clamping(self) -> None:
         self.assertEqual(u.normalize3((0.0, 0.0, 0.0), (1.0, 2.0, 3.0)), (1.0, 2.0, 3.0))
         self.assertEqual(u.pack_snorm10(2.0), 511)
