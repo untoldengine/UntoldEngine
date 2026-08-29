@@ -228,6 +228,13 @@ final class LightSystemTest: BaseRenderSetup {
     }
 
     func testGetDirLightParameters() {
+        destroyAllEntities()
+        // destroyAllEntities() defers actual destruction to frame finalization, so the
+        // fixture scene's directional light (loaded in setUp()) is still "active" at this
+        // point. Force it to flush now so LightingSystem.shared.activeDirectionalLight is
+        // cleared before this test creates and queries its own light.
+        finalizePendingDestroys()
+
         let entityId: EntityID = createEntity()
 
         createDirLight(entityId: entityId)
