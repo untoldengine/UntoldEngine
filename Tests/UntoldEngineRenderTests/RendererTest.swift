@@ -54,7 +54,7 @@ final class RendererTests: BaseRenderSetup {
     }
 
     /* Uncomment to generate reference images*/
-    
+   /*
      func testGenerateReferenceImages() {
          // Ensure renderer and metalview are properly initialized
          XCTAssertNotNil(renderer, "Renderer should be initialized")
@@ -109,7 +109,7 @@ final class RendererTests: BaseRenderSetup {
          // Wait for the execution
          wait(for: [expectation], timeout: TimeInterval(timeoutFactor))
      }
-    
+    */
     func testColorTarget() {
         XCTAssertNotNil(renderer, "Renderer should be initialized")
         XCTAssertNotNil(renderer.metalView, "MetalView should be initialized")
