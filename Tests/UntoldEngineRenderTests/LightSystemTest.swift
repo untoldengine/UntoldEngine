@@ -484,6 +484,8 @@ final class LightSystemTest: BaseRenderSetup {
     }
 
     func testSpotPointLightParameters() {
+        destroyAllEntities()
+
         let entityId: EntityID = createEntity()
 
         createSpotLight(entityId: entityId)
