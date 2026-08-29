@@ -60,6 +60,20 @@ public func getResourceURL(resourceName: String, ext: String, subName: String?) 
         if fm.fileExists(atPath: urlWithExt.path) {
             return urlWithExt
         }
+
+        // The nested path (e.g. ".../Models/redplayer/redplayer") may not exist verbatim
+        // if the resource bundle flattened its directory structure — Xcode's SwiftPM
+        // resource-copy phase does this for `.process()` resources, dropping subfolders
+        // even though `assetBasePath` (and scene files, which store project-relative
+        // paths) assume the structured Models/Animations/... layout is preserved on disk.
+        // Fall back to the same flat-root lookup used below for bare resource names,
+        // keyed off just the file's basename.
+        if let basePath = assetBasePath {
+            let flatCandidate = basePath.appendingPathComponent(absoluteURL.lastPathComponent).appendingPathExtension(ext)
+            if fm.fileExists(atPath: flatCandidate.path) {
+                return flatCandidate
+            }
+        }
     }
 
     // Flat layout (no top-level "Assets")

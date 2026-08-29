@@ -1804,13 +1804,12 @@ public func loadUntoldScene(
         return
     }
 
-    let sceneURL = gameDataURL
-        .appendingPathComponent("Scenes", isDirectory: true)
-        .appendingPathComponent(sceneBaseName)
-        .appendingPathExtension(untoldSceneFileExtension)
-
-    guard FileManager.default.fileExists(atPath: sceneURL.path) else {
-        Logger.log(message: "❌ Scene file not found: \(sceneURL.path)")
+    // Resolve through LoadingSystem rather than hardcoding `<assetBasePath>/Scenes/...`:
+    // that lookup already handles resource bundles that flatten `.process()` resources
+    // (e.g. Xcode's SwiftPM integration for test targets), falling back to a flat root
+    // search when the structured Scenes/ subfolder isn't preserved on disk.
+    guard let sceneURL = LoadingSystem.shared.resourceURL(forResource: sceneBaseName, withExtension: untoldSceneFileExtension) else {
+        Logger.log(message: "❌ Scene file not found: \(sceneBaseName).\(untoldSceneFileExtension)")
         completion?(false)
         return
     }
