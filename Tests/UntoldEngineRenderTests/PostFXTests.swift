@@ -80,7 +80,7 @@ final class PostFXTests: BaseRenderSetup {
     // MARK: - Reference Image Generation
 
     /* Uncomment to regenerate reference images */
-    
+   /*
      func testGeneratePostFXReferenceImages() {
          XCTAssertNotNil(renderer, "Renderer should be initialized")
          XCTAssertNotNil(renderer.metalView, "MetalView should be initialized")
@@ -215,7 +215,7 @@ final class PostFXTests: BaseRenderSetup {
          wait(for: [expMSAA], timeout: TimeInterval(timeoutFactor))
          antiAliasingMode = .none
      }
-      
+     */
     // MARK: - PSNR Tests
 
     func testSSAO() {
