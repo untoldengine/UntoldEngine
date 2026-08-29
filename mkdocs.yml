@@ -70,7 +70,6 @@ nav:
     - Getting Started: API/GettingStarted.md
     - Untold Engine CLI: API/UsingUntoldEngineCLI.md
     - Usage Examples: API/UsageExamples.md
-    - Scene Builder / UntoldView: API/UsingSceneBuilder.md
     - Engine Settings: API/UsingEngineAPI.md
     - Registration System: API/UsingRegistrationSystem.md
     - Transform System: API/UsingTransformSystem.md
@@ -107,6 +106,8 @@ nav:
     - Color Management: API/UsingColorManagement.md
     - Blender Add-on: API/UsingBlenderAddon.md
     - Optimizations: API/Optimizations.md
+    - Scene Builder / UntoldView: API/UsingSceneBuilder.md
+    - Asset Paths: API/UsingAssetPaths.md
   - Architecture:
     - Rendering System: Architecture/renderingSystem.md
     - Rendering Extensions: Architecture/RenderingExtensions.md
