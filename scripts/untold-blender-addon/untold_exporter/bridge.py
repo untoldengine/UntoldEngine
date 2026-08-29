@@ -194,6 +194,7 @@ def export_asset(
         bake_cache=bake_cache,
         bake_color_management=bake_color_management,
         color_lut_size=module.validate_lut_size(color_lut_size),
+        clean_sidecars=True,
         progress_callback=progress_callback,
     )
 
