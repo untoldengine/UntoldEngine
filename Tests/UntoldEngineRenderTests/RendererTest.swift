@@ -99,6 +99,11 @@ final class RendererTests: BaseRenderSetup {
               )
 
               self.testGenerateRenderTarget(
+                  targetName: "DisplacementMap",
+                  texture: renderInfo.deferredRenderPassDescriptor.colorAttachments[0].texture!
+              )
+
+              self.testGenerateRenderTarget(
                   targetName: "CompositeColorTarget",
                   texture: renderInfo.renderPassDescriptor.colorAttachments[0].texture!
               )
@@ -317,6 +322,25 @@ final class RendererTests: BaseRenderSetup {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             self.psnrTest(
                 targetName: "TransparencyTarget",
+                texture: renderInfo.deferredRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)].texture!
+            )
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: TimeInterval(timeoutFactor))
+    }
+
+    func testDisplacementMap() {
+        XCTAssertNotNil(renderer, "Renderer should be initialized")
+        XCTAssertNotNil(renderer.metalView, "MetalView should be initialized")
+
+        renderer.draw(in: renderer.metalView)
+
+        let expectation = XCTestExpectation(description: "DisplacementMap test")
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            self.psnrTest(
+                targetName: "DisplacementMap",
                 texture: renderInfo.deferredRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)].texture!
             )
             expectation.fulfill()
