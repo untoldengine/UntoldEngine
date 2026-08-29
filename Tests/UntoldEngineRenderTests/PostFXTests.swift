@@ -80,7 +80,7 @@ final class PostFXTests: BaseRenderSetup {
     // MARK: - Reference Image Generation
 
     /* Uncomment to regenerate reference images */
-    /*
+    
      func testGeneratePostFXReferenceImages() {
          XCTAssertNotNil(renderer, "Renderer should be initialized")
          XCTAssertNotNil(renderer.metalView, "MetalView should be initialized")
@@ -197,8 +197,25 @@ final class PostFXTests: BaseRenderSetup {
          }
          wait(for: [expSMAA], timeout: TimeInterval(timeoutFactor))
          antiAliasingMode = .none
+
+         // --- MSAA ---
+         // Unlike FXAA/SMAA, MSAA is not a discrete post-process pass — the render graph
+         // routes .msaa straight from lookPass to the output stage (see the antiAliasingMode
+         // switch in RenderingSystem.swift), so lookTexture (not antiAliasingTexture) is what
+         // reflects MSAA's effect.
+         antiAliasingMode = .msaa
+         renderer.draw(in: renderer.metalView)
+         let expMSAA = expectation(description: "MSAA ref")
+         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+             if let tex = textureResources.lookTexture {
+                 self.testGenerateRenderTarget(targetName: "MSAA", texture: tex)
+             }
+             expMSAA.fulfill()
+         }
+         wait(for: [expMSAA], timeout: TimeInterval(timeoutFactor))
+         antiAliasingMode = .none
      }
-      */
+      
     // MARK: - PSNR Tests
 
     func testSSAO() {
@@ -317,6 +334,29 @@ final class PostFXTests: BaseRenderSetup {
             return
         }
         psnrTest(targetName: "SMAA", texture: tex)
+    }
+
+    func testMSAA() throws {
+        // Skip until MSAAReference.png is generated and committed to the test bundle.
+        // To generate: uncomment testGeneratePostFXReferenceImages, run it once, then
+        // add the saved MSAAReference.png to Tests/UntoldEngineRenderTests/Resources/.
+        guard Bundle.module.url(forResource: "MSAAReference", withExtension: "png") != nil else {
+            throw XCTSkip("MSAAReference.png not in test bundle — run testGeneratePostFXReferenceImages to create it")
+        }
+
+        XCTAssertNotNil(renderer, "Renderer should be initialized")
+        antiAliasingMode = .msaa
+        renderer.draw(in: renderer.metalView)
+        renderInfo.lastCommandBuffer?.waitUntilCompleted()
+
+        // MSAA has no discrete post-process pass of its own — it resolves as part of the
+        // opaque pass, and the render graph routes .msaa straight from lookPass to the
+        // output stage. So lookTexture (not antiAliasingTexture) is what reflects it.
+        guard let tex = textureResources.lookTexture else {
+            XCTFail("lookTexture should exist after setting antiAliasingMode = .msaa")
+            return
+        }
+        psnrTest(targetName: "MSAA", texture: tex)
     }
 
     // MARK: - G-Buffer Debug View Mode Smoke Tests
