@@ -80,7 +80,7 @@ Clone the repository and launch the Starter Demo:
 ```bash
 git clone https://github.com/untoldengine/UntoldEngine.git
 cd UntoldEngine
-git checkout v0.17.0
+git checkout v0.18.0
 swift run StarterDemo
 ```
 

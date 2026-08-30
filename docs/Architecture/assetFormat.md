@@ -282,8 +282,7 @@ reserved0                         UInt32 x 2
 ```
 
 `heightTextureIndex`/`heightScale`/`heightMidlevel` were added at `formatVersion = 3`
-(`UntoldFormat.minHeightMapVersion`) and drive Parallax Occlusion Mapping — see
-[HeightMapParallaxOcclusionMapping.md](../proposals/HeightMapParallaxOcclusionMapping.md).
+(`UntoldFormat.minHeightMapVersion`) and drive Parallax Occlusion Mapping.
 `heightRemapMin`/`heightRemapMax` were added at `formatVersion = 4`
 (`UntoldFormat.minHeightRemapVersion`) — a contrast-stretch applied to the raw height sample
 before `heightMidlevel`, needed because many real-world displacement maps only use a narrow slice
