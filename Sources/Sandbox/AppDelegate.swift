@@ -10,7 +10,7 @@
     @MainActor
     final class AppDelegate: NSObject, NSApplicationDelegate {
         private enum Constants {
-            static let appVersion = "0.17.0"
+            static let appVersion = "0.18.0"
             static let windowSize = NSSize(width: 1600, height: 900)
         }
 

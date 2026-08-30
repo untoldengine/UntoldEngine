@@ -1,4 +1,26 @@
 # Changelog
+## v0.18.0 - 2026-08-30
+### 🐞 Fixes
+- [Patch] Address review: octree ray query broad phase and real maxDistance cap (e8d0866…)
+- [Patch] Address review: examine inside-origin candidates despite sort order (c5e6916…)
+- [Patch] Fix octree raycast fallback dropping inside-origin hits under tight maxDistance (bb6ee36…)
+- [Patch] Fixed duplicate export bug (71f5495…)
+- [Patch] Fixed loading path (05c961c…)
+- [Patch] Fixed the normal wrap mode (1764f29…)
+- [Patch] Fix out-of-bound texture uv scale (ff5db1c…)
+- [Patch] Fix TBN calculation (b15d04e…)
+- [Patch] Fixed precision bug in exporter (8d9d731…)
+- [Patch] Fixed batching system ignoring displacement material (d8fbefb…)
+- [Patch] [Patch] Derive height remap ceiling from Blender's Displacement Midlevel (33a5ec2…)
+### 📚 Docs
+- [Docs] Fixed the docs for the Parallax Occlussion parameters (712c36c…)
+- [Docs] Fix documentation url (be13964…)
+### 🚀 Features
+- [Feature] Add PhysicsQuery raycast facade with octree fallback (d4a7162…)
+- [Feature] Add foot IK with analytic two-bone solver (32561b4…)
+- [Feature] Add motion matching (20f5cee…)
+- [Feature] Add height-map material channel with Parallax Occlusion Mapping (ab63759…)
+- [Feature] Exporter support for height-map/POM materials (e8404e8…)
 ## v0.17.0 - 2026-08-24
 ### 🐞 Fixes
 - [Patch] Fixed tile-streamer texture exporter (42c3fbf…)
