@@ -228,9 +228,7 @@ updateTextureSampler(entityId: entity, textureType: .baseColor, wrapMode: .repea
 
 A material's `.height` texture drives Parallax Occlusion Mapping (POM) — a shading-time
 technique that displaces the sampled UV based on a height field to make surfaces like brick
-or stone read as having real depth, without adding any geometry. See
-[docs/proposals/HeightMapParallaxOcclusionMapping.md](../proposals/HeightMapParallaxOcclusionMapping.md)
-for the full design rationale.
+or stone read as having real depth, without adding any geometry. 
 
 ```swift
 updateMaterialTexture(
