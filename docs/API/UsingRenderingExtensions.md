@@ -1,5 +1,10 @@
 # Using Rendering Extensions
 
+> New to Rendering Extensions, or unsure whether you need one at all? Start
+> with [Understanding Rendering Extensions](../Extensions/UnderstandingRenderingExtensions.md)
+> to see how a material-data change, a per-surface shader, and a full custom
+> pass differ before diving into this API reference.
+
 Rendering Extensions add optional render passes, shaders, pipelines, and owned
 resources without modifying Untold Engine. There are two supported integration
 styles:
