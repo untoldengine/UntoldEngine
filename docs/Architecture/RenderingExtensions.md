@@ -5,6 +5,10 @@ compiled, validated, and executed inside Untold Engine. For authoring and
 consumer examples, see [Using Rendering Extensions](../API/UsingRenderingExtensions.md).
 For a task-oriented introduction, see
 [Creating a Rendering Extension Plugin](../Extensions/CreatingRenderingExtensionPlugin.md).
+If you're deciding whether a change needs a Rendering Extension at all, and
+if so which shape it needs, start with
+[Understanding Rendering Extensions](../Extensions/UnderstandingRenderingExtensions.md)
+before reading the mechanics below.
 
 ## Design Goals
 
