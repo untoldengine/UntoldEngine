@@ -286,6 +286,7 @@ public func destroyAllEntities(completion: (() -> Void)? = nil) {
     enforceRegistrationMainActor()
     SceneAuthoredSourceStore.shared.clear()
     ColorLUTParams.shared.clear()
+    ColorGradeLUTParams.shared.clear()
     enqueuePendingDestroyCompletion(completion)
 
     let toDestroy = scene.getAllEntities()
@@ -1170,7 +1171,12 @@ private func replaceColorGradeLUT(_ colorGradeLUT: RuntimeColorGradeLUT?) {
 /// manifest/record). `expectedLUTSize` is an optional consistency check against
 /// a manifest/record's declared size -- pass nil when loading directly from a
 /// bare URL with no prior expectations (see setColorGradeLUT).
-private func loadAndInstallColorGradeLUT(from url: URL, expectedLUTSize: Int?) {
+private func loadAndInstallColorGradeLUT(
+    from url: URL,
+    expectedLUTSize: Int?,
+    sourceFilename: String? = nil,
+    sourceExtension: String? = nil
+) {
     do {
         let (texture, lut) = try CubeLUTLoader.loadTexture(device: renderInfo.device, from: url)
         if let expectedLUTSize, lut.size != expectedLUTSize {
@@ -1183,7 +1189,9 @@ private func loadAndInstallColorGradeLUT(from url: URL, expectedLUTSize: Int?) {
         ColorGradeLUTParams.shared.replace(
             texture: texture,
             domainMin: lut.domainMin,
-            domainMax: lut.domainMax
+            domainMax: lut.domainMax,
+            sourceFilename: sourceFilename,
+            sourceExtension: sourceExtension
         )
     } catch {
         Logger.log(
@@ -1218,7 +1226,12 @@ public func setColorGradeLUT(filename: String, withExtension: String = "cube") {
     }
 
     ColorGradeLUTParams.shared.clear()
-    loadAndInstallColorGradeLUT(from: url, expectedLUTSize: nil)
+    loadAndInstallColorGradeLUT(
+        from: url,
+        expectedLUTSize: nil,
+        sourceFilename: filename,
+        sourceExtension: withExtension
+    )
 }
 
 private func registerUntoldLight(_ light: RuntimeLightSource) {
@@ -1533,6 +1546,7 @@ private func loadSceneAuthored(
 ) {
     Task {
         ColorLUTParams.shared.clear()
+        ColorGradeLUTParams.shared.clear()
         SceneAuthoredSourceStore.shared.clear()
         guard let url = LoadingSystem.shared.resourceURL(
             forResource: filename, withExtension: ext, subResource: nil
@@ -1589,6 +1603,7 @@ private func loadSceneAuthored(
 ) {
     Task {
         ColorLUTParams.shared.clear()
+        ColorGradeLUTParams.shared.clear()
         SceneAuthoredSourceStore.shared.clear()
         do {
             let localURL: URL
@@ -1647,6 +1662,7 @@ func loadSceneAuthoredColorManagement(
     case .model:
         guard let url = resolvedSceneAssetURL(source) else {
             ColorLUTParams.shared.clear()
+            ColorGradeLUTParams.shared.clear()
             SceneAuthoredSourceStore.shared.clear()
             completion?(false)
             return
@@ -1660,6 +1676,7 @@ func loadSceneAuthoredColorManagement(
     case .streamModel:
         guard let url = resolvedSceneAssetURL(source) else {
             ColorLUTParams.shared.clear()
+            ColorGradeLUTParams.shared.clear()
             SceneAuthoredSourceStore.shared.clear()
             completion?(false)
             return
@@ -1667,6 +1684,7 @@ func loadSceneAuthoredColorManagement(
         loadSceneAuthored(url: url, registerEntities: false, completion: completion)
     case .animation, .procedural:
         ColorLUTParams.shared.clear()
+        ColorGradeLUTParams.shared.clear()
         SceneAuthoredSourceStore.shared.clear()
         completion?(false)
     }
@@ -1747,6 +1765,7 @@ public func setEntityMeshDirect(entityId: EntityID, meshes: [Mesh], assetName: S
 /// Called by registerTiledScene before registering new tile stubs.
 private func clearScene() {
     ColorLUTParams.shared.clear()
+    ColorGradeLUTParams.shared.clear()
     SceneAuthoredSourceStore.shared.clear()
     for entity in scene.getAllEntities() {
         destroyEntity(entityId: entity)
@@ -2356,6 +2375,7 @@ public func setEntityStreamScene(
 
     let completionBox = completion.map { BoolCompletionBox(callback: $0) }
     ColorLUTParams.shared.clear()
+    ColorGradeLUTParams.shared.clear()
     Task {
         do {
             let colorManagement = try await manifestColorManagement(
@@ -2422,6 +2442,7 @@ public func loadTiledScene(
 
     let completionBox = completion.map { BoolCompletionBox(callback: $0) }
     ColorLUTParams.shared.clear()
+    ColorGradeLUTParams.shared.clear()
     Task {
         do {
             let colorManagement = try await manifestColorManagement(
@@ -2475,6 +2496,7 @@ public func setEntityStreamScene(
     completion: (@Sendable (Bool) -> Void)? = nil
 ) {
     ColorLUTParams.shared.clear()
+    ColorGradeLUTParams.shared.clear()
     Task {
         do {
             let localURL: URL
@@ -2543,6 +2565,7 @@ public func loadTiledScene(
     completion: (@Sendable (Bool) -> Void)? = nil
 ) {
     ColorLUTParams.shared.clear()
+    ColorGradeLUTParams.shared.clear()
     Task {
         do {
             let localURL: URL
