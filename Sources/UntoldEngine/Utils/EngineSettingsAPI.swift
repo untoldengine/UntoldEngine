@@ -249,6 +249,7 @@ public enum PostFXProperty: Sendable {
     case preset(PostFXPreset)
     case colorGrading(ColorGradingProperty)
     case colorLUT(ColorLUTProperty)
+    case colorGradeLUT(ColorGradeLUTProperty)
     case colorCorrection(ColorCorrectionProperty)
     case bloomThreshold(BloomThresholdProperty)
     case bloomComposite(BloomCompositeProperty)
@@ -272,6 +273,14 @@ public enum ColorGradingProperty: Sendable {
 /// Blender scene, see ColorLUTParams) — this only lets a developer toggle it
 /// off to compare against the default ACES tonemap, not author new LUT data.
 public enum ColorLUTProperty: Sendable {
+    case enabled(Bool)
+}
+
+/// An externally-authored standard .cube LUT (see ColorGradeLUTParams),
+/// applied as a post-tonemap creative grade -- composes with either the
+/// native tonemap or the whole-transform bake above. Also asset-derived;
+/// this only lets a developer toggle it off, not author new LUT data.
+public enum ColorGradeLUTProperty: Sendable {
     case enabled(Bool)
 }
 
@@ -330,6 +339,8 @@ public func setPostFX(_ property: PostFXProperty) {
         applyColorGradingProperty(property)
     case let .colorLUT(property):
         applyColorLUTProperty(property)
+    case let .colorGradeLUT(property):
+        applyColorGradeLUTProperty(property)
     case let .colorCorrection(property):
         applyColorCorrectionProperty(property)
     case let .bloomThreshold(property):
@@ -586,6 +597,13 @@ private func applyColorLUTProperty(_ property: ColorLUTProperty) {
     switch property {
     case let .enabled(value):
         ColorLUTParams.shared.setEnabled(value)
+    }
+}
+
+private func applyColorGradeLUTProperty(_ property: ColorGradeLUTProperty) {
+    switch property {
+    case let .enabled(value):
+        ColorGradeLUTParams.shared.setEnabled(value)
     }
 }
 

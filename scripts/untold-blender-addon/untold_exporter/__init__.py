@@ -157,6 +157,18 @@ class UNTOLD_OT_export_asset(bpy.types.Operator, ExportHelper):
         soft_max=64,
     )
 
+    color_grade_lut: StringProperty(
+        name="Color Grade LUT",
+        description=(
+            "Path to an externally-authored standard .cube 3D LUT to stage and apply as a "
+            "post-tonemap creative grade. Unlike Bake Color Management, nothing is rendered "
+            "from Blender -- the .cube is copied as-is and loaded directly by the engine, so "
+            "any LUT from any grading tool works"
+        ),
+        default="",
+        subtype="FILE_PATH",
+    )
+
     validate: BoolProperty(
         name="Write Validation JSON",
         description="Write a companion validation JSON file for debugging and tests",
@@ -208,6 +220,7 @@ class UNTOLD_OT_export_asset(bpy.types.Operator, ExportHelper):
                 compress_geometry=self.compress_geometry,
                 bake_color_management=self.bake_color_management,
                 color_lut_size=self.color_lut_size,
+                color_grade_lut_path=self.color_grade_lut or None,
                 bake_textures=self.bake_textures,
                 texture_quality=self.texture_quality,
                 keep_texture_temp=self.keep_texture_temp,
@@ -495,6 +508,17 @@ class UNTOLD_OT_export_tiled_scene(bpy.types.Operator):
         soft_max=64,
     )
 
+    color_grade_lut: StringProperty(
+        name="Color Grade LUT",
+        description=(
+            "Path to an externally-authored standard .cube 3D LUT to stage once for the whole "
+            "scene and reference from the manifest's colorGradeLUT key, applied as a post-tonemap "
+            "creative grade"
+        ),
+        default="",
+        subtype="FILE_PATH",
+    )
+
     dry_run: BoolProperty(
         name="Dry Run",
         description="Plan the tile partition without writing payload files",
@@ -589,6 +613,7 @@ class UNTOLD_OT_export_tiled_scene(bpy.types.Operator):
                 compress_geometry=self.compress_geometry,
                 bake_color_management=self.bake_color_management,
                 color_lut_size=self.color_lut_size,
+                color_grade_lut_path=self.color_grade_lut or None,
                 dry_run=self.dry_run,
                 write_manifest_in_dry_run=self.write_manifest_in_dry_run,
                 progress_callback=progress,

@@ -1920,6 +1920,68 @@ public final class ColorLUTParams: @unchecked Sendable {
     }
 }
 
+/// An externally-authored standard .cube 3D LUT (see CubeLUTLoader), applied
+/// as a post-tonemap creative grade. Unlike ColorLUTParams above (which
+/// replaces the tonemap step entirely with a proprietary baked LUT), this
+/// composes with whichever tonemap operator ran and operates in ordinary
+/// [domainMin, domainMax] display-referred space -- no shaper encoding.
+/// Asset-derived, installed/cleared by the scene-authored payload loader.
+struct ColorGradeLUTSnapshot {
+    let enabled: Bool
+    let lutTexture: MTLTexture?
+    let domainMin: SIMD3<Float>
+    let domainMax: SIMD3<Float>
+}
+
+public final class ColorGradeLUTParams: @unchecked Sendable {
+    public static let shared = ColorGradeLUTParams()
+
+    private struct State {
+        var enabled = false
+        var lutTexture: MTLTexture?
+        var domainMin = SIMD3<Float>(0, 0, 0)
+        var domainMax = SIMD3<Float>(1, 1, 1)
+    }
+
+    private let lock = NSLock()
+    private var state = State()
+
+    public var enabled: Bool {
+        get { snapshot().enabled }
+        set { setEnabled(newValue) }
+    }
+
+    public func setEnabled(_ enabled: Bool) {
+        lock.lock()
+        state.enabled = enabled && state.lutTexture != nil
+        lock.unlock()
+    }
+
+    func replace(texture: MTLTexture, domainMin: SIMD3<Float>, domainMax: SIMD3<Float>) {
+        lock.lock()
+        state = State(enabled: true, lutTexture: texture, domainMin: domainMin, domainMax: domainMax)
+        lock.unlock()
+    }
+
+    public func clear() {
+        lock.lock()
+        state = State()
+        lock.unlock()
+    }
+
+    func snapshot() -> ColorGradeLUTSnapshot {
+        lock.lock()
+        let value = ColorGradeLUTSnapshot(
+            enabled: state.enabled,
+            lutTexture: state.lutTexture,
+            domainMin: state.domainMin,
+            domainMax: state.domainMax
+        )
+        lock.unlock()
+        return value
+    }
+}
+
 final class SceneAuthoredSourceStore: @unchecked Sendable {
     static let shared = SceneAuthoredSourceStore()
 

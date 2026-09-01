@@ -599,6 +599,36 @@ extension UntoldColorManagementRecordV1: UntoldBinaryEncodable, UntoldBinaryDeco
     }
 }
 
+extension UntoldColorGradeLUTRecordV1: UntoldBinaryEncodable, UntoldBinaryDecodable {
+    public func encode(to writer: UntoldBinaryWriter) {
+        writer.writeUInt32LE(lutUriOffset)
+        writer.writeUInt32LE(lutSize)
+        writer.writeFloat32LE(domainMin.x)
+        writer.writeFloat32LE(domainMin.y)
+        writer.writeFloat32LE(domainMin.z)
+        writer.writeFloat32LE(domainMax.x)
+        writer.writeFloat32LE(domainMax.y)
+        writer.writeFloat32LE(domainMax.z)
+    }
+
+    public static func decode(from reader: UntoldBinaryReader) throws -> UntoldColorGradeLUTRecordV1 {
+        try UntoldColorGradeLUTRecordV1(
+            lutUriOffset: reader.readUInt32LE(),
+            lutSize: reader.readUInt32LE(),
+            domainMin: SIMD3<Float>(
+                reader.readFloat32LE(),
+                reader.readFloat32LE(),
+                reader.readFloat32LE()
+            ),
+            domainMax: SIMD3<Float>(
+                reader.readFloat32LE(),
+                reader.readFloat32LE(),
+                reader.readFloat32LE()
+            )
+        )
+    }
+}
+
 extension UntoldSkeletonRecordV1: UntoldBinaryEncodable, UntoldBinaryDecodable {
     public func encode(to writer: UntoldBinaryWriter) {
         writer.writeUInt32LE(entityId)

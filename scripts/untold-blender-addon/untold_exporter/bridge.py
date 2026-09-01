@@ -164,6 +164,7 @@ def export_asset(
     compress_geometry: bool,
     bake_color_management: bool,
     color_lut_size: int,
+    color_grade_lut_path: str | None = None,
     bake_textures: bool,
     texture_quality: str,
     keep_texture_temp: bool,
@@ -188,6 +189,7 @@ def export_asset(
         compress_geometry=compress_geometry,
         bake_color_management=bake_color_management,
         color_lut_size=module.validate_lut_size(color_lut_size),
+        color_grade_lut_path=Path(color_grade_lut_path) if color_grade_lut_path else None,
         clean_sidecars=True,
         progress_callback=progress_callback,
     )
@@ -340,6 +342,7 @@ def export_tiled_scene(
     color_lut_size: int,
     dry_run: bool,
     write_manifest_in_dry_run: bool,
+    color_grade_lut_path: str | None = None,
     progress_callback: ProgressCallback | None = None,
 ) -> dict[str, object]:
     module = tile_exporter_module()
@@ -400,6 +403,8 @@ def export_tiled_scene(
     if bake_color_management:
         argv.append("--bake-color-management")
         argv.extend(["--color-lut-size", str(module.validate_lut_size(color_lut_size))])
+    if color_grade_lut_path:
+        argv.extend(["--color-grade-lut", color_grade_lut_path])
     if dry_run:
         argv.append("--dry-run")
     if write_manifest_in_dry_run:

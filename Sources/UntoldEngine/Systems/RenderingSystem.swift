@@ -817,6 +817,30 @@ func colorGradingCustomization(encoder: MTLRenderCommandEncoder) {
         length: MemoryLayout<Int32>.stride,
         index: Int(colorLUTSizeIndex.rawValue)
     )
+
+    let colorGradeLUT = ColorGradeLUTParams.shared.snapshot()
+    encoder.setFragmentTexture(colorGradeLUT.lutTexture, index: Int(colorGradeLUTTextureIndex.rawValue))
+
+    var colorGradeLUTEnabled = colorGradeLUT.enabled && colorGradeLUT.lutTexture != nil
+    encoder.setFragmentBytes(
+        &colorGradeLUTEnabled,
+        length: MemoryLayout<Bool>.stride,
+        index: Int(colorGradeLUTEnabledIndex.rawValue)
+    )
+
+    var colorGradeLUTDomainMin = colorGradeLUT.domainMin
+    encoder.setFragmentBytes(
+        &colorGradeLUTDomainMin,
+        length: MemoryLayout<simd_float3>.stride,
+        index: Int(colorGradeLUTDomainMinIndex.rawValue)
+    )
+
+    var colorGradeLUTDomainMax = colorGradeLUT.domainMax
+    encoder.setFragmentBytes(
+        &colorGradeLUTDomainMax,
+        length: MemoryLayout<simd_float3>.stride,
+        index: Int(colorGradeLUTDomainMaxIndex.rawValue)
+    )
 }
 
 func makeBlurCustomization(direction: simd_float2, radius: Float) -> (MTLRenderCommandEncoder) -> Void {

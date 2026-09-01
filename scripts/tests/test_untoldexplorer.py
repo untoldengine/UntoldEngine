@@ -1321,5 +1321,100 @@ class TextureBitDepthDetectionTests(unittest.TestCase):
                 u.bpy = original_bpy
 
 
+_MINIMAL_CUBE_LUT = (
+    "TITLE \"Test LUT\"\n"
+    "# a comment line\n"
+    "LUT_3D_SIZE 2\n"
+    "0.0 0.0 0.0\n"
+    "1.0 0.0 0.0\n"
+    "0.0 1.0 0.0\n"
+    "1.0 1.0 0.0\n"
+    "0.0 0.0 1.0\n"
+    "1.0 0.0 1.0\n"
+    "0.0 1.0 1.0\n"
+    "1.0 1.0 1.0\n"
+)
+
+
+class ColorGradeLUTTests(unittest.TestCase):
+    """stage_color_grade_lut_for_output/_parse_cube_lut_header need no Blender
+    context (pure file I/O), unlike bake_color_management_lut above."""
+
+    def test_parses_lut_3d_size_and_default_domain(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            cube_path = Path(tmp) / "test.cube"
+            cube_path.write_text(_MINIMAL_CUBE_LUT)
+            lut_size, domain_min, domain_max = u._parse_cube_lut_header(cube_path)
+            self.assertEqual(lut_size, 2)
+            self.assertEqual(domain_min, (0.0, 0.0, 0.0))
+            self.assertEqual(domain_max, (1.0, 1.0, 1.0))
+
+    def test_parses_custom_domain(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            cube_path = Path(tmp) / "test.cube"
+            cube_path.write_text(
+                "LUT_3D_SIZE 2\n"
+                "DOMAIN_MIN -1.0 -1.0 -1.0\n"
+                "DOMAIN_MAX 2.0 2.0 2.0\n"
+                "0.0 0.0 0.0\n" * 8
+            )
+            _, domain_min, domain_max = u._parse_cube_lut_header(cube_path)
+            self.assertEqual(domain_min, (-1.0, -1.0, -1.0))
+            self.assertEqual(domain_max, (2.0, 2.0, 2.0))
+
+    def test_rejects_missing_lut_3d_size(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            cube_path = Path(tmp) / "bad.cube"
+            cube_path.write_text("TITLE \"bad\"\n0.0 0.0 0.0\n")
+            with self.assertRaises(RuntimeError):
+                u._parse_cube_lut_header(cube_path)
+
+    def test_rejects_1d_lut(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            cube_path = Path(tmp) / "bad.cube"
+            cube_path.write_text("LUT_1D_SIZE 16\n")
+            with self.assertRaises(RuntimeError):
+                u._parse_cube_lut_header(cube_path)
+
+    def test_rejects_out_of_range_size(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            cube_path = Path(tmp) / "bad.cube"
+            cube_path.write_text("LUT_3D_SIZE 1\n0.0 0.0 0.0\n")
+            with self.assertRaises(RuntimeError):
+                u._parse_cube_lut_header(cube_path)
+
+    def test_stage_copies_file_and_content_addresses(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            cube_path = tmp_path / "artist_grade.cube"
+            cube_path.write_text(_MINIMAL_CUBE_LUT)
+            output_dir = tmp_path / "out"
+
+            staged = u.stage_color_grade_lut_for_output(cube_path, output_dir)
+            self.assertEqual(staged.lut_size, 2)
+            self.assertTrue(staged.source_path.is_file())
+            self.assertTrue(staged.uri.startswith("Textures/"))
+            self.assertTrue(staged.uri.endswith(".cube"))
+            self.assertEqual(staged.source_path.read_text(), _MINIMAL_CUBE_LUT)
+
+            # Re-staging identical content resolves to the same destination
+            # (content-addressed), rather than piling up duplicate files.
+            staged_again = u.stage_color_grade_lut_for_output(cube_path, output_dir)
+            self.assertEqual(staged.uri, staged_again.uri)
+
+    def test_stage_rejects_missing_file(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaises(RuntimeError):
+                u.stage_color_grade_lut_for_output(Path(tmp) / "missing.cube", Path(tmp) / "out")
+
+    def test_stage_rejects_non_cube_extension(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            bad_path = tmp_path / "grade.png"
+            bad_path.write_bytes(b"not a cube file")
+            with self.assertRaises(RuntimeError):
+                u.stage_color_grade_lut_for_output(bad_path, tmp_path / "out")
+
+
 if __name__ == "__main__":
     unittest.main()

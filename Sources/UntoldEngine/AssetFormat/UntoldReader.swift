@@ -75,6 +75,12 @@ public final class UntoldReader: @unchecked Sendable {
             from: data,
             entries: chunks
         )
+        let colorGradeLUT = try decodeSingleIfPresent(
+            UntoldColorGradeLUTRecordV1.self,
+            chunkType: .colorGradeLUTTable,
+            from: data,
+            entries: chunks
+        )
         let skeletons = try decodeTableIfPresent(
             UntoldSkeletonRecordV1.self,
             chunkType: .skeletonTable,
@@ -136,6 +142,7 @@ public final class UntoldReader: @unchecked Sendable {
             lights: lights,
             cameras: cameras,
             colorManagement: colorManagement,
+            colorGradeLUT: colorGradeLUT,
             skeletons: skeletons,
             skeletonJoints: skeletonJoints,
             skins: skins,
@@ -532,6 +539,7 @@ public struct UntoldDecodedAsset: Sendable {
     public let lights: [UntoldLightRecordV1]
     public let cameras: [UntoldCameraRecordV1]
     public let colorManagement: UntoldColorManagementRecordV1?
+    public let colorGradeLUT: UntoldColorGradeLUTRecordV1?
     public let skeletons: [UntoldSkeletonRecordV1]
     public let skeletonJoints: [UntoldSkeletonJointRecordV1]
     public let skins: [UntoldSkinRecordV1]
@@ -553,6 +561,7 @@ public struct UntoldDecodedAsset: Sendable {
         lights: [UntoldLightRecordV1] = [],
         cameras: [UntoldCameraRecordV1] = [],
         colorManagement: UntoldColorManagementRecordV1? = nil,
+        colorGradeLUT: UntoldColorGradeLUTRecordV1? = nil,
         skeletons: [UntoldSkeletonRecordV1],
         skeletonJoints: [UntoldSkeletonJointRecordV1],
         skins: [UntoldSkinRecordV1],
@@ -573,6 +582,7 @@ public struct UntoldDecodedAsset: Sendable {
         self.lights = lights
         self.cameras = cameras
         self.colorManagement = colorManagement
+        self.colorGradeLUT = colorGradeLUT
         self.skeletons = skeletons
         self.skeletonJoints = skeletonJoints
         self.skins = skins

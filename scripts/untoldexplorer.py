@@ -88,6 +88,7 @@ CHUNK_TYPES = {
     "light_table": 19,
     "camera_table": 20,
     "color_management_table": 21,
+    "color_grade_lut_table": 22,
 }
 
 VERTEX_LAYOUT_PBR_STATIC_V1 = 1
@@ -494,6 +495,23 @@ class ColorManagementRecord:
     shaper_min_stops: float
     shaper_max_stops: float
     lut_size: int
+
+
+@dataclass(frozen=True)
+class ColorGradeLUTRecord:
+    """An externally-authored .cube LUT, applied as a post-tonemap creative grade.
+
+    Unlike ColorManagementRecord (which bakes Blender's whole View Transform into
+    a proprietary shaper-encoded texture), this references a plain .cube file
+    staged next to the export -- no Blender render/bake, no custom domain. The
+    engine loads the .cube directly (see CubeLUTLoader) rather than through the
+    native .utex texture pipeline, so there is no texture_index here.
+    """
+
+    lut_uri_offset: int
+    lut_size: int
+    domain_min: tuple[float, float, float]
+    domain_max: tuple[float, float, float]
 
 
 @dataclass(frozen=True)
@@ -1275,6 +1293,15 @@ def write_color_management_record(writer: BinaryWriter, record: ColorManagementR
     writer.write_f32(record.shaper_min_stops)
     writer.write_f32(record.shaper_max_stops)
     writer.write_u32(record.lut_size)
+
+
+def write_color_grade_lut_record(writer: BinaryWriter, record: ColorGradeLUTRecord) -> None:
+    writer.write_u32(record.lut_uri_offset)
+    writer.write_u32(record.lut_size)
+    for value in record.domain_min:
+        writer.write_f32(value)
+    for value in record.domain_max:
+        writer.write_f32(value)
 
 
 def write_skeleton_record(writer: BinaryWriter, skeleton: SkeletonRecord) -> None:
@@ -3080,6 +3107,109 @@ def bake_color_management_lut(lut_size: int, textures_dir: Path) -> ColorManagem
     )
 
 
+# ──────────────────────────────────────────────
+# Color-grade LUT import (.cube)
+#
+# Unlike bake_color_management_lut above (which renders through Blender to
+# capture the whole View Transform), this stages an externally-authored
+# standard .cube file as-is -- no bake, no shaper encoding, no .utex
+# conversion. It's meant to be applied as a creative grade *on top of*
+# whichever tonemap operator the engine runs, in ordinary 0-1 display-referred
+# space, so any .cube produced by any grading tool works, not just ones this
+# exporter produces. The engine parses and uploads the .cube directly (see
+# CubeLUTLoader.swift) rather than going through the native texture pipeline.
+# ──────────────────────────────────────────────
+
+_CUBE_LUT_MIN_SIZE = 2
+_CUBE_LUT_MAX_SIZE = 129  # generous upper bound; common grading tools cap at 33 or 65
+_CUBE_LUT_HEADER_MAX_LINES = 32
+
+
+@dataclass(frozen=True)
+class ColorGradeLUT:
+    """A staged, externally-authored .cube LUT (see stage_color_grade_lut_for_output)."""
+
+    uri: str
+    lut_size: int
+    domain_min: tuple[float, float, float]
+    domain_max: tuple[float, float, float]
+    source_path: Path
+
+
+def _parse_cube_lut_header(path: Path) -> tuple[int, tuple[float, float, float], tuple[float, float, float]]:
+    """Read just enough of a .cube file to validate it and recover LUT_3D_SIZE
+    and DOMAIN_MIN/DOMAIN_MAX, without loading the (potentially large) data body.
+    """
+    lut_size: Optional[int] = None
+    domain_min = (0.0, 0.0, 0.0)
+    domain_max = (1.0, 1.0, 1.0)
+    try:
+        with path.open("r", encoding="utf-8", errors="replace") as handle:
+            for _ in range(_CUBE_LUT_HEADER_MAX_LINES):
+                line = handle.readline()
+                if not line:
+                    break
+                stripped = line.split("#", 1)[0].strip()
+                if not stripped:
+                    continue
+                parts = stripped.split()
+                keyword = parts[0].upper()
+                if keyword == "LUT_3D_SIZE" and len(parts) >= 2:
+                    lut_size = int(parts[1])
+                elif keyword == "DOMAIN_MIN" and len(parts) >= 4:
+                    domain_min = (float(parts[1]), float(parts[2]), float(parts[3]))
+                elif keyword == "DOMAIN_MAX" and len(parts) >= 4:
+                    domain_max = (float(parts[1]), float(parts[2]), float(parts[3]))
+                elif keyword == "LUT_1D_SIZE":
+                    raise RuntimeError(f"'{path.name}' is a 1D .cube LUT; only 3D LUTs (LUT_3D_SIZE) are supported")
+                elif keyword[0].isdigit() or keyword[0] in "+-.":
+                    # Reached the first data row without finding LUT_3D_SIZE.
+                    break
+    except (OSError, ValueError) as exc:
+        raise RuntimeError(f"Could not read '{path}' as a .cube LUT: {exc}") from exc
+
+    if lut_size is None:
+        raise RuntimeError(f"'{path.name}' has no LUT_3D_SIZE header; not a valid 3D .cube LUT")
+    if not (_CUBE_LUT_MIN_SIZE <= lut_size <= _CUBE_LUT_MAX_SIZE):
+        raise RuntimeError(
+            f"'{path.name}' has an unsupported LUT_3D_SIZE {lut_size} "
+            f"(expected {_CUBE_LUT_MIN_SIZE}-{_CUBE_LUT_MAX_SIZE})"
+        )
+    return lut_size, domain_min, domain_max
+
+
+def stage_color_grade_lut_for_output(lut_path: Path, output_dir: Path) -> ColorGradeLUT:
+    """Validate and stage an externally-authored .cube LUT next to the export.
+
+    Nothing is rendered or derived here -- the artist's .cube is copied as-is
+    (content-addressed so identical LUTs reused across exports don't pile up
+    under Textures/), and the engine parses/uploads it directly at load time.
+    """
+    lut_path = lut_path.expanduser().resolve()
+    if not lut_path.is_file():
+        raise RuntimeError(f"--color-grade-lut path does not exist: {lut_path}")
+    if lut_path.suffix.lower() != ".cube":
+        raise RuntimeError(f"--color-grade-lut expects a .cube file, got: {lut_path}")
+
+    lut_size, domain_min, domain_max = _parse_cube_lut_header(lut_path)
+
+    data = lut_path.read_bytes()
+    digest = hashlib.sha256(data).hexdigest()[:16]
+    textures_dir = output_dir / "Textures"
+    textures_dir.mkdir(parents=True, exist_ok=True)
+    destination_path = textures_dir / f"gradelut_{digest}.cube"
+    if not destination_path.is_file():
+        destination_path.write_bytes(data)
+
+    return ColorGradeLUT(
+        uri=str(Path("Textures") / destination_path.name),
+        lut_size=lut_size,
+        domain_min=domain_min,
+        domain_max=domain_max,
+        source_path=destination_path,
+    )
+
+
 # Formats that do not support 8-bit color depth (only 16 or 32-bit).
 # EXR/HDR are high-dynamic-range formats not intended for the engine's
 # texture pipeline.  We warn and skip them rather than crashing.
@@ -4671,6 +4801,7 @@ def build_untold_file(
     exported_cameras: Optional[list[ExportedCamera]] = None,
     compress_geometry: bool = False,
     color_management_bake: Optional[ColorManagementBake] = None,
+    color_grade_lut: Optional[ColorGradeLUT] = None,
     progress_callback: Optional[ProgressCallback] = None,
 ) -> bytes:
     if not exported_nodes:
@@ -4687,6 +4818,7 @@ def build_untold_file(
     light_records: list[LightRecord] = []
     camera_records: list[CameraRecord] = []
     color_management_records: list[ColorManagementRecord] = []
+    color_grade_lut_records: list[ColorGradeLUTRecord] = []
     meshes: list[MeshRecord] = []
     skeletons: list[SkeletonRecord] = []
     skeleton_joints: list[SkeletonJointRecord] = []
@@ -4979,6 +5111,16 @@ def build_untold_file(
             )
         )
 
+    if color_grade_lut is not None:
+        color_grade_lut_records.append(
+            ColorGradeLUTRecord(
+                lut_uri_offset=string_table.add(color_grade_lut.uri),
+                lut_size=color_grade_lut.lut_size,
+                domain_min=color_grade_lut.domain_min,
+                domain_max=color_grade_lut.domain_max,
+            )
+        )
+
     if progress_callback is not None:
         progress_callback("Build chunks", 0, 1, output_path.name)
     string_chunk = string_table.data
@@ -5011,6 +5153,11 @@ def build_untold_file(
     for color_management_record in color_management_records:
         write_color_management_record(color_management_writer, color_management_record)
     color_management_chunk = color_management_writer.data
+
+    color_grade_lut_writer = BinaryWriter()
+    for color_grade_lut_record in color_grade_lut_records:
+        write_color_grade_lut_record(color_grade_lut_writer, color_grade_lut_record)
+    color_grade_lut_chunk = color_grade_lut_writer.data
 
     skeleton_writer = BinaryWriter()
     for skeleton in skeletons:
@@ -5102,6 +5249,16 @@ def build_untold_file(
                 color_management_chunk,
                 len(color_management_chunk),
                 len(color_management_records),
+                COMPRESSION_NONE,
+            )
+        )
+    if color_grade_lut_records:
+        chunk_payloads.append(
+            (
+                CHUNK_TYPES["color_grade_lut_table"],
+                color_grade_lut_chunk,
+                len(color_grade_lut_chunk),
+                len(color_grade_lut_records),
                 COMPRESSION_NONE,
             )
         )
@@ -5424,6 +5581,7 @@ def export_objects_to_untold(
     compress_geometry: bool = False,
     bake_color_management: bool = False,
     color_lut_size: int = 32,
+    color_grade_lut_path: Optional[Path] = None,
     clean_sidecars: bool = False,
     progress_callback: Optional[ProgressCallback] = None,
 ) -> dict[str, object]:
@@ -5457,6 +5615,12 @@ def export_objects_to_untold(
             output_path.parent / "Textures",
         )
 
+    color_grade_lut: Optional[ColorGradeLUT] = None
+    if color_grade_lut_path is not None:
+        if progress_callback is not None:
+            progress_callback("Stage color grade LUT", 0, 1, color_grade_lut_path.name)
+        color_grade_lut = stage_color_grade_lut_for_output(color_grade_lut_path, output_path.parent)
+
     exported_nodes = stage_nodes_for_output(exported_nodes, output_path, progress_callback=progress_callback)
     untold_bytes = build_untold_file(
         exported_nodes,
@@ -5466,6 +5630,7 @@ def export_objects_to_untold(
         exported_cameras=exported_cameras,
         compress_geometry=compress_geometry,
         color_management_bake=color_management_bake,
+        color_grade_lut=color_grade_lut,
         progress_callback=progress_callback,
     )
     if progress_callback is not None:
@@ -5498,6 +5663,7 @@ def export_objects_to_untold(
         "vertex_count": sum(exported_mesh.vertex_count for exported_mesh in exported_meshes),
         "index_count": sum(exported_mesh.index_count for exported_mesh in exported_meshes),
         "color_management_baked": color_management_bake is not None,
+        "color_grade_lut_staged": color_grade_lut is not None,
     }
 
 
@@ -5547,6 +5713,14 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         type=int,
         default=32,
         help=f"Grid size (N) for the NxNxN color-grading LUT (default: 32, max: {MAX_COLOR_LUT_SIZE}).",
+    )
+    parser.add_argument(
+        "--color-grade-lut",
+        default=None,
+        help="Path to an externally-authored standard .cube 3D LUT to stage alongside the export "
+             "and apply as a post-tonemap creative grade. Unlike --bake-color-management, nothing is "
+             "rendered or derived from Blender -- the .cube is copied as-is and loaded directly by "
+             "the engine, so any LUT from any grading tool works.",
     )
     return parser.parse_args(argv)
 
@@ -5614,6 +5788,11 @@ def main(argv: list[str]) -> int:
                 output_path.parent / "Textures",
             )
 
+        color_grade_lut: Optional[ColorGradeLUT] = None
+        if args.color_grade_lut:
+            print(f"Staging color grade LUT {args.color_grade_lut} ...", flush=True)
+            color_grade_lut = stage_color_grade_lut_for_output(Path(args.color_grade_lut), output_path.parent)
+
         print("Building .untold file ...", flush=True)
         untold_bytes = build_untold_file(
             exported_nodes,
@@ -5623,6 +5802,7 @@ def main(argv: list[str]) -> int:
             exported_cameras=exported_cameras,
             compress_geometry=args.compress_geometry,
             color_management_bake=color_management_bake,
+            color_grade_lut=color_grade_lut,
             progress_callback=lambda stage, done, total, detail: progress.stage(
                 stage,
                 f"{done}/{total} {detail}" if total > 1 else detail,
@@ -5637,6 +5817,8 @@ def main(argv: list[str]) -> int:
         print(f"Lights: {len(exported_lights)}, Cameras: {len(exported_cameras)}")
         if staged_hdr_assets:
             print(f"HDR environments: {len(staged_hdr_assets)}")
+        if color_grade_lut is not None:
+            print(f"Color grade LUT: {color_grade_lut.uri}")
         print(f"Vertices: {sum(exported_mesh.vertex_count for exported_mesh in exported_meshes)}, indices: {sum(exported_mesh.index_count for exported_mesh in exported_meshes)}")
         if args.validate:
             # This sidecar is only for validation/debugging in engine-side tests.

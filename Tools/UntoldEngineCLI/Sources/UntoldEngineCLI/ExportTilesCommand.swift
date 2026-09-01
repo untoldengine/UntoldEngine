@@ -132,6 +132,9 @@ struct ExportTilesCommand: ParsableCommand {
     @Option(name: .customLong("color-lut-size"), help: "Grid size (N) for the NxNxN color-grading LUT")
     var colorLutSize: Int = 32
 
+    @Option(name: .customLong("color-grade-lut"), help: "Path to an externally-authored standard .cube 3D LUT to stage once for the whole scene and reference from the manifest's colorGradeLUT key, applied as a post-tonemap creative grade")
+    var colorGradeLUT: String?
+
     func run() throws {
         let outputDirURL = resolvePath(outputDir).standardizedFileURL
 
@@ -191,6 +194,13 @@ struct ExportTilesCommand: ParsableCommand {
         if bakeColorManagement {
             partitionerArguments.append("--bake-color-management")
             partitionerArguments += ["--color-lut-size", String(colorLutSize)]
+        }
+        if let colorGradeLUT {
+            let lutURL = resolvePath(colorGradeLUT).standardizedFileURL
+            guard FileManager.default.fileExists(atPath: lutURL.path) else {
+                throw ExportTilesError.colorGradeLUTNotFound(lutURL.path)
+            }
+            partitionerArguments += ["--color-grade-lut", lutURL.path]
         }
 
         printInfo("Using Blender: \(blenderURL.path)")
@@ -267,6 +277,7 @@ enum ExportTilesError: LocalizedError {
     case partitionerNotInstalled(String)
     case exportFailed(Int32)
     case optimizeFailed(Int32)
+    case colorGradeLUTNotFound(String)
 
     var errorDescription: String? {
         switch self {
@@ -278,6 +289,8 @@ enum ExportTilesError: LocalizedError {
             return "Blender tile partitioner failed with exit status \(status)"
         case let .optimizeFailed(status):
             return "Texture optimization (texbake) failed with exit status \(status)"
+        case let .colorGradeLUTNotFound(path):
+            return "--color-grade-lut path does not exist: \(path)"
         }
     }
 }
