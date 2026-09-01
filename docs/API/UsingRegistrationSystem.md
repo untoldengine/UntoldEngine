@@ -145,8 +145,8 @@ Important behavior:
   first (`ColorLUTParams.shared.clear()`), then re-populates it only if the
   asset/manifest actually has one baked in.
 - If the source wasn't exported with `--bake-color-management`, the engine
-  silently falls back to its default ACES Filmic tonemap — this is not an
-  error.
+  silently falls back to its native tonemap operator (ACES Filmic by
+  default) — this is not an error.
 - The color-grading LUT can be toggled off at runtime (e.g. to compare
   against the default tonemap) with `setPostFX(.colorLUT(.enabled(false)))`.
   See [Using Post-Effects](UsingPostFX.md).

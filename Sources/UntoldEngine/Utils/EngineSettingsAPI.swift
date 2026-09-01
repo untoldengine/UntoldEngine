@@ -250,6 +250,7 @@ public enum PostFXProperty: Sendable {
     case colorGrading(ColorGradingProperty)
     case colorLUT(ColorLUTProperty)
     case colorGradeLUT(ColorGradeLUTProperty)
+    case tonemapOperator(TonemapOperator)
     case colorCorrection(ColorCorrectionProperty)
     case bloomThreshold(BloomThresholdProperty)
     case bloomComposite(BloomCompositeProperty)
@@ -341,6 +342,8 @@ public func setPostFX(_ property: PostFXProperty) {
         applyColorLUTProperty(property)
     case let .colorGradeLUT(property):
         applyColorGradeLUTProperty(property)
+    case let .tonemapOperator(op):
+        TonemapParams.shared.operator = op
     case let .colorCorrection(property):
         applyColorCorrectionProperty(property)
     case let .bloomThreshold(property):

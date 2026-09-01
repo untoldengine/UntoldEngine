@@ -1,15 +1,44 @@
 # Using Color Management
 
 Blender scenes are displayed through a View Transform (e.g. `Standard`,
-`AgX`, `Filmic`), plus optional Look, Exposure, and Gamma settings. By
-default, the engine ignores all of that and renders through its own fixed
-ACES Filmic tonemap — so a scene authored and graded in Blender with `AgX`
-can look noticeably different once loaded in the engine.
+`AgX`, `Filmic`), plus optional Look, Exposure, and Gamma settings. The
+engine has its own native tonemap operator — **ACES Filmic by default** —
+plus a native AgX operator for scenes authored with Blender's default View
+Transform since 4.0. Neither is a substitute for a custom OCIO config, a
+non-stock View Transform, or a Look — for those, use
+`--bake-color-management` below.
 
-`--bake-color-management` closes that gap by baking the scene's active
-display transform into an `NxNxN` color-grading LUT (lookup table) at export
-time. Loading that LUT at runtime makes the engine reproduce Blender's
-display transform instead of its default tonemap.
+## Native Tonemap Operator
+
+`setPostFX(.tonemapOperator(_))` selects which built-in operator the engine
+runs (only takes effect when no `--bake-color-management` LUT is active —
+see below):
+
+```swift
+setPostFX(.tonemapOperator(.aces)) // default
+setPostFX(.tonemapOperator(.agx))  // matches Blender's default View Transform since 4.0
+```
+
+AgX is a native Metal port of the widely-used "Minimal AgX" approximation
+of Blender's AgX OCIO config, not a baked asset — it costs nothing at
+export time and works on any scene, whether or not it was exported with any
+color-management flag. It has not been empirically validated pixel-for-pixel
+against a real Blender AgX render (that would need a live Blender
+comparison); for color-critical work, verify by exporting the same scene
+both ways — once relying on the native operator, once with
+`--bake-color-management` (which renders through Blender's actual AgX and is
+exact by construction) — and compare visually. `--bake-color-management`
+remains the correct choice whenever exact parity matters, or the scene uses
+a non-stock View Transform, custom OCIO config, or a Look.
+
+## Baked Color Management (Exact, Any View Transform/Look/OCIO Config)
+
+`--bake-color-management` closes the gap completely, for any View
+Transform/Look/OCIO config — not just AgX/ACES — by baking the scene's
+active display transform into an `NxNxN` color-grading LUT (lookup table) at
+export time. Loading that LUT at runtime makes the engine reproduce
+Blender's display transform exactly, replacing the native tonemap operator
+above rather than composing with it.
 
 Unlike per-material texture baking (a separate, third-party step you'd run
 before export), this is **scene-wide, not per-mesh** — one LUT applies to
@@ -117,10 +146,10 @@ and cameras.
   both the baked LUT and the `.cube` grade without duplicating the serialized
   scene-authored light and camera entities.
 - If the source wasn't exported with `--bake-color-management`, the engine
-  silently falls back to its default ACES Filmic tonemap — this is not an
-  error, and nothing needs to be toggled off manually. The same applies
-  independently to `--color-grade-lut`: no `.cube` means no creative grade,
-  silently.
+  silently falls back to its native tonemap operator (ACES Filmic by
+  default) — this is not an error, and nothing needs to be toggled off
+  manually. The same applies independently to `--color-grade-lut`: no
+  `.cube` means no creative grade, silently.
 - IBL and scene lighting are unrelated to color management — see
   [Use Image-Based Lighting (IBL)](UsageExamples.md#use-image-based-lighting-ibl)
   if a scene also needs an HDR environment; loading one does not require or
@@ -132,7 +161,7 @@ and cameras.
 to author here, since both are asset-derived:
 
 ```swift
-setPostFX(.colorLUT(.enabled(false)))      // compare against the default ACES Filmic tonemap
+setPostFX(.colorLUT(.enabled(false)))      // compare against the native tonemap operator
 setPostFX(.colorLUT(.enabled(true)))       // re-enable the baked LUT
 setPostFX(.colorGradeLUT(.enabled(false))) // compare with the .cube grade removed
 setPostFX(.colorGradeLUT(.enabled(true)))  // re-enable the .cube grade

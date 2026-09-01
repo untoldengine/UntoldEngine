@@ -557,6 +557,64 @@ float3 reinhardToneMapping(float3 color) {
     return color / (1.0 + color);
 }
 
+// AgX Tone Mapping -- a Metal port of the widely-used "Minimal AgX"
+// approximation of Blender's AgX OCIO config (the reference implementation
+// is Troy Sobotka's; this fit is the community-standard one shared across
+// Bevy/Godot/Filament-adjacent shader ports). Matrices are copied verbatim
+// from that reference: Metal's float3x3(...) scalar constructor fills
+// column-major, same as GLSL's mat3(...), so no transposition is needed.
+//
+// Domain contract: like ACESFilmicToneMapping above, this returns a value
+// in the "linear-referred, needs exactly one later sRGB encode" space that
+// fragmentOutputTransformShader's linearToSRGB expects -- NOT a
+// gamma-encoded/display-ready value. The reference implementation's own
+// comment on the equivalent post-outset-matrix step is explicit that the
+// result "is in linear sRGB at this point", i.e. no further EOTF/pow(2.2)
+// step is applied here; doing so would double-encode gamma once the
+// engine's single final encode runs, the same failure mode the exporter's
+// LUT-baking code (bake_color_management_lut in untoldexplorer.py) already
+// works around for the same reason.
+//
+// Not yet empirically validated pixel-for-pixel against a real Blender AgX
+// render -- validate before relying on exact parity for color-critical work.
+constant float3x3 kAgXInsetMatrix = float3x3(
+    0.856627153315983, 0.0951212405381588, 0.0482516061458583,
+    0.137318972929847, 0.761241990602591, 0.101439036467562,
+    0.11189821299995, 0.0767994186031903, 0.811302368396859
+);
+
+constant float3x3 kAgXOutsetMatrix = float3x3(
+    1.1271005818144368, -0.1413297634984383, -0.14132976349843826,
+    -0.11060664309660323, 1.157823702216272, -0.11060664309660294,
+    -0.016493938717834573, -0.016493938717834257, 1.2519364065950405
+);
+
+constant float kAgXMinEv = -12.47393;
+constant float kAgXMaxEv = 4.026069;
+
+inline float3 agxDefaultContrastApprox(float3 x) {
+    float3 x2 = x * x;
+    float3 x4 = x2 * x2;
+    return 15.5 * x4 * x2
+         - 40.14 * x4 * x
+         + 31.96 * x4
+         - 6.868 * x2 * x
+         + 0.4298 * x2
+         + 0.1191 * x
+         - 0.00232;
+}
+
+float3 agxToneMapping(float3 color) {
+    color = max(color, 0.0);
+    color = kAgXInsetMatrix * color;
+    color = max(color, 1e-10); // avoid log2(0) / negative
+    color = clamp(log2(color), kAgXMinEv, kAgXMaxEv);
+    color = (color - kAgXMinEv) / (kAgXMaxEv - kAgXMinEv);
+    color = agxDefaultContrastApprox(color);
+    color = kAgXOutsetMatrix * color;
+    return clamp(color, 0.0, 1.0);
+}
+
 float computeLuma(float3 color) {
     return 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
 }

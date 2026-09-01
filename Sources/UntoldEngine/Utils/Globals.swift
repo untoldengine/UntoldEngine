@@ -9,6 +9,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+import CShaderTypes
 import Foundation
 import MetalKit
 import simd
@@ -1979,6 +1980,44 @@ public final class ColorGradeLUTParams: @unchecked Sendable {
         )
         lock.unlock()
         return value
+    }
+}
+
+/// Which native tonemap operator the look pass runs when no whole-transform
+/// bake (ColorLUTParams) is active. Independent of, and composable with,
+/// both ColorLUTParams and ColorGradeLUTParams above.
+public enum TonemapOperator: Sendable {
+    case aces
+    case agx
+
+    var shaderValue: Int32 {
+        switch self {
+        case .aces: Int32(tonemapOperatorACES.rawValue)
+        case .agx: Int32(tonemapOperatorAgX.rawValue)
+        }
+    }
+}
+
+public final class TonemapParams: @unchecked Sendable {
+    public static let shared = TonemapParams()
+
+    // ACES Filmic is the engine's default tonemap operator. AgX (Blender's
+    // default View Transform since 4.0) is available via
+    // setPostFX(.tonemapOperator(.agx)) for scenes that want to match it.
+    private let lock = NSLock()
+    private var _operator: TonemapOperator = .aces
+
+    public var `operator`: TonemapOperator {
+        get {
+            lock.lock()
+            defer { lock.unlock() }
+            return _operator
+        }
+        set {
+            lock.lock()
+            _operator = newValue
+            lock.unlock()
+        }
     }
 }
 

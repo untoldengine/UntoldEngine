@@ -195,6 +195,10 @@ float3 filmicToneMapping(float3 x);
 // Reinhard Tone Mapping Function
 float3 reinhardToneMapping(float3 color);
 
+// AgX Tone Mapping (Blender's default View Transform since 4.0). See the
+// implementation comment in ShadersUtils.metal for the exact domain contract.
+float3 agxToneMapping(float3 color);
+
 void createBasis(float3 normal, thread float &tangent,  thread float &bitangent);
 
 float computeLuma(float3 color);

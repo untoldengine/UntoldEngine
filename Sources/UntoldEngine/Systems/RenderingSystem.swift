@@ -841,6 +841,13 @@ func colorGradingCustomization(encoder: MTLRenderCommandEncoder) {
         length: MemoryLayout<simd_float3>.stride,
         index: Int(colorGradeLUTDomainMaxIndex.rawValue)
     )
+
+    var tonemapOperator = TonemapParams.shared.operator.shaderValue
+    encoder.setFragmentBytes(
+        &tonemapOperator,
+        length: MemoryLayout<Int32>.stride,
+        index: Int(tonemapOperatorSelectIndex.rawValue)
+    )
 }
 
 func makeBlurCustomization(direction: simd_float2, radius: Float) -> (MTLRenderCommandEncoder) -> Void {
