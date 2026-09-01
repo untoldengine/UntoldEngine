@@ -240,6 +240,18 @@ typedef enum{
     colorGradeLUTDomainMaxIndex,
 }ColorGradeLUTPassBufferIndices;
 
+// Selects which native tonemap operator the look pass runs when colorLUTEnabled
+// (the whole-transform bake) is off. Only meaningful in that branch -- the
+// baked LUT and the .cube grade above are unaffected by this selector.
+typedef enum {
+    tonemapOperatorSelectIndex = 14,   // starts after ColorGradeLUTPassBufferIndices (11-13)
+} TonemapSelectBufferIndices;
+
+typedef enum {
+    tonemapOperatorACES = 0,
+    tonemapOperatorAgX = 1,
+} TonemapOperatorID;
+
 typedef enum{
     colorCorrectionPassColorTextureIndex,
     colorCorrectionPassTemperatureIndex,

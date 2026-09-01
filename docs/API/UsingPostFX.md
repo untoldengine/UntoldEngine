@@ -131,6 +131,7 @@ let isActive = PostFX.isEnabled(.bloomThreshold)
 | `.colorGrading` | Exposure, brightness, contrast, saturation, temperature, tint |
 | `.colorLUT` | Toggle only — see below |
 | `.colorGradeLUT` | Toggle only — see below |
+| `.tonemapOperator` | Selects the native tonemap operator (`.aces` default, or `.agx`) — see below |
 | `.colorCorrection` | Lift/gamma/gain per-channel color correction |
 | `.bloomThreshold` | Bright-pass filter that feeds the bloom blur chain |
 | `.bloomComposite` | Bloom blend pass |
@@ -145,7 +146,7 @@ let isActive = PostFX.isEnabled(.bloomThreshold)
 > `loadSceneAuthored(...)` call (see [Using the Registration
 > System](UsingRegistrationSystem.md#loading-scene-authored-data)), not by a
 > normal mesh import. `setPostFX(.colorLUT(.enabled(false)))` only lets you
-> compare the baked LUT against the default ACES Filmic tonemap — enabling it
+> compare the baked LUT against the native tonemap operator — enabling it
 > is a no-op if no LUT has actually been loaded.
 
 > **`.colorGradeLUT` is also asset-derived**, but unlike `.colorLUT` it wraps
@@ -154,6 +155,12 @@ let isActive = PostFX.isEnabled(.bloomThreshold)
 > *on top of* whichever tonemap ran (native or the `.colorLUT` bake), not in
 > place of it. Both can be active at once. `setPostFX(.colorGradeLUT(.enabled(false)))`
 > is a no-op if no `.cube` was loaded via `loadSceneAuthored(...)`.
+
+> **`.tonemapOperator` is a plain runtime setting, not asset-derived** —
+> unlike the two LUT toggles above, this always takes effect (subject to
+> `.colorLUT` overriding it when a whole-transform bake is loaded and
+> enabled). `setPostFX(.tonemapOperator(.agx))` / `.aces` switches which
+> built-in operator runs. See [Using Color Management](UsingColorManagement.md#native-tonemap-operator).
 
 > **SSAO is not a `PostFXEffect`** — it has its own enable API:
 > ```swift

@@ -96,7 +96,8 @@ fragment float4 fragmentLookShader(
   constant int &colorLUTSize [[buffer(colorLUTSizeIndex)]],
   constant bool &colorGradeLUTEnabled [[buffer(colorGradeLUTEnabledIndex)]],
   constant float3 &colorGradeLUTDomainMin [[buffer(colorGradeLUTDomainMinIndex)]],
-  constant float3 &colorGradeLUTDomainMax [[buffer(colorGradeLUTDomainMaxIndex)]]
+  constant float3 &colorGradeLUTDomainMax [[buffer(colorGradeLUTDomainMaxIndex)]],
+  constant int &tonemapOperator [[buffer(tonemapOperatorSelectIndex)]]
 ) {
   constexpr sampler s(min_filter::linear, mag_filter::linear, address::clamp_to_edge);
   float4 sceneSample = sceneTexture.sample(s, in.uvCoords);
@@ -115,6 +116,9 @@ fragment float4 fragmentLookShader(
       // the source scene's full View Transform (including its own tonemap
       // curve), so applying ACES on top would double-compress the image.
       color = sampleColorLUT(max(color, 0.0), colorLUTTexture, colorLUTShaperMinStops, colorLUTShaperMaxStops, colorLUTSize);
+  } else if (tonemapOperator == tonemapOperatorAgX) {
+      // Tone map ONCE, here.
+      color = agxToneMapping(max(color, 0.0));
   } else {
       // Tone map ONCE, here.
       color = ACESFilmicToneMapping(max(color, 0.0));
