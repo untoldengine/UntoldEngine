@@ -17,18 +17,18 @@ import Metal
 import XCTest
 
 private let minimalCubeLUT = """
-    TITLE "Test LUT"
-    # a comment line
-    LUT_3D_SIZE 2
-    0.0 0.0 0.0
-    1.0 0.0 0.0
-    0.0 1.0 0.0
-    1.0 1.0 0.0
-    0.0 0.0 1.0
-    1.0 0.0 1.0
-    0.0 1.0 1.0
-    1.0 1.0 1.0
-    """
+TITLE "Test LUT"
+# a comment line
+LUT_3D_SIZE 2
+0.0 0.0 0.0
+1.0 0.0 0.0
+0.0 1.0 0.0
+1.0 1.0 0.0
+0.0 0.0 1.0
+1.0 0.0 1.0
+0.0 1.0 1.0
+1.0 1.0 1.0
+"""
 
 final class CubeLUTParserTests: XCTestCase {
     func testParsesLUT3DSizeAndDefaultDomain() throws {
