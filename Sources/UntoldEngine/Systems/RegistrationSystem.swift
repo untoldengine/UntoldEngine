@@ -1161,19 +1161,29 @@ private func replaceColorGradeLUT(_ colorGradeLUT: RuntimeColorGradeLUT?) {
         return
     }
 
+    loadAndInstallColorGradeLUT(from: url, expectedLUTSize: colorGradeLUT.lutSize)
+}
+
+/// Parses a .cube at `url` and installs it into ColorGradeLUTParams, using the
+/// parsed file's own domainMin/domainMax (not a separately-cached copy, so an
+/// artist hand-editing the .cube in place can't drift out of sync with a stale
+/// manifest/record). `expectedLUTSize` is an optional consistency check against
+/// a manifest/record's declared size -- pass nil when loading directly from a
+/// bare URL with no prior expectations (see setColorGradeLUT).
+private func loadAndInstallColorGradeLUT(from url: URL, expectedLUTSize: Int?) {
     do {
         let (texture, lut) = try CubeLUTLoader.loadTexture(device: renderInfo.device, from: url)
-        guard lut.size == colorGradeLUT.lutSize else {
+        if let expectedLUTSize, lut.size != expectedLUTSize {
             Logger.log(
-                message: "[UntoldColorGradeLUT] .cube LUT_3D_SIZE \(lut.size) does not match manifest lutSize \(colorGradeLUT.lutSize); skipping the creative grade",
+                message: "[UntoldColorGradeLUT] .cube LUT_3D_SIZE \(lut.size) does not match expected \(expectedLUTSize); skipping the creative grade",
                 category: LogCategory.textureLoading.rawValue
             )
             return
         }
         ColorGradeLUTParams.shared.replace(
             texture: texture,
-            domainMin: colorGradeLUT.domainMin,
-            domainMax: colorGradeLUT.domainMax
+            domainMin: lut.domainMin,
+            domainMax: lut.domainMax
         )
     } catch {
         Logger.log(
@@ -1181,6 +1191,34 @@ private func replaceColorGradeLUT(_ colorGradeLUT: RuntimeColorGradeLUT?) {
             category: LogCategory.textureLoading.rawValue
         )
     }
+}
+
+/// Loads a standalone .cube color-grade LUT and applies it immediately, fully
+/// independent of any scene/manifest -- unlike the colorGradeLUT reference
+/// installed by loadSceneAuthored, this can point at any .cube file (hand
+/// authored, from a grading tool, downloaded, or shipped with the app) and
+/// takes effect without re-exporting or reloading the scene.
+///
+/// `filename` is resolved the same way every other asset name is (see
+/// LoadingSystem.getResourceURL): a bare name searches the standard
+/// structured folders (a new "LUT" folder alongside Models/Textures/etc.),
+/// while an absolute path is used directly.
+public func setColorGradeLUT(filename: String, withExtension: String = "cube") {
+    guard let url = LoadingSystem.shared.resourceURL(
+        forResource: filename,
+        withExtension: withExtension,
+        subResource: nil
+    ) else {
+        ColorGradeLUTParams.shared.clear()
+        Logger.log(
+            message: "[UntoldColorGradeLUT] '\(filename).\(withExtension)' not found; skipping the creative grade",
+            category: LogCategory.textureLoading.rawValue
+        )
+        return
+    }
+
+    ColorGradeLUTParams.shared.clear()
+    loadAndInstallColorGradeLUT(from: url, expectedLUTSize: nil)
 }
 
 private func registerUntoldLight(_ light: RuntimeLightSource) {

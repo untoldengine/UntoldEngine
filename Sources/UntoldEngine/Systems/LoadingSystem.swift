@@ -91,6 +91,7 @@ public func getResourceURL(resourceName: String, ext: String, subName: String?) 
         ["Scripts", "\(resourceName).\(ext)"],
         ["Scenes", "\(resourceName).\(ext)"],
         ["Textures", "\(resourceName).\(ext)"],
+        ["LUT", "\(resourceName).\(ext)"],
     ]
     if let subName {
         searchPaths.append(["Materials", subName, "\(resourceName).\(ext)"])
@@ -114,6 +115,7 @@ public func getResourceURL(resourceName: String, ext: String, subName: String?) 
             ["Scripts", "\(resourceName).\(ext)"],
             ["Scenes", "\(resourceName).\(ext)"],
             ["Textures", "\(resourceName).\(ext)"],
+            ["LUT", "\(resourceName).\(ext)"],
         ] + (subName.map { [["Materials", $0, "\(resourceName).\(ext)"]] } ?? [])
 
         for components in searchPaths {

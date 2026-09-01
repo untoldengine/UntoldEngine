@@ -550,7 +550,7 @@ import Foundation
         // MARK: - Asset Bundling Helpers
 
         private func createGameDataDirectories(at gameDataDir: URL) throws {
-            let subdirs = ["Scenes", "Scripts", "Models", "StreamModels", "Animations", "Gaussians", "Textures", "Shaders"]
+            let subdirs = ["Scenes", "Scripts", "Models", "StreamModels", "Animations", "Gaussians", "Textures", "Shaders", "LUT"]
 
             for subdir in subdirs {
                 let dirURL = gameDataDir.appendingPathComponent(subdir)
@@ -781,7 +781,7 @@ import Foundation
         /// Clear contents of GameData directory while preserving the directory structure
         private func clearGameDataDirectory(at gameDataDir: URL) throws {
             let fileManager = FileManager.default
-            let subdirs = ["Scenes", "Scripts", "Models", "StreamModels", "Animations", "Gaussians", "Textures", "Shaders"]
+            let subdirs = ["Scenes", "Scripts", "Models", "StreamModels", "Animations", "Gaussians", "Textures", "Shaders", "LUT"]
 
             for subdir in subdirs {
                 let dirURL = gameDataDir.appendingPathComponent(subdir)

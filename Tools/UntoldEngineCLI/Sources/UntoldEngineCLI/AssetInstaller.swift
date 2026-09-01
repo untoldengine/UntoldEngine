@@ -15,7 +15,7 @@ struct AssetInstaller {
 
     private let knownFolders = [
         "Models", "Animations", "Gaussians", "Scripts",
-        "StreamModels", "Textures", "Shaders", "Scenes",
+        "StreamModels", "Textures", "Shaders", "Scenes", "LUT",
     ]
 
     func install(pack: AssetPack, into gameDataURL: URL) async throws {

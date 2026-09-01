@@ -190,7 +190,7 @@ func resolveSupportScript(named filename: String, notInstalled: (String) -> Erro
 /// Matches the structure created by the editor in AssetBrowserView.swift:362-369
 func createAssetFolderStructure(at basePath: URL) throws {
     let fm = FileManager.default
-    let requiredFolders = ["Models", "Animations", "HDR", "Gaussians", "Materials", "Scenes", "Scripts"]
+    let requiredFolders = ["Models", "Animations", "HDR", "Gaussians", "Materials", "Scenes", "Scripts", "LUT"]
 
     // Create base directory if it doesn't exist
     if !fm.fileExists(atPath: basePath.path) {

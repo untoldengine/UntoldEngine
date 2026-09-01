@@ -121,4 +121,21 @@ final class LoadingSystemPathResolutionTests: XCTestCase {
 
         XCTAssertEqual(resolved?.standardizedFileURL, currentResource.standardizedFileURL)
     }
+
+    func testBareResourceNameResolvesUnderLUTDirectory() throws {
+        // GameData/LUT is where standalone .cube grade LUTs live (see
+        // createGameDataDirectories() and setColorGradeLUT), resolved the same
+        // way as every other structured asset folder.
+        let lutDirectory = tempRoot.appendingPathComponent("LUT", isDirectory: true)
+        try FileManager.default.createDirectory(at: lutDirectory, withIntermediateDirectories: true)
+        let currentResource = lutDirectory
+            .appendingPathComponent("warm_grade")
+            .appendingPathExtension("cube")
+        try Data().write(to: currentResource)
+        assetBasePath = tempRoot
+
+        let resolved = getResourceURL(resourceName: "warm_grade", ext: "cube", subName: nil)
+
+        XCTAssertEqual(resolved?.standardizedFileURL, currentResource.standardizedFileURL)
+    }
 }
