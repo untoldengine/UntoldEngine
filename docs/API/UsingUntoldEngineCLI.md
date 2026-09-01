@@ -161,15 +161,14 @@ untoldengine export-tiles \
   --input scene.usdz \
   --output-dir tile_exports \
   --tile-size-x 25 --tile-size-z 25 \
-  --optimize --bake-materials
+  --optimize
 ```
 
 `--optimize` compresses geometry and, if the export produced a shared
 `Textures` directory, bakes those textures to `.utex` and patches every
 tile's `.untold` references. Grid, quadtree, and KD-tree partitioning modes
 are available (`--quadtree`, `--kdtree`); run `untoldengine export-tiles
---help` for the full flag list, including material-baking (`--bake-materials`,
-`--bake-resolution`, `--no-bake-cache`), color management
+--help` for the full flag list, including color management
 (`--bake-color-management`, `--color-lut-size` — only applied via an explicit
 `loadSceneAuthored(url:)` call, see [Using the Registration
 System](UsingRegistrationSystem.md#loading-scene-authored-data)), tiering

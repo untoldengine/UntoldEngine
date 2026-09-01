@@ -102,7 +102,6 @@ nav:
     - Spatial Debugger: API/SpatialDebugger.md
     - Logger: API/UsingTheLogger.md
     - Exporter: API/UsingTheExporter.md
-    - Bake Materials: API/UsingBakeMaterials.md
     - Color Management: API/UsingColorManagement.md
     - Blender Add-on: API/UsingBlenderAddon.md
     - Optimizations: API/Optimizations.md

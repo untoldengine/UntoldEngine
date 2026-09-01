@@ -74,23 +74,16 @@ updateTextureSampler(entityId: entity, textureType: .baseColor, wrapMode: .repea
 
 Material changes automatically notify static batching when needed.
 
-## Bake Complex Blender Materials
+## Complex Blender Materials
 
-If a Blender material uses node graphs the runtime cannot evaluate directly,
-export with material baking. The exporter flattens complex material behavior into
-textures the engine can load.
-
-CLI example:
-
-```bash
-untoldengine export \
-  --input GameData/Models/office/office.usdz \
-  --output GameData/Models/office/office.untold \
-  --bake-materials
-```
-
-Use this when Blender and the engine disagree because the source material uses
-procedural nodes, Mix, Math, or other complex graph behavior.
+The exporter only reads a fixed set of material inputs (base color,
+roughness, metallic, normal, emissive). If a Blender material uses node
+graphs the runtime cannot evaluate directly — procedural nodes, `Mix`,
+`Math`, or other complex graph behavior — bake it to flat textures with a
+third-party tool before export so the imported result matches Blender. The
+Blender addon's `Untold Materials` panel (`Scan Materials`) tells you which
+materials diverge and why; see [Using The Blender
+Plugin](../API/UsingBlenderAddon.md#material-fidelity).
 
 ## Bake Color Management
 
@@ -147,14 +140,14 @@ When a material does not look right:
 
 1. Confirm the `.untold` asset loads successfully.
 2. Check base color, roughness, metallic, normal, and opacity.
-3. If Blender node graphs are involved, try `--bake-materials`.
+3. If Blender node graphs are involved, scan materials in the Blender addon
+   and bake divergent ones with a third-party tool before re-exporting.
 4. If the whole image tone differs from Blender, try `--bake-color-management`.
 5. If runtime memory or package size is high, apply texture baking/optimization.
 
 ## Related Documentation
 
 - [Materials](../API/UsingMaterials.md)
-- [Bake Materials](../API/UsingBakeMaterials.md)
 - [Color Management](../API/UsingColorManagement.md)
 - [Post Effects](../API/UsingPostFX.md)
 - [Optimizations](../API/Optimizations.md)

@@ -129,16 +129,11 @@ untoldengine export \
 `--optimize` compresses geometry and, when textures are present, bakes and
 patches textures to `.utex`.
 
-Use `--bake-materials` when Blender materials use node graphs the runtime cannot
-evaluate directly:
-
-```bash
-untoldengine export \
-  --input /path/to/lamp.blend \
-  --output ~/Projects/MyGame/Sources/MyGame/GameData/Models/lamp/lamp.untold \
-  --convert-orientation \
-  --bake-materials
-```
+The exporter only reads a fixed set of material inputs (base color,
+roughness, metallic, normal, emissive). If a Blender material uses node
+graphs the runtime cannot evaluate directly (`Mix`, `Math`, procedural
+textures, ...), bake it to flat textures with a third-party tool before
+export so the imported result matches what you see in Blender.
 
 ## Export Animation Clips
 

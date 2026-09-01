@@ -152,5 +152,4 @@ Important behavior:
   See [Using Post-Effects](UsingPostFX.md).
 
 See [Using Color Management](UsingColorManagement.md) for the full export +
-load workflow, and [Using Bake Materials](UsingBakeMaterials.md) for the
-related but separate per-material bake (`--bake-materials`).
+load workflow.

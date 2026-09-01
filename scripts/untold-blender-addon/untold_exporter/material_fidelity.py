@@ -66,8 +66,8 @@ class UNTOLD_OT_scan_material_fidelity(bpy.types.Operator):
     bl_idname = "untold.scan_material_fidelity"
     bl_label = "Scan Materials"
     bl_description = (
-        "Classify every material as supported / bakeable / unbakeable, matching what "
-        "--bake-materials would do at export time, without actually exporting"
+        "Classify every material as supported or divergent from how it renders in "
+        "Blender, without actually exporting"
     )
     bl_options = {"REGISTER"}
 
@@ -122,13 +122,13 @@ class UNTOLD_PT_material_fidelity(bpy.types.Panel):
         layout.operator(UNTOLD_OT_scan_material_fidelity.bl_idname, icon="VIEWZOOM")
 
         if not state.scanned:
-            layout.label(text="Scan to preview --bake-materials results", icon="INFO")
+            layout.label(text="Scan materials for fidelity issues", icon="INFO")
             return
 
         summary = layout.box()
         summary.label(text=f"Supported: {state.supported_count}", icon="CHECKMARK")
-        summary.label(text=f"Bakeable: {state.bakeable_count}", icon="MODIFIER_ON")
-        summary.label(text=f"Unbakeable: {state.unbakeable_count}", icon="ERROR")
+        summary.label(text=f"Fixable by baking: {state.bakeable_count}", icon="MODIFIER_ON")
+        summary.label(text=f"Not fixable by baking: {state.unbakeable_count}", icon="ERROR")
 
         if not state.items and not state.uv_warnings:
             return
@@ -153,7 +153,7 @@ class UNTOLD_PT_material_fidelity(bpy.types.Panel):
         if state.bakeable_count or state.unbakeable_count:
             layout.separator(factor=0.5)
             layout.label(text="These will render differently than in Blender", icon="INFO")
-            layout.label(text="unless baked (bakeable) or fixed in the graph.")
+            layout.label(text="unless baked to flat textures elsewhere or fixed in the graph.")
 
 
 classes = (

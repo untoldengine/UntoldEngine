@@ -101,9 +101,9 @@ def scene_payload_candidates(context: Any, scope: str) -> list[object]:
 
 
 def scan_material_fidelity(context: Any, scope: str) -> dict[str, object]:
-    """Classify every material used by the given scope as supported / bakeable /
-    unbakeable, matching what --bake-materials would do at export time, without
-    exporting anything. Backs the addon's pre-export "Material Fidelity" panel.
+    """Classify every material used by the given scope as supported or divergent
+    (fixable by baking to flat textures elsewhere, or not), without exporting
+    anything. Backs the addon's pre-export "Material Fidelity" panel.
     """
     module = exporter_module()
     objects = scene_export_candidates(context, scope)
@@ -162,9 +162,6 @@ def export_asset(
     source_orientation: str,
     validate: bool,
     compress_geometry: bool,
-    bake_materials: bool,
-    bake_resolution: int,
-    bake_cache: bool,
     bake_color_management: bool,
     color_lut_size: int,
     bake_textures: bool,
@@ -189,9 +186,6 @@ def export_asset(
         source_orientation=source_orientation,
         validate=validate,
         compress_geometry=compress_geometry,
-        bake_materials=bake_materials,
-        bake_resolution=module.validate_bake_resolution(bake_resolution),
-        bake_cache=bake_cache,
         bake_color_management=bake_color_management,
         color_lut_size=module.validate_lut_size(color_lut_size),
         clean_sidecars=True,
@@ -342,9 +336,6 @@ def export_tiled_scene(
     generate_hlod: bool,
     generate_lod: bool,
     compress_geometry: bool,
-    bake_materials: bool,
-    bake_resolution: int,
-    bake_cache: bool,
     bake_color_management: bool,
     color_lut_size: int,
     dry_run: bool,
@@ -406,11 +397,6 @@ def export_tiled_scene(
         argv.append("--generate-lod")
     if compress_geometry:
         argv.append("--compress-geometry")
-    if bake_materials:
-        argv.append("--bake-materials")
-        argv.extend(["--bake-resolution", str(module.validate_bake_resolution(bake_resolution))])
-        if not bake_cache:
-            argv.append("--no-bake-cache")
     if bake_color_management:
         argv.append("--bake-color-management")
         argv.extend(["--color-lut-size", str(module.validate_lut_size(color_lut_size))])

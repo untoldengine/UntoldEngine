@@ -37,14 +37,6 @@ Options:
 - `Convert Orientation`: convert Blender native coordinates into engine space.
 - `Write Validation JSON`: write a companion validation file.
 - `Compress Geometry`: use LZ4 compression for geometry chunks.
-- `Bake Materials`: evaluate Blender shader nodes the exporter
-  can't read directly (Mix, Math, procedural textures, ...) into flat
-  textures via Cycles, so the export matches Blender. See
-  [Material Node Baking](../../docs/API/UsingBlenderAddon.md#material-node-baking).
-- `Bake Resolution`: square resolution for baked material textures.
-  Override per material with a `untold_bake_resolution` custom property.
-- `Use Bake Cache`: skip re-baking materials unchanged since the last
-  export; disable to force a full re-bake.
 - `Bake Color Management`: bake the scene's active View Transform/Look/
   Exposure/Gamma into a color-grading LUT so Untold can closely reproduce
   Blender's color management, including Filmic/AgX highlight compression.
@@ -98,14 +90,10 @@ Tiled scene options:
 - `Custom Tier Radii`: override the profile-derived streaming/unload
   radii and priority for each semantic tier.
 - `Generate HLOD` / `Generate LOD`: create simplified distance assets.
-  Not separately re-baked even when `Bake Materials` is on —
-  they reuse the full-detail tile's export, which is baked.
+  They reuse the full-detail tile's export rather than re-baking anything.
 - `Custom Rep Ranges`: override the normalized LOD1/LOD2/HLOD switch
   distances and reduction ratios instead of the scene-profile defaults.
 - `Compress Geometry`: LZ4-compress tile vertex/index chunks.
-- `Bake Materials` / `Bake Resolution` / `Use Bake Cache`: same
-  as the model exporter, above. Applies to full-detail tile and
-  shared-bucket payloads only.
 - `Bake Color Management` / `Color LUT Size`: same as the model exporter,
   above; the LUT is referenced from the tiled scene manifest's `colorLUT`
   key.
