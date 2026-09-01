@@ -17,6 +17,16 @@ public struct SceneData: Codable {
     var sceneAuthoredSource: SceneAssetReference? = nil
     var environment: EnvironmentData? = nil
     var toneMapping: ToneMappingData? = nil
+    /// The native Look-pass tonemap operator (see TonemapParams/setPostFX(.tonemapOperator(_))
+    /// -- ACES/AgX). Distinct from the legacy `toneMapping` field above, which
+    /// backs an older, currently-unused RTX tonemap pass.
+    var tonemapOperator: TonemapOperator? = nil
+    /// A standalone .cube color-grade LUT set via setColorGradeLUT(filename:),
+    /// independent of any scene-authored asset. nil when the active grade LUT
+    /// (if any) instead came from sceneAuthoredSource's colorGradeLUT, which is
+    /// already restorable via that reference alone.
+    var colorGradeLUTFilename: String? = nil
+    var colorGradeLUTExtension: String? = nil
     var colorGrading: ColorGradingData? = nil
     var colorCorrection: ColorCorrectionData? = nil
     var bloom: BloomThresholdData? = nil
@@ -1113,6 +1123,12 @@ public func serializeScene() -> SceneData {
         gamma: ToneMappingParams.shared.gamma
     )
 
+    sceneData.tonemapOperator = TonemapParams.shared.operator
+    if let source = ColorGradeLUTParams.shared.source {
+        sceneData.colorGradeLUTFilename = source.filename
+        sceneData.colorGradeLUTExtension = source.extension
+    }
+
     sceneData.colorCorrection = ColorCorrectionData(
         lift: ColorCorrectionParams.shared.lift,
         gamma: ColorCorrectionParams.shared.gamma,
@@ -1292,15 +1308,31 @@ public func deserializeScene(
 
     if let sceneAuthoredSource = sceneData.sceneAuthoredSource {
         loadTracker.registerLoad()
+        let standaloneLUTFilename = sceneData.colorGradeLUTFilename
+        let standaloneLUTExtension = sceneData.colorGradeLUTExtension
         loadSceneAuthoredColorManagement(from: sceneAuthoredSource) { success in
             if success == false {
                 Logger.logWarning(message: "[SceneSerializer] Failed to restore scene-authored color management")
+            }
+            // Applied after scene-authored restoration completes so a standalone
+            // choice (set independently of any scene asset) always wins over
+            // whatever colorGradeLUT the scene-authored source itself carries.
+            if let filename = standaloneLUTFilename {
+                setColorGradeLUT(filename: filename, withExtension: standaloneLUTExtension ?? "cube")
             }
             loadTracker.completeLoad()
         }
     } else {
         SceneAuthoredSourceStore.shared.clear()
         ColorLUTParams.shared.clear()
+        ColorGradeLUTParams.shared.clear()
+        if let filename = sceneData.colorGradeLUTFilename {
+            setColorGradeLUT(filename: filename, withExtension: sceneData.colorGradeLUTExtension ?? "cube")
+        }
+    }
+
+    if let tonemapOperator = sceneData.tonemapOperator {
+        TonemapParams.shared.operator = tonemapOperator
     }
 
     if let env = sceneData.environment {

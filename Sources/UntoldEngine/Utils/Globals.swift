@@ -1942,6 +1942,13 @@ public final class ColorGradeLUTParams: @unchecked Sendable {
         var lutTexture: MTLTexture?
         var domainMin = SIMD3<Float>(0, 0, 0)
         var domainMax = SIMD3<Float>(1, 1, 1)
+        // Only set when installed via the standalone setColorGradeLUT(filename:)
+        // API (nil for the scene-authored colorGradeLUT path, which is already
+        // restorable via SceneData.sceneAuthoredSource) -- lets the scene
+        // serializer persist and restore a manually-chosen LUT independent of
+        // any scene asset. See SceneSerializer.swift.
+        var sourceFilename: String?
+        var sourceExtension: String?
     }
 
     private let lock = NSLock()
@@ -1958,9 +1965,22 @@ public final class ColorGradeLUTParams: @unchecked Sendable {
         lock.unlock()
     }
 
-    func replace(texture: MTLTexture, domainMin: SIMD3<Float>, domainMax: SIMD3<Float>) {
+    func replace(
+        texture: MTLTexture,
+        domainMin: SIMD3<Float>,
+        domainMax: SIMD3<Float>,
+        sourceFilename: String? = nil,
+        sourceExtension: String? = nil
+    ) {
         lock.lock()
-        state = State(enabled: true, lutTexture: texture, domainMin: domainMin, domainMax: domainMax)
+        state = State(
+            enabled: true,
+            lutTexture: texture,
+            domainMin: domainMin,
+            domainMax: domainMax,
+            sourceFilename: sourceFilename,
+            sourceExtension: sourceExtension
+        )
         lock.unlock()
     }
 
@@ -1968,6 +1988,15 @@ public final class ColorGradeLUTParams: @unchecked Sendable {
         lock.lock()
         state = State()
         lock.unlock()
+    }
+
+    /// The filename/extension last passed to setColorGradeLUT, if the active
+    /// LUT (if any) was installed that way. Used by the scene serializer.
+    public var source: (filename: String, extension: String)? {
+        lock.lock()
+        defer { lock.unlock() }
+        guard let filename = state.sourceFilename, let ext = state.sourceExtension else { return nil }
+        return (filename, ext)
     }
 
     func snapshot() -> ColorGradeLUTSnapshot {
@@ -1986,7 +2015,7 @@ public final class ColorGradeLUTParams: @unchecked Sendable {
 /// Which native tonemap operator the look pass runs when no whole-transform
 /// bake (ColorLUTParams) is active. Independent of, and composable with,
 /// both ColorLUTParams and ColorGradeLUTParams above.
-public enum TonemapOperator: Sendable {
+public enum TonemapOperator: String, Sendable, Codable, Equatable {
     case aces
     case agx
 
