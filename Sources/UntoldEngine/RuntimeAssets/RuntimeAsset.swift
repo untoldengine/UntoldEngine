@@ -196,6 +196,31 @@ public struct RuntimeColorManagement: Sendable, Equatable {
     }
 }
 
+/// An externally-authored .cube grade LUT resolved from an asset's
+/// `UntoldColorGradeLUTRecordV1`. At most one per `RuntimeAsset` — applied
+/// by the scene-authored payload loader, not by individual mesh loads.
+/// Unlike RuntimeColorManagement above, `lutURL` points at a plain staged
+/// .cube file (parsed/uploaded directly by CubeLUTLoader), not a native
+/// texture-table entry.
+public struct RuntimeColorGradeLUT: Sendable, Equatable {
+    public var lutURL: URL?
+    public var lutSize: Int
+    public var domainMin: SIMD3<Float>
+    public var domainMax: SIMD3<Float>
+
+    public init(
+        lutURL: URL? = nil,
+        lutSize: Int = 0,
+        domainMin: SIMD3<Float> = SIMD3<Float>(0, 0, 0),
+        domainMax: SIMD3<Float> = SIMD3<Float>(1, 1, 1)
+    ) {
+        self.lutURL = lutURL
+        self.lutSize = lutSize
+        self.domainMin = domainMin
+        self.domainMax = domainMax
+    }
+}
+
 public struct RuntimeMaterialSource: Sendable, Equatable {
     public var name: String?
     public var baseColorFactor: SIMD4<Float>
@@ -504,6 +529,7 @@ public struct RuntimeAsset: Sendable, Equatable {
     public var lights: [RuntimeLightSource]
     public var cameras: [RuntimeCameraSource]
     public var colorManagement: RuntimeColorManagement?
+    public var colorGradeLUT: RuntimeColorGradeLUT?
     public var animationClips: [RuntimeAnimationClip]
     public var meshGroups: [RuntimeMeshGroup]
 
@@ -517,6 +543,7 @@ public struct RuntimeAsset: Sendable, Equatable {
         lights: [RuntimeLightSource] = [],
         cameras: [RuntimeCameraSource] = [],
         colorManagement: RuntimeColorManagement? = nil,
+        colorGradeLUT: RuntimeColorGradeLUT? = nil,
         animationClips: [RuntimeAnimationClip] = [],
         meshGroups: [RuntimeMeshGroup]
     ) {
@@ -529,6 +556,7 @@ public struct RuntimeAsset: Sendable, Equatable {
         self.lights = lights
         self.cameras = cameras
         self.colorManagement = colorManagement
+        self.colorGradeLUT = colorGradeLUT
         self.animationClips = animationClips
         self.meshGroups = meshGroups
     }
@@ -543,6 +571,7 @@ public struct RuntimeAsset: Sendable, Equatable {
         lights: [RuntimeLightSource] = [],
         cameras: [RuntimeCameraSource] = [],
         colorManagement: RuntimeColorManagement? = nil,
+        colorGradeLUT: RuntimeColorGradeLUT? = nil,
         animationClips: [RuntimeAnimationClip] = []
     ) {
         self.sourceURL = sourceURL
@@ -554,6 +583,7 @@ public struct RuntimeAsset: Sendable, Equatable {
         self.lights = lights
         self.cameras = cameras
         self.colorManagement = colorManagement
+        self.colorGradeLUT = colorGradeLUT
         self.animationClips = animationClips
         meshGroups = nodes.compactMap { node in
             guard !node.primitives.isEmpty else { return nil }

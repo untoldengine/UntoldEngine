@@ -169,9 +169,10 @@ untoldengine export-tiles \
 tile's `.untold` references. Grid, quadtree, and KD-tree partitioning modes
 are available (`--quadtree`, `--kdtree`); run `untoldengine export-tiles
 --help` for the full flag list, including color management
-(`--bake-color-management`, `--color-lut-size` — only applied via an explicit
-`loadSceneAuthored(url:)` call, see [Using the Registration
-System](UsingRegistrationSystem.md#loading-scene-authored-data)), tiering
+(`--bake-color-management`, `--color-lut-size`, `--color-grade-lut` — only
+applied via an explicit `loadSceneAuthored(url:)` call, see [Using the
+Registration System](UsingRegistrationSystem.md#loading-scene-authored-data)),
+tiering
 (`--min-objects-per-tile-tier`,
 `--untagged-semantic-tier`), LOD/HLOD (`--lod-level`, `--hlod-level`), and
 sampling (`--sample`, `--sample-fraction`, `--perimeter`, `--perimeter-depth`)

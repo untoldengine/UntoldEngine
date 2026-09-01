@@ -73,6 +73,7 @@ from untoldexplorer import (
     extract_scene_payload_from_objects,
     import_usd_asset,
     load_blend_scene,
+    stage_color_grade_lut_for_output,
     stage_hdr_assets_for_output,
     validate_lut_size,
 )
@@ -171,6 +172,27 @@ def _manifest_color_management_payload(bake, manifest_dir=None):
     }
 
 
+def _manifest_color_grade_lut_payload(staged, manifest_dir=None):
+    """Externally-authored .cube grade LUT (see stage_color_grade_lut_for_output).
+
+    Kept as a separate manifest key from colorLUT above -- that one is a
+    proprietary baked-.utex whole-transform bake, this one is a plain .cube
+    file the engine parses/uploads directly, with no shaper/view-transform
+    metadata to carry.
+    """
+    if staged is None:
+        return None
+    lut_uri = staged.uri
+    if manifest_dir is not None:
+        lut_uri = os.path.relpath(staged.source_path, Path(manifest_dir)).replace(os.sep, "/")
+    return {
+        "lutUri": lut_uri,
+        "lutSize": staged.lut_size,
+        "domainMin": list(staged.domain_min),
+        "domainMax": list(staged.domain_max),
+    }
+
+
 def collect_manifest_scene_payload():
     lights, cameras = extract_scene_payload_from_objects(
         list(bpy.data.objects),
@@ -209,6 +231,7 @@ SOURCE_ORIENTATION = "blender-native"
 COMPRESS_GEOMETRY = False       # Compress vertex/index chunks with LZ4 (requires: pip install lz4).
 BAKE_COLOR_MANAGEMENT = False   # Bake the scene's View Transform/Look/Exposure/Gamma into a LUT (see --bake-color-management).
 COLOR_LUT_SIZE = 32             # Grid size (N) for the NxNxN color-grading LUT.
+COLOR_GRADE_LUT_PATH = None     # Path to an externally-authored .cube LUT to stage (see --color-grade-lut).
 
 # Tile footprint in Blender world units.
 # Start at 10 and tune with DRY_RUN=True.  Rule of thumb: set to 2–3× the
@@ -4727,6 +4750,13 @@ def run():
         print_export_stage("Bake color management")
         color_management_bake = bake_color_management_lut(COLOR_LUT_SIZE, Path(output_dir) / "Textures")
 
+    # Same reasoning: one .cube grade LUT applies to the whole scene, so stage
+    # it once here rather than per-tile.
+    color_grade_lut = None
+    if COLOR_GRADE_LUT_PATH and (not DRY_RUN or DRY_RUN_WRITE_MANIFEST):
+        print_export_stage("Stage color grade LUT", os.path.basename(COLOR_GRADE_LUT_PATH))
+        color_grade_lut = stage_color_grade_lut_for_output(Path(COLOR_GRADE_LUT_PATH), Path(output_dir))
+
     # The world/studio-light HDR environment is scene-wide too, so stage it
     # once here rather than per-tile -- same reasoning as color management.
     staged_hdr_assets: list[Path] = []
@@ -5015,6 +5045,7 @@ def run():
         "scene_lights": scene_lights,
         "scene_cameras": scene_cameras,
         "colorLUT": _manifest_color_management_payload(color_management_bake, model_dir),
+        "colorGradeLUT": _manifest_color_grade_lut_payload(color_grade_lut, model_dir),
         "streaming_profile": {
             "requested": SCENE_STREAMING_PROFILE,
             "resolved": resolved_profile,
@@ -5876,6 +5907,16 @@ def parse_args(argv):
         help="Grid size (N) for the NxNxN color-grading LUT (default: 32).",
     )
     parser.add_argument(
+        "--color-grade-lut",
+        default=None,
+        help=(
+            "Path to an externally-authored standard .cube 3D LUT to stage once for the whole "
+            "scene and reference from the manifest's colorGradeLUT key, applied as a post-tonemap "
+            "creative grade. Unlike --bake-color-management, nothing is rendered from Blender -- "
+            "the .cube is copied as-is and loaded directly by the engine."
+        ),
+    )
+    parser.add_argument(
         "--quadtree",
         action="store_true",
         help=(
@@ -5986,6 +6027,7 @@ def apply_cli_overrides(args):
     global COMPRESS_GEOMETRY
     global BAKE_COLOR_MANAGEMENT
     global COLOR_LUT_SIZE
+    global COLOR_GRADE_LUT_PATH
     global SAMPLE_MODE
     global SAMPLE_FRACTION
     global PERIMETER_MODE
@@ -6054,6 +6096,8 @@ def apply_cli_overrides(args):
         BAKE_COLOR_MANAGEMENT = True
     if getattr(args, "color_lut_size", None) is not None:
         COLOR_LUT_SIZE = validate_lut_size(args.color_lut_size)
+    if getattr(args, "color_grade_lut", None):
+        COLOR_GRADE_LUT_PATH = args.color_grade_lut
     if getattr(args, "sample", False):
         SAMPLE_MODE = True
     if getattr(args, "sample_fraction", None) is not None:

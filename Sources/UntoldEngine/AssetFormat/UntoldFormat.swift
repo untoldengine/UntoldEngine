@@ -84,6 +84,7 @@ public struct UntoldChunkType: RawRepresentable, Hashable, Sendable, Equatable {
     public static let lightTable = UntoldChunkType(rawValue: 19)
     public static let cameraTable = UntoldChunkType(rawValue: 20)
     public static let colorManagementTable = UntoldChunkType(rawValue: 21)
+    public static let colorGradeLUTTable = UntoldChunkType(rawValue: 22)
 
     public static let firstPluginChunkRawValue: UInt32 = 0x8000
 
@@ -631,6 +632,32 @@ public struct UntoldColorManagementRecordV1: Sendable, Equatable {
         self.shaperMinStops = shaperMinStops
         self.shaperMaxStops = shaperMaxStops
         self.lutSize = lutSize
+    }
+}
+
+/// An externally-authored standard .cube 3D LUT staged alongside the export
+/// (see ColorGradeLUTRecord in scripts/untoldexplorer.py), applied as a
+/// post-tonemap creative grade. At most one per file. Unlike
+/// UntoldColorManagementRecordV1 above, this references a plain staged file
+/// via a string-table URI, not a native texture-table entry -- the engine
+/// parses/uploads the .cube directly (see CubeLUTLoader) rather than going
+/// through the native texture pipeline.
+public struct UntoldColorGradeLUTRecordV1: Sendable, Equatable {
+    public var lutUriOffset: UInt32
+    public var lutSize: UInt32
+    public var domainMin: SIMD3<Float>
+    public var domainMax: SIMD3<Float>
+
+    public init(
+        lutUriOffset: UInt32 = UntoldFormat.invalidIndex,
+        lutSize: UInt32 = 0,
+        domainMin: SIMD3<Float> = SIMD3<Float>(0, 0, 0),
+        domainMax: SIMD3<Float> = SIMD3<Float>(1, 1, 1)
+    ) {
+        self.lutUriOffset = lutUriOffset
+        self.lutSize = lutSize
+        self.domainMin = domainMin
+        self.domainMax = domainMax
     }
 }
 

@@ -227,6 +227,19 @@ typedef enum{
     colorLUTSizeIndex,
 }ColorLUTPassBufferIndices;
 
+typedef enum {
+    colorGradeLUTTextureIndex = 2,   // texture(0)=sceneTexture, texture(1)=colorLUTTexture (whole-transform bake)
+} LookPassGradeLUTTextureIndices;
+
+typedef enum{
+    // An externally-authored .cube LUT (see CubeLUTLoader.swift), applied as a
+    // post-tonemap creative grade -- independent of, and composable with,
+    // ColorLUTPassBufferIndices above (which replaces the tonemap entirely).
+    colorGradeLUTEnabledIndex = 11,   // starts after ColorLUTPassBufferIndices (7-10)
+    colorGradeLUTDomainMinIndex,
+    colorGradeLUTDomainMaxIndex,
+}ColorGradeLUTPassBufferIndices;
+
 typedef enum{
     colorCorrectionPassColorTextureIndex,
     colorCorrectionPassTemperatureIndex,

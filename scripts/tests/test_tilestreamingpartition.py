@@ -38,6 +38,7 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 import tilestreamingpartition as t  # noqa: E402
+import untoldexplorer as u  # noqa: E402
 
 
 class FakeObject(dict):
@@ -663,6 +664,40 @@ class TileStreamingPartitionTests(unittest.TestCase):
         ])
         self.assertEqual(args.floor_count, 3)
         self.assertAlmostEqual(args.floor_band_height, 4.5)
+
+    def test_parse_args_color_grade_lut(self) -> None:
+        args = t.parse_args(["script.py", "--color-grade-lut", "/tmp/grade.cube"])
+        self.assertEqual(args.color_grade_lut, "/tmp/grade.cube")
+
+    def test_parse_args_color_grade_lut_defaults_none(self) -> None:
+        args = t.parse_args(["script.py"])
+        self.assertIsNone(args.color_grade_lut)
+
+    def test_apply_cli_overrides_sets_color_grade_lut_path(self) -> None:
+        previous = t.COLOR_GRADE_LUT_PATH
+        try:
+            args = t.parse_args(["script.py", "--color-grade-lut", "/tmp/grade.cube"])
+            t.apply_cli_overrides(args)
+            self.assertEqual(t.COLOR_GRADE_LUT_PATH, "/tmp/grade.cube")
+        finally:
+            t.COLOR_GRADE_LUT_PATH = previous
+
+    def test_manifest_color_grade_lut_payload_none_when_not_staged(self) -> None:
+        self.assertIsNone(t._manifest_color_grade_lut_payload(None))
+
+    def test_manifest_color_grade_lut_payload_shape(self) -> None:
+        staged = u.ColorGradeLUT(
+            uri="Textures/gradelut_abc123.cube",
+            lut_size=33,
+            domain_min=(0.0, 0.0, 0.0),
+            domain_max=(1.0, 1.0, 1.0),
+            source_path=Path("/tmp/out/Textures/gradelut_abc123.cube"),
+        )
+        payload = t._manifest_color_grade_lut_payload(staged)
+        self.assertEqual(payload["lutUri"], "Textures/gradelut_abc123.cube")
+        self.assertEqual(payload["lutSize"], 33)
+        self.assertEqual(payload["domainMin"], [0.0, 0.0, 0.0])
+        self.assertEqual(payload["domainMax"], [1.0, 1.0, 1.0])
 
     # ------------------------------------------------------------------
     # UV layer normalization before cross-object merge

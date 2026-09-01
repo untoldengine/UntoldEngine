@@ -61,10 +61,29 @@ inline float3 sampleColorLUT(
   return mix(sampleLow, sampleHigh, blueFrac);
 }
 
+// Samples an externally-authored standard .cube 3D LUT (see CubeLUTLoader.swift),
+// applied as a post-tonemap creative grade. Unlike sampleColorLUT above (which
+// bakes Blender's whole View Transform into a custom log2-stops shaper domain
+// and replaces the tonemap step entirely), this operates on already-tonemapped,
+// bounded [domainMin, domainMax] color and is a real 3D texture, so hardware
+// trilinear filtering handles all three axes -- no manual blue-axis blend needed.
+inline float3 sampleColorGradeLUT(
+  float3 color,
+  texture3d<float> gradeLUTTexture,
+  float3 domainMin,
+  float3 domainMax
+) {
+  constexpr sampler gradeLUTSampler(min_filter::linear, mag_filter::linear, mip_filter::none, address::clamp_to_edge);
+  float3 range = max(domainMax - domainMin, 1e-6);
+  float3 t = clamp((color - domainMin) / range, 0.0, 1.0);
+  return gradeLUTTexture.sample(gradeLUTSampler, t).rgb;
+}
+
 fragment float4 fragmentLookShader(
   VertexCompositeOutput in [[stage_in]],
   texture2d<float> sceneTexture [[texture(0)]],
   texture2d<float> colorLUTTexture [[texture(lookPassColorLUTTextureIndex)]],
+  texture3d<float> colorGradeLUTTexture [[texture(colorGradeLUTTextureIndex)]],
   constant float &brightness [[buffer(colorGradingPassBrightnessIndex)]],
   constant float &contrast [[buffer(colorGradingPassContrastIndex)]],
   constant float &saturation [[buffer(colorGradingPassSaturationIndex)]],
@@ -74,7 +93,10 @@ fragment float4 fragmentLookShader(
   constant bool &colorLUTEnabled [[buffer(colorLUTEnabledIndex)]],
   constant float &colorLUTShaperMinStops [[buffer(colorLUTShaperMinStopsIndex)]],
   constant float &colorLUTShaperMaxStops [[buffer(colorLUTShaperMaxStopsIndex)]],
-  constant int &colorLUTSize [[buffer(colorLUTSizeIndex)]]
+  constant int &colorLUTSize [[buffer(colorLUTSizeIndex)]],
+  constant bool &colorGradeLUTEnabled [[buffer(colorGradeLUTEnabledIndex)]],
+  constant float3 &colorGradeLUTDomainMin [[buffer(colorGradeLUTDomainMinIndex)]],
+  constant float3 &colorGradeLUTDomainMax [[buffer(colorGradeLUTDomainMaxIndex)]]
 ) {
   constexpr sampler s(min_filter::linear, mag_filter::linear, address::clamp_to_edge);
   float4 sceneSample = sceneTexture.sample(s, in.uvCoords);
@@ -97,6 +119,13 @@ fragment float4 fragmentLookShader(
       // Tone map ONCE, here.
       color = ACESFilmicToneMapping(max(color, 0.0));
   }
+
+  // Independent of the branch above: a .cube creative grade layers on top of
+  // whichever tonemap just ran (native ACES, or the whole-transform bake).
+  if (colorGradeLUTEnabled) {
+      color = sampleColorGradeLUT(color, colorGradeLUTTexture, colorGradeLUTDomainMin, colorGradeLUTDomainMax);
+  }
+
   return float4(color, sceneSample.a);
 }
 

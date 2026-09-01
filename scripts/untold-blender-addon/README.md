@@ -41,6 +41,11 @@ Options:
   Exposure/Gamma into a color-grading LUT so Untold can closely reproduce
   Blender's color management, including Filmic/AgX highlight compression.
 - `Color LUT Size`: grid size (N) for the NxNxN color-grading LUT.
+- `Color Grade LUT`: path to an externally-authored standard `.cube` 3D LUT
+  to stage and apply as a post-tonemap creative grade. Unlike `Bake Color
+  Management`, nothing is rendered from Blender — the `.cube` is copied
+  as-is and loaded directly by the engine, composing with (not replacing)
+  the tonemap or `Bake Color Management` bake.
 - `Compress Textures`: convert staged textures to engine-native `.utex`
   files and patch the exported `.untold` references.
 
@@ -97,6 +102,8 @@ Tiled scene options:
 - `Bake Color Management` / `Color LUT Size`: same as the model exporter,
   above; the LUT is referenced from the tiled scene manifest's `colorLUT`
   key.
+- `Color Grade LUT`: same as the model exporter, above; staged once for the
+  whole scene and referenced from the manifest's `colorGradeLUT` key.
 - `Dry Run`: plan the partition without writing payload files.
 - `Write Manifest In Dry Run`: write the manifest JSON even when `Dry Run`
   is enabled.

@@ -69,6 +69,7 @@ public struct NativeFormatLoader: NamedRuntimeAssetLoading {
             lights: makeRuntimeLights(decoded: decoded),
             cameras: makeRuntimeCameras(decoded: decoded),
             colorManagement: makeRuntimeColorManagement(decoded: decoded, baseURL: url.deletingLastPathComponent()),
+            colorGradeLUT: makeRuntimeColorGradeLUT(decoded: decoded, baseURL: url.deletingLastPathComponent()),
             animationClips: animationClips
         )
     }
@@ -229,6 +230,25 @@ public struct NativeFormatLoader: NamedRuntimeAssetLoading {
             shaperMinStops: record.shaperMinStops,
             shaperMaxStops: record.shaperMaxStops,
             lutSize: Int(record.lutSize)
+        )
+    }
+
+    private func makeRuntimeColorGradeLUT(decoded: UntoldDecodedAsset, baseURL: URL) throws -> RuntimeColorGradeLUT? {
+        guard let record = decoded.colorGradeLUT else { return nil }
+        guard (2 ... 129).contains(record.lutSize),
+              record.domainMax.x > record.domainMin.x,
+              record.domainMax.y > record.domainMin.y,
+              record.domainMax.z > record.domainMin.z
+        else {
+            throw UntoldValidationError.invalidColorGradeLUTRecord
+        }
+
+        let uriString = try decoded.string(at: record.lutUriOffset)
+        return RuntimeColorGradeLUT(
+            lutURL: resolvedURL(from: uriString, baseURL: baseURL),
+            lutSize: Int(record.lutSize),
+            domainMin: record.domainMin,
+            domainMax: record.domainMax
         )
     }
 

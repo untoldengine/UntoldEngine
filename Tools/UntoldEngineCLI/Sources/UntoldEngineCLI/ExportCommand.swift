@@ -74,6 +74,9 @@ struct ExportCommand: ParsableCommand {
     @Option(name: .customLong("color-lut-size"), help: "Grid size (N) for the NxNxN color-grading LUT")
     var colorLutSize: Int = 32
 
+    @Option(name: .customLong("color-grade-lut"), help: "Path to an externally-authored standard .cube 3D LUT to stage and apply as a post-tonemap creative grade. Unlike --bake-color-management, nothing is rendered from Blender -- the .cube is copied as-is and loaded directly by the engine")
+    var colorGradeLUT: String?
+
     @Option(name: .customLong("lod-levels"), help: "Gaussian .ply export only: number of progressive .untoldgs tiers to generate. Default 1 writes --output directly; values greater than 1 write <name>_lod0.untoldgs, <name>_lod1.untoldgs, ...")
     var lodLevels: Int = 1
 
@@ -113,6 +116,13 @@ struct ExportCommand: ParsableCommand {
         if bakeColorManagement {
             exporterArguments.append("--bake-color-management")
             exporterArguments += ["--color-lut-size", String(colorLutSize)]
+        }
+        if let colorGradeLUT {
+            let lutURL = resolvePath(colorGradeLUT).standardizedFileURL
+            guard FileManager.default.fileExists(atPath: lutURL.path) else {
+                throw ExportError.colorGradeLUTNotFound(lutURL.path)
+            }
+            exporterArguments += ["--color-grade-lut", lutURL.path]
         }
 
         printInfo("Using Blender: \(blenderURL.path)")
@@ -217,6 +227,7 @@ enum ExportError: LocalizedError {
     case optimizeFailed(Int32)
     case unsupportedPLYExportOutput(String)
     case invalidLODLevels(Int)
+    case colorGradeLUTNotFound(String)
 
     var errorDescription: String? {
         switch self {
@@ -233,6 +244,8 @@ enum ExportError: LocalizedError {
             return "Gaussian .ply export supports only .untoldgs output, got \(suffix)"
         case let .invalidLODLevels(value):
             return "--lod-levels must be a positive integer, got \(value)"
+        case let .colorGradeLUTNotFound(path):
+            return "--color-grade-lut path does not exist: \(path)"
         }
     }
 }
