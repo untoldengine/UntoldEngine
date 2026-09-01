@@ -328,78 +328,24 @@ subprocess.check_call([sys.executable, "-m", "pip", "install", "lz4"])
 
 Restart Blender after installing.
 
-## Material Node Baking
+## Material Fidelity
 
 The exporter reads a fixed set of material inputs: base color, roughness,
 metallic, normal, and emissive. It does not evaluate arbitrary Blender
 shader nodes — a `Mix` node blending two textures, a `Math` node adjusting a
 value, a procedural `Noise Texture`, and similar setups will look different
-in the engine than in Blender unless you bake them.
-
-`Bake Materials` (in the export panel) fixes this: at export
-time, Blender itself evaluates each affected material through Cycles and
-writes the result to a flat texture, so the exported look matches Blender
-exactly for anything this covers. This is a different feature from
-`Compress Textures` below — that one compresses existing texture
-*files*; this one evaluates *node graphs* Blender itself.
-
-### Checking what will bake first
+in the engine than in Blender unless you bake them to flat textures with a
+third-party tool (e.g. Blender's own Cycles bake, Substance, or similar)
+before export.
 
 Before exporting, open the `Untold Materials` tab in the 3D viewport
 sidebar (press `N` if the sidebar is hidden) and click `Scan Materials`. It
-lists every material as supported, bakeable, or unbakeable, with the
-specific node and reason for anything that isn't a plain match — the exact
-same classification the export will use, without needing to actually
-export first. Re-run it after editing materials; it does not update
-automatically.
-
-### Using it
-
-1. Enable `Bake Materials` in the export panel (works for both
-   `Export A Model` and `Export A Tiled Scene`).
-2. `Bake Resolution` (default 1024) is only a fallback. Each material's
-   actual bake resolution is auto-detected from the largest source texture
-   feeding it, rounded up to a power of two, and never goes below this
-   fallback — a material built from a 4096x4096 photo texture bakes at 4096
-   even if you never touch this setting. The fallback only kicks in for
-   materials with no source texture to detect from (e.g. procedural/
-   solid-color materials). If the auto-detected resolution is ever wrong for
-   a specific material, add a custom property to it named
-   `untold_bake_resolution` (Material Properties tab → Custom Properties →
-   Add) set to the resolution you want — it overrides auto-detection for
-   that material only.
-3. Export as usual.
-
-Baked textures need a UV map. A mesh using a divergent material with no UVs
-(or a fully collapsed UV map) is reported as a warning, both in the
-`Untold Materials` panel and in Blender's System Console during export, and
-that material's channel is skipped rather than baked incorrectly.
-
-### What can't be baked
-
-- **A shader combined above the Principled BSDF** — a `Mix Shader` or
-  `Add Shader` node blending the Principled BSDF with another shader (for
-  example, glass built from Principled + Transparent BSDF). The baker only
-  reads individual Principled inputs; it has no way to reproduce
-  shader-level blending, so these materials are left exactly as they'd be
-  without baking rather than baked incorrectly. Workaround: flatten the
-  graph to a single Principled BSDF in Blender before export, if the look
-  allows it.
-- **View-dependent nodes** — `Fresnel`, `Layer Weight`, camera- or
-  reflection-mapped texture coordinates. These have no single correct
-  baked value since they depend on viewing angle.
-- **Animated or driver-driven node values.**
-- **HLOD/LOD tiles** in a tiled scene export are decimated stand-ins for
-  geometry already exported (and baked, if enabled) at full detail — they
-  are not separately re-baked.
-
-### Re-exporting is fast after the first bake
-
-Baked textures are cached next to the source `.blend` file (a hidden
-`.untold_bake_cache_<name>` folder) and reused whenever a material hasn't
-changed, so re-exporting the same scene only bakes what you actually
-edited. Uncheck `Use Bake Cache` to force everything to bake fresh — useful
-if you suspect a stale result, or for a final, from-scratch export.
+lists every material as supported or divergent, with the specific node and
+reason for anything that isn't a plain match, and separates divergences
+that baking can fix from ones no bake can fix (view-dependent nodes,
+shader-level blending above the Principled BSDF) — the exact same
+classification the export will use, without needing to actually export
+first. Re-run it after editing materials; it does not update automatically.
 
 ## Compress Textures To .utex
 
@@ -499,11 +445,7 @@ Python, not only your terminal Python.
 If texture baking fails with `astcenc not found on PATH`, launch Blender with
 `ASTCENC_BIN=/full/path/to/astcenc`.
 
-If a material still looks wrong after enabling `Bake Materials`,
-scan it in the `Untold Materials` panel first — it may be classified
-unbakeable (shader-level mixing or a view-dependent node; see
-[Material Node Baking](#material-node-baking)), in which case baking
-cannot fix it and the graph needs to change instead.
-
-If a baked material doesn't seem to reflect a recent edit, uncheck
-`Use Bake Cache` and export again to rule out a stale cache entry.
+If a material looks wrong in-engine, scan it in the `Untold Materials`
+panel first (see [Material Fidelity](#material-fidelity)) — it may be
+classified as a divergence no bake can fix (shader-level mixing or a
+view-dependent node), in which case the graph needs to change instead.

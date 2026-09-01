@@ -74,7 +74,6 @@ from untoldexplorer import (
     import_usd_asset,
     load_blend_scene,
     stage_hdr_assets_for_output,
-    validate_bake_resolution,
     validate_lut_size,
 )
 
@@ -208,12 +207,6 @@ EXPORT_FORMAT = "untold"        # Runtime payload format emitted for tiles.
 CONVERT_ORIENTATION = True      # Convert Blender scene data into engine space (+Z forward, +Y up).
 SOURCE_ORIENTATION = "blender-native"
 COMPRESS_GEOMETRY = False       # Compress vertex/index chunks with LZ4 (requires: pip install lz4).
-BAKE_MATERIALS = False          # Bake node-graph materials the engine can't evaluate (see --bake-materials).
-BAKE_RESOLUTION = 1024          # Square resolution for baked material textures.
-BAKE_CACHE = True                # Skip re-baking materials unchanged since the last export (see --no-bake-cache).
-                                  # Cache location follows source_asset_path (shared across all tiles from one
-                                  # --input source); falls back to being scoped per-tile-output when no --input
-                                  # source path is known (e.g. addon exports operating on an already-open scene).
 BAKE_COLOR_MANAGEMENT = False   # Bake the scene's View Transform/Look/Exposure/Gamma into a LUT (see --bake-color-management).
 COLOR_LUT_SIZE = 32             # Grid size (N) for the NxNxN color-grading LUT.
 
@@ -559,7 +552,6 @@ PARALLEL_WORKERS = 0
 # Explicit --parallel-workers N always bypasses it.
 AUTO_WORKER_RAM_SAFETY_FRACTION = 0.6       # fraction of total RAM the auto cap may plan to use
 AUTO_WORKER_SCENE_MEMORY_MULTIPLIER = 6.0   # estimated in-memory expansion vs on-disk file size
-AUTO_WORKER_BAKE_MEMORY_MULTIPLIER = 1.5    # extra multiplier when --bake-materials is enabled
 AUTO_WORKER_MIN_ESTIMATE_BYTES = 512 * 1024 * 1024  # floor per-worker estimate
 
 
@@ -3275,9 +3267,6 @@ def export_local_tile(filepath, objects, tile_bounds, source_scene_path):
                 convert_orientation=CONVERT_ORIENTATION,
                 source_orientation=SOURCE_ORIENTATION,
                 compress_geometry=COMPRESS_GEOMETRY,
-                bake_materials=BAKE_MATERIALS,
-                bake_resolution=BAKE_RESOLUTION,
-                bake_cache=BAKE_CACHE,
                 progress_callback=make_untold_progress_callback(os.path.basename(filepath)),
             )
     finally:
@@ -3317,9 +3306,6 @@ def export_shared_bucket(filepath, objects, source_scene_path):
                     convert_orientation=CONVERT_ORIENTATION,
                     source_orientation=SOURCE_ORIENTATION,
                     compress_geometry=COMPRESS_GEOMETRY,
-                    bake_materials=BAKE_MATERIALS,
-                    bake_resolution=BAKE_RESOLUTION,
-                    bake_cache=BAKE_CACHE,
                     progress_callback=make_untold_progress_callback(os.path.basename(filepath)),
                 )
         finally:
@@ -3335,9 +3321,6 @@ def export_shared_bucket(filepath, objects, source_scene_path):
                 convert_orientation=CONVERT_ORIENTATION,
                 source_orientation=SOURCE_ORIENTATION,
                 compress_geometry=COMPRESS_GEOMETRY,
-                bake_materials=BAKE_MATERIALS,
-                bake_resolution=BAKE_RESOLUTION,
-                bake_cache=BAKE_CACHE,
                 progress_callback=make_untold_progress_callback(os.path.basename(filepath)),
             )
 
@@ -3345,15 +3328,7 @@ def export_shared_bucket(filepath, objects, source_scene_path):
 
 
 def export_hlod_tile(filepath, objects, tile_bounds, reduction_ratio, source_scene_path, file_type_name):
-    """Export one simplified HLOD asset for a tile-local geometry set.
-
-    Deliberately does not pass BAKE_MATERIALS/BAKE_RESOLUTION through to
-    export_objects_to_untold(): HLOD/LOD tiles are decimated stand-ins for
-    geometry already exported (and, if requested, baked) at full detail in
-    export_local_tile()/export_shared_bucket(). Baking them again would
-    duplicate work and risk a different-looking bake, since decimation
-    changes UV layout/topology.
-    """
+    """Export one simplified HLOD asset for a tile-local geometry set."""
     if not objects:
         return False, "No objects assigned to tile"
     if not BAKE_WORLD_TRANSFORMS:
@@ -4009,8 +3984,6 @@ def _ram_based_worker_cap(source_scene_path: str) -> int:
         file_size * AUTO_WORKER_SCENE_MEMORY_MULTIPLIER,
         AUTO_WORKER_MIN_ESTIMATE_BYTES,
     )
-    if BAKE_MATERIALS:
-        per_worker_estimate *= AUTO_WORKER_BAKE_MEMORY_MULTIPLIER
 
     budget = _total_system_memory_bytes() * AUTO_WORKER_RAM_SAFETY_FRACTION
     return max(1, int(budget // per_worker_estimate))
@@ -4060,9 +4033,6 @@ def _config_snapshot() -> dict:
         "SPLIT_CLIP_EPSILON":  SPLIT_CLIP_EPSILON,
         "DEBUG_AABB_ONLY":     DEBUG_AABB_ONLY,
         "COMPRESS_GEOMETRY":   COMPRESS_GEOMETRY,
-        "BAKE_MATERIALS":      BAKE_MATERIALS,
-        "BAKE_RESOLUTION":     BAKE_RESOLUTION,
-        "BAKE_CACHE":          BAKE_CACHE,
     }
 
 
@@ -4071,7 +4041,6 @@ def _apply_bundle_config(cfg: dict) -> None:
     global EXPORT_FORMAT, CONVERT_ORIENTATION, SOURCE_ORIENTATION
     global CLIP_LOCAL_MESHES, MERGE_BY_MATERIAL, NO_MERGE_PREFIX, BAKE_WORLD_TRANSFORMS
     global SPLIT_CLIP_EPSILON, DEBUG_AABB_ONLY, COMPRESS_GEOMETRY
-    global BAKE_MATERIALS, BAKE_RESOLUTION, BAKE_CACHE
     EXPORT_FORMAT         = cfg.get("EXPORT_FORMAT",         EXPORT_FORMAT)
     CONVERT_ORIENTATION   = cfg.get("CONVERT_ORIENTATION",   CONVERT_ORIENTATION)
     SOURCE_ORIENTATION    = cfg.get("SOURCE_ORIENTATION",    SOURCE_ORIENTATION)
@@ -4082,9 +4051,6 @@ def _apply_bundle_config(cfg: dict) -> None:
     SPLIT_CLIP_EPSILON    = cfg.get("SPLIT_CLIP_EPSILON",    SPLIT_CLIP_EPSILON)
     DEBUG_AABB_ONLY       = cfg.get("DEBUG_AABB_ONLY",       DEBUG_AABB_ONLY)
     COMPRESS_GEOMETRY     = cfg.get("COMPRESS_GEOMETRY",     COMPRESS_GEOMETRY)
-    BAKE_MATERIALS        = cfg.get("BAKE_MATERIALS",        BAKE_MATERIALS)
-    BAKE_RESOLUTION       = cfg.get("BAKE_RESOLUTION",       BAKE_RESOLUTION)
-    BAKE_CACHE            = cfg.get("BAKE_CACHE",            BAKE_CACHE)
 
 
 def _run_worker_mode(work_bundle_path: str, result_file_path: str) -> None:
@@ -5895,27 +5861,6 @@ def parse_args(argv):
         help="Compress vertex and index chunks with LZ4 in every exported tile payload (requires: pip install lz4).",
     )
     parser.add_argument(
-        "--bake-materials",
-        action="store_true",
-        help=(
-            "Bake node-graph materials the engine can't evaluate (Mix, Math, procedural textures, ...) "
-            "into flat textures via Cycles. Applies to full-detail tile and shared-bucket exports only — "
-            "HLOD/LOD tiles are decimated stand-ins and are not separately baked."
-        ),
-    )
-    parser.add_argument(
-        "--bake-resolution",
-        type=int,
-        default=None,
-        help="Square resolution for baked material textures (default: 1024). "
-             "Override per material via a material['untold_bake_resolution'] custom property.",
-    )
-    parser.add_argument(
-        "--no-bake-cache",
-        action="store_true",
-        help="Disable the persistent bake cache and force every divergent material to be re-baked.",
-    )
-    parser.add_argument(
         "--bake-color-management",
         action="store_true",
         help=(
@@ -6039,9 +5984,6 @@ def apply_cli_overrides(args):
     global AUTO_TILE_SIZE
     global PARALLEL_WORKERS
     global COMPRESS_GEOMETRY
-    global BAKE_MATERIALS
-    global BAKE_RESOLUTION
-    global BAKE_CACHE
     global BAKE_COLOR_MANAGEMENT
     global COLOR_LUT_SIZE
     global SAMPLE_MODE
@@ -6108,12 +6050,6 @@ def apply_cli_overrides(args):
         PARALLEL_WORKERS = args.parallel_workers
     if getattr(args, "compress_geometry", False):
         COMPRESS_GEOMETRY = True
-    if getattr(args, "bake_materials", False):
-        BAKE_MATERIALS = True
-    if getattr(args, "bake_resolution", None) is not None:
-        BAKE_RESOLUTION = validate_bake_resolution(args.bake_resolution)
-    if getattr(args, "no_bake_cache", False):
-        BAKE_CACHE = False
     if getattr(args, "bake_color_management", False):
         BAKE_COLOR_MANAGEMENT = True
     if getattr(args, "color_lut_size", None) is not None:

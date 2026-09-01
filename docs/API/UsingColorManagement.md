@@ -11,9 +11,9 @@ display transform into an `NxNxN` color-grading LUT (lookup table) at export
 time. Loading that LUT at runtime makes the engine reproduce Blender's
 display transform instead of its default tonemap.
 
-Unlike material baking (see [Using Bake Materials](UsingBakeMaterials.md)),
-this is **scene-wide, not per-mesh** — one LUT applies to the whole scene's
-final output, not to individual materials.
+Unlike per-material texture baking (a separate, third-party step you'd run
+before export), this is **scene-wide, not per-mesh** — one LUT applies to
+the whole scene's final output, not to individual materials.
 
 ## Exporting With Baked Color Management
 

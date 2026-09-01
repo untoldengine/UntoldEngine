@@ -20,11 +20,11 @@ implementation detail.
 | Add a new effect that is not tied to any one mesh's shading (post-process, procedural geometry, screen overlay, bloom, outline pass) | `RenderExtension`, **full custom pass path** | Yes (full pipeline) | No |
 
 The first row is not a `RenderExtension` at all. Materials are fixed PBR
-channels, not a runtime shader graph — Blender node graphs are baked to flat
-textures at export time, so there is no interpreted shading logic to hook
-into. See [Using Materials](../API/UsingMaterials.md) and
-[Using Bake Materials](../API/UsingBakeMaterials.md). If your change is "make
-this look shinier/redder/rougher," stop here — you don't need anything below.
+channels, not a runtime shader graph — a Blender node graph the engine can't
+evaluate must be baked to flat textures with a third-party tool before
+export, so there is no interpreted shading logic to hook into. See
+[Using Materials](../API/UsingMaterials.md). If your change is "make this
+look shinier/redder/rougher," stop here — you don't need anything below.
 
 The other two rows both use the same `RenderExtension` protocol
 (`registerShaderLibraries`, `registerPipelines`, `registerResources`,

@@ -68,23 +68,11 @@ struct ExportCommand: ParsableCommand {
     @Flag(name: .long, help: "Compress geometry and bake/patch textures after export (implies --compress-geometry)")
     var optimize = false
 
-    @Flag(name: .customLong("bake-materials"), help: "Bake node-graph materials the engine cannot evaluate (Mix, Math, procedural textures, ...) into flat textures so the export matches Blender")
-    var bakeMaterials = false
-
-    @Option(name: .customLong("bake-resolution"), help: "Square resolution for baked material textures (max: \(ExportCommand.maxBakeResolution)). Override per material via a material['untold_bake_resolution'] custom property")
-    var bakeResolution: Int = 1024
-
-    @Flag(name: .customLong("no-bake-cache"), help: "Disable the persistent bake cache and force every divergent material to be re-baked, even if unchanged since the last export")
-    var noBakeCache = false
-
     @Flag(name: .customLong("bake-color-management"), help: "Bake the scene's active View Transform/Look/Exposure/Gamma into an RGBA16Float LUT targeting canonical sRGB output")
     var bakeColorManagement = false
 
     @Option(name: .customLong("color-lut-size"), help: "Grid size (N) for the NxNxN color-grading LUT")
     var colorLutSize: Int = 32
-
-    /// Keep in sync with MAX_BAKE_RESOLUTION in scripts/untoldexplorer.py.
-    static let maxBakeResolution = 8192
 
     @Option(name: .customLong("lod-levels"), help: "Gaussian .ply export only: number of progressive .untoldgs tiers to generate. Default 1 writes --output directly; values greater than 1 write <name>_lod0.untoldgs, <name>_lod1.untoldgs, ...")
     var lodLevels: Int = 1
@@ -95,13 +83,6 @@ struct ExportCommand: ParsableCommand {
 
         guard FileManager.default.fileExists(atPath: inputURL.path) else {
             throw ExportError.inputNotFound(inputURL.path)
-        }
-        guard bakeResolution > 0 else {
-            throw ExportError.invalidBakeResolution(bakeResolution)
-        }
-        let clampedBakeResolution = min(bakeResolution, Self.maxBakeResolution)
-        if clampedBakeResolution != bakeResolution {
-            printInfo("--bake-resolution \(bakeResolution) is very high; clamping to \(clampedBakeResolution).")
         }
 
         if inputURL.pathExtension.lowercased() == "ply" {
@@ -129,11 +110,6 @@ struct ExportCommand: ParsableCommand {
         if validate { exporterArguments.append("--validate") }
         if compressGeometry || optimize { exporterArguments.append("--compress-geometry") }
         if animation { exporterArguments.append("--animation") }
-        if bakeMaterials {
-            exporterArguments.append("--bake-materials")
-            exporterArguments += ["--bake-resolution", String(clampedBakeResolution)]
-            if noBakeCache { exporterArguments.append("--no-bake-cache") }
-        }
         if bakeColorManagement {
             exporterArguments.append("--bake-color-management")
             exporterArguments += ["--color-lut-size", String(colorLutSize)]
@@ -239,7 +215,6 @@ enum ExportError: LocalizedError {
     case exporterNotInstalled(String)
     case exportFailed(Int32)
     case optimizeFailed(Int32)
-    case invalidBakeResolution(Int)
     case unsupportedPLYExportOutput(String)
     case invalidLODLevels(Int)
 
@@ -253,8 +228,6 @@ enum ExportError: LocalizedError {
             return "Blender exporter failed with exit status \(status)"
         case let .optimizeFailed(status):
             return "Texture optimization (texbake) failed with exit status \(status)"
-        case let .invalidBakeResolution(value):
-            return "--bake-resolution must be a positive integer, got \(value)"
         case let .unsupportedPLYExportOutput(pathExtension):
             let suffix = pathExtension.isEmpty ? "<none>" : ".\(pathExtension)"
             return "Gaussian .ply export supports only .untoldgs output, got \(suffix)"

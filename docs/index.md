@@ -199,7 +199,6 @@ See [COMMERCIAL.md](https://github.com/untoldengine/UntoldEngine/blob/main/COMME
 - [Profiler](API/UsingProfiler.md)
 - [Spatial Debugger](API/SpatialDebugger.md)
 - [Asset Exporter](API/UsingTheExporter.md)
-- [Bake Materials](API/UsingBakeMaterials.md)
 - [Color Management](API/UsingColorManagement.md)
 - [Optimizations](API/Optimizations.md)
 

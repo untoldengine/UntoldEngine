@@ -216,7 +216,6 @@ Untold Engine is well-suited for:
 - [Profiler](docs/API/UsingProfiler.md)
 - [Spatial Debugger](docs/API/SpatialDebugger.md)
 - [Asset Exporter](docs/API/UsingTheExporter.md)
-- [Bake Materials](docs/API/UsingBakeMaterials.md)
 - [Color Management](docs/API/UsingColorManagement.md)
 - [Optimizations](docs/API/Optimizations.md)
 
