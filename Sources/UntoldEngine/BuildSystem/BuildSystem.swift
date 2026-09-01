@@ -403,6 +403,11 @@ import Foundation
             let shaderAssets = try await bundleShaders(to: shadersDir)
             bundledAssets.append(contentsOf: shaderAssets)
 
+            // 5. Bundle color-grade LUTs
+            let lutDir = gameDataDir.appendingPathComponent("LUT")
+            let lutAssets = try await bundleLUTs(to: lutDir)
+            bundledAssets.append(contentsOf: lutAssets)
+
             Logger.log(message: "📦 Game data bundled to \(gameDataDir.path)")
 
             return bundledAssets
@@ -739,6 +744,33 @@ import Foundation
             }
 
             return bundledAssets
+        }
+
+        /// Bundles standalone .cube color-grade LUTs (see setColorGradeLUT) from
+        /// assetBasePath/LUT into the shipped app's GameData/LUT. Separate from
+        /// bundleAssets above since LUTs are unrelated to the Models/StreamModels/
+        /// Animations/Gaussians/Textures asset group -- a flat copy, like bundleShaders.
+        private func bundleLUTs(to lutDir: URL) async throws -> [String] {
+            guard let basePath = assetBasePath else {
+                Logger.log(message: "⚠️ Asset base path not set, skipping LUT bundling")
+                return []
+            }
+
+            let fileManager = FileManager.default
+            let lutSourceDir = basePath.appendingPathComponent("LUT")
+            guard fileManager.fileExists(atPath: lutSourceDir.path) else {
+                return []
+            }
+
+            do {
+                try copyDirectory(from: lutSourceDir, to: lutDir)
+                let copiedFiles = try fileManager.contentsOfDirectory(at: lutDir, includingPropertiesForKeys: nil)
+                Logger.log(message: "🎞️ Bundled \(copiedFiles.count) LUT(s)")
+                return copiedFiles.map(\.path)
+            } catch {
+                Logger.log(message: "⚠️ Failed to bundle LUTs: \(error.localizedDescription)")
+                return []
+            }
         }
 
         private func bundleShaders(to shadersDir: URL) async throws -> [String] {
