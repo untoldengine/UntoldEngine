@@ -100,6 +100,7 @@ func runInheritedProcess(_ executableURL: URL, _ arguments: [String]) throws -> 
 enum BlenderResolutionError: LocalizedError {
     case blenderNotFound
     case blenderNotExecutable(String)
+    case blenderPython3NotFound(String)
 
     var errorDescription: String? {
         switch self {
@@ -110,6 +111,8 @@ enum BlenderResolutionError: LocalizedError {
             """
         case let .blenderNotExecutable(path):
             return "Blender is not executable at: \(path)"
+        case let .blenderPython3NotFound(blenderPath):
+            return "Could not find Blender's bundled python3 next to \(blenderPath)."
         }
     }
 }
@@ -147,6 +150,39 @@ private func blenderExecutableURL(at path: String) throws -> URL {
         throw BlenderResolutionError.blenderNotExecutable(path)
     }
     return URL(fileURLWithPath: path)
+}
+
+/// Resolves Blender's own bundled python3 (macOS app bundle layout:
+/// `Blender.app/Contents/Resources/<version>/python/bin/python3.x`).
+///
+/// This is a different interpreter than the system `python3` `resolvePython3()`
+/// finds — Blender's exporter script runs inside this bundled interpreter, which
+/// has its own separate site-packages. Needed for installing packages (e.g. lz4)
+/// that must be importable *inside a running Blender export*, with an ABI-compatible
+/// build for whatever Python version this specific Blender bundles.
+func resolveBlenderPython3(override: String?) throws -> URL {
+    let blenderURL = try resolveBlenderExecutable(override: override)
+    // .../Blender.app/Contents/MacOS/Blender -> .../Blender.app/Contents/Resources
+    let resourcesDir = blenderURL
+        .deletingLastPathComponent() // MacOS
+        .deletingLastPathComponent() // Contents
+        .appendingPathComponent("Resources", isDirectory: true)
+
+    let fm = FileManager.default
+    guard let versionDirs = try? fm.contentsOfDirectory(at: resourcesDir, includingPropertiesForKeys: nil) else {
+        throw BlenderResolutionError.blenderPython3NotFound(blenderURL.path)
+    }
+    // Prefer the newest version directory if more than one is present (e.g. after an update).
+    for versionDir in versionDirs.sorted(by: { $0.lastPathComponent > $1.lastPathComponent }) {
+        let pythonBinDir = versionDir.appendingPathComponent("python", isDirectory: true).appendingPathComponent("bin", isDirectory: true)
+        guard let entries = try? fm.contentsOfDirectory(at: pythonBinDir, includingPropertiesForKeys: nil) else { continue }
+        for entry in entries where entry.lastPathComponent.hasPrefix("python3") {
+            if fm.isExecutableFile(atPath: entry.path) {
+                return entry
+            }
+        }
+    }
+    throw BlenderResolutionError.blenderPython3NotFound(blenderURL.path)
 }
 
 // MARK: - Support Script Resolution
