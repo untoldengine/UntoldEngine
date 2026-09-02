@@ -35,6 +35,7 @@ struct BootstrapCommand: AsyncParsableCommand {
             AstcencDependency(),
             PipPackageDependency(name: "Pillow", importName: "PIL", pipSpec: "Pillow"),
             PipPackageDependency(name: "lz4", importName: "lz4", pipSpec: "lz4"),
+            BlenderPythonPackageDependency(name: "lz4 (for Blender)", importName: "lz4.block", pipSpec: "lz4"),
         ]
     }
 
@@ -259,6 +260,67 @@ struct PipPackageDependency: BootstrapDependency {
         process.waitUntilExit()
         let output = String(data: outputPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)
         return output?.trimmingCharacters(in: .whitespacesAndNewlines) == "1"
+    }
+}
+
+// MARK: - Python packages needed inside a running Blender export (lz4, ...)
+
+/// Directory bootstrap-managed Blender-context packages are installed into:
+/// ~/.untoldengine/tools/blender-python-packages (override with UNTOLDENGINE_HOME).
+/// Read by scripts/untoldexplorer.py, which inserts it into sys.path itself before
+/// importing — see the note on BlenderPythonPackageDependency below for why.
+func blenderPythonPackagesDirectory() -> URL {
+    untoldEngineToolsDirectory().appendingPathComponent("blender-python-packages", isDirectory: true)
+}
+
+/// Installs a package for use *inside a running Blender export*, not the system
+/// python3 `PipPackageDependency` targets.
+///
+/// `untoldengine export` launches Blender with `--factory-startup`, which excludes
+/// Python's user site-packages from `sys.path` — so a plain `pip install --user`
+/// (even one run against Blender's own bundled python3) is invisible to the actual
+/// export. Blender's embedded interpreter also ignores the `PYTHONPATH` environment
+/// variable entirely, so that can't inject it either. The only reliable path: `pip
+/// install --target` into a fixed directory using Blender's own bundled python3 (for
+/// ABI compatibility with compiled extensions like lz4's), with the exporter script
+/// itself adding that directory to `sys.path` right before the import — see
+/// `_compress_geometry_chunks` in scripts/untoldexplorer.py.
+struct BlenderPythonPackageDependency: BootstrapDependency {
+    let name: String
+    let importName: String
+    let pipSpec: String
+
+    private var installDirectory: URL { blenderPythonPackagesDirectory() }
+
+    var statusDetail: String {
+        "importable by Blender's bundled python3 (target: \(installDirectory.path))"
+    }
+
+    func isInstalled() -> Bool {
+        guard let blenderPython3 = try? resolveBlenderPython3(override: nil) else { return false }
+        let process = Process()
+        process.executableURL = blenderPython3
+        // -I (isolated mode) disables user site-packages, replicating the sys.path
+        // Blender itself builds when `untoldengine export` launches it with
+        // --factory-startup. Without -I this check is a false positive whenever the
+        // package happens to be importable some other way (e.g. user site-packages)
+        // that won't actually be on sys.path during a real export.
+        process.arguments = ["-I", "-c", "import sys; sys.path.insert(0, \(installDirectory.path.debugDescription)); import \(importName)"]
+        process.standardOutput = FileHandle.nullDevice
+        process.standardError = FileHandle.nullDevice
+        guard (try? process.run()) != nil else { return false }
+        process.waitUntilExit()
+        return process.terminationStatus == 0
+    }
+
+    func install() async throws {
+        let blenderPython3 = try resolveBlenderPython3(override: nil)
+        try FileManager.default.createDirectory(at: installDirectory, withIntermediateDirectories: true)
+        let arguments = ["-m", "pip", "install", "--target", installDirectory.path, pipSpec]
+        let status = try runInheritedProcess(blenderPython3, arguments)
+        guard status == 0 else {
+            throw BootstrapError.pipInstallFailed(name: name, status: status)
+        }
     }
 }
 

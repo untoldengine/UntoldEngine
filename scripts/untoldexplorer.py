@@ -4376,20 +4376,45 @@ def extract_nodes_from_objects(
     return normalize_export_nodes(nodes)
 
 
+def _blender_python_packages_dir() -> Path:
+    """Directory `untoldengine bootstrap` installs Blender-context Python packages
+    into (see BlenderPythonPackageDependency in BootstrapCommand.swift).
+
+    This script runs inside Blender's own bundled Python interpreter, which has its
+    own separate site-packages from the system `python3`. Worse, `untoldengine
+    export` launches Blender with `--factory-startup`, which excludes user
+    site-packages from `sys.path` entirely — so even `pip install --user` run
+    against Blender's own bundled python3 is invisible here. Blender's embedded
+    interpreter also ignores the `PYTHONPATH` environment variable, so bootstrap
+    can't inject it that way either. `pip install --target` into this fixed
+    directory, added to sys.path explicitly below, is the only path that works.
+    """
+    home_root = os.environ.get("UNTOLDENGINE_HOME")
+    base = Path(home_root).expanduser() if home_root else Path.home() / ".untoldengine"
+    return base / "tools" / "blender-python-packages"
+
+
 def _compress_geometry_chunks(vertex_raw: bytes, index_raw: bytes) -> tuple[bytes, bytes]:
     """Compress vertex and index byte arrays with LZ4 raw block format.
 
     Uses lz4.block (not lz4.frame) to produce raw LZ4 block data compatible
     with Apple's COMPRESSION_LZ4_RAW algorithm on the runtime side.
-    Install the dependency with: pip install lz4
+    Install the dependency with: untoldengine bootstrap
     """
     try:
         import lz4.block as lz4_block  # type: ignore[import]
     except ImportError:
-        raise RuntimeError(
-            "The 'lz4' package is required for geometry compression. "
-            "Install it with: pip install lz4"
-        )
+        vendor_dir = _blender_python_packages_dir()
+        if vendor_dir.is_dir() and str(vendor_dir) not in sys.path:
+            sys.path.insert(0, str(vendor_dir))
+        try:
+            import lz4.block as lz4_block  # type: ignore[import]
+        except ImportError:
+            raise RuntimeError(
+                "The 'lz4' package is required for geometry compression, and wasn't "
+                "found in Blender's bundled Python or in "
+                f"{vendor_dir}. Run: untoldengine bootstrap"
+            )
     vertex_compressed: bytes = lz4_block.compress(vertex_raw, store_size=False)
     index_compressed: bytes = lz4_block.compress(index_raw, store_size=False)
     return vertex_compressed, index_compressed
