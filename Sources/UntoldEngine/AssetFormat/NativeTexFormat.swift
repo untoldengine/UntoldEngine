@@ -91,6 +91,12 @@ public enum NativeTexFlags {
     public static let hasAlpha: UInt32 = 1 << 0
     /// Alpha channel is premultiplied into the RGB channels.
     public static let premultipliedAlpha: UInt32 = 1 << 1
+    /// Normal map was baked with astcenc's `-normal` mode: stored as a 2-component
+    /// X+Y map (RGB=X, A=Y) instead of a direct 3-component tangent-space normal.
+    /// Consumers must reconstruct Z: `z = sqrt(saturate(1 - dot(xy, xy)))`.
+    /// Set by scripts/texbake.py (FLAG_NORMAL_PACKED_XY); read by Mesh.swift and
+    /// decoded in modelShader.metal / TransparencyShader.metal.
+    public static let normalPackedXY: UInt32 = 1 << 2
 }
 
 // MARK: - Header

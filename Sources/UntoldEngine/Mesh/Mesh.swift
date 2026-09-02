@@ -589,6 +589,13 @@ public struct Material {
     public var emissive: TextureDescriptor
     public var height: TextureDescriptor = .init()
 
+    /// True when `normal` was baked with astcenc's `-normal` mode (2-component X+Y,
+    /// Z reconstructed in-shader) rather than a direct 3-component tangent-space normal.
+    /// Determined once from the .utex header at material load time — it does not change
+    /// across texture-streaming tier swaps, since those swap resolution, not encoding.
+    /// See NativeTexFlags.normalPackedXY.
+    public var normalIsPackedXY: Bool = false
+
     // Texture URLs
     public var baseColorURL: URL?
     public var roughnessURL: URL?
@@ -774,6 +781,19 @@ public struct Material {
             }
         }
 
+        // The normal texture's .utex header records whether it was baked with astcenc's
+        // `-normal` mode (2-component X+Y, Z reconstructed in-shader) instead of a direct
+        // 3-component tangent-space normal — see NativeTexFlags.normalPackedXY. This is a
+        // cheap, header-only, mmap'd read (NativeTexReader never touches the ASTC payload),
+        // done once at material load time rather than threaded through NativeTextureLoader's
+        // GPU-upload path, since the flag doesn't change across texture-streaming tier swaps.
+        func normalTexturePackedXY(reference: RuntimeTextureReference?) -> Bool {
+            guard let reference, reference.textureFormat.isNativeContainer, let url = reference.sourceURL else { return false }
+            guard let data = try? Data(contentsOf: url, options: .mappedIfSafe) else { return false }
+            guard let (header, _) = try? NativeTexReader().read(from: data) else { return false }
+            return (header.flags & NativeTexFlags.normalPackedXY) != 0
+        }
+
         let baseTexture = loadRuntimeTexture("Base color", reference: runtimeMaterial.baseColorTexture, isSRGB: runtimeMaterial.baseColorTexture?.isSRGB ?? true)
         let normalTexture = loadRuntimeTexture("Normal", reference: runtimeMaterial.normalTexture, isSRGB: false)
         let metallicTexture = loadRuntimeTexture("Metallic", reference: runtimeMaterial.metallicTexture, isSRGB: false)
@@ -787,6 +807,7 @@ public struct Material {
         normal = createTextureDescriptor(device: device, texture: normalTexture, wrapMode: .repeat)
         emissive = createTextureDescriptor(device: device, texture: emissiveTexture, wrapMode: .repeat)
         height = createTextureDescriptor(device: device, texture: heightTexture, wrapMode: .repeat)
+        normalIsPackedXY = normalTexturePackedXY(reference: runtimeMaterial.normalTexture)
 
         baseColorURL = runtimeMaterial.baseColorTexture?.sourceURL
         normalURL = runtimeMaterial.normalTexture?.sourceURL

@@ -117,6 +117,7 @@ typedef enum{
     modelPassFragmentMaterialParameterIndex,
     modelPassFragmentSTScaleIndex,
     modelPassFragmentPOMQualityIndex,
+    modelPassFragmentNormalIsPackedXYIndex,
 }ModelPassFragmentBufferIndices;
 
 
@@ -670,6 +671,7 @@ typedef enum{
     transparencyPassFragmentHasNormalTextureIndex,
     transparencyPassFragmentMaterialParameterIndex,
     transparencyPassFragmentSTScaleIndex,
+    transparencyPassFragmentNormalIsPackedXYIndex,
 }TransparencyPassFragmentBufferIndices;
 
 typedef enum{
@@ -686,7 +688,7 @@ typedef enum{
 }TransparencyPassSamplerIndices;
 
 typedef enum {
-    transparencyPassLightOrthoViewMatrixIndex = 4, // starts after TransparencyPassFragmentBufferIndices
+    transparencyPassLightOrthoViewMatrixIndex = 5, // starts after TransparencyPassFragmentBufferIndices
     transparencyPassLightParamsIndex,
     transparencyPassCameraPositionIndex,           // simd_float3 (camera position)
     transparencyPassPointLightsIndex,              // PointLightBlock

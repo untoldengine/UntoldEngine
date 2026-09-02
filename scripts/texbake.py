@@ -46,7 +46,7 @@ Texture slot → ASTC format mapping:
     ─────────── ──────── ─────── ───────────────────────────────────
     base_color   yes      4×4    186  (astc_4x4_sRGB)
     emissive     yes      4×4    186  (astc_4x4_sRGB)
-    normal       no       4×4    204  (astc_4x4_ldr)
+    normal       no       4×4    204  (astc_4x4_ldr, `-normal -perceptual` encode — see below)
     roughness    no       6×6    208  (astc_6x6_ldr)
     metallic     no       6×6    208  (astc_6x6_ldr)
     occlusion    no       6×6    208  (astc_6x6_ldr)
@@ -54,6 +54,15 @@ Texture slot → ASTC format mapping:
     opacity      no       4×4    204  (astc_4x4_ldr)
     data         no       4×4    204  (astc_4x4_ldr)  ← default for unrecognised slots
     lut          no       1×1    115  (rgba16Float, uncompressed, one mip)
+
+Normal map encoding:
+    Normal maps are compressed with astcenc's `-normal -perceptual` mode instead of
+    generic RGB compression. `-normal` re-weights the ASTC error metric for unit-vector
+    data (RGB color compression perceptually favors green, which is the wrong tradeoff
+    for X/Y/Z surface vectors) and repacks the map as a 2-component X+Y map — stored as
+    (RGB=X, A=Y) — with Z reconstructed at sample time. FLAG_NORMAL_PACKED_XY is set in
+    the .utex header so the engine's shaders know to reconstruct Z instead of reading it
+    directly; see the decode in modelShader.metal / TransparencyShader.metal.
 """
 
 from __future__ import annotations
@@ -125,6 +134,9 @@ MTL_R16_UNORM = 20
 # Flags (matches NativeTexFlags in Swift)
 FLAG_HAS_ALPHA = 1 << 0
 FLAG_PREMULTIPLIED_ALPHA = 1 << 1
+# Normal map was compressed with astcenc's `-normal` mode: RGB=X (duplicated across
+# R/G/B), A=Y, Z reconstructed in-shader. See modelShader.metal / TransparencyShader.metal.
+FLAG_NORMAL_PACKED_XY = 1 << 2
 
 # KHR ASTC container magic (16-byte header produced by astcenc)
 _ASTC_MAGIC = b"\x13\xab\xa1\x5c"
@@ -291,10 +303,17 @@ def compress_mip_to_astc(
     srgb: bool,
     tmp_dir: Path,
     label: str,
+    extra_args: list[str] | None = None,
 ) -> bytes:
     """
     Compress a single PIL Image to raw ASTC block bytes.
     Returns only the block payload (strips the 16-byte KHR ASTC container header).
+
+    extra_args: additional astcenc CLI options appended after the required
+    profile/input/output/blocksize/quality arguments (e.g. ["-normal", "-perceptual"]
+    for normal maps — see astcenc's -normal mode, which re-weights the error metric
+    for unit-vector data instead of the default RGB-luminance weighting, and packs
+    the map as a 2-component X+Y map with Z reconstructed in-shader).
     """
     input_png = tmp_dir / f"{label}.png"
     output_astc = tmp_dir / f"{label}.astc"
@@ -312,6 +331,8 @@ def compress_mip_to_astc(
         block_size,
         f"-{quality}",
     ]
+    if extra_args:
+        cmd.extend(extra_args)
 
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
@@ -357,6 +378,7 @@ def write_utex(
     mip_dimensions: list[tuple[int, int]],
     cfg: SlotConfig,
     has_alpha: bool,
+    extra_flags: int = 0,
 ) -> None:
     """Assemble and write a .utex file from per-mip ASTC block payloads."""
     mip_count = len(mip_payloads)
@@ -377,7 +399,7 @@ def write_utex(
         cursor = align_up(cursor + len(payload), UTEX_PAYLOAD_ALIGNMENT)
 
     total_payload_size = cursor
-    flags = FLAG_HAS_ALPHA if has_alpha else 0
+    flags = (FLAG_HAS_ALPHA if has_alpha else 0) | extra_flags
     base_w, base_h = mip_dimensions[0]
 
     header_bytes = struct.pack(
@@ -507,6 +529,17 @@ def bake_texture(
         mips = [img.convert("RGBA")]
         print(f"  Mip chain {img.size[0]}×{img.size[1]} → 1 level (mips disabled for slot '{slot}')")
 
+    # Normal maps are unit-vector data, not color/luminance data: astcenc's default RGB
+    # error metric perceptually weights green (tuned for human color vision) over red/blue,
+    # which is the wrong tradeoff for X/Y/Z surface vectors and shows up as visible noise on
+    # fine, high-frequency normal detail (fabric weave, wrinkles, ...). `-normal` re-weights
+    # the error metric for vector data and repacks the map as 2-component X+Y (RGB=X, A=Y)
+    # with Z reconstructed in-shader, freeing up bits that would otherwise encode a
+    # redundant/inferable Z channel. `-perceptual` is also valid for normal-map data.
+    # See FLAG_NORMAL_PACKED_XY and the decode in modelShader.metal / TransparencyShader.metal.
+    extra_args = ["-normal", "-perceptual"] if slot == "normal" else None
+    extra_flags = FLAG_NORMAL_PACKED_XY if slot == "normal" else 0
+
     tmp_dir = Path(tempfile.mkdtemp(prefix="texbake_"))
     try:
         mip_payloads: list[bytes] = []
@@ -523,6 +556,7 @@ def bake_texture(
                 srgb=cfg.srgb,
                 tmp_dir=tmp_dir,
                 label=label,
+                extra_args=extra_args,
             )
             expected = expected_block_bytes(w, h, cfg.block_w, cfg.block_h)
             if len(payload) != expected:
@@ -534,7 +568,7 @@ def bake_texture(
             mip_dimensions.append((w, h))
             print(f"  mip {i:2d}  {w:5d}×{h:<5d}  {len(payload):>8,} bytes  [{label}]")
 
-        write_utex(output_path, mip_payloads, mip_dimensions, cfg, has_alpha)
+        write_utex(output_path, mip_payloads, mip_dimensions, cfg, has_alpha, extra_flags=extra_flags)
         size_kb = output_path.stat().st_size / 1024
         print(f"  Written   {output_path.name}  ({size_kb:.1f} KB)")
 
