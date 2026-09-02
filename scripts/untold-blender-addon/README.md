@@ -29,31 +29,21 @@ Options:
 - `Scope`: export the visible scene or selected objects.
 - `File Type`: choose the `.untold` file type marker. `Standard` is the
   default runtime asset marker; use `Shared` to mark a non-tiled export as a
-  scene-wide asset so `loadSceneAuthored` picks up its lights/cameras/baked
-  color-management LUT (see
+  scene-wide asset so `loadSceneAuthored` picks up its lights/cameras/color
+  grade LUT (see
   [Using Color Management](../../docs/API/UsingColorManagement.md)). `LOD`/
   `HLOD` are for manually producing distance-asset payloads outside the
   tiled scene exporter.
 - `Convert Orientation`: convert Blender native coordinates into engine space.
 - `Write Validation JSON`: write a companion validation file.
 - `Compress Geometry`: use LZ4 compression for geometry chunks.
-- `Bake Color Management`: bake the scene's active View Transform/Look/
-  Exposure/Gamma into a color-grading LUT so Untold can closely reproduce
-  Blender's color management, including Filmic/AgX highlight compression.
-- `Color LUT Size`: grid size (N) for the NxNxN color-grading LUT.
 - `Color Grade LUT`: path to an externally-authored standard `.cube` 3D LUT
-  to stage and apply as a post-tonemap creative grade. Unlike `Bake Color
-  Management`, nothing is rendered from Blender — the `.cube` is copied
-  as-is and loaded directly by the engine, composing with (not replacing)
-  the tonemap or `Bake Color Management` bake.
+  to stage and apply as a post-tonemap creative grade. Nothing is rendered
+  from Blender — the `.cube` is copied as-is and loaded directly by the
+  engine, composing with (not replacing) the engine's native tonemap
+  operator.
 - `Compress Textures`: convert staged textures to engine-native `.utex`
   files and patch the exported `.untold` references.
-
-The `Untold Materials` tab in the 3D viewport sidebar (`N` panel) includes a
-`Color Management` panel with a `Scan Color Management` operator that
-previews the View Transform/Look/Exposure/Gamma `Bake Color Management`
-would capture, without exporting, and warns about compositor grading nodes
-(Color Balance, Curves, Hue Correct) that a LUT bake cannot capture.
 
 Texture baking requires Pillow in Blender's Python and the `astcenc` binary:
 
@@ -99,9 +89,6 @@ Tiled scene options:
 - `Custom Rep Ranges`: override the normalized LOD1/LOD2/HLOD switch
   distances and reduction ratios instead of the scene-profile defaults.
 - `Compress Geometry`: LZ4-compress tile vertex/index chunks.
-- `Bake Color Management` / `Color LUT Size`: same as the model exporter,
-  above; the LUT is referenced from the tiled scene manifest's `colorLUT`
-  key.
 - `Color Grade LUT`: same as the model exporter, above; staged once for the
   whole scene and referenced from the manifest's `colorGradeLUT` key.
 - `Dry Run`: plan the partition without writing payload files.

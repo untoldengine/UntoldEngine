@@ -68,13 +68,7 @@ struct ExportCommand: ParsableCommand {
     @Flag(name: .long, help: "Compress geometry and bake/patch textures after export (implies --compress-geometry)")
     var optimize = false
 
-    @Flag(name: .customLong("bake-color-management"), help: "Bake the scene's active View Transform/Look/Exposure/Gamma into an RGBA16Float LUT targeting canonical sRGB output")
-    var bakeColorManagement = false
-
-    @Option(name: .customLong("color-lut-size"), help: "Grid size (N) for the NxNxN color-grading LUT")
-    var colorLutSize: Int = 32
-
-    @Option(name: .customLong("color-grade-lut"), help: "Path to an externally-authored standard .cube 3D LUT to stage and apply as a post-tonemap creative grade. Unlike --bake-color-management, nothing is rendered from Blender -- the .cube is copied as-is and loaded directly by the engine")
+    @Option(name: .customLong("color-grade-lut"), help: "Path to an externally-authored standard .cube 3D LUT to stage and apply as a post-tonemap creative grade. Nothing is rendered from Blender -- the .cube is copied as-is and loaded directly by the engine")
     var colorGradeLUT: String?
 
     @Option(name: .customLong("lod-levels"), help: "Gaussian .ply export only: number of progressive .untoldgs tiers to generate. Default 1 writes --output directly; values greater than 1 write <name>_lod0.untoldgs, <name>_lod1.untoldgs, ...")
@@ -113,10 +107,6 @@ struct ExportCommand: ParsableCommand {
         if validate { exporterArguments.append("--validate") }
         if compressGeometry || optimize { exporterArguments.append("--compress-geometry") }
         if animation { exporterArguments.append("--animation") }
-        if bakeColorManagement {
-            exporterArguments.append("--bake-color-management")
-            exporterArguments += ["--color-lut-size", String(colorLutSize)]
-        }
         if let colorGradeLUT {
             let lutURL = resolvePath(colorGradeLUT).standardizedFileURL
             guard FileManager.default.fileExists(atPath: lutURL.path) else {

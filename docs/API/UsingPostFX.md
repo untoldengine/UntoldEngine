@@ -139,22 +139,23 @@ let isActive = PostFX.isEnabled(.bloomThreshold)
 | `.chromaticAberration` | RGB channel fringing |
 | `.depthOfField` | Vogel-disc focus blur (16 samples) |
 
-> **`.colorLUT` is asset-derived, not user-authored.** Unlike the other
-> effects, there's nothing to configure — the LUT itself is baked from the
-> source Blender scene's View Transform/Look/Exposure/Gamma at export time
-> (`--bake-color-management`) and only gets loaded via an explicit
-> `loadSceneAuthored(...)` call (see [Using the Registration
+> **`.colorLUT` is legacy and asset-derived, not user-authored.** It toggles
+> a whole-transform LUT baked by the now-retired `--bake-color-management`
+> exporter flag. Only assets exported before that flag was removed carry
+> one; it's loaded via an explicit `loadSceneAuthored(...)` call (see
+> [Using the Registration
 > System](UsingRegistrationSystem.md#loading-scene-authored-data)), not by a
-> normal mesh import. `setPostFX(.colorLUT(.enabled(false)))` only lets you
-> compare the baked LUT against the native tonemap operator — enabling it
-> is a no-op if no LUT has actually been loaded.
+> normal mesh import. `setPostFX(.colorLUT(.enabled(false)))` is a no-op if
+> no such LUT was loaded.
 
-> **`.colorGradeLUT` is also asset-derived**, but unlike `.colorLUT` it wraps
-> a standard, externally-authored `.cube` 3D LUT staged as-is (no bake, no
-> `.utex` conversion — see `--color-grade-lut`), applied as a creative grade
-> *on top of* whichever tonemap ran (native or the `.colorLUT` bake), not in
-> place of it. Both can be active at once. `setPostFX(.colorGradeLUT(.enabled(false)))`
-> is a no-op if no `.cube` was loaded via `loadSceneAuthored(...)`.
+> **`.colorGradeLUT` wraps a standard, externally-authored `.cube` 3D LUT**
+> staged as-is (no conversion — see `--color-grade-lut`), applied as a
+> creative grade *on top of* whichever tonemap ran (the native operator, or
+> a legacy `.colorLUT` bake), not in place of it. Both can be active at
+> once. It can be asset-derived (loaded via `loadSceneAuthored(...)`) or
+> set directly with `setColorGradeLUT(filename:withExtension:)`, with no
+> scene export involved. `setPostFX(.colorGradeLUT(.enabled(false)))` is a
+> no-op if no `.cube` has been loaded either way.
 
 > **`.tonemapOperator` is a plain runtime setting, not asset-derived** —
 > unlike the two LUT toggles above, this always takes effect (subject to

@@ -92,8 +92,8 @@ For camera controls and path following, see
 When a `.untold` asset or tiled scene manifest was exported with scene-authored
 data, load that data separately from the mesh. `setEntityMesh` and
 `setEntityMeshAsync` load geometry and materials; `loadSceneAuthored` registers
-the Blender-authored lights/cameras and installs any baked color-management LUT
-from `--bake-color-management`.
+the Blender-authored lights/cameras and installs any `.cube` creative grade LUT
+staged with `--color-grade-lut`.
 
 ```swift
 setSceneReady(false)

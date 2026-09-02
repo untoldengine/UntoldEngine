@@ -126,12 +126,6 @@ struct ExportTilesCommand: ParsableCommand {
     @Flag(name: .long, help: "Compress geometry and bake/patch textures after export (implies --compress-geometry)")
     var optimize = false
 
-    @Flag(name: .customLong("bake-color-management"), help: "Bake the scene's active View Transform/Look/Exposure/Gamma into a scene-wide color-grading LUT referenced from the manifest's colorLUT key")
-    var bakeColorManagement = false
-
-    @Option(name: .customLong("color-lut-size"), help: "Grid size (N) for the NxNxN color-grading LUT")
-    var colorLutSize: Int = 32
-
     @Option(name: .customLong("color-grade-lut"), help: "Path to an externally-authored standard .cube 3D LUT to stage once for the whole scene and reference from the manifest's colorGradeLUT key, applied as a post-tonemap creative grade")
     var colorGradeLUT: String?
 
@@ -191,10 +185,6 @@ struct ExportTilesCommand: ParsableCommand {
         if writeManifestInDryRun { partitionerArguments.append("--write-manifest-in-dry-run") }
 
         if compressGeometry || optimize { partitionerArguments.append("--compress-geometry") }
-        if bakeColorManagement {
-            partitionerArguments.append("--bake-color-management")
-            partitionerArguments += ["--color-lut-size", String(colorLutSize)]
-        }
         if let colorGradeLUT {
             let lutURL = resolvePath(colorGradeLUT).standardizedFileURL
             guard FileManager.default.fileExists(atPath: lutURL.path) else {
