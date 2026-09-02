@@ -2930,14 +2930,17 @@ def write_blender_image_to_path(image_name: str, destination_path: Path, *, pres
                     f"by the engine texture pipeline (only 8-bit PNG/JPEG/TGA/etc. "
                     f"are supported). Skipping texture."
                 )
-            # Height/displacement is the one channel that wants to keep its precision
-            # instead of being flattened to 8-bit: POM ray-marches this data, and 8-bit
-            # quantization becomes visible stair-stepping at grazing angles once amplified
+            # Height/displacement and normal maps are the channels that want to keep their
+            # precision instead of being flattened to 8-bit: POM ray-marches height data, and
+            # 8-bit quantization becomes visible stair-stepping at grazing angles once amplified
             # by the parallax offset math (see HeightMapParallaxOcclusionMapping.md §2.2).
-            # The sRGB-16-bit Metal gap that forces 8-bit for color textures doesn't apply
-            # here — height is always linear/non-color data. PNG supports 16-bit grayscale
-            # natively, so only skip the downconvert when there's real precision to keep.
-            target_depth = "16" if (preserve_precision and image_channels < 3 and image_depth >= 16) else "8"
+            # Normal maps encode fine per-texel surface detail (fabric weave, wrinkles, ...);
+            # quantizing that to 8-bit before ASTC compression even runs compounds into visible
+            # noise once lit. The sRGB-16-bit Metal gap that forces 8-bit for color textures
+            # doesn't apply to either — both are always linear/non-color data. PNG supports
+            # 16-bit grayscale and RGB natively, so only skip the downconvert when there's real
+            # precision to keep.
+            target_depth = "16" if (preserve_precision and image_depth >= 16) else "8"
             print(f"  Converting image '{image_name}' (depth={image_depth}, channels={image_channels}) to {target_depth}-bit RGB for Metal compatibility", flush=True)
             scene = bpy.context.scene
             img_settings = scene.render.image_settings
@@ -3131,10 +3134,10 @@ def stage_texture_for_output(
     supported by the engine pipeline (e.g. EXR, HDR) — callers should treat
     None as "no texture" for that material slot.
 
-    preserve_precision: keep 16-bit depth for a genuinely-16-bit grayscale source
-    instead of the usual 8-bit downconvert (see write_blender_image_to_path). Only
-    the height/displacement slot sets this — texbake.py's height path is the only
-    consumer built to preserve and use that extra precision.
+    preserve_precision: keep 16-bit depth for a genuinely-16-bit source instead of
+    the usual 8-bit downconvert (see write_blender_image_to_path). Set by the
+    height/displacement and normal slots — texbake.py's height and normal paths are
+    the consumers built to preserve and use that extra precision.
     """
     source_path = texture.source_path
     texture_dir = output_path.parent / "Textures"
@@ -3397,7 +3400,7 @@ def stage_material_for_output(material: ExportedMaterial, output_path: Path, con
     return replace(
         material,
         base_color_texture=stage_texture_for_output(material.base_color_texture, output_path, context) if material.base_color_texture is not None else None,
-        normal_texture=stage_texture_for_output(material.normal_texture, output_path, context) if material.normal_texture is not None else None,
+        normal_texture=stage_texture_for_output(material.normal_texture, output_path, context, preserve_precision=True) if material.normal_texture is not None else None,
         metallic_texture=stage_texture_for_output(material.metallic_texture, output_path, context) if material.metallic_texture is not None else None,
         roughness_texture=stage_texture_for_output(material.roughness_texture, output_path, context) if material.roughness_texture is not None else None,
         emissive_texture=stage_texture_for_output(material.emissive_texture, output_path, context) if material.emissive_texture is not None else None,

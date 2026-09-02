@@ -201,7 +201,8 @@ fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
                                   sampler materialSampler [[sampler(modelPassMaterialSamplerIndex)]],
                                   sampler heightSampler [[sampler(modelPassHeightSamplerIndex)]],
                                         constant float &stScale [[buffer(modelPassFragmentSTScaleIndex)]],
-                                        constant POMQualityUniform &pomQuality [[buffer(modelPassFragmentPOMQualityIndex)]])
+                                        constant POMQualityUniform &pomQuality [[buffer(modelPassFragmentPOMQualityIndex)]],
+                                        constant bool &normalIsPackedXY [[buffer(modelPassFragmentNormalIsPackedXYIndex)]])
 {
 
     // Base Color and Normal Maps: Linear filtering, mipmaps, repeat wrapping
@@ -343,9 +344,18 @@ fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
     float4 normalSample = hasHeight
         ? normalTexture.sample(normalSampler, sampleUV, gradient2d(stDx, stDy))
         : normalTexture.sample(normalSampler, st, bias(0.25f));
-    float3 normalMap=normalize(normalSample.rgb);
-    //[0,1] to [-1,1]
-    normalMap=normalMap*2.0-1.0;
+
+    // Two on-disk encodings: a direct 3-component tangent-space normal (RGB, [0,1] ->
+    // [-1,1]), or astcenc's `-normal` packing (RGB=X, A=Y) used by texbake.py to get a
+    // better error metric for vector data — see NativeTexFlags.normalPackedXY. Z is
+    // reconstructed from the unit-length constraint for the packed case.
+    float3 normalMapStandard = normalize(normalSample.rgb);
+    normalMapStandard = normalMapStandard * 2.0 - 1.0;
+
+    float2 packedXY = normalSample.ga * 2.0 - 1.0;
+    float3 normalMapPackedXY = float3(packedXY, sqrt(saturate(1.0 - dot(packedXY, packedXY))));
+
+    float3 normalMap = normalIsPackedXY ? normalMapPackedXY : normalMapStandard;
 
     //convert to normal map to world space???
     normalMap=(hasNormal==false)?normalize(normalVectorInWorldSpace):normalize(TBN*normalMap);

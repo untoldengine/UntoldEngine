@@ -1775,11 +1775,15 @@ public enum RenderPasses {
                         )
 
                         // set normal
-                        // set normal
                         var hasNormal: Bool = (material.normal.texture != nil)
                         renderEncoder.setFragmentBytes(
                             &hasNormal, length: MemoryLayout<Bool>.stride,
                             index: Int(modelPassFragmentHasNormalTextureIndex.rawValue)
+                        )
+                        var normalIsPackedXY = material.normalIsPackedXY
+                        renderEncoder.setFragmentBytes(
+                            &normalIsPackedXY, length: MemoryLayout<Bool>.stride,
+                            index: Int(modelPassFragmentNormalIsPackedXYIndex.rawValue)
                         )
 
                         var materialParameters = MaterialParametersUniform()
@@ -2010,6 +2014,8 @@ public enum RenderPasses {
 
             var hasNormal: Bool = (material.normal.texture != nil)
             renderEncoder.setFragmentBytes(&hasNormal, length: MemoryLayout<Bool>.stride, index: Int(modelPassFragmentHasNormalTextureIndex.rawValue))
+            var normalIsPackedXY = material.normalIsPackedXY
+            renderEncoder.setFragmentBytes(&normalIsPackedXY, length: MemoryLayout<Bool>.stride, index: Int(modelPassFragmentNormalIsPackedXYIndex.rawValue))
             // Logger.log(message: "  🎨 Material baseColor: \(material.baseColorValue)")
             var materialParameters = MaterialParametersUniform()
             materialParameters.specular = material.specular
@@ -2195,6 +2201,8 @@ public enum RenderPasses {
 
                         var hasNormal = (material.normal.texture != nil)
                         renderEncoder.setFragmentBytes(&hasNormal, length: MemoryLayout<Bool>.stride, index: Int(modelPassFragmentHasNormalTextureIndex.rawValue))
+                        var normalIsPackedXY = material.normalIsPackedXY
+                        renderEncoder.setFragmentBytes(&normalIsPackedXY, length: MemoryLayout<Bool>.stride, index: Int(modelPassFragmentNormalIsPackedXYIndex.rawValue))
 
                         var materialParameters = MaterialParametersUniform()
                         materialParameters.specular = material.specular
@@ -2292,6 +2300,8 @@ public enum RenderPasses {
 
                     var hasNormal = (material.normal.texture != nil)
                     renderEncoder.setFragmentBytes(&hasNormal, length: MemoryLayout<Bool>.stride, index: Int(modelPassFragmentHasNormalTextureIndex.rawValue))
+                    var normalIsPackedXY = material.normalIsPackedXY
+                    renderEncoder.setFragmentBytes(&normalIsPackedXY, length: MemoryLayout<Bool>.stride, index: Int(modelPassFragmentNormalIsPackedXYIndex.rawValue))
 
                     var materialParameters = MaterialParametersUniform()
                     materialParameters.specular = material.specular
@@ -3620,6 +3630,12 @@ public enum RenderPasses {
                         &hasNormal,
                         length: MemoryLayout<Bool>.stride,
                         index: Int(transparencyPassFragmentHasNormalTextureIndex.rawValue)
+                    )
+                    var normalIsPackedXY = material.normalIsPackedXY
+                    renderEncoder.setFragmentBytes(
+                        &normalIsPackedXY,
+                        length: MemoryLayout<Bool>.stride,
+                        index: Int(transparencyPassFragmentNormalIsPackedXYIndex.rawValue)
                     )
 
                     var materialParameters = MaterialParametersUniform()
