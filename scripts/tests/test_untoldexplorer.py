@@ -309,83 +309,6 @@ class UntoldExplorerTests(unittest.TestCase):
         u._set_scene_color_management_raw(scene_without_raw)
         self.assertEqual(scene_without_raw.view_settings.view_transform, "Standard")
 
-    def test_lut_shaper_decode_is_monotonic_and_anchors_middle_gray(self) -> None:
-        # t=0.5 with the default -10..+6 stop range lands 8 stops below the
-        # midpoint's own reference, not exactly at 0.18 -- what matters is that
-        # decode is monotonically increasing and passes through known stops.
-        anchor_t = (0.0 - u._LUT_SHAPER_MIN_STOPS) / (u._LUT_SHAPER_MAX_STOPS - u._LUT_SHAPER_MIN_STOPS)
-        self.assertAlmostEqual(u._lut_shaper_decode(anchor_t), u._LUT_SHAPER_MIDDLE_GRAY, places=5)
-
-        values = [u._lut_shaper_decode(i / 100) for i in range(101)]
-        self.assertEqual(values, sorted(values))
-        self.assertLess(values[0], u._LUT_SHAPER_MIDDLE_GRAY)
-        self.assertGreater(values[-1], u._LUT_SHAPER_MIDDLE_GRAY)
-
-    def test_identity_lut_grid_pixels_row_order_survives_blenders_vertical_flip(self) -> None:
-        # Regression test: Blender's `image.pixels` buffer is bottom-up, but
-        # `image.save_render()` flips vertically when writing a top-down PNG.
-        # build_identity_lut_grid_pixels must pre-compensate so that after that
-        # flip, PNG/texture row g still holds green-axis grid index g (the
-        # convention the runtime LUT sampler assumes). This test simulates the
-        # flip directly on the returned buffer rather than actually saving a
-        # PNG through Blender.
-        lut_size = 4
-        width = lut_size * lut_size
-        pixels = u.build_identity_lut_grid_pixels(lut_size)
-        self.assertEqual(len(pixels), width * lut_size * 4)
-
-        def buffer_pixel(px: int, py: int) -> tuple[float, float, float, float]:
-            idx = (py * width + px) * 4
-            return tuple(pixels[idx : idx + 4])
-
-        # Simulate save_render's vertical flip: post-flip row g == buffer row (lut_size - 1 - g).
-        def post_flip_pixel(px: int, g: int) -> tuple[float, float, float, float]:
-            return buffer_pixel(px, lut_size - 1 - g)
-
-        expected_green = [u._lut_shaper_decode(i / (lut_size - 1)) for i in range(lut_size)]
-        for g in range(lut_size):
-            # px=0 -> r index 0 within tile b=0; green channel (index 1) must
-            # equal expected_green[g] once the flip is undone.
-            _, green, _, _ = post_flip_pixel(0, g)
-            self.assertAlmostEqual(green, expected_green[g], places=5)
-
-    def test_rgba16f_utex_preserves_precision_orientation_and_format(self) -> None:
-        # Two bottom-up Blender rows. The native payload must reverse them so
-        # Metal row zero contains the image's top row.
-        bottom_row = [0.001, 0.002, 0.003, 1.0, 0.004, 0.005, 0.006, 1.0]
-        top_row = [0.501, 0.502, 0.503, 1.0, 0.504, 0.505, 0.506, 1.0]
-        data = u.build_rgba16f_utex_bytes(bottom_row + top_row, 2, 2)
-        width, height, decoded = u.decode_rgba16f_utex_bytes(data)
-
-        self.assertEqual((width, height), (2, 2))
-        header = struct.unpack_from(u._UTEX_HEADER_FMT, data, 0)
-        self.assertEqual(header[6], u._UTEX_RGBA16_FLOAT_PIXEL_FORMAT)
-        self.assertEqual((header[7], header[8]), (1, 1))
-        for actual, expected in zip(decoded[:8], top_row):
-            self.assertAlmostEqual(actual, expected, delta=0.0003)
-        for actual, expected in zip(decoded[8:], bottom_row):
-            self.assertAlmostEqual(actual, expected, delta=0.0003)
-
-    def test_color_lut_filename_is_content_addressed(self) -> None:
-        first = u.color_lut_filename(b"first LUT")
-        self.assertEqual(first, u.color_lut_filename(b"first LUT"))
-        self.assertNotEqual(first, u.color_lut_filename(b"second LUT"))
-        self.assertTrue(first.startswith("gradelut_"))
-        self.assertTrue(first.endswith(".utex"))
-
-    def test_cpu_lut_sampler_matches_identity_grid_at_grid_points(self) -> None:
-        lut_size = 4
-        source = u.build_identity_lut_grid_pixels(lut_size)
-        data = u.build_rgba16f_utex_bytes(source, lut_size * lut_size, lut_size)
-        _, _, pixels = u.decode_rgba16f_utex_bytes(data)
-        values = [u._lut_shaper_decode(index / (lut_size - 1)) for index in range(lut_size)]
-
-        for red_index, green_index, blue_index in ((0, 0, 0), (1, 2, 3), (3, 1, 2)):
-            color = (values[red_index], values[green_index], values[blue_index])
-            sampled = u.sample_color_lut_pixels(pixels, lut_size, color)
-            for actual, expected in zip(sampled, color):
-                self.assertAlmostEqual(actual, expected, delta=0.006)
-
     def test_write_header_uses_fixed_header_size(self) -> None:
         writer = u.BinaryWriter()
         u.write_header(
@@ -1338,7 +1261,7 @@ _MINIMAL_CUBE_LUT = (
 
 class ColorGradeLUTTests(unittest.TestCase):
     """stage_color_grade_lut_for_output/_parse_cube_lut_header need no Blender
-    context (pure file I/O), unlike bake_color_management_lut above."""
+    context (pure file I/O)."""
 
     def test_parses_lut_3d_size_and_default_domain(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

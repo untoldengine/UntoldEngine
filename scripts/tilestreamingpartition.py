@@ -64,10 +64,8 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 from untoldexplorer import (
-    ColorManagementBake,
     ProgressCallback,
     ProgressReporter,
-    bake_color_management_lut,
     clear_scene,
     export_objects_to_untold,
     extract_scene_payload_from_objects,
@@ -75,7 +73,6 @@ from untoldexplorer import (
     load_blend_scene,
     stage_color_grade_lut_for_output,
     stage_hdr_assets_for_output,
-    validate_lut_size,
 )
 
 
@@ -150,36 +147,8 @@ def _manifest_camera_payload(camera):
     }
 
 
-def _manifest_color_management_payload(bake, manifest_dir=None):
-    if bake is None:
-        return None
-    lut_uri = bake.lut_texture.uri
-    if manifest_dir is not None and bake.lut_texture.source_path is not None:
-        lut_uri = os.path.relpath(
-            bake.lut_texture.source_path,
-            Path(manifest_dir),
-        ).replace(os.sep, "/")
-    return {
-        "lutUri": lut_uri,
-        "lutSize": bake.lut_size,
-        "viewTransform": bake.view_transform,
-        "look": bake.look,
-        "displayDevice": bake.display_device,
-        "exposure": float(bake.exposure),
-        "gamma": float(bake.gamma),
-        "shaperMinStops": float(bake.shaper_min_stops),
-        "shaperMaxStops": float(bake.shaper_max_stops),
-    }
-
-
 def _manifest_color_grade_lut_payload(staged, manifest_dir=None):
-    """Externally-authored .cube grade LUT (see stage_color_grade_lut_for_output).
-
-    Kept as a separate manifest key from colorLUT above -- that one is a
-    proprietary baked-.utex whole-transform bake, this one is a plain .cube
-    file the engine parses/uploads directly, with no shaper/view-transform
-    metadata to carry.
-    """
+    """Externally-authored .cube grade LUT (see stage_color_grade_lut_for_output)."""
     if staged is None:
         return None
     lut_uri = staged.uri
@@ -229,8 +198,6 @@ EXPORT_FORMAT = "untold"        # Runtime payload format emitted for tiles.
 CONVERT_ORIENTATION = True      # Convert Blender scene data into engine space (+Z forward, +Y up).
 SOURCE_ORIENTATION = "blender-native"
 COMPRESS_GEOMETRY = False       # Compress vertex/index chunks with LZ4 (requires: pip install lz4).
-BAKE_COLOR_MANAGEMENT = False   # Bake the scene's View Transform/Look/Exposure/Gamma into a LUT (see --bake-color-management).
-COLOR_LUT_SIZE = 32             # Grid size (N) for the NxNxN color-grading LUT.
 COLOR_GRADE_LUT_PATH = None     # Path to an externally-authored .cube LUT to stage (see --color-grade-lut).
 
 # Tile footprint in Blender world units.
@@ -4743,14 +4710,7 @@ def run():
     else:
         print("DRY_RUN enabled: no files will be written.")
 
-    # Color management is scene-wide (one View Transform per Blender scene), so
-    # bake it once here rather than per-tile.
-    color_management_bake = None
-    if BAKE_COLOR_MANAGEMENT and (not DRY_RUN or DRY_RUN_WRITE_MANIFEST):
-        print_export_stage("Bake color management")
-        color_management_bake = bake_color_management_lut(COLOR_LUT_SIZE, Path(output_dir) / "Textures")
-
-    # Same reasoning: one .cube grade LUT applies to the whole scene, so stage
+    # Color grade LUT is scene-wide (one .cube grade per Blender scene), so stage
     # it once here rather than per-tile.
     color_grade_lut = None
     if COLOR_GRADE_LUT_PATH and (not DRY_RUN or DRY_RUN_WRITE_MANIFEST):
@@ -5044,7 +5004,6 @@ def run():
         "scene_bounds": {"min": list(sb_usd["min"]), "max": list(sb_usd["max"])},
         "scene_lights": scene_lights,
         "scene_cameras": scene_cameras,
-        "colorLUT": _manifest_color_management_payload(color_management_bake, model_dir),
         "colorGradeLUT": _manifest_color_grade_lut_payload(color_grade_lut, model_dir),
         "streaming_profile": {
             "requested": SCENE_STREAMING_PROFILE,
@@ -5892,28 +5851,13 @@ def parse_args(argv):
         help="Compress vertex and index chunks with LZ4 in every exported tile payload (requires: pip install lz4).",
     )
     parser.add_argument(
-        "--bake-color-management",
-        action="store_true",
-        help=(
-            "Bake the scene's active View Transform/Look/Exposure/Gamma into a scene-wide "
-            "RGBA16Float LUT referenced from the manifest's colorLUT key so Untold can "
-            "closely reproduce Blender's canonical sRGB display transform."
-        ),
-    )
-    parser.add_argument(
-        "--color-lut-size",
-        type=int,
-        default=None,
-        help="Grid size (N) for the NxNxN color-grading LUT (default: 32).",
-    )
-    parser.add_argument(
         "--color-grade-lut",
         default=None,
         help=(
             "Path to an externally-authored standard .cube 3D LUT to stage once for the whole "
             "scene and reference from the manifest's colorGradeLUT key, applied as a post-tonemap "
-            "creative grade. Unlike --bake-color-management, nothing is rendered from Blender -- "
-            "the .cube is copied as-is and loaded directly by the engine."
+            "creative grade. Nothing is rendered from Blender -- the .cube is copied as-is and "
+            "loaded directly by the engine."
         ),
     )
     parser.add_argument(
@@ -6025,8 +5969,6 @@ def apply_cli_overrides(args):
     global AUTO_TILE_SIZE
     global PARALLEL_WORKERS
     global COMPRESS_GEOMETRY
-    global BAKE_COLOR_MANAGEMENT
-    global COLOR_LUT_SIZE
     global COLOR_GRADE_LUT_PATH
     global SAMPLE_MODE
     global SAMPLE_FRACTION
@@ -6092,10 +6034,6 @@ def apply_cli_overrides(args):
         PARALLEL_WORKERS = args.parallel_workers
     if getattr(args, "compress_geometry", False):
         COMPRESS_GEOMETRY = True
-    if getattr(args, "bake_color_management", False):
-        BAKE_COLOR_MANAGEMENT = True
-    if getattr(args, "color_lut_size", None) is not None:
-        COLOR_LUT_SIZE = validate_lut_size(args.color_lut_size)
     if getattr(args, "color_grade_lut", None):
         COLOR_GRADE_LUT_PATH = args.color_grade_lut
     if getattr(args, "sample", False):

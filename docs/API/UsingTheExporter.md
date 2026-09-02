@@ -81,9 +81,7 @@ Common options:
 - `--validate`: optional, also writes `<name>.validation.json`
 - `--compress-geometry`: optional, LZ4-compress vertex and index chunks (requires `pip install lz4`)
 - `--optimize`: optional, compress geometry and bake/patch textures after export (implies `--compress-geometry`)
-- `--bake-color-management`: optional, bake the scene's active View Transform/Look/Exposure/Gamma (e.g. Blender's AgX) into an `NxNxN` color-grading LUT so the engine can reproduce Blender's display transform instead of its default ACES Filmic tonemap. The LUT is scene-wide, not per-material — see [Using Color Management](UsingColorManagement.md) for how to actually apply it at runtime; it is not loaded by a normal mesh import
-- `--color-lut-size <N>`: optional, grid size for the `NxNxN` color-grading LUT, defaults to `32`
-- `--color-grade-lut <path>`: optional, stage an externally-authored standard `.cube` 3D LUT and apply it as a post-tonemap creative grade — composes with (does not replace) `--bake-color-management` or the default tonemap. No Blender render, no `.utex` conversion. See [Using Color Management](UsingColorManagement.md)
+- `--color-grade-lut <path>`: optional, stage an externally-authored standard `.cube` 3D LUT and apply it as a post-tonemap creative grade — composes with (does not replace) the default tonemap. No Blender render, no conversion. See [Using Color Management](UsingColorManagement.md)
 - `--animation`: optional, export animation clips only — no mesh geometry is written
 - `--blender <path>`: optional Blender executable override
 
@@ -220,9 +218,7 @@ Common options:
 - `--parallel-workers <number>`: optional number of parallel Blender worker processes (`0` = auto-detect CPU count, `1` = sequential)
 - `--compress-geometry`: optional LZ4-compress vertex and index chunks in every exported tile payload (requires `pip install lz4`)
 - `--optimize`: optional, compress geometry and bake/patch textures after export (implies `--compress-geometry`)
-- `--bake-color-management`: optional, bake the scene's active View Transform/Look/Exposure/Gamma into a scene-wide color-grading LUT, referenced from the manifest's `colorLUT` key. See [Using Color Management](UsingColorManagement.md) — it is only applied via an explicit `loadSceneAuthored(url:)` call, not by normal tile loading
-- `--color-lut-size <N>`: optional, grid size for the `NxNxN` color-grading LUT, defaults to `32`
-- `--color-grade-lut <path>`: optional, stage an externally-authored standard `.cube` 3D LUT once for the whole scene, referenced from the manifest's `colorGradeLUT` key and applied as a post-tonemap creative grade. See [Using Color Management](UsingColorManagement.md)
+- `--color-grade-lut <path>`: optional, stage an externally-authored standard `.cube` 3D LUT once for the whole scene, referenced from the manifest's `colorGradeLUT` key and applied as a post-tonemap creative grade. See [Using Color Management](UsingColorManagement.md) — it is only applied via an explicit `loadSceneAuthored(url:)` call, not by normal tile loading
 - `--blender <path>`: optional wrapper-level Blender override
 
 Example:

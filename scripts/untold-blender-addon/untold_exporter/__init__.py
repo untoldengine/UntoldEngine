@@ -6,7 +6,6 @@ from bpy.props import BoolProperty, EnumProperty, FloatProperty, IntProperty, St
 from bpy_extras.io_utils import ExportHelper
 
 from . import bridge
-from . import color_management
 from . import material_fidelity
 from . import object_metadata
 from . import viewport_overlay
@@ -139,31 +138,13 @@ class UNTOLD_OT_export_asset(bpy.types.Operator, ExportHelper):
         default="thorough",
     )
 
-    bake_color_management: BoolProperty(
-        name="Bake Color Management",
-        description=(
-            "Bake the scene's active View Transform/Look/Exposure/Gamma into a color-grading "
-            "RGBA16Float LUT targeting canonical sRGB output so Untold can closely reproduce "
-            "Blender's color management, including Filmic/AgX highlight compression"
-        ),
-        default=False,
-    )
-
-    color_lut_size: IntProperty(
-        name="Color LUT Size",
-        description="Grid size (N) for the NxNxN color-grading LUT",
-        default=32,
-        min=4,
-        soft_max=64,
-    )
-
     color_grade_lut: StringProperty(
         name="Color Grade LUT",
         description=(
             "Path to an externally-authored standard .cube 3D LUT to stage and apply as a "
-            "post-tonemap creative grade. Unlike Bake Color Management, nothing is rendered "
-            "from Blender -- the .cube is copied as-is and loaded directly by the engine, so "
-            "any LUT from any grading tool works"
+            "post-tonemap creative grade. Nothing is rendered from Blender -- the .cube is "
+            "copied as-is and loaded directly by the engine, so any LUT from any grading tool "
+            "works"
         ),
         default="",
         subtype="FILE_PATH",
@@ -218,8 +199,6 @@ class UNTOLD_OT_export_asset(bpy.types.Operator, ExportHelper):
                 source_orientation=self.source_orientation,
                 validate=self.validate,
                 compress_geometry=self.compress_geometry,
-                bake_color_management=self.bake_color_management,
-                color_lut_size=self.color_lut_size,
                 color_grade_lut_path=self.color_grade_lut or None,
                 bake_textures=self.bake_textures,
                 texture_quality=self.texture_quality,
@@ -490,24 +469,6 @@ class UNTOLD_OT_export_tiled_scene(bpy.types.Operator):
         default=False,
     )
 
-    bake_color_management: BoolProperty(
-        name="Bake Color Management",
-        description=(
-            "Bake the scene's active View Transform/Look/Exposure/Gamma into a scene-wide "
-            "RGBA16Float LUT referenced from the manifest's colorLUT key, targeting "
-            "canonical sRGB output"
-        ),
-        default=False,
-    )
-
-    color_lut_size: IntProperty(
-        name="Color LUT Size",
-        description="Grid size (N) for the NxNxN color-grading LUT",
-        default=32,
-        min=4,
-        soft_max=64,
-    )
-
     color_grade_lut: StringProperty(
         name="Color Grade LUT",
         description=(
@@ -611,8 +572,6 @@ class UNTOLD_OT_export_tiled_scene(bpy.types.Operator):
                 generate_hlod=self.generate_hlod,
                 generate_lod=self.generate_lod,
                 compress_geometry=self.compress_geometry,
-                bake_color_management=self.bake_color_management,
-                color_lut_size=self.color_lut_size,
                 color_grade_lut_path=self.color_grade_lut or None,
                 dry_run=self.dry_run,
                 write_manifest_in_dry_run=self.write_manifest_in_dry_run,
@@ -656,11 +615,9 @@ def register() -> None:
     object_metadata.register()
     viewport_overlay.register()
     material_fidelity.register()
-    color_management.register()
 
 
 def unregister() -> None:
-    color_management.unregister()
     material_fidelity.unregister()
     viewport_overlay.unregister()
     object_metadata.unregister()

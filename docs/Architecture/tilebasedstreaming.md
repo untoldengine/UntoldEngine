@@ -54,9 +54,10 @@ A scene is described by a manifest file listing tiles.
 | `interior_zone` | *(v4 only)* Union AABB of all `ExteriorShell` tiles. Interior tiles are only loaded while the camera is inside this volume |
 | `scene_lights` | *(optional)* Scene-authored lights exported from Blender. Registered only by an explicit `loadSceneAuthored(url:)` call; not tied to tile residency |
 | `scene_cameras` | *(optional)* Scene-authored cameras exported from Blender. Registered only by an explicit `loadSceneAuthored(url:)` call; not tied to tile residency |
-| `colorLUT` | *(optional)* Baked color-grading LUT from `--bake-color-management` (see [Using the Exporter](../API/UsingTheExporter.md)). Same rule as `scene_lights`/`scene_cameras`: registered only by an explicit `loadSceneAuthored(url:)` call; regular tile scene loading does not apply it |
+| `colorLUT` | *(optional, legacy)* Baked whole-transform color-grading LUT from the now-retired `--bake-color-management` flag. Only present in manifests produced before that flag was removed; still applied by `loadSceneAuthored(url:)` for backward compatibility |
+| `colorGradeLUT` | *(optional)* Externally-authored `.cube` creative grade staged with `--color-grade-lut` (see [Using the Exporter](../API/UsingTheExporter.md)). Same rule as `scene_lights`/`scene_cameras`: registered only by an explicit `loadSceneAuthored(url:)` call; regular tile scene loading does not apply it |
 
-The `streaming_defaults` block sets scene-wide fallback values for all per-tile fields. An optional `shared_bucket` entry holds geometry that spans many tiles and should always be resident (loaded as soon as the camera enters the scene). `scene_lights`, `scene_cameras`, and `colorLUT` are persistent scene payload data available to `loadSceneAuthored(url:)`; regular tile scene loading does not register any of them automatically.
+The `streaming_defaults` block sets scene-wide fallback values for all per-tile fields. An optional `shared_bucket` entry holds geometry that spans many tiles and should always be resident (loaded as soon as the camera enters the scene). `scene_lights`, `scene_cameras`, and `colorGradeLUT` (or the legacy `colorLUT`) are persistent scene payload data available to `loadSceneAuthored(url:)`; regular tile scene loading does not register any of them automatically.
 
 #### Per-tile entry fields
 
