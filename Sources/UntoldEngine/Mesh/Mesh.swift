@@ -1604,6 +1604,12 @@ private func cachedSamplerState(device: MTLDevice, wrapMode: WrapMode) -> MTLSam
     samplerDescriptor.mipFilter = .linear
     samplerDescriptor.sAddressMode = (wrapMode == .repeat) ? .repeat : .clampToEdge
     samplerDescriptor.tAddressMode = (wrapMode == .repeat) ? .repeat : .clampToEdge
+    // Without this, minification of fine high-frequency textures viewed at a grazing
+    // angle (fabric weaves, floor tiles, ...) aliases into visible jagged/stair-stepped
+    // edges: trilinear filtering alone picks one isotropic mip level sized to the
+    // longest axis of the screen-space footprint, over-blurring the other axis instead
+    // of resolving it. 16 is the practical max on Apple GPUs and cheap to sample.
+    samplerDescriptor.maxAnisotropy = 16
 
     let sampler = device.makeSamplerState(descriptor: samplerDescriptor)
     if let sampler {
