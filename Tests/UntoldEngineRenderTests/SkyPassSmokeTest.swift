@@ -22,7 +22,7 @@ final class SkyPassSmokeTest: BaseRenderSetup {
         cameraLookAt(entityId: camera, eye: simd_float3(0.0, 2.0, 0.0), target: simd_float3(0.0, 2.0, -10.0), up: simd_float3(0.0, 1.0, 0.0))
     }
 
-    func testSkyPassRendersAtDifferentSunAngles() throws {
+    func testSkyPassRendersAtDifferentSunAngles() {
         renderEnvironment = false
         renderSkyBackground = true
 

@@ -290,7 +290,9 @@ struct BlenderPythonPackageDependency: BootstrapDependency {
     let importName: String
     let pipSpec: String
 
-    private var installDirectory: URL { blenderPythonPackagesDirectory() }
+    private var installDirectory: URL {
+        blenderPythonPackagesDirectory()
+    }
 
     var statusDetail: String {
         "importable by Blender's bundled python3 (target: \(installDirectory.path))"
