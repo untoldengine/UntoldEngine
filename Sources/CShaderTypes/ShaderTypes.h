@@ -100,6 +100,27 @@ typedef enum{
 }GridPassBufferIndices;
 
 typedef enum{
+    skyPassPositionIndex,
+    skyPassUniformIndex,
+}SkyPassBufferIndices;
+
+// Uniforms for the procedural atmospheric sky background pass. invViewMatrix/invProjectionMatrix
+// let the vertex shader reconstruct a world-space ray per pixel; sunDirection/sunColor/sunIntensity
+// are sourced from the engine's active directional light so the sun position drives the sky's
+// appearance. Physical scattering constants (Rayleigh/Mie/ozone coefficients, planet/atmosphere
+// radii) live as `constant` values inside SkyShader.metal, not here, so they can later be promoted
+// into LUT precompute passes (Transmittance/Sky-View/Aerial Perspective) without changing this struct.
+typedef struct
+{
+    matrix_float4x4 invViewMatrix;
+    matrix_float4x4 invProjectionMatrix;
+    simd_float3 cameraPosition;
+    simd_float3 sunDirection;
+    simd_float3 sunColor;
+    float sunIntensity;
+} SkyUniforms;
+
+typedef enum{
     modelPassVerticesIndex,
     modelPassNormalIndex,
     modelPassUVIndex,

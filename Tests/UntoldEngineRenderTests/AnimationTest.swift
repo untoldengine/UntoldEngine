@@ -171,6 +171,10 @@ final class AnimationTests: BaseRenderSetup {
     }
 
     override func initializeAssets() {
+        // Reference keyframe PNGs were captured against the grid background; pin it explicitly
+        // now that the procedural sky is the default non-IBL background, so this test keeps
+        // validating skeletal animation poses rather than sky rendering.
+        renderSkyBackground = false
         cameraLookAt(entityId: findGameCamera(), eye: simd_float3(0.0, 3.0, 7.0), target: simd_float3(0.0, 0.0, 0.0), up: simd_float3(0.0, 1.0, 0.0))
         ambientIntensity = 0.4
         let sunEntity: EntityID = createEntity()

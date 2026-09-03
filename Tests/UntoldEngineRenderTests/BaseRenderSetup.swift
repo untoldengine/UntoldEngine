@@ -82,6 +82,7 @@ class BaseRenderSetup: XCTestCase {
         frameCount = 0
         timePassedSinceLastFrame = 0.0
         renderEnvironment = false
+        renderSkyBackground = true
         applyIBL = false
         antiAliasingMode = .fxaa
         renderDebugViewMode = .lit

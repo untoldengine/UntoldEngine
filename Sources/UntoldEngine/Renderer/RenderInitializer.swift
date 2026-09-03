@@ -284,6 +284,22 @@ func initBufferResources() {
         )
     }
 
+    /// Initialize Sky Buffers
+    /// Reuses the grid pass's fullscreen NDC quad (gridVertices / createGridVertexDescriptor) since
+    /// the sky pass needs the exact same "one triangle-pair covering the screen" geometry.
+    func initSkyBuffers() {
+        bufferResources.skyVertexBuffer = createBuffer(
+            device: renderInfo.device,
+            data: gridVertices,
+            label: "Sky Vertices"
+        )
+        bufferResources.skyUniforms = createEmptyBuffer(
+            device: renderInfo.device,
+            length: MemoryLayout<SkyUniforms>.stride,
+            label: "Sky Uniforms"
+        )
+    }
+
     /// Initialize Composite Buffers
     func initCompositeBuffers() {
         bufferResources.quadVerticesBuffer = createBuffer(
@@ -363,6 +379,7 @@ func initBufferResources() {
 
     // Initialize All Buffers
     initGridBuffers()
+    initSkyBuffers()
     initCompositeBuffers()
     initPointLightBuffer()
     initSpotLightBuffer()

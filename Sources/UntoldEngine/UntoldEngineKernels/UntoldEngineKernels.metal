@@ -16,6 +16,7 @@ using namespace metal;
 #include "../Shaders/ShadersUtils.metal"
 #include "../Shaders/shadowShader.metal"
 #include "../Shaders/GridShader.metal"
+#include "../Shaders/SkyShader.metal"
 #include "../Shaders/geometryShader.metal"
 #include "../Shaders/environmentShader.metal"
 #include "../Shaders/compositeShader.metal"

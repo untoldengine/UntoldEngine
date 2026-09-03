@@ -955,7 +955,8 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
 
     func testBuildGameModeGraph_GridMode() throws {
         renderInfo.immersionStyle = .none
-        renderEnvironment = false // Should use grid instead
+        renderEnvironment = false
+        renderSkyBackground = false // sky is the default non-IBL background; opt into grid explicitly
 
         let (graph, _) = try buildGameModeGraph()
 
@@ -1344,16 +1345,17 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
 
     func testBuildGameModeGraph_GaussianInAllRenderModes() throws {
         // Test that gaussian pass exists in all render modes
-        let modes: [(UntoldImmersionMode, Bool, String)] = [
-            (.none, true, "environment"),
-            (.none, false, "grid"),
-            (.full, true, "full immersion"),
-            (.mixed, false, "passthrough"),
+        let modes: [(UntoldImmersionMode, Bool, Bool, String)] = [
+            (.none, true, true, "environment"),
+            (.none, false, false, "grid"),
+            (.full, true, true, "full immersion"),
+            (.mixed, false, true, "passthrough"),
         ]
 
-        for (immersionStyle, useEnvironment, description) in modes {
+        for (immersionStyle, useEnvironment, useSky, description) in modes {
             renderInfo.immersionStyle = immersionStyle
             renderEnvironment = useEnvironment
+            renderSkyBackground = useSky
 
             let (graph, _) = try buildGameModeGraph()
 
@@ -1481,6 +1483,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
 
     func testReservedPassIDsCoverEveryGameModeGraphVariant() throws {
         let originalEnvironment = renderEnvironment
+        let originalSkyBackground = renderSkyBackground
         let originalBypass = bypassPostProcessing
         let originalAA = antiAliasingMode
         let originalDebugMode = renderDebugViewMode
@@ -1490,6 +1493,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
         let originalDepthOfField = DepthOfFieldParams.shared.enabled
         defer {
             renderEnvironment = originalEnvironment
+            renderSkyBackground = originalSkyBackground
             bypassPostProcessing = originalBypass
             antiAliasingMode = originalAA
             renderDebugViewMode = originalDebugMode
@@ -1519,6 +1523,13 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
                 try captureGraphPassIDs()
             }
         }
+
+        // renderEnvironment=false alone selects the default sky background above; also capture
+        // the grid pass (reachable via the renderSkyBackground opt-out) so it stays reserved.
+        renderEnvironment = false
+        renderSkyBackground = false
+        try captureGraphPassIDs()
+        renderSkyBackground = true
 
         antiAliasingMode = .none
         for mode in [

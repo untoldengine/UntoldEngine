@@ -843,6 +843,7 @@ private final class RuntimeGlobalsStore: @unchecked Sendable {
     private var gameModeValue: Bool = true
     private var applyIBLValue: Bool = false
     private var renderEnvironmentValue: Bool = false
+    private var renderSkyBackgroundValue: Bool = true
     private var ambientIntensityValue: Float = 0.4
     private var hdrURLValue: String = "teatro_massimo_2k.hdr"
     private var resourceURLValue: URL?
@@ -1209,6 +1210,22 @@ private final class RuntimeGlobalsStore: @unchecked Sendable {
         set {
             lock.lock()
             renderEnvironmentValue = newValue
+            lock.unlock()
+        }
+    }
+
+    // Selects the procedural atmospheric sky (true, default) vs. the debug/editor grid (false)
+    // as the non-XR background when IBL (renderEnvironment) is disabled.
+    var renderSkyBackground: Bool {
+        get {
+            lock.lock()
+            let value = renderSkyBackgroundValue
+            lock.unlock()
+            return value
+        }
+        set {
+            lock.lock()
+            renderSkyBackgroundValue = newValue
             lock.unlock()
         }
     }
@@ -1593,6 +1610,11 @@ public var applyIBL: Bool {
 public var renderEnvironment: Bool {
     get { RuntimeGlobalsStore.shared.renderEnvironment }
     set { RuntimeGlobalsStore.shared.renderEnvironment = newValue }
+}
+
+public var renderSkyBackground: Bool {
+    get { RuntimeGlobalsStore.shared.renderSkyBackground }
+    set { RuntimeGlobalsStore.shared.renderSkyBackground = newValue }
 }
 
 public var ambientIntensity: Float {

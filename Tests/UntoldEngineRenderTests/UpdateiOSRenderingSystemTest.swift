@@ -55,6 +55,7 @@ final class UpdateiOSRenderingSystemTest: BaseRenderSetup {
         // Set up iOS mode
         renderInfo.immersionStyle = .none
         renderEnvironment = false
+        renderSkyBackground = false // sky is the default non-IBL background; opt into grid explicitly
 
         let (graph, _) = try buildGameModeGraph()
 
@@ -200,6 +201,7 @@ final class UpdateiOSRenderingSystemTest: BaseRenderSetup {
         // Test iOS mode
         renderInfo.immersionStyle = .none
         renderEnvironment = false
+        renderSkyBackground = false // sky is the default non-IBL background; opt into grid explicitly
         let (iosGraph, _) = try buildGameModeGraph()
 
         // Test AR mode

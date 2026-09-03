@@ -265,6 +265,7 @@ final class UpdateARRenderingSystemTest: BaseRenderSetup {
         // Test none mode (should have environment or grid)
         renderInfo.immersionStyle = .none
         renderEnvironment = false
+        renderSkyBackground = false // sky is the default non-IBL background; opt into grid explicitly
         let (noneGraph, _) = try buildGameModeGraph()
 
         // AR should have no base pass

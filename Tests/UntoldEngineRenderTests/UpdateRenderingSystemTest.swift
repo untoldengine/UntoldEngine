@@ -96,6 +96,7 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
         // Set up for macOS/iOS rendering with grid
         renderInfo.immersionStyle = .none
         renderEnvironment = false
+        renderSkyBackground = false // sky is the default non-IBL background; opt into grid explicitly
         DepthOfFieldParams.shared.enabled = true
         defer { DepthOfFieldParams.shared.enabled = false }
 
@@ -146,6 +147,7 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
         // Set up for grid rendering
         renderInfo.immersionStyle = .none
         renderEnvironment = false
+        renderSkyBackground = false
 
         let (graph, _) = try buildGameModeGraph()
 
@@ -156,6 +158,79 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
         // Verify the grid pass has no dependencies (it's the base)
         XCTAssertEqual(graph["grid"]?.dependencies.count, 0,
                        "Grid pass should have no dependencies")
+    }
+
+    // MARK: - UpdateRenderingSystem Sky Mode Tests
+
+    func testUpdateRenderingSystem_SkyModeConfiguresRenderGraphCorrectly() throws {
+        // Sky is the default non-IBL background for macOS/iOS rendering.
+        renderInfo.immersionStyle = .none
+        renderEnvironment = false
+        renderSkyBackground = true
+        DepthOfFieldParams.shared.enabled = true
+        defer { DepthOfFieldParams.shared.enabled = false }
+
+        let (graph, finalPassID) = try buildGameModeGraph()
+
+        XCTAssertNotNil(graph["sky"], "Sky mode should create sky pass")
+        XCTAssertNil(graph["grid"], "Sky mode should not create grid pass")
+        XCTAssertNil(graph["environment"], "Sky mode should not create environment pass")
+
+        XCTAssertNotNil(graph["shadow"], "Shadow pass should exist")
+        XCTAssertNotNil(graph["model"], "Model pass should exist")
+        XCTAssertNotNil(graph["lightPass"], "Light pass should exist")
+        XCTAssertNotNil(graph["precomp"], "Pre-composite pass should exist")
+        XCTAssertNotNil(graph["look"], "Look pass should exist")
+        XCTAssertNotNil(graph["outputTransform"], "Output transform pass should exist")
+
+        XCTAssertEqual(finalPassID, "outputTransform", "Final pass ID should be outputTransform")
+
+        // Verify shadow depends on sky
+        XCTAssertEqual(graph["shadow"]?.dependencies, ["sky"],
+                       "Shadow should depend on sky in sky mode")
+
+        let sortedPasses = try topologicalSortGraph(graph: graph)
+        XCTAssertTrue(sortedPasses.count > 0, "Sorted passes should not be empty")
+        XCTAssertEqual(sortedPasses.last?.id, "outputTransform",
+                       "outputTransform should be the last pass in the sorted order")
+
+        let order = sortedPasses.map(\.id)
+        assertTopologicalConstraints(order: order, constraints: [
+            ("sky", "shadow"),
+            ("shadow", "batchedShadow"),
+            ("batchedShadow", "pointShadow"),
+            ("pointShadow", "spotShadow"),
+            ("spotShadow", "model"),
+            ("model", "lightPass"),
+            ("lightPass", "depthOfField"),
+        ])
+    }
+
+    func testUpdateRenderingSystem_SkyModeUsesSkyPass() throws {
+        renderInfo.immersionStyle = .none
+        renderEnvironment = false
+        renderSkyBackground = true
+
+        let (graph, _) = try buildGameModeGraph()
+
+        XCTAssertNotNil(graph["sky"], "Sky mode should use sky pass")
+        XCTAssertNil(graph["grid"], "Sky mode should not use grid pass")
+        XCTAssertNil(graph["environment"], "Sky mode should not use environment pass")
+
+        // Verify the sky pass has no dependencies (it's the base)
+        XCTAssertEqual(graph["sky"]?.dependencies.count, 0,
+                       "Sky pass should have no dependencies")
+    }
+
+    func testUpdateRenderingSystem_SkyIsDefaultWhenNotExplicitlySet() throws {
+        // renderSkyBackground defaults to true, so leaving it untouched should still select sky.
+        renderInfo.immersionStyle = .none
+        renderEnvironment = false
+
+        let (graph, _) = try buildGameModeGraph()
+
+        XCTAssertNotNil(graph["sky"], "Sky should be the default background without setting renderSkyBackground")
+        XCTAssertNil(graph["grid"], "Grid should not be used by default")
     }
 
     // MARK: - Final Pass Tests
@@ -180,7 +255,7 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
     }
 
     func testUpdateRenderingSystem_OutputTransformIsLastInTopologicalOrder() throws {
-        // Test with grid mode
+        // Test with the default (sky) non-IBL mode
         renderInfo.immersionStyle = .none
         renderEnvironment = false
 
@@ -195,16 +270,18 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
     }
 
     func testUpdateRenderingSystem_OutputTransformIsCorrectFinalPassInAllRenderModes() throws {
-        // Test both environment and grid modes to ensure outputTransform is the final pass
+        // Test environment, sky, and grid modes to ensure outputTransform is the final pass
 
-        let modes: [(Bool, String)] = [
-            (true, "environment"),
-            (false, "grid"),
+        let modes: [(useEnvironment: Bool, useSky: Bool, description: String)] = [
+            (true, false, "environment"),
+            (false, true, "sky"),
+            (false, false, "grid"),
         ]
 
-        for (useEnvironment, description) in modes {
+        for (useEnvironment, useSky, description) in modes {
             renderInfo.immersionStyle = .none
             renderEnvironment = useEnvironment
+            renderSkyBackground = useSky
 
             let (graph, finalPassID) = try buildGameModeGraph()
 
@@ -223,20 +300,29 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
     // MARK: - Render Mode Selection Tests
 
     func testUpdateRenderingSystem_ImmersionStyleNoneDeterminesCorrectBasePass() throws {
-        // Test that immersionStyle .none correctly selects between environment and grid
+        // Test that immersionStyle .none correctly selects between environment, sky, and grid
 
         // Test environment selection
         renderInfo.immersionStyle = .none
         renderEnvironment = true
         let (envGraph, _) = try buildGameModeGraph()
         XCTAssertNotNil(envGraph["environment"], "Should use environment when renderEnvironment is true")
+        XCTAssertNil(envGraph["sky"], "Should not use sky when renderEnvironment is true")
         XCTAssertNil(envGraph["grid"], "Should not use grid when renderEnvironment is true")
 
-        // Test grid selection
+        // Test sky selection (the default non-IBL background)
         renderEnvironment = false
+        let (skyGraph, _) = try buildGameModeGraph()
+        XCTAssertNotNil(skyGraph["sky"], "Should use sky when renderEnvironment is false and renderSkyBackground is true")
+        XCTAssertNil(skyGraph["environment"], "Should not use environment when renderEnvironment is false")
+        XCTAssertNil(skyGraph["grid"], "Should not use grid when renderSkyBackground is true")
+
+        // Test grid selection (explicit opt-out of the sky)
+        renderSkyBackground = false
         let (gridGraph, _) = try buildGameModeGraph()
-        XCTAssertNotNil(gridGraph["grid"], "Should use grid when renderEnvironment is false")
+        XCTAssertNotNil(gridGraph["grid"], "Should use grid when renderEnvironment and renderSkyBackground are false")
         XCTAssertNil(gridGraph["environment"], "Should not use environment when renderEnvironment is false")
+        XCTAssertNil(gridGraph["sky"], "Should not use sky when renderSkyBackground is false")
     }
 
     func testUpdateRenderingSystem_EnvironmentAndGridModesHaveDifferentDependencies() throws {
@@ -249,6 +335,7 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
 
         // Grid mode
         renderEnvironment = false
+        renderSkyBackground = false
         let (gridGraph, _) = try buildGameModeGraph()
 
         // Both should have shadow pass, but with different dependencies
@@ -289,6 +376,7 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
         // Simulate the full UpdateRenderingSystem workflow
         renderInfo.immersionStyle = .none
         renderEnvironment = false
+        renderSkyBackground = false
 
         // This simulates what UpdateRenderingSystem does
         let (graph, _) = try buildGameModeGraph()
@@ -302,6 +390,26 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
 
         // Verify all expected passes are present
         let expectedPasses = ["grid", "shadow", "batchedShadow", "pointShadow", "spotShadow", "model", "lightPass", "gaussian", "precomp", "look", "outputTransform"]
+        for passID in expectedPasses {
+            XCTAssertNotNil(graph[passID], "Graph should contain '\(passID)' pass")
+        }
+    }
+
+    func testUpdateRenderingSystem_FullWorkflowWithSkyMode() throws {
+        // Simulate the full UpdateRenderingSystem workflow with the default (sky) background
+        renderInfo.immersionStyle = .none
+        renderEnvironment = false
+        renderSkyBackground = true
+
+        let (graph, _) = try buildGameModeGraph()
+
+        let sortedPasses = try topologicalSortGraph(graph: graph)
+
+        XCTAssertTrue(sortedPasses.count > 0, "Should have a valid sorted pass list")
+        XCTAssertNotNil(graph["sky"], "Sky mode should have sky pass")
+        XCTAssertEqual(sortedPasses.last?.id, "outputTransform", "outputTransform should be the final pass")
+
+        let expectedPasses = ["sky", "shadow", "batchedShadow", "pointShadow", "spotShadow", "model", "lightPass", "gaussian", "precomp", "look", "outputTransform"]
         for passID in expectedPasses {
             XCTAssertNotNil(graph[passID], "Graph should contain '\(passID)' pass")
         }

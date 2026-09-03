@@ -327,6 +327,52 @@ public func getDirectionalLightShaderDirection(entityId: EntityID) -> simd_float
     )
 }
 
+/// Returns the sun elevation/azimuth (degrees) implied by the entity's current orientation, using
+/// the same forward-axis convention as `getDirectionalLightShaderDirection(entityId:)`.
+///
+/// This is a pure re-parameterization of the existing transform orientation (pitch/yaw) -- no
+/// additional state is stored, so it can never drift from the transform. `elevation` is the angle
+/// above the horizon (-90 straight down ... 0 horizon ... 90 straight up); `azimuth` is the
+/// compass angle around the horizon measured from +Z toward +X, in [0, 360). Roll has no effect
+/// on light direction and is not represented here.
+public func getSunElevationAzimuth(entityId: EntityID) -> (elevation: Float, azimuth: Float) {
+    let direction = getDirectionalLightShaderDirection(entityId: entityId)
+
+    let elevation = radiansToDegrees(radians: asin(clampFloat(direction.y, min: -1.0, max: 1.0)))
+    let azimuth = radiansToDegrees(radians: atan2(direction.x, direction.z))
+
+    return (elevation, azimuth < 0.0 ? azimuth + 360.0 : azimuth)
+}
+
+/// Orients the entity so its light direction points at the given sun elevation/azimuth (degrees),
+/// using the same convention as `getSunElevationAzimuth(entityId:)`. Rebuilds the full orientation
+/// from the target direction, so any existing roll is discarded -- consistent with roll having no
+/// effect on light direction.
+public func setSunElevationAzimuth(entityId: EntityID, elevation: Float, azimuth: Float) {
+    guard scene.get(component: LocalTransformComponent.self, for: entityId) != nil else {
+        handleError(.noLocalTransformComponent, entityId)
+        return
+    }
+
+    let elevationRad = degreesToRadians(degrees: elevation)
+    let azimuthRad = degreesToRadians(degrees: azimuth)
+
+    let horizontalRadius = cos(elevationRad)
+    let direction = simd_float3(
+        horizontalRadius * sin(azimuthRad),
+        sin(elevationRad),
+        horizontalRadius * cos(azimuthRad)
+    )
+
+    // quaternion_lookAt maps local +Z (the light's forward/shader-direction axis) to
+    // (eye - target); passing the target direction as `eye` with `target` at the origin makes
+    // local +Z equal `direction`, matching getDirectionalLightShaderDirection's convention.
+    let up: simd_float3 = abs(direction.y) > 0.999 ? simd_float3(0.0, 0.0, 1.0) : simd_float3(0.0, 1.0, 0.0)
+    let rotation = quaternion_lookAt(eye: direction, target: simd_float3(0.0, 0.0, 0.0), up: up)
+
+    rotateTo(entityId: entityId, rotation: rotation)
+}
+
 public func createDirLight(entityId: EntityID) {
     registerComponent(entityId: entityId, componentType: LightComponent.self)
     registerComponent(entityId: entityId, componentType: DirectionalLightComponent.self)
@@ -334,7 +380,9 @@ public func createDirLight(entityId: EntityID) {
     registerSceneGraphComponent(entityId: entityId)
 
     assignDefaultProceduralLightMesh(entityId: entityId)
-    applyDefaultLightOrientation(entityId: entityId)
+    // Default sun position/brightness for newly-created directional lights, tuned for the
+    // procedural sky background (see getSunElevationAzimuth/setSunElevationAzimuth).
+    setSunElevationAzimuth(entityId: entityId, elevation: 19.0, azimuth: 150.0)
 
     guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
         handleError(.noLightComponent)
@@ -342,6 +390,7 @@ public func createDirLight(entityId: EntityID) {
     }
 
     lightComponent.lightType = .directional
+    lightComponent.intensity = 20.0
     if LightingSystem.shared.activeDirectionalLight == nil {
         LightingSystem.shared.activeDirectionalLight = entityId
     }
