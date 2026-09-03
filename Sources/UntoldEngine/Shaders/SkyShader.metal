@@ -103,10 +103,14 @@ constant float kSunGlowStrength = 0.35;
 // (pure single scattering); tuned by eye against a horizon color sweep across sun elevations.
 constant float kMultiScatterStrength = 1.4;
 
-// Ground tint (see fragmentSkyShader): darkens the horizon-color approximation used for rays that
-// hit the ground, so it reads as a distinct (if undetailed) surface rather than a mirror of the
-// sky. 1.0 = same brightness as the horizon itself; lower = darker ground.
-constant float kGroundDarkening = 0.6;
+// Ground/floor fill (see fragmentSkyShader): rays that hit the ground have no real geometry behind
+// this pass, so they're filled with a neutral studio-gray -- matching the editor's reference grid,
+// which is alpha-blended on top of this pass afterward -- rather than continuing the atmosphere
+// below the horizon. kFloorSkyTint blends in a touch of the sky's own horizon color so the floor
+// still reads as lit by the current time-of-day instead of a dead flat gray; 0 = pure kFloorBaseColor,
+// 1 = pure horizon color.
+constant float3 kFloorBaseColor = float3(0.30, 0.30, 0.31);
+constant float kFloorSkyTint = 0.2;
 
 // Analytic ray-sphere intersection for a unit-length ray direction. Returns (near, far) distances
 // along the ray; near > far means the ray misses the sphere entirely.
@@ -277,27 +281,27 @@ fragment float4 fragmentSkyShader(
     float3 rayOrigin = float3(0.0, kPlanetRadiusKm + cameraHeightKm, 0.0);
 
     // Rays that hit the ground (no real ground geometry backs this pass -- it's pure background)
-    // would otherwise return near-black: computeSkyColor's raymarch gets clipped to the short
-    // segment between the camera and the ground hit, which accumulates barely any in-scattered
-    // light. Approximate the ground instead as a darkened version of the sky's own horizon color
-    // in that azimuthal direction -- i.e. level the ray off (keep its XZ heading, zero its Y) so
+    // are filled with a neutral gray floor color (kFloorBaseColor) instead of continuing the
+    // atmosphere below the horizon -- the grid pass draws its reference lines over this fill
+    // afterward. The fill is lightly tinted toward the sky's own horizon color so it still reads
+    // as lit by the current time-of-day: level the ray off (keep its XZ heading, zero its Y) so
     // computeSkyColor evaluates the same horizon it renders directly above this point, which
     // never intersects the ground and so integrates the full atmosphere like any other sky ray.
     float2 groundHit = raySphereIntersect(rayOrigin, rayDir, kPlanetRadiusKm);
-    float3 effectiveRayDir = rayDir;
-    if (groundHit.x > 0.0) {
+    bool isGround = groundHit.x > 0.0;
+
+    float3 color;
+    if (isGround) {
         float2 horizontal = float2(rayDir.x, rayDir.z);
         float horizontalLength = length(horizontal);
+        float3 levelRayDir = rayDir;
         if (horizontalLength > 1e-4) {
-            effectiveRayDir = float3(horizontal.x, 0.0, horizontal.y) / horizontalLength;
+            levelRayDir = float3(horizontal.x, 0.0, horizontal.y) / horizontalLength;
         }
-    }
-
-    bool isGround = groundHit.x > 0.0;
-    float3 color = computeSkyColor(rayOrigin, effectiveRayDir, sunDir, skyUniforms.sunColor, skyUniforms.sunIntensity, !isGround, isGround);
-
-    if (isGround) {
-        color *= kGroundDarkening;
+        float3 horizonColor = computeSkyColor(rayOrigin, levelRayDir, sunDir, skyUniforms.sunColor, skyUniforms.sunIntensity, false, true);
+        color = mix(kFloorBaseColor, horizonColor, kFloorSkyTint);
+    } else {
+        color = computeSkyColor(rayOrigin, rayDir, sunDir, skyUniforms.sunColor, skyUniforms.sunIntensity, true, false);
     }
 
     return float4(color, 1.0);

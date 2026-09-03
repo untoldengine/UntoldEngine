@@ -73,10 +73,6 @@ float4 computeGrid(float3 uFragPos,float uScale){
     //x-axis
     if(uFragPos.z>-minimumz && uFragPos.z<minimumz) color.x=1.0;
 
-    float planeScale=2.0;
-
-    if(uFragPos.x<-planeScale || uFragPos.x>planeScale) return simd_float4(0.0);
-    if(uFragPos.z<-planeScale || uFragPos.z>planeScale) return simd_float4(0.0);
     return color;
 }
 
@@ -95,10 +91,11 @@ vertex VertexOutput vertexGridShader(VertexInput vert [[stage_in]], constant Uni
 
     float4 p=float4(vert.position,1.0);
 
-    //note the projection space has been inverted
-    float3 nearPoint=unprojectPoint(p.x, p.y, 0.0, uniformSpace.viewMatrix, uniformSpace.projectionMatrix).xyz;
+    // Reverse-Z: NDC z=1 is the near plane, z=0 is the far plane (opposite of the usual
+    // forward-Z convention), so the near/far unprojection depths below are swapped to match.
+    float3 nearPoint=unprojectPoint(p.x, p.y, 1.0, uniformSpace.viewMatrix, uniformSpace.projectionMatrix).xyz;
 
-    float3 farPoint=unprojectPoint(p.x, p.y, 1.0,uniformSpace.viewMatrix, uniformSpace.projectionMatrix).xyz;
+    float3 farPoint=unprojectPoint(p.x, p.y, 0.0,uniformSpace.viewMatrix, uniformSpace.projectionMatrix).xyz;
 
     vertexOut.position=p;
     vertexOut.nearPoint=nearPoint;
