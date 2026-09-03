@@ -781,12 +781,12 @@ public struct Material {
             }
         }
 
-        // The normal texture's .utex header records whether it was baked with astcenc's
-        // `-normal` mode (2-component X+Y, Z reconstructed in-shader) instead of a direct
-        // 3-component tangent-space normal — see NativeTexFlags.normalPackedXY. This is a
-        // cheap, header-only, mmap'd read (NativeTexReader never touches the ASTC payload),
-        // done once at material load time rather than threaded through NativeTextureLoader's
-        // GPU-upload path, since the flag doesn't change across texture-streaming tier swaps.
+        /// The normal texture's .utex header records whether it was baked with astcenc's
+        /// `-normal` mode (2-component X+Y, Z reconstructed in-shader) instead of a direct
+        /// 3-component tangent-space normal — see NativeTexFlags.normalPackedXY. This is a
+        /// cheap, header-only, mmap'd read (NativeTexReader never touches the ASTC payload),
+        /// done once at material load time rather than threaded through NativeTextureLoader's
+        /// GPU-upload path, since the flag doesn't change across texture-streaming tier swaps.
         func normalTexturePackedXY(reference: RuntimeTextureReference?) -> Bool {
             guard let reference, reference.textureFormat.isNativeContainer, let url = reference.sourceURL else { return false }
             guard let data = try? Data(contentsOf: url, options: .mappedIfSafe) else { return false }

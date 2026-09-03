@@ -1214,8 +1214,8 @@ private final class RuntimeGlobalsStore: @unchecked Sendable {
         }
     }
 
-    // Selects the procedural atmospheric sky (true, default) vs. the debug/editor grid (false)
-    // as the non-XR background when IBL (renderEnvironment) is disabled.
+    /// Selects the procedural atmospheric sky (true, default) vs. the debug/editor grid (false)
+    /// as the non-XR background when IBL (renderEnvironment) is disabled.
     var renderSkyBackground: Bool {
         get {
             lock.lock()

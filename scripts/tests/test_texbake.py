@@ -73,20 +73,18 @@ def _build_minimal_untold_file(tmpdir: Path) -> Path:
         ),
     )
 
+    # untoldexplorer no longer bakes color management (write_color_management_record
+    # and ColorManagementRecord were removed), but the color_management_table chunk
+    # format is still patched by texbake.patch_refs() for legacy .untold files, so
+    # the record bytes are packed directly here using the same layout
+    # (_UNTOLD_COLOR_MANAGEMENT_FMT in texbake.py): lut_texture_index(I),
+    # view_transform_name_offset(I), look_name_offset(I), exposure(f), gamma(f),
+    # shaper_min_stops(f), shaper_max_stops(f), lut_size(I).
     color_writer = u.BinaryWriter()
-    u.write_color_management_record(
-        color_writer,
-        u.ColorManagementRecord(
-            lut_texture_index=0,
-            view_transform_name_offset=view_name_off,
-            look_name_offset=look_name_off,
-            exposure=0.0,
-            gamma=1.0,
-            shaper_min_stops=-10.0,
-            shaper_max_stops=6.0,
-            lut_size=32,
-        ),
-    )
+    color_writer.write_bytes(struct.pack(
+        "<IIIffffI",
+        0, view_name_off, look_name_off, 0.0, 1.0, -10.0, 6.0, 32,
+    ))
 
     chunk_payloads = [
         (u.CHUNK_TYPES["string_table"], strings.data, 0),
