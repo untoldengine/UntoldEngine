@@ -937,7 +937,9 @@ public enum RenderPasses {
         materialParameters.hasTexture.x = 0
     }
 
-    public static let gridExecution: RenderPassExecution = { commandBuffer in
+    // loadAction controls whether this draw clears the target (grid used as the sole background)
+    // or loads over whatever a prior pass already wrote (grid overlaid on top of the sky pass).
+    private static func encodeGridPass(_ commandBuffer: MTLCommandBuffer, loadAction: MTLLoadAction) {
         guard let gridPipeline = PipelineManager.shared.renderPipelinesByType[.grid] else {
             handleError(.pipelineStateNulled, "gridPipeline is nil")
             return
@@ -983,7 +985,7 @@ public enum RenderPasses {
         }
         encoderDescriptor.colorAttachments[0].clearColor = mtkBackgroundColor
         encoderDescriptor.colorAttachments[0].storeAction = MTLStoreAction.store
-        encoderDescriptor.colorAttachments[0].loadAction = MTLLoadAction.clear
+        encoderDescriptor.colorAttachments[0].loadAction = loadAction
 
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor)
         else {
@@ -1022,6 +1024,10 @@ public enum RenderPasses {
         renderEncoder.drawPrimitivesTracked(type: MTLPrimitiveType.triangle, vertexStart: 0, vertexCount: 6)
 
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
+    }
+
+    public static let gridExecution: RenderPassExecution = { commandBuffer in
+        encodeGridPass(commandBuffer, loadAction: .clear)
     }
 
     public static let skyExecution: RenderPassExecution = { commandBuffer in
@@ -1107,6 +1113,14 @@ public enum RenderPasses {
         renderEncoder.drawPrimitivesTracked(type: MTLPrimitiveType.triangle, vertexStart: 0, vertexCount: 6)
 
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
+    }
+
+    // Sky pass followed by the grid overlaid on top (loaded, not cleared), so the reference grid
+    // reads over the sky's flat ground fill the same way Unity's Scene view overlays its grid on
+    // top of the sky/horizon background.
+    public static let skyGridExecution: RenderPassExecution = { commandBuffer in
+        skyExecution(commandBuffer)
+        encodeGridPass(commandBuffer, loadAction: .load)
     }
 
     public static let executeEnvironmentPass: RenderPassExecution = { commandBuffer in

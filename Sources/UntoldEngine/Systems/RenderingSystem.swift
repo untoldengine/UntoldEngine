@@ -284,8 +284,9 @@ func addSceneBackgroundPass(
         graph[environmentPass.id] = environmentPass
         return environmentPass.id
     case .sky:
+        // Sky pass with the reference grid overlaid on top of its ground fill.
         let skyPass = RenderPass(
-            id: "sky", dependencies: [], execute: RenderPasses.skyExecution
+            id: "sky", dependencies: [], execute: RenderPasses.skyGridExecution
         )
         graph[skyPass.id] = skyPass
         return skyPass.id
