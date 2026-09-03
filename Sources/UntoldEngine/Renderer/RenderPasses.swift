@@ -1024,6 +1024,91 @@ public enum RenderPasses {
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
     }
 
+    public static let skyExecution: RenderPassExecution = { commandBuffer in
+        guard let skyPipeline = PipelineManager.shared.renderPipelinesByType[.sky] else {
+            handleError(.pipelineStateNulled, "skyPipeline is nil")
+            return
+        }
+
+        if skyPipeline.success == false {
+            handleError(.pipelineStateNulled, skyPipeline.name!)
+            return
+        }
+
+        guard let camera = CameraSystem.shared.activeCamera, let cameraComponent = scene.get(component: CameraComponent.self, for: camera) else {
+            handleError(.noActiveCamera)
+            return
+        }
+
+        // update uniforms
+        var skyUniforms = SkyUniforms()
+
+        let viewMatrix = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
+        skyUniforms.invViewMatrix = viewMatrix.inverse
+        skyUniforms.invProjectionMatrix = renderInfo.perspectiveSpace.inverse
+        skyUniforms.cameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
+
+        let sunParameters = getDirectionalLightParameters()
+        skyUniforms.sunDirection = sunParameters.direction
+        skyUniforms.sunColor = sunParameters.color
+        skyUniforms.sunIntensity = sunParameters.intensity
+
+        if let skyUniformBuffer = bufferResources.skyUniforms {
+            skyUniformBuffer.contents().copyMemory(
+                from: &skyUniforms, byteCount: MemoryLayout<SkyUniforms>.stride
+            )
+        } else {
+            handleError(.bufferAllocationFailed, bufferResources.skyUniforms!.label!)
+            return
+        }
+
+        // create the encoder
+
+        guard let encoderDescriptor = renderInfo.environmentRenderPassDescriptor else {
+            handleError(.renderPassCreationFailed, "Environment render pass descriptor not initialized")
+            return
+        }
+        encoderDescriptor.colorAttachments[0].clearColor = mtkBackgroundColor
+        encoderDescriptor.colorAttachments[0].storeAction = MTLStoreAction.store
+        encoderDescriptor.colorAttachments[0].loadAction = MTLLoadAction.clear
+
+        guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor)
+        else {
+            handleError(.renderPassCreationFailed, "Sky Pass")
+            return
+        }
+
+        defer {
+            // Make sure no matter what we end the encoding at the end of the function
+            renderEncoder.popDebugGroup()
+            renderEncoder.endEncoding()
+        }
+
+        renderEncoder.label = "Sky Pass"
+
+        renderEncoder.pushDebugGroup("Sky Pass")
+
+        renderEncoder.setRenderPipelineState(skyPipeline.pipelineState!)
+        renderEncoder.setDepthStencilState(skyPipeline.depthState)
+
+        // send the uniforms
+        renderEncoder.setVertexBuffer(
+            bufferResources.skyVertexBuffer, offset: 0, index: Int(skyPassPositionIndex.rawValue)
+        )
+
+        renderEncoder.setVertexBuffer(
+            bufferResources.skyUniforms, offset: 0, index: Int(skyPassUniformIndex.rawValue)
+        )
+
+        renderEncoder.setFragmentBuffer(
+            bufferResources.skyUniforms, offset: 0, index: Int(skyPassUniformIndex.rawValue)
+        )
+
+        renderEncoder.drawPrimitivesTracked(type: MTLPrimitiveType.triangle, vertexStart: 0, vertexCount: 6)
+
+        renderEncoder.updateFence(renderInfo.fence, after: .fragment)
+    }
+
     public static let executeEnvironmentPass: RenderPassExecution = { commandBuffer in
         guard let environmentPipeline = PipelineManager.shared.renderPipelinesByType[.environment] else {
             handleError(.pipelineStateNulled, "environmentPipeline is nil")

@@ -238,6 +238,23 @@ public func InitGridPipeline() -> RenderPipeline? {
     )
 }
 
+// MARK: Sky pipeline
+
+public func InitSkyPipeline() -> RenderPipeline? {
+    let wf = renderInfo.colorPipeline.working
+    return CreatePipeline(
+        vertexShader: "vertexSkyShader",
+        fragmentShader: "fragmentSkyShader",
+        vertexDescriptor: createGridVertexDescriptor(),
+        colorFormats: [wf.environment],
+        depthFormat: renderInfo.depthPixelFormat,
+        depthCompareFunction: MTLCompareFunction.lessEqual,
+        depthEnabled: false,
+        blendMode: .none,
+        name: "Sky Pipeline"
+    )
+}
+
 // MARK: Shadow pipeline
 
 public func InitShadowPipeline() -> RenderPipeline? {
@@ -990,6 +1007,7 @@ public func InitSpatialDebugPipeline() -> RenderPipeline? {
 public func DefaultPipeLines() -> [(RenderPipelineType, RenderPipelineInitBlock)] {
     [
         (.grid, InitGridPipeline),
+        (.sky, InitSkyPipeline),
         (.shadow, InitShadowPipeline),
         (.model, InitModelPipeline),
         (.light, InitLightPipeline),

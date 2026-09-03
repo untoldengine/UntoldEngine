@@ -75,6 +75,10 @@ public enum RenderExtensionProperty: Sendable {
 public enum RenderingEnvironmentProperty: Sendable {
     case ibl(Bool)
     case visible(Bool)
+    /// Selects the procedural atmospheric sky (true, the default) vs. the debug/editor grid
+    /// (false) as the background when IBL (`.visible`) is off. Has no effect in XR full
+    /// immersion (always IBL) or XR passthrough (no background pass).
+    case sky(Bool)
     case lightingMode(RuntimeEnvironmentLightingMode)
     case realWorldLightingContribution(Float)
     /// Scales the intensity of image-based lighting contributed by the environment.
@@ -150,6 +154,8 @@ private func applyRenderingEnvironmentProperty(_ property: RenderingEnvironmentP
         applyIBL = value
     case let .visible(value):
         renderEnvironment = value
+    case let .sky(value):
+        renderSkyBackground = value
     case let .lightingMode(value):
         RuntimeEnvironmentLightingStore.shared.mode = value
     case let .realWorldLightingContribution(value):

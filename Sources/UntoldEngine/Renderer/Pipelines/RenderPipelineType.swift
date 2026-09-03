@@ -22,6 +22,7 @@ public struct RenderPipelineType: Hashable, ExpressibleByStringLiteral, Sendable
 
 public extension RenderPipelineType {
     static let grid: RenderPipelineType = "grid"
+    static let sky: RenderPipelineType = "sky"
     static let shadow: RenderPipelineType = "shadow"
     static let model: RenderPipelineType = "model"
     static let light: RenderPipelineType = "light"

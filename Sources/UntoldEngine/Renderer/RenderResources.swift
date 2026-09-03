@@ -105,6 +105,9 @@ public struct BufferResources {
     var gridUniforms: MTLBuffer?
     var gridVertexBuffer: MTLBuffer?
 
+    var skyUniforms: MTLBuffer?
+    var skyVertexBuffer: MTLBuffer?
+
     var voxelUniforms: MTLBuffer?
 
     // composite quad

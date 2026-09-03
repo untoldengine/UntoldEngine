@@ -117,6 +117,16 @@ final class RemoteStreamFlyThroughTests: BaseRenderSetup {
 
         let sun = createEntity()
         createDirLight(entityId: sun)
+        // Reference PSNR images were captured against createDirLight()'s pre-sky-background
+        // defaults (straight up, intensity 1, via the shared applyDefaultLightOrientation
+        // rotation); pin them explicitly, matching that exact rotation (not just the resulting
+        // direction) since the light's own gizmo mesh orientation can affect rendered pixels too.
+        // createDirLight() only *adopts* a light as active when none is set yet, so the entity
+        // that actually ends up active isn't guaranteed to be `sun` -- apply the pin to whichever
+        // entity is actually active to be safe.
+        let activeLight = LightingSystem.shared.activeDirectionalLight ?? sun
+        rotateTo(entityId: activeLight, angle: -90.0, axis: simd_float3(1.0, 0.0, 0.0))
+        updateLightIntensity(entityId: activeLight, intensity: 1.0)
         ambientIntensity = 0.4
         renderEnvironment = true
         SSAOParams.shared.enabled = false
