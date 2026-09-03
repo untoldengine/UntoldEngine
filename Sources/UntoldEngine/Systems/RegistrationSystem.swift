@@ -1524,8 +1524,7 @@ public func setEntityMeshAsync(
     }
 }
 
-/// Loads scene-authored lights/cameras and replaces the active scene color
-/// management from a `.untold` asset, separate from any mesh load.
+/// Loads scene-authored lights/cameras from a `.untold` asset, separate from any mesh load.
 ///
 /// Call this alongside `setEntityMeshAsync` when you want to bring scene-authored
 /// lights and cameras from an exported asset into the current scene without coupling
@@ -1535,19 +1534,7 @@ public func loadSceneAuthored(
     withExtension ext: String,
     completion: (@Sendable (Bool) -> Void)? = nil
 ) {
-    loadSceneAuthored(filename: filename, withExtension: ext, registerEntities: true, completion: completion)
-}
-
-private func loadSceneAuthored(
-    filename: String,
-    withExtension ext: String,
-    registerEntities: Bool,
-    completion: (@Sendable (Bool) -> Void)? = nil
-) {
     Task {
-        ColorLUTParams.shared.clear()
-        ColorGradeLUTParams.shared.clear()
-        SceneAuthoredSourceStore.shared.clear()
         guard let url = LoadingSystem.shared.resourceURL(
             forResource: filename, withExtension: ext, subResource: nil
         ) else {
@@ -1562,30 +1549,19 @@ private func loadSceneAuthored(
             return
         }
 
-        let sourceReference = sceneAssetReference(
-            kind: .model,
-            url: url,
-            displayName: url.deletingPathExtension().lastPathComponent
-        )
         guard let runtimeAsset = loadUntoldRuntimeAsset(url: url) else {
             completion?(false)
             return
         }
 
-        replaceColorManagement(runtimeAsset.colorManagement)
-        replaceColorGradeLUT(runtimeAsset.colorGradeLUT)
-        SceneAuthoredSourceStore.shared.source = sourceReference
-        if registerEntities {
-            withWorldMutationGate {
-                registerUntoldScenePayload(from: runtimeAsset)
-            }
+        withWorldMutationGate {
+            registerUntoldScenePayload(from: runtimeAsset)
         }
         completion?(true)
     }
 }
 
-/// Loads scene-authored lights/cameras and replaces the active scene color
-/// management from a `.json` tile manifest, separate from tile residency.
+/// Loads scene-authored lights/cameras from a `.json` tile manifest, separate from tile residency.
 ///
 /// Call this alongside `setEntityStreamScene` when the manifest contains
 /// `scene_lights` / `scene_cameras` you want imported into the current scene.
@@ -1593,18 +1569,7 @@ public func loadSceneAuthored(
     url manifestURL: URL,
     completion: (@Sendable (Bool) -> Void)? = nil
 ) {
-    loadSceneAuthored(url: manifestURL, registerEntities: true, completion: completion)
-}
-
-private func loadSceneAuthored(
-    url manifestURL: URL,
-    registerEntities: Bool,
-    completion: (@Sendable (Bool) -> Void)? = nil
-) {
     Task {
-        ColorLUTParams.shared.clear()
-        ColorGradeLUTParams.shared.clear()
-        SceneAuthoredSourceStore.shared.clear()
         do {
             let localURL: URL
             if manifestURL.scheme?.lowercased() == "https" {
@@ -1623,70 +1588,14 @@ private func loadSceneAuthored(
                 return
             }
 
-            let sourceReference = sceneAssetReference(
-                kind: .streamModel,
-                url: manifestURL,
-                displayName: manifestURL.deletingPathExtension().lastPathComponent
-            )
-            let colorManagement = try await manifestColorManagement(
-                tileManifest.colorLUT,
-                manifestURL: manifestURL,
-                localManifestURL: localURL
-            )
-            replaceColorManagement(colorManagement)
-            let colorGradeLUT = try await manifestColorGradeLUT(
-                tileManifest.colorGradeLUT,
-                manifestURL: manifestURL,
-                localManifestURL: localURL
-            )
-            replaceColorGradeLUT(colorGradeLUT)
-            SceneAuthoredSourceStore.shared.source = sourceReference
-            if registerEntities {
-                withWorldMutationGate {
-                    registerManifestScenePayload(tileManifest)
-                }
+            withWorldMutationGate {
+                registerManifestScenePayload(tileManifest)
             }
             completion?(true)
         } catch {
             handleError(.manifestNotFound, error.localizedDescription, manifestURL.lastPathComponent)
             completion?(false)
         }
-    }
-}
-
-func loadSceneAuthoredColorManagement(
-    from source: SceneAssetReference,
-    completion: (@Sendable (Bool) -> Void)? = nil
-) {
-    switch source.kind {
-    case .model:
-        guard let url = resolvedSceneAssetURL(source) else {
-            ColorLUTParams.shared.clear()
-            ColorGradeLUTParams.shared.clear()
-            SceneAuthoredSourceStore.shared.clear()
-            completion?(false)
-            return
-        }
-        loadSceneAuthored(
-            filename: url.path,
-            withExtension: url.pathExtension,
-            registerEntities: false,
-            completion: completion
-        )
-    case .streamModel:
-        guard let url = resolvedSceneAssetURL(source) else {
-            ColorLUTParams.shared.clear()
-            ColorGradeLUTParams.shared.clear()
-            SceneAuthoredSourceStore.shared.clear()
-            completion?(false)
-            return
-        }
-        loadSceneAuthored(url: url, registerEntities: false, completion: completion)
-    case .animation, .procedural:
-        ColorLUTParams.shared.clear()
-        ColorGradeLUTParams.shared.clear()
-        SceneAuthoredSourceStore.shared.clear()
-        completion?(false)
     }
 }
 
