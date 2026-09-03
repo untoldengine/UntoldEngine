@@ -1306,29 +1306,12 @@ public func deserializeScene(
         completion?()
     })
 
-    if let sceneAuthoredSource = sceneData.sceneAuthoredSource {
-        loadTracker.registerLoad()
-        let standaloneLUTFilename = sceneData.colorGradeLUTFilename
-        let standaloneLUTExtension = sceneData.colorGradeLUTExtension
-        loadSceneAuthoredColorManagement(from: sceneAuthoredSource) { success in
-            if success == false {
-                Logger.logWarning(message: "[SceneSerializer] Failed to restore scene-authored color management")
-            }
-            // Applied after scene-authored restoration completes so a standalone
-            // choice (set independently of any scene asset) always wins over
-            // whatever colorGradeLUT the scene-authored source itself carries.
-            if let filename = standaloneLUTFilename {
-                setColorGradeLUT(filename: filename, withExtension: standaloneLUTExtension ?? "cube")
-            }
-            loadTracker.completeLoad()
-        }
+    SceneAuthoredSourceStore.shared.clear()
+    ColorLUTParams.shared.clear()
+    if let filename = sceneData.colorGradeLUTFilename {
+        setColorGradeLUT(filename: filename, withExtension: sceneData.colorGradeLUTExtension ?? "cube")
     } else {
-        SceneAuthoredSourceStore.shared.clear()
-        ColorLUTParams.shared.clear()
         ColorGradeLUTParams.shared.clear()
-        if let filename = sceneData.colorGradeLUTFilename {
-            setColorGradeLUT(filename: filename, withExtension: sceneData.colorGradeLUTExtension ?? "cube")
-        }
     }
 
     if let tonemapOperator = sceneData.tonemapOperator {
