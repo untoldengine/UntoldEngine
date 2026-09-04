@@ -20,9 +20,34 @@ import CShaderTypes
 import Foundation
 import simd
 
+/// Which axis points up in the capture. Captures are rotated to the engine's Y-up frame
+/// before any other transform, so a cooked file never needs a correction in the scene.
+public enum UntoldGSCaptureUpAxis: String, CaseIterable, Sendable {
+    /// Already the engine convention: +Y up, −Z forward. No rotation.
+    case y
+    /// Scanner and CAD convention (+Z up): rotated −90° about X, (x, y, z) → (x, z, −y).
+    case z
+    /// The 3DGS training convention (−Y up, +Z forward): rotated 180° about X, (x, y, z) → (x, −y, −z).
+    case negativeY = "-y"
+
+    /// Rotation that brings this convention to Y-up.
+    public var rotation: simd_float4x4 {
+        switch self {
+        case .y:
+            matrix_identity_float4x4
+        case .z:
+            simd_float4x4(simd_quatf(angle: -.pi / 2, axis: SIMD3<Float>(1, 0, 0)))
+        case .negativeY:
+            simd_float4x4(diagonal: SIMD4<Float>(1, -1, -1, 1))
+        }
+    }
+}
+
 public struct UntoldGSCookOptions: Sendable {
     /// Similarity transform (rotation, uniform scale, translation) from capture space to the
     /// space the payload is used in. Baked into every splat and recorded in the header.
+    /// Build it with `UntoldGSCookOptions.transform(upAxis:scale:yawDegrees:translation:)`
+    /// to compose the common cases in the right order.
     public var transform: simd_float4x4 = matrix_identity_float4x4
     /// Optional crop box in the transformed space; splats whose centre falls outside are dropped.
     public var cropMin: SIMD3<Float>?
@@ -41,6 +66,23 @@ public struct UntoldGSCookOptions: Sendable {
     public var captureWhiteBalance = SIMD3<Float>(repeating: 1)
 
     public init() {}
+
+    /// Composes the registration transform the cookers expose: up-axis fix first, then
+    /// uniform scale, then yaw about the engine's +Y, then translation.
+    public static func transform(
+        upAxis: UntoldGSCaptureUpAxis = .y,
+        scale: Float = 1,
+        yawDegrees: Float = 0,
+        translation: SIMD3<Float> = .zero
+    ) -> simd_float4x4 {
+        var transform = simd_mul(simd_float4x4(diagonal: SIMD4<Float>(scale, scale, scale, 1)), upAxis.rotation)
+        if yawDegrees != 0 {
+            let yaw = simd_quatf(angle: yawDegrees * .pi / 180, axis: SIMD3<Float>(0, 1, 0))
+            transform = simd_mul(simd_float4x4(yaw), transform)
+        }
+        transform.columns.3 = SIMD4<Float>(translation, 1)
+        return transform
+    }
 }
 
 public struct UntoldGSCookReport: Sendable, Equatable {

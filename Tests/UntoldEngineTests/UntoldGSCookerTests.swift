@@ -128,6 +128,33 @@ final class UntoldGSCookerTests: XCTestCase {
         XCTAssertEqual(write.splatToMesh, transform)
     }
 
+    func testUpAxisRotationsBringCapturesToYUp() {
+        let up = SIMD3<Float>(0, 1, 0)
+        func rotate(_ axis: UntoldGSCaptureUpAxis, _ v: SIMD3<Float>) -> SIMD3<Float> {
+            let r = axis.rotation * SIMD4<Float>(v, 1)
+            return SIMD3<Float>(r.x, r.y, r.z)
+        }
+        XCTAssertEqual(rotate(.y, up), up)
+        // A Z-up capture's up vector (0,0,1) lands on +Y; its forward +Y (CAD convention) lands
+        // on the engine's forward −Z, so handedness is preserved.
+        let zUp = rotate(.z, SIMD3<Float>(0, 0, 1))
+        XCTAssertEqual(zUp.x, 0, accuracy: 1e-6); XCTAssertEqual(zUp.y, 1, accuracy: 1e-6); XCTAssertEqual(zUp.z, 0, accuracy: 1e-6)
+        let zForward = rotate(.z, SIMD3<Float>(0, 1, 0))
+        XCTAssertEqual(zForward.z, -1, accuracy: 1e-6)
+        // A training-convention capture's up vector (0,−1,0) lands on +Y.
+        XCTAssertEqual(rotate(.negativeY, SIMD3<Float>(0, -1, 0)), up)
+        XCTAssertEqual(UntoldGSCaptureUpAxis(rawValue: "-y"), .negativeY)
+        XCTAssertEqual(UntoldGSCaptureUpAxis.allCases.map(\.rawValue), ["y", "z", "-y"])
+
+        // Composition order: up-axis first, then scale, yaw about +Y, translation.
+        let transform = UntoldGSCookOptions.transform(upAxis: .z, scale: 2, yawDegrees: 90, translation: [10, 0, 0])
+        let p = transform * SIMD4<Float>(0, 0, 1, 1) // Z-up "up" → (0,2,0) → yaw keeps Y → (10,2,0)
+        XCTAssertEqual(p.x, 10, accuracy: 1e-5); XCTAssertEqual(p.y, 2, accuracy: 1e-5); XCTAssertEqual(p.z, 0, accuracy: 1e-5)
+        let q = transform * SIMD4<Float>(1, 0, 0, 1) // +X → scaled (2,0,0) → yaw 90° → (0,0,−2) → (10,0,−2)
+        XCTAssertEqual(q.x, 10, accuracy: 1e-5); XCTAssertEqual(q.z, -2, accuracy: 1e-5)
+        XCTAssertNoThrow(try UntoldGSCooker.cook(asset: GaussianSplatAsset(splats: [makeSplat(center: .zero)], sphericalHarmonics: nil), options: { var o = UntoldGSCookOptions(); o.transform = transform; return o }()))
+    }
+
     func testNonSimilarityTransformIsRejected() {
         let asset = GaussianSplatAsset(splats: [makeSplat(center: .zero)], sphericalHarmonics: nil)
         var options = UntoldGSCookOptions()
