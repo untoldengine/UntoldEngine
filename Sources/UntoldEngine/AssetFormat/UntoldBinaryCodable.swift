@@ -865,6 +865,64 @@ extension UntoldPBRStaticVertexV1: UntoldBinaryEncodable, UntoldBinaryDecodable 
     }
 }
 
+extension UntoldGaussianAssetRecordV1: UntoldBinaryEncodable, UntoldBinaryDecodable {
+    /// Serialized size in bytes: 4 words, 4 + 4 LOD entries, 3 floats, 5 reserved words.
+    public static let encodedSize = 80
+
+    public func encode(to writer: UntoldBinaryWriter) {
+        writer.writeUInt32LE(entityId)
+        writer.writeUInt32LE(payloadPathOffset)
+        writer.writeUInt32LE(flags)
+        writer.writeUInt32LE(lodCount)
+        for index in 0 ..< Self.maxLODLevels {
+            writer.writeUInt32LE(lodSplatCounts[index])
+        }
+        for index in 0 ..< Self.maxLODLevels {
+            writer.writeFloat32LE(lodSwitchScreenHeights[index])
+        }
+        writer.writeFloat32LE(occluderShrinkMeters)
+        writer.writeFloat32LE(exposureOffsetEV)
+        writer.writeFloat32LE(swapDistanceMeters)
+        for index in 0 ..< Self.reservedWordCount {
+            writer.writeUInt32LE(reserved0[index])
+        }
+    }
+
+    public static func decode(from reader: UntoldBinaryReader) throws -> UntoldGaussianAssetRecordV1 {
+        let entityId = try reader.readUInt32LE()
+        let payloadPathOffset = try reader.readUInt32LE()
+        let flags = try reader.readUInt32LE()
+        let lodCount = try reader.readUInt32LE()
+        var lodSplatCounts: [UInt32] = []
+        for _ in 0 ..< maxLODLevels {
+            try lodSplatCounts.append(reader.readUInt32LE())
+        }
+        var lodSwitchScreenHeights: [Float] = []
+        for _ in 0 ..< maxLODLevels {
+            try lodSwitchScreenHeights.append(reader.readFloat32LE())
+        }
+        let occluderShrinkMeters = try reader.readFloat32LE()
+        let exposureOffsetEV = try reader.readFloat32LE()
+        let swapDistanceMeters = try reader.readFloat32LE()
+        var reserved0: [UInt32] = []
+        for _ in 0 ..< reservedWordCount {
+            try reserved0.append(reader.readUInt32LE())
+        }
+        return UntoldGaussianAssetRecordV1(
+            entityId: entityId,
+            payloadPathOffset: payloadPathOffset,
+            flags: flags,
+            lodCount: lodCount,
+            lodSplatCounts: lodSplatCounts,
+            lodSwitchScreenHeights: lodSwitchScreenHeights,
+            occluderShrinkMeters: occluderShrinkMeters,
+            exposureOffsetEV: exposureOffsetEV,
+            swapDistanceMeters: swapDistanceMeters,
+            reserved0: reserved0
+        )
+    }
+}
+
 public extension UntoldBinaryWriter {
     func writeMatrix4x4LE(_ matrix: simd_float4x4) {
         for column in 0 ..< 4 {

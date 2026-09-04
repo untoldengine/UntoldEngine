@@ -489,6 +489,36 @@ value.z                      Float32
 value.w                      Float32
 ```
 
+## Gaussian Asset Record Encoding
+
+Chunk type `25` (`gaussianAssetTable`) links an entity to a cooked Gaussian splat
+payload stored in a separate `.usplat` file (see
+[`nativeSplatFormat.md`](nativeSplatFormat.md)), the way texture references point at
+`.utex` files. One record per splat entity; `elementCount` is the record count.
+Types 22–24 are reserved for the morph-target channel.
+
+```text
+entityId                     UInt32
+payloadPathOffset            UInt32   // string table, path relative to this file
+flags                        UInt32   // 1 = meshTwin, 2 = environment, 4 = windowWorld
+lodCount                     UInt32   // valid LOD entries, 0...4 (0 means one level)
+lodSplatCounts               UInt32 x 4   // per level, coarsest first
+lodSwitchScreenHeights       Float32 x 4  // pixels above which the next finer level is preferred
+occluderShrinkMeters         Float32  // mesh twin depth-only shell shrink along normals
+exposureOffsetEV             Float32  // editor offset on top of the payload's capture exposure
+swapDistanceMeters           Float32  // 0 = always armed
+reserved0                    UInt32 x 5
+```
+
+Rules:
+
+- `entityId` must be present in the entity table
+- `payloadPathOffset` must resolve to a non-empty string
+- `lodCount <= 4`; `occluderShrinkMeters` and `swapDistanceMeters` are non-negative
+- registration onto the mesh twin and capture exposure live in the `.usplat` header,
+  not here; this record holds what the scene author tunes
+- a file whose only geometry is a splat may omit the vertex and index chunks
+
 ## Compression Rules
 
 Supported compression types:

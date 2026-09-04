@@ -41,4 +41,5 @@ public enum UntoldValidationError: Error, Sendable, Equatable {
     case invalidColorGradeLUTRecord
     case invalidPluginChunkHeader
     case unsupportedPluginChunkVersion(UInt32)
+    case invalidGaussianAssetRecord(index: Int, reason: String)
 }

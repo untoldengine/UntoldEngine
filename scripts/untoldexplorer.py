@@ -89,6 +89,7 @@ CHUNK_TYPES = {
     "camera_table": 20,
     "color_management_table": 21,
     "color_grade_lut_table": 22,
+    "gaussian_asset_table": 25,
 }
 
 VERTEX_LAYOUT_PBR_STATIC_V1 = 1
