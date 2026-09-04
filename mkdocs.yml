@@ -43,11 +43,7 @@ markdown_extensions:
 
 nav:
   - Introduction: index.md
-  - Learning Paths:
-    - Overview: LearningPaths/index.md
-    - Archviz To Vision Pro: LearningPaths/ArchvizToVisionPro.md
-    - Bedroom Digital Twin: LearningPaths/BedroomDigitalTwin.md
-    - City Streaming On Vision Pro: LearningPaths/CityStreamingOnVisionPro.md
+  - Getting Started: API/GettingStarted.md
   - Tutorials:
     - Overview: Tutorials/index.md
     - Starter Demo: Tutorials/StarterDemo.md
@@ -66,8 +62,12 @@ nav:
     - XR App Basics: Tutorials/XRTutorial.md
     - Spatial Input And Manipulation: Tutorials/SpatialInputTutorial.md
     - Performance Diagnostics: Tutorials/PerformanceDiagnosticsTutorial.md
+  - Learning Paths:
+    - Overview: LearningPaths/index.md
+    - Archviz To Vision Pro: LearningPaths/ArchvizToVisionPro.md
+    - Bedroom Digital Twin: LearningPaths/BedroomDigitalTwin.md
+    - City Streaming On Vision Pro: LearningPaths/CityStreamingOnVisionPro.md
   - API:
-    - Getting Started: API/GettingStarted.md
     - Untold Engine CLI: API/UsingUntoldEngineCLI.md
     - Usage Examples: API/UsageExamples.md
     - Engine Settings: API/UsingEngineAPI.md
