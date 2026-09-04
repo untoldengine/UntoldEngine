@@ -2,14 +2,14 @@
 
 **Status:** Proposal — no code yet
 **Scope:** Gaussian splat assets in UntoldEngine core: a cooked payload format, an offline cooker in the Swift CLI, and the runtime residency, culling, LOD and sort changes needed to render millions of splats inside a normal mesh scene. All Apple platforms; designed against Apple Vision Pro.
-**Baseline:** `develop` as of 2026-09-04.
+**Baseline:** `develop` as of 2026-09-04 (revised the same day after auditing the gaussian work landed on `develop` in August 2026; the first draft had surveyed an older branch).
 **Series tracker:** see §8 for the planned PR breakdown; the live status of each PR is kept in the tracking issue on the fork.
 
 ---
 
 ## 1. Purpose
 
-Splats in UntoldEngine today are one `.ply` read whole into memory, expanded into one flat GPU buffer, culled per splat every frame, sorted per entity every frame, and drawn one entity at a time. That is fine for a viewer and wrong for the use the engine now needs:
+UntoldEngine already renders, streams and LOD-switches Gaussian splats (§2). What it lacks is a payload that can be read by range and held at a fraction of today's bytes per splat, a sort that is correct across several splat entities, and the scene-side links that let a splat stand in for a mesh. Those are what the use the engine now needs requires:
 
 1. **Object twins (first).** The scene renders through the standard Metal geometry pipeline. Chosen objects, a table, a sofa, hand over to a captured Gaussian splat twin. Several at once, composited correctly with each other and with the meshes around them.
 2. **A world through a window (second).** A mesh room has a window; through it the user sees a captured splat world. The user stays in the room, leans and looks; quality just beyond the glass must be excellent.
@@ -28,23 +28,26 @@ Three rules apply throughout:
 
 ## 2. Where the engine stands today
 
-| Stage | Today | Where |
+Facts read from `develop` on 2026-09-04. The gaussian pipeline below was landed by the upstream maintainer between 5 and 22 August 2026; this series extends it and must not duplicate it.
+
+| Area | Today | Where |
 |---|---|---|
-| Load | PLY only. Whole file into `Data`, whole body into Swift arrays, synchronous, no cancellation. | `Utils/PLYReader.swift:80`, `Systems/RegistrationSystem.swift:3206` |
-| GPU layout | 64 B `EncodedGaussianSplat` with covariance baked at load; rotation and scale not recoverable. SH as Float16, up to 90 B per splat. | `CShaderTypes/ShaderTypes.h:554`, `RegistrationSystem.swift:3376` |
-| Resident bytes | ≈166 B per splat with SH3. Hard cap 5,242,880. Not registered with `MemoryBudgetManager`. | `Systems/GaussianSystem.swift:23` |
-| Culling | Per-splat centre-point frustum test over all N splats of every entity, every frame. No entity bounds test, no occlusion, no LOD. Visible count read back on the CPU one frame late. | `Shaders/BitonicSort.metal:50`, `GaussianSystem.swift:167` |
-| Sort | 4-pass 8-bit radix sort on 32-bit eye-depth keys, **per entity**, front-to-back. Two overlapping splat entities blend in entity order, not depth order. | `Shaders/DeviceRadixSort.metal`, `Utils/Globals.swift:62` |
-| Draw | Tile-memory pass: imageblock cleared, instanced quad per splat, front-to-back over-compositing with a raster order group, post-process writes colour and alpha-weighted depth into the shared depth buffer. Depth attachment is loaded from the model pass, so meshes and splats already occlude each other. One draw per entity. | `Renderer/RenderPasses.swift:4315`, `Shaders/Gaussians.metal:278` |
-| Colour | Captured colour is decoded sRGB→linear (`gaussianSRGBToLinear`) before the HDR target; composite in `precomp` runs before the look and output transform. | `Shaders/Gaussians.metal:106` |
-| XR | Compositor Services; one render loop per eye, no vertex amplification. Culling, splat depth keys and the radix sort run once before the eye loop. Shadows on eye 0 only. Hi-Z built once after both eyes. | `UntoldEngineXR/UntoldEngineXR.swift:810`, `Systems/RenderingSystem.swift:152` |
-| XR lighting | `XREnvironmentLightingSystem` exposes a smoothed real-world intensity scale and tint from ARKit probes. | `UntoldEngineXR/XREnvironmentLightingSystem.swift` |
+| Native format | `.untoldgs` version 2: a 72-byte header (splat count, SH metadata, `meanSquaredSplatExtent`, asset bounding box) followed by one flat array of GPU-encoded splats (48 B each: float3 position, half3 × 2 covariance, half4 colour+opacity) and the 8-bit SH block in the renderer's fixed `[-1, 1]` contract. Read whole with `Data(contentsOf:)`; `readHeader` reads the box through a bounded `FileHandle`. Declared "a regeneratable cache of the source .ply": a version bump means re-bake. | `RegistrationSystem.swift` (`UntoldGSFormat`, `UntoldGSAsset`) |
+| Bake | `untoldengine export --input x.ply --output x.untoldgs --lod-levels N` → `bakeGaussianSplatProgressiveTiers`: nested progressive tiers by a spatially interleaved importance ranking, one file per tier (`x_lod0.untoldgs` finest … coarsest), each carrying the shared asset box and its own overdraw statistic. | `RegistrationSystem.swift:4304`, `Tools/UntoldEngineCLI/ExportCommand.swift` |
+| Registration | `setEntityGaussian(entityId:filename:withExtension:)` (sync), `setEntityGaussianAsync`, `setEntityGaussian(source: .single / .progressive)`, `setEntityGaussianStreaming(source:options:)` which attaches the entity to its containing tile. PLY and `.untoldgs` both accepted. Load-time culling of negligible-opacity splats. | `RegistrationSystem.swift:3745–4010` |
+| LOD | `GaussianLODSystem` + `GaussianLODComponent`: distance thresholds per tier, hysteresis, coarsest tier first, fallback to the best resident tier, an overdraw-aware clamp from `meanSquaredSplatExtent` against `LODConfig.gaussianOverdrawBudget`, LOD debug tint. | `Systems/GaussianLODSystem.swift` |
+| Streaming | Gaussian props share the tile streaming path: load and unload by radius, near band, `MemoryBudgetManager` registration by estimated GPU bytes, eviction under pressure, progressive tiers pulled on demand. | `Systems/GeometryStreamingSystem+GaussianStreaming.swift` |
+| Per frame | Per entity: reset + frustum cull per splat fused with an HZB occlusion pre-cull against the temporal depth pyramid; depth keys; a 4-pass 8-bit radix sort **per entity**; `gaussianPreprocess` computes conic, axes and SH colour once per visible splat; TBDR draw of instanced quads accumulating in an imageblock with a raster order group, transmittance early-out at 0.999, per-fragment occlusion against the opaque depth, a cap of 64 blends per pixel, alpha-weighted depth written for later passes. Per-frame buffers are triple-buffered. | `Systems/GaussianSystem.swift`, `Shaders/Gaussians.metal`, `Renderer/RenderPasses.swift` |
+| Colour | Captured colour decoded sRGB→linear in the preprocess kernel; composite before the look and output transform. | `Shaders/Gaussians.metal` |
+| XR | Compositor Services, one render loop per eye, no vertex amplification. Cull, depth keys and sort run once before the eye loop; shadows on eye 0; Hi-Z built after both eyes. `XREnvironmentLightingSystem` exposes a smoothed real-world intensity scale and tint. | `UntoldEngineXR/` |
 
-**Ready to reuse:** the once-per-frame sort before the eye loop; the shared depth attachment in the splat pass; the `.untold` container and `TileManifest` LOD entries; `LODSystem` hysteresis and dithered cross-fade; `GeometryStreamingSystem` (`buildStreamingFrustum`, prefetch, eviction, velocity look-ahead); `MemoryBudgetManager`, `MeshResourceManager`, `ProgressiveAssetLoader`; `HZBCompute.metal`; the CLI package with `ExportTilesCommand` as a template.
+**What is missing, and what this series adds:**
 
-**Blocking gaps, in order:** per-entity sort and draw; no asset subdivision, so no LOD; no async load path; `GaussianComponent` holds one buffer set with no residency or LOD state; rotation and scale destroyed at encode; sort buffers sized 8×N at load; no memory accounting; nothing links a splat entity to its mesh twin.
-
----
+- The payload is one flat blob: no chunking, no byte-range reads, no spatial order or tree. Streaming inside one asset (the window and environment modes) is impossible, and every resident splat costs 48 B plus SH where a quantised record needs 16 B plus SH.
+- Progressive tiers are separate files, so an asset with four tiers stores its coarse splats up to four times and a tier switch is a whole-file load.
+- Sort and draw are per entity, so two overlapping splat entities blend in entity order, not depth order.
+- Nothing links a splat entity to a mesh twin, and there is no occluder shell, cross-fade, exposure gain or tint.
+- No window bake, no per-cell visibility.
 
 ## 3. What the field settled on
 
@@ -89,13 +92,15 @@ The engine's reduce-then-scan 8-bit radix sort is the right design for Metal; si
 
 ## 4. Proposed design
 
-### 4.1 Container decision: new payload file, referenced from `.untold`
+### 4.1 Container decision: `.untoldgs` version 3, referenced from `.untold`
 
-The `.untold` reader reads the whole file into memory (`Data(contentsOf:)`, payload access by `subdata`) and validates a SHA-256 over every chunk payload on open (`UntoldReader.swift:223`). That is right for meshes and wrong for a payload that must be read by 16 KB ranges and never be fully resident. Its header is mesh-shaped and its production writer is the Python exporter.
+The engine already has a native splat container, a baker and a loader for it, and the format is declared a regeneratable cache whose version bump means "re-bake". So the chunked payload becomes **`.untoldgs` version 3** rather than a second format: same magic and extension, same `UntoldGSFormat.read` / `readHeader` entry points and `UntoldGSAsset` result, same `export` command and `bakeGaussianSplatProgressiveTiers`, same registration and streaming APIs. Version 1 and 2 files are rejected with `.unsupportedVersion`, which is the contract the format already states.
 
-So: the bulk splat data goes in its own file, **`.usplat`**, written by the Swift cooker and read by range through Metal fast resource loading or mmap, with per-chunk integrity instead of a whole-file hash. Everything the scene needs to know about a splat is small and stays in `.untold` as a new **core** chunk type, `gaussianAsset`: path to the payload, registration transform, mesh-twin link, budget table, window view cell and portal bake, skybox reference. `TileManifest` references it like a LOD level. This mirrors how textures live in `.utex` and are referenced. One payload format for all four modes, never embedded, so there is one load path.
+Everything the scene needs to know about a splat beyond its payload stays small and lives in `.untold` as a new core chunk type, `gaussianAsset`: path to the payload, mesh-twin link, budget table, window view cell and portal bake, skybox reference. `TileManifest` references it like a LOD level. This mirrors how textures live in `.utex` and are referenced. One payload format for all four modes, so there is one load path.
 
-### 4.2 The `.usplat` payload
+The `.untold` reader itself is untouched by the payload: it reads whole files and hashes every payload on open, which is right for meshes and wrong for a streamed splat payload.
+
+### 4.2 The `.untoldgs` v3 payload
 
 Goals in priority order: any chunk loads on its own by byte range; a chunk lands in a GPU page with no CPU transform; the first read shows the whole asset coarsely; rotation and scale survive for LOD and re-encoding; SH is optional per device tier; an object file carries its registration and capture lighting.
 
@@ -110,26 +115,28 @@ Goals in priority order: any chunk loads on its own by byte range; a chunk lands
 Every payload offset is a multiple of 16 384 bytes, the page size on all current Apple devices: `makeBuffer(bytesNoCopy:)` over an mmap needs page-aligned pointer and length, and Metal fast resource loading decompresses on 64 KB chunk boundaries.
 
 ```c
-struct FileHeader {                 // 256 B (reserved tail)
-  char     magic[4];                // "USPL"
-  uint16_t versionMajor, versionMinor;
-  uint32_t flags;                   // hasSH, shPalette, antialiased, mtlioCompressed, isEnvironment
+struct UntoldGSHeaderV3 {           // 256 B; magic and version at the same offsets as v1/v2
+  char     magic[4];                // "UTGS"
+  uint32_t version;                 // 3
+  uint32_t flags;                   // hasSphericalHarmonics, shPalette (reserved), antialiased, environment
   uint8_t  shDegree;                // 0..3
-  uint8_t  coordSys;                // SPZ-style enum, RUB default
-  uint8_t  colorSpace;              // sRGB display-referred or linear scene-referred
+  uint8_t  coordSys;                // 0 = right/up/back, the engine convention
+  uint8_t  colorSpace;              // 0 = sRGB display-referred
   uint8_t  log2ChunkSplats;         // 10 → 1024 (objects), 12 → 4096 (environments)
-  uint32_t splatCount;              // across all LOD levels
-  uint32_t chunkCount, nodeCount;
+  uint32_t splatCount, chunkCount, nodeCount;
   uint8_t  lodLevels;               // ≤ 8
   uint8_t  reserved[3];
-  float    boundsMin[3], boundsMax[3];
-  float    splatToMesh[16];         // rigid + uniform scale; identity for worlds
+  float    boundsMin[3], boundsMax[3];            // splat centres
+  float    boundingBoxMin[3], boundingBoxMax[3];  // asset box, what readHeader returns
+  float    meanSquaredSplatExtent;                // overdraw statistic of this tier
   float    captureExposureEV;
   float    captureWhiteBalance[3];
+  float    splatToMesh[16];                       // registration; identity for worlds
   uint64_t chunkIndexOffset, nodeTreeOffset, paletteOffset, payloadOffset, fileSize;
+  uint8_t  reserved1[52];
 };
 
-struct ChunkIndexEntry {            // 64 B — everything needed to serve one byte range
+struct UntoldGSChunkEntry {         // 64 B — everything needed to serve one byte range
   uint64_t payloadOffset;           // multiple of 16384
   uint32_t payloadBytes;            // padded core + SH
   uint32_t coreBytes;               // 16 × splatCount
@@ -138,16 +145,16 @@ struct ChunkIndexEntry {            // 64 B — everything needed to serve one b
   uint16_t nodeId;
   float    aabbMin[3], aabbMax[3];  // decode constants for 11/10/11 positions
   float    logScaleMin, logScaleMax;
-  uint16_t shMin, shMax;            // fp16 range, or 0 when a palette is used
+  uint32_t reserved;
   uint32_t crc32;                   // per-chunk integrity
 };
 
-struct TreeNode {                   // 48 B — k-d tree over the Morton-sorted array
+struct UntoldGSTreeNode {           // 48 B — k-d tree over the Morton-sorted chunk array
   float    aabbMin[3], aabbMax[3];
   uint32_t child[2];                // 0xFFFFFFFF on leaves
   uint32_t firstChunk, chunkCount;  // chunks contiguous per (node, lod)
   float    geometricError;
-  uint32_t pvsCellMaskOffset;       // environments only
+  uint32_t visibilityMaskOffset;    // environments only
 };
 ```
 
@@ -162,19 +169,19 @@ struct TreeNode {                   // 48 B — k-d tree over the Morton-sorted 
 
 A Morton-sorted chunk of 1024 splats on a sofa spans a few centimetres, so 11-bit positions land well under a millimetre. Rotation and scale are kept rather than baked; a per-frame decode pass produces today's `EncodedGaussianSplat` for the existing shaders.
 
-**Optional SH block**, SoA after the core block: direct u8 per coefficient in the chunk's own range (9 / 24 / 45 B), or a 16-bit index into a per-file palette of up to 65 536 SH vectors (2 B per splat, one dependent read). Objects viewed close ship degree 2 or 3.
+**Optional SH block**, SoA after the core block, in the renderer's existing byte contract (`quantizeGaussianSHCoefficient`, fixed `[-1, 1]`, dequantised by `Gaussians.metal`), 9 / 24 / 45 B per splat, so the chunk bytes bind to the GPU as-is with no second quantisation. A 16-bit palette (up to 65 536 SH vectors, 2 B per splat) is reserved by a flag for large environments. Objects viewed close ship degree 2 or 3.
 
 **Within-chunk order** is importance descending, so a partial read of a chunk yields its most important splats first.
 
-### 4.3 The cooker: `untoldengine cook-splats`
+### 4.3 The baker: `untoldengine export`
 
-A subcommand in `Tools/UntoldEngineCLI`; the logic lives in the engine as a testable library (`GaussianSplatCooker`) and the command is a thin wrapper. For an object it takes the capture (PLY first; SPZ and SOG later) and the mesh twin, and writes one `.usplat` plus a `gaussianAsset` record.
+`export` already takes a `.ply` and writes `.untoldgs` tiers; the cooking steps join it as flags, and the logic lives in the engine as a testable library (`UntoldGSCooker`) so the command stays thin.
 
-1. **Import, register, crop.** Parse (reuse `PLYReader`). Align the splat to the mesh twin: coarse fit by bounds and principal axes, then ICP of splat centres against the mesh surface; store as `splatToMesh`; editor override. Crop to the mesh bounds plus margin (floaters, captured floor). Drop opacity < 0.005.
-2. **Prune, order, chunk.** Render from a few hundred cameras around the object with a headless Metal pass; accumulate per-splat max α·T (RadSplat score) and hit × opacity × volume (LightGaussian score); prune to the object's budget — for objects at arm's length a 50–70 % cut, not 90. Morton-sort; cut into runs of 1024; compute per-chunk AABB, log-scale and SH ranges; build the k-d tree over the sorted array. Estimate capture exposure and white balance from the SH DC of neutral regions.
-3. **LOD and shells.** Two coarser levels by merging Morton neighbours (opacity × area weights, moment-matched covariance); optionally re-fit each cluster against renderings of the original (V3DG). Root level ≤ 32 K splats. Emit the twin's simplified shell for the depth-only occluder pass. Write the budget table: splat count per level and the screen-height in pixels at which the next level is preferred.
+1. **Import, register, crop.** Parse (`PLYReader`). Bake a similarity transform (`--splat-scale`, `--splat-yaw-degrees`, `--splat-translate`, `--splat-flip-yz` for the 3DGS training convention) into positions, rotations and scales and record it in the header. Crop to a box (`--splat-crop`, `--splat-crop-margin`) to remove floaters and the captured floor. Drop opacity under `--splat-min-opacity` (default 0.005) and degenerate geometry. Registration by ICP against the mesh twin is a follow-up; the editor can override the transform.
+2. **Prune, order, chunk.** Importance ranking as today (spatially interleaved, opacity × area), later replaced by rendered contribution (max α·T over sample views) from a headless Metal pass. Morton-sort; cut into chunks of 1024 (`--splat-chunk-splats`); per-chunk AABB and log-scale ranges; the k-d tree over the sorted array; SH degree selection (`--splat-sh-degree`).
+3. **Tiers.** `--lod-levels N` keeps producing nested tiers, now as v3 files; phase 2 folds the tiers into one file as `lodLevel` chunk ranges under the same tree, and adds merged coarse levels (opacity × area weights, moment-matched covariance) with a root level ≤ 32 K splats. The budget table (splat count per level, screen-height switch points) is written into the `gaussianAsset` record.
 
-For a **window** the cooker additionally takes the view cell (room volume) and the portal rectangle and bakes portal visibility, per-chunk finest LOD, importance from the room, and a splat skybox (§4.6).
+For a **window** the baker additionally takes the view cell and the portal rectangle and bakes portal visibility, per-chunk finest LOD, importance from the room, and a splat skybox (§4.6).
 
 ### 4.4 Runtime
 
@@ -253,45 +260,45 @@ Tests: an orbit around one swapped object at arm's length, and a walk through a 
 
 ## 6. Compatibility guarantees
 
-- `setEntityGaussian(entityId:filename:withExtension:)` keeps its signature and behaviour for `.ply`. Internally it cooks to `.usplat` on first load (cached next to the asset or in `AssetDiskCache`) and takes the new path with the twin link empty and every chunk resident.
-- Existing `GaussianRenderingTest` targets keep passing; the PLY and `.usplat` paths are compared by PSNR in a new render test.
+- Every registration entry point keeps its signature and behaviour: `setEntityGaussian(entityId:filename:withExtension:)`, `setEntityGaussianAsync`, `setEntityGaussian(source:)`, `setEntityGaussianStreaming(source:options:)`. `.ply` keeps loading directly.
+- `UntoldGSFormat.read(from:)` still returns `UntoldGSAsset` in the layout the renderer consumes; `readHeader(from:)` still returns the baked bounding box through a bounded read. Only `write` changes shape (it takes splats with rotation and scale, not baked covariances), and its only caller is the bake.
+- `.untoldgs` v1 and v2 files fail with `.unsupportedVersion`; re-run `untoldengine export`. This is the format's own contract.
+- `untoldengine export` keeps every existing flag; the cooking flags are optional and default to today's behaviour.
+- Existing gaussian render tests (`GaussianRenderingTest`, `GaussianStreamingTest`, `GaussianProgressiveLODTest`) keep passing, with the three tests that pinned v2 header offsets moved to v3.
 - No new package dependencies. `Package.swift` keeps `dependencies: []`.
-- The `.untold` format version does not change; `gaussianAsset` is a new core chunk type that older runtimes ignore (guarded by the existing unknown-chunk test).
-
----
+- The `.untold` format version does not change; `gaussianAsset` is a new core chunk type that older runtimes ignore.
 
 ## 7. Decisions locked before PR 2
 
 | Decision | Choice |
 |---|---|
-| Container | `.usplat` payload file referenced from a `gaussianAsset` chunk in `.untold` (§4.1). |
-| Cooker location | Swift CLI (`Tools/UntoldEngineCLI`), logic in the engine as a testable library. |
+| Container | `.untoldgs` version 3 (chunked payload under the existing name, magic and entry points), referenced from a `gaussianAsset` chunk in `.untold` (§4.1). |
+| Cooker location | Flags on the existing `untoldengine export`; logic in the engine as `UntoldGSCooker`. |
 | First test asset | One captured object with its mesh twin. |
 | Colour pipeline | Linear, pre-tone-map, as the shader already does; add per-asset gain, XR tint, editor offset. |
 | Chunk size | 1024 splats (16 KB core) for objects; 4096 (64 KB) for environments; header field. |
 | Core record | 16 B, PlayCanvas `compressed.ply` bit layout. |
-| Sort | Existing radix sort over one shared, budget-sized key buffer; every frame; 24-bit keys. |
+| Sort | Existing radix sort over one shared, budget-sized key buffer across all splat entities; every frame; 24-bit keys. |
+| SH bytes | The renderer's existing `[-1, 1]` byte contract, so chunk bytes bind to the GPU unchanged. |
 | Occluder for twins | The mesh itself, depth-only, shrunk by a per-object margin (default 2 cm). |
 
 ---
 
 ## 8. Delivery plan — PR breakdown
 
-Each PR is one reviewable unit, lands on the fork first, and is replayed to `untoldengine/UntoldEngine` unchanged once the series is verified end to end. PR N+1 is based on PR N's branch when it depends on it.
+Each PR is one reviewable unit, lands on the fork first, and is replayed to `untoldengine/UntoldEngine` unchanged once the series is verified end to end. PR N+1 is based on PR N's branch when it depends on it. The first draft of this plan proposed a separate `.usplat` format and a `cook-splats` command; both were folded into the existing `.untoldgs` format and `export` command once the August 2026 gaussian work on `develop` was audited.
 
 | # | Branch | Title | Contents | Depends on |
 |---|---|---|---|---|
 | 1 | `docs/gaussian_splat_streaming_proposal` | [Docs] Gaussian splat streaming proposal | This document. | — |
-| 2 | `feature/usplat_format` | [Feature] `.usplat` cooked splat payload format | Header, chunk index, tree node structs; pack/unpack of the 16 B record (11/10/11 position, smallest-three rotation, log-scale, RGBA8); Morton ordering; chunking with per-chunk ranges; writer; range-based reader (FileHandle and mmap); CRC32 per chunk. Unit tests: roundtrip, 16 KB alignment, quantisation error bounds, CRC rejection. | 1 |
-| 3 | `feature/untold_gaussian_asset_chunk` | [Feature] `gaussianAsset` chunk in `.untold` | New core `UntoldChunkType` and `UntoldGaussianAssetRecordV1` (payload path, registration, twin link, exposure, margin, budget table); codable + reader decode; tests incl. unknown-chunk forward compatibility. | — |
-| 4 | `feature/cook_splats_cli` | [Feature] `cook-splats` cooker and CLI command | `GaussianSplatCooker` library: PLY import, crop, opacity prune, optional registration matrix, Morton, chunk, write `.usplat` + `gaussianAsset`. CLI subcommand. Tests on a synthetic PLY. Importance pruning, ICP and LOD levels are follow-ups. | 2, 3 |
-| 5 | `feature/gaussian_usplat_runtime` | [Feature] Load `.usplat` at runtime with a per-frame decode pass | `setEntityGaussianAsync` for `.usplat`; `GaussianComponent` page table; decode compute kernel producing `EncodedGaussianSplat` into the existing buffers; `MemoryBudgetManager` registration; `.ply` path cooks on first load. Render test: PLY vs `.usplat` PSNR. | 2, 3 |
+| 2 | `feature/usplat_format` | [Feature] `.untoldgs` v3: chunked, quantised splat payload | `UntoldGSFormat` moved from `RegistrationSystem` into `AssetFormat/UntoldGS*.swift`; v3 header, chunk index, tree; 16 B record packing; Morton order; per-chunk CRC; writer; range reader (`UntoldGSFile`); `read`/`readHeader` unchanged in shape; the bake writes v3 tiers. Unit tests plus the v2-pinned render tests moved to v3. | 1 |
+| 3 | `feature/untold_gaussian_asset_chunk` | [Feature] `gaussianAsset` chunk in `.untold` | New core `UntoldChunkType` and `UntoldGaussianAssetRecordV1` (payload path, twin link, budgets, occluder shrink, exposure offset, swap distance); codable + reader decode + validation; tests. | — |
+| 4 | `feature/cook_splats_cli` | [Feature] Cooking flags for `untoldengine export` | `UntoldGSCooker` (registration transform, crop, opacity floor, SH degree, chunk size) applied inside `bakeGaussianSplatProgressiveTiers`; `--splat-*` flags on `export`; CLI package identity pinned so it builds in worktrees. Tests on synthetic assets. | 2 |
+| 5 | `feature/gaussian_usplat_runtime` | [Feature] Range-load `.untoldgs` v3 with a GPU decode pass | Load chunks by range (FileHandle, then Metal IO) into a page pool; decode compute kernel producing `EncodedGaussianSplat` into the existing buffers; the existing async, LOD and streaming paths unchanged; render test PLY vs v3 by PSNR. | 2, 3 |
 | 6 | `feature/gaussian_shared_sort` | [Feature] Shared sort and single draw across splat entities | Chunk-level frustum cull with extent; shared budget-sized key buffer with packed entity index; one radix sort; one draw with per-entity constants; indirect dispatch removes the CPU readback. Render tests with two overlapping entities. | 5 |
 | 7 | `feature/gaussian_twin_swap` | [Feature] Mesh-to-splat twin swap with occluder shell and cross-fade | `GaussianTwinComponent`; depth-only shrunk shell pipeline; depth test in the splat pipeline; cross-fade; per-asset gain and XR tint uniform; how-to guide update. Render tests. | 6 |
 
-Phase 2 (object LOD, budgets, the window bake) and phase 3 (streamed environment) follow as their own series once PRs 1–7 are merged upstream.
-
----
+Phase 2 (tiers as chunk ranges in one file, merged coarse levels, object budgets, the window bake) and phase 3 (streamed environment) follow as their own series once PRs 1–7 are merged upstream.
 
 ## Appendix A — Test scenes
 
