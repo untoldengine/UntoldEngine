@@ -150,6 +150,28 @@ macOS location and is not available on `PATH`.
 
 ---
 
+### Gaussian splat captures
+
+A Gaussian splat `.ply` exports directly to `.untoldgs` (see [Gaussian Splat
+Format](../Architecture/untoldgsFormat.md)); `--lod-levels N` writes progressive tiers.
+The `--splat-*` flags cook the capture on the way: register it onto its mesh twin, crop
+away floaters and the captured floor, drop near-transparent splats, and choose the
+spherical-harmonics degree and chunk size.
+
+```bash
+untoldengine export --input sofa.ply --output Gaussians/sofa.untoldgs \
+  --splat-flip-yz --splat-scale 0.5 --splat-yaw-degrees 90 --splat-translate 0,0.4,0 \
+  --splat-crop=-1,0,-1,1,1.2,1 --splat-crop-margin 0.05 --splat-sh-degree 2
+```
+
+The transform is baked into every splat and recorded in the file header.
+`--splat-min-opacity` (default 0.005) drops near-transparent splats; `--splat-chunk-splats`
+sets the chunk size (1024 for objects, 4096 with `--splat-environment` for rooms and
+larger). Values that start with a minus sign must use the `--option=value` form. The
+command prints how many splats were kept and pruned per reason.
+
+---
+
 ## Partitioning Scenes into Streaming Tiles
 
 For large outdoor scenes, `export-tiles` partitions a USD/USDZ/`.blend` scene into
