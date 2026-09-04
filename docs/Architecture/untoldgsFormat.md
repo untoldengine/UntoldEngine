@@ -125,7 +125,17 @@ encoding is reserved by the `sphericalHarmonicsPalette` flag and rejected by the
 - `UntoldGSPacking` holds the pure pack/unpack functions for the record and the Morton key; `UntoldGSCRC32` the checksum; `UntoldGSSplat` converts from the importer's `GaussianSplat` and to `EncodedGaussianSplat`.
 
 `bakeGaussianSplatProgressiveTiers` writes every progressive tier as a version-3 file.
-The mmap and Metal fast resource loading paths arrive with the streaming loader.
+
+## Runtime load
+
+`GaussianChunkLoader.load(url:)` reads every chunk by byte range (CRC-verified) into one
+packed staging buffer, binds the SH bytes as stored, and runs the `gaussianDecodeChunks`
+kernel (one threadgroup per chunk, `GaussianChunkDecodeConstants` per chunk) to expand the
+16-byte records into `EncodedGaussianSplat` for the existing cull, sort and draw passes.
+`setEntityGaussian` with the `untoldgs` extension, the progressive tiers and the streaming
+path all go through it; when the kernel is unavailable the loader falls back to
+`UntoldGSFormat.read`, which decodes on the CPU. Metal fast resource loading and a resident
+page pool arrive with the shared-sort work.
 
 ## Validation
 

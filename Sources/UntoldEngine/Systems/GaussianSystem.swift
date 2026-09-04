@@ -53,6 +53,8 @@ func initGuassianComputePipelines() {
 
     createComputePipeline(into: &gaussianDepthPipeline, device: renderInfo.device, library: renderInfo.library, functionName: "gaussianDepthKeys", pipelineName: "Gaussian Depth")
 
+    createComputePipeline(into: &gaussianDecodePipeline, device: renderInfo.device, library: renderInfo.library, functionName: "gaussianDecodeChunks", pipelineName: "Gaussian Decode Chunks")
+
     createComputePipeline(into: &radixClearHistogramPipeline, device: renderInfo.device, library: renderInfo.library, functionName: "gaussianRadixClearHistogram", pipelineName: "Radix Clear")
 
     createComputePipeline(into: &radixHistogramPipeline, device: renderInfo.device, library: renderInfo.library, functionName: "gaussianRadixHistogram", pipelineName: "Radix Histogram")

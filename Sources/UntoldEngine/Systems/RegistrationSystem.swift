@@ -3369,6 +3369,56 @@ func buildGaussianLoadResult(
         return nil
     }
 
+    guard let encodedSplatBuffer = renderInfo.device.makeBuffer(length: MemoryLayout<EncodedGaussianSplat>.stride * Int(splatCount), options: .storageModeShared) else {
+        handleError(.bufferAllocationFailed, "Encoded Gaussian splat buffer is nil")
+        return nil
+    }
+
+    encodedSplats.withUnsafeBytes { bytes in
+        encodedSplatBuffer.contents().copyMemory(from: bytes.baseAddress!, byteCount: bytes.count)
+    }
+
+    let sphericalHarmonicsBuffer: MTLBuffer?
+    if let packedSphericalHarmonics, !packedSphericalHarmonics.coefficients.isEmpty {
+        sphericalHarmonicsBuffer = renderInfo.device.makeBuffer(
+            bytes: packedSphericalHarmonics.coefficients,
+            length: packedSphericalHarmonics.coefficients.count * MemoryLayout<UInt8>.stride,
+            options: .storageModeShared
+        )
+        guard sphericalHarmonicsBuffer != nil else {
+            handleError(.bufferAllocationFailed, "Gaussian spherical-harmonics buffer is nil")
+            return nil
+        }
+        sphericalHarmonicsBuffer?.label = "Gaussian Spherical Harmonics"
+    } else {
+        sphericalHarmonicsBuffer = nil
+    }
+
+    return buildGaussianLoadResult(
+        encodedSplatBuffer: encodedSplatBuffer,
+        splatCount: splatCount,
+        sphericalHarmonicsBuffer: sphericalHarmonicsBuffer,
+        sphericalHarmonicsMetadata: packedSphericalHarmonics?.metadata,
+        // Splat centers alone under-size the true silhouette wherever a large-scale splat sits
+        // near the edge — pad uniformly by an approximate per-splat radius derived from the
+        // tier's mean squared extent (sqrt of the mean of major-axis², i.e. an RMS radius),
+        // since only splat centers/positions (not per-splat scale) are available post-encode.
+        boundingBox: computeGaussianSplatPositionBoundingBox(
+            encodedSplats.map(\.position),
+            padding: meanSquaredSplatExtent > 0 ? sqrt(meanSquaredSplatExtent) : 0
+        )
+    )
+}
+
+/// Builds the per-frame buffers around an already GPU-resident encoded splat buffer (from
+/// the CPU encode above or the `.untoldgs` GPU decode in `GaussianChunkLoader`).
+func buildGaussianLoadResult(
+    encodedSplatBuffer: MTLBuffer,
+    splatCount: UInt,
+    sphericalHarmonicsBuffer: MTLBuffer?,
+    sphericalHarmonicsMetadata: GaussianSHMetadata?,
+    boundingBox: (min: simd_float3, max: simd_float3)
+) -> GaussianLoadResult? {
     var gaussianSortedIndices: [MTLBuffer] = []
     var gaussianVisibleIndices: [MTLBuffer] = []
     var gaussianVisibleCount: [MTLBuffer] = []
@@ -3402,15 +3452,6 @@ func buildGaussianLoadResult(
         gaussianVisibleCount.append(visibleCountSlot)
     }
 
-    guard let encodedSplatBuffer = renderInfo.device.makeBuffer(length: MemoryLayout<EncodedGaussianSplat>.stride * Int(splatCount), options: .storageModeShared) else {
-        handleError(.bufferAllocationFailed, "Encoded Gaussian splat buffer is nil")
-        return nil
-    }
-
-    encodedSplats.withUnsafeBytes { bytes in
-        encodedSplatBuffer.contents().copyMemory(from: bytes.baseAddress!, byteCount: bytes.count)
-    }
-
     var gaussianPrecomputedData: [MTLBuffer] = []
     for _ in 0 ..< maxInFlightCommandBuffers {
         guard let precomputedSlot = renderInfo.device.makeBuffer(
@@ -3421,22 +3462,6 @@ func buildGaussianLoadResult(
             return nil
         }
         gaussianPrecomputedData.append(precomputedSlot)
-    }
-
-    let sphericalHarmonicsBuffer: MTLBuffer?
-    if let packedSphericalHarmonics, !packedSphericalHarmonics.coefficients.isEmpty {
-        sphericalHarmonicsBuffer = renderInfo.device.makeBuffer(
-            bytes: packedSphericalHarmonics.coefficients,
-            length: packedSphericalHarmonics.coefficients.count * MemoryLayout<UInt8>.stride,
-            options: .storageModeShared
-        )
-        guard sphericalHarmonicsBuffer != nil else {
-            handleError(.bufferAllocationFailed, "Gaussian spherical-harmonics buffer is nil")
-            return nil
-        }
-        sphericalHarmonicsBuffer?.label = "Gaussian Spherical Harmonics"
-    } else {
-        sphericalHarmonicsBuffer = nil
     }
 
     let spaceUniform = (0 ..< totalPerMeshUniformBuffers()).compactMap { _ in
@@ -3471,17 +3496,10 @@ func buildGaussianLoadResult(
         encodedSplatBuffer: encodedSplatBuffer,
         gaussianPrecomputedData: gaussianPrecomputedData,
         sphericalHarmonicsBuffer: sphericalHarmonicsBuffer,
-        sphericalHarmonicsMetadata: packedSphericalHarmonics?.metadata,
+        sphericalHarmonicsMetadata: sphericalHarmonicsMetadata,
         spaceUniform: spaceUniform,
         estimatedGPUBytes: estimatedGPUBytes,
-        // Splat centers alone under-size the true silhouette wherever a large-scale splat sits
-        // near the edge — pad uniformly by an approximate per-splat radius derived from the
-        // tier's mean squared extent (sqrt of the mean of major-axis², i.e. an RMS radius),
-        // since only splat centers/positions (not per-splat scale) are available post-encode.
-        boundingBox: computeGaussianSplatPositionBoundingBox(
-            encodedSplats.map(\.position),
-            padding: meanSquaredSplatExtent > 0 ? sqrt(meanSquaredSplatExtent) : 0
-        )
+        boundingBox: boundingBox
     )
 }
 
@@ -3515,12 +3533,16 @@ func computeGaussianSplatBoundingBox(_ splats: [GaussianSplat]) -> (min: simd_fl
     )
 }
 
-/// Reads a `.ply` Gaussian splat asset from disk and builds its GPU buffers.
+/// Reads a `.ply` or `.untoldgs` Gaussian splat asset from disk and builds its GPU buffers.
 /// Returns `nil` on any failure, calling `handleError` internally — callers just guard-return.
 private func buildGaussianLoadResult(filename: String, withExtension: String) -> GaussianLoadResult? {
     guard let url = LoadingSystem.shared.resourceURL(forResource: filename, withExtension: withExtension, subResource: nil) else {
         handleError(.filenameNotFound, filename)
         return nil
+    }
+
+    if withExtension.lowercased() == "untoldgs" {
+        return buildGaussianLoadResultFromUntoldGS(url: url)
     }
 
     do {
@@ -3556,12 +3578,27 @@ func buildGaussianLoadResultFromPLY(url: URL, sourceDescription: String) throws 
     )
 }
 
-func buildGaussianComponentFromUntoldGS(url: URL) -> (
-    component: GaussianComponent,
-    estimatedGPUBytes: Int,
-    meanSquaredSplatExtent: Float,
-    boundingBox: (min: simd_float3, max: simd_float3)
-)? {
+/// Builds GPU buffers for a `.untoldgs` file. Version-3 chunks are read by byte range and
+/// decoded by the `gaussianDecodeChunks` kernel (`GaussianChunkLoader`); when that pipeline is
+/// unavailable the file is decoded on the CPU through `UntoldGSFormat.read`.
+/// Returns `nil` on any failure, calling `handleError` internally — callers just guard-return.
+func buildGaussianLoadResultFromUntoldGS(url: URL) -> GaussianLoadResult? {
+    if GaussianChunkLoader.isAvailable {
+        do {
+            let loaded = try GaussianChunkLoader.load(url: url)
+            return buildGaussianLoadResult(
+                encodedSplatBuffer: loaded.encodedSplatBuffer,
+                splatCount: UInt(loaded.splatCount),
+                sphericalHarmonicsBuffer: loaded.sphericalHarmonicsBuffer,
+                sphericalHarmonicsMetadata: loaded.sphericalHarmonicsMetadata,
+                boundingBox: loaded.boundingBox
+            )
+        } catch {
+            handleError(.assetDataMissing, "Failed to load .untoldgs Gaussian asset \(url.lastPathComponent): \(error)")
+            return nil
+        }
+    }
+
     let asset: UntoldGSAsset
     do {
         asset = try UntoldGSFormat.read(from: url)
@@ -3569,23 +3606,37 @@ func buildGaussianComponentFromUntoldGS(url: URL) -> (
         handleError(.assetDataMissing, "Failed to read .untoldgs Gaussian tier from \(url.lastPathComponent): \(error)")
         return nil
     }
-
     let packedSphericalHarmonics = asset.shMetadata.map {
         PackedGaussianSphericalHarmonics(coefficients: asset.shCoefficients, metadata: $0)
     }
-
-    guard let result = buildGaussianLoadResult(
+    return buildGaussianLoadResult(
         encodedSplats: asset.encodedSplats,
         packedSphericalHarmonics: packedSphericalHarmonics,
         meanSquaredSplatExtent: asset.meanSquaredSplatExtent,
         sourceDescription: url.lastPathComponent
-    ) else {
+    )
+}
+
+func buildGaussianComponentFromUntoldGS(url: URL) -> (
+    component: GaussianComponent,
+    estimatedGPUBytes: Int,
+    meanSquaredSplatExtent: Float,
+    boundingBox: (min: simd_float3, max: simd_float3)
+)? {
+    let meanSquaredSplatExtent: Float
+    do {
+        meanSquaredSplatExtent = try UntoldGSFormat.readHeaderV3(from: url).meanSquaredSplatExtent
+    } catch {
+        handleError(.assetDataMissing, "Failed to read .untoldgs Gaussian tier header from \(url.lastPathComponent): \(error)")
+        return nil
+    }
+    guard let result = buildGaussianLoadResultFromUntoldGS(url: url) else {
         return nil
     }
 
     let component = GaussianComponent()
     copyGaussianLoadResult(result, to: component)
-    return (component, result.estimatedGPUBytes, asset.meanSquaredSplatExtent, result.boundingBox)
+    return (component, result.estimatedGPUBytes, meanSquaredSplatExtent, result.boundingBox)
 }
 
 /// Registers `GaussianComponent` on `entityId` from a built `GaussianLoadResult` and records
