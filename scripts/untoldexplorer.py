@@ -1927,6 +1927,10 @@ def _blender_light_casts_shadow(light_data: object) -> bool:
 
 
 def _blender_light_engine_intensity(light_data: object) -> float:
+    # For SUN lights, Blender's `energy` is already irradiance in W/m² (the
+    # "Strength" field), not radiant power in watts like other light types.
+    # No unit conversion is needed here for either case; do not "fix" this
+    # into a watts-style conversion for SUN lights.
     power = max(float(getattr(light_data, "energy", 1.0)), 0.0)
     exposure = _blender_light_source_exposure(light_data)
     return power * math.pow(2.0, exposure)
@@ -4683,6 +4687,10 @@ def build_untold_file(
     for exported_light in exported_lights:
         entity_id = next_scene_payload_entity_id
         next_scene_payload_entity_id += 1
+        # Set unconditionally for every light type, including SUN/directional:
+        # `intensity` above is always a physical quantity (watts for
+        # point/spot/area, W/m² irradiance for SUN), never the old arbitrary
+        # engine units.
         light_flags = LIGHT_FLAG_RADIOMETRIC
         if exported_light.casts_shadow:
             light_flags |= LIGHT_FLAG_CASTS_SHADOW

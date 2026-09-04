@@ -108,13 +108,13 @@ final class LightSystemTest: BaseRenderSetup {
         destroyAllEntities()
 
         // Directional lights are the one exception: createDirLight() sets a sun-appropriate
-        // default (elevation=19deg, azimuth=150deg) for the procedural sky background instead of
-        // the shared straight-down default the other light types use below.
+        // default (elevation=90deg, azimuth=0deg, i.e. directly overhead) for the procedural sky
+        // background instead of the shared straight-down default the other light types use below.
         let directional = createEntity()
         createDirLight(entityId: directional)
-        assertVector(getLightTransformForwardAxis(entityId: directional), equals: simd_float3(0.47275954, 0.3255682, -0.81884295))
-        assertVector(getLightEmissionDirection(entityId: directional), equals: simd_float3(-0.47275954, -0.3255682, 0.81884295))
-        assertVector(getDirectionalLightShaderDirection(entityId: directional), equals: simd_float3(0.47275954, 0.3255682, -0.81884295))
+        assertVector(getLightTransformForwardAxis(entityId: directional), equals: simd_float3(0.0, 1.0, 0.0))
+        assertVector(getLightEmissionDirection(entityId: directional), equals: simd_float3(0.0, -1.0, 0.0))
+        assertVector(getDirectionalLightShaderDirection(entityId: directional), equals: simd_float3(0.0, 1.0, 0.0))
 
         let spot = createEntity()
         createSpotLight(entityId: spot)
@@ -230,6 +230,16 @@ final class LightSystemTest: BaseRenderSetup {
         XCTAssertTrue(scene.get(component: LightComponent.self, for: entityId)?.usesRadiometricUnits ?? false)
     }
 
+    func testSetLightStrengthEnablesRadiometricUnitsForDirectional() {
+        let entityId: EntityID = createEntity()
+        createDirLight(entityId: entityId)
+
+        setLight(entityId: entityId, .strength(1000.0))
+
+        XCTAssertEqual(getLightIntensity(entityId: entityId), 1000.0, accuracy: 0.0001)
+        XCTAssertTrue(scene.get(component: LightComponent.self, for: entityId)?.usesRadiometricUnits ?? false)
+    }
+
     func testGetDirLightParameters() {
         destroyAllEntities()
         // destroyAllEntities() defers actual destruction to frame finalization, so the
@@ -255,12 +265,30 @@ final class LightSystemTest: BaseRenderSetup {
         let lightParameters: LightParameters = getDirectionalLightParameters()
 
         // Default sun position/brightness for newly-created directional lights, tuned for the
-        // procedural sky background: elevation=19deg, azimuth=150deg, intensity=20.
+        // procedural sky background: elevation=90deg, azimuth=0deg, intensity=5.
         XCTAssertEqual(lightParameters.color, .one, "color should be all 1's")
-        XCTAssertEqual(lightParameters.intensity, 20.0, "intensity should default to 20")
-        XCTAssertEqual(lightParameters.direction.x, 0.47275954, accuracy: 0.001, "direction.x should match elevation=19/azimuth=150")
-        XCTAssertEqual(lightParameters.direction.y, 0.3255682, accuracy: 0.001, "direction.y should match elevation=19/azimuth=150")
-        XCTAssertEqual(lightParameters.direction.z, -0.81884295, accuracy: 0.001, "direction.z should match elevation=19/azimuth=150")
+        XCTAssertEqual(lightParameters.intensity, 5.0, "intensity should default to 5")
+        XCTAssertEqual(lightParameters.direction.x, 0.0, accuracy: 0.001, "direction.x should match elevation=90/azimuth=0")
+        XCTAssertEqual(lightParameters.direction.y, 1.0, accuracy: 0.001, "direction.y should match elevation=90/azimuth=0")
+        XCTAssertEqual(lightParameters.direction.z, 0.0, accuracy: 0.001, "direction.z should match elevation=90/azimuth=0")
+
+        destroyEntity(entityId: entityId)
+    }
+
+    func testGetDirLightParametersPassesThroughRadiometricStrengthUnchanged() {
+        destroyAllEntities()
+        finalizePendingDestroys()
+
+        let entityId: EntityID = createEntity()
+        createDirLight(entityId: entityId)
+
+        setLight(entityId: entityId, .strength(1000.0))
+
+        let lightParameters: LightParameters = getDirectionalLightParameters()
+
+        // Unlike point/spot/area, a directional light's W/m² strength needs no
+        // per-type conversion factor before reaching the BRDF.
+        XCTAssertEqual(lightParameters.intensity, 1000.0, accuracy: 0.0001, "radiometric strength should pass through unchanged")
 
         destroyEntity(entityId: entityId)
     }
