@@ -937,8 +937,8 @@ public enum RenderPasses {
         materialParameters.hasTexture.x = 0
     }
 
-    // loadAction controls whether this draw clears the target (grid used as the sole background)
-    // or loads over whatever a prior pass already wrote (grid overlaid on top of the sky pass).
+    /// loadAction controls whether this draw clears the target (grid used as the sole background)
+    /// or loads over whatever a prior pass already wrote (grid overlaid on top of the sky pass).
     private static func encodeGridPass(_ commandBuffer: MTLCommandBuffer, loadAction: MTLLoadAction) {
         guard let gridPipeline = PipelineManager.shared.renderPipelinesByType[.grid] else {
             handleError(.pipelineStateNulled, "gridPipeline is nil")
@@ -1115,9 +1115,9 @@ public enum RenderPasses {
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
     }
 
-    // Sky pass followed by the grid overlaid on top (loaded, not cleared), so the reference grid
-    // reads over the sky's flat ground fill the same way Unity's Scene view overlays its grid on
-    // top of the sky/horizon background.
+    /// Sky pass followed by the grid overlaid on top (loaded, not cleared), so the reference grid
+    /// reads over the sky's flat ground fill the same way Unity's Scene view overlays its grid on
+    /// top of the sky/horizon background.
     public static let skyGridExecution: RenderPassExecution = { commandBuffer in
         skyExecution(commandBuffer)
         encodeGridPass(commandBuffer, loadAction: .load)
