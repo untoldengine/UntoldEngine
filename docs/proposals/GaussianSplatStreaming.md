@@ -100,7 +100,7 @@ So: the bulk splat data goes in its own file, **`.usplat`**, written by the Swif
 Goals in priority order: any chunk loads on its own by byte range; a chunk lands in a GPU page with no CPU transform; the first read shows the whole asset coarsely; rotation and scale survive for LOD and re-encoding; SH is optional per device tier; an object file carries its registration and capture lighting.
 
 ```
-[0]        FileHeader          128 B, padded to 16 KB
+[0]        FileHeader          256 B, padded to 16 KB
 [16 KB]    ChunkIndex          chunkCount × 64 B, padded to 16 KB multiple
 […]        NodeTree            nodeCount × 48 B, padded
 […]        Palettes            optional SH palette, 16 KB aligned
@@ -110,7 +110,7 @@ Goals in priority order: any chunk loads on its own by byte range; a chunk lands
 Every payload offset is a multiple of 16 384 bytes, the page size on all current Apple devices: `makeBuffer(bytesNoCopy:)` over an mmap needs page-aligned pointer and length, and Metal fast resource loading decompresses on 64 KB chunk boundaries.
 
 ```c
-struct FileHeader {                 // 128 B
+struct FileHeader {                 // 256 B (reserved tail)
   char     magic[4];                // "USPL"
   uint16_t versionMajor, versionMinor;
   uint32_t flags;                   // hasSH, shPalette, antialiased, mtlioCompressed, isEnvironment
@@ -126,7 +126,7 @@ struct FileHeader {                 // 128 B
   float    splatToMesh[16];         // rigid + uniform scale; identity for worlds
   float    captureExposureEV;
   float    captureWhiteBalance[3];
-  uint64_t chunkIndexOffset, nodeTreeOffset, paletteOffset, payloadOffset;
+  uint64_t chunkIndexOffset, nodeTreeOffset, paletteOffset, payloadOffset, fileSize;
 };
 
 struct ChunkIndexEntry {            // 64 B — everything needed to serve one byte range
