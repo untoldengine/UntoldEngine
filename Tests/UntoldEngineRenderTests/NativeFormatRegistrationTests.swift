@@ -124,7 +124,11 @@ final class NativeFormatRegistrationTests: BaseRenderSetup {
 
         let sunEntity = try XCTUnwrap(findEntity(named: fixture.sunName))
         XCTAssertEqual(LightingSystem.shared.activeDirectionalLight, sunEntity)
-        XCTAssertNotNil(scene.get(component: DirectionalLightComponent.self, for: sunEntity))
+        let sunDirComponent = try XCTUnwrap(scene.get(component: DirectionalLightComponent.self, for: sunEntity))
+        XCTAssertTrue(sunDirComponent.castsShadow)
+        let sunLightComponent = try XCTUnwrap(scene.get(component: LightComponent.self, for: sunEntity))
+        XCTAssertTrue(sunLightComponent.usesRadiometricUnits, "sun record's radiometric flag should decode to W/m\u{b2} strength on the directional light")
+        XCTAssertEqual(sunLightComponent.intensity, 2.0, accuracy: 0.001)
 
         let spotEntity = try XCTUnwrap(findEntity(named: fixture.spotName))
         let spotComponent = try XCTUnwrap(scene.get(component: SpotLightComponent.self, for: spotEntity))
@@ -394,6 +398,7 @@ private func makeSceneAuthoredUntoldFixture() throws -> SceneAuthoredUntoldFixtu
         entityId: 1,
         nameOffset: strings.offsets[sunName]!,
         lightType: .directional,
+        flags: UntoldLightFlags.castsShadow | UntoldLightFlags.radiometric,
         color: SIMD3<Float>(1.0, 0.95, 0.8),
         intensity: 2.0,
         localTransform: sunTransform

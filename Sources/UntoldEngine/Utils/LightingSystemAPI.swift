@@ -56,7 +56,12 @@ public enum LightEntityProperty: Sendable {
     case color(simd_float3)
     /// Convenience alias for radiometric local-light power in watts.
     /// Equivalent to `.intensity(value)` plus `.intensityUnits(.radiometric)`.
+    /// For directional/sun lights, use `.strength(value)` instead.
     case power(Float)
+    /// Convenience alias for radiometric directional/sun-light strength in
+    /// watts per square meter (irradiance), matching Blender's Sun "Strength".
+    /// Equivalent to `.intensity(value)` plus `.intensityUnits(.radiometric)`.
+    case strength(Float)
     case intensity(Float)
     case intensityUnits(LightIntensityUnits)
     case directional(DirectionalLightSetting)
@@ -72,12 +77,9 @@ public func setLight(entityId: EntityID, _ property: LightEntityProperty) {
     case let .color(value):
         updateLightColor(entityId: entityId, color: value)
     case let .power(value):
-        updateLightIntensity(entityId: entityId, intensity: value)
-        guard let light = scene.get(component: LightComponent.self, for: entityId) else {
-            handleError(.noLightComponent)
-            return
-        }
-        light.usesRadiometricUnits = true
+        setRadiometricIntensity(entityId: entityId, value: value)
+    case let .strength(value):
+        setRadiometricIntensity(entityId: entityId, value: value)
     case let .intensity(value):
         updateLightIntensity(entityId: entityId, intensity: value)
     case let .intensityUnits(units):
@@ -98,6 +100,15 @@ public func setLight(entityId: EntityID, _ property: LightEntityProperty) {
 }
 
 // MARK: - Private applicators
+
+private func setRadiometricIntensity(entityId: EntityID, value: Float) {
+    updateLightIntensity(entityId: entityId, intensity: value)
+    guard let light = scene.get(component: LightComponent.self, for: entityId) else {
+        handleError(.noLightComponent)
+        return
+    }
+    light.usesRadiometricUnits = true
+}
 
 private func applyDirectionalLightSetting(entityId: EntityID, _ setting: DirectionalLightSetting) {
     switch setting {

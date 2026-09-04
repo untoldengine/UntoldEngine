@@ -180,9 +180,10 @@ final class NativeFormatTests: XCTestCase {
         let fixture = makeScenePayloadFixture()
         let decoded = try UntoldReader().readAsset(from: fixture.fileData)
 
-        XCTAssertEqual(decoded.lights, [fixture.light])
+        XCTAssertEqual(decoded.lights, [fixture.light, fixture.sunLight])
         XCTAssertEqual(decoded.cameras, [fixture.camera])
         XCTAssertEqual(try decoded.string(at: fixture.light.nameOffset), "Authored Spot")
+        XCTAssertEqual(try decoded.string(at: fixture.sunLight.nameOffset), "Authored Sun")
         XCTAssertEqual(try decoded.string(at: fixture.camera.nameOffset), "Authored Camera")
 
         let loaded = try NativeFormatLoader().loadAssetSync(from: writeFixtureToTemporaryFile(fixture.fileData))
@@ -197,6 +198,13 @@ final class NativeFormatTests: XCTestCase {
         XCTAssertTrue(runtimeLight.usesRadiometricUnits)
         XCTAssertEqual(runtimeLight.innerCone, 12.0, accuracy: 0.0001)
         XCTAssertEqual(runtimeLight.outerCone, 34.0, accuracy: 0.0001)
+
+        let runtimeSun = try XCTUnwrap(loaded.lights.first(where: { $0.kind == .directional }))
+        XCTAssertEqual(runtimeSun.name, "Authored Sun")
+        XCTAssertEqual(runtimeSun.color, SIMD3<Float>(1.0, 0.95, 0.8))
+        XCTAssertEqual(runtimeSun.intensity, 1000.0, accuracy: 0.0001, "sun strength (W/m\u{b2}) should round-trip unchanged")
+        XCTAssertTrue(runtimeSun.castsShadow)
+        XCTAssertTrue(runtimeSun.usesRadiometricUnits)
 
         let runtimeCamera = try XCTUnwrap(loaded.cameras.first)
         XCTAssertEqual(runtimeCamera.name, "Authored Camera")
@@ -599,6 +607,7 @@ final class NativeFormatTests: XCTestCase {
     private struct ScenePayloadFixture {
         var fileData: Data
         var light: UntoldLightRecordV1
+        var sunLight: UntoldLightRecordV1
         var camera: UntoldCameraRecordV1
     }
 
@@ -842,7 +851,7 @@ final class NativeFormatTests: XCTestCase {
 
     private func makeScenePayloadFixture() -> ScenePayloadFixture {
         let fixture = makeTinyFixture()
-        let stringTable = makeStringTable(["root_entity", "mesh_0", "mat_0", "albedo.ktx2", "Authored Spot", "Authored Camera"])
+        let stringTable = makeStringTable(["root_entity", "mesh_0", "mat_0", "albedo.ktx2", "Authored Spot", "Authored Sun", "Authored Camera"])
         var lightTransform = matrix_identity_float4x4
         lightTransform.columns.3 = SIMD4<Float>(2.0, 3.0, 4.0, 1.0)
         let light = UntoldLightRecordV1(
@@ -859,6 +868,18 @@ final class NativeFormatTests: XCTestCase {
             innerCone: 12.0,
             outerCone: 34.0,
             localTransform: lightTransform
+        )
+        var sunTransform = matrix_identity_float4x4
+        sunTransform.columns.3 = SIMD4<Float>(0.0, 10.0, 0.0, 1.0)
+        let sunLight = UntoldLightRecordV1(
+            entityId: 12,
+            nameOffset: stringTable.offsets["Authored Sun"]!,
+            lightType: .directional,
+            flags: UntoldLightFlags.castsShadow | UntoldLightFlags.radiometric,
+            color: SIMD3<Float>(1.0, 0.95, 0.8),
+            intensity: 1000.0,
+            direction: SIMD3<Float>(0.0, -1.0, 0.0),
+            localTransform: sunTransform
         )
         var cameraTransform = matrix_identity_float4x4
         cameraTransform.columns.3 = SIMD4<Float>(0.0, 1.0, 6.0, 1.0)
@@ -891,12 +912,12 @@ final class NativeFormatTests: XCTestCase {
             textures: [fixture.texture],
             vertexData: fixture.chunkPayloads.first(where: { $0.type == .vertexData })!.data,
             indexData: fixture.chunkPayloads.first(where: { $0.type == .indexData })!.data,
-            lights: [light],
+            lights: [light, sunLight],
             cameras: [camera]
         )
         header.chunkCount = UInt32(chunkPayloads.count)
         let (fileData, _) = buildFileData(header: header, chunkPayloads: chunkPayloads)
-        return ScenePayloadFixture(fileData: fileData, light: light, camera: camera)
+        return ScenePayloadFixture(fileData: fileData, light: light, sunLight: sunLight, camera: camera)
     }
 
     private func buildChunkPayloads(

@@ -382,7 +382,7 @@ public func createDirLight(entityId: EntityID) {
     assignDefaultProceduralLightMesh(entityId: entityId)
     // Default sun position/brightness for newly-created directional lights, tuned for the
     // procedural sky background (see getSunElevationAzimuth/setSunElevationAzimuth).
-    setSunElevationAzimuth(entityId: entityId, elevation: 19.0, azimuth: 150.0)
+    setSunElevationAzimuth(entityId: entityId, elevation: 90.0, azimuth: 0.0)
 
     guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
         handleError(.noLightComponent)
@@ -390,7 +390,7 @@ public func createDirLight(entityId: EntityID) {
     }
 
     lightComponent.lightType = .directional
-    lightComponent.intensity = 20.0
+    lightComponent.intensity = 5.0
     if LightingSystem.shared.activeDirectionalLight == nil {
         LightingSystem.shared.activeDirectionalLight = entityId
     }

@@ -284,6 +284,11 @@ public class LightComponent: Component {
     public required init() {}
 }
 
+/// When the shared `LightComponent.usesRadiometricUnits` is true, this
+/// light's `intensity` is perpendicular irradiance in W/m² (Blender Sun
+/// "Strength"), consumed directly by the Lambertian/specular BRDF with no
+/// additional conversion — unlike point/spot/area, which divide watts by an
+/// emitter shape factor (solid angle or area) before use.
 public class DirectionalLightComponent: Component {
     public var castsShadow: Bool = true
     public required init() {}
