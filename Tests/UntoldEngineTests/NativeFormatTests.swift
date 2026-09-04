@@ -288,6 +288,93 @@ final class NativeFormatTests: XCTestCase {
         XCTAssertEqual(decoded.entities.count, 1)
     }
 
+    // MARK: - Gaussian asset table
+
+    func testGaussianAssetRecordEncodesEightyBytes() throws {
+        let record = UntoldGaussianAssetRecordV1(
+            entityId: 3,
+            payloadPathOffset: 25,
+            flags: UntoldGaussianAssetFlags.meshTwin,
+            lodCount: 3,
+            lodSplatCounts: [20000, 60000, 180_000],
+            lodSwitchScreenHeights: [120, 360, 1080],
+            occluderShrinkMeters: 0.015,
+            exposureOffsetEV: -0.3,
+            swapDistanceMeters: 4
+        )
+        XCTAssertEqual(record.lodSplatCounts, [20000, 60000, 180_000, 0])
+        XCTAssertEqual(record.lodSwitchScreenHeights, [120, 360, 1080, 0])
+        XCTAssertEqual(record.reserved0, [0, 0, 0, 0, 0])
+
+        let writer = UntoldBinaryWriter()
+        record.encode(to: writer)
+        XCTAssertEqual(writer.count, UntoldGaussianAssetRecordV1.encodedSize)
+        XCTAssertEqual(try UntoldGaussianAssetRecordV1.decode(from: UntoldBinaryReader(data: writer.data)), record)
+    }
+
+    func testGaussianAssetTableRoundtrip() throws {
+        var probe = makeTinyFixture()
+        let record = UntoldGaussianAssetRecordV1(
+            entityId: probe.entity.entityId,
+            payloadPathOffset: probe.texture.uriOffset,
+            flags: UntoldGaussianAssetFlags.meshTwin,
+            lodCount: 1,
+            lodSplatCounts: [150_000],
+            occluderShrinkMeters: 0.02
+        )
+        let writer = UntoldBinaryWriter()
+        record.encode(to: writer)
+        probe = makeTinyFixture(pluginChunks: [(.gaussianAssetTable, writer.data, 1)])
+
+        let decoded = try UntoldReader().readAsset(from: probe.fileData)
+        XCTAssertEqual(decoded.gaussianAssets, [record])
+        XCTAssertEqual(try decoded.string(at: decoded.gaussianAssets[0].payloadPathOffset), "albedo.ktx2")
+        XCTAssertTrue(decoded.pluginChunks.isEmpty)
+        XCTAssertEqual(decoded.meshes.count, 1)
+    }
+
+    func testGaussianAssetWithoutTableDecodesEmpty() throws {
+        let decoded = try UntoldReader().readAsset(from: makeTinyFixture().fileData)
+        XCTAssertTrue(decoded.gaussianAssets.isEmpty)
+    }
+
+    func testGaussianAssetRejectsUnknownEntity() throws {
+        let probe = makeTinyFixture()
+        let record = UntoldGaussianAssetRecordV1(entityId: 42, payloadPathOffset: probe.texture.uriOffset)
+        let writer = UntoldBinaryWriter()
+        record.encode(to: writer)
+        let fixture = makeTinyFixture(pluginChunks: [(.gaussianAssetTable, writer.data, 1)])
+
+        XCTAssertThrowsError(try UntoldReader().readAsset(from: fixture.fileData)) { error in
+            guard case let .invalidGaussianAssetRecord(index, _)? = error as? UntoldValidationError else {
+                return XCTFail("unexpected error \(error)")
+            }
+            XCTAssertEqual(index, 0)
+        }
+    }
+
+    func testGaussianAssetRejectsMissingPathAndTooManyLevels() throws {
+        let probe = makeTinyFixture()
+
+        let noPath = UntoldGaussianAssetRecordV1(entityId: probe.entity.entityId, payloadPathOffset: UntoldFormat.invalidIndex)
+        var writer = UntoldBinaryWriter()
+        noPath.encode(to: writer)
+        XCTAssertThrowsError(try UntoldReader().readAsset(from: makeTinyFixture(pluginChunks: [(.gaussianAssetTable, writer.data, 1)]).fileData)) { error in
+            guard case .invalidGaussianAssetRecord? = error as? UntoldValidationError else {
+                return XCTFail("unexpected error \(error)")
+            }
+        }
+
+        let tooManyLevels = UntoldGaussianAssetRecordV1(entityId: probe.entity.entityId, payloadPathOffset: probe.texture.uriOffset, lodCount: 5)
+        writer = UntoldBinaryWriter()
+        tooManyLevels.encode(to: writer)
+        XCTAssertThrowsError(try UntoldReader().readAsset(from: makeTinyFixture(pluginChunks: [(.gaussianAssetTable, writer.data, 1)]).fileData)) { error in
+            guard case .invalidGaussianAssetRecord? = error as? UntoldValidationError else {
+                return XCTFail("unexpected error \(error)")
+            }
+        }
+    }
+
     func testColorManagementRoundtripsThroughRuntimeLoader() throws {
         // Reuses the tiny fixture's existing texture (index 0, "albedo.ktx2")
         // as the LUT reference, to exercise the same index -> URL resolution

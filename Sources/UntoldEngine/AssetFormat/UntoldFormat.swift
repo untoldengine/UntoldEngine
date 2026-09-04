@@ -85,6 +85,8 @@ public struct UntoldChunkType: RawRepresentable, Hashable, Sendable, Equatable {
     public static let cameraTable = UntoldChunkType(rawValue: 20)
     public static let colorManagementTable = UntoldChunkType(rawValue: 21)
     public static let colorGradeLUTTable = UntoldChunkType(rawValue: 22)
+    /// 23–24 are reserved for the morph-target channel (in flight on develop).
+    public static let gaussianAssetTable = UntoldChunkType(rawValue: 25)
 
     public static let firstPluginChunkRawValue: UInt32 = 0x8000
 
@@ -658,6 +660,78 @@ public struct UntoldColorGradeLUTRecordV1: Sendable, Equatable {
         self.lutSize = lutSize
         self.domainMin = domainMin
         self.domainMax = domainMax
+    }
+}
+
+public enum UntoldGaussianAssetFlags {
+    /// The entity also carries a mesh that acts as the splat's twin: it is the
+    /// depth-only occluder, shadow caster and collider while the splat is shown.
+    public static let meshTwin: UInt32 = 1 << 0
+    /// The payload is an environment streamed by visibility rather than an object.
+    public static let environment: UInt32 = 1 << 1
+    /// The payload is a world seen through a window from a fixed view cell.
+    public static let windowWorld: UInt32 = 1 << 2
+}
+
+/// Links an entity to a cooked Gaussian splat payload (`.untoldgs`, see
+/// docs/Architecture/untoldgsFormat.md) and carries the scene-side facts the
+/// runtime needs to place, budget and swap it. One record per splat entity.
+/// Registration onto the mesh twin and capture exposure live in the payload
+/// header; this record holds what the scene author tunes.
+public struct UntoldGaussianAssetRecordV1: Sendable, Equatable {
+    public static let maxLODLevels = 4
+    public static let reservedWordCount = 5
+
+    public var entityId: UInt32
+    /// String-table offset of the payload path, relative to this asset's directory.
+    public var payloadPathOffset: UInt32
+    /// See `UntoldGaussianAssetFlags`.
+    public var flags: UInt32
+    /// Valid entries in `lodSplatCounts` / `lodSwitchScreenHeights`, 0...4. Zero means one level.
+    public var lodCount: UInt32
+    /// Splat count per LOD level, coarsest first. Always 4 entries; unused are zero.
+    public var lodSplatCounts: [UInt32]
+    /// Screen height in pixels above which the next finer level is preferred. Always 4 entries.
+    public var lodSwitchScreenHeights: [Float]
+    /// Metres the mesh twin's depth-only occluder shell is shrunk along its normals.
+    public var occluderShrinkMeters: Float
+    /// Editor exposure offset in EV, applied on top of the payload's capture exposure.
+    public var exposureOffsetEV: Float
+    /// Camera distance at which the swap and its prefetch arm. Zero means always.
+    public var swapDistanceMeters: Float
+    /// Always 5 words. Write as zero.
+    public var reserved0: [UInt32]
+
+    public init(
+        entityId: UInt32,
+        payloadPathOffset: UInt32,
+        flags: UInt32 = 0,
+        lodCount: UInt32 = 0,
+        lodSplatCounts: [UInt32] = [],
+        lodSwitchScreenHeights: [Float] = [],
+        occluderShrinkMeters: Float = 0.02,
+        exposureOffsetEV: Float = 0,
+        swapDistanceMeters: Float = 0,
+        reserved0: [UInt32] = []
+    ) {
+        self.entityId = entityId
+        self.payloadPathOffset = payloadPathOffset
+        self.flags = flags
+        self.lodCount = lodCount
+        self.lodSplatCounts = Self.fixed(lodSplatCounts, count: Self.maxLODLevels, fill: 0)
+        self.lodSwitchScreenHeights = Self.fixed(lodSwitchScreenHeights, count: Self.maxLODLevels, fill: 0)
+        self.occluderShrinkMeters = occluderShrinkMeters
+        self.exposureOffsetEV = exposureOffsetEV
+        self.swapDistanceMeters = swapDistanceMeters
+        self.reserved0 = Self.fixed(reserved0, count: Self.reservedWordCount, fill: 0)
+    }
+
+    private static func fixed<T>(_ values: [T], count: Int, fill: T) -> [T] {
+        var result = Array(values.prefix(count))
+        while result.count < count {
+            result.append(fill)
+        }
+        return result
     }
 }
 

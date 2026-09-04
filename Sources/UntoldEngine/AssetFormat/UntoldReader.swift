@@ -129,6 +129,12 @@ public final class UntoldReader: @unchecked Sendable {
             from: data,
             entries: chunks
         )
+        let gaussianAssets = try decodeTableIfPresent(
+            UntoldGaussianAssetRecordV1.self,
+            chunkType: .gaussianAssetTable,
+            from: data,
+            entries: chunks
+        )
         let pluginChunks = try decodePluginChunks(from: data, entries: chunks)
 
         let decoded = UntoldDecodedAsset(
@@ -151,8 +157,10 @@ public final class UntoldReader: @unchecked Sendable {
             animationChannels: animationChannels,
             translationKeyframes: translationKeyframes,
             rotationKeyframes: rotationKeyframes,
+            gaussianAssets: gaussianAssets,
             pluginChunks: pluginChunks
         )
+        try validateGaussianAssets(decoded)
         try validateDecodedAsset(decoded)
         return decoded
     }
@@ -232,6 +240,32 @@ public final class UntoldReader: @unchecked Sendable {
         let computed = Array(SHA256.hash(data: hashInput))
         guard computed == header.contentHash else {
             throw UntoldValidationError.contentHashMismatch
+        }
+    }
+
+    /// Gaussian asset records must reference an entity of this file and a readable
+    /// payload path. Checked before the mesh validation because a splat-only tile
+    /// may carry no vertex or index chunk at all.
+    private func validateGaussianAssets(_ asset: UntoldDecodedAsset) throws {
+        for (index, record) in asset.gaussianAssets.enumerated() {
+            guard asset.entities.contains(where: { $0.entityId == record.entityId }) else {
+                throw UntoldValidationError.invalidGaussianAssetRecord(
+                    index: index,
+                    reason: "entity \(record.entityId) is not in the entity table"
+                )
+            }
+            guard let path = try asset.string(at: record.payloadPathOffset), !path.isEmpty else {
+                throw UntoldValidationError.invalidGaussianAssetRecord(index: index, reason: "missing payload path")
+            }
+            guard record.lodCount <= UInt32(UntoldGaussianAssetRecordV1.maxLODLevels) else {
+                throw UntoldValidationError.invalidGaussianAssetRecord(
+                    index: index,
+                    reason: "lodCount \(record.lodCount) exceeds \(UntoldGaussianAssetRecordV1.maxLODLevels)"
+                )
+            }
+            guard record.occluderShrinkMeters >= 0, record.swapDistanceMeters >= 0 else {
+                throw UntoldValidationError.invalidGaussianAssetRecord(index: index, reason: "negative distance")
+            }
         }
     }
 
@@ -548,6 +582,7 @@ public struct UntoldDecodedAsset: Sendable {
     public let animationChannels: [UntoldAnimationChannelRecordV1]
     public let translationKeyframes: [UntoldTranslationKeyframeRecordV1]
     public let rotationKeyframes: [UntoldRotationKeyframeRecordV1]
+    public let gaussianAssets: [UntoldGaussianAssetRecordV1]
     public let pluginChunks: [UntoldPluginChunk]
 
     public init(
@@ -570,6 +605,7 @@ public struct UntoldDecodedAsset: Sendable {
         animationChannels: [UntoldAnimationChannelRecordV1],
         translationKeyframes: [UntoldTranslationKeyframeRecordV1],
         rotationKeyframes: [UntoldRotationKeyframeRecordV1],
+        gaussianAssets: [UntoldGaussianAssetRecordV1] = [],
         pluginChunks: [UntoldPluginChunk] = []
     ) {
         self.header = header
@@ -591,6 +627,7 @@ public struct UntoldDecodedAsset: Sendable {
         self.animationChannels = animationChannels
         self.translationKeyframes = translationKeyframes
         self.rotationKeyframes = rotationKeyframes
+        self.gaussianAssets = gaussianAssets
         self.pluginChunks = pluginChunks
     }
 
