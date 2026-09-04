@@ -10,6 +10,7 @@
 
 import ArgumentParser
 import Foundation
+import simd
 import UntoldEngine
 
 struct ExportCommand: ParsableCommand {
@@ -26,12 +27,19 @@ struct ExportCommand: ParsableCommand {
         `untoldengine texbake --dir` and `untoldengine texbake --patch-refs`.
 
         Gaussian `.ply` inputs skip Blender and export directly to `.untoldgs`.
+        The --splat-* flags register the capture onto its mesh twin (scale,
+        yaw, translation, the 3DGS axis flip), crop away floaters and the
+        captured floor, drop near-transparent splats, and pick the
+        spherical-harmonics degree and chunk size. Values that start with a
+        minus sign must use the --option=value form.
 
         Example:
           untoldengine export --input model.usdz --output model.untold --convert-orientation --optimize
           untoldengine export --input model.blend --output model.untold --convert-orientation --optimize
           untoldengine export --input splats.ply --output splats.untoldgs
           untoldengine export --input splats.ply --output splats.untoldgs --lod-levels 4
+          untoldengine export --input sofa.ply --output sofa.untoldgs --splat-flip-yz \\
+            --splat-scale 0.5 --splat-translate 0,0.4,0 --splat-crop=-1,0,-1,1,1.2,1 --splat-sh-degree 2
         """
     )
 
@@ -74,6 +82,39 @@ struct ExportCommand: ParsableCommand {
     @Option(name: .customLong("lod-levels"), help: "Gaussian .ply export only: number of progressive .untoldgs tiers to generate. Default 1 writes --output directly; values greater than 1 write <name>_lod0.untoldgs, <name>_lod1.untoldgs, ...")
     var lodLevels: Int = 1
 
+    @Option(name: .customLong("splat-chunk-splats"), help: "Gaussian .ply export only: splats per chunk, a power of two between 2 and 16384 (1024 for objects, 4096 for environments)")
+    var splatChunkSplats: Int = 1024
+
+    @Option(name: .customLong("splat-sh-degree"), help: "Gaussian .ply export only: spherical-harmonics degree to keep, 0...3 (default: the source degree)")
+    var splatSHDegree: Int?
+
+    @Option(name: .customLong("splat-min-opacity"), help: "Gaussian .ply export only: drop splats with a lower opacity")
+    var splatMinOpacity: Float = 0.005
+
+    @Option(name: .customLong("splat-crop"), help: "Gaussian .ply export only: crop box in the output space, minX,minY,minZ,maxX,maxY,maxZ")
+    var splatCrop: String?
+
+    @Option(name: .customLong("splat-crop-margin"), help: "Gaussian .ply export only: grow the crop box on every side, in metres")
+    var splatCropMargin: Float = 0
+
+    @Option(name: .customLong("splat-scale"), help: "Gaussian .ply export only: uniform scale applied to the capture")
+    var splatScale: Float = 1
+
+    @Option(name: .customLong("splat-yaw-degrees"), help: "Gaussian .ply export only: rotation about +Y applied after --splat-flip-yz, in degrees")
+    var splatYawDegrees: Float = 0
+
+    @Option(name: .customLong("splat-translate"), help: "Gaussian .ply export only: translation applied after rotation and scale, x,y,z")
+    var splatTranslate: String?
+
+    @Flag(name: .customLong("splat-flip-yz"), help: "Gaussian .ply export only: convert from the 3DGS training convention (Y down, Z forward) to the engine's (Y up, Z back)")
+    var splatFlipYZ = false
+
+    @Flag(name: .customLong("splat-environment"), help: "Gaussian .ply export only: cook as an environment payload")
+    var splatEnvironment = false
+
+    @Flag(name: .customLong("splat-antialiased"), help: "Gaussian .ply export only: mark the payload as cooked with the anti-aliased (3D smoothing) convention")
+    var splatAntialiased = false
+
     func run() throws {
         let inputURL = resolvePath(input).standardizedFileURL
         let outputURL = resolvePath(output).standardizedFileURL
@@ -89,7 +130,7 @@ struct ExportCommand: ParsableCommand {
             guard lodLevels > 0 else {
                 throw ExportError.invalidLODLevels(lodLevels)
             }
-            try runGaussianSplatExport(inputURL: inputURL, outputURL: outputURL)
+            try runGaussianSplatExport(inputURL: inputURL, outputURL: outputURL, cookOptions: makeSplatCookOptions())
             return
         }
 
@@ -146,13 +187,23 @@ struct ExportCommand: ParsableCommand {
         }
     }
 
-    private func runGaussianSplatExport(inputURL: URL, outputURL: URL) throws {
+    private func runGaussianSplatExport(inputURL: URL, outputURL: URL, cookOptions: UntoldGSCookOptions) throws {
         printInfo("Exporting Gaussian splats \(inputURL.path)")
-        let bakeResult = try bakeGaussianSplatProgressiveTiers(
-            plyURL: inputURL,
-            outputBaseURL: outputURL,
-            levelCount: lodLevels
-        )
+        let bakeResult: GaussianProgressiveBakeResult
+        do {
+            bakeResult = try bakeGaussianSplatProgressiveTiers(
+                plyURL: inputURL,
+                outputBaseURL: outputURL,
+                levelCount: lodLevels,
+                cookOptions: cookOptions
+            )
+        } catch let error as UntoldGSCookError {
+            throw ExportError.splatCookFailed(error.description)
+        }
+        let report = bakeResult.cookReport
+        printInfo("Splats: \(report.keptSplatCount) of \(report.inputSplatCount) kept "
+            + "(opacity \(report.prunedByOpacity), degenerate \(report.prunedByDegenerateGeometry), crop \(report.prunedByCrop)), "
+            + "SH degree \(report.shDegree), \(splatChunkSplats) splats per chunk")
         // meanSquaredSplatExtent is baked into each .untoldgs file and read automatically when
         // the engine loads it — printed here only as a diagnostic (e.g. to compare density
         // across source captures), not something to copy anywhere.
@@ -166,6 +217,59 @@ struct ExportCommand: ParsableCommand {
         // for the streaming path, which requires a real box before any tier is ever read.
         let halfExtent = (bakeResult.boundingBoxMax - bakeResult.boundingBoxMin) * 0.5
         printInfo("boundingBoxHalfExtent: (\(halfExtent.x), \(halfExtent.y), \(halfExtent.z))")
+    }
+
+    // MARK: - Gaussian cooking flags
+
+    /// `--validate` already occupies the `validate` name on this command, so flag checks run
+    /// here and surface as `ExportError.invalidSplatFlag` with their own message.
+    private func makeSplatCookOptions() throws -> UntoldGSCookOptions {
+        guard splatChunkSplats >= 2, splatChunkSplats <= 16384, splatChunkSplats & (splatChunkSplats - 1) == 0 else {
+            throw ExportError.invalidSplatFlag("--splat-chunk-splats must be a power of two between 2 and 16384")
+        }
+        if let splatSHDegree, !(0 ... 3).contains(splatSHDegree) {
+            throw ExportError.invalidSplatFlag("--splat-sh-degree must be between 0 and 3")
+        }
+        guard splatScale > 0 else {
+            throw ExportError.invalidSplatFlag("--splat-scale must be positive")
+        }
+
+        var options = UntoldGSCookOptions()
+        options.log2ChunkSplats = UInt8(splatChunkSplats.trailingZeroBitCount)
+        options.shDegree = splatSHDegree.map { UInt8($0) }
+        options.minimumOpacity = splatMinOpacity
+        options.cropMargin = splatCropMargin
+        options.isEnvironment = splatEnvironment
+        options.antialiased = splatAntialiased
+        if let splatCrop {
+            let values = try parseFloats(splatCrop, count: 6, option: "--splat-crop")
+            options.cropMin = SIMD3<Float>(values[0], values[1], values[2])
+            options.cropMax = SIMD3<Float>(values[3], values[4], values[5])
+        }
+
+        var transform = simd_float4x4(diagonal: [splatScale, splatScale, splatScale, 1])
+        if splatFlipYZ {
+            // 180° about X: (x, y, z) → (x, -y, -z).
+            transform = simd_mul(simd_float4x4(diagonal: [1, -1, -1, 1]), transform)
+        }
+        if splatYawDegrees != 0 {
+            let yaw = simd_quatf(angle: splatYawDegrees * .pi / 180, axis: [0, 1, 0])
+            transform = simd_mul(simd_float4x4(yaw), transform)
+        }
+        if let splatTranslate {
+            let values = try parseFloats(splatTranslate, count: 3, option: "--splat-translate")
+            transform.columns.3 = SIMD4<Float>(values[0], values[1], values[2], 1)
+        }
+        options.transform = transform
+        return options
+    }
+
+    private func parseFloats(_ text: String, count: Int, option: String) throws -> [Float] {
+        let values = text.split(separator: ",").map { Float($0.trimmingCharacters(in: .whitespaces)) }
+        guard values.count == count, !values.contains(nil) else {
+            throw ExportError.invalidSplatFlag("\(option) expects \(count) comma-separated numbers")
+        }
+        return values.compactMap(\.self)
     }
 
     private func optimizeTextures(outputURL: URL) throws {
@@ -218,6 +322,8 @@ enum ExportError: LocalizedError {
     case unsupportedPLYExportOutput(String)
     case invalidLODLevels(Int)
     case colorGradeLUTNotFound(String)
+    case splatCookFailed(String)
+    case invalidSplatFlag(String)
 
     var errorDescription: String? {
         switch self {
@@ -236,6 +342,10 @@ enum ExportError: LocalizedError {
             return "--lod-levels must be a positive integer, got \(value)"
         case let .colorGradeLUTNotFound(path):
             return "--color-grade-lut path does not exist: \(path)"
+        case let .splatCookFailed(reason):
+            return "Gaussian splat cook failed: \(reason)"
+        case let .invalidSplatFlag(reason):
+            return reason
         }
     }
 }

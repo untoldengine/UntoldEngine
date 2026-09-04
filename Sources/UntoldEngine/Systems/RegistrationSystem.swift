@@ -4153,9 +4153,10 @@ private func nearestSelectedBucketDistanceSquared(
 private func gaussianTierWriteOptions(
     asset: GaussianSplatAsset,
     boundingBox: (min: simd_float3, max: simd_float3),
-    meanSquaredSplatExtent: Float
+    meanSquaredSplatExtent: Float,
+    cookOptions: UntoldGSCookOptions
 ) -> UntoldGSWriteOptions {
-    var options = UntoldGSWriteOptions()
+    var options = UntoldGSCooker.writeOptions(for: cookOptions)
     options.shDegree = UInt8(clamping: asset.sphericalHarmonics?.degree ?? 0)
     options.boundingBoxMin = boundingBox.min
     options.boundingBoxMax = boundingBox.max
@@ -4182,6 +4183,8 @@ public struct GaussianProgressiveBakeResult {
     public let tiers: [GaussianLODTier]
     public let boundingBoxMin: simd_float3
     public let boundingBoxMax: simd_float3
+    /// What the cook step (`UntoldGSCooker`) kept and pruned before ranking and tiering.
+    public let cookReport: UntoldGSCookReport
 }
 
 private func meanSquaredSplatExtent(_ splats: [GaussianSplat], keeping indices: [Int]) -> Float {
@@ -4204,16 +4207,21 @@ private func meanSquaredSplatExtent(_ splats: [GaussianSplat], keeping indices: 
 public func bakeGaussianSplatProgressiveTiers(
     plyURL: URL,
     outputBaseURL: URL,
-    lodFractions: [Float]
+    lodFractions: [Float],
+    cookOptions: UntoldGSCookOptions = UntoldGSCookOptions()
 ) throws -> GaussianProgressiveBakeResult {
     guard !lodFractions.isEmpty else {
         throw UntoldGSError.sizeMismatch("lodFractions must contain at least one entry")
     }
 
-    let asset = try PLYReader.readGaussianAsset(from: plyURL)
-    guard !asset.splats.isEmpty else {
+    let sourceAsset = try PLYReader.readGaussianAsset(from: plyURL)
+    guard !sourceAsset.splats.isEmpty else {
         throw UntoldGSError.sizeMismatch("source .ply contains no splats")
     }
+    // Registration transform, opacity floor, crop and SH degree are applied once here so the
+    // ranking, bounding box and every tier below see the cooked splats.
+    let cooked = try UntoldGSCooker.cook(asset: sourceAsset, options: cookOptions)
+    let asset = cooked.asset
     let assetBoundingBox = computeGaussianSplatBoundingBox(asset.splats)
 
     if lodFractions == [1.0] {
@@ -4222,13 +4230,14 @@ public func bakeGaussianSplatProgressiveTiers(
         let tierExtent = meanSquaredSplatExtent(asset.splats, keeping: allIndices)
         try UntoldGSFormat.write(
             splats: makeUntoldGSSplats(asset: asset, keeping: allIndices),
-            options: gaussianTierWriteOptions(asset: asset, boundingBox: assetBoundingBox, meanSquaredSplatExtent: tierExtent),
+            options: gaussianTierWriteOptions(asset: asset, boundingBox: assetBoundingBox, meanSquaredSplatExtent: tierExtent, cookOptions: cookOptions),
             to: resultURL
         )
         return GaussianProgressiveBakeResult(
             tiers: [GaussianLODTier(url: resultURL, meanSquaredSplatExtent: tierExtent)],
             boundingBoxMin: assetBoundingBox.min,
-            boundingBoxMax: assetBoundingBox.max
+            boundingBoxMax: assetBoundingBox.max,
+            cookReport: cooked.report
         )
     }
 
@@ -4249,7 +4258,7 @@ public func bakeGaussianSplatProgressiveTiers(
         let tierExtent = meanSquaredSplatExtent(asset.splats, keeping: keptIndices)
         try UntoldGSFormat.write(
             splats: makeUntoldGSSplats(asset: asset, keeping: keptIndices),
-            options: gaussianTierWriteOptions(asset: asset, boundingBox: assetBoundingBox, meanSquaredSplatExtent: tierExtent),
+            options: gaussianTierWriteOptions(asset: asset, boundingBox: assetBoundingBox, meanSquaredSplatExtent: tierExtent, cookOptions: cookOptions),
             to: tierURL
         )
         tiers.append(GaussianLODTier(url: tierURL, meanSquaredSplatExtent: tierExtent))
@@ -4257,14 +4266,16 @@ public func bakeGaussianSplatProgressiveTiers(
     return GaussianProgressiveBakeResult(
         tiers: tiers,
         boundingBoxMin: assetBoundingBox.min,
-        boundingBoxMax: assetBoundingBox.max
+        boundingBoxMax: assetBoundingBox.max,
+        cookReport: cooked.report
     )
 }
 
 public func bakeGaussianSplatProgressiveTiers(
     plyURL: URL,
     outputBaseURL: URL,
-    levelCount: Int
+    levelCount: Int,
+    cookOptions: UntoldGSCookOptions = UntoldGSCookOptions()
 ) throws -> GaussianProgressiveBakeResult {
     guard levelCount > 0 else {
         throw UntoldGSError.sizeMismatch("levelCount must be at least 1, got \(levelCount)")
@@ -4273,7 +4284,8 @@ public func bakeGaussianSplatProgressiveTiers(
     return try bakeGaussianSplatProgressiveTiers(
         plyURL: plyURL,
         outputBaseURL: outputBaseURL,
-        lodFractions: fractions
+        lodFractions: fractions,
+        cookOptions: cookOptions
     )
 }
 
