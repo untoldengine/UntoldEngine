@@ -3280,7 +3280,11 @@ public func encodeCustomComponent<T: Component & Codable>(
     customComponentDecoderMap[decKey] = { entityId, data in
         guard let decoded = try? JSONDecoder().decode(T.self, from: data) else { return }
         if var existing = scene.assign(to: entityId, component: T.self) {
-            if let merge { merge(&existing, decoded) } else { existing = decoded }
+            if let merge {
+                merge(&existing, decoded)
+            } else {
+                existing = decoded
+            }
         }
         // (Optional) If you still want editor visibility auto-restored:
         // EditorComponentsState.shared.components[entityId, default: [:]][encKey] = <your editor metadata>
@@ -3308,7 +3312,9 @@ public func loadRawMesh(
        !node.primitives.isEmpty
     {
         let meshes = makeMeshes(from: node)
-        if !meshes.isEmpty { return meshes }
+        if !meshes.isEmpty {
+            return meshes
+        }
     }
 
     // ---- Fallback path: fabricate a safe default mesh ----
@@ -3342,220 +3348,7 @@ struct GaussianLoadResult {
     let boundingBox: (min: simd_float3, max: simd_float3)
 }
 
-public enum UntoldGSError: Error, CustomStringConvertible {
-    case badMagic
-    case unsupportedVersion(UInt32)
-    case truncated
-    case sizeMismatch(String)
-
-    public var description: String {
-        switch self {
-        case .badMagic: "Not an Untold Gaussian splat file"
-        case let .unsupportedVersion(version): "Unsupported Untold Gaussian splat version \(version)"
-        case .truncated: "Untold Gaussian splat file is truncated"
-        case let .sizeMismatch(reason): "Untold Gaussian splat size mismatch: \(reason)"
-        }
-    }
-}
-
-public struct UntoldGSAsset {
-    public let encodedSplats: [EncodedGaussianSplat]
-    public let shCoefficients: [UInt8]
-    public let shMetadata: GaussianSHMetadata?
-    /// Mean of this tier's splats' squared major-axis extent, baked in by
-    /// `bakeGaussianSplatProgressiveTiers` — see `estimatedGaussianOverdraw`. 0 for files
-    /// baked before this field existed (indistinguishable from a real 0, but a real 0 can only
-    /// happen for a tier with no splats, which never gets written).
-    public let meanSquaredSplatExtent: Float
-    /// Asset-level local-space bounding box (shared by every tier of the same bake, not
-    /// per-tier — see `bakeGaussianSplatProgressiveTiers`), baked in at version 2. Lets any
-    /// registration path — including streaming, which needs a real box before it can decide
-    /// whether to load anything — read a real box via `UntoldGSFormat.readHeader` without a
-    /// caller-supplied value.
-    public let boundingBoxMin: simd_float3
-    public let boundingBoxMax: simd_float3
-
-    public var splatCount: Int {
-        encodedSplats.count
-    }
-}
-
-public enum UntoldGSFormat {
-    private static let magic: UInt32 = 0x5347_5455 // "UTGS"
-    // v2 appended boundingBoxMin/boundingBoxMax (24 bytes) after the v1 header — every v1 field
-    // offset is unchanged. No dual-version reader: .untoldgs is a regeneratable cache of the
-    // source .ply, not hand-authored data, so a version bump just means "re-bake," the same way
-    // an EncodedGaussianSplat layout change already does.
-    private static let version: UInt32 = 2
-    private static let headerByteCount = 72
-
-    public static func write(
-        encodedSplats: [EncodedGaussianSplat],
-        sphericalHarmonics: PackedGaussianSphericalHarmonics?,
-        meanSquaredSplatExtent: Float = 0,
-        boundingBoxMin: simd_float3,
-        boundingBoxMax: simd_float3,
-        to url: URL
-    ) throws {
-        var data = Data()
-        appendUInt32(magic, to: &data)
-        appendUInt32(version, to: &data)
-        appendUInt64(UInt64(encodedSplats.count), to: &data)
-        appendUInt32(sphericalHarmonics?.metadata.degree ?? 0, to: &data)
-        appendUInt32(sphericalHarmonics?.metadata.coefficientsPerChannel ?? 0, to: &data)
-        appendUInt32(sphericalHarmonics?.metadata.higherOrderCoefficientsPerSplat ?? 0, to: &data)
-        appendFloat(meanSquaredSplatExtent, to: &data)
-        appendUInt64(UInt64(encodedSplats.count * MemoryLayout<EncodedGaussianSplat>.stride), to: &data)
-        appendUInt64(UInt64(sphericalHarmonics?.coefficients.count ?? 0), to: &data)
-        appendFloat(boundingBoxMin.x, to: &data)
-        appendFloat(boundingBoxMin.y, to: &data)
-        appendFloat(boundingBoxMin.z, to: &data)
-        appendFloat(boundingBoxMax.x, to: &data)
-        appendFloat(boundingBoxMax.y, to: &data)
-        appendFloat(boundingBoxMax.z, to: &data)
-
-        encodedSplats.withUnsafeBytes { data.append(contentsOf: $0) }
-        if let sphericalHarmonics {
-            data.append(contentsOf: sphericalHarmonics.coefficients)
-        }
-
-        try FileManager.default.createDirectory(
-            at: url.deletingLastPathComponent(),
-            withIntermediateDirectories: true
-        )
-        try data.write(to: url, options: .atomic)
-    }
-
-    /// Check just enough to identify the version before checking the full v2 header length — an
-    /// old, valid-but-shorter v1 file (48 bytes) must report .unsupportedVersion (a clear
-    /// "re-bake me" signal), not .truncated, which would otherwise fire first purely because
-    /// it's shorter than the current header size. Shared by read() and readHeader() so both
-    /// report the same error for the same malformed input.
-    private static func validateMagicAndVersion(_ data: Data) throws {
-        guard data.count >= 8 else { throw UntoldGSError.truncated }
-        let magicValue = readUInt32(data, at: 0)
-        guard magicValue == magic else { throw UntoldGSError.badMagic }
-        let versionValue = readUInt32(data, at: 4)
-        guard versionValue == version else { throw UntoldGSError.unsupportedVersion(versionValue) }
-    }
-
-    /// Reads only `boundingBoxMin`/`boundingBoxMax` from the fixed-size header via a bounded
-    /// `FileHandle` read — not `Data(contentsOf:)`, which would pull the entire (potentially
-    /// multi-megabyte) splat/SH payload into memory just to look at 24 header bytes. Lets
-    /// registration paths (including streaming, which needs a real box before it can decide
-    /// whether to load anything) get one synchronously without a caller-supplied value.
-    public static func readHeader(from url: URL) throws -> (boundingBoxMin: simd_float3, boundingBoxMax: simd_float3) {
-        guard let fileHandle = FileHandle(forReadingAtPath: url.path) else {
-            throw UntoldGSError.truncated
-        }
-        defer { try? fileHandle.close() }
-
-        let data = try (fileHandle.read(upToCount: headerByteCount)) ?? Data()
-        try validateMagicAndVersion(data)
-        guard data.count >= headerByteCount else { throw UntoldGSError.truncated }
-
-        let boundingBoxMin = simd_float3(readFloat(data, at: 48), readFloat(data, at: 52), readFloat(data, at: 56))
-        let boundingBoxMax = simd_float3(readFloat(data, at: 60), readFloat(data, at: 64), readFloat(data, at: 68))
-        return (boundingBoxMin, boundingBoxMax)
-    }
-
-    public static func read(from url: URL) throws -> UntoldGSAsset {
-        let data = try Data(contentsOf: url)
-        try validateMagicAndVersion(data)
-        guard data.count >= headerByteCount else { throw UntoldGSError.truncated }
-
-        let splatCountRaw = readUInt64(data, at: 8)
-        let shDegree = readUInt32(data, at: 16)
-        let shCoefficientsPerChannel = readUInt32(data, at: 20)
-        let shHigherOrderPerSplat = readUInt32(data, at: 24)
-        let meanSquaredSplatExtent = readFloat(data, at: 28)
-        let encodedByteCountRaw = readUInt64(data, at: 32)
-        let shByteCountRaw = readUInt64(data, at: 40)
-        let boundingBoxMin = simd_float3(readFloat(data, at: 48), readFloat(data, at: 52), readFloat(data, at: 56))
-        let boundingBoxMax = simd_float3(readFloat(data, at: 60), readFloat(data, at: 64), readFloat(data, at: 68))
-
-        // Validate every header-declared count against the actual file size using
-        // overflow-checked UInt64 arithmetic before converting anything to Int — a corrupt or
-        // malicious header can declare values that overflow a plain multiply/add or don't fit
-        // Int, and an unchecked Int(...) conversion would trap the process instead of throwing
-        // a catchable UntoldGSError.
-        let stride = UInt64(MemoryLayout<EncodedGaussianSplat>.stride)
-        let (expectedEncodedBytes, splatByteOverflow) = splatCountRaw.multipliedReportingOverflow(by: stride)
-        guard !splatByteOverflow, encodedByteCountRaw == expectedEncodedBytes else {
-            throw UntoldGSError.sizeMismatch("encoded splat bytes \(encodedByteCountRaw), expected \(expectedEncodedBytes)")
-        }
-
-        let (headerPlusEncoded, headerOverflow) = UInt64(headerByteCount).addingReportingOverflow(encodedByteCountRaw)
-        let (totalExpectedBytes, totalOverflow) = headerPlusEncoded.addingReportingOverflow(shByteCountRaw)
-        guard !headerOverflow, !totalOverflow, UInt64(data.count) == totalExpectedBytes else {
-            throw UntoldGSError.sizeMismatch("file has \(data.count) bytes, expected \(totalExpectedBytes)")
-        }
-
-        // Both counts are now provably <= data.count (a valid Int), so these conversions
-        // cannot trap.
-        guard let encodedByteCount = Int(exactly: encodedByteCountRaw),
-              let shByteCount = Int(exactly: shByteCountRaw)
-        else {
-            throw UntoldGSError.sizeMismatch("header-declared byte counts do not fit in memory")
-        }
-
-        let encodedStart = headerByteCount
-        let encodedEnd = encodedStart + encodedByteCount
-        let encodedSplats = data[encodedStart ..< encodedEnd].withUnsafeBytes { rawBuffer in
-            Array(rawBuffer.bindMemory(to: EncodedGaussianSplat.self))
-        }
-
-        let shStart = encodedEnd
-        let shCoefficients = shByteCount > 0 ? Array(data[shStart ..< shStart + shByteCount]) : []
-        let shMetadata: GaussianSHMetadata? = shByteCount > 0
-            ? GaussianSHMetadata(
-                degree: shDegree,
-                coefficientsPerChannel: shCoefficientsPerChannel,
-                higherOrderCoefficientsPerSplat: shHigherOrderPerSplat,
-                _pad0: 0
-            )
-            : nil
-
-        return UntoldGSAsset(
-            encodedSplats: encodedSplats,
-            shCoefficients: shCoefficients,
-            shMetadata: shMetadata,
-            meanSquaredSplatExtent: meanSquaredSplatExtent,
-            boundingBoxMin: boundingBoxMin,
-            boundingBoxMax: boundingBoxMax
-        )
-    }
-
-    private static func appendUInt32(_ value: UInt32, to data: inout Data) {
-        var littleEndian = value.littleEndian
-        withUnsafeBytes(of: &littleEndian) { data.append(contentsOf: $0) }
-    }
-
-    private static func appendFloat(_ value: Float, to data: inout Data) {
-        appendUInt32(value.bitPattern, to: &data)
-    }
-
-    private static func readFloat(_ data: Data, at offset: Int) -> Float {
-        Float(bitPattern: readUInt32(data, at: offset))
-    }
-
-    private static func appendUInt64(_ value: UInt64, to data: inout Data) {
-        var littleEndian = value.littleEndian
-        withUnsafeBytes(of: &littleEndian) { data.append(contentsOf: $0) }
-    }
-
-    private static func readUInt32(_ data: Data, at offset: Int) -> UInt32 {
-        data.withUnsafeBytes { rawBuffer in
-            UInt32(littleEndian: rawBuffer.loadUnaligned(fromByteOffset: offset, as: UInt32.self))
-        }
-    }
-
-    private static func readUInt64(_ data: Data, at offset: Int) -> UInt64 {
-        data.withUnsafeBytes { rawBuffer in
-            UInt64(littleEndian: rawBuffer.loadUnaligned(fromByteOffset: offset, as: UInt64.self))
-        }
-    }
-}
+// `UntoldGSError`, `UntoldGSAsset` and `UntoldGSFormat` live in AssetFormat/UntoldGS*.swift.
 
 /// Builds GPU buffers from already-encoded Gaussian splat data.
 /// Returns `nil` on any failure, calling `handleError` internally — callers just guard-return.
@@ -4359,22 +4152,19 @@ private func nearestSelectedBucketDistanceSquared(
     return best
 }
 
-private func subsetSphericalHarmonics(
-    _ sh: GaussianSphericalHarmonics,
-    keeping indices: [Int]
-) -> GaussianSphericalHarmonics {
-    let perSplat = sh.coefficientsPerSplat
-    var subset: [Float] = []
-    subset.reserveCapacity(indices.count * perSplat)
-    for index in indices {
-        let base = index * perSplat
-        subset.append(contentsOf: sh.coefficients[base ..< base + perSplat])
-    }
-    return GaussianSphericalHarmonics(
-        degree: sh.degree,
-        coefficientsPerChannel: sh.coefficientsPerChannel,
-        coefficients: subset
-    )
+/// Write options shared by every tier of one bake: the source SH degree, the asset-level
+/// bounding box (so it stays stable across LOD switches) and this tier's overdraw statistic.
+private func gaussianTierWriteOptions(
+    asset: GaussianSplatAsset,
+    boundingBox: (min: simd_float3, max: simd_float3),
+    meanSquaredSplatExtent: Float
+) -> UntoldGSWriteOptions {
+    var options = UntoldGSWriteOptions()
+    options.shDegree = UInt8(clamping: asset.sphericalHarmonics?.degree ?? 0)
+    options.boundingBoxMin = boundingBox.min
+    options.boundingBoxMax = boundingBox.max
+    options.meanSquaredSplatExtent = meanSquaredSplatExtent
+    return options
 }
 
 /// One baked `.untoldgs` tier plus the bake-time statistic needed for overdraw estimation —
@@ -4428,17 +4218,10 @@ public func bakeGaussianSplatProgressiveTiers(
     if lodFractions == [1.0] {
         let resultURL = outputBaseURL
         let allIndices = Array(asset.splats.indices)
-        let encodedSplats = asset.splats.map(encodeGaussianSplatForTBDR)
-        let packedSphericalHarmonics = try asset.sphericalHarmonics.map {
-            try packGaussianSphericalHarmonics($0, splatCount: asset.splats.count)
-        }
         let tierExtent = meanSquaredSplatExtent(asset.splats, keeping: allIndices)
         try UntoldGSFormat.write(
-            encodedSplats: encodedSplats,
-            sphericalHarmonics: packedSphericalHarmonics,
-            meanSquaredSplatExtent: tierExtent,
-            boundingBoxMin: assetBoundingBox.min,
-            boundingBoxMax: assetBoundingBox.max,
+            splats: makeUntoldGSSplats(asset: asset, keeping: allIndices),
+            options: gaussianTierWriteOptions(asset: asset, boundingBox: assetBoundingBox, meanSquaredSplatExtent: tierExtent),
             to: resultURL
         )
         return GaussianProgressiveBakeResult(
@@ -4459,23 +4242,13 @@ public func bakeGaussianSplatProgressiveTiers(
         let clampedFraction = min(max(fraction, 0), 1)
         let keepCount = max(1, Int((Float(asset.splats.count) * clampedFraction).rounded(.up)))
         let keptIndices = Array(rankedIndices.prefix(keepCount))
-        let encodedSplats = keptIndices.map { encodeGaussianSplatForTBDR(asset.splats[$0]) }
-        let packedSphericalHarmonics = try asset.sphericalHarmonics.map { sh in
-            try packGaussianSphericalHarmonics(
-                subsetSphericalHarmonics(sh, keeping: keptIndices),
-                splatCount: keptIndices.count
-            )
-        }
         let tierURL = baseDirectory
             .appendingPathComponent("\(baseName)_lod\(tierIndex)")
             .appendingPathExtension("untoldgs")
         let tierExtent = meanSquaredSplatExtent(asset.splats, keeping: keptIndices)
         try UntoldGSFormat.write(
-            encodedSplats: encodedSplats,
-            sphericalHarmonics: packedSphericalHarmonics,
-            meanSquaredSplatExtent: tierExtent,
-            boundingBoxMin: assetBoundingBox.min,
-            boundingBoxMax: assetBoundingBox.max,
+            splats: makeUntoldGSSplats(asset: asset, keeping: keptIndices),
+            options: gaussianTierWriteOptions(asset: asset, boundingBox: assetBoundingBox, meanSquaredSplatExtent: tierExtent),
             to: tierURL
         )
         tiers.append(GaussianLODTier(url: tierURL, meanSquaredSplatExtent: tierExtent))
@@ -4977,7 +4750,9 @@ public func addLODLevels(
             maxDistance: level.maxDistance,
             screenPercentage: level.screenPercentage
         ) { success in
-            if !success { allSuccess = false }
+            if !success {
+                allSuccess = false
+            }
             group.leave()
         }
     }

@@ -113,6 +113,7 @@ nav:
     - XR Rendering System: Architecture/xrRenderingSystem.md
     - Animation Pose Layer: Architecture/animationPoseLayer.md
     - Asset Format: Architecture/assetFormat.md
+    - Gaussian Splat Format (.untoldgs): Architecture/untoldgsFormat.md
     - Scene Channels: Architecture/sceneChannels.md
     - Tile-Based Streaming: Architecture/tilebasedstreaming.md
     - Out-of-Core Geometry: Architecture/outOfCore.md

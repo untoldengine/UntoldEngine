@@ -628,30 +628,23 @@ final class GaussianProgressiveLODTest: BaseRenderSetup {
     // MARK: - UntoldGSFormat corrupt-header handling
 
     func testReadThrowsInsteadOfTrappingOnOverflowingHeaderCounts() throws {
-        // Hand-crafted 72-byte v2 header (magic "UTGS", version 2) declaring a splatCount of
-        // UInt64.max, which overflows when multiplied by EncodedGaussianSplat's stride to
-        // compute the expected encoded-splat byte count. Before the overflow-checked rewrite,
-        // the unchecked `Int(UInt64)`/`*` in UntoldGSFormat.read would trap the process on a
-        // file like this instead of throwing a catchable error. Must be a well-formed v2 header
-        // (real version, real byte count) so this test actually exercises the overflow guard in
-        // .sizeMismatch, not just the unrelated .unsupportedVersion check.
-        var bytes: [UInt8] = []
-        bytes += [0x55, 0x54, 0x47, 0x53] // magic "UTGS", little-endian
-        bytes += [2, 0, 0, 0] // version = 2
-        bytes += [UInt8](repeating: 0xFF, count: 8) // splatCount = UInt64.max
-        bytes += [0, 0, 0, 0] // shDegree
-        bytes += [0, 0, 0, 0] // shCoefficientsPerChannel
-        bytes += [0, 0, 0, 0] // shHigherOrderCoefficientsPerSplat
-        bytes += [0, 0, 0, 0] // meanSquaredSplatExtent (0.0 as Float bit pattern)
-        bytes += [UInt8](repeating: 0, count: 8) // encodedByteCount
-        bytes += [UInt8](repeating: 0, count: 8) // shByteCount
-        bytes += [UInt8](repeating: 0, count: 24) // boundingBoxMin/boundingBoxMax (6 floats)
-        XCTAssertEqual(bytes.count, 72)
+        // A well-formed v3 header (magic "UTGS", version 3) declaring chunk and node counts of
+        // UInt32.max, which overflow when multiplied by the entry sizes. The reader must report a
+        // catchable .sizeMismatch rather than trapping on unchecked arithmetic.
+        var header = UntoldGSHeaderV3(
+            splatCount: 1, chunkCount: UInt32.max, nodeCount: UInt32.max,
+            boundsMin: .zero, boundsMax: .zero, boundingBoxMin: .zero, boundingBoxMax: .zero,
+            chunkIndexOffset: 16384, nodeTreeOffset: 32768, payloadOffset: 49152, fileSize: 65536
+        )
+        header.lodLevels = 1
+        let writer = UntoldBinaryWriter()
+        header.encode(to: writer)
+        XCTAssertEqual(writer.count, UntoldGSFormat.headerSize)
 
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("UntoldGSFormat-overflow-\(UUID().uuidString)")
             .appendingPathExtension("untoldgs")
-        try Data(bytes).write(to: url)
+        try (writer.data + Data(count: 65536 - writer.count)).write(to: url)
         defer { try? FileManager.default.removeItem(at: url) }
 
         XCTAssertThrowsError(try UntoldGSFormat.read(from: url)) { error in
@@ -695,6 +688,31 @@ final class GaussianProgressiveLODTest: BaseRenderSetup {
         }
     }
 
+    func testReadRejectsV2HeaderAsUnsupportedVersion() throws {
+        // A pre-chunked v2 file (72-byte header, flat encoded-splat payload) must fail with
+        // .unsupportedVersion — the fix is re-running `untoldengine export`.
+        var bytes: [UInt8] = []
+        bytes += [0x55, 0x54, 0x47, 0x53] // magic "UTGS", little-endian
+        bytes += [2, 0, 0, 0] // version = 2
+        bytes += [UInt8](repeating: 0, count: 64)
+        XCTAssertEqual(bytes.count, 72)
+
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("UntoldGSFormat-v2-\(UUID().uuidString)")
+            .appendingPathExtension("untoldgs")
+        try Data(bytes).write(to: url)
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        XCTAssertThrowsError(try UntoldGSFormat.read(from: url)) { error in
+            guard case let UntoldGSError.unsupportedVersion(version) = error else {
+                XCTFail("Expected .unsupportedVersion, got \(error)")
+                return
+            }
+            XCTAssertEqual(version, 2)
+        }
+        XCTAssertThrowsError(try UntoldGSFormat.readHeader(from: url))
+    }
+
     func testWriteBakesBoundingBoxIntoHeaderAtExpectedOffsets() throws {
         let output = FileManager.default.temporaryDirectory
             .appendingPathComponent("UntoldGSFormat-boxheader-\(UUID().uuidString)")
@@ -710,14 +728,14 @@ final class GaussianProgressiveLODTest: BaseRenderSetup {
         // contract (version + fixed offsets), not just whatever read() happens to decode.
         let data = try Data(contentsOf: tierURL)
         let versionBits = data[4 ..< 8].withUnsafeBytes { $0.loadUnaligned(fromByteOffset: 0, as: UInt32.self) }
-        XCTAssertEqual(UInt32(littleEndian: versionBits), 2)
+        XCTAssertEqual(UInt32(littleEndian: versionBits), 3)
 
         func readFloat(at offset: Int) -> Float {
             let bits = data[offset ..< offset + 4].withUnsafeBytes { $0.loadUnaligned(fromByteOffset: 0, as: UInt32.self) }
             return Float(bitPattern: UInt32(littleEndian: bits))
         }
-        let boundingBoxMin = simd_float3(readFloat(at: 48), readFloat(at: 52), readFloat(at: 56))
-        let boundingBoxMax = simd_float3(readFloat(at: 60), readFloat(at: 64), readFloat(at: 68))
+        let boundingBoxMin = simd_float3(readFloat(at: 56), readFloat(at: 60), readFloat(at: 64))
+        let boundingBoxMax = simd_float3(readFloat(at: 68), readFloat(at: 72), readFloat(at: 76))
         XCTAssertEqual(boundingBoxMin, bakeResult.boundingBoxMin)
         XCTAssertEqual(boundingBoxMax, bakeResult.boundingBoxMax)
 
