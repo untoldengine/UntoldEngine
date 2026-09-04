@@ -390,7 +390,7 @@ public func createDirLight(entityId: EntityID) {
     }
 
     lightComponent.lightType = .directional
-    lightComponent.intensity = 5.0
+    lightComponent.intensity = 1.0
     if LightingSystem.shared.activeDirectionalLight == nil {
         LightingSystem.shared.activeDirectionalLight = entityId
     }
