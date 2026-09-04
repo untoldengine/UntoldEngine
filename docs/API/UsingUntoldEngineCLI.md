@@ -160,11 +160,14 @@ spherical-harmonics degree and chunk size.
 
 ```bash
 untoldengine export --input sofa.ply --output Gaussians/sofa.untoldgs \
-  --splat-flip-yz --splat-scale 0.5 --splat-yaw-degrees 90 --splat-translate 0,0.4,0 \
+  --splat-up-axis z --splat-scale 0.5 --splat-yaw-degrees 90 --splat-translate 0,0.4,0 \
   --splat-crop=-1,0,-1,1,1.2,1 --splat-crop-margin 0.05 --splat-sh-degree 2
 ```
 
-The transform is baked into every splat and recorded in the file header.
+`--splat-up-axis` names the capture's up axis (`y` is the engine convention and the default,
+`z` for scanner and CAD exports, `-y` for the 3DGS training convention); the rotation to
+Y-up is applied before scale, yaw and translation, and the whole transform is baked into
+every splat and recorded in the file header.
 `--splat-min-opacity` (default 0.005) drops near-transparent splats; `--splat-chunk-splats`
 sets the chunk size (1024 for objects, 4096 with `--splat-environment` for rooms and
 larger). Values that start with a minus sign must use the `--option=value` form. The

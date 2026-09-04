@@ -27,8 +27,8 @@ struct ExportCommand: ParsableCommand {
         `untoldengine texbake --dir` and `untoldengine texbake --patch-refs`.
 
         Gaussian `.ply` inputs skip Blender and export directly to `.untoldgs`.
-        The --splat-* flags register the capture onto its mesh twin (scale,
-        yaw, translation, the 3DGS axis flip), crop away floaters and the
+        The --splat-* flags register the capture onto its mesh twin (up axis,
+        scale, yaw, translation), crop away floaters and the
         captured floor, drop near-transparent splats, and pick the
         spherical-harmonics degree and chunk size. Values that start with a
         minus sign must use the --option=value form.
@@ -38,7 +38,7 @@ struct ExportCommand: ParsableCommand {
           untoldengine export --input model.blend --output model.untold --convert-orientation --optimize
           untoldengine export --input splats.ply --output splats.untoldgs
           untoldengine export --input splats.ply --output splats.untoldgs --lod-levels 4
-          untoldengine export --input sofa.ply --output sofa.untoldgs --splat-flip-yz \\
+          untoldengine export --input sofa.ply --output sofa.untoldgs --splat-up-axis z \\
             --splat-scale 0.5 --splat-translate 0,0.4,0 --splat-crop=-1,0,-1,1,1.2,1 --splat-sh-degree 2
         """
     )
@@ -106,7 +106,10 @@ struct ExportCommand: ParsableCommand {
     @Option(name: .customLong("splat-translate"), help: "Gaussian .ply export only: translation applied after rotation and scale, x,y,z")
     var splatTranslate: String?
 
-    @Flag(name: .customLong("splat-flip-yz"), help: "Gaussian .ply export only: convert from the 3DGS training convention (Y down, Z forward) to the engine's (Y up, Z back)")
+    @Option(name: .customLong("splat-up-axis"), help: "Gaussian .ply export only: which axis points up in the capture: y (engine convention, default), z (scanner/CAD, rotated to Y-up), or -y (3DGS training convention)")
+    var splatUpAxis: String = "y"
+
+    @Flag(name: .customLong("splat-flip-yz"), help: "Gaussian .ply export only: same as --splat-up-axis=-y")
     var splatFlipYZ = false
 
     @Flag(name: .customLong("splat-environment"), help: "Gaussian .ply export only: cook as an environment payload")
@@ -247,20 +250,20 @@ struct ExportCommand: ParsableCommand {
             options.cropMax = SIMD3<Float>(values[3], values[4], values[5])
         }
 
-        var transform = simd_float4x4(diagonal: [splatScale, splatScale, splatScale, 1])
-        if splatFlipYZ {
-            // 180° about X: (x, y, z) → (x, -y, -z).
-            transform = simd_mul(simd_float4x4(diagonal: [1, -1, -1, 1]), transform)
+        guard let upAxis = UntoldGSCaptureUpAxis(rawValue: splatUpAxis.lowercased()) else {
+            throw ExportError.invalidSplatUpAxis(splatUpAxis)
         }
-        if splatYawDegrees != 0 {
-            let yaw = simd_quatf(angle: splatYawDegrees * .pi / 180, axis: [0, 1, 0])
-            transform = simd_mul(simd_float4x4(yaw), transform)
-        }
+        var translation = SIMD3<Float>.zero
         if let splatTranslate {
             let values = try parseFloats(splatTranslate, count: 3, option: "--splat-translate")
-            transform.columns.3 = SIMD4<Float>(values[0], values[1], values[2], 1)
+            translation = SIMD3<Float>(values[0], values[1], values[2])
         }
-        options.transform = transform
+        options.transform = UntoldGSCookOptions.transform(
+            upAxis: splatFlipYZ ? .negativeY : upAxis,
+            scale: splatScale,
+            yawDegrees: splatYawDegrees,
+            translation: translation
+        )
         return options
     }
 
@@ -323,6 +326,7 @@ enum ExportError: LocalizedError {
     case invalidLODLevels(Int)
     case colorGradeLUTNotFound(String)
     case splatCookFailed(String)
+    case invalidSplatUpAxis(String)
     case invalidSplatFlag(String)
 
     var errorDescription: String? {
@@ -344,6 +348,8 @@ enum ExportError: LocalizedError {
             return "--color-grade-lut path does not exist: \(path)"
         case let .splatCookFailed(reason):
             return "Gaussian splat cook failed: \(reason)"
+        case let .invalidSplatUpAxis(value):
+            return "--splat-up-axis must be y, z or -y, got \(value)"
         case let .invalidSplatFlag(reason):
             return reason
         }
