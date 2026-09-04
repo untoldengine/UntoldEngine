@@ -39,6 +39,14 @@ Parameters:
 
 > Note: The Gaussian System renders point cloud data stored in the .ply format. Ensure your Gaussian Splat file is properly formatted and contains the necessary attributes (position, color, opacity, scale, rotation).
 
+A baked `.untoldgs` file (see [Exporting Assets](UsingUntoldEngineCLI.md#gaussian-splat-captures))
+loads the same way and is the faster path: its chunks are read by byte range and decoded on the
+GPU, so nothing is parsed on the CPU.
+
+```swift
+setEntityGaussian(entityId: myEntity, filename: "splat", withExtension: "untoldgs")
+```
+
 Both forms load synchronously and keep the splat resident for the entity's lifetime, and both
 compute the entity's `LocalTransformComponent.boundingBox` automatically from the loaded splat
 positions — no bounding box parameter is needed for this path.

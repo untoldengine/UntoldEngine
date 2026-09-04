@@ -168,6 +168,105 @@ kernel void gaussianSphericalHarmonicsDiagnostic(
     result[1] = float4(gaussianSRGBToLinear(evaluated), 1.0f);
 }
 
+// MARK: - .untoldgs v3 chunk decode
+
+// Mirrors UntoldGSPacking (Swift): 11/10/11 unsigned normalised triplet.
+inline float3 gaussianUnpack11_10_11(uint packed)
+{
+    return float3(float((packed >> 21u) & 0x7FFu) / 2047.0f,
+                  float((packed >> 11u) & 0x3FFu) / 1023.0f,
+                  float(packed & 0x7FFu) / 2047.0f);
+}
+
+// Smallest-three quaternion: top two bits index the dropped (largest, positive) component,
+// three 10-bit fields hold the others in component order, mapped from [-1/sqrt2, 1/sqrt2].
+// Returns (x, y, z, w).
+inline float4 gaussianUnpackRotation(uint packed)
+{
+    const float sqrt2 = 1.41421356f;
+    uint largest = packed >> 30u;
+    float v[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+    uint slot = 0u;
+    float sumSquares = 0.0f;
+    for (uint i = 0u; i < 4u; ++i) {
+        if (i == largest) {
+            continue;
+        }
+        float t = float((packed >> (20u - slot * 10u)) & 0x3FFu) / 1023.0f;
+        float value = (t - 0.5f) * sqrt2;
+        v[i] = value;
+        sumSquares += value * value;
+        ++slot;
+    }
+    v[largest] = sqrt(max(0.0f, 1.0f - sumSquares));
+    return float4(v[0], v[1], v[2], v[3]);
+}
+
+// Column-major rotation matrix of a unit quaternion (x, y, z, w); matches
+// simd_float3x3(simd_quatf) so the GPU decode agrees with UntoldGSSplat.encodedForTBDR.
+inline float3x3 gaussianRotationMatrix(float4 q)
+{
+    float x = q.x, y = q.y, z = q.z, w = q.w;
+    return float3x3(
+        float3(1.0f - 2.0f * (y * y + z * z), 2.0f * (x * y + z * w),        2.0f * (x * z - y * w)),
+        float3(2.0f * (x * y - z * w),        1.0f - 2.0f * (x * x + z * z), 2.0f * (y * z + x * w)),
+        float3(2.0f * (x * z + y * w),        2.0f * (y * z - x * w),        1.0f - 2.0f * (x * x + y * y))
+    );
+}
+
+// Decodes the 16-byte core records of .untoldgs v3 chunks into EncodedGaussianSplat, one
+// threadgroup per chunk. Runs once at load (see GaussianChunkLoader.swift); the chunk's
+// per-splat SH bytes need no decode because the file stores them in the renderer's byte
+// contract already.
+kernel void gaussianDecodeChunks(
+    const device uint4                        *packed     [[buffer(gaussianDecodePackedIndex)]],
+    const device GaussianChunkDecodeConstants *chunks     [[buffer(gaussianDecodeChunksIndex)]],
+    constant uint                             &chunkCount [[buffer(gaussianDecodeChunkCountIndex)]],
+    device EncodedGaussianSplat               *output     [[buffer(gaussianDecodeOutputIndex)]],
+    uint chunkIndex                                       [[threadgroup_position_in_grid]],
+    uint localIndex                                       [[thread_position_in_threadgroup]],
+    uint threadsPerGroup                                  [[threads_per_threadgroup]])
+{
+    if (chunkIndex >= chunkCount) {
+        return;
+    }
+    const GaussianChunkDecodeConstants chunk = chunks[chunkIndex];
+    const float3 aabbMin = float3(chunk.aabbMinX, chunk.aabbMinY, chunk.aabbMinZ);
+    const float3 aabbMax = float3(chunk.aabbMaxX, chunk.aabbMaxY, chunk.aabbMaxZ);
+    const float logScaleRange = chunk.logScaleMax - chunk.logScaleMin;
+
+    for (uint i = localIndex; i < chunk.splatCount; i += threadsPerGroup) {
+        const uint splatIndex = chunk.firstSplat + i;
+        const uint4 record = packed[splatIndex];
+
+        float3 position = mix(aabbMin, aabbMax, gaussianUnpack11_10_11(record.x));
+        float4 quaternion = gaussianUnpackRotation(record.y);
+        float3 scale = exp(chunk.logScaleMin + gaussianUnpack11_10_11(record.z) * logScaleRange);
+        if (logScaleRange <= 0.0f) {
+            scale = float3(exp(chunk.logScaleMin));
+        }
+
+        float3x3 rotation = gaussianRotationMatrix(quaternion);
+        float3x3 transform = float3x3(rotation[0] * scale.x, rotation[1] * scale.y, rotation[2] * scale.z);
+        float3x3 covariance = transform * transpose(transform);
+
+        uint rgba = record.w;
+        float4 colorAndOpacity = float4(
+            float((rgba >> 24u) & 0xFFu) / 255.0f,
+            float((rgba >> 16u) & 0xFFu) / 255.0f,
+            float((rgba >> 8u) & 0xFFu) / 255.0f,
+            float(rgba & 0xFFu) / 255.0f
+        );
+
+        EncodedGaussianSplat out;
+        out.position = position;
+        out.covA = half3(half(covariance[0][0]), half(covariance[1][0]), half(covariance[2][0]));
+        out.covB = half3(half(covariance[1][1]), half(covariance[2][1]), half(covariance[2][2]));
+        out.colorAndOpacity = half4(colorAndOpacity);
+        output[splatIndex] = out;
+    }
+}
+
 // Project 3D covariance into 2D screen-pixel space
 float3 computeCov2D(float4      splatCenter,
                     float3x3    cov3D,

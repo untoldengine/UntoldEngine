@@ -638,6 +638,27 @@ typedef enum{
       gaussianTBDRDrawOpaqueDepthTextureIndex = 0,
   }GaussianTBDRDrawTextureIndices;
 
+// Per-chunk constants for decoding a .untoldgs v3 chunk on the GPU — see gaussianDecodeChunks
+// in Gaussians.metal and UntoldGSChunkEntry (Swift). Plain floats rather than simd_float3 so
+// the C, Swift and Metal layouts agree byte for byte (48 bytes, no alignment padding).
+typedef struct{
+    float aabbMinX, aabbMinY, aabbMinZ;
+    float logScaleMin;
+    float aabbMaxX, aabbMaxY, aabbMaxZ;
+    float logScaleMax;
+    uint  firstSplat;   // index of this chunk's first record in the packed input and the output
+    uint  splatCount;
+    uint  _pad0;
+    uint  _pad1;
+}GaussianChunkDecodeConstants;
+
+typedef enum{
+    gaussianDecodePackedIndex = 0,   // uint4 per splat: packed position, rotation, scale, rgba
+    gaussianDecodeChunksIndex,       // GaussianChunkDecodeConstants[]
+    gaussianDecodeChunkCountIndex,   // uint
+    gaussianDecodeOutputIndex,       // EncodedGaussianSplat[]
+}GaussianDecodeBufferIndices;
+
 typedef enum{
       outputTransformPassEncodingModeIndex
   }OutputTransformBufferIndices;
