@@ -47,10 +47,46 @@ struct RootMotionState {
     var previousTranslationTime: Float = 0
     var previousRotationTime: Float = 0
 
+    /// World-space velocity the driver applied last frame — the outgoing
+    /// velocity when an inertialized transition begins.
+    var lastWorldVelocity = simd_float3.zero
+    var lastYawRate: Float = 0
+
+    /// Velocity crossfade across a clip transition: while `blendWeight` is
+    /// nonzero the applied travel blends from the frozen outgoing velocity
+    /// to the incoming clip's extraction, decaying with the transition's
+    /// halflife — the entity accelerates in step with the pose blend
+    /// instead of snapping to the new clip's speed (feet skate otherwise).
+    var blendWeight: Float = 0
+    var blendHalflife: Float = 0
+    var frozenVelocity = simd_float3.zero
+    var frozenYawRate: Float = 0
+
     /// Forget the sample history (clip switches, enable toggles); the next
     /// frame re-baselines with a zero delta.
     mutating func resetHistory() {
         hasPreviousSample = false
+    }
+
+    /// Starts the velocity crossfade for a clip switch: freezes the
+    /// currently applied velocity and decays toward the incoming clip's.
+    /// A zero halflife is a hard cut, matching the pose transition.
+    mutating func beginVelocityBlend(halflife: Float) {
+        guard halflife > 0 else {
+            blendWeight = 0
+            return
+        }
+        // A negligible outgoing velocity needs no crossfade — arming one
+        // would only sustain residual drift when searches re-jump between
+        // near-idle frames.
+        guard simd_length(lastWorldVelocity) > 0.05 || abs(lastYawRate) > 0.1 else {
+            blendWeight = 0
+            return
+        }
+        blendWeight = 1
+        blendHalflife = halflife
+        frozenVelocity = lastWorldVelocity
+        frozenYawRate = lastYawRate
     }
 }
 
@@ -131,7 +167,8 @@ func applyRootMotion(
     skeleton: Skeleton,
     compiledClip: CompiledAnimationClip,
     clipDuration: Float,
-    clipSpeed: Float
+    clipSpeed: Float,
+    deltaTime: Float
 ) {
     guard animationComponent.rootMotion.isEnabled else { return }
     guard let rootIndex = resolveRootMotionJointIndex(
@@ -158,35 +195,58 @@ func applyRootMotion(
         ? entityId
         : animationComponent.rootMotion.anchorEntity
 
+    // Extracted travel this frame; zero on the re-baseline frame right
+    // after a clip switch (the crossfade below still carries the frozen
+    // outgoing velocity through that frame).
+    var horizontal = simd_float3.zero
+    var yawDelta: Float = 0
     if animationComponent.rootMotion.hasPreviousSample {
         var delta = translation - animationComponent.rootMotion.previousTranslation
         if translationTime < animationComponent.rootMotion.previousTranslationTime {
             delta += compiledClip.rootTranslationPerLoop
         }
-
-        var yawDelta = yaw - animationComponent.rootMotion.previousYaw
+        yawDelta = yaw - animationComponent.rootMotion.previousYaw
         if rotationTime < animationComponent.rootMotion.previousRotationTime {
             yawDelta += compiledClip.rootYawPerLoop
         }
         yawDelta = wrapAngle(yawDelta)
+        horizontal = simd_float3(delta.x, 0, delta.z)
+    }
 
-        let horizontal = simd_float3(delta.x, 0, delta.z)
-        if scene.get(component: LocalTransformComponent.self, for: motionEntity) != nil {
-            // LocalTransformComponent's default rotation is the zero
-            // quaternion (simd_quatf()), which rotates every vector to zero
-            // — treat it as identity so deltas survive on never-rotated
-            // entities.
-            var entityRotation = getRotationQuaternion(entityId: motionEntity)
-            if simd_length_squared(entityRotation.vector) < 1e-8 {
-                entityRotation = simd_quatf(ix: 0, iy: 0, iz: 0, r: 1)
-            }
-            if simd_length_squared(horizontal) > 0 {
-                translateBy(entityId: motionEntity, position: entityRotation.act(horizontal))
-            }
-            if yawDelta != 0 {
-                let yawRotation = simd_quatf(angle: yawDelta, axis: simd_float3(0, 1, 0))
-                rotateTo(entityId: motionEntity, rotation: simd_normalize(entityRotation * yawRotation))
-            }
+    if scene.get(component: LocalTransformComponent.self, for: motionEntity) != nil {
+        // LocalTransformComponent's default rotation is the zero
+        // quaternion (simd_quatf()), which rotates every vector to zero
+        // — treat it as identity so deltas survive on never-rotated
+        // entities.
+        var entityRotation = getRotationQuaternion(entityId: motionEntity)
+        if simd_length_squared(entityRotation.vector) < 1e-8 {
+            entityRotation = simd_quatf(ix: 0, iy: 0, iz: 0, r: 1)
+        }
+
+        // Velocity crossfade: blend the frozen outgoing velocity with the
+        // incoming clip's extraction while the pose transition decays, so
+        // the entity accelerates in step with the pose instead of snapping
+        // to the new clip's travel (which skates the feet).
+        let w = animationComponent.rootMotion.blendWeight
+        var applied = entityRotation.act(horizontal)
+        var appliedYaw = yawDelta
+        if w > 0, deltaTime > 0 {
+            applied = applied * (1 - w) + animationComponent.rootMotion.frozenVelocity * (deltaTime * w)
+            appliedYaw = yawDelta * (1 - w) + animationComponent.rootMotion.frozenYawRate * (deltaTime * w)
+            let decay = exp(-0.693_147_18 * deltaTime / max(animationComponent.rootMotion.blendHalflife, 1e-4))
+            animationComponent.rootMotion.blendWeight = w * decay < 1e-3 ? 0 : w * decay
+        }
+
+        if simd_length_squared(applied) > 0 {
+            translateBy(entityId: motionEntity, position: applied)
+        }
+        if appliedYaw != 0 {
+            let yawRotation = simd_quatf(angle: appliedYaw, axis: simd_float3(0, 1, 0))
+            rotateTo(entityId: motionEntity, rotation: simd_normalize(entityRotation * yawRotation))
+        }
+        if deltaTime > 0, animationComponent.rootMotion.hasPreviousSample || w > 0 {
+            animationComponent.rootMotion.lastWorldVelocity = applied / deltaTime
+            animationComponent.rootMotion.lastYawRate = appliedYaw / deltaTime
         }
     }
 
