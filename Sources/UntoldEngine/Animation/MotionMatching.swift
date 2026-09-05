@@ -43,6 +43,14 @@ public struct MotionMatchingDescriptor {
     /// velocity — lower is more responsive, higher is smoother.
     public var predictionHalflife: Float
 
+    /// Minimum time playback runs before another jump may fire. The search
+    /// still runs every `searchInterval`, but without this floor a frame
+    /// that systematically beats the incumbent (for example the velocity
+    /// peak of a cycle when the goal speed exceeds the clip's mean) wins
+    /// every search and playback treadmills on one spot — a frozen-looking
+    /// pose that never advances through the cycle.
+    public var minPlayTime: Float
+
     public var weights: MotionMatchingWeights
 
     public init(
@@ -53,6 +61,7 @@ public struct MotionMatchingDescriptor {
         searchInterval: Float = 0.1,
         transitionHalflife: Float = 0.1,
         predictionHalflife: Float = 0.25,
+        minPlayTime: Float = 0.3,
         weights: MotionMatchingWeights = MotionMatchingWeights()
     ) {
         self.leftFootPath = leftFootPath
@@ -62,6 +71,7 @@ public struct MotionMatchingDescriptor {
         self.searchInterval = searchInterval
         self.transitionHalflife = transitionHalflife
         self.predictionHalflife = predictionHalflife
+        self.minPlayTime = minPlayTime
         self.weights = weights
     }
 }
@@ -86,6 +96,7 @@ struct MotionMatchingState {
     var simulatedVelocity = simd_float3.zero
 
     var searchClock: Float = 0
+    var timeSinceJump: Float = .greatestFiniteMagnitude
 
     /// Query history for finite-difference features.
     var hasHistory = false
@@ -155,6 +166,7 @@ func updateMotionMatching(
 
     animationComponent.motionMatching.searchClock += deltaTime
     animationComponent.motionMatching.historyElapsed += deltaTime
+    animationComponent.motionMatching.timeSinceJump += deltaTime
     guard animationComponent.motionMatching.searchClock >= descriptor.searchInterval else { return }
     animationComponent.motionMatching.searchClock = 0
 
@@ -206,6 +218,8 @@ func updateMotionMatching(
             return
         }
     }
+
+    guard animationComponent.motionMatching.timeSinceJump >= descriptor.minPlayTime else { return }
 
     motionMatchingJump(
         entityId: entityId,
@@ -370,6 +384,8 @@ func motionMatchingJump(
     )
     animationComponent.currentAnimation = clip
     animationComponent.currentTime = frame.time
+    animationComponent.motionMatching.timeSinceJump = 0
+    animationComponent.rootMotion.beginVelocityBlend(halflife: halflife)
     animationComponent.rootMotion.resetHistory()
 }
 

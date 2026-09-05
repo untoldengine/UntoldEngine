@@ -210,7 +210,8 @@ private func updateAnimationSystem(deltaTime: Float) {
             skeleton: skeletonComponent.skeleton,
             compiledClip: compiledClip,
             clipDuration: animationClip.duration,
-            clipSpeed: animationClip.speed
+            clipSpeed: animationClip.speed,
+            deltaTime: deltaTime
         )
 
         // Transitions decay in real time, independent of playback speed.
@@ -358,8 +359,10 @@ public func changeAnimation(entityId: EntityID, name: String, transitionHalflife
         animationComponent.currentAnimation = animationClip
         animationComponent.currentTime = 0
         animationComponent.pause = withPause
-        // Re-baseline root motion on the new clip; the first frame after a
-        // switch contributes no delta.
+        // Re-baseline root motion on the new clip (the first frame after a
+        // switch contributes no delta) and crossfade the applied velocity
+        // with the same halflife the pose blends with.
+        animationComponent.rootMotion.beginVelocityBlend(halflife: transitionHalflife)
         animationComponent.rootMotion.resetHistory()
     }
 }
