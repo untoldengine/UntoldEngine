@@ -111,9 +111,11 @@ func wrapAngle(_ angle: Float) -> Float {
 }
 
 /// Swing–twist decomposition about the +Y axis: returns the yaw angle and
-/// the twist quaternion, with the remainder (`q * twist⁻¹`) carrying pitch
-/// and roll. The twist is normalized to the shortest arc so yaw is always
-/// in (-π, π].
+/// the twist quaternion. Root yaw is a model-space rotation applied on the
+/// left of the joint's rest (`q = twist * rest * …`), so the remainder that
+/// carries pitch, roll, and the rest orientation is `twist⁻¹ * q` — see
+/// `stripRootMotion`. The twist is normalized to the shortest arc so yaw
+/// is always in (-π, π].
 @inline(__always)
 func yawTwist(_ q: simd_quatf) -> (yaw: Float, twist: simd_quatf) {
     let projected = simd_float4(0, q.imag.y, 0, q.real)
@@ -131,14 +133,22 @@ func yawTwist(_ q: simd_quatf) -> (yaw: Float, twist: simd_quatf) {
 
 /// Grounds the root joint of a local pose: horizontal translation is zeroed
 /// and yaw removed (the entity transform owns both once root motion is on);
-/// vertical translation, pitch, and roll remain.
+/// vertical translation, pitch, roll, and the root's rest orientation
+/// remain.
+///
+/// The yaw is removed on the LEFT. Rigs whose root bone has a rest rotation
+/// (the UE mannequin's root is rotated 90° about X) author turns as a
+/// model-space yaw on top of that rest, `q = R_y(θ) * rest`; removing the
+/// twist on the right would give `R_y(θ) * rest * R_y(-θ)` — the rest
+/// rotation conjugated by the turn, which rolls the whole body onto its
+/// side by θ. Only for an identity rest are the two sides the same.
 @inline(__always)
 func stripRootMotion(from pose: inout PoseBuffer, rootIndex: Int) {
     guard rootIndex >= 0, rootIndex < pose.jointCount else { return }
     pose.translations[rootIndex].x = 0
     pose.translations[rootIndex].z = 0
     let (_, twist) = yawTwist(pose.rotations[rootIndex])
-    pose.rotations[rootIndex] = simd_normalize(pose.rotations[rootIndex] * twist.inverse)
+    pose.rotations[rootIndex] = simd_normalize(twist.inverse * pose.rotations[rootIndex])
 }
 
 // MARK: - Per-frame extraction

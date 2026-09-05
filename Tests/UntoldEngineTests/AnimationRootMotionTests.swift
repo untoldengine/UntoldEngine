@@ -267,10 +267,11 @@ final class AnimationRootMotionTests: XCTestCase {
 
     // MARK: - Pitch and roll preservation
 
-    /// The swing–twist split must remove only yaw. Pure pitch (and pure
-    /// roll) composed with yaw decomposes exactly — the twist is the yaw
-    /// factor — so grounding must return the authored lean untouched; a
-    /// sign error or axis mixup in the twist projection would break this.
+    /// The swing–twist split must remove only yaw. A body-frame lean —
+    /// pure pitch (and pure roll) applied after the model-space yaw,
+    /// `yaw * lean` — decomposes exactly: the twist is the yaw factor, so
+    /// grounding must return the authored lean untouched; a sign error,
+    /// axis mixup, or stripping on the wrong side would break this.
     func testPitchAndRollSurviveGrounding() {
         let yaw = simd_quatf(angle: 0.7, axis: simd_float3(0, 1, 0))
         let leans: [(name: String, swing: simd_quatf)] = [
@@ -282,7 +283,7 @@ final class AnimationRootMotionTests: XCTestCase {
             var pose = PoseBuffer()
             pose.resize(jointCount: 1)
             pose.translations[0] = simd_float3(0.3, 0.9, 1.2)
-            pose.rotations[0] = simd_normalize(swing * yaw)
+            pose.rotations[0] = simd_normalize(yaw * swing)
 
             stripRootMotion(from: &pose, rootIndex: 0)
 
@@ -405,6 +406,72 @@ final class AnimationRootMotionTests: XCTestCase {
         let settledSpeed = (getLocalPosition(entityId: entityId).z - zSettled) / deltaTime
         XCTAssertLessThan(abs(settledSpeed), 0.05,
                           "The crossfade must settle to the incoming clip's travel")
+    }
+
+    // MARK: - Rest-rotated root
+
+    /// Rigs like the UE mannequin carry a rest rotation on the root bone
+    /// (90° about X) and author turns as a model-space yaw on top of it.
+    /// Grounding must remove only that yaw and leave the rest orientation
+    /// intact — removing the twist on the wrong side rolls the body onto
+    /// its side by the turn angle.
+    func testTurnOnRestRotatedRootKeepsBodyUpright() throws {
+        let rest = simd_quatf(angle: .pi / 2, axis: simd_float3(1, 0, 0))
+        let rigged = createEntity()
+        registerComponent(entityId: rigged, componentType: SkeletonComponent.self)
+        registerComponent(entityId: rigged, componentType: AnimationComponent.self)
+        registerComponent(entityId: rigged, componentType: RenderComponent.self)
+        registerComponent(entityId: rigged, componentType: ScenegraphComponent.self)
+        registerComponent(entityId: rigged, componentType: LocalTransformComponent.self)
+        registerComponent(entityId: rigged, componentType: WorldTransformComponent.self)
+        defer { destroyEntity(entityId: rigged) }
+
+        let restMatrix = simd_float4x4(rest)
+        let runtimeSkeleton = RuntimeSkeleton(
+            jointPaths: ["root", "root/hips"],
+            parentIndices: [nil, 0],
+            bindTransforms: [restMatrix, restMatrix * simd_float4x4(translation: simd_float3(0, 1, 0))],
+            restTransforms: [restMatrix, simd_float4x4(translation: simd_float3(0, 1, 0))]
+        )
+        let skeletonComponent = try XCTUnwrap(scene.get(component: SkeletonComponent.self, for: rigged))
+        skeletonComponent.skeleton = Skeleton(runtimeSkeleton: runtimeSkeleton)
+
+        // Turn: model-space yaw applied on the left of the rest, 90° per loop.
+        func key(_ yaw: Float) -> SIMD4<Float> {
+            let q = simd_quatf(angle: yaw, axis: simd_float3(0, 1, 0)) * rest
+            return SIMD4<Float>(q.imag.x, q.imag.y, q.imag.z, q.real)
+        }
+        let rootChannel = RuntimeAnimationChannel(
+            jointPath: "root",
+            translations: [
+                .init(time: 0.0, value: simd_float3(0, 0.9, 0)),
+                .init(time: 2.0, value: simd_float3(0, 0.9, 0)),
+            ],
+            rotations: [
+                .init(time: 0.0, value: key(0)),
+                .init(time: 1.0, value: key(.pi / 4)),
+                .init(time: 2.0, value: key(.pi / 2)),
+            ]
+        )
+        let clip = AnimationClip(runtimeClip: RuntimeAnimationClip(name: "turn", duration: 2.0, channels: [rootChannel]))
+        let component = try XCTUnwrap(scene.get(component: AnimationComponent.self, for: rigged))
+        component.animationClips["turn"] = clip
+
+        setRootMotionEnabled(entityId: rigged, enabled: true)
+        changeAnimation(entityId: rigged, name: "turn", transitionHalflife: 0)
+        for _ in 0 ..< 90 { // 1 s: 45° of turn
+            AnimationSystem.shared.update(deltaTime)
+        }
+
+        // The entity turned...
+        let (entityYaw, _) = yawTwist(getRotationQuaternion(entityId: rigged))
+        XCTAssertEqual(entityYaw, .pi / 4 - (.pi / 4) * deltaTime, accuracy: 0.02, "Entity must accumulate the clip's yaw")
+
+        // ...and the grounded pose root is exactly the rest orientation —
+        // upright, not rolled onto its side.
+        let rootPose = component.localPose.rotations[0]
+        let alignment = abs(simd_dot(rootPose.vector, rest.vector))
+        XCTAssertEqual(alignment, 1.0, accuracy: 1e-3, "Grounded root must keep its rest orientation (body upright)")
     }
 
     // MARK: - Root joint override
