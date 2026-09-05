@@ -79,143 +79,144 @@ final class PostFXTests: BaseRenderSetup {
 
     // MARK: - Reference Image Generation
 
-    /* Uncomment to regenerate reference images */
-    /*
-     func testGeneratePostFXReferenceImages() {
-         XCTAssertNotNil(renderer, "Renderer should be initialized")
-         XCTAssertNotNil(renderer.metalView, "MetalView should be initialized")
+    func testGeneratePostFXReferenceImages() throws {
+        guard ProcessInfo.processInfo.environment["UNTOLD_REGENERATE_REFERENCES"] == "1" else {
+            throw XCTSkip("Reference generation is opt-in. Set UNTOLD_REGENERATE_REFERENCES=1 to run.")
+        }
+        XCTAssertNotNil(renderer, "Renderer should be initialized")
+        XCTAssertNotNil(renderer.metalView, "MetalView should be initialized")
 
-         // --- SSAO ---
-         configureSSAO()
-         SSAO.setEnabled(true)
-         renderer.draw(in: renderer.metalView)
-         let expSSAO = expectation(description: "SSAO ref")
-         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-             if let tex = textureResources.ssaoBlurTexture {
-                 self.testGenerateRenderTarget(targetName: "SSAO", texture: tex)
-             }
-             expSSAO.fulfill()
-         }
-         wait(for: [expSSAO], timeout: TimeInterval(timeoutFactor))
-         SSAO.setEnabled(false)
+        // --- SSAO ---
+        configureSSAO()
+        SSAO.setEnabled(true)
+        renderer.draw(in: renderer.metalView)
+        let expSSAO = expectation(description: "SSAO ref")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            if let tex = textureResources.ssaoBlurTexture {
+                self.testGenerateRenderTarget(targetName: "SSAO", texture: tex)
+            }
+            expSSAO.fulfill()
+        }
+        wait(for: [expSSAO], timeout: TimeInterval(timeoutFactor))
+        SSAO.setEnabled(false)
 
-         // --- Depth of Field ---
-         configureDepthOfField()
-         PostFX.enableDepthOfField(true)
-         renderer.draw(in: renderer.metalView)
-         let expDoF = expectation(description: "DepthOfField ref")
-         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-             if let tex = textureResources.depthOfFieldTexture {
-                 self.testGenerateRenderTarget(targetName: "DepthOfField", texture: tex)
-             }
-             expDoF.fulfill()
-         }
-         wait(for: [expDoF], timeout: TimeInterval(timeoutFactor))
-         PostFX.enableDepthOfField(false)
+        // --- Depth of Field ---
+        configureDepthOfField()
+        PostFX.enableDepthOfField(true)
+        renderer.draw(in: renderer.metalView)
+        let expDoF = expectation(description: "DepthOfField ref")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            if let tex = textureResources.depthOfFieldTexture {
+                self.testGenerateRenderTarget(targetName: "DepthOfField", texture: tex)
+            }
+            expDoF.fulfill()
+        }
+        wait(for: [expDoF], timeout: TimeInterval(timeoutFactor))
+        PostFX.enableDepthOfField(false)
 
-         // --- Chromatic Aberration ---
-         configureChromaticAberration()
-         PostFX.enableChromaticAberration(true)
-         renderer.draw(in: renderer.metalView)
-         let expChroma = expectation(description: "ChromaticAberration ref")
-         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-             if let tex = textureResources.chromaticAberrationTexture {
-                 self.testGenerateRenderTarget(targetName: "ChromaticAberration", texture: tex)
-             }
-             expChroma.fulfill()
-         }
-         wait(for: [expChroma], timeout: TimeInterval(timeoutFactor))
-         PostFX.enableChromaticAberration(false)
+        // --- Chromatic Aberration ---
+        configureChromaticAberration()
+        PostFX.enableChromaticAberration(true)
+        renderer.draw(in: renderer.metalView)
+        let expChroma = expectation(description: "ChromaticAberration ref")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            if let tex = textureResources.chromaticAberrationTexture {
+                self.testGenerateRenderTarget(targetName: "ChromaticAberration", texture: tex)
+            }
+            expChroma.fulfill()
+        }
+        wait(for: [expChroma], timeout: TimeInterval(timeoutFactor))
+        PostFX.enableChromaticAberration(false)
 
-         // --- Bloom ---
-         configureBloom()
-         PostFX.enableBloomThreshold(true)
-         PostFX.enableBloomComposite(true)
-         renderer.draw(in: renderer.metalView)
-         let expBloom = expectation(description: "Bloom ref")
-         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-             if let tex = textureResources.bloomCompositeTexture {
-                 self.testGenerateRenderTarget(targetName: "Bloom", texture: tex)
-             }
-             expBloom.fulfill()
-         }
-         wait(for: [expBloom], timeout: TimeInterval(timeoutFactor))
-         PostFX.enableBloomThreshold(false)
-         PostFX.enableBloomComposite(false)
+        // --- Bloom ---
+        configureBloom()
+        PostFX.enableBloomThreshold(true)
+        PostFX.enableBloomComposite(true)
+        renderer.draw(in: renderer.metalView)
+        let expBloom = expectation(description: "Bloom ref")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            if let tex = textureResources.bloomCompositeTexture {
+                self.testGenerateRenderTarget(targetName: "Bloom", texture: tex)
+            }
+            expBloom.fulfill()
+        }
+        wait(for: [expBloom], timeout: TimeInterval(timeoutFactor))
+        PostFX.enableBloomThreshold(false)
+        PostFX.enableBloomComposite(false)
 
-         // --- Vignette ---
-         configureVignette()
-         PostFX.enableVignette(true)
-         renderer.draw(in: renderer.metalView)
-         let expVignette = expectation(description: "Vignette ref")
-         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-             if let tex = textureResources.vignetteTexture {
-                 self.testGenerateRenderTarget(targetName: "Vignette", texture: tex)
-             }
-             expVignette.fulfill()
-         }
-         wait(for: [expVignette], timeout: TimeInterval(timeoutFactor))
-         PostFX.enableVignette(false)
+        // --- Vignette ---
+        configureVignette()
+        PostFX.enableVignette(true)
+        renderer.draw(in: renderer.metalView)
+        let expVignette = expectation(description: "Vignette ref")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            if let tex = textureResources.vignetteTexture {
+                self.testGenerateRenderTarget(targetName: "Vignette", texture: tex)
+            }
+            expVignette.fulfill()
+        }
+        wait(for: [expVignette], timeout: TimeInterval(timeoutFactor))
+        PostFX.enableVignette(false)
 
-         // --- Color Grading ---
-         configureColorGrading()
-         PostFX.enableColorGrading(true)
-         renderer.draw(in: renderer.metalView)
-         let expColorGrading = expectation(description: "ColorGrading ref")
-         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-             if let tex = textureResources.lookTexture {
-                 self.testGenerateRenderTarget(targetName: "ColorGrading", texture: tex)
-             }
-             expColorGrading.fulfill()
-         }
-         wait(for: [expColorGrading], timeout: TimeInterval(timeoutFactor))
-         PostFX.enableColorGrading(false)
+        // --- Color Grading ---
+        configureColorGrading()
+        PostFX.enableColorGrading(true)
+        renderer.draw(in: renderer.metalView)
+        let expColorGrading = expectation(description: "ColorGrading ref")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            if let tex = textureResources.lookTexture {
+                self.testGenerateRenderTarget(targetName: "ColorGrading", texture: tex)
+            }
+            expColorGrading.fulfill()
+        }
+        wait(for: [expColorGrading], timeout: TimeInterval(timeoutFactor))
+        PostFX.enableColorGrading(false)
 
-         // --- FXAA ---
-         antiAliasingMode = .fxaa
-         renderer.draw(in: renderer.metalView)
-         let expFXAA = expectation(description: "FXAA ref")
-         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-             if let tex = textureResources.antiAliasingTexture {
-                 self.testGenerateRenderTarget(targetName: "FXAA", texture: tex)
-             }
-             expFXAA.fulfill()
-         }
-         wait(for: [expFXAA], timeout: TimeInterval(timeoutFactor))
+        // --- FXAA ---
+        antiAliasingMode = .fxaa
+        renderer.draw(in: renderer.metalView)
+        let expFXAA = expectation(description: "FXAA ref")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            if let tex = textureResources.antiAliasingTexture {
+                self.testGenerateRenderTarget(targetName: "FXAA", texture: tex)
+            }
+            expFXAA.fulfill()
+        }
+        wait(for: [expFXAA], timeout: TimeInterval(timeoutFactor))
 
-         antiAliasingMode = .none
+        antiAliasingMode = .none
 
-         // --- SMAA ---
-         antiAliasingMode = .smaa
-         renderer.draw(in: renderer.metalView)
-         let expSMAA = expectation(description: "SMAA ref")
-         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-             if let tex = textureResources.antiAliasingTexture {
-                 self.testGenerateRenderTarget(targetName: "SMAA", texture: tex)
-             }
-             expSMAA.fulfill()
-         }
-         wait(for: [expSMAA], timeout: TimeInterval(timeoutFactor))
-         antiAliasingMode = .none
+        // --- SMAA ---
+        antiAliasingMode = .smaa
+        renderer.draw(in: renderer.metalView)
+        let expSMAA = expectation(description: "SMAA ref")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            if let tex = textureResources.antiAliasingTexture {
+                self.testGenerateRenderTarget(targetName: "SMAA", texture: tex)
+            }
+            expSMAA.fulfill()
+        }
+        wait(for: [expSMAA], timeout: TimeInterval(timeoutFactor))
+        antiAliasingMode = .none
 
-         // --- MSAA ---
-         // Unlike FXAA/SMAA, MSAA is not a discrete post-process pass — the render graph
-         // routes .msaa straight from lookPass to the output stage (see the antiAliasingMode
-         // switch in RenderingSystem.swift), so lookTexture (not antiAliasingTexture) is what
-         // reflects MSAA's effect.
-         antiAliasingMode = .msaa
-         renderer.draw(in: renderer.metalView)
-         let expMSAA = expectation(description: "MSAA ref")
-         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-             if let tex = textureResources.lookTexture {
-                 self.testGenerateRenderTarget(targetName: "MSAA", texture: tex)
-             }
-             expMSAA.fulfill()
-         }
-         wait(for: [expMSAA], timeout: TimeInterval(timeoutFactor))
-         antiAliasingMode = .none
-     }
-     */
+        // --- MSAA ---
+        // Unlike FXAA/SMAA, MSAA is not a discrete post-process pass — the render graph
+        // routes .msaa straight from lookPass to the output stage (see the antiAliasingMode
+        // switch in RenderingSystem.swift), so lookTexture (not antiAliasingTexture) is what
+        // reflects MSAA's effect.
+        antiAliasingMode = .msaa
+        renderer.draw(in: renderer.metalView)
+        let expMSAA = expectation(description: "MSAA ref")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            if let tex = textureResources.lookTexture {
+                self.testGenerateRenderTarget(targetName: "MSAA", texture: tex)
+            }
+            expMSAA.fulfill()
+        }
+        wait(for: [expMSAA], timeout: TimeInterval(timeoutFactor))
+        antiAliasingMode = .none
+    }
+
     // MARK: - PSNR Tests
 
     func testSSAO() {

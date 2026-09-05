@@ -267,7 +267,7 @@ final class LightSystemTest: BaseRenderSetup {
         // Default sun position/brightness for newly-created directional lights, tuned for the
         // procedural sky background: elevation=90deg, azimuth=0deg, intensity=5.
         XCTAssertEqual(lightParameters.color, .one, "color should be all 1's")
-        XCTAssertEqual(lightParameters.intensity, 5.0, "intensity should default to 5")
+        XCTAssertEqual(lightParameters.intensity, 1.0, "intensity should default to 1")
         XCTAssertEqual(lightParameters.direction.x, 0.0, accuracy: 0.001, "direction.x should match elevation=90/azimuth=0")
         XCTAssertEqual(lightParameters.direction.y, 1.0, accuracy: 0.001, "direction.y should match elevation=90/azimuth=0")
         XCTAssertEqual(lightParameters.direction.z, 0.0, accuracy: 0.001, "direction.z should match elevation=90/azimuth=0")
