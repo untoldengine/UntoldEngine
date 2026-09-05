@@ -370,6 +370,11 @@ public func changeAnimation(entityId: EntityID, name: String, transitionHalflife
 /// pose; vertical motion, pitch, and roll stay in the pose. By default the
 /// skeleton's first parentless joint is the root; pass `rootJointPath` to
 /// designate a different joint.
+///
+/// Modular assets resolve to several animation components; only the first
+/// one drives the anchor's transform, so the deltas apply once no matter
+/// how many skinned parts share the skeleton. Every component still grounds
+/// its own pose.
 public func setRootMotionEnabled(entityId: EntityID, enabled: Bool, rootJointPath: String? = nil) {
     let animationComponents = animationComponentsForEntityOrDescendants(entityId: entityId)
     guard animationComponents.isEmpty == false else {
@@ -377,10 +382,11 @@ public func setRootMotionEnabled(entityId: EntityID, enabled: Bool, rootJointPat
         return
     }
 
-    for (_, animationComponent) in animationComponents {
+    for (index, (_, animationComponent)) in animationComponents.enumerated() {
         animationComponent.rootMotion.isEnabled = enabled
         animationComponent.rootMotion.rootJointPath = rootJointPath
         animationComponent.rootMotion.anchorEntity = entityId
+        animationComponent.rootMotion.drivesAnchor = index == 0
         animationComponent.rootMotion.resolvedRootIndex = nil
         animationComponent.rootMotion.resetHistory()
     }

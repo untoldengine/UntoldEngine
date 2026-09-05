@@ -331,6 +331,59 @@ final class AnimationRootMotionTests: XCTestCase {
         )
     }
 
+    /// Modular assets (one skinned part per mesh, e.g. a UE character
+    /// exported per body part) resolve to SEVERAL animation components that
+    /// all sample the same clips against the same anchor. The extracted
+    /// deltas must move the anchor once — not once per part.
+    func testMultiComponentAssetAppliesRootMotionOnce() throws {
+        let root = createEntity()
+        registerComponent(entityId: root, componentType: LocalTransformComponent.self)
+        registerComponent(entityId: root, componentType: WorldTransformComponent.self)
+        registerComponent(entityId: root, componentType: ScenegraphComponent.self)
+
+        // A second skinned part: same skeleton, same clip, own components.
+        let sibling = createEntity()
+        registerComponent(entityId: sibling, componentType: SkeletonComponent.self)
+        registerComponent(entityId: sibling, componentType: AnimationComponent.self)
+        registerComponent(entityId: sibling, componentType: RenderComponent.self)
+        registerComponent(entityId: sibling, componentType: ScenegraphComponent.self)
+        registerComponent(entityId: sibling, componentType: LocalTransformComponent.self)
+        registerComponent(entityId: sibling, componentType: WorldTransformComponent.self)
+        let runtimeSkeleton = RuntimeSkeleton(
+            jointPaths: ["root", "root/hips"],
+            parentIndices: [nil, 0],
+            bindTransforms: [.identity, simd_float4x4(translation: simd_float3(0, 1, 0))],
+            restTransforms: [.identity, simd_float4x4(translation: simd_float3(0, 1, 0))]
+        )
+        scene.get(component: SkeletonComponent.self, for: sibling)?.skeleton =
+            Skeleton(runtimeSkeleton: runtimeSkeleton)
+        let siblingAnimation = try XCTUnwrap(scene.get(component: AnimationComponent.self, for: sibling))
+        siblingAnimation.animationClips["walk"] = makeWalkClip()
+        defer {
+            destroyEntity(entityId: sibling)
+            destroyEntity(entityId: root)
+        }
+
+        setParent(childId: entityId, parentId: root)
+        setParent(childId: sibling, parentId: root)
+
+        setRootMotionEnabled(entityId: root, enabled: true)
+        changeAnimation(entityId: root, name: "walk", transitionHalflife: 0)
+        run(frames: 90) // 1 s of the 1 m/s walk
+
+        XCTAssertEqual(
+            getLocalPosition(entityId: root).z, 1.0 - deltaTime, accuracy: 1e-3,
+            "Two components sharing an anchor must move it at clip speed, not 2x"
+        )
+        for part in try [XCTUnwrap(entityId), sibling] {
+            let animationComponent = try XCTUnwrap(scene.get(component: AnimationComponent.self, for: part))
+            XCTAssertEqual(
+                animationComponent.localPose.translations[0].z, 0, accuracy: 1e-4,
+                "Every part must still ground its own pose"
+            )
+        }
+    }
+
     // MARK: - Root joint override
 
     func testRootJointPathOverride() {
