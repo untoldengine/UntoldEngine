@@ -75,6 +75,24 @@ Chains whose joint paths don't exist in the skeleton are dropped silently —
 double-check paths against your rig's joint naming when a leg doesn't
 respond. Leg joints are assumed to have unit scale.
 
+## Stance Locking
+
+Even perfect data slides a little: root motion can only match one foot at
+a time, so the trailing foot in double support drifts a few centimeters,
+and any mismatch between commanded and authored speed shows up at ground
+contact. Stance locking absorbs it:
+
+```swift
+setFootIKStanceLocking(entityId: player, enabled: true)
+```
+
+While a foot's animated world velocity is below the enter threshold the
+IK target pins to the world position where the foot planted — the foot is
+world-stationary no matter what the root does. The lock releases when the
+animation swings the foot away (speed above the exit threshold, or pulled
+past the lock distance), and a short decay lets the foot catch up without
+a pop. Thresholds are hysteretic so a foot never flickers between states.
+
 ## Tips and Best Practices
 
 - Feed the query point terrain, not props: with the default ray probe, a
