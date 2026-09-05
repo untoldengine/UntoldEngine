@@ -35,6 +35,13 @@ struct RootMotionState {
     /// games move the asset root.
     var anchorEntity: EntityID = .invalid
 
+    /// Whether this component applies its deltas to the anchor. Modular
+    /// assets carry one AnimationComponent per skinned part, all sampling
+    /// the same clips against the same anchor; exactly one of them drives
+    /// the transform or the anchor moves at N× clip speed. The others still
+    /// extract and ground their poses so every part stays in sync.
+    var drivesAnchor = true
+
     /// Optional joint-path override; by default the skeleton's first
     /// parentless joint drives root motion.
     var rootJointPath: String?
@@ -158,7 +165,7 @@ func applyRootMotion(
         ? entityId
         : animationComponent.rootMotion.anchorEntity
 
-    if animationComponent.rootMotion.hasPreviousSample {
+    if animationComponent.rootMotion.hasPreviousSample, animationComponent.rootMotion.drivesAnchor {
         var delta = translation - animationComponent.rootMotion.previousTranslation
         if translationTime < animationComponent.rootMotion.previousTranslationTime {
             delta += compiledClip.rootTranslationPerLoop
