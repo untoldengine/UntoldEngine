@@ -1,4 +1,25 @@
 # Changelog
+## v0.18.1 - 2026-09-04
+### 🐞 Fixes
+- [Patch] Removed --bake-material options (be2510d…)
+- [Patch] Add standalone setColorGradeLUT(filename:) API, independent of scene loading (799f233…)
+- [Patch] Bundle .cube LUTs into shipped app builds (bdd6df7…)
+- [Patch] Serialize/restore tonemap operator and standalone color-grade LUT (3395528…)
+- [Patch] Removed  --bake-color-management flag (ccae8ad…)
+- [Patch] Fix untoldengine bootstrap installing lz4 where Blender can't see it (3c3b1dc…)
+- [Patch] Fix normal map noise: preserve 16-bit precision and use astcenc's -normal mode (0b3d29a…)
+- [Patch] Enable anisotropic filtering on all texture samplers (82c6b96…)
+- [Patch] Removed color-management from loadSceneAuthored (b09c803…)
+- [Patch] Blend grid pass with sky pass for editor floor (22cb825…)
+- [Patch] Add Blender-consistent Strength (W/m²) units to directional lights (2473b73…)
+- [Patch] Updated dir light intensity (e0496c7…)
+### 📚 Docs
+- [Docs] Added docs to rendering extension (5afb913…)
+- [Docs] Updated API documentation and configuration (66a57cd…)
+### 🚀 Features
+- [Feature] Add externally-authored .cube color-grade LUT support (077c0ec…)
+- [Feature] Implemented AgX Shader (12ed71c…)
+- [Feature] Added a sky rendering (21d4dfa…)
 ## v0.18.0 - 2026-08-30
 ### 🐞 Fixes
 - [Patch] Address review: octree ray query broad phase and real maxDistance cap (e8d0866…)
