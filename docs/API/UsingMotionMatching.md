@@ -83,6 +83,13 @@ That's the whole integration — no `changeAnimation` calls, no states.
 - **Weights are the tuning surface.** Raise `trajectoryPosition`/
   `trajectoryDirection` for responsiveness to the goal; raise the foot
   weights for pose fidelity (less foot sliding at transitions).
+- `minPlayTime` (default 0.3 s) is the floor on how long a chosen frame
+  plays before the next jump may fire. Without it, a frame that
+  systematically beats the incumbent — the velocity peak of a cycle
+  whenever the goal speed exceeds the clip's mean — wins every search
+  and playback treadmills on one spot: a frozen-looking pose drifting
+  across the floor. Raise it for calmer motion, lower it for snappier
+  reactions.
 - `searchInterval` trades responsiveness for cost; 0.1 s is a good
   default. Databases of a few thousand frames need no acceleration
   structure.
