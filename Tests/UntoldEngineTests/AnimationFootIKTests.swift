@@ -82,6 +82,27 @@ final class AnimationFootIKTests: XCTestCase {
         let animationComponent = scene.get(component: AnimationComponent.self, for: entityId)!
         animationComponent.animationClips["stand"] = clip
 
+        // Root drifts +X at 0.5 m/s while the leg stays straight — the
+        // whole chain (ankle included) slides horizontally, the analog of
+        // residual root-motion slide during stance.
+        let driftChannels = jointPaths.enumerated().map { index, path in
+            RuntimeAnimationChannel(
+                jointPath: path,
+                translations: [
+                    .init(time: 0.0, value: localTranslation(of: locals[index])),
+                    .init(time: 1.0, value: localTranslation(of: locals[index])
+                        + (index == 0 ? simd_float3(0.5, 0, 0) : .zero)),
+                ],
+                rotations: [
+                    .init(time: 0.0, value: SIMD4<Float>(0, 0, 0, 1)),
+                    .init(time: 1.0, value: SIMD4<Float>(0, 0, 0, 1)),
+                ]
+            )
+        }
+        animationComponent.animationClips["drift"] = AnimationClip(
+            runtimeClip: RuntimeAnimationClip(name: "drift", duration: 1.0, channels: driftChannels)
+        )
+
         setFootIKChains(entityId: entityId, chains: [
             FootIKChainDescriptor(hipPath: "root/hip", kneePath: "root/hip/knee", anklePath: "root/hip/knee/ankle"),
         ])
@@ -118,6 +139,74 @@ final class AnimationFootIKTests: XCTestCase {
         }
         changeAnimation(entityId: entityId, name: "stand", transitionHalflife: 0)
         AnimationSystem.shared.update(deltaTime)
+    }
+
+    // MARK: - Stance locking
+
+    /// While the animated ankle drifts slower than the exit speed, the lock
+    /// must pin it to where it planted; once the drift exceeds the lock
+    /// distance the foot releases and catches up to the animation.
+    func testStanceLockPinsSlowDriftAndReleases() {
+        setFootIKGroundQuery(entityId: entityId) { _ in FootIKGroundSample(height: 0) }
+        setFootIKEnabled(entityId: entityId, enabled: true)
+        setFootIKStanceLocking(entityId: entityId, enabled: true)
+
+        // Plant: two static frames lock the foot at x = 0.
+        changeAnimation(entityId: entityId, name: "stand", transitionHalflife: 0)
+        AnimationSystem.shared.update(deltaTime)
+        AnimationSystem.shared.update(deltaTime)
+
+        // Drift at 0.5 m/s — below the exit speed, so the lock holds.
+        changeAnimation(entityId: entityId, name: "drift", transitionHalflife: 0)
+        for _ in 0 ..< 15 {
+            AnimationSystem.shared.update(deltaTime)
+        }
+        let heldX = anklePosition().x
+        let animatedX = animationComponent.currentTime * 0.5
+        XCTAssertGreaterThan(animatedX, 0.06, "Sanity: the animation has drifted")
+        XCTAssertLessThan(heldX, 0.03, "Locked ankle must stay near its anchor while the chain drifts")
+
+        // Keep drifting past maxLockDistance (0.2 m at 0.5 m/s = 0.4 s):
+        // the lock releases and the catch-up decay hands the foot back.
+        for _ in 0 ..< 60 {
+            AnimationSystem.shared.update(deltaTime)
+        }
+        let finalAnimatedX = min(animationComponent.currentTime, 1.0) * 0.5
+        XCTAssertEqual(anklePosition().x, finalAnimatedX, accuracy: 0.02,
+                       "After release the foot must catch up to the animation")
+    }
+
+    func testStanceLockIgnoresFastFeet() {
+        setFootIKGroundQuery(entityId: entityId) { _ in FootIKGroundSample(height: 0) }
+        setFootIKEnabled(entityId: entityId, enabled: true)
+        setFootIKStanceLocking(entityId: entityId, enabled: true)
+
+        // Jump straight into the drift clip with NO planted frames — the
+        // very first sampled frame has no history and the foot then moves
+        // at 0.5 m/s... use a faster proxy: scale playback so the ankle
+        // moves at 2 m/s, above the exit speed; the lock must never engage.
+        setAnimationPlaybackSpeed(entityId: entityId, speed: 4.0)
+        changeAnimation(entityId: entityId, name: "drift", transitionHalflife: 0)
+        for _ in 0 ..< 20 {
+            AnimationSystem.shared.update(deltaTime)
+        }
+        // currentTime already advances at the playback speed.
+        let animatedX = min(animationComponent.currentTime, 1.0) * 0.5
+        XCTAssertEqual(anklePosition().x, animatedX, accuracy: 0.02,
+                       "A fast-moving foot must follow the animation, never the lock")
+    }
+
+    func testStanceLockOffPreservesBehavior() {
+        setFootIKGroundQuery(entityId: entityId) { _ in FootIKGroundSample(height: 0) }
+        setFootIKEnabled(entityId: entityId, enabled: true)
+
+        changeAnimation(entityId: entityId, name: "drift", transitionHalflife: 0)
+        for _ in 0 ..< 15 {
+            AnimationSystem.shared.update(deltaTime)
+        }
+        let animatedX = animationComponent.currentTime * 0.5
+        XCTAssertEqual(anklePosition().x, animatedX, accuracy: 1e-4,
+                       "Without stance locking the foot follows the animation exactly")
     }
 
     // MARK: - Two-bone solver

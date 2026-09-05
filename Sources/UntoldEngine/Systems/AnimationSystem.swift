@@ -223,7 +223,8 @@ private func updateAnimationSystem(deltaTime: Float) {
         applyFootIK(
             entityId: entity,
             animationComponent: animationComponent,
-            skeleton: skeletonComponent.skeleton
+            skeleton: skeletonComponent.skeleton,
+            deltaTime: deltaTime
         )
 
         animationComponent.hasSampledPose = true
@@ -398,6 +399,25 @@ public func setFootIKEnabled(entityId: EntityID, enabled: Bool) {
 
     for (_, animationComponent) in animationComponents {
         animationComponent.footIK.isEnabled = enabled
+    }
+}
+
+/// Enables or disables stance locking for the entity's foot IK chains:
+/// while a foot is planted (its animated world velocity is below the
+/// enter threshold) the IK target pins to the world position where it
+/// landed, absorbing residual root-motion slide; the lock releases when
+/// the animation swings the foot away, with a short catch-up decay.
+/// Requires foot IK chains to be configured and enabled.
+public func setFootIKStanceLocking(entityId: EntityID, enabled: Bool) {
+    let animationComponents = animationComponentsForEntityOrDescendants(entityId: entityId)
+    guard animationComponents.isEmpty == false else {
+        handleError(.noAnimationComponent, entityId)
+        return
+    }
+
+    for (_, animationComponent) in animationComponents {
+        animationComponent.footIK.stanceLockEnabled = enabled
+        animationComponent.footIK.lockStates = []
     }
 }
 
