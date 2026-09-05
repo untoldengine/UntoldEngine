@@ -63,6 +63,12 @@ if isRootMotionEnabled(entityId: zombie) {
 
 Inertialized transitions compose cleanly with root motion: transitions
 blend grounded poses, so switching clips never teleports the character.
+The applied travel is inertialized too — at a switch the entity's
+velocity crossfades from the outgoing clip's to the incoming clip's
+with the same halflife the pose blends with, so a walk-to-sprint switch
+accelerates the character in step with its legs instead of snapping to
+the new speed (which would skate the feet). A zero halflife remains an
+exact hard cut.
 
 ## Tips and Best Practices
 

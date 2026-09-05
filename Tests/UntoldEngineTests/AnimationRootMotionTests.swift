@@ -331,6 +331,29 @@ final class AnimationRootMotionTests: XCTestCase {
         )
     }
 
+    /// A clip switch with a transition must not snap the entity's travel:
+    /// the applied velocity crossfades from the outgoing clip's to the
+    /// incoming clip's with the transition halflife.
+    func testTransitionCrossfadesAppliedVelocity() {
+        setRootMotionEnabled(entityId: entityId, enabled: true)
+        changeAnimation(entityId: entityId, name: "walk", transitionHalflife: 0)
+        run(frames: 90) // steady 1 m/s walk
+
+        let zBefore = getLocalPosition(entityId: entityId).z
+        changeAnimation(entityId: entityId, name: "turn", transitionHalflife: 0.15)
+        run(frames: 2)
+        let earlySpeed = (getLocalPosition(entityId: entityId).z - zBefore) / (2 * deltaTime)
+        XCTAssertGreaterThan(earlySpeed, 0.5,
+                             "Right after the switch the entity must keep most of the walk speed, not snap to the turn's zero travel")
+
+        run(frames: 90) // 1 s = ~6.7 halflives
+        let zSettled = getLocalPosition(entityId: entityId).z
+        AnimationSystem.shared.update(deltaTime)
+        let settledSpeed = (getLocalPosition(entityId: entityId).z - zSettled) / deltaTime
+        XCTAssertLessThan(abs(settledSpeed), 0.05,
+                          "The crossfade must settle to the incoming clip's travel")
+    }
+
     // MARK: - Root joint override
 
     func testRootJointPathOverride() {
