@@ -63,10 +63,41 @@ public struct FootIKChainDescriptor {
     }
 }
 
+/// Per-chain stance lock: while the animated ankle is (near) stationary in
+/// world space, the IK target is pinned to the world position where it
+/// planted, absorbing residual root-motion slide. Unlocking hands the
+/// remaining offset to a short exponential decay so the foot catches up to
+/// the animation without a pop.
+struct FootLockState {
+    var locked = false
+    var anchorWorld = simd_float3.zero
+    var previousAnkleWorld = simd_float3.zero
+    var hasPreviousAnkleWorld = false
+    var releaseOffset = simd_float3.zero
+}
+
 /// Per-entity foot IK state.
 struct FootIKState {
     var isEnabled = false
     var descriptors: [FootIKChainDescriptor] = []
+
+    /// Stance locking (opt-in): pins planted feet to the world position
+    /// where they landed. See `FootLockState`.
+    var stanceLockEnabled = false
+    var lockStates: [FootLockState] = []
+
+    /// A foot slower than this locks; faster than the exit speed unlocks.
+    /// Between the two, the current state holds (hysteresis) — residual
+    /// slide sits below the exit speed, a swinging foot far above it.
+    var lockEnterSpeed: Float = 0.3
+    var lockExitSpeed: Float = 1.0
+
+    /// The lock also releases when the animation pulls the ankle this far
+    /// from the anchor — past that, holding on reads as rubber-banding.
+    var maxLockDistance: Float = 0.2
+
+    /// Halflife of the catch-up decay after a release.
+    var releaseHalflife: Float = 0.05
 
     /// Corrections larger than this are ignored — a sample this far from
     /// the animated foot is a wall, a ledge, or a bad probe, not ground.
@@ -85,6 +116,7 @@ struct FootIKState {
 
     mutating func invalidateResolution() {
         resolvedChains = nil
+        lockStates = []
     }
 
     /// Refreshes the FK scratch from a pose. Lives on the state so the
@@ -135,7 +167,8 @@ func computeForwardKinematics(
 func applyFootIK(
     entityId: EntityID,
     animationComponent: AnimationComponent,
-    skeleton: Skeleton
+    skeleton: Skeleton,
+    deltaTime: Float
 ) {
     guard animationComponent.footIK.isEnabled else { return }
 
@@ -153,8 +186,11 @@ func applyFootIK(
     let worldMatrix = scene.get(component: WorldTransformComponent.self, for: entityId)?.space ?? .identity
     let inverseWorldMatrix = worldMatrix.inverse
     let maxAdjustment = animationComponent.footIK.maxAdjustment
+    if animationComponent.footIK.lockStates.count != chains.count {
+        animationComponent.footIK.lockStates = [FootLockState](repeating: FootLockState(), count: chains.count)
+    }
 
-    for chain in chains {
+    for (chainIndex, chain) in chains.enumerated() {
         guard chain.hip < pose.jointCount, chain.knee < pose.jointCount, chain.ankle < pose.jointCount else {
             continue
         }
@@ -166,8 +202,20 @@ func applyFootIK(
         let ankleWorld4 = worldMatrix * simd_float4(ankleModel, 1)
         let ankleWorld = simd_float3(ankleWorld4.x, ankleWorld4.y, ankleWorld4.z)
 
+        // Stance lock: decide where the foot should be horizontally before
+        // the vertical ground fit runs.
+        var effectiveWorld = ankleWorld
+        if animationComponent.footIK.stanceLockEnabled {
+            effectiveWorld = updateFootLock(
+                lock: &animationComponent.footIK.lockStates[chainIndex],
+                ankleWorld: ankleWorld,
+                state: animationComponent.footIK,
+                deltaTime: deltaTime
+            )
+        }
+
         guard let ground = sampleGround(
-            at: ankleWorld,
+            at: effectiveWorld,
             state: animationComponent.footIK,
             excluding: entityId
         ) else { continue }
@@ -175,10 +223,9 @@ func applyFootIK(
         // Preserve the ankle's authored height above the clip's ground
         // plane (model height 0) above the real terrain.
         let desiredWorldHeight = ground.height + ankleModel.y + chain.footHeight
-        let correction = desiredWorldHeight - ankleWorld.y
-        guard abs(correction) > 1e-5, abs(correction) <= maxAdjustment else { continue }
-
-        let targetWorld = ankleWorld + simd_float3(0, correction, 0)
+        let targetWorld = simd_float3(effectiveWorld.x, desiredWorldHeight, effectiveWorld.z)
+        let correction = targetWorld - ankleWorld
+        guard simd_length(correction) > 1e-5, simd_length(correction) <= maxAdjustment else { continue }
         let targetModel4 = inverseWorldMatrix * simd_float4(targetWorld, 1)
         let targetModel = simd_float3(targetModel4.x, targetModel4.y, targetModel4.z)
 
@@ -270,6 +317,49 @@ func footIKDefaultGroundSample(
     }
 
     return FootIKGroundSample(height: hit.worldPosition.y, normal: hit.worldNormal ?? simd_float3(0, 1, 0))
+}
+
+/// Advances one chain's stance lock and returns the world position the IK
+/// target should use horizontally. Speed thresholds are hysteretic; a
+/// release hands the remaining offset to a short decay.
+private func updateFootLock(
+    lock: inout FootLockState,
+    ankleWorld: simd_float3,
+    state: FootIKState,
+    deltaTime: Float
+) -> simd_float3 {
+    defer {
+        lock.previousAnkleWorld = ankleWorld
+        lock.hasPreviousAnkleWorld = true
+    }
+
+    guard lock.hasPreviousAnkleWorld, deltaTime > 0 else { return ankleWorld }
+    let speed = simd_length(ankleWorld - lock.previousAnkleWorld) / deltaTime
+
+    if lock.locked {
+        var horizontal = lock.anchorWorld - ankleWorld
+        horizontal.y = 0
+        if speed > state.lockExitSpeed || simd_length(horizontal) > state.maxLockDistance {
+            lock.locked = false
+            lock.releaseOffset = horizontal
+        } else {
+            return simd_float3(lock.anchorWorld.x, ankleWorld.y, lock.anchorWorld.z)
+        }
+    } else if speed < state.lockEnterSpeed {
+        lock.locked = true
+        lock.anchorWorld = ankleWorld
+        lock.releaseOffset = .zero
+        return ankleWorld
+    }
+
+    // Released: let the leftover offset decay so the foot catches up
+    // smoothly instead of popping to the animated position.
+    if simd_length_squared(lock.releaseOffset) > 1e-8 {
+        let decay = exp(-0.693_147_18 * deltaTime / max(state.releaseHalflife, 1e-4))
+        lock.releaseOffset *= decay
+        return ankleWorld + lock.releaseOffset
+    }
+    return ankleWorld
 }
 
 private func isScenegraphDescendant(_ candidate: EntityID, of ancestor: EntityID) -> Bool {
