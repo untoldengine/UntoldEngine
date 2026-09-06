@@ -847,6 +847,7 @@ private final class RuntimeGlobalsStore: @unchecked Sendable {
     private var ambientIntensityValue: Float = 0.4
     private var hdrURLValue: String = "teatro_massimo_2k.hdr"
     private var resourceURLValue: URL?
+    private var hdrDirectoryURLValue: URL?
     private var assetBasePathValue: URL?
     private var activeEntityValue: EntityID = .invalid
     private var enableEngineMetricsValue: Bool = false
@@ -1272,6 +1273,20 @@ private final class RuntimeGlobalsStore: @unchecked Sendable {
         }
     }
 
+    var hdrDirectoryURL: URL? {
+        get {
+            lock.lock()
+            let value = hdrDirectoryURLValue
+            lock.unlock()
+            return value
+        }
+        set {
+            lock.lock()
+            hdrDirectoryURLValue = newValue
+            lock.unlock()
+        }
+    }
+
     var assetBasePath: URL? {
         get {
             lock.lock()
@@ -1638,6 +1653,14 @@ public var hdrURL: String {
 public var resourceURL: URL? {
     get { RuntimeGlobalsStore.shared.resourceURL }
     set { RuntimeGlobalsStore.shared.resourceURL = newValue }
+}
+
+/// Directory the current `hdrURL` environment was loaded from, so a later
+/// IBL re-bake (viewport resize, `initSizeableResources()`) finds the same
+/// file. `nil` means the engine's own resource search (`resourceURL`).
+public var hdrDirectoryURL: URL? {
+    get { RuntimeGlobalsStore.shared.hdrDirectoryURL }
+    set { RuntimeGlobalsStore.shared.hdrDirectoryURL = newValue }
 }
 
 var currentGlobalTime: Float {

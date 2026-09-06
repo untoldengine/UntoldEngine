@@ -372,6 +372,7 @@ public func generateHDR(_ hdrName: String, from directory: URL? = nil) {
 
         iblSuccessful = true
         hdrURL = hdrName
+        hdrDirectoryURL = directory
 
     } catch {
         handleError(.iBLCreationFailed)
