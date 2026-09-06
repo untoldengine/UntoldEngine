@@ -51,6 +51,55 @@ final class UntoldGSCookerTests: XCTestCase {
         XCTAssertNil(cooked.asset.sphericalHarmonics)
     }
 
+    func testSplatBudgetKeepsTheMostImportantInSourceOrder() throws {
+        // importance = opacity × geometric mean scale: 0.9·0.01, 0.5·0.02, 0.2·0.01, 0.9·0.005, 0.1·0.1, 0.9·0.01
+        let splats: [GaussianSplat] = [
+            GaussianSplat(center: [0, 0, 0, 1], scale: [0.01, 0.01, 0.01, 1], color: [1, 1, 1, 1], quat: [1, 0, 0, 0], opacity: 0.9), // 0.009
+            GaussianSplat(center: [1, 0, 0, 1], scale: [0.02, 0.02, 0.02, 1], color: [1, 1, 1, 1], quat: [1, 0, 0, 0], opacity: 0.5), // 0.010
+            GaussianSplat(center: [2, 0, 0, 1], scale: [0.01, 0.01, 0.01, 1], color: [1, 1, 1, 1], quat: [1, 0, 0, 0], opacity: 0.2), // 0.002
+            GaussianSplat(center: [3, 0, 0, 1], scale: [0.005, 0.005, 0.005, 1], color: [1, 1, 1, 1], quat: [1, 0, 0, 0], opacity: 0.9), // 0.0045
+            GaussianSplat(center: [4, 0, 0, 1], scale: [0.1, 0.1, 0.1, 1], color: [1, 1, 1, 1], quat: [1, 0, 0, 0], opacity: 0.1), // 0.010
+            GaussianSplat(center: [5, 0, 0, 1], scale: [0.01, 0.01, 0.01, 1], color: [1, 1, 1, 1], quat: [1, 0, 0, 0], opacity: 0.9), // 0.009
+        ]
+        var options = UntoldGSCookOptions()
+        options.maxSplatCount = 3
+        let cooked = try UntoldGSCooker.cook(asset: GaussianSplatAsset(splats: splats, sphericalHarmonics: nil), options: options)
+
+        // The two 0.010 splats and the first 0.009 (ties at the cut-off keep the earlier splat).
+        XCTAssertEqual(cooked.asset.splats.map(\.center.x), [0, 1, 4])
+        XCTAssertEqual(cooked.report.keptSplatCount, 3)
+        XCTAssertEqual(cooked.report.prunedByBudget, 3)
+        XCTAssertEqual(cooked.report.inputSplatCount, 6)
+
+        // A budget at or above the survivors changes nothing.
+        options.maxSplatCount = 6
+        let untouched = try UntoldGSCooker.cook(asset: GaussianSplatAsset(splats: splats, sphericalHarmonics: nil), options: options)
+        XCTAssertEqual(untouched.report.prunedByBudget, 0)
+        XCTAssertEqual(untouched.asset.splats.count, 6)
+
+        // The budget applies after the other pruning steps and keeps the SH rows aligned.
+        options.maxSplatCount = 2
+        options.minimumOpacity = 0.3 // drops centres 2 and 4 first
+        // Degree 1: DC plus three coefficients per channel, twelve floats per splat.
+        let harmonics = GaussianSphericalHarmonics(degree: 1, coefficientsPerChannel: 4, coefficients: (0 ..< 6 * 12).map { Float($0) })
+        let pruned = try UntoldGSCooker.cook(asset: GaussianSplatAsset(splats: splats, sphericalHarmonics: harmonics), options: options)
+        XCTAssertEqual(pruned.report.prunedByOpacity, 2)
+        XCTAssertEqual(pruned.report.prunedByBudget, 2)
+        XCTAssertEqual(pruned.asset.splats.map(\.center.x), [0, 1])
+        XCTAssertEqual(pruned.asset.sphericalHarmonics?.coefficients.count, 24, "two survivors keep their twelve coefficients each")
+        XCTAssertEqual(pruned.asset.sphericalHarmonics?.coefficients.prefix(12).map { $0 }, (0 ..< 12).map { Float($0) }, "the first survivor keeps its own SH row")
+    }
+
+    func testSplatBudgetPresetsMatchTheRuntimeLimits() {
+        XCTAssertEqual(UntoldGSCookOptions.splatBudgetMobile, 5_242_880)
+        XCTAssertEqual(UntoldGSCookOptions.splatBudgetMac, 16_777_216)
+        #if os(macOS)
+            XCTAssertEqual(GaussianRuntimeLimits.maxSplatsPerEntity, GaussianRuntimeLimits.maxSplatsPerEntityMac)
+        #else
+            XCTAssertEqual(GaussianRuntimeLimits.maxSplatsPerEntity, GaussianRuntimeLimits.maxSplatsPerEntityMobile)
+        #endif
+    }
+
     func testCookFailsWhenNothingSurvives() {
         var splat = makeSplat(center: .zero)
         splat.opacity = 0
@@ -204,6 +253,7 @@ final class UntoldGSCookerTests: XCTestCase {
 
         """
         let plyURL = try writeTemporaryFile(Data((header + body).utf8), extension: "ply")
+        XCTAssertEqual(try PLYReader.readGaussianSplatCount(from: plyURL), count, "header-only count matches the body")
         let output = try temporaryURL(extension: "untoldgs")
 
         var options = UntoldGSCookOptions()

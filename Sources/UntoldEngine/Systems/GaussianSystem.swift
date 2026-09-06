@@ -20,7 +20,8 @@ import Foundation
 import Metal
 import simd
 
-let maxNumOfGaussians: UInt64 = 1024 * 1024 * 5
+/// Per-entity splat cap for this platform — see GaussianRuntimeLimits.
+let maxNumOfGaussians = UInt64(GaussianRuntimeLimits.maxSplatsPerEntity)
 
 private func activeGaussianSortCount(_ component: GaussianComponent) -> Int {
     min(Int(component.visibleSplatCountForRendering), Int(component.splatCount))

@@ -56,6 +56,17 @@ public struct UntoldGSCookOptions: Sendable {
     public var cropMargin: Float = 0
     /// Splats with a lower post-sigmoid opacity are dropped.
     public var minimumOpacity: Float = 0.005
+    /// Keeps at most this many splats after the other pruning steps, the most important first
+    /// (opacity times the geometric mean of the three scales, in the transformed space). `nil`
+    /// keeps every survivor. The runtime refuses to load an entity above
+    /// `GaussianRuntimeLimits.maxSplatsPerEntity`, so a capture meant for every platform is
+    /// cooked with `splatBudgetMobile`; one that only has to load on a Mac may use `splatBudgetMac`.
+    public var maxSplatCount: Int?
+
+    /// The per-entity splat cap of Apple Vision Pro, iPhone, iPad and Apple TV.
+    public static let splatBudgetMobile = GaussianRuntimeLimits.maxSplatsPerEntityMobile
+    /// The per-entity splat cap of the Mac.
+    public static let splatBudgetMac = GaussianRuntimeLimits.maxSplatsPerEntityMac
     /// Spherical-harmonics degree to keep. `nil` keeps the source degree (capped at 3); 0 drops SH.
     public var shDegree: UInt8?
     /// log2 of the maximum splat count per chunk. 10 (1024) for objects, 12 (4096) for environments.
@@ -91,14 +102,17 @@ public struct UntoldGSCookReport: Sendable, Equatable {
     public var prunedByOpacity: Int
     public var prunedByDegenerateGeometry: Int
     public var prunedByCrop: Int
+    /// Splats dropped to meet `UntoldGSCookOptions.maxSplatCount`, the least important first.
+    public var prunedByBudget: Int
     public var shDegree: UInt8
 
-    public init(inputSplatCount: Int, keptSplatCount: Int, prunedByOpacity: Int, prunedByDegenerateGeometry: Int, prunedByCrop: Int, shDegree: UInt8) {
+    public init(inputSplatCount: Int, keptSplatCount: Int, prunedByOpacity: Int, prunedByDegenerateGeometry: Int, prunedByCrop: Int, shDegree: UInt8, prunedByBudget: Int = 0) {
         self.inputSplatCount = inputSplatCount
         self.keptSplatCount = keptSplatCount
         self.prunedByOpacity = prunedByOpacity
         self.prunedByDegenerateGeometry = prunedByDegenerateGeometry
         self.prunedByCrop = prunedByCrop
+        self.prunedByBudget = prunedByBudget
         self.shDegree = shDegree
     }
 
@@ -179,13 +193,22 @@ public enum UntoldGSCooker {
             keptIndices.append(index)
         }
 
+        var prunedByBudget = 0
+        if let budget = options.maxSplatCount, budget > 0, kept.count > budget {
+            let survivors = selectMostImportant(kept, count: budget)
+            prunedByBudget = kept.count - survivors.count
+            kept = survivors.map { kept[$0] }
+            keptIndices = survivors.map { keptIndices[$0] }
+        }
+
         let report = UntoldGSCookReport(
             inputSplatCount: asset.splats.count,
             keptSplatCount: kept.count,
             prunedByOpacity: prunedByOpacity,
             prunedByDegenerateGeometry: prunedByDegenerate,
             prunedByCrop: prunedByCrop,
-            shDegree: targetDegree
+            shDegree: targetDegree,
+            prunedByBudget: prunedByBudget
         )
         guard !kept.isEmpty else {
             throw UntoldGSCookError.noSplatsLeftAfterPruning(report)
@@ -193,6 +216,34 @@ public enum UntoldGSCooker {
 
         let harmonics = reduceSphericalHarmonics(asset.sphericalHarmonics, keeping: keptIndices, toDegree: targetDegree)
         return (GaussianSplatAsset(splats: kept, sphericalHarmonics: harmonics), report)
+    }
+
+    /// How much a splat is worth keeping: its opacity times the geometric mean of its scales,
+    /// a proxy for the light it contributes over the area it covers. Cheap, view independent
+    /// and enough to shed the faint, tiny splats a budget has to drop first.
+    static func importance(of splat: GaussianSplat) -> Float {
+        let volume = max(splat.scale.x * splat.scale.y * splat.scale.z, 0)
+        return splat.opacity * cbrt(volume)
+    }
+
+    /// Indices (ascending, so the source order survives) of the `count` most important splats.
+    /// Ties at the cut-off keep the earlier splats.
+    static func selectMostImportant(_ splats: [GaussianSplat], count: Int) -> [Int] {
+        guard count < splats.count else { return Array(splats.indices) }
+        let importance = splats.map(importance(of:))
+        let threshold = importance.sorted(by: >)[count - 1]
+        var selected: [Int] = []
+        selected.reserveCapacity(count)
+        var tiesLeft = count - importance.filter { $0 > threshold }.count
+        for (index, value) in importance.enumerated() {
+            if value > threshold {
+                selected.append(index)
+            } else if value == threshold, tiesLeft > 0 {
+                selected.append(index)
+                tiesLeft -= 1
+            }
+        }
+        return selected
     }
 
     /// Write options that carry the cook's chunk size, flags, transform and capture lighting.

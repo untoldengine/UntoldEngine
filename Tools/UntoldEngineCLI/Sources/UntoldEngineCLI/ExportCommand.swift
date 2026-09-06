@@ -91,6 +91,9 @@ struct ExportCommand: ParsableCommand {
     @Option(name: .customLong("splat-min-opacity"), help: "Gaussian .ply export only: drop splats with a lower opacity")
     var splatMinOpacity: Float = 0.005
 
+    @Option(name: .customLong("splat-max-count"), help: "Gaussian .ply export only: keep at most this many splats, the most important by opacity and size (0 = no limit). The runtime loads at most \(UntoldGSCookOptions.splatBudgetMobile) per entity on Vision Pro, iPhone, iPad and Apple TV and \(UntoldGSCookOptions.splatBudgetMac) on the Mac.")
+    var splatMaxCount: Int = 0
+
     @Option(name: .customLong("splat-crop"), help: "Gaussian .ply export only: crop box in the output space, minX,minY,minZ,maxX,maxY,maxZ")
     var splatCrop: String?
 
@@ -205,7 +208,7 @@ struct ExportCommand: ParsableCommand {
         }
         let report = bakeResult.cookReport
         printInfo("Splats: \(report.keptSplatCount) of \(report.inputSplatCount) kept "
-            + "(opacity \(report.prunedByOpacity), degenerate \(report.prunedByDegenerateGeometry), crop \(report.prunedByCrop)), "
+            + "(opacity \(report.prunedByOpacity), degenerate \(report.prunedByDegenerateGeometry), crop \(report.prunedByCrop), budget \(report.prunedByBudget)), "
             + "SH degree \(report.shDegree), \(splatChunkSplats) splats per chunk")
         // meanSquaredSplatExtent is baked into each .untoldgs file and read automatically when
         // the engine loads it — printed here only as a diagnostic (e.g. to compare density
@@ -241,6 +244,10 @@ struct ExportCommand: ParsableCommand {
         options.log2ChunkSplats = UInt8(splatChunkSplats.trailingZeroBitCount)
         options.shDegree = splatSHDegree.map { UInt8($0) }
         options.minimumOpacity = splatMinOpacity
+        guard splatMaxCount >= 0 else {
+            throw ExportError.invalidSplatFlag("--splat-max-count must be zero or positive")
+        }
+        options.maxSplatCount = splatMaxCount > 0 ? splatMaxCount : nil
         options.cropMargin = splatCropMargin
         options.isEnvironment = splatEnvironment
         options.antialiased = splatAntialiased

@@ -173,6 +173,14 @@ sets the chunk size (1024 for objects, 4096 with `--splat-environment` for rooms
 larger). Values that start with a minus sign must use the `--option=value` form. The
 command prints how many splats were kept and pruned per reason.
 
+`--splat-max-count N` keeps at most N splats, dropping the least important first (opacity
+times the geometric mean of the scales). The runtime refuses to load an entity above its
+per-platform cap — 5,242,880 splats on Apple Vision Pro, iPhone, iPad and Apple TV,
+16,777,216 on the Mac (`GaussianRuntimeLimits`) — so a large capture that has to load
+everywhere is cooked with `--splat-max-count 5242880`; one that only has to run on a Mac
+can go up to the Mac figure. Captures beyond that belong to the streamed environment
+path, which decodes and sorts only the visible chunks (part 6 of the series).
+
 ---
 
 ## Partitioning Scenes into Streaming Tiles
