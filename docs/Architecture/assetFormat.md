@@ -492,8 +492,8 @@ value.w                      Float32
 ## Gaussian Asset Record Encoding
 
 Chunk type `25` (`gaussianAssetTable`) links an entity to a cooked Gaussian splat
-payload stored in a separate `.usplat` file (see
-[`nativeSplatFormat.md`](nativeSplatFormat.md)), the way texture references point at
+payload stored in a separate `.untoldgs` file (see
+[`untoldgsFormat.md`](untoldgsFormat.md)), the way texture references point at
 `.utex` files. One record per splat entity; `elementCount` is the record count.
 Types 22–24 are reserved for the morph-target channel.
 
@@ -515,7 +515,7 @@ Rules:
 - `entityId` must be present in the entity table
 - `payloadPathOffset` must resolve to a non-empty string
 - `lodCount <= 4`; `occluderShrinkMeters` and `swapDistanceMeters` are non-negative
-- registration onto the mesh twin and capture exposure live in the `.usplat` header,
+- registration onto the mesh twin and capture exposure live in the `.untoldgs` header,
   not here; this record holds what the scene author tunes
 - a file whose only geometry is a splat may omit the vertex and index chunks
 
