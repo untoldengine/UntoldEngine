@@ -122,6 +122,35 @@ class UntoldExplorerTests(unittest.TestCase):
         self.assertIsNotNone(texture)
         self.assertEqual(texture.channel, u.TEXTURE_CHANNEL_A)
 
+    def test_resolve_texture_from_socket_keeps_packed_images_distinct(self) -> None:
+        """Packed/generated images have an empty filepath. They must be keyed by
+        their Blender image name, never by a path derived from the empty string:
+        that resolves to the asset's parent directory, so every packed texture in a
+        material shared one staging key and collapsed onto the base color."""
+        base_image = FakeData(filepath="", library=None, size=(2048, 2048), name="T_Zombie_BC")
+        normal_image = FakeData(filepath="", library=None, size=(2048, 2048), name="T_Zombie_N")
+        base_input = FakeSocket("Base Color")
+        base_input.link_from(FakeNode("ShaderNodeTexImage", image=base_image), "Color")
+        normal_color_input = FakeSocket("Color")
+        normal_color_input.link_from(FakeNode("ShaderNodeTexImage", image=normal_image), "Color")
+        normal_input = FakeSocket("Normal")
+        normal_input.link_from(FakeNode("ShaderNodeNormalMap", inputs={"Color": normal_color_input}), "Normal")
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            asset_path = Path(tmpdir) / "asset.untold"
+            base = u.resolve_texture_from_socket(base_input, asset_path)
+            normal = u.resolve_texture_from_socket(normal_input, asset_path)
+
+        self.assertIsNotNone(base)
+        self.assertIsNotNone(normal)
+        for texture in (base, normal):
+            self.assertIsNone(texture.source_path, "packed images have no file on disk to key by")
+        self.assertEqual(base.source_image_name, "T_Zombie_BC")
+        self.assertEqual(normal.source_image_name, "T_Zombie_N")
+        self.assertNotEqual(base.name, normal.name)
+        self.assertNotEqual(base.uri, normal.uri)
+        self.assertNotEqual(u.texture_staging_key(base), u.texture_staging_key(normal))
+
     def test_unique_hdr_destination_name_deduplicates_collisions(self) -> None:
         context = u.HDRStagingContext()
 
@@ -861,6 +890,57 @@ class MaterialGraphAnalysisTests(unittest.TestCase):
         # built on top of the same structured data (behavior-preserving refactor).
         lines = u.material_fidelity_report_lines([supported_mesh, bakeable_mesh])
         self.assertIn("1 supported, 1 bakeable, 0 unbakeable", lines[0])
+
+    def test_extract_material_exports_unit_factor_for_textured_metallic_roughness(self) -> None:
+        """Blender ignores a socket's slider once a texture is linked to it, and the
+        engine multiplies the texture sample by the exported factor. A textured
+        Metallic or Roughness socket must therefore export 1.0: exporting the slider
+        halved roughness (default 0.5) and zeroed metallic (default 0.0) on every
+        textured material. Unlinked sockets still export the slider value."""
+        orm = _make_image_node("orm")
+        separate_input = FakeSocket("Color")
+        separate_input.link_from(orm, "Color")
+        separate = FakeNode("ShaderNodeSeparateColor", inputs={"Color": separate_input})
+        separate.name = "Separate Color"
+
+        principled, output = _make_principled_output(_make_image_node("albedo"))
+        metallic = FakeSocket("Metallic")
+        metallic.default_value = 0.0
+        metallic.link_from(separate, "Blue")
+        roughness = FakeSocket("Roughness")
+        roughness.default_value = 0.5
+        roughness.link_from(separate, "Green")
+        principled.inputs["Metallic"] = metallic
+        principled.inputs["Roughness"] = roughness
+        material = _make_material("orm_mat", [output, principled, separate, orm])
+        mesh_object = FakeSceneObject("Zombie", "MESH", FakeData(materials=[material]))
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            exported = u.extract_material(mesh_object, Path(tmpdir) / "asset.untold")
+
+        self.assertIsNotNone(exported.metallic_texture)
+        self.assertIsNotNone(exported.roughness_texture)
+        self.assertEqual(exported.metallic_texture.channel, u.TEXTURE_CHANNEL_B)
+        self.assertEqual(exported.roughness_texture.channel, u.TEXTURE_CHANNEL_G)
+        self.assertEqual(exported.metallic_factor, 1.0, "textured metallic must not be scaled by the ignored slider")
+        self.assertEqual(exported.roughness_factor, 1.0, "textured roughness must not be scaled by the ignored slider")
+
+        principled_plain, output_plain = _make_principled_output(None)
+        principled_plain.inputs["Base Color"].default_value = (1.0, 1.0, 1.0, 1.0)
+        metallic_plain = FakeSocket("Metallic")
+        metallic_plain.default_value = 0.25
+        roughness_plain = FakeSocket("Roughness")
+        roughness_plain.default_value = 0.8
+        principled_plain.inputs["Metallic"] = metallic_plain
+        principled_plain.inputs["Roughness"] = roughness_plain
+        plain_material = _make_material("plain_mat", [output_plain, principled_plain])
+        plain_object = FakeSceneObject("Cube", "MESH", FakeData(materials=[plain_material]))
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            exported_plain = u.extract_material(plain_object, Path(tmpdir) / "asset.untold")
+
+        self.assertAlmostEqual(exported_plain.metallic_factor, 0.25)
+        self.assertAlmostEqual(exported_plain.roughness_factor, 0.8)
 
     def test_extract_material_reads_height_from_displacement_node(self) -> None:
         """The standard ArchViz/Poliigon authoring pattern: an Image Texture feeds a
