@@ -215,4 +215,33 @@ public extension MTLRenderCommandEncoder {
             _ = batched
         #endif
     }
+
+    /// Indirect variant: the GPU supplies the vertex and instance counts through the
+    /// `MTLDrawPrimitivesIndirectArguments` at `indirectBufferOffset`, so the stats line only
+    /// gets the CPU's estimate of them.
+    func drawPrimitivesTracked(
+        type: MTLPrimitiveType,
+        indirectBuffer: MTLBuffer,
+        indirectBufferOffset: Int,
+        estimatedVertexCount: Int,
+        estimatedInstanceCount: Int,
+        category: RenderDrawCategory = .other,
+        batched: Bool = false
+    ) {
+        drawPrimitives(type: type, indirectBuffer: indirectBuffer, indirectBufferOffset: indirectBufferOffset)
+        #if ENGINE_STATS_ENABLED
+            RenderStatsCollector.shared.recordPrimitiveDraw(
+                type: type,
+                vertexCount: estimatedVertexCount,
+                instanceCount: estimatedInstanceCount,
+                category: category,
+                batched: batched
+            )
+        #else
+            _ = estimatedVertexCount
+            _ = estimatedInstanceCount
+            _ = category
+            _ = batched
+        #endif
+    }
 }

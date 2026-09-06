@@ -4605,8 +4605,11 @@ public enum RenderPasses {
                 }
                 profileTotals.include(component: gaussianComponent)
 
+                // Profiling estimate only: a stale readback (see activeGaussianSortCount in
+                // GaussianSystem.swift). The instance count the draw actually uses is the one
+                // this frame's cull wrote into GaussianVisibleSet, read by the indirect draw.
                 let activeSplatCount = min(Int(gaussianComponent.visibleSplatCountForRendering), Int(gaussianComponent.splatCount))
-                guard activeSplatCount > 0 else { continue }
+                guard gaussianComponent.splatCount > 0 else { continue }
                 activeSplatTotal += activeSplatCount
 
                 guard gaussianComponent.encodedSplatData != nil else {
@@ -4672,7 +4675,17 @@ public enum RenderPasses {
                 // executeRadixSort — renderInfo.currentInFlightFrameSlot is set once per frame
                 // and stays constant across both eyes, so this correctly reads back whichever
                 // slot this frame's cull/sort pipeline wrote into.
+                guard !gaussianComponent.gaussianSortedIndices.isEmpty,
+                      !gaussianComponent.gaussianVisibleCount.isEmpty
+                else {
+                    handleError(.bufferAllocationFailed, "Gaussian draw buffers")
+                    continue
+                }
                 let gaussianFrameSlot = min(renderInfo.currentInFlightFrameSlot, gaussianComponent.gaussianSortedIndices.count - 1)
+                guard let gaussianVisibleSet = gaussianComponent.gaussianVisibleCount[min(gaussianFrameSlot, gaussianComponent.gaussianVisibleCount.count - 1)] else {
+                    handleError(.bufferAllocationFailed, "Gaussian visible-set buffer")
+                    continue
+                }
                 renderEncoder.setVertexBuffer(
                     gaussianComponent.gaussianSortedIndices[gaussianFrameSlot],
                     offset: 0,
@@ -4707,10 +4720,13 @@ public enum RenderPasses {
                     index: Int(gaussianTBDRRenderDebugColorIndex.rawValue)
                 )
 
-                renderEncoder.drawPrimitivesTracked(type: .triangleStrip,
-                                                    vertexStart: 0,
-                                                    vertexCount: 4,
-                                                    instanceCount: activeSplatCount)
+                renderEncoder.drawPrimitivesTracked(
+                    type: .triangleStrip,
+                    indirectBuffer: gaussianVisibleSet,
+                    indirectBufferOffset: Int(gaussianVisibleSetDrawArgumentsOffset),
+                    estimatedVertexCount: 4,
+                    estimatedInstanceCount: activeSplatCount
+                )
                 profileTotals.drawCallCount += 1
             }
 

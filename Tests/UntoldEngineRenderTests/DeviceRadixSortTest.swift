@@ -18,7 +18,7 @@ import XCTest
 private enum HistogramBuffer: Int {
     case keysIn = 0
     case output = 1
-    case numElems = 2
+    case visibleSet = 2 // GaussianVisibleSet: element count read by the kernel
     case passIndex = 3
 }
 
@@ -31,7 +31,7 @@ private enum ScatterBuffer: Int {
     case keysIn = 0
     case keysOut = 1
     case offsets = 2
-    case numElems = 3
+    case visibleSet = 3 // GaussianVisibleSet: element count read by the kernel
     case passIdx = 4
     case perTGStart = 5 // zero buffer for single-TG unit tests
 }
@@ -148,6 +148,18 @@ extension DeviceRadixSortTest {
         return hist
     }
 
+    /// A `GaussianVisibleSet` record with `count` visible splats, the way a cull that kept
+    /// everything would leave it: `executeRadixSort` reads its element and threadgroup counts
+    /// from this buffer and dispatches indirectly from it.
+    private func makeVisibleSetBuffer(count: Int) -> MTLBuffer? {
+        guard let buffer = renderInfo.device.makeBuffer(
+            length: MemoryLayout<GaussianVisibleSet>.stride,
+            options: .storageModeShared
+        ) else { return nil }
+        buffer.contents().storeBytes(of: makeGaussianVisibleSet(visibleCount: UInt32(count)), as: GaussianVisibleSet.self)
+        return buffer
+    }
+
     /// CPU reference: one scatter pass (stable).
     private func referenceScatter(keys: [UInt64], offsets: [UInt32], pass: Int) -> [UInt64] {
         var out = [UInt64](repeating: 0, count: keys.count)
@@ -203,7 +215,8 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         dispatch(pipeline, threadCount: n) { enc in
             enc.setBuffer(keyBuf, offset: 0, index: HistogramBuffer.keysIn.rawValue)
             enc.setBuffer(histBuf, offset: 0, index: HistogramBuffer.output.rawValue)
-            enc.setBytes(&numElems, length: MemoryLayout<UInt32>.stride, index: HistogramBuffer.numElems.rawValue)
+            var visibleSet = makeGaussianVisibleSet(visibleCount: numElems)
+            enc.setBytes(&visibleSet, length: MemoryLayout<GaussianVisibleSet>.stride, index: HistogramBuffer.visibleSet.rawValue)
             enc.setBytes(&passIndex, length: MemoryLayout<UInt32>.stride, index: HistogramBuffer.passIndex.rawValue)
         }
 
@@ -240,7 +253,8 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         dispatch(pipeline, threadCount: kRadixBuckets) { enc in
             enc.setBuffer(keyBuf, offset: 0, index: HistogramBuffer.keysIn.rawValue)
             enc.setBuffer(histBuf, offset: 0, index: HistogramBuffer.output.rawValue)
-            enc.setBytes(&numElems, length: MemoryLayout<UInt32>.stride, index: HistogramBuffer.numElems.rawValue)
+            var visibleSet = makeGaussianVisibleSet(visibleCount: numElems)
+            enc.setBytes(&visibleSet, length: MemoryLayout<GaussianVisibleSet>.stride, index: HistogramBuffer.visibleSet.rawValue)
             enc.setBytes(&passIndex, length: MemoryLayout<UInt32>.stride, index: HistogramBuffer.passIndex.rawValue)
         }
 
@@ -272,7 +286,8 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         dispatch(pipeline, threadCount: 1) { enc in
             enc.setBuffer(keyBuf, offset: 0, index: HistogramBuffer.keysIn.rawValue)
             enc.setBuffer(histBuf, offset: 0, index: HistogramBuffer.output.rawValue)
-            enc.setBytes(&numElems, length: MemoryLayout<UInt32>.stride, index: HistogramBuffer.numElems.rawValue)
+            var visibleSet = makeGaussianVisibleSet(visibleCount: numElems)
+            enc.setBytes(&visibleSet, length: MemoryLayout<GaussianVisibleSet>.stride, index: HistogramBuffer.visibleSet.rawValue)
             enc.setBytes(&passIndex, length: MemoryLayout<UInt32>.stride, index: HistogramBuffer.passIndex.rawValue)
         }
 
@@ -309,7 +324,8 @@ final class DeviceRadixSortTest: BaseRenderSetup {
             dispatch(pipeline, threadCount: n) { enc in
                 enc.setBuffer(keyBuf, offset: 0, index: HistogramBuffer.keysIn.rawValue)
                 enc.setBuffer(histBuf, offset: 0, index: HistogramBuffer.output.rawValue)
-                enc.setBytes(&numElems, length: MemoryLayout<UInt32>.stride, index: HistogramBuffer.numElems.rawValue)
+                var visibleSet = makeGaussianVisibleSet(visibleCount: numElems)
+                enc.setBytes(&visibleSet, length: MemoryLayout<GaussianVisibleSet>.stride, index: HistogramBuffer.visibleSet.rawValue)
                 enc.setBytes(&passIndex, length: MemoryLayout<UInt32>.stride, index: HistogramBuffer.passIndex.rawValue)
             }
 
@@ -343,7 +359,8 @@ final class DeviceRadixSortTest: BaseRenderSetup {
             dispatch(pipeline, threadCount: n) { enc in
                 enc.setBuffer(keyBuf, offset: 0, index: HistogramBuffer.keysIn.rawValue)
                 enc.setBuffer(histBuf, offset: 0, index: HistogramBuffer.output.rawValue)
-                enc.setBytes(&numElems, length: MemoryLayout<UInt32>.stride, index: HistogramBuffer.numElems.rawValue)
+                var visibleSet = makeGaussianVisibleSet(visibleCount: numElems)
+                enc.setBytes(&visibleSet, length: MemoryLayout<GaussianVisibleSet>.stride, index: HistogramBuffer.visibleSet.rawValue)
                 enc.setBytes(&passIndex, length: MemoryLayout<UInt32>.stride, index: HistogramBuffer.passIndex.rawValue)
             }
 
@@ -555,7 +572,8 @@ final class DeviceRadixSortTest: BaseRenderSetup {
             enc.setBuffer(keyInBuf, offset: 0, index: ScatterBuffer.keysIn.rawValue)
             enc.setBuffer(keyOutBuf, offset: 0, index: ScatterBuffer.keysOut.rawValue)
             enc.setBuffer(offsetBuf, offset: 0, index: ScatterBuffer.offsets.rawValue)
-            enc.setBytes(&numElems, length: MemoryLayout<UInt32>.stride, index: ScatterBuffer.numElems.rawValue)
+            var visibleSet = makeGaussianVisibleSet(visibleCount: numElems)
+            enc.setBytes(&visibleSet, length: MemoryLayout<GaussianVisibleSet>.stride, index: ScatterBuffer.visibleSet.rawValue)
             enc.setBytes(&passIndex, length: MemoryLayout<UInt32>.stride, index: ScatterBuffer.passIdx.rawValue)
             enc.setBuffer(zeroBuf, offset: 0, index: ScatterBuffer.perTGStart.rawValue)
         }
@@ -600,7 +618,8 @@ final class DeviceRadixSortTest: BaseRenderSetup {
             enc.setBuffer(keyInBuf, offset: 0, index: ScatterBuffer.keysIn.rawValue)
             enc.setBuffer(keyOutBuf, offset: 0, index: ScatterBuffer.keysOut.rawValue)
             enc.setBuffer(offsetBuf, offset: 0, index: ScatterBuffer.offsets.rawValue)
-            enc.setBytes(&numElems, length: MemoryLayout<UInt32>.stride, index: ScatterBuffer.numElems.rawValue)
+            var visibleSet = makeGaussianVisibleSet(visibleCount: numElems)
+            enc.setBytes(&visibleSet, length: MemoryLayout<GaussianVisibleSet>.stride, index: ScatterBuffer.visibleSet.rawValue)
             enc.setBytes(&passIndex, length: MemoryLayout<UInt32>.stride, index: ScatterBuffer.passIdx.rawValue)
             enc.setBuffer(zeroBuf, offset: 0, index: ScatterBuffer.perTGStart.rawValue)
         }
@@ -647,7 +666,8 @@ final class DeviceRadixSortTest: BaseRenderSetup {
             enc.setBuffer(keyInBuf, offset: 0, index: ScatterBuffer.keysIn.rawValue)
             enc.setBuffer(keyOutBuf, offset: 0, index: ScatterBuffer.keysOut.rawValue)
             enc.setBuffer(offsetBuf, offset: 0, index: ScatterBuffer.offsets.rawValue)
-            enc.setBytes(&numElems, length: MemoryLayout<UInt32>.stride, index: ScatterBuffer.numElems.rawValue)
+            var visibleSet = makeGaussianVisibleSet(visibleCount: numElems)
+            enc.setBytes(&visibleSet, length: MemoryLayout<GaussianVisibleSet>.stride, index: ScatterBuffer.visibleSet.rawValue)
             enc.setBytes(&passIndex, length: MemoryLayout<UInt32>.stride, index: ScatterBuffer.passIdx.rawValue)
             enc.setBuffer(zeroBuf, offset: 0, index: ScatterBuffer.perTGStart.rawValue)
         }
@@ -709,6 +729,7 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         gc.gaussianSortedIndices = Array(repeating: keyBuf, count: maxInFlightCommandBuffers)
         gc.splatCount = UInt(n)
         gc.visibleSplatCountForRendering = UInt(n)
+        gc.gaussianVisibleCount = Array(repeating: makeVisibleSetBuffer(count: n), count: maxInFlightCommandBuffers)
 
         guard let queue = renderInfo.device.makeCommandQueue(),
               let cmd = queue.makeCommandBuffer()
@@ -765,6 +786,7 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         gc.gaussianSortedIndices = Array(repeating: keyBuf, count: maxInFlightCommandBuffers)
         gc.splatCount = UInt(n)
         gc.visibleSplatCountForRendering = UInt(n)
+        gc.gaussianVisibleCount = Array(repeating: makeVisibleSetBuffer(count: n), count: maxInFlightCommandBuffers)
 
         guard let queue = renderInfo.device.makeCommandQueue(),
               let cmd = queue.makeCommandBuffer()
@@ -817,6 +839,7 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         gc1.gaussianSortedIndices = Array(repeating: buf1, count: maxInFlightCommandBuffers)
         gc1.splatCount = UInt(n)
         gc1.visibleSplatCountForRendering = UInt(n)
+        gc1.gaussianVisibleCount = Array(repeating: makeVisibleSetBuffer(count: n), count: maxInFlightCommandBuffers)
 
         guard let queue = renderInfo.device.makeCommandQueue(),
               let cmd1 = queue.makeCommandBuffer()
@@ -898,12 +921,15 @@ final class DeviceRadixSortTest: BaseRenderSetup {
                 options: .storageModeShared
             ),
             let visibleCountBuf = renderInfo.device.makeBuffer(
-                length: MemoryLayout<UInt32>.stride,
+                length: MemoryLayout<GaussianVisibleSet>.stride,
                 options: .storageModeShared
             )
         else { XCTFail("Buffer allocation failed"); return }
 
-        visibleCountBuf.contents().storeBytes(of: UInt32(numSplats), as: UInt32.self)
+        visibleCountBuf.contents().storeBytes(
+            of: makeGaussianVisibleSet(visibleCount: UInt32(numSplats)),
+            as: GaussianVisibleSet.self
+        )
         gc.encodedSplatData = splatBuf
         gc.gaussianSortedIndices = Array(repeating: keyBuf, count: maxInFlightCommandBuffers)
         gc.gaussianVisibleIndices = Array(repeating: visibleIndexBuf, count: maxInFlightCommandBuffers)
@@ -978,6 +1004,7 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         gc.gaussianSortedIndices = Array(repeating: keyBuf, count: maxInFlightCommandBuffers)
         gc.splatCount = UInt(n)
         gc.visibleSplatCountForRendering = UInt(n)
+        gc.gaussianVisibleCount = Array(repeating: makeVisibleSetBuffer(count: n), count: maxInFlightCommandBuffers)
 
         guard let queue = renderInfo.device.makeCommandQueue(),
               let cmd = queue.makeCommandBuffer()

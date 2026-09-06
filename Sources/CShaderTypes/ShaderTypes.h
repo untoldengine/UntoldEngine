@@ -552,6 +552,33 @@ typedef enum{
     gaussianCullHZBDepthPyramidTextureIndex = 0,
 }GaussianCullTextureIndices;
 
+/// Threads per threadgroup for every pass that runs over the visible splat list (depth keys,
+/// preprocess, radix histogram and scatter). Fixed so the threadgroup count the GPU writes
+/// into GaussianVisibleSet matches what the CPU encodes as threadsPerThreadgroup.
+#define gaussianVisibleBlockSize 256
+
+/// Per-entity, per-in-flight-frame record of the splats that survived gaussianFrustumCull.
+/// The cull appends into visibleCount atomically; gaussianFinalizeVisibleSet then derives the
+/// indirect dispatch and draw arguments from it, so every later stage of the frame (depth
+/// keys, preprocess, radix sort, draw) is sized on the GPU from this frame's count. The CPU
+/// only ever sees this count through a completed-buffer readback two or three frames later,
+/// and a list that grew since then must not be cut to that older size.
+typedef struct{
+    uint32_t visibleCount;           // atomic_uint appended by gaussianFrustumCull
+    uint32_t threadgroupCount;       // ceil(visibleCount / gaussianVisibleBlockSize)
+    uint32_t _pad0[2];
+    uint32_t threadgroupsPerGrid[3]; // MTLDispatchThreadgroupsIndirectArguments
+    uint32_t _pad1;
+    uint32_t vertexCount;            // MTLDrawPrimitivesIndirectArguments: 4 (the splat quad)
+    uint32_t instanceCount;          //   visibleCount
+    uint32_t vertexStart;            //   0
+    uint32_t baseInstance;           //   0
+}GaussianVisibleSet;
+
+/// Byte offsets of the two indirect-argument blocks inside GaussianVisibleSet.
+#define gaussianVisibleSetDispatchArgumentsOffset 16
+#define gaussianVisibleSetDrawArgumentsOffset 32
+
 typedef struct{
     simd_float4 center;
     simd_float4 scale;
@@ -670,7 +697,7 @@ typedef enum{
 typedef enum{
     radixHistogramKeysIn    = 0,
     radixHistogramOutput    = 1,
-    radixHistogramNumElems  = 2,
+    radixHistogramVisibleSet = 2,  // GaussianVisibleSet: element count for this pass
     radixHistogramPassIndex = 3,
     radixHistogramPerTGOut  = 4,   // per-threadgroup local histogram output
 }RadixHistogramBufferIndices;
@@ -682,14 +709,14 @@ typedef enum{
 
 typedef enum{
     radixScanPerTGBuffer    = 0,   // in-place: local histogram → per-TG prefix sums
-    radixScanPerTGNumGroups = 1,
+    radixScanPerTGVisibleSet = 1,  // GaussianVisibleSet: threadgroup count for this pass
 }RadixScanPerTGBufferIndices;
 
 typedef enum{
     radixScatterKeysIn      = 0,
     radixScatterKeysOut     = 1,
     radixScatterOffsets     = 2,
-    radixScatterNumElems    = 3,
+    radixScatterVisibleSet  = 3,   // GaussianVisibleSet: element count for this pass
     radixScatterPassIdx     = 4,
     radixScatterPerTGStart  = 5,   // per-TG starting offsets per digit
 }RadixScatterBufferIndices;

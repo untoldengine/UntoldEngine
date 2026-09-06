@@ -61,7 +61,9 @@ For XR, a reduce-scan variant runs the test against both eyes simultaneously.
 
 ### 3b. Gaussian Frustum Culling → `executeGaussianFrustumCulling(commandBuffer)`
 
-For entities carrying a `GaussianComponent` (3D Gaussian splat data), a compute pass culls splats against the camera frustum before the more expensive depth and sort passes run on them.
+For entities carrying a `GaussianComponent` (3D Gaussian splat data), a compute pass culls splats against the camera frustum (and the previous frame's HZB) before the more expensive depth and sort passes run on them. Surviving splat indices are appended to a per-frame list with an atomic counter.
+
+That counter lives at the front of a `GaussianVisibleSet` record (`ShaderTypes.h`), one per entity per in-flight frame. A one-thread `gaussianFinalizeVisibleSet` dispatch in the same encoder turns the final count into indirect dispatch and draw arguments, and every later pass of the frame — preprocess, depth keys, radix sort and the splat draw — sizes itself from that record on the GPU. The CPU also reads the count back when the command buffer completes, but only for profiling and memory-budget accounting: with `maxInFlightCommandBuffers` frames overlapping, that readback is two or three frames old, and sizing the passes from it used to cut the tail of a visible list that had grown since (a hole that followed the camera and closed once it stood still).
 
 ### 3c. Gaussian Depth → `executeGaussianDepth(commandBuffer)`
 
