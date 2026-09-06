@@ -232,6 +232,23 @@ class UntoldExplorerTests(unittest.TestCase):
         self.assertEqual(u.pack_normal((0.0, 0.0, 0.0)), u.pack_normal((0.0, 0.0, 1.0)))
         self.assertEqual(u.pack_tangent((0.0, 0.0, 0.0), -1.0), u.pack_tangent((1.0, 0.0, 0.0), -1.0))
 
+    def test_unique_pack_model_dir_name_disambiguates_sanitize_collisions(self) -> None:
+        used_names: set[str] = set()
+
+        first = u.unique_pack_model_dir_name("Chair.1", used_names)
+        second = u.unique_pack_model_dir_name("Chair 1", used_names)
+        third = u.unique_pack_model_dir_name("???", used_names)
+        fourth = u.unique_pack_model_dir_name("!!!", used_names)
+
+        # "Chair.1" and "Chair 1" both sanitize down to "Chair_1"; "???" and "!!!"
+        # both fall back to "model". Without disambiguation the second write of
+        # each pair would land in the first's folder and overwrite its .untold.
+        self.assertEqual(first, "Chair_1")
+        self.assertNotEqual(second, first)
+        self.assertEqual(third, "model")
+        self.assertNotEqual(fourth, third)
+        self.assertEqual(len({first, second, third, fourth}), 4)
+
     def test_binary_writer_alignment_and_string_table_dedup(self) -> None:
         writer = u.BinaryWriter()
         writer.write_u8(7)

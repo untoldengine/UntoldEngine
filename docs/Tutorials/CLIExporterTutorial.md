@@ -137,12 +137,12 @@ export so the imported result matches what you see in Blender.
 
 ## Export Animation Clips
 
-Export animation-only `.untold` files with `--animation`:
+Export animation-only `.untoldanim` files with `--animation`:
 
 ```bash
 untoldengine export \
   --input /path/to/running.usdz \
-  --output ~/Projects/MyGame/Sources/MyGame/GameData/Animations/running/running.untold \
+  --output ~/Projects/MyGame/Sources/MyGame/GameData/Animations/running/running.untoldanim \
   --convert-orientation \
   --animation
 ```
@@ -150,8 +150,8 @@ untoldengine export \
 Register clips on the loaded character:
 
 ```swift
-setEntityAnimations(entityId: character, filename: "idle", withExtension: "untold", name: "idle")
-setEntityAnimations(entityId: character, filename: "running", withExtension: "untold", name: "running")
+setEntityAnimations(entityId: character, filename: "idle", withExtension: "untoldanim", name: "idle")
+setEntityAnimations(entityId: character, filename: "running", withExtension: "untoldanim", name: "running")
 changeAnimation(entityId: character, name: "idle")
 ```
 

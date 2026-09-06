@@ -380,7 +380,7 @@ private func animationURLs(for entityData: EntityData) -> [URL] {
         return animationAssets.compactMap { resolvedSceneAssetURL($0) }
     }
 
-    return entityData.animations.filter { $0.pathExtension.lowercased() == "untold" }
+    return entityData.animations.filter { ["untold", "untoldanim"].contains($0.pathExtension.lowercased()) }
 }
 
 private func applyDeserializedAnimations(entityId: EntityID, entityData: EntityData) {

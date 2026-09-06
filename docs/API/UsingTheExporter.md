@@ -73,7 +73,7 @@ untoldengine export \
 Common options:
 
 - `--input <path>`: required source `.usd`, `.usda`, `.usdc`, `.usdz`, or `.blend`
-- `--output <path>`: required destination `.untold`
+- `--output <path>`: required destination `.untold` (or `.untoldanim` with `--animation`)
 - `--file-type <tile|lod|hlod|shared|animation>`: optional, defaults to `tile`
 - `--mesh-name <name>`: optional, export only one mesh from a multi-mesh asset
 - `--convert-orientation`: optional, convert the export into engine space
@@ -82,7 +82,7 @@ Common options:
 - `--compress-geometry`: optional, LZ4-compress vertex and index chunks (requires `pip install lz4`)
 - `--optimize`: optional, compress geometry and bake/patch textures after export (implies `--compress-geometry`)
 - `--color-grade-lut <path>`: optional, stage an externally-authored standard `.cube` 3D LUT and apply it as a post-tonemap creative grade — composes with (does not replace) the default tonemap. No Blender render, no conversion. See [Using Color Management](UsingColorManagement.md)
-- `--animation`: optional, export animation clips only — no mesh geometry is written
+- `--animation`: optional, export animation clips only — no mesh geometry is written; requires a `.untoldanim` `--output` path
 - `--blender <path>`: optional Blender executable override
 
 Example using absolute paths and geometry compression:

@@ -1232,6 +1232,37 @@ private func loadAndInstallColorGradeLUT(
     }
 }
 
+/// Splits `filename` and an optional explicit `withExtension` into the resource name
+/// and extension actually used to resolve an asset.
+///
+/// When `withExtension` is given, `filename` is returned untouched -- this preserves
+/// every existing two-argument call site's exact behavior, including ones whose
+/// resource name happens to contain a dot (e.g. "level.01"). Only when
+/// `withExtension` is nil is an extension parsed off the end of `filename` itself
+/// (e.g. "model.untold" -> ("model", "untold")), so callers can fold the extension
+/// into a single path string instead of passing it separately. Pure string
+/// splitting (NSString.pathExtension/.deletingPathExtension), not URL(fileURLWithPath:)
+/// -- the latter silently absolutizes a bare relative name against the current
+/// working directory, which would break LoadingSystem's own bare-name-vs-absolute-path
+/// branch.
+///
+/// `fallbackExtension` covers call sites (like setColorGradeLUT) that historically
+/// defaulted to a fixed extension when none was given at all.
+private func resolveAssetFilenameExtension(
+    _ filename: String,
+    _ withExtension: String?,
+    fallbackExtension: String = ""
+) -> (filename: String, withExtension: String) {
+    if let withExtension {
+        return (filename, withExtension)
+    }
+    let embeddedExtension = (filename as NSString).pathExtension
+    guard !embeddedExtension.isEmpty else {
+        return (filename, fallbackExtension)
+    }
+    return ((filename as NSString).deletingPathExtension, embeddedExtension)
+}
+
 /// Loads a standalone .cube color-grade LUT and applies it immediately, fully
 /// independent of any scene/manifest -- unlike the colorGradeLUT reference
 /// installed by loadSceneAuthored, this can point at any .cube file (hand
@@ -1242,7 +1273,11 @@ private func loadAndInstallColorGradeLUT(
 /// LoadingSystem.getResourceURL): a bare name searches the standard
 /// structured folders (a new "LUT" folder alongside Models/Textures/etc.),
 /// while an absolute path is used directly.
-public func setColorGradeLUT(filename: String, withExtension: String = "cube") {
+///
+/// `withExtension` may be omitted if `filename` already carries the extension
+/// (e.g. "grade.cube"); it otherwise defaults to "cube" as before.
+public func setColorGradeLUT(filename: String, withExtension: String? = nil) {
+    let (filename, withExtension) = resolveAssetFilenameExtension(filename, withExtension, fallbackExtension: "cube")
     guard let url = LoadingSystem.shared.resourceURL(
         forResource: filename,
         withExtension: withExtension,
@@ -1374,9 +1409,10 @@ private func registerUntoldCamera(_ camera: RuntimeCameraSource) {
 public func setEntityMesh(
     entityId: EntityID,
     filename: String,
-    withExtension: String,
+    withExtension: String? = nil,
     assetName: String? = nil
 ) {
+    let (filename, withExtension) = resolveAssetFilenameExtension(filename, withExtension)
     guard let url = LoadingSystem.shared.resourceURL(
         forResource: filename,
         withExtension: withExtension,
@@ -1418,7 +1454,7 @@ public func setEntityMesh(
 public func setEntityMeshAsync(
     entityId: EntityID,
     filename: String,
-    withExtension: String,
+    withExtension: String? = nil,
     assetName: String? = nil,
     flip _: Bool = true,
     coordinateConversion _: CoordinateSystemConversion = .autoDetect,
@@ -1426,6 +1462,7 @@ public func setEntityMeshAsync(
     blockRenderLoop: Bool = true,
     completion: ((Bool) -> Void)? = nil
 ) {
+    let (filename, withExtension) = resolveAssetFilenameExtension(filename, withExtension)
     let completionBox = completion.map { BoolCompletionBox(callback: $0) }
 
     Task {
@@ -1452,6 +1489,34 @@ public func setEntityMeshAsync(
             }
             await AssetLoadingState.shared.finishLoading(entityId: entityId)
             completionBox?.call(false)
+            return
+        }
+
+        // .untoldanim is a byte-identical .untold container, but the file has no
+        // renderable primitives (see scripts/untoldexplorer.py's --animation export
+        // mode) -- loading it as a mesh here would just produce an empty entity.
+        // Fail clearly and point at the dedicated animation entry point instead.
+        if url.pathExtension.lowercased() == "untoldanim" {
+            handleError(.assetIsAnimationOnly, filename)
+            withWorldMutationGate {
+                loadFallbackMesh(entityId: entityId, filename: filename)
+            }
+            await AssetLoadingState.shared.finishLoading(entityId: entityId)
+            completionBox?.call(false)
+            return
+        }
+
+        // A .untoldpack is not a single mesh -- it's a manifest referencing several
+        // models, each with its own placement (see scripts/untoldexplorer.py). Route
+        // it through the same entry point as .untold so callers never have to know
+        // ahead of time whether a given asset is one model or many.
+        if url.pathExtension.lowercased() == "untoldpack" {
+            loadEntityFromPack(entityId: entityId, packURL: url) { success in
+                Task {
+                    await AssetLoadingState.shared.finishLoading(entityId: entityId)
+                    completionBox?.call(success)
+                }
+            }
             return
         }
 
@@ -1562,9 +1627,10 @@ public func setEntityMeshAsync(
 /// them to the mesh entity's transform.
 public func loadSceneAuthored(
     filename: String,
-    withExtension ext: String,
+    withExtension ext: String? = nil,
     completion: (@Sendable (Bool) -> Void)? = nil
 ) {
+    let (filename, ext) = resolveAssetFilenameExtension(filename, ext)
     Task {
         guard let url = LoadingSystem.shared.resourceURL(
             forResource: filename, withExtension: ext, subResource: nil
@@ -2103,6 +2169,280 @@ private func decodeMatrix4x4Rows(
         simd_float4(rows[0][2], rows[1][2], rows[2][2], rows[3][2]),
         simd_float4(rows[0][3], rows[1][3], rows[2][3], rows[3][3])
     )
+}
+
+// MARK: - Untold Pack Manifest (multi-model .blend exports)
+
+/// One model referenced by a `.untoldpack` manifest: a self-contained `.untold`
+/// file (see scripts/untoldexplorer.py) plus the placement it had in the source
+/// Blender scene, relative to the manifest's own directory.
+public struct UntoldPackModelEntry: Decodable {
+    public let displayName: String?
+    public let path: String
+    public let transform: simd_float4x4
+
+    enum CodingKeys: String, CodingKey {
+        case displayName
+        case path
+        case transform
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        displayName = try container.decodeIfPresent(String.self, forKey: .displayName)
+        path = try container.decode(String.self, forKey: .path)
+        let rows = try container.decodeIfPresent([[Float]].self, forKey: .transform)
+        transform = decodeMatrix4x4Rows(rows)
+    }
+}
+
+/// Decoded contents of a `.untoldpack` manifest: written by the exporter whenever a
+/// source Blender scene contains more than one independent model, so each model stays
+/// its own reusable `.untold` file instead of being fused into a single asset.
+public struct UntoldPackData: Decodable {
+    public let formatVersion: Int
+    public let sourceAsset: String?
+    public let models: [UntoldPackModelEntry]
+}
+
+/// Reads and decodes a `.untoldpack` manifest from a local file URL.
+public func loadUntoldPack(url: URL) -> UntoldPackData? {
+    guard let data = try? Data(contentsOf: url) else {
+        Logger.logWarning(message: "[loadUntoldPack] Could not read file: \(url.lastPathComponent)")
+        return nil
+    }
+    guard let pack = try? JSONDecoder().decode(UntoldPackData.self, from: data) else {
+        Logger.logWarning(message: "[loadUntoldPack] Could not decode pack manifest: \(url.lastPathComponent)")
+        return nil
+    }
+    return pack
+}
+
+private func decomposeTRS(_ matrix: simd_float4x4) -> (position: simd_float3, rotation: simd_quatf, scale: simd_float3) {
+    let position = simd_make_float3(matrix.columns.3)
+    var col0 = simd_make_float3(matrix.columns.0)
+    let col1 = simd_make_float3(matrix.columns.1)
+    let col2 = simd_make_float3(matrix.columns.2)
+    var scale = simd_float3(simd_length(col0), simd_length(col1), simd_length(col2))
+
+    // Column length alone can't represent a mirrored/reflected transform (e.g. a
+    // Blender object with a negative scale axis) since length is always positive
+    // -- a plain decompose silently turns the mirror into an ordinary positive
+    // scale. A negative determinant is the tell; fold the reflection into the X
+    // scale (and its basis column) so what's left for the rotation matrix below
+    // is a proper (determinant +1) rotation.
+    let determinant = simd_dot(col0, simd_cross(col1, col2))
+    if determinant < 0 {
+        scale.x = -scale.x
+        col0 = -col0
+    }
+
+    let rotationMatrix = simd_float3x3(
+        scale.x != 0 ? col0 / abs(scale.x) : simd_float3(1, 0, 0),
+        scale.y > 0 ? col1 / scale.y : simd_float3(0, 1, 0),
+        scale.z > 0 ? col2 / scale.z : simd_float3(0, 0, 1)
+    )
+    let rotation = simd_normalize(simd_quatf(rotationMatrix))
+    return (position, rotation, scale)
+}
+
+/// Reads a `.untoldpack` manifest and writes a brand-new `.untoldscene` seeded with
+/// one entity per model, each referencing its own `.untold` file and placed using
+/// the manifest's per-model transform.
+///
+/// This is a one-time conversion, not a live link. The resulting `.untoldscene`
+/// is a normal, freely-editable scene file from this point on: re-running the
+/// exporter regenerates the pack and its `.untold` models but never touches
+/// scenes already created from it. This is what keeps `.untoldpack` (exporter-owned,
+/// regenerated every export) and `.untoldscene` (editor-owned, hand-edited) from
+/// fighting over the same file, which is what mixing them into one format used to do.
+@discardableResult
+public func createUntoldScene(fromPackAt packURL: URL, savingTo sceneURL: URL) -> Bool {
+    guard assetBasePath != nil else {
+        Logger.log(message: "❌ createUntoldScene: assetBasePath is not configured. Call setupAssetPaths() first.")
+        return false
+    }
+    guard let pack = loadUntoldPack(url: packURL) else {
+        return false
+    }
+
+    let packDir = packURL.deletingLastPathComponent()
+    var sceneData = SceneData()
+    for model in pack.models {
+        let modelURL = packDir.appendingPathComponent(model.path)
+        let displayName = model.displayName ?? modelURL.deletingPathExtension().lastPathComponent
+
+        var entity = EntityData()
+        entity.name = displayName
+        entity.assetName = displayName
+        entity.hasLocalTransformComponent = true
+        entity.hasRenderingComponent = true
+        entity.assetURL = modelURL
+        entity.asset = sceneAssetReference(kind: .model, url: modelURL, displayName: displayName)
+
+        let (position, rotation, scale) = decomposeTRS(model.transform)
+        entity.position = position
+        entity.rotation = simd_float4(rotation.vector)
+        entity.scale = scale
+
+        sceneData.entities.append(entity)
+    }
+
+    guard let encoded = try? JSONEncoder().encode(sceneData) else {
+        Logger.logWarning(message: "[createUntoldScene] Failed to encode scene for pack: \(packURL.lastPathComponent)")
+        return false
+    }
+
+    do {
+        try encoded.write(to: sceneURL, options: .atomic)
+        return true
+    } catch {
+        Logger.logWarning(message: "[createUntoldScene] Failed to write scene file \(sceneURL.lastPathComponent): \(error.localizedDescription)")
+        return false
+    }
+}
+
+/// Drives loadEntityFromPack's model loads through a bounded concurrency window
+/// instead of firing every model's setEntityMeshAsync at once.
+///
+/// setEntityMeshAsync's Task body eventually takes withWorldMutationGate's
+/// thread-blocking NSRecursiveLock (see AssetLoadingState.swift). Swift's
+/// cooperative thread pool has a fixed size; firing dozens of these Tasks
+/// simultaneously can leave every pool thread parked on that lock with none
+/// free to run the continuation that would release it -- a genuine deadlock,
+/// reproducible even with plain setEntityMeshAsync calls in a tight loop,
+/// independent of anything pack-specific. Keeping at most `maxConcurrentLoads`
+/// in flight at a time keeps this entry point far under that ceiling without
+/// having to change the shared locking primitive itself.
+private final class PackLoadDispatcher: @unchecked Sendable {
+    private let lock = NSLock()
+    private let models: [UntoldPackModelEntry]
+    private let packDir: URL
+    private let rootEntityId: EntityID
+    private let completionBox: BoolCompletionBox?
+    private var nextIndex = 0
+    private var remaining: Int
+    private var overallSuccess = true
+
+    private static let maxConcurrentLoads = 8
+
+    init(models: [UntoldPackModelEntry], packDir: URL, rootEntityId: EntityID, completionBox: BoolCompletionBox?) {
+        self.models = models
+        self.packDir = packDir
+        self.rootEntityId = rootEntityId
+        self.completionBox = completionBox
+        remaining = models.count
+    }
+
+    func start() {
+        let initialCount = min(Self.maxConcurrentLoads, models.count)
+        for _ in 0 ..< initialCount {
+            startNext()
+        }
+    }
+
+    private func startNext() {
+        lock.lock()
+        let index = nextIndex
+        guard index < models.count else {
+            lock.unlock()
+            return
+        }
+        nextIndex += 1
+        lock.unlock()
+
+        let model = models[index]
+        let modelURL = packDir.appendingPathComponent(model.path)
+        let displayName = model.displayName ?? modelURL.deletingPathExtension().lastPathComponent
+        let modelPath = modelURL.deletingPathExtension().path
+        let withExtension = modelURL.pathExtension
+        let (position, rotation, scale) = decomposeTRS(model.transform)
+        let rootEntityId = rootEntityId
+
+        withWorldMutationGate {
+            let childId = createEntity()
+            registerTransformComponent(entityId: childId)
+            registerSceneGraphComponent(entityId: childId)
+            setEntityName(entityId: childId, name: displayName)
+            setParent(childId: childId, parentId: rootEntityId)
+
+            setEntityMeshAsync(entityId: childId, filename: modelPath, withExtension: withExtension) { success in
+                withWorldMutationGate {
+                    translateTo(entityId: childId, position: position)
+                    scaleTo(entityId: childId, scale: scale)
+                    rotateTo(entityId: childId, rotation: rotation)
+                    // Single-node .untold assets rename the entity to the mesh's own internal
+                    // node name on load (see registerUntoldRuntimeAsset), which would otherwise
+                    // stomp the pack's displayName -- most visibly when two pack entries share
+                    // the same underlying .untold (e.g. an instanced prop), which would
+                    // otherwise leave both children with identical, non-descriptive names.
+                    // Failed child loads also keep this placement so fallback cubes mark the
+                    // broken pack model's intended location.
+                    setEntityName(entityId: childId, name: displayName)
+                }
+                self.recordCompletionAndAdvance(success)
+            }
+        }
+    }
+
+    private func recordCompletionAndAdvance(_ success: Bool) {
+        lock.lock()
+        overallSuccess = overallSuccess && success
+        remaining -= 1
+        let isDone = remaining <= 0
+        let result = overallSuccess
+        lock.unlock()
+
+        if isDone {
+            completionBox?.call(result)
+        } else {
+            startNext()
+        }
+    }
+}
+
+/// Loads every model referenced by a `.untoldpack` manifest as a child entity under
+/// `rootEntityId`, placed using each model's manifest transform. Called from
+/// `setEntityMeshAsync` when it resolves a `.untoldpack` path, so callers never have
+/// to know ahead of time whether a given asset is one model (`.untold`) or many
+/// (`.untoldpack`) -- both load through the same entry point.
+///
+/// This is the live, in-scene counterpart to `createUntoldScene(fromPackAt:savingTo:)`,
+/// which instead seeds a new `.untoldscene` file for later editing rather than
+/// populating the running world directly.
+///
+/// Models load through a bounded concurrency window (see `PackLoadDispatcher`) rather
+/// than all at once, since firing dozens of simultaneous loads can exhaust Swift's
+/// cooperative thread pool against `setEntityMeshAsync`'s internal locking.
+private func loadEntityFromPack(
+    entityId rootEntityId: EntityID,
+    packURL: URL,
+    completion: (@Sendable (Bool) -> Void)? = nil
+) {
+    let completionBox = completion.map { BoolCompletionBox(callback: $0) }
+
+    guard let pack = loadUntoldPack(url: packURL) else {
+        completionBox?.call(false)
+        return
+    }
+
+    withWorldMutationGate {
+        if hasComponent(entityId: rootEntityId, componentType: LocalTransformComponent.self) == false {
+            registerTransformComponent(entityId: rootEntityId)
+        }
+        if hasComponent(entityId: rootEntityId, componentType: ScenegraphComponent.self) == false {
+            registerSceneGraphComponent(entityId: rootEntityId)
+        }
+    }
+
+    guard pack.models.isEmpty == false else {
+        completionBox?.call(true)
+        return
+    }
+
+    let packDir = packURL.deletingLastPathComponent()
+    let dispatcher = PackLoadDispatcher(models: pack.models, packDir: packDir, rootEntityId: rootEntityId, completionBox: completionBox)
+    dispatcher.start()
 }
 
 private func registerManifestScenePayload(_ manifest: TileManifest) {
@@ -2925,7 +3265,8 @@ func removeEntityMesh(entityId: EntityID) {
     }
 }
 
-public func setEntityAnimations(entityId: EntityID, filename: String, withExtension: String, name: String) {
+public func setEntityAnimations(entityId: EntityID, filename: String, withExtension: String? = nil, name: String) {
+    let (filename, withExtension) = resolveAssetFilenameExtension(filename, withExtension)
     let targetEntityIds = resolveAnimationBindingTargetEntities(entityId: entityId)
     guard targetEntityIds.contains(where: { scene.get(component: SkeletonComponent.self, for: $0) != nil }) else {
         handleError(.noSkeletonComponent, entityId)
@@ -3809,7 +4150,8 @@ public enum GaussianSource {
 
 public typealias GaussianStreamingSource = GaussianSource
 
-public func setEntityGaussian(entityId: EntityID, filename: String, withExtension: String) {
+public func setEntityGaussian(entityId: EntityID, filename: String, withExtension: String? = nil) {
+    let (filename, withExtension) = resolveAssetFilenameExtension(filename, withExtension)
     guard let result = buildGaussianLoadResult(filename: filename, withExtension: withExtension) else {
         return
     }

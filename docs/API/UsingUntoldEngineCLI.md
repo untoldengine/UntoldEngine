@@ -130,7 +130,7 @@ and installs the `Pillow`/`lz4` Python packages, so `untoldengine export
 ## Exporting Assets
 
 Run the exporter from the game project or any other directory. Input can be a
-USD/USDZ asset or a `.blend` file:
+USD/USDZ asset, a `.blend` file, or a Gaussian `.ply` splat capture:
 
 ```bash
 untoldengine export \
@@ -147,6 +147,76 @@ followed by `untoldengine texbake --dir` and `--patch-refs`. See
 
 Use `--blender /path/to/Blender` when Blender is not installed in its standard
 macOS location and is not available on `PATH`.
+
+### Multi-model `.blend` scenes → `.untoldpack`
+
+If the source `.blend` scene contains more than one independent model (more
+than one object with no parent among the exported objects), the exporter
+writes a `<name>.untoldpack` manifest next to `--output` instead of a single
+`.untold` file, plus one self-contained `.untold` per model under its own
+subfolder:
+
+```bash
+untoldengine export \
+  --input warehouse.blend \
+  --output warehouse.untold \
+  --convert-orientation --optimize
+# → warehouse.untoldpack, Shelf/Shelf.untold, Forklift/Forklift.untold, ...
+```
+
+`--optimize` bakes textures for every model in the pack. Load the result with
+`setEntityMeshAsync(entityId:filename:withExtension:)` using `"untoldpack"` —
+the engine loads a pack the same way it loads a single `.untold`, placing
+each model as a child entity. See [Using the Registration
+System](UsingRegistrationSystem.md).
+
+Re-exporting the same `--output` path after the scene's model count changes
+(single ↔ multiple) automatically removes the previous run's now-stale
+`.untold`/`.untoldpack` output, and any model subfolders a shrunk pack no
+longer references, so a caller never picks up a leftover file from an older
+export by accident.
+
+### Animation-only exports → `.untoldanim`
+
+`--animation` exports clip data only (no mesh geometry) and requires a
+`.untoldanim` `--output` path:
+
+```bash
+untoldengine export \
+  --input running.usdz \
+  --output running.untoldanim \
+  --convert-orientation --animation
+```
+
+`.untoldanim` is a plain `.untold` container under the hood, named distinctly
+so it's never mistaken for a mesh — `setEntityMeshAsync` rejects it; load it
+with `setEntityAnimations(entityId:filename:withExtension:name:)` instead.
+
+### Gaussian splats → `.untoldgs`
+
+Gaussian `.ply` inputs skip Blender entirely and export straight to
+`.untoldgs`:
+
+```bash
+# Single tier
+untoldengine export --input splats.ply --output splats.untoldgs
+
+# Progressive LOD tiers (splats_lod0.untoldgs, splats_lod1.untoldgs, ...)
+untoldengine export --input splats.ply --output splats.untoldgs --lod-levels 4
+```
+
+### Other export flags
+
+| Flag | Description |
+|---|---|
+| `--mesh-name <name>` | Export only one mesh from a multi-mesh asset |
+| `--file-type <tile\|lod\|hlod\|shared\|animation>` | Untold file type (default `tile`) |
+| `--source-orientation <blender-native\|engine-oriented>` | Input orientation |
+| `--compress-geometry` | LZ4-compress vertex/index chunks |
+| `--validate` | Write a companion validation JSON file |
+| `--color-grade-lut <path>` | Stage an externally-authored `.cube` 3D LUT and apply it as a post-tonemap creative grade (no Blender render, no conversion) — see [Using Color Management](UsingColorManagement.md) |
+
+Run `untoldengine export --help` for the full, current flag list.
 
 ---
 

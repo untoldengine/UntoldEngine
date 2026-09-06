@@ -44,6 +44,14 @@ This function:
 - Registers default components like RenderComponent and TransformComponent.
 - Calls the completion handler when the mesh has been registered.
 
+`withExtension` is optional — fold the extension into `filename` instead if you prefer:
+
+```swift
+setEntityMeshAsync(entityId: entity, filename: "model.untold") { success in ... }
+```
+
+Passing `withExtension` explicitly (as above) still works exactly as before and takes priority if both are given; this applies to every `filename`/`withExtension` pair in the engine (`setEntityMesh`, `setEntityMeshAsync`, `setEntityAnimations`, `setEntityGaussian`, `loadSceneAuthored`, `setColorGradeLUT`).
+
 For immediate loading, use:
 
 ```swift

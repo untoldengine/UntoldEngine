@@ -50,13 +50,24 @@ public func getResourceURL(resourceName: String, ext: String, subName: String?) 
         let expandedPath = NSString(string: resourceName).expandingTildeInPath
         let absoluteURL = URL(fileURLWithPath: expandedPath)
 
-        // If extension is provided in the path, use it directly
-        if fm.fileExists(atPath: absoluteURL.path) {
+        // If extension is provided in the path, use it directly -- but only when it's
+        // actually a file. A same-named directory can legitimately sit beside it (e.g.
+        // a stale per-model subfolder from an older .untoldpack export at this same
+        // base name), and fileExists(atPath:) alone can't tell the two apart, so an
+        // ext-less lookup would silently resolve to the directory and never even try
+        // the extension the caller actually asked for.
+        var isDirectory: ObjCBool = false
+        if fm.fileExists(atPath: absoluteURL.path, isDirectory: &isDirectory), !isDirectory.boolValue {
             return absoluteURL
         }
 
-        // Otherwise, try appending the extension
-        let urlWithExt = absoluteURL.appendingPathExtension(ext)
+        // Otherwise, try appending the extension. Built from the path string rather
+        // than absoluteURL.appendingPathExtension(ext) -- URL(fileURLWithPath:) stats
+        // the filesystem to set hasDirectoryPath when the bare path exists (as it does
+        // here, since absoluteURL just failed the file check above by being a
+        // directory), and appendingPathExtension would carry that stale directory
+        // flag onto a URL that actually names a regular file.
+        let urlWithExt = URL(fileURLWithPath: "\(absoluteURL.path).\(ext)")
         if fm.fileExists(atPath: urlWithExt.path) {
             return urlWithExt
         }

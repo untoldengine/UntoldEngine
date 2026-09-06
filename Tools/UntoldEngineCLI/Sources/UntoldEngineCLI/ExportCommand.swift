@@ -33,9 +33,22 @@ struct ExportCommand: ParsableCommand {
         spherical-harmonics degree and chunk size. Values that start with a
         minus sign must use the --option=value form.
 
+        --animation exports clip data only (no mesh) to a `.untoldanim` file --
+        a plain `.untold` container under the hood, but named distinctly so it's
+        never mistaken for a mesh (setEntityMeshAsync rejects it; use
+        setEntityAnimations instead).
+
+        If the source .blend scene contains more than one independent model
+        (more than one object with no parent among the exported objects), the
+        exporter writes a <name>.untoldpack manifest next to --output instead
+        of a single .untold file, plus one self-contained .untold per model
+        under its own subfolder. --optimize bakes textures for every model
+        in the pack.
+
         Example:
           untoldengine export --input model.usdz --output model.untold --convert-orientation --optimize
           untoldengine export --input model.blend --output model.untold --convert-orientation --optimize
+          untoldengine export --input model.blend --output walk.untoldanim --animation
           untoldengine export --input splats.ply --output splats.untoldgs
           untoldengine export --input splats.ply --output splats.untoldgs --lod-levels 4
           untoldengine export --input sofa.ply --output sofa.untoldgs --splat-up-axis z \\
@@ -46,7 +59,7 @@ struct ExportCommand: ParsableCommand {
     @Option(name: .long, help: "Source .usd, .usda, .usdc, .usdz, .blend, or Gaussian .ply asset")
     var input: String
 
-    @Option(name: .long, help: "Destination .untold or .untoldgs file")
+    @Option(name: .long, help: "Destination .untold, .untoldanim (with --animation), or .untoldgs file")
     var output: String
 
     @Option(name: .long, help: "Override the Blender executable path")
@@ -70,7 +83,7 @@ struct ExportCommand: ParsableCommand {
     @Flag(name: .long, help: "LZ4-compress vertex and index chunks")
     var compressGeometry = false
 
-    @Flag(name: .long, help: "Export animation clips without mesh geometry")
+    @Flag(name: .long, help: "Export animation clips without mesh geometry; requires a .untoldanim --output path")
     var animation = false
 
     @Flag(name: .long, help: "Compress geometry and bake/patch textures after export (implies --compress-geometry)")
@@ -140,6 +153,12 @@ struct ExportCommand: ParsableCommand {
             return
         }
 
+        if animation {
+            guard outputURL.pathExtension.lowercased() == "untoldanim" else {
+                throw ExportError.unsupportedAnimationExportOutput(outputURL.pathExtension)
+            }
+        }
+
         let blenderURL = try resolveBlender()
         let exporterURL = try resolveExporter()
 
@@ -165,6 +184,17 @@ struct ExportCommand: ParsableCommand {
         printInfo("Using Blender: \(blenderURL.path)")
         printInfo("Exporting \(inputURL.path)")
 
+        // If the source scene contained more than one independent model, the
+        // exporter writes a .untoldpack manifest plus one self-contained
+        // .untold per model under --output's directory instead of a single
+        // file at --output itself (see group_export_nodes_by_root in
+        // scripts/untoldexplorer.py). Snapshot both possible outputs' mtimes
+        // before running so we can tell which one THIS run actually wrote,
+        // rather than trusting file existence alone (see below).
+        let packURL = outputURL.deletingPathExtension().appendingPathExtension("untoldpack")
+        let outputMTimeBefore = modificationDate(at: outputURL)
+        let packMTimeBefore = modificationDate(at: packURL)
+
         let process = Process()
         process.executableURL = blenderURL
         process.arguments = [
@@ -186,11 +216,76 @@ struct ExportCommand: ParsableCommand {
         guard process.terminationStatus == 0 else {
             throw ExportError.exportFailed(process.terminationStatus)
         }
-        printSuccess("Exported: \(outputURL.path)")
 
-        if optimize {
-            try optimizeTextures(outputURL: outputURL)
+        // A file existing post-export isn't proof THIS run produced it: the
+        // exporter script the CLI just ran may predate the exporter-side stale
+        // cleanup (untoldengine export runs whatever copy `untoldengine install`
+        // last placed, not the live repo), which can leave last run's leftover
+        // pack/single-file artifact sitting beside this run's real output. Compare
+        // mtimes from before/after the process instead of just checking existence,
+        // so a leftover from an older export -- of either kind -- doesn't get
+        // mistaken for this run's output, or worse, cause this run's real output
+        // to be deleted as "stale".
+        let packWrittenThisRun = FileManager.default.fileExists(atPath: packURL.path)
+            && modificationDate(at: packURL) != packMTimeBefore
+        let outputWrittenThisRun = FileManager.default.fileExists(atPath: outputURL.path)
+            && modificationDate(at: outputURL) != outputMTimeBefore
+
+        if packWrittenThisRun {
+            guard let pack = loadUntoldPack(url: packURL) else {
+                throw ExportError.packManifestUnreadable(packURL.path)
+            }
+
+            // The exporter itself removes a stale single-file export when it detects
+            // a scene has moved from one model to several (see the cleanup after
+            // write_untoldpack_manifest() in scripts/untoldexplorer.py). This is a
+            // belt-and-suspenders repeat of that same check for an installed exporter
+            // that predates it -- only when outputURL wasn't written by this run,
+            // since a leftover from an older export is the only thing safe to remove.
+            if FileManager.default.fileExists(atPath: outputURL.path), !outputWrittenThisRun {
+                try? FileManager.default.removeItem(at: outputURL)
+                printInfo("Removed stale single-file export: \(outputURL.path)")
+            }
+
+            printSuccess("Exported pack: \(packURL.path) (\(pack.models.count) model(s))")
+            for model in pack.models {
+                printInfo("  \(model.displayName ?? model.path) -> \(model.path)")
+            }
+            if optimize {
+                for model in pack.models {
+                    let modelURL = packURL.deletingLastPathComponent().appendingPathComponent(model.path)
+                    try optimizeTextures(outputURL: modelURL)
+                }
+            }
+        } else {
+            // Mirror image of the above: an old pack manifest from a previous
+            // multi-model export at this stem may still be sitting here, left by
+            // an installed exporter that predates write_single_untold_from_nodes()'s
+            // own pack cleanup. Only clean it up when this run didn't touch it, so a
+            // caller still loading `withExtension: "untoldpack"` can't silently pick
+            // up a now-outdated model set.
+            if FileManager.default.fileExists(atPath: packURL.path), !packWrittenThisRun {
+                if let stalePack = loadUntoldPack(url: packURL) {
+                    for model in stalePack.models {
+                        let modelDir = packURL.deletingLastPathComponent()
+                            .appendingPathComponent(model.path)
+                            .deletingLastPathComponent()
+                        try? FileManager.default.removeItem(at: modelDir)
+                    }
+                }
+                try? FileManager.default.removeItem(at: packURL)
+                printInfo("Removed stale pack manifest: \(packURL.path)")
+            }
+
+            printSuccess("Exported: \(outputURL.path)")
+            if optimize {
+                try optimizeTextures(outputURL: outputURL)
+            }
         }
+    }
+
+    private func modificationDate(at url: URL) -> Date? {
+        (try? FileManager.default.attributesOfItem(atPath: url.path))?[.modificationDate] as? Date
     }
 
     private func runGaussianSplatExport(inputURL: URL, outputURL: URL, cookOptions: UntoldGSCookOptions) throws {
@@ -335,6 +430,8 @@ enum ExportError: LocalizedError {
     case splatCookFailed(String)
     case invalidSplatUpAxis(String)
     case invalidSplatFlag(String)
+    case packManifestUnreadable(String)
+    case unsupportedAnimationExportOutput(String)
 
     var errorDescription: String? {
         switch self {
@@ -359,6 +456,11 @@ enum ExportError: LocalizedError {
             return "--splat-up-axis must be y, z or -y, got \(value)"
         case let .invalidSplatFlag(reason):
             return reason
+        case let .packManifestUnreadable(path):
+            return "Exporter wrote a .untoldpack manifest but it could not be read back: \(path)"
+        case let .unsupportedAnimationExportOutput(pathExtension):
+            let suffix = pathExtension.isEmpty ? "<none>" : ".\(pathExtension)"
+            return "--animation export supports only .untoldanim output, got \(suffix)"
         }
     }
 }

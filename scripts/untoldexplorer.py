@@ -117,6 +117,11 @@ TEXTURE_CHANNEL_G = 1
 TEXTURE_CHANNEL_B = 2
 TEXTURE_CHANNEL_A = 3
 UNTOLD_EXPORT_TEMP_OBJECT_PROP = "_untold_export_temp_object"
+# Records the pre-split object's name on each single-material fragment produced by
+# split_blender_objects_by_material(), so multi-model .untoldpack grouping (see
+# group_export_nodes_by_root) can reunite fragments of one multi-material object
+# into a single model instead of treating each material fragment as its own model.
+UNTOLD_MATERIAL_SPLIT_SOURCE_PROP = "_untold_material_split_source"
 
 ProgressCallback = Callable[[str, int, int, str], None]
 
@@ -727,6 +732,10 @@ class ExportedNode:
     world_bounds: AABB
     skeleton: Optional[ExportedSkeleton] = None
     mesh: Optional[ExportedMesh] = None
+    # Name of the object this node was split from by split_blender_objects_by_material(),
+    # if any (see UNTOLD_MATERIAL_SPLIT_SOURCE_PROP). None for nodes that were never
+    # material-split.
+    material_split_root_name: Optional[str] = None
 
 
 @dataclass(frozen=True)
@@ -1013,7 +1022,31 @@ def bake_skeleton_to_world(skeleton: ExportedSkeleton, world_transform_rows: lis
     return replace(skeleton, joints=baked_joints)
 
 
+def pack_model_group_key(node: ExportedNode) -> str:
+    """The .untoldpack model identity a root node resolves to.
+
+    Ordinarily this is just the node's own entity_name. But a multi-material
+    object with no real Blender parent gets replaced by several parentless
+    material-split fragments (see split_blender_objects_by_material) that
+    aren't parented to each other, so plain parent-chain walking can't reunite
+    them -- material_split_root_name (the pre-split object's name) is used
+    instead so they still collapse into one pack model.
+    """
+    return node.material_split_root_name if node.material_split_root_name is not None else node.entity_name
+
+
 def normalize_export_nodes(nodes: list[ExportedNode]) -> list[ExportedNode]:
+    """Bake every node's mesh vertices into its export-set root's local space.
+
+    Each root's own local_transform_rows is folded into its (and its
+    descendants') baked vertex data, and reset to identity afterward. Callers
+    that need a model to be re-placeable after baking (e.g. a .untoldpack
+    model, one of several sharing one manifest) must zero the root's
+    local_transform_rows *before* calling this -- see zero_root_transform --
+    otherwise the root's absolute placement in the source scene ends up baked
+    into the geometry, and applying it again as an entity transform on load
+    doubles it up.
+    """
     if not nodes:
         return nodes
 
@@ -1105,6 +1138,22 @@ def normalize_export_nodes(nodes: list[ExportedNode]) -> list[ExportedNode]:
         )
 
     return normalized_nodes
+
+
+def zero_root_transform(nodes: list[ExportedNode]) -> list[ExportedNode]:
+    """Reset every root node's (parent_entity_name is None) local_transform_rows
+    to identity, leaving descendant transforms untouched.
+
+    Used before normalize_export_nodes() when building one .untoldpack model's
+    own .untold file, so that model's geometry gets baked relative to its own
+    root instead of the source scene's absolute world space -- the root's real
+    placement is carried separately in the manifest and applied once, at load
+    time, as that model's entity transform.
+    """
+    return [
+        replace(node, local_transform_rows=identity_matrix_rows()) if node.parent_entity_name is None else node
+        for node in nodes
+    ]
 
 
 def write_header(
@@ -4225,8 +4274,18 @@ def split_blender_objects_by_material(objects: list[object]) -> list[object]:
                     for p in new_mesh.polygons:
                         p.material_index = 0
                 new_obj = bpy.data.objects.new(f"{obj.name}_mat{mat_idx}", new_mesh)
+                # Preserve the source object's parent link (if any) so nodes that
+                # already sit under a real Blender hierarchy still group correctly;
+                # UNTOLD_MATERIAL_SPLIT_SOURCE_PROP below is what reunites fragments
+                # of a *parentless* multi-material object, which parent-chain
+                # walking alone can't do since these fragments aren't parented to
+                # each other.
+                new_obj.parent = obj.parent
+                if obj.parent is not None:
+                    new_obj.matrix_parent_inverse = obj.matrix_parent_inverse.copy()
                 new_obj.matrix_world = obj.matrix_world.copy()
                 new_obj[UNTOLD_EXPORT_TEMP_OBJECT_PROP] = True
+                new_obj[UNTOLD_MATERIAL_SPLIT_SOURCE_PROP] = obj.name
                 bpy.context.scene.collection.objects.link(new_obj)
                 result.append(new_obj)
             finally:
@@ -4414,10 +4473,11 @@ def extract_nodes_from_objects(
                 world_bounds=world_bounds,
                 skeleton=skeleton,
                 mesh=mesh,
+                material_split_root_name=obj.get(UNTOLD_MATERIAL_SPLIT_SOURCE_PROP),
             )
         )
 
-    return normalize_export_nodes(nodes)
+    return nodes
 
 
 def _blender_python_packages_dir() -> Path:
@@ -5085,6 +5145,8 @@ def export_animation_clips_to_untold(
     output_path: Path,
     progress_callback: Optional[ProgressCallback] = None,
 ) -> dict[str, object]:
+    if output_path.suffix.lower() != ".untoldanim":
+        raise RuntimeError(f"Animation export requires a .untoldanim output path, got: {output_path.suffix or '<none>'}")
     if progress_callback is not None:
         progress_callback("Build animation", 0, 1, output_path.name)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -5252,6 +5314,7 @@ def export_objects_to_untold(
         )
     finally:
         cleanup_temporary_export_objects(export_objects)
+    exported_nodes = normalize_export_nodes(exported_nodes)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     if clean_sidecars:
         clean_generated_sidecar_dirs(output_path)
@@ -5305,6 +5368,384 @@ def export_objects_to_untold(
     }
 
 
+UNTOLDPACK_FORMAT_VERSION = 1
+
+
+def group_export_nodes_by_root(nodes: list[ExportedNode]) -> dict[str, list[ExportedNode]]:
+    """Bucket nodes by the export-set root they descend from.
+
+    A root is any node with parent_entity_name is None. A .blend scene with
+    exactly one root is "one model" (current single-.untold behavior); more
+    than one root means the scene contains multiple independent models that
+    should become separate .untold files referenced by a .untoldpack
+    manifest, rather than being fused into a single file.
+
+    Uses pack_model_group_key() to resolve each root's identity so that
+    material-split fragments of one parentless multi-material object collapse
+    back into a single model instead of becoming separate ones.
+    """
+    nodes_by_name = {node.entity_name: node for node in nodes}
+
+    def find_root_name(name: str) -> str:
+        node = nodes_by_name[name]
+        while node.parent_entity_name is not None:
+            node = nodes_by_name[node.parent_entity_name]
+        return pack_model_group_key(node)
+
+    groups: dict[str, list[ExportedNode]] = {}
+    for node in nodes:
+        groups.setdefault(find_root_name(node.entity_name), []).append(node)
+    return groups
+
+
+def sanitize_pack_model_name(name: str) -> str:
+    safe = "".join(char if char.isalnum() or char in "_-" else "_" for char in name)
+    return safe.strip("_") or "model"
+
+
+def unique_pack_model_dir_name(root_name: str, used_names: set[str]) -> str:
+    """Sanitizes root_name for use as a pack model's subfolder, disambiguating
+    collisions from sanitize_pack_model_name() collapsing distinct root names
+    (e.g. "Chair.1" and "Chair 1", or two names that both sanitize down to the
+    "model" fallback) -- without this, the second model would silently write
+    into the first's folder and overwrite its .untold file.
+    """
+    candidate = sanitize_pack_model_name(root_name)
+    if candidate not in used_names:
+        used_names.add(candidate)
+        return candidate
+
+    fingerprint = hashlib.sha1(root_name.encode("utf-8")).hexdigest()[:8]
+    candidate = f"{sanitize_pack_model_name(root_name)}_{fingerprint}"
+    if candidate not in used_names:
+        used_names.add(candidate)
+        return candidate
+
+    counter = 1
+    while True:
+        candidate = f"{sanitize_pack_model_name(root_name)}_{fingerprint}_{counter}"
+        if candidate not in used_names:
+            used_names.add(candidate)
+            return candidate
+        counter += 1
+
+
+def write_untoldpack_manifest(
+    pack_path: Path,
+    source_asset_name: str,
+    models: list[dict[str, object]],
+) -> None:
+    pack_data = {
+        "formatVersion": UNTOLDPACK_FORMAT_VERSION,
+        "sourceAsset": source_asset_name,
+        "models": models,
+    }
+    pack_path.write_text(json.dumps(pack_data, indent=2), encoding="utf-8")
+
+
+def read_pack_model_dir_names(pack_path: Path) -> list[str]:
+    """Best-effort read of an existing .untoldpack manifest's per-model directory names.
+
+    Used only for stale-file cleanup bookkeeping when a re-export changes a scene's
+    model topology (see the two call sites in main()) -- a missing or unreadable
+    manifest just yields no names to clean up rather than failing the export.
+    """
+    if not pack_path.is_file():
+        return []
+    try:
+        pack_data = json.loads(pack_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+    dir_names = []
+    for model in pack_data.get("models", []):
+        path = model.get("path")
+        if path:
+            dir_names.append(Path(path).parent.name)
+    return dir_names
+
+
+def remove_pack_model_dirs(models_root: Path, dir_names: Iterable[str]) -> None:
+    """Delete the given per-model subfolders under models_root, if present."""
+    for dir_name in dir_names:
+        model_dir = models_root / dir_name
+        if model_dir.is_dir():
+            shutil.rmtree(model_dir)
+
+
+def write_single_untold_from_nodes(
+    exported_nodes: list[ExportedNode],
+    *,
+    exported_lights: list[ExportedLight],
+    exported_cameras: list[ExportedCamera],
+    output_path: Path,
+    file_type_name: str,
+    compress_geometry: bool,
+    color_grade_lut_path: Optional[Path],
+    validate: bool,
+    progress_callback: Optional[ProgressCallback],
+) -> dict[str, object]:
+    """Builds and writes a single `.untold` file from already-extracted nodes.
+
+    Shares its stale-artifact cleanup with write_untold_pack_from_groups() (see
+    export_objects_to_untold_or_pack) so both the CLI's `export` command and the
+    Blender add-on's "Export Untold Asset" operator behave identically when a
+    scene's model topology changes between runs at the same --output stem.
+    """
+    exported_nodes = normalize_export_nodes(exported_nodes)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    color_grade_lut: Optional[ColorGradeLUT] = None
+    if color_grade_lut_path is not None:
+        if progress_callback is not None:
+            progress_callback("Stage color grade LUT", 0, 1, color_grade_lut_path.name)
+        color_grade_lut = stage_color_grade_lut_for_output(color_grade_lut_path, output_path.parent)
+
+    exported_nodes = stage_nodes_for_output(exported_nodes, output_path, progress_callback=progress_callback)
+    untold_bytes = build_untold_file(
+        exported_nodes,
+        output_path,
+        file_type_name,
+        exported_lights=exported_lights,
+        exported_cameras=exported_cameras,
+        compress_geometry=compress_geometry,
+        color_grade_lut=color_grade_lut,
+        progress_callback=progress_callback,
+    )
+    if progress_callback is not None:
+        progress_callback("Write file", 0, 1, output_path.name)
+    output_path.write_bytes(untold_bytes)
+
+    exported_meshes = [node.mesh for node in exported_nodes if node.mesh is not None]
+
+    validation_path: Optional[Path] = None
+    if validate:
+        validation_path = write_validation_file(
+            output_path,
+            output_path.stem,
+            [mesh.validation_mesh for mesh in exported_meshes],
+        )
+
+    # A previous export at this same --output stem may have been a multi-model
+    # .untoldpack; it no longer is, so the old manifest and its per-model .untold
+    # subfolders are now stale. Removed only now that the new single .untold has
+    # written successfully, so a caller still loading `withExtension:
+    # "untoldpack"` can't silently pick up an outdated model set.
+    removed_stale_pack_path: Optional[Path] = None
+    pack_path = output_path.with_suffix(".untoldpack")
+    if pack_path.is_file():
+        remove_pack_model_dirs(output_path.parent, read_pack_model_dir_names(pack_path))
+        pack_path.unlink()
+        removed_stale_pack_path = pack_path
+
+    return {
+        "is_pack": False,
+        "output_path": output_path,
+        "validation_path": validation_path,
+        "bytes_written": len(untold_bytes),
+        "node_count": len(exported_nodes),
+        "mesh_count": len(exported_meshes),
+        "light_count": len(exported_lights),
+        "camera_count": len(exported_cameras),
+        "vertex_count": sum(mesh.vertex_count for mesh in exported_meshes),
+        "index_count": sum(mesh.index_count for mesh in exported_meshes),
+        "color_grade_lut_staged": color_grade_lut is not None,
+        "color_grade_lut_uri": color_grade_lut.uri if color_grade_lut is not None else None,
+        "removed_stale_pack_path": removed_stale_pack_path,
+    }
+
+
+def write_untold_pack_from_groups(
+    model_groups: dict[str, list[ExportedNode]],
+    *,
+    source_asset_name: str,
+    output_path: Path,
+    file_type_name: str,
+    compress_geometry: bool,
+    validate: bool,
+    progress_callback: Optional[ProgressCallback],
+) -> dict[str, object]:
+    """Builds and writes one self-contained `.untold` per model plus a
+    `.untoldpack` manifest referencing them, instead of fusing unrelated models
+    into one file. See write_single_untold_from_nodes() for the single-model
+    counterpart and its matching stale-artifact cleanup.
+    """
+    pack_path = output_path.with_suffix(".untoldpack")
+    # Captured before write_untoldpack_manifest() overwrites pack_path below, so
+    # any model directories from a previous pack export that the new manifest no
+    # longer references can be pruned as orphans once the new pack has written
+    # successfully (see the orphan cleanup below).
+    old_model_dir_names = read_pack_model_dir_names(pack_path)
+    new_model_dir_names: list[str] = []
+
+    manifest_models: list[dict[str, object]] = []
+    model_paths: list[Path] = []
+    total_meshes = 0
+    total_vertices = 0
+    total_indices = 0
+    total_bytes = 0
+    used_model_dir_names: set[str] = set()
+    for root_name, raw_group_nodes in model_groups.items():
+        # The root's own placement is captured here, from the un-baked node, and
+        # carried in the manifest instead of being baked into the geometry
+        # (zero_root_transform below) -- otherwise applying this same transform
+        # again as the model's entity transform on load would double it up.
+        original_root_transform = next(
+            node.local_transform_rows for node in raw_group_nodes if node.parent_entity_name is None
+        )
+        group_nodes = normalize_export_nodes(zero_root_transform(raw_group_nodes))
+
+        model_dir_name = unique_pack_model_dir_name(root_name, used_model_dir_names)
+        model_output_path = output_path.parent / model_dir_name / f"{model_dir_name}.untold"
+        model_output_path.parent.mkdir(parents=True, exist_ok=True)
+
+        staged_group_nodes = stage_nodes_for_output(group_nodes, model_output_path, progress_callback=progress_callback)
+        model_bytes = build_untold_file(
+            staged_group_nodes,
+            model_output_path,
+            file_type_name,
+            compress_geometry=compress_geometry,
+            progress_callback=progress_callback,
+        )
+        model_output_path.write_bytes(model_bytes)
+        group_meshes = [node.mesh for node in staged_group_nodes if node.mesh is not None]
+        total_meshes += len(group_meshes)
+        total_vertices += sum(mesh.vertex_count for mesh in group_meshes)
+        total_indices += sum(mesh.index_count for mesh in group_meshes)
+        total_bytes += len(model_bytes)
+        model_paths.append(model_output_path)
+
+        if validate:
+            write_validation_file(
+                model_output_path,
+                model_output_path.stem,
+                [mesh.validation_mesh for mesh in group_meshes],
+            )
+
+        manifest_models.append(
+            {
+                "displayName": root_name,
+                "path": f"{model_dir_name}/{model_dir_name}.untold",
+                "transform": original_root_transform,
+            }
+        )
+        new_model_dir_names.append(model_dir_name)
+
+    write_untoldpack_manifest(pack_path, source_asset_name, manifest_models)
+
+    # A previous export at this same --output stem may have been a single
+    # .untold; it no longer is, so the old file is now stale and would shadow
+    # the pack for a caller still loading it `withExtension: "untold"`. Only
+    # removed after the new pack has written successfully.
+    removed_stale_single_path: Optional[Path] = None
+    if output_path.is_file():
+        output_path.unlink()
+        removed_stale_single_path = output_path
+
+    # A previous pack export at this stem may have included models that no
+    # longer exist in the source scene (renamed/deleted objects) -- their
+    # subfolders are now orphaned since the new manifest doesn't reference them.
+    orphaned_dir_names = [name for name in old_model_dir_names if name not in new_model_dir_names]
+    if orphaned_dir_names:
+        remove_pack_model_dirs(output_path.parent, orphaned_dir_names)
+
+    return {
+        "is_pack": True,
+        "pack_path": pack_path,
+        "models": manifest_models,
+        "model_paths": model_paths,
+        "model_count": len(manifest_models),
+        "mesh_count": total_meshes,
+        "vertex_count": total_vertices,
+        "index_count": total_indices,
+        "bytes_written": total_bytes,
+        "removed_stale_single_path": removed_stale_single_path,
+        "removed_orphan_dir_names": orphaned_dir_names,
+    }
+
+
+def export_objects_to_untold_or_pack(
+    export_objects: list[object],
+    *,
+    source_asset_path: Path,
+    output_path: Path,
+    file_type_name: str = "tile",
+    convert_orientation: bool = False,
+    source_orientation: str = "blender-native",
+    validate: bool = False,
+    compress_geometry: bool = False,
+    color_grade_lut_path: Optional[Path] = None,
+    clean_sidecars: bool = False,
+    progress_callback: Optional[ProgressCallback] = None,
+) -> dict[str, object]:
+    """Like export_objects_to_untold(), but writes a `.untoldpack` manifest plus
+    one self-contained `.untold` per model instead of fusing everything into a
+    single file when `export_objects` spans more than one independent root
+    model (see group_export_nodes_by_root).
+
+    This is the single source of truth for the single-vs-pack decision, shared
+    by the untoldengine CLI's `export` command (main(), below) and the Blender
+    add-on's "Export Untold Asset" operator (untold_exporter/bridge.py) so the
+    two can't drift out of sync the way they did before this function existed
+    -- the add-on called export_objects_to_untold() directly and so never
+    produced a pack no matter how many independent models a scene had.
+
+    Callers that must always fuse everything into one file regardless of root
+    count -- e.g. scripts/tilestreamingpartition.py, where a tile is expected
+    to intentionally bundle many independent props into one payload -- should
+    keep calling export_objects_to_untold() directly instead of this function.
+    """
+    exported_lights, exported_cameras = extract_scene_payload_from_objects(
+        export_objects,
+        convert_orientation=convert_orientation,
+        source_orientation=source_orientation,
+        include_scene_payload=True,
+    )
+    try:
+        exported_nodes = extract_nodes_from_objects(
+            export_objects,
+            source_asset_path,
+            convert_orientation=convert_orientation,
+            source_orientation=source_orientation,
+            validate=validate,
+            progress_callback=progress_callback,
+        )
+    finally:
+        cleanup_temporary_export_objects(export_objects)
+
+    if clean_sidecars:
+        clean_generated_sidecar_dirs(output_path)
+
+    model_groups = group_export_nodes_by_root(exported_nodes)
+    if len(model_groups) <= 1:
+        result = write_single_untold_from_nodes(
+            exported_nodes,
+            exported_lights=exported_lights,
+            exported_cameras=exported_cameras,
+            output_path=output_path,
+            file_type_name=file_type_name,
+            compress_geometry=compress_geometry,
+            color_grade_lut_path=color_grade_lut_path,
+            validate=validate,
+            progress_callback=progress_callback,
+        )
+        return result
+
+    result = write_untold_pack_from_groups(
+        model_groups,
+        source_asset_name=source_asset_path.name,
+        output_path=output_path,
+        file_type_name=file_type_name,
+        compress_geometry=compress_geometry,
+        validate=validate,
+        progress_callback=progress_callback,
+    )
+    result["node_count"] = len(exported_nodes)
+    result["light_count"] = len(exported_lights)
+    result["camera_count"] = len(exported_cameras)
+    result["dropped_scene_payload"] = bool(exported_lights or exported_cameras or color_grade_lut_path is not None)
+    return result
+
+
 def parse_args(argv: list[str]) -> argparse.Namespace:
     if "--" in argv:
         argv = argv[argv.index("--") + 1 :]
@@ -5312,7 +5753,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         argv = argv[1:]
     parser = argparse.ArgumentParser(description="Cook USD scene or animation data into UntoldEngine's .untold format.")
     parser.add_argument("--input", required=True, help="Path to a source USD/USDZ asset or a .blend file.")
-    parser.add_argument("--output", required=True, help="Path to the output .untold file.")
+    parser.add_argument("--output", required=True, help="Path to the output .untold file (or .untoldanim with --animation).")
     parser.add_argument("--file-type", default="tile", choices=sorted(FILE_TYPES.keys()), help="Untold file type to emit.")
     parser.add_argument("--mesh-name", default=None, help="Optional mesh object name when the USD asset imports multiple meshes.")
     parser.add_argument(
@@ -5363,6 +5804,8 @@ def main(argv: list[str]) -> int:
     print(f"{'Opening' if input_path.suffix.lower() == '.blend' else 'Importing'} {input_path.name} ...", flush=True)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     if args.animation:
+        if output_path.suffix.lower() != ".untoldanim":
+            raise RuntimeError(f"--animation requires a .untoldanim --output path, got: {output_path.suffix or '<none>'}")
         progress = ProgressReporter("animation export", 4)
         progress.stage("Open .blend" if input_path.suffix.lower() == ".blend" else "Import USD", input_path.name)
         exported_clips = extract_animation_clips(
@@ -5371,7 +5814,7 @@ def main(argv: list[str]) -> int:
             source_orientation=args.source_orientation,
         )
         progress.advance("Extract animation", f"{len(exported_clips)} clip(s)")
-        print(f"Building animation .untold file with {len(exported_clips)} clip(s) ...", flush=True)
+        print(f"Building animation .untoldanim file with {len(exported_clips)} clip(s) ...", flush=True)
         untold_bytes = build_animation_untold_file(exported_clips, output_path)
         progress.advance("Build file", output_path.name)
         output_path.write_bytes(untold_bytes)
@@ -5399,47 +5842,93 @@ def main(argv: list[str]) -> int:
             source_orientation=args.source_orientation,
         )
         clean_generated_sidecar_dirs(output_path)
-        print(f"Staging {len(exported_nodes)} node(s) ...", flush=True)
-        exported_nodes = stage_nodes_for_output(exported_nodes, output_path)
+
+        model_groups = group_export_nodes_by_root(exported_nodes)
         staged_hdr_assets = stage_hdr_assets_for_output(output_path.parent, input_path)
-        progress.advance("Stage nodes", output_path.name)
-
-        color_grade_lut: Optional[ColorGradeLUT] = None
-        if args.color_grade_lut:
-            print(f"Staging color grade LUT {args.color_grade_lut} ...", flush=True)
-            color_grade_lut = stage_color_grade_lut_for_output(Path(args.color_grade_lut), output_path.parent)
-
-        print("Building .untold file ...", flush=True)
-        untold_bytes = build_untold_file(
-            exported_nodes,
-            output_path,
-            args.file_type,
-            exported_lights=exported_lights,
-            exported_cameras=exported_cameras,
-            compress_geometry=args.compress_geometry,
-            color_grade_lut=color_grade_lut,
-            progress_callback=lambda stage, done, total, detail: progress.stage(
-                stage,
-                f"{done}/{total} {detail}" if total > 1 else detail,
-            ),
+        progress_stage_callback = lambda stage, done, total, detail: progress.stage(
+            stage,
+            f"{done}/{total} {detail}" if total > 1 else detail,
         )
-        progress.advance("Build file", output_path.name)
-        output_path.write_bytes(untold_bytes)
-        progress.advance("Write file", output_path.name)
-        exported_meshes = [exported_node.mesh for exported_node in exported_nodes if exported_node.mesh is not None]
-        print(f"Wrote {output_path} ({len(untold_bytes)} bytes)")
-        print(f"Nodes: {len(exported_nodes)}, Meshes: {len(exported_meshes)}")
-        print(f"Lights: {len(exported_lights)}, Cameras: {len(exported_cameras)}")
-        if staged_hdr_assets:
-            print(f"HDR environments: {len(staged_hdr_assets)}")
-        if color_grade_lut is not None:
-            print(f"Color grade LUT: {color_grade_lut.uri}")
-        print(f"Vertices: {sum(exported_mesh.vertex_count for exported_mesh in exported_meshes)}, indices: {sum(exported_mesh.index_count for exported_mesh in exported_meshes)}")
-        if args.validate:
-            # This sidecar is only for validation/debugging in engine-side tests.
-            validation_path = write_validation_file(output_path, output_path.stem, [exported_mesh.validation_mesh for exported_mesh in exported_meshes])
-            print(f"Wrote {validation_path}")
-        progress.advance("Complete", output_path.name)
+
+        if len(model_groups) <= 1:
+            print(f"Staging {len(exported_nodes)} node(s) ...", flush=True)
+            if args.color_grade_lut:
+                print(f"Staging color grade LUT {args.color_grade_lut} ...", flush=True)
+            print("Building .untold file ...", flush=True)
+            result = write_single_untold_from_nodes(
+                exported_nodes,
+                exported_lights=exported_lights,
+                exported_cameras=exported_cameras,
+                output_path=output_path,
+                file_type_name=args.file_type,
+                compress_geometry=args.compress_geometry,
+                color_grade_lut_path=Path(args.color_grade_lut) if args.color_grade_lut else None,
+                validate=args.validate,
+                progress_callback=progress_stage_callback,
+            )
+            progress.advance("Stage nodes", output_path.name)
+            progress.advance("Build file", output_path.name)
+            progress.advance("Write file", output_path.name)
+            print(f"Wrote {result['output_path']} ({result['bytes_written']} bytes)")
+            print(f"Nodes: {result['node_count']}, Meshes: {result['mesh_count']}")
+            print(f"Lights: {result['light_count']}, Cameras: {result['camera_count']}")
+            if staged_hdr_assets:
+                print(f"HDR environments: {len(staged_hdr_assets)}")
+            if result["color_grade_lut_uri"] is not None:
+                print(f"Color grade LUT: {result['color_grade_lut_uri']}")
+            print(f"Vertices: {result['vertex_count']}, indices: {result['index_count']}")
+            if result["validation_path"] is not None:
+                print(f"Wrote {result['validation_path']}")
+            # This scene used to export as a multi-model .untoldpack (a previous run
+            # at this same --output stem); it no longer does, so the old manifest and
+            # its per-model .untold subfolders are now stale (see
+            # write_single_untold_from_nodes), and ExportCommand.swift's post-export
+            # pack detection now reflects this run's actual output rather than
+            # leftover state from an earlier one.
+            if result["removed_stale_pack_path"] is not None:
+                print(f"Removed stale pack manifest: {result['removed_stale_pack_path']}", flush=True)
+            progress.advance("Complete", output_path.name)
+        else:
+            # Multiple independent models were found in the source scene: emit one
+            # self-contained .untold per model plus a .untoldpack manifest that
+            # references them, instead of fusing unrelated models into one file.
+            progress.advance("Stage nodes", output_path.with_suffix(".untoldpack").name)
+            if exported_lights or exported_cameras:
+                print(
+                    f"Note: {len(exported_lights)} light(s) and {len(exported_cameras)} camera(s) are scene-level "
+                    "and were not written into any individual .untold model; recreate them in the scene built from this pack.",
+                    flush=True,
+                )
+            if args.color_grade_lut:
+                print("Note: --color-grade-lut is scene-level and was not applied to individual pack models.", flush=True)
+
+            result = write_untold_pack_from_groups(
+                model_groups,
+                source_asset_name=input_path.name,
+                output_path=output_path,
+                file_type_name=args.file_type,
+                compress_geometry=args.compress_geometry,
+                validate=args.validate,
+                progress_callback=progress_stage_callback,
+            )
+            progress.advance("Build file", result["pack_path"].name)
+            print(f"Wrote {result['pack_path']} ({result['model_count']} model(s))")
+            print(f"Nodes: {len(exported_nodes)}, Meshes: {result['mesh_count']}")
+            if staged_hdr_assets:
+                print(f"HDR environments: {len(staged_hdr_assets)}")
+            # This scene used to export as a single .untold (a previous run at this
+            # same --output stem); it no longer does, so the old file was stale and
+            # would have shadowed the pack for a caller still loading it
+            # `withExtension: "untold"` (see write_untold_pack_from_groups).
+            if result["removed_stale_single_path"] is not None:
+                print(f"Removed stale single-file export: {result['removed_stale_single_path']}", flush=True)
+            # A previous pack export at this stem may have included models that no
+            # longer exist in the source scene (renamed/deleted objects); their
+            # subfolders were orphaned since the new manifest doesn't reference them.
+            if result["removed_orphan_dir_names"]:
+                print(f"Removed {len(result['removed_orphan_dir_names'])} orphaned pack model folder(s): {', '.join(result['removed_orphan_dir_names'])}", flush=True)
+            progress.advance("Write file", result["pack_path"].name)
+            progress.advance("Complete", result["pack_path"].name)
     return 0
 
 

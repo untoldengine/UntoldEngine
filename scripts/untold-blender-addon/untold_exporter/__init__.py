@@ -213,9 +213,16 @@ class UNTOLD_OT_export_asset(bpy.types.Operator, ExportHelper):
             wm.progress_end()
             workspace.status_text_set(None)
 
+        if result.get("is_pack"):
+            # The scene had more than one independent model (see
+            # group_export_nodes_by_root), so a <name>.untoldpack manifest plus one
+            # .untold per model were written instead of a single output_path.
+            destination = f"{result['pack_path'].name} ({result['model_count']} model(s))"
+        else:
+            destination = output_path.name
         message = (
             f"Exported {result['mesh_count']} mesh(es), "
-            f"{result['vertex_count']} vertices to {output_path.name}"
+            f"{result['vertex_count']} vertices to {destination}"
         )
         if compression_summary["detail"]:
             message += f" | Geometry: {compression_summary['detail']}"
@@ -235,9 +242,9 @@ class UNTOLD_OT_export_animation(bpy.types.Operator, ExportHelper):
     bl_label = "Export Untold Animation"
     bl_options = {"REGISTER"}
 
-    filename_ext = ".untold"
+    filename_ext = ".untoldanim"
     filter_glob: bpy.props.StringProperty(
-        default="*.untold",
+        default="*.untoldanim",
         options={"HIDDEN"},
     )
 
@@ -281,7 +288,7 @@ class UNTOLD_OT_export_animation(bpy.types.Operator, ExportHelper):
     def _animation_output_path(filepath: str) -> Path:
         selected_path = Path(filepath).expanduser().resolve()
         clip_name = selected_path.stem or "animation"
-        return selected_path.parent / clip_name / f"{clip_name}.untold"
+        return selected_path.parent / clip_name / f"{clip_name}.untoldanim"
 
     def execute(self, context: bpy.types.Context) -> set[str]:
         output_path = self._animation_output_path(self.filepath)
@@ -597,7 +604,7 @@ class UNTOLD_OT_export_tiled_scene(bpy.types.Operator):
 
 def menu_func_export(self: bpy.types.Menu, context: bpy.types.Context) -> None:
     self.layout.operator(UNTOLD_OT_export_asset.bl_idname, text="Untold (.untold)")
-    self.layout.operator(UNTOLD_OT_export_animation.bl_idname, text="Untold Animation (.untold)")
+    self.layout.operator(UNTOLD_OT_export_animation.bl_idname, text="Untold Animation (.untoldanim)")
     self.layout.operator(UNTOLD_OT_export_tiled_scene.bl_idname, text="Untold Tiled Scene")
 
 

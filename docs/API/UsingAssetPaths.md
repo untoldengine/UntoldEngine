@@ -30,7 +30,7 @@ Where each asset type belongs:
 | `Scripts/` | scripting-system script files |
 | `Models/` | `.untold` meshes, one subfolder per asset (e.g. `Models/robot/robot.untold`) |
 | `StreamModels/` | tile-streamed geometry (`export-untold-tiles` output) |
-| `Animations/` | `.untold` animation clips |
+| `Animations/` | `.untoldanim` animation clips |
 | `Gaussians/` | Gaussian splat assets |
 | `Textures/` | standalone textures loaded by name, outside of a material |
 | `Shaders/` | custom shader source |

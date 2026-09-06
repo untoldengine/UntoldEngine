@@ -26,10 +26,10 @@ setEntityMesh(entityId: redPlayer, filename: "redplayer", withExtension: "untold
 ---
 
 ### Step 3: Load the Animation
-Load the animation data for your model by providing the exported animation `.untold` file and a name to reference the animation later.
+Load the animation data for your model by providing the exported animation `.untoldanim` file and a name to reference the animation later.
 
 ```swift
-setEntityAnimations(entityId: redPlayer, filename: "running", withExtension: "untold", name: "running")
+setEntityAnimations(entityId: redPlayer, filename: "running", withExtension: "untoldanim", name: "running")
 ```
 
 For hierarchical or multi-mesh `.untold` assets, call animation APIs on the asset root. The engine resolves the root to every skinned render descendant and installs the clip on each target that has both a `SkeletonComponent` and a `RenderComponent`. This keeps split characters or multi-part rigged models animated as one actor.
