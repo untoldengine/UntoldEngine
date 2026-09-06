@@ -105,6 +105,7 @@ class BaseRenderSetup: XCTestCase {
         // textures blank, regardless of what that test's own scene actually wants.
         hdrURL = "teatro_massimo_2k.hdr"
         resourceURL = nil
+        hdrDirectoryURL = nil
     }
 
     private func psnrThreshold(for targetName: String, default defaultValue: String) -> String {

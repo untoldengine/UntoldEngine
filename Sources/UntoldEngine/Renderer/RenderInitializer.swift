@@ -1191,7 +1191,12 @@ func initIBLResources() {
     // they must have the same dimensions.
     let iblSize = 256
 
-    let cacheKey = iblBakeCacheKey(hdrName: hdrURL, directory: resourceURL, iblSize: iblSize, pixelFormat: wf.ibl, device: renderInfo.device)
+    // An environment set through `setRendering(.environment(.asset(...)))` or
+    // `generateHDR(_:from:)` may live outside the engine bundle; re-bake it
+    // from where it was loaded, or the resize would fail and leave the IBL
+    // textures blank.
+    let hdrDirectory = hdrDirectoryURL ?? resourceURL
+    let cacheKey = iblBakeCacheKey(hdrName: hdrURL, directory: hdrDirectory, iblSize: iblSize, pixelFormat: wf.ibl, device: renderInfo.device)
 
     if let cacheKey {
         iblBakeCacheState.lock.lock()
@@ -1268,7 +1273,7 @@ func initIBLResources() {
     renderInfo.iblOffscreenRenderPassDescriptor.colorAttachments[2].texture =
         textureResources.iblBRDFMap
 
-    generateHDR(hdrURL, from: resourceURL)
+    generateHDR(hdrURL, from: hdrDirectory)
 
     if iblSuccessful, let cacheKey,
        let irradianceMap = textureResources.irradianceMap,
