@@ -2042,6 +2042,60 @@ def resolve_texture_from_socket(input_socket: object, asset_path: Path) -> Optio
     return _resolve_texture_from_socket(input_socket, asset_path, visited_nodes=set(), channel=TEXTURE_CHANNEL_R)
 
 
+def _exported_texture_from_image(image: object, asset_path: Path, channel: int = TEXTURE_CHANNEL_R) -> ExportedTexture:
+    """Build the pre-staging ExportedTexture for a Blender image datablock.
+
+    File-backed images are keyed and named by their (resolved) source path. Packed
+    and generated images have an empty filepath and no file on disk at all, so they
+    are keyed and named by the Blender image name instead and written out through
+    Blender at staging time (see stage_texture_for_output / write_blender_image_to_path).
+
+    Deriving a path from the empty filepath is not an option: Path("") resolves to
+    the asset's parent *directory*, which gave every packed image in a material the
+    same source_path, name and uri. texture_staging_key keys on source_path first,
+    so the staging pass collapsed all of them onto the first one written and the
+    normal/roughness/metallic slots ended up pointing at the base color PNG.
+    """
+    source_image_name = getattr(image, "name", None)
+    image_name = source_image_name or "texture"
+    size = getattr(image, "size", ())
+    width = int(size[0]) if len(size) > 0 else 0
+    height = int(size[1]) if len(size) > 1 else 0
+    mip_count = 1 if width > 0 and height > 0 else 0
+
+    filepath = getattr(image, "filepath", "") or ""
+    if not filepath:
+        return ExportedTexture(
+            name=image_name,
+            uri=image_name,
+            width=width,
+            height=height,
+            mip_count=mip_count,
+            source_path=None,
+            source_image_name=source_image_name,
+            channel=channel,
+        )
+
+    raw_path = bpy.path.abspath(filepath, library=getattr(image, "library", None)) if bpy is not None else filepath
+    texture_path = Path(raw_path)
+    if not texture_path.is_absolute():
+        texture_path = (asset_path.parent / texture_path).resolve()
+    try:
+        uri = os.path.relpath(texture_path, asset_path.parent)
+    except ValueError:
+        uri = str(texture_path)
+    return ExportedTexture(
+        name=texture_path.name or image_name,
+        uri=uri,
+        width=width,
+        height=height,
+        mip_count=mip_count,
+        source_path=texture_path,
+        source_image_name=source_image_name,
+        channel=channel,
+    )
+
+
 def _resolve_texture_from_socket(input_socket: object, asset_path: Path, visited_nodes: set[int], channel: int) -> Optional[ExportedTexture]:
     if not getattr(input_socket, "is_linked", False):
         return None
@@ -2056,27 +2110,7 @@ def _resolve_texture_from_socket(input_socket: object, asset_path: Path, visited
 
     if source_node.bl_idname == "ShaderNodeTexImage" and source_node.image is not None:
         texture_channel = texture_channel_from_socket_name(getattr(source_socket, "name", ""), channel)
-        image = source_node.image
-        image_path = bpy.path.abspath(image.filepath, library=image.library) if bpy is not None else image.filepath
-        texture_path = Path(image_path)
-        if not texture_path.is_absolute():
-            texture_path = (asset_path.parent / texture_path).resolve()
-        try:
-            uri = os.path.relpath(texture_path, asset_path.parent)
-        except ValueError:
-            uri = str(texture_path)
-        width = int(image.size[0]) if len(image.size) > 0 else 0
-        height = int(image.size[1]) if len(image.size) > 1 else 0
-        return ExportedTexture(
-            name=texture_path.name or image.name,
-            uri=uri,
-            width=width,
-            height=height,
-            mip_count=1 if width > 0 and height > 0 else 0,
-            source_path=texture_path,
-            source_image_name=getattr(image, "name", None),
-            channel=texture_channel,
-        )
+        return _exported_texture_from_image(source_node.image, asset_path, channel=texture_channel)
 
     if source_node.bl_idname in {"ShaderNodeSeparateColor", "ShaderNodeSeparateRGB"}:
         texture_channel = texture_channel_from_socket_name(getattr(source_socket, "name", ""), channel)
@@ -3460,26 +3494,28 @@ def _detect_occlusion_texture(material: object, asset_path: Path) -> Optional[Ex
         parts = name_lower.split("_")
         if "occlusion" not in name_lower and not any(p == "ao" for p in parts):
             continue
-        raw_path = bpy.path.abspath(filepath, library=image.library) if bpy is not None and filepath else filepath
-        texture_path = Path(raw_path) if raw_path else Path(image.name)
-        if not texture_path.is_absolute() and filepath:
-            texture_path = (asset_path.parent / texture_path).resolve()
-        try:
-            uri = os.path.relpath(texture_path, asset_path.parent)
-        except ValueError:
-            uri = str(texture_path)
-        width = int(image.size[0]) if len(image.size) > 0 else 0
-        height = int(image.size[1]) if len(image.size) > 1 else 0
-        return ExportedTexture(
-            name=texture_path.name or image.name,
-            uri=uri,
-            width=width,
-            height=height,
-            mip_count=1 if width > 0 and height > 0 else 0,
-            source_path=texture_path,
-            source_image_name=getattr(image, "name", None),
-        )
+        return _exported_texture_from_image(image, asset_path)
     return None
+
+
+def _scalar_socket_factor(input_socket: object, texture: Optional[ExportedTexture], default: float) -> float:
+    """Factor exported for a scalar Principled socket (Metallic, Roughness).
+
+    The engine multiplies the channel's texture sample by this factor. Same rule as
+    Base Color in extract_material: once a texture drives the socket, Blender ignores
+    the socket's default_value entirely, so the factor must be 1.0. Exporting the
+    slider value instead halved roughness (Principled default 0.5) and zeroed
+    metallic (default 0.0) on every textured material.
+
+    Unlinked sockets export the slider value itself. A linked socket whose source
+    could not be traced back to a texture (a Value node, node math — see the
+    material fidelity report) keeps the slider value as the best available fallback.
+    """
+    if input_socket is None:
+        return default
+    if texture is not None:
+        return 1.0
+    return float(input_socket.default_value)
 
 
 def extract_material(mesh_object: object, asset_path: Path) -> ExportedMaterial:
@@ -3574,8 +3610,6 @@ def extract_material(mesh_object: object, asset_path: Path) -> ExportedMaterial:
             float(emissive_default[1]) * emission_strength,
             float(emissive_default[2]) * emission_strength,
         )
-    metallic = float(metallic_input.default_value) if metallic_input is not None else 0.0
-    roughness = float(roughness_input.default_value) if roughness_input is not None else 0.5
     alpha = float(alpha_input.default_value) if alpha_input is not None else 1.0
 
     base_color_texture = resolve_texture_from_socket(base_color_input, asset_path) if base_color_input is not None else None
@@ -3583,6 +3617,8 @@ def extract_material(mesh_object: object, asset_path: Path) -> ExportedMaterial:
     emissive_texture = resolve_texture_from_socket(emissive_input, asset_path) if emissive_input is not None else None
     metallic_texture = resolve_texture_from_socket(metallic_input, asset_path) if metallic_input is not None else None
     roughness_texture = resolve_texture_from_socket(roughness_input, asset_path) if roughness_input is not None else None
+    metallic = _scalar_socket_factor(metallic_input, metallic_texture, default=0.0)
+    roughness = _scalar_socket_factor(roughness_input, roughness_texture, default=0.5)
     normal_scale = 1.0
     if normal_input is not None and normal_input.is_linked:
         source = normal_input.links[0].from_node
