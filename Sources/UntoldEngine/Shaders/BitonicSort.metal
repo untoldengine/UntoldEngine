@@ -47,6 +47,27 @@ kernel void gaussianResetVisibleCount(
     }
 }
 
+// Runs once per entity right after gaussianFrustumCull, in the same (serial) encoder, so it
+// sees the final appended count. Writes the indirect dispatch and draw arguments that every
+// later pass of this frame consumes — see GaussianVisibleSet in ShaderTypes.h.
+kernel void gaussianFinalizeVisibleSet(
+    device GaussianVisibleSet *visibleSet [[buffer(gaussianVisibleCountIndex)]],
+    uint index [[thread_position_in_grid]])
+{
+    if (index != 0u) return;
+
+    uint count = visibleSet->visibleCount;
+    uint threadgroups = (count + (uint)gaussianVisibleBlockSize - 1u) / (uint)gaussianVisibleBlockSize;
+    visibleSet->threadgroupCount = threadgroups;
+    visibleSet->threadgroupsPerGrid[0] = threadgroups;
+    visibleSet->threadgroupsPerGrid[1] = 1u;
+    visibleSet->threadgroupsPerGrid[2] = 1u;
+    visibleSet->vertexCount = 4u;
+    visibleSet->instanceCount = count;
+    visibleSet->vertexStart = 0u;
+    visibleSet->baseInstance = 0u;
+}
+
 kernel void gaussianFrustumCull(
     const device EncodedGaussianSplat *splats [[buffer(gaussianEncodedSplatIndex)]],
     constant Uniforms &uniforms [[buffer(gaussianUniformIndex)]],

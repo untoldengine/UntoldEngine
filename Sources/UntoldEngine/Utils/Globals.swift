@@ -53,6 +53,7 @@ private final class CoreRuntimeGlobals: @unchecked Sendable {
     var hzbBuildPyramidPipeline = ComputePipeline()
     var hzbOcclusionCullingPipeline = ComputePipeline()
     var gaussianResetVisibleCountPipeline = ComputePipeline()
+    var gaussianFinalizeVisibleSetPipeline = ComputePipeline()
     var gaussianFrustumCullPipeline = ComputePipeline()
     var gaussianPreprocessPipeline = ComputePipeline()
     var gaussianDepthPipeline = ComputePipeline()
@@ -577,6 +578,27 @@ var gaussianResetVisibleCountPipeline: ComputePipeline {
         state.lock.lock()
         defer { state.lock.unlock() }
         yield &state.gaussianResetVisibleCountPipeline
+    }
+}
+
+var gaussianFinalizeVisibleSetPipeline: ComputePipeline {
+    get {
+        let state = CoreRuntimeGlobals.shared
+        state.lock.lock()
+        defer { state.lock.unlock() }
+        return state.gaussianFinalizeVisibleSetPipeline
+    }
+    set {
+        let state = CoreRuntimeGlobals.shared
+        state.lock.lock()
+        state.gaussianFinalizeVisibleSetPipeline = newValue
+        state.lock.unlock()
+    }
+    _modify {
+        let state = CoreRuntimeGlobals.shared
+        state.lock.lock()
+        defer { state.lock.unlock() }
+        yield &state.gaussianFinalizeVisibleSetPipeline
     }
 }
 

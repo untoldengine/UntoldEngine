@@ -3441,14 +3441,20 @@ func buildGaussianLoadResult(
         }
         gaussianVisibleIndices.append(visibleIndicesSlot)
 
+        // A GaussianVisibleSet: the cull's atomic count at offset 0, followed by the indirect
+        // dispatch and draw arguments derived from it on the GPU (see ShaderTypes.h). Starts
+        // out as "everything visible" until the first cull runs.
         guard let visibleCountSlot = renderInfo.device.makeBuffer(
-            length: MemoryLayout<UInt32>.stride,
+            length: MemoryLayout<GaussianVisibleSet>.stride,
             options: .storageModeShared
         ) else {
             handleError(.bufferAllocationFailed, "Gaussian visible-count buffer is nil")
             return nil
         }
-        visibleCountSlot.contents().storeBytes(of: UInt32(splatCount), as: UInt32.self)
+        visibleCountSlot.contents().storeBytes(
+            of: makeGaussianVisibleSet(visibleCount: UInt32(splatCount)),
+            as: GaussianVisibleSet.self
+        )
         gaussianVisibleCount.append(visibleCountSlot)
     }
 

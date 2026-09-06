@@ -57,7 +57,7 @@ kernel void gaussianRadixClearHistogram(
 kernel void gaussianRadixHistogram(
     device uint64_t    *keysIn          [[buffer(radixHistogramKeysIn)]],
     device atomic_uint *histogram       [[buffer(radixHistogramOutput)]],
-    constant uint      &numElems        [[buffer(radixHistogramNumElems)]],
+    const device GaussianVisibleSet *visibleSet [[buffer(radixHistogramVisibleSet)]],
     constant uint      &passIndex       [[buffer(radixHistogramPassIndex)]],
     device uint        *perTGHistograms [[buffer(radixHistogramPerTGOut)]],
     uint tid     [[thread_position_in_grid]],
@@ -72,7 +72,7 @@ kernel void gaussianRadixHistogram(
     }
     threadgroup_barrier(mem_flags::mem_threadgroup);
 
-    if (tid < numElems) {
+    if (tid < visibleSet->visibleCount) {
         uint64_t key = keysIn[tid];
         uint shift   = 32u + passIndex * 8u;
         uint digit   = (uint)(key >> shift) & 0xFFu;
@@ -105,12 +105,13 @@ kernel void gaussianRadixHistogram(
 
 kernel void gaussianRadixScanPerTG(
     device uint   *perTGHist  [[buffer(radixScanPerTGBuffer)]],
-    constant uint &numGroups  [[buffer(radixScanPerTGNumGroups)]],
+    const device GaussianVisibleSet *visibleSet [[buffer(radixScanPerTGVisibleSet)]],
     uint digit [[thread_position_in_grid]]
 ) {
     if (digit >= 256u) return;
 
     uint running = 0u;
+    uint numGroups = visibleSet->threadgroupCount;
     for (uint g = 0u; g < numGroups; g++) {
         uint count = perTGHist[g * 256u + digit];   // read original count
         perTGHist[g * 256u + digit] = running;      // overwrite with prefix sum
@@ -196,7 +197,7 @@ kernel void gaussianRadixScatter(
     device uint64_t *keysIn    [[buffer(radixScatterKeysIn)]],
     device uint64_t *keysOut   [[buffer(radixScatterKeysOut)]],
     device uint     *offsets   [[buffer(radixScatterOffsets)]],
-    constant uint   &numElems  [[buffer(radixScatterNumElems)]],
+    const device GaussianVisibleSet *visibleSet [[buffer(radixScatterVisibleSet)]],
     constant uint   &passIndex [[buffer(radixScatterPassIdx)]],
     device uint     *perTGStart [[buffer(radixScatterPerTGStart)]],
     uint tid     [[thread_position_in_grid]],
@@ -209,7 +210,7 @@ kernel void gaussianRadixScatter(
     threadgroup uint     localCounts[256];
 
     uint chunkStart = groupId * blockSize;
-    uint chunkEnd   = min(chunkStart + blockSize, numElems);
+    uint chunkEnd   = min(chunkStart + blockSize, visibleSet->visibleCount);
     uint chunkSize  = (chunkEnd > chunkStart) ? (chunkEnd - chunkStart) : 0u;
 
     if (lid < chunkSize) {
