@@ -76,6 +76,20 @@ public class PLYReader {
         try readGaussianAsset(from: url).splats
     }
 
+    /// Number of splats a Gaussian `.ply` declares, read from the header alone — cheap enough
+    /// for a file browser to show before a cook, however large the body is.
+    public static func readGaussianSplatCount(from url: URL) throws -> Int {
+        let handle = try FileHandle(forReadingFrom: url)
+        defer { try? handle.close() }
+        // parseHeader scans at most the first 100 000 bytes for `end_header`.
+        let prefix = try handle.read(upToCount: 100_000) ?? Data()
+        let (header, _) = try parseHeader(from: prefix)
+        guard let vertexElement = header.elements.first(where: { $0.name == "vertex" }) else {
+            throw PLYError.missingElement("vertex")
+        }
+        return vertexElement.count
+    }
+
     /// Reads Gaussian geometry and preserves all spherical-harmonic coefficients.
     public static func readGaussianAsset(from url: URL) throws -> GaussianSplatAsset {
         let data = try Data(contentsOf: url)

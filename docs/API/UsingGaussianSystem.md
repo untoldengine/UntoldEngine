@@ -89,6 +89,17 @@ Once everything is set up:
 
 ---
 
+## Per-entity splat limit
+
+Every loaded splat keeps about 270 bytes resident on the GPU (its encoded record, the
+per-frame precomputed data, sort keys and visible indices for each frame in flight, and
+its spherical harmonics), so the runtime caps one entity at
+`GaussianRuntimeLimits.maxSplatsPerEntity`: 5,242,880 splats on Apple Vision Pro, iPhone,
+iPad and Apple TV, 16,777,216 on the Mac. A `.untoldgs` or `.ply` above the cap fails to
+load with an "exceeds maximum" error. Cook large captures with a splat budget
+(`UntoldGSCookOptions.maxSplatCount`, `untoldengine export --splat-max-count`) that fits
+every platform the asset ships on, or split the scene into streamed tiles.
+
 ## Progressive Gaussian Splats
 
 Progressive Gaussian loading is available without a tile-streamed scene. Use it when you
