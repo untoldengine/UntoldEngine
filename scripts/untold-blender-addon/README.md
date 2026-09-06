@@ -54,7 +54,7 @@ then set `ASTCENC_BIN=/full/path/to/astcenc` before launching Blender.
 Ensure the downloaded binary is executable with
 `chmod +x /full/path/to/astcenc`.
 
-Use `File > Export > Untold Animation (.untold)` for animation clips.
+Use `File > Export > Untold Animation (.untoldanim)` for animation clips.
 
 Animation options:
 

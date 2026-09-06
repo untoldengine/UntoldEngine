@@ -104,6 +104,23 @@ final class LoadingSystemPathResolutionTests: XCTestCase {
         XCTAssertEqual(resolved?.standardizedFileURL, currentResource.standardizedFileURL)
     }
 
+    func testAbsolutePathSkipsSameNamedDirectoryAndResolvesExtensionedFile() throws {
+        // A stale per-model subfolder from an older .untoldpack export can share its
+        // parent directory's base name with a newer pack manifest at that same stem
+        // (e.g. Assets/model/ left over beside a fresh Assets/model.untoldpack).
+        // FileManager.fileExists(atPath:) alone can't tell a directory from a file,
+        // so resolution must reject the directory match and keep looking for the
+        // extensioned file instead of silently returning the directory.
+        let baseName = tempRoot.appendingPathComponent("model")
+        try FileManager.default.createDirectory(at: baseName, withIntermediateDirectories: true)
+        let packFile = tempRoot.appendingPathComponent("model").appendingPathExtension("untoldpack")
+        try Data().write(to: packFile)
+
+        let resolved = getResourceURL(resourceName: baseName.path, ext: "untoldpack", subName: nil)
+
+        XCTAssertEqual(resolved?.standardizedFileURL, packFile.standardizedFileURL)
+    }
+
     func testBareResourceNameResolvesUnderTexturesDirectory() throws {
         // GameData/Textures is a canonical asset directory created by the project
         // scaffolding (see createGameDataDirectories()), but standalone texture

@@ -96,6 +96,7 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
     case assetAdmissionRejected = 1084
     case manifestNotFound = 1085
     case manifestDecodeFailed = 1086
+    case assetIsAnimationOnly = 1087
 
     public var description: String {
         switch self {
@@ -269,6 +270,8 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
             return "Scene manifest not found"
         case .manifestDecodeFailed:
             return "Failed to decode scene manifest — check JSON format"
+        case .assetIsAnimationOnly:
+            return "This is a .untoldanim animation clip, not a mesh — use setEntityAnimations instead of setEntityMeshAsync"
         }
     }
 }

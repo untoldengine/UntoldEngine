@@ -341,7 +341,7 @@ For animation assets, use the `--animation` flag:
 ```bash
 untoldengine export \
   --input /path/to/your/animation/robot/robot.usdz \
-  --output /path/to/your/project/GameData/Animations/robot/robot.untold \
+  --output /path/to/your/project/GameData/Animations/robot/robot.untoldanim \
   --convert-orientation \
   --animation
 ```

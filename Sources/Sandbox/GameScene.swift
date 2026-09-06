@@ -25,14 +25,15 @@
             // Make sure to convert your usdz files to .untold format as explained in docs/API/UsingTheExporter
 
             // Uncomment to render a simple mesh.
+
             /*
              let entity = createEntity()
              setEntityMeshAsync(entityId: entity, filename: "/path/to/file", withExtension: "untold") { success in
-                 setEntityName(entityId: entity, name: "redplayer")
-                 if success {
-                     loadSceneAuthored(filename: "/path/to/file", withExtension: "untold")
-                 }
-                 setSceneReady(success)
+              setEntityName(entityId: entity, name: "redplayer")
+              if success {
+                  loadSceneAuthored(filename: "/path/to/file", withExtension: "untold")
+              }
+              setSceneReady(success)
              }
              */
 
@@ -55,9 +56,9 @@
             setCamera(.active(camera))
             setOrbitOffset(entityId: camera, uTargetOffset: Constants.orbitTargetOffset)
 
-//            let light = createEntity()
-//            setEntityName(entityId: light, name: "Directional Light")
-            // createDirLight(entityId: light)
+            let light = createEntity()
+            setEntityName(entityId: light, name: "Directional Light")
+            createDirLight(entityId: light)
         }
 
         func update(deltaTime _: Float) {

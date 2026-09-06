@@ -186,5 +186,5 @@ Task {
 
 - `.untold` is the runtime format for mesh loading and streaming.
 - USD/USDZ assets should be converted to `.untold` before runtime use.
-- Animation clips exported with `--animation` can be loaded as `.untold` assets.
+- Animation clips exported with `--animation` are written as `.untoldanim` assets and loaded via `setEntityAnimations(...)`, not `setEntityMeshAsync(...)`.
 - `setEntityStreamScene(...)` automatically aligns texture streaming distances to the manifest radii and enables the full tile/HLOD/LOD/OCC streaming pipeline.

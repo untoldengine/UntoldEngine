@@ -26,7 +26,10 @@ public struct RuntimeAssetSource: Sendable, Equatable {
     public static func infer(from url: URL) -> RuntimeAssetSource {
         let ext = url.pathExtension.lowercased()
         let kind: RuntimeAssetSourceKind = switch ext {
-        case "untold":
+        case "untold", "untoldanim":
+            // .untoldanim is byte-identical to .untold (same "UNTOLD" binary container,
+            // same reader) -- it's a distinct extension purely so animation-only exports
+            // are identifiable without opening the file, not a different format.
             .untold
         case "usd", "usda", "usdc", "usdz":
             .usd

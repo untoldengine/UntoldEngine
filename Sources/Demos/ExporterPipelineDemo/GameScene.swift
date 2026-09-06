@@ -155,7 +155,7 @@
             setEntityAnimations(
                 entityId: loadedEntity,
                 filename: option.rawValue,
-                withExtension: "untold",
+                withExtension: "untoldanim",
                 name: option.rawValue
             )
             changeAnimation(entityId: loadedEntity, name: option.rawValue)
