@@ -94,6 +94,10 @@ struct FootIKState {
 
     /// The lock also releases when the animation pulls the ankle this far
     /// from the anchor — past that, holding on reads as rubber-banding.
+    /// Must not exceed `maxAdjustment`: the lock offset is part of the
+    /// correction that bound applies to, and a larger lock distance would
+    /// leave the lock believing the foot is pinned while the solve
+    /// silently skips the frame.
     var maxLockDistance: Float = 0.2
 
     /// Halflife of the catch-up decay after a release.
@@ -353,11 +357,14 @@ private func updateFootLock(
     }
 
     // Released: let the leftover offset decay so the foot catches up
-    // smoothly instead of popping to the animated position.
+    // smoothly instead of popping to the animated position. The offset as
+    // stored is what lines this frame up with the last locked one, so it
+    // is used as-is here; the decay only takes effect from the next frame.
     if simd_length_squared(lock.releaseOffset) > 1e-8 {
+        let result = ankleWorld + lock.releaseOffset
         let decay = exp(-0.693_147_18 * deltaTime / max(state.releaseHalflife, 1e-4))
         lock.releaseOffset *= decay
-        return ankleWorld + lock.releaseOffset
+        return result
     }
     return ankleWorld
 }

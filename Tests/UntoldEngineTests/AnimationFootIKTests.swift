@@ -176,6 +176,49 @@ final class AnimationFootIKTests: XCTestCase {
                        "After release the foot must catch up to the animation")
     }
 
+    /// The frame the lock releases must land exactly where the last locked
+    /// frame did: the stored offset is what lines the two up, so the
+    /// catch-up decay may only start on the frame after.
+    func testStanceLockReleaseFrameIsContinuous() {
+        // Raising the ground bends the knee, so every target below is
+        // within reach and the solve lands exactly on it.
+        setFootIKGroundQuery(entityId: entityId) { _ in FootIKGroundSample(height: 0.1) }
+        setFootIKEnabled(entityId: entityId, enabled: true)
+        setFootIKStanceLocking(entityId: entityId, enabled: true)
+
+        changeAnimation(entityId: entityId, name: "stand", transitionHalflife: 0)
+        AnimationSystem.shared.update(deltaTime)
+        AnimationSystem.shared.update(deltaTime)
+        XCTAssertTrue(animationComponent.footIK.lockStates[0].locked, "Sanity: two static frames plant the foot")
+
+        // Drift until the animation pulls the ankle past maxLockDistance.
+        changeAnimation(entityId: entityId, name: "drift", transitionHalflife: 0)
+        var lastLockedX = anklePosition().x
+        var released = false
+        for _ in 0 ..< 60 {
+            AnimationSystem.shared.update(deltaTime)
+            if animationComponent.footIK.lockStates[0].locked == false {
+                released = true
+                break
+            }
+            lastLockedX = anklePosition().x
+        }
+        XCTAssertTrue(released, "Sanity: the drift released the lock")
+
+        // Release frame: the foot has not moved from the last locked frame.
+        let releaseX = anklePosition().x
+        XCTAssertEqual(releaseX, lastLockedX, accuracy: 1e-4,
+                       "The release frame must line up with the last locked frame")
+
+        // Next frame: the decay takes its first step toward the animation.
+        let releaseAnimatedX = animationComponent.currentTime * 0.5
+        AnimationSystem.shared.update(deltaTime)
+        let decay = exp(-0.693_147_18 * deltaTime / animationComponent.footIK.releaseHalflife)
+        let expectedX = animationComponent.currentTime * 0.5 + (releaseX - releaseAnimatedX) * decay
+        XCTAssertEqual(anklePosition().x, expectedX, accuracy: 1e-4,
+                       "The catch-up decay begins on the frame after release")
+    }
+
     func testStanceLockIgnoresFastFeet() {
         setFootIKGroundQuery(entityId: entityId) { _ in FootIKGroundSample(height: 0) }
         setFootIKEnabled(entityId: entityId, enabled: true)
