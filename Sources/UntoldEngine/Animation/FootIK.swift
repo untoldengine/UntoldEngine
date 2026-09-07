@@ -67,12 +67,14 @@ public struct FootIKChainDescriptor {
 /// world space, the IK target is pinned to the world position where it
 /// planted, absorbing residual root-motion slide. Unlocking hands the
 /// remaining offset to a short exponential decay so the foot catches up to
-/// the animation without a pop.
+/// the animation without a pop; the decay keeps running across a re-plant,
+/// so a foot that locks again mid-catch-up eases the rest of the way.
 struct FootLockState {
     var locked = false
     var anchorWorld = simd_float3.zero
     var previousAnkleWorld = simd_float3.zero
     var hasPreviousAnkleWorld = false
+    /// Catch-up offset still to decay, world space, horizontal only.
     var releaseOffset = simd_float3.zero
 }
 
@@ -222,14 +224,27 @@ func applyFootIK(
             at: effectiveWorld,
             state: animationComponent.footIK,
             excluding: entityId
-        ) else { continue }
+        ) else {
+            // No ground: the foot shows the raw animated pose this frame,
+            // so any catch-up in flight would pop it back next frame.
+            animationComponent.footIK.lockStates[chainIndex].releaseOffset = .zero
+            continue
+        }
 
         // Preserve the ankle's authored height above the clip's ground
         // plane (model height 0) above the real terrain.
         let desiredWorldHeight = ground.height + ankleModel.y + chain.footHeight
         let targetWorld = simd_float3(effectiveWorld.x, desiredWorldHeight, effectiveWorld.z)
         let correction = targetWorld - ankleWorld
-        guard simd_length(correction) > 1e-5, simd_length(correction) <= maxAdjustment else { continue }
+        guard simd_length(correction) > 1e-5 else { continue }
+        guard simd_length(correction) <= maxAdjustment else {
+            // Skipped: the foot shows the raw animated pose this frame, so
+            // any catch-up in flight would pop it back next frame. Dropping
+            // it also means a teleport restarts cleanly from the animated
+            // pose instead of dragging a stale catch-up behind it.
+            animationComponent.footIK.lockStates[chainIndex].releaseOffset = .zero
+            continue
+        }
         let targetModel4 = inverseWorldMatrix * simd_float4(targetWorld, 1)
         let targetModel = simd_float3(targetModel4.x, targetModel4.y, targetModel4.z)
 
@@ -324,8 +339,9 @@ func footIKDefaultGroundSample(
 }
 
 /// Advances one chain's stance lock and returns the world position the IK
-/// target should use horizontally. Speed thresholds are hysteretic; a
-/// release hands the remaining offset to a short decay.
+/// target should use horizontally. Speed thresholds are hysteretic. The
+/// catch-up decay runs on top of whatever the lock wants, so a release and
+/// a re-plant mid-catch-up are both continuous.
 private func updateFootLock(
     lock: inout FootLockState,
     ankleWorld: simd_float3,
@@ -340,33 +356,40 @@ private func updateFootLock(
     guard lock.hasPreviousAnkleWorld, deltaTime > 0 else { return ankleWorld }
     let speed = simd_length(ankleWorld - lock.previousAnkleWorld) / deltaTime
 
+    // Where the lock wants the foot: the anchor while planted, the animated
+    // ankle otherwise.
+    var pinned = ankleWorld
     if lock.locked {
         var horizontal = lock.anchorWorld - ankleWorld
         horizontal.y = 0
         if speed > state.lockExitSpeed || simd_length(horizontal) > state.maxLockDistance {
+            // Release: the pinned offset joins any catch-up still in flight
+            // so this frame lines up with the last locked one.
             lock.locked = false
-            lock.releaseOffset = horizontal
+            lock.releaseOffset += horizontal
         } else {
-            return simd_float3(lock.anchorWorld.x, ankleWorld.y, lock.anchorWorld.z)
+            pinned = simd_float3(lock.anchorWorld.x, ankleWorld.y, lock.anchorWorld.z)
         }
     } else if speed < state.lockEnterSpeed {
+        // Plant at the animated ankle, so an anchor never starts outside
+        // the lock distance. A catch-up still in flight keeps decaying on
+        // top of it below: re-planting mid-catch-up eases the rest of the
+        // way instead of snapping.
         lock.locked = true
         lock.anchorWorld = ankleWorld
-        lock.releaseOffset = .zero
-        return ankleWorld
     }
 
-    // Released: let the leftover offset decay so the foot catches up
-    // smoothly instead of popping to the animated position. The offset as
-    // stored is what lines this frame up with the last locked one, so it
-    // is used as-is here; the decay only takes effect from the next frame.
+    // Catch-up: the leftover offset decays so the foot eases to where the
+    // lock wants it instead of popping. The offset as stored is what lines
+    // this frame up with the previous one, so it is used as-is here; the
+    // decay only takes effect from the next frame.
     if simd_length_squared(lock.releaseOffset) > 1e-8 {
-        let result = ankleWorld + lock.releaseOffset
+        let result = pinned + lock.releaseOffset
         let decay = exp(-0.693_147_18 * deltaTime / max(state.releaseHalflife, 1e-4))
         lock.releaseOffset *= decay
         return result
     }
-    return ankleWorld
+    return pinned
 }
 
 private func isScenegraphDescendant(_ candidate: EntityID, of ancestor: EntityID) -> Bool {
