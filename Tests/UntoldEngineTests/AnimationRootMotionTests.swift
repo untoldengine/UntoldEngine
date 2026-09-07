@@ -474,6 +474,37 @@ final class AnimationRootMotionTests: XCTestCase {
         XCTAssertEqual(alignment, 1.0, accuracy: 1e-3, "Grounded root must keep its rest orientation (body upright)")
     }
 
+    // MARK: - Clips authored off the model axis
+
+    /// A capture whose actor faces +X (root yaw 90°) and walks along +X
+    /// must move the entity along its own forward: the pose is stripped
+    /// of that yaw, so the travel has to be expressed relative to the
+    /// root's heading, not taken raw from model space.
+    func testTravelFollowsRootHeadingForClipsAuthoredOffAxis() {
+        let yaw: Float = .pi / 2
+        let heading = simd_quatf(angle: yaw, axis: simd_float3(0, 1, 0))
+        let key = SIMD4<Float>(heading.imag.x, heading.imag.y, heading.imag.z, heading.real)
+        let rootChannel = RuntimeAnimationChannel(
+            jointPath: "root",
+            translations: [
+                .init(time: 0.0, value: simd_float3(0, 0, 0)),
+                .init(time: 1.0, value: simd_float3(1, 0, 0)), // 1 m along +X in model space
+            ],
+            rotations: [.init(time: 0.0, value: key), .init(time: 1.0, value: key)]
+        )
+        animationComponent.animationClips["sidewaysAuthored"] = AnimationClip(
+            runtimeClip: RuntimeAnimationClip(name: "sidewaysAuthored", duration: 1.0, channels: [rootChannel])
+        )
+
+        setRootMotionEnabled(entityId: entityId, enabled: true)
+        changeAnimation(entityId: entityId, name: "sidewaysAuthored", transitionHalflife: 0)
+        run(frames: 90) // 1 s
+
+        let position = getLocalPosition(entityId: entityId)
+        XCTAssertEqual(position.z, 1.0 - deltaTime, accuracy: 1e-2, "Travel must land on the entity's forward (+Z)")
+        XCTAssertEqual(position.x, 0, accuracy: 1e-2, "No sideways drift from the model-space authoring axis")
+    }
+
     // MARK: - Root joint override
 
     func testRootJointPathOverride() {
