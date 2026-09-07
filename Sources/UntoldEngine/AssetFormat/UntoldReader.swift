@@ -13,7 +13,6 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import Compression
-import CryptoKit
 import Foundation
 
 public final class UntoldReader: @unchecked Sendable {
@@ -221,23 +220,7 @@ public final class UntoldReader: @unchecked Sendable {
         // fixtures built in Swift). Skip validation so those files continue to load.
         guard header.contentHash.contains(where: { $0 != 0 }) else { return }
 
-        // The exporter hashes raw chunk payloads concatenated in ascending chunk-type
-        // order. Alignment padding between payloads in the file is NOT included.
-        var hashInput = Data()
-        for chunk in chunks.sorted(by: { $0.chunkType.rawValue < $1.chunkType.rawValue }) {
-            let start = Int(chunk.fileOffset)
-            let end = start + Int(chunk.compressedSize)
-            guard start >= 0, end <= fileData.count else {
-                throw UntoldBinaryDecodingError.outOfBounds(
-                    offset: start,
-                    requested: Int(chunk.compressedSize),
-                    available: fileData.count
-                )
-            }
-            hashInput.append(fileData.subdata(in: start ..< end))
-        }
-
-        let computed = Array(SHA256.hash(data: hashInput))
+        let computed = try Array(UntoldFormat.contentHash(of: chunks, in: fileData))
         guard computed == header.contentHash else {
             throw UntoldValidationError.contentHashMismatch
         }

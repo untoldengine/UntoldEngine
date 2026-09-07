@@ -44,5 +44,11 @@ let package = Package(
             resources: [.process("Resources")],
             swiftSettings: [.swiftLanguageMode(.v5)]
         ),
+        .testTarget(
+            name: "UntoldEngineCLITests",
+            dependencies: ["UntoldEngineCLI"],
+            path: "Tests/UntoldEngineCLITests",
+            swiftSettings: [.swiftLanguageMode(.v5)]
+        ),
     ]
 )

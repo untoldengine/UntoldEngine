@@ -13,6 +13,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+import CryptoKit
 import Foundation
 import simd
 
@@ -46,6 +47,33 @@ public enum UntoldFormat {
     public static let fileAlignment: UInt64 = 16
     public static let invalidIndex: UInt32 = .max
     public static let hashByteCount = 32
+}
+
+public extension UntoldFormat {
+    /// The content hash of a `.untold` file: SHA-256 over the stored (compressed, when the
+    /// chunk is) payload bytes of every chunk, concatenated in ascending `chunkType` order.
+    /// Alignment padding between payloads is not hashed, and neither are the header or the
+    /// chunk table, so a writer can lay the chunks out first and fill the header in last.
+    /// This is what the exporter writes into `UntoldFileHeaderV1.contentHash`, what
+    /// `UntoldReader` checks on load (an all-zero header hash skips the check), and what
+    /// `UntoldAssetPatcher` recomputes after rewriting a file. Throws
+    /// `UntoldBinaryDecodingError.outOfBounds` when an entry points outside `fileData`.
+    static func contentHash(of chunks: [UntoldChunkEntryV1], in fileData: Data) throws -> Data {
+        var hasher = SHA256()
+        for chunk in chunks.sorted(by: { $0.chunkType.rawValue < $1.chunkType.rawValue }) {
+            let start = Int(chunk.fileOffset)
+            let end = start + Int(chunk.compressedSize)
+            guard start >= 0, end <= fileData.count else {
+                throw UntoldBinaryDecodingError.outOfBounds(
+                    offset: start,
+                    requested: Int(chunk.compressedSize),
+                    available: fileData.count
+                )
+            }
+            hasher.update(data: fileData.subdata(in: start ..< end))
+        }
+        return Data(hasher.finalize())
+    }
 }
 
 public enum UntoldFileType: UInt32, Sendable {
