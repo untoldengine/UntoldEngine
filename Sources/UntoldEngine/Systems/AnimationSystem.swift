@@ -416,6 +416,12 @@ public func setFootIKStanceLocking(entityId: EntityID, enabled: Bool) {
     }
 
     for (_, animationComponent) in animationComponents {
+        if enabled {
+            precondition(
+                animationComponent.footIK.maxLockDistance <= animationComponent.footIK.maxAdjustment,
+                "Foot IK stance lock distance must not exceed maxAdjustment"
+            )
+        }
         animationComponent.footIK.stanceLockEnabled = enabled
         animationComponent.footIK.lockStates = []
     }
