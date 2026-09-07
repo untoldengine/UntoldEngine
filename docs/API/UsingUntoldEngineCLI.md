@@ -260,7 +260,7 @@ path is stored relative to the directory of the file that is written (the input 
 `--in-place`, the `--output` file otherwise), which is where the runtime resolves it, so
 keep the payload inside or beside that file. The `.untoldgs` header fills the record's
 single LOD level with the payload's splat count. See [Writing the
-link](UsingGaussianSystem.md#a-splat-standing-in-for-a-mesh-the-twin-swap) for the
+link](UsingGaussianSystem.md#a-splat-standing-in-for-a-mesh-shells-fades-and-scene-links) for the
 patcher API.
 
 ```bash
