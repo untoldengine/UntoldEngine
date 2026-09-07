@@ -51,6 +51,104 @@ final class GaussianLinkCommandTests: XCTestCase {
         XCTAssertFalse(lookalike.isRelative)
     }
 
+    /// A payload reached through a symlinked directory inside the asset folder keeps that
+    /// relative path (the loader follows the link); an asset folder reached through a symlink
+    /// still finds a payload given by its real path.
+    func testPayloadThroughASymlinkedSubdirectoryIsStoredRelative() throws {
+        let root = try makeTemporaryDirectory()
+        let chair = root.appendingPathComponent("Models/Chair", isDirectory: true)
+        let shared = root.appendingPathComponent("Shared/Gaussians", isDirectory: true)
+        try FileManager.default.createDirectory(at: chair, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: shared, withIntermediateDirectories: true)
+        let untoldURL = chair.appendingPathComponent("chair.untold")
+        try makeUntoldFixture().write(to: untoldURL)
+        try makePayload(splatCount: 5).write(to: shared.appendingPathComponent("chair.untoldgs"))
+        try FileManager.default.createSymbolicLink(atPath: chair.appendingPathComponent("Gaussians").path, withDestinationPath: "../../Shared/Gaussians")
+
+        let throughLink = chair.appendingPathComponent("Gaussians/chair.untoldgs")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: throughLink.path))
+        let stored = GaussianLinkCommand.storedPayloadPath(payloadURL: throughLink, untoldURL: untoldURL)
+        XCTAssertEqual(stored.path, "Gaussians/chair.untoldgs")
+        XCTAssertTrue(stored.isRelative)
+
+        // The loader resolves what was stored.
+        let link = try GaussianLinkCommand.makeLink(payloadURL: throughLink, storedPath: stored.path, swapDistance: 0, occluderShrink: 0.02, exposureOffset: 0)
+        try GaussianLinkCommand.setting(link, entity: 0, in: Data(contentsOf: untoldURL)).write(to: untoldURL)
+        let asset = try NativeFormatLoader().loadAssetSync(from: untoldURL)
+        let resolved = try XCTUnwrap(asset.nodes.first { $0.id == 0 }?.gaussianAsset?.payloadURL)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: resolved.path), resolved.path)
+
+        // The real path of the same payload is outside the asset folder.
+        let real = GaussianLinkCommand.storedPayloadPath(payloadURL: shared.appendingPathComponent("chair.untoldgs"), untoldURL: untoldURL)
+        XCTAssertFalse(real.isRelative)
+
+        // The asset folder itself reached through a symlink, the payload by its real path.
+        try FileManager.default.createSymbolicLink(atPath: root.appendingPathComponent("ChairLink").path, withDestinationPath: "Models/Chair")
+        let linkedFolder = GaussianLinkCommand.storedPayloadPath(
+            payloadURL: chair.appendingPathComponent("Gaussians/chair.untoldgs").resolvingSymlinksInPath(),
+            untoldURL: root.appendingPathComponent("ChairLink/chair.untold")
+        )
+        XCTAssertFalse(linkedFolder.isRelative, "Shared/Gaussians is not inside Models/Chair however it is reached")
+        let viaLinkedFolder = GaussianLinkCommand.storedPayloadPath(
+            payloadURL: chair.appendingPathComponent("chair.untold").resolvingSymlinksInPath(),
+            untoldURL: root.appendingPathComponent("ChairLink/other.untold")
+        )
+        XCTAssertEqual(viaLinkedFolder.path, "chair.untold", "resolved on both sides when the plain comparison fails")
+        XCTAssertTrue(viaLinkedFolder.isRelative)
+    }
+
+    /// With `--output` in another directory the record is loaded from that file, so the stored
+    /// path is measured from the destination, not from the input.
+    func testStoredPathIsRelativeToTheWrittenFile() throws {
+        let root = try makeTemporaryDirectory()
+        let chair = root.appendingPathComponent("Chair", isDirectory: true)
+        let build = root.appendingPathComponent("Build", isDirectory: true)
+        try FileManager.default.createDirectory(at: chair, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: build.appendingPathComponent("Gaussians"), withIntermediateDirectories: true)
+        let untoldURL = chair.appendingPathComponent("chair.untold")
+        try makeUntoldFixture().write(to: untoldURL)
+        let destination = build.appendingPathComponent("chair.untold")
+
+        // Beside the input but not beside the output: basename with a warning.
+        let besideInput = chair.appendingPathComponent("chair.untoldgs")
+        try makePayload(splatCount: 5).write(to: besideInput)
+        XCTAssertTrue(GaussianLinkCommand.storedPayloadPath(payloadURL: besideInput, untoldURL: untoldURL).isRelative, "relative to the input")
+        let stored = GaussianLinkCommand.storedPayloadPath(payloadURL: besideInput, untoldURL: destination)
+        XCTAssertEqual(stored.path, "chair.untoldgs")
+        XCTAssertFalse(stored.isRelative, "not relative to the written file")
+
+        // Beside the output: relative, and the loader finds it from the written file.
+        let besideOutput = build.appendingPathComponent("Gaussians/chair.untoldgs")
+        try makePayload(splatCount: 5).write(to: besideOutput)
+        let storedBesideOutput = GaussianLinkCommand.storedPayloadPath(payloadURL: besideOutput, untoldURL: destination)
+        XCTAssertEqual(storedBesideOutput.path, "Gaussians/chair.untoldgs")
+        XCTAssertTrue(storedBesideOutput.isRelative)
+        let link = try GaussianLinkCommand.makeLink(payloadURL: besideOutput, storedPath: storedBesideOutput.path, swapDistance: 0, occluderShrink: 0.02, exposureOffset: 0)
+        try GaussianLinkCommand.setting(link, entity: 0, in: Data(contentsOf: untoldURL)).write(to: destination)
+        let asset = try NativeFormatLoader().loadAssetSync(from: destination)
+        XCTAssertEqual(asset.nodes.first { $0.id == 0 }?.gaussianAsset?.payloadURL.standardizedFileURL, besideOutput.standardizedFileURL)
+    }
+
+    // MARK: - Mesh-less entities
+
+    func testAMeshTwinLinkOnAnEntityWithoutAMeshWarns() throws {
+        let fileData = makeUntoldFixture(meshlessRoot: true)
+        let link = UntoldAssetPatcher.GaussianAssetLink(payloadPath: "chair.untoldgs", lodCount: 1, lodSplatCounts: [5])
+
+        let warning = try XCTUnwrap(GaussianLinkCommand.meshlessEntityWarning(entity: 0, link: link, in: fileData))
+        XCTAssertTrue(warning.hasPrefix("entity 0 has no mesh to swap from"), warning)
+        XCTAssertTrue(warning.hasSuffix("entities with meshes: 1 (child_entity)"), warning)
+        XCTAssertNil(try GaussianLinkCommand.meshlessEntityWarning(entity: 1, link: link, in: fileData), "the mesh-bearing child")
+        XCTAssertNil(try GaussianLinkCommand.meshlessEntityWarning(entity: 7, link: link, in: fileData), "unknown entities are the patcher's error")
+        var environment = link
+        environment.flags = UntoldGaussianAssetFlags.environment
+        XCTAssertNil(try GaussianLinkCommand.meshlessEntityWarning(entity: 0, link: environment, in: fileData), "only meshTwin links need a mesh")
+
+        // A warning, not an error: the record is still written.
+        XCTAssertEqual(try UntoldAssetPatcher.gaussianAssets(in: GaussianLinkCommand.setting(link, entity: 0, in: fileData)), [0: link])
+        XCTAssertNil(try GaussianLinkCommand.meshlessEntityWarning(entity: 0, link: link, in: makeUntoldFixture()))
+    }
+
     // MARK: - Argument validation
 
     func testArgumentCombinations() {
@@ -58,6 +156,10 @@ final class GaussianLinkCommandTests: XCTestCase {
         XCTAssertNoThrow(try GaussianLinkCommand.parse(["--untold", "a.untold", "--entity", "0", "--remove", "--output", "b.untold"]))
         XCTAssertNoThrow(try GaussianLinkCommand.parse(["--untold", "a.untold", "--list"]))
         XCTAssertNoThrow(try GaussianLinkCommand.parse(["--untold", "a.untold", "--entity", "0", "--payload", "a.untoldgs", "--swap-distance", "8", "--exposure-offset=-0.5", "--output", "b.untold"]))
+        // A negative value as its own token: the option takes the next token unconditionally.
+        let negative = try? GaussianLinkCommand.parse(["--untold", "a.untold", "--entity", "0", "--payload", "a.untoldgs", "--exposure-offset", "-0.5", "--in-place"])
+        XCTAssertEqual(negative?.exposureOffset, -0.5)
+        XCTAssertThrowsError(try GaussianLinkCommand.parse(["--untold", "a.untold", "--entity", "0", "--payload", "a.untoldgs", "--exposure-offset", "--in-place"]), "the next token must be a number")
 
         XCTAssertThrowsError(try GaussianLinkCommand.parse(["--untold", "a.untold", "--entity", "0", "--payload", "a.untoldgs"]), "needs --in-place or --output")
         XCTAssertThrowsError(try GaussianLinkCommand.parse(["--untold", "a.untold", "--entity", "0", "--payload", "a.untoldgs", "--in-place", "--output", "b.untold"]), "not both")
@@ -145,16 +247,23 @@ final class GaussianLinkCommandTests: XCTestCase {
         return try UntoldGSFormat.write(splats: splats, options: options)
     }
 
-    /// A one-entity, one-triangle tile with a zero content hash.
-    private func makeUntoldFixture() -> Data {
+    /// A one-entity, one-triangle tile with a zero content hash. With `meshlessRoot` the root
+    /// entity 0 is a transform node and the triangle sits on a child entity 1, as a multi-node
+    /// export lays it out.
+    private func makeUntoldFixture(meshlessRoot: Bool = false) -> Data {
         let stringWriter = UntoldBinaryWriter()
         var offsets: [String: UInt32] = [:]
-        for string in ["root_entity", "mesh_0", "mat_0", "albedo.ktx2"] {
+        for string in ["root_entity", "mesh_0", "mat_0", "albedo.ktx2", "child_entity"] {
             offsets[string] = UInt32(stringWriter.count)
             stringWriter.writeNullTerminatedUTF8(string)
         }
         let bounds = UntoldAABB(min: SIMD3<Float>(-1, -1, -1), max: SIMD3<Float>(1, 1, 1))
-        let entity = UntoldEntityRecordV1(entityId: 0, nameOffset: offsets["root_entity"]!, firstMeshRecordIndex: 0, meshRecordCount: 1, localBounds: bounds, worldBounds: bounds)
+        var entities = [UntoldEntityRecordV1(entityId: 0, nameOffset: offsets["root_entity"]!, firstMeshRecordIndex: 0, meshRecordCount: 1, localBounds: bounds, worldBounds: bounds)]
+        if meshlessRoot {
+            entities[0].meshRecordCount = 0
+            entities.append(UntoldEntityRecordV1(entityId: 1, nameOffset: offsets["child_entity"]!, firstMeshRecordIndex: 0, meshRecordCount: 1, localBounds: bounds, worldBounds: bounds))
+        }
+        let meshEntity = entities.last!.entityId
         let material = UntoldMaterialRecordV1(nameOffset: offsets["mat_0"]!, baseColorTextureIndex: 0)
         let texture = UntoldTextureRefRecordV1(nameOffset: offsets["albedo.ktx2"]!, uriOffset: offsets["albedo.ktx2"]!, textureFormat: .rgba8, width: 16, height: 16, mipCount: 1)
         let vertexWriter = UntoldBinaryWriter()
@@ -170,7 +279,7 @@ final class GaussianLinkCommandTests: XCTestCase {
             indexWriter.writeUInt16LE(index)
         }
         let mesh = UntoldMeshRecordV1(
-            entityId: 0,
+            entityId: meshEntity,
             meshNameOffset: offsets["mesh_0"]!,
             materialIndex: 0,
             indexType: .uint16,
@@ -194,14 +303,14 @@ final class GaussianLinkCommandTests: XCTestCase {
         }
         let payloads: [(UntoldChunkType, Data, UInt32)] = [
             (.stringTable, stringWriter.data, 0),
-            (.entityTable, encode([entity]), 1),
+            (.entityTable, encode(entities), UInt32(entities.count)),
             (.meshTable, encode([mesh]), 1),
             (.materialTable, encode([material]), 1),
             (.textureTable, encode([texture]), 1),
             (.vertexData, vertexWriter.data, 0),
             (.indexData, indexWriter.data, 0),
         ]
-        var header = UntoldFileHeaderV1(fileType: .tile, chunkCount: UInt32(payloads.count), meshCount: 1, materialCount: 1, textureRefCount: 1, entityCount: 1, vertexLayout: .pbrStaticV1, worldBounds: bounds)
+        var header = UntoldFileHeaderV1(fileType: .tile, chunkCount: UInt32(payloads.count), meshCount: 1, materialCount: 1, textureRefCount: 1, entityCount: UInt32(entities.count), vertexLayout: .pbrStaticV1, worldBounds: bounds)
         header.chunkCount = UInt32(payloads.count)
 
         let headerWriter = UntoldBinaryWriter()

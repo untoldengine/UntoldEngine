@@ -61,15 +61,19 @@ public extension UntoldFormat {
     static func contentHash(of chunks: [UntoldChunkEntryV1], in fileData: Data) throws -> Data {
         var hasher = SHA256()
         for chunk in chunks.sorted(by: { $0.chunkType.rawValue < $1.chunkType.rawValue }) {
-            let start = Int(chunk.fileOffset)
-            let end = start + Int(chunk.compressedSize)
-            guard start >= 0, end <= fileData.count else {
+            // Compared in UInt64 before converting so an entry whose offset or size does not
+            // fit an Int throws instead of trapping.
+            guard chunk.fileOffset <= UInt64(fileData.count),
+                  chunk.compressedSize <= UInt64(fileData.count) - chunk.fileOffset
+            else {
                 throw UntoldBinaryDecodingError.outOfBounds(
-                    offset: start,
-                    requested: Int(chunk.compressedSize),
+                    offset: Int(clamping: chunk.fileOffset),
+                    requested: Int(clamping: chunk.compressedSize),
                     available: fileData.count
                 )
             }
+            let start = Int(chunk.fileOffset)
+            let end = start + Int(chunk.compressedSize)
             hasher.update(data: fileData.subdata(in: start ..< end))
         }
         return Data(hasher.finalize())
