@@ -112,6 +112,64 @@ load with an "exceeds maximum" error. Cook large captures with a splat budget
 (`UntoldGSCookOptions.maxSplatCount`, `untoldengine export --splat-max-count`) that fits
 every platform the asset ships on, or split the scene into streamed tiles.
 
+## A splat standing in for a mesh: shells, fades and scene links
+
+A captured object looks best as a splat up close and costs least as a mesh far away. The engine
+gives an application the pieces to swap between the two on one entity without popping; the
+policy that drives them (when to load, from what distance, how fast to fade) belongs to an
+application-side system built on these pieces (see the proposal's §4.5).
+
+- **A splat on a mesh entity.** `setEntityGaussianAsync(entityId:url:opacityScale:)` attaches a
+  `.untoldgs` (or `.ply`) to an entity that already draws a mesh. The load is two phases a
+  caller can also drive itself: `loadGaussianSplatPayload(url:)` reads and encodes off the main
+  thread, `setEntityGaussian(entityId:payload:opacityScale:)` attaches the result under the
+  world-mutation gate, so a system can check under its own gate whether the load is still
+  wanted before applying it. The mesh stays the primary representation: the splat's bytes ride
+  beside the mesh's `MemoryBudgetManager` entry (`auxiliaryMeshBytes`, so mesh streaming in and
+  out leaves them intact) and the entity keeps the mesh's bounding box, with the splat's own box
+  on `GaussianComponent.localBoundingBox`. `removeEntityGaussian` drops the splat (and a
+  progressive splat's tiers) and only its share of the ledger. Starting with `opacityScale: 0`
+  keeps it resident but hidden.
+- **`GaussianComponent.opacityScale`** weighs every splat's opacity: 0 hides the entity and skips
+  its cull, values between cross-fade.
+- **`MeshFadeComponent`** dithers the mesh's colour with the LOD screen-door: `.fadeOut` discards
+  more pixels as `progress` rises, `.fadeIn` keeps more. Applied after the LOD and tile fades.
+- **`MeshOccluderComponent`** draws the mesh a second time depth-only, pushed `shrinkMeters` along
+  its normals away from the camera (the `meshOccluderShell` render pass, after the opaque colour
+  and before the HZB copy and the splat pass). The splat then passes the depth test on and just
+  outside the surface, and is hidden behind the object's far side. With `drawsColor` off the
+  mesh contributes nothing but that depth: shadows, physics and picking keep using it because
+  `RenderComponent.isVisible` is untouched. Soft objects differ from their mesh by centimetres,
+  so raise the margin until the front of the capture stops clipping. Blend-mode submeshes are
+  left out of the shell and stop drawing with the colour.
+- **`GaussianAssetLinkComponent`** carries a `.untold` scene's `gaussianAsset` record
+  (`UntoldGaussianAssetRecordV1`: payload path resolved next to the scene file, flags such as
+  `meshTwin`, occluder margin, exposure offset, swap distance) onto the entity as data.
+  `setEntityMesh`/`setEntityMeshAsync` attach it; nothing is loaded.
+- A mesh carrying a `MeshOccluderComponent` or `MeshFadeComponent` is excluded from static
+  batching when the batcher next evaluates it, and re-admitted once they are gone. The system
+  that adds or removes them tells the batcher with
+  `BatchingSystem.shared.notifyEntityMaterialChanged(entityId:)`; the group is rebuilt over a
+  few frames, during which the batch still draws the mesh.
+- `GaussianDebugOptions.shared.disableOccluderShell` turns the shells off for bisecting.
+
+A typical swap: load the payload with `opacityScale: 0` when the camera is near; add a
+`MeshOccluderComponent`; add a `MeshFadeComponent` with `direction = .fadeOut` and raise its
+`progress` and the splat's `opacityScale` together to 1 over 250 ms; then set `drawsColor =
+false` and remove the fade. Reverse the steps when the camera leaves.
+
+### Calibrating the capture
+
+Splats are unlit emissive surfaces composited in linear light before the look and output
+transforms, so a splat is tone-mapped once, like an emissive mesh next to it. The preprocess
+applies one linear gain per entity, `GaussianComponent.colorGain`: the capture white balance
+from the `.untoldgs` header, times `2^(exposureOffsetEV − captureExposureEV)`. A capture
+recorded at +1 EV therefore comes back to the scene's neutral exposure by itself, and the
+per-asset offset (the editor slider, `exposureOffsetEV` in the scene record) pushes it either
+way. With `useRealWorldTint` the colour is also multiplied by the XR lighting estimate's tint
+whenever `RuntimeEnvironmentLightingStore` is in `.realWorldEstimate` mode with a valid
+estimate, so a capture made under neutral light takes on the colour of the room.
+
 ## Progressive Gaussian Splats
 
 Progressive Gaussian loading is available without a tile-streamed scene. Use it when you

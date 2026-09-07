@@ -107,6 +107,117 @@ public class GaussianComponent: Component {
     var visibleSplatCountForRendering: UInt = 0
     var splatCount: UInt = 0
 
+    /// Multiplier on every splat's opacity this frame: 1 draws the asset as captured, 0 hides
+    /// it without unloading (nothing is compacted into the frame; its cull is skipped), values
+    /// between cross-fade. An application system that swaps a mesh for its splat drives it.
+    public var opacityScale: Float = 1
+    /// Exposure the capture was recorded at, from the `.untoldgs` header (0 for `.ply`), and
+    /// its white balance as an RGB multiplier (1 for none). Baked by the cook, read on load.
+    public internal(set) var captureExposureEV: Float = 0
+    public internal(set) var captureWhiteBalance = SIMD3<Float>(repeating: 1)
+    /// Per-asset exposure offset in EV on top of the capture exposure (the editor's slider,
+    /// `UntoldGaussianAssetRecordV1.exposureOffsetEV` in a scene).
+    public var exposureOffsetEV: Float = 0
+    /// In XR, multiply the colour by the real-world lighting estimate's tint
+    /// (`RuntimeEnvironmentLightingStore`, while its mode is `.realWorldEstimate` and the
+    /// latest estimate is valid), so a capture made under neutral light takes on the colour of
+    /// the room it is shown in. Off by default.
+    public var useRealWorldTint = false
+
+    /// The linear gain the preprocess applies to this asset's colour: the capture white balance
+    /// and 2^(offset − capture exposure), which brings a capture recorded at +1 EV back to the
+    /// scene's neutral exposure and lets the per-asset offset push it either way. The real-world
+    /// tint is applied on top by the preprocess when `useRealWorldTint` is set. Splats are unlit
+    /// emissive surfaces composited before the look and output transforms, so this is the only
+    /// place the capture is calibrated to the scene (proposal §4.5, Lighting).
+    public var colorGain: SIMD3<Float> {
+        captureWhiteBalance * pow(2, exposureOffsetEV - captureExposureEV)
+    }
+
+    /// GPU bytes of the resident splat and its local-space box, set by every load path
+    /// (single file, progressive tier, streamed). On an entity that also draws a mesh the splat
+    /// is the secondary representation: its bytes ride beside the mesh's `MemoryBudgetManager`
+    /// entry and the entity keeps the mesh's bounding box; this box is the splat's own.
+    public internal(set) var estimatedGPUBytes = 0
+    public internal(set) var localBoundingBox: (min: simd_float3, max: simd_float3)?
+
+    public required init() {}
+}
+
+/// Draws the mesh as a depth-only occluder shell as well: after the opaque colour geometry, the
+/// `meshOccluderShell` pass draws it again with depth only, every vertex pushed `shrinkMeters`
+/// along its normal away from the camera, into the opaque depth the HZB copy, SSAO,
+/// transparency and the splat pass read. Whatever stands in for the mesh on screen (a captured
+/// splat twin) is then hidden behind the object's far side but never by the surface it sits on.
+/// With `drawsColor` off the mesh contributes nothing but that depth: shadows, physics and
+/// picking keep using it because `RenderComponent.isVisible` is untouched. Blend-mode submeshes
+/// are left out of the shell and stop drawing with the colour. The policy that drives this
+/// (when, how fast, from what distance) belongs to the application system that owns the
+/// component. Adding or removing it takes the entity out of, or back into, static batching the
+/// next time the batcher evaluates it, and a batch-eligible mesh then casts its shadow on its
+/// own: the owning system calls `BatchingSystem.notifyEntityMaterialChanged` and
+/// `RenderPasses.invalidateShadowEntityCache()` when it adds or removes the component.
+public class MeshOccluderComponent: Component {
+    /// Metres the shell moves away from the camera along the normals.
+    public var shrinkMeters: Float = 0.02
+    /// Whether the mesh still draws its colour in the opaque pass (dithered when a
+    /// `MeshFadeComponent` is present). Off once the stand-in is fully shown.
+    public var drawsColor = true
+
+    public required init() {}
+}
+
+/// Screen-door cross-fade of a mesh's colour, the 8x8 Bayer dither the LOD and tile fades use:
+/// `.fadeOut` discards more pixels as `progress` rises, `.fadeIn` keeps more. Applied after the
+/// LOD and tile fades, so the app system that owns the component wins over them. While present
+/// the entity draws on its own, outside static batching, once the batcher re-evaluates it
+/// (`BatchingSystem.notifyEntityMaterialChanged`; also `RenderPasses.invalidateShadowEntityCache()`
+/// so a batch-eligible mesh keeps casting its shadow on its own meanwhile).
+public class MeshFadeComponent: Component {
+    public enum Direction: Sendable, Equatable {
+        case fadeIn
+        case fadeOut
+    }
+
+    /// 0...1 progress of the fade.
+    public var progress: Float = 0
+    public var direction: Direction = .fadeOut
+
+    public required init() {}
+}
+
+/// The `gaussianAsset` record a `.untold` scene attached to this entity
+/// (`UntoldGaussianAssetRecordV1`), carried as data by the loader and nothing more: an
+/// application system decides what to do with it (a mesh twin swap, a window world, an
+/// environment). The payload path is resolved next to the scene file when the scene loads.
+public class GaussianAssetLinkComponent: Component {
+    public var payloadURL: URL?
+    /// See `UntoldGaussianAssetFlags`.
+    public var flags: UInt32 = 0
+    /// The record's LOD table: number of levels (0 means one), splat count per level coarsest
+    /// first, and the screen height in pixels above which the next finer level is preferred.
+    public var lodCount: Int = 0
+    public var lodSplatCounts: [UInt32] = []
+    public var lodSwitchScreenHeights: [Float] = []
+    /// Metres the mesh twin's depth-only occluder shell is shrunk (`MeshOccluderComponent`).
+    public var occluderShrinkMeters: Float = 0.02
+    /// Editor exposure offset in EV (`GaussianComponent.exposureOffsetEV`).
+    public var exposureOffsetEV: Float = 0
+    /// Camera distance at which a twin swap arms; 0 means always.
+    public var swapDistanceMeters: Float = 0
+
+    public var isMeshTwin: Bool {
+        flags & UntoldGaussianAssetFlags.meshTwin != 0
+    }
+
+    public var isEnvironment: Bool {
+        flags & UntoldGaussianAssetFlags.environment != 0
+    }
+
+    public var isWindowWorld: Bool {
+        flags & UntoldGaussianAssetFlags.windowWorld != 0
+    }
+
     public required init() {}
 }
 

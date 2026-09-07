@@ -280,4 +280,8 @@ func copyGaussianComponentBuffers(from source: GaussianComponent, to destination
     destination.encodedSplatData = source.encodedSplatData
     destination.sphericalHarmonicsData = source.sphericalHarmonicsData
     destination.sphericalHarmonicsMetadata = source.sphericalHarmonicsMetadata
+    destination.captureExposureEV = source.captureExposureEV
+    destination.captureWhiteBalance = source.captureWhiteBalance
+    destination.estimatedGPUBytes = source.estimatedGPUBytes
+    destination.localBoundingBox = source.localBoundingBox
 }

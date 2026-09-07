@@ -182,6 +182,16 @@ private func registerComponentCleanupHandlers() {
         removeEntityGaussian(entityId: entityId)
     }
 
+    ComponentRegistry.register(componentType: MeshOccluderComponent.self, handlerId: "meshOccluder", priority: 30) { entityId in
+        scene.remove(component: MeshOccluderComponent.self, from: entityId)
+    }
+    ComponentRegistry.register(componentType: MeshFadeComponent.self, handlerId: "meshFade", priority: 30) { entityId in
+        scene.remove(component: MeshFadeComponent.self, from: entityId)
+    }
+    ComponentRegistry.register(componentType: GaussianAssetLinkComponent.self, handlerId: "gaussianAssetLink", priority: 30) { entityId in
+        scene.remove(component: GaussianAssetLinkComponent.self, from: entityId)
+    }
+
     ComponentRegistry.register(componentType: CameraComponent.self, handlerId: "camera", priority: 30) { entityId in
         removeEntityCamera(entityId: entityId)
     }
@@ -658,8 +668,25 @@ private func registerUntoldProgressiveStubEntity(
         sc.unloadRadius = Float.greatestFiniteMagnitude
     }
     setDefaultEntitySceneChannels(entityId: childEntityId, channels: defaultSceneChannels(forName: uniqueAssetName))
+    attachGaussianAssetLinkIfPresent(entityId: childEntityId, node: node)
 
     return childEntityId
+}
+
+/// Carries the node's `gaussianAsset` record onto its entity as `GaussianAssetLinkComponent`.
+/// Nothing is loaded here; an application system reads the link and decides.
+private func attachGaussianAssetLinkIfPresent(entityId: EntityID, node: RuntimeAssetNode) {
+    guard let link = node.gaussianAsset else { return }
+    registerComponent(entityId: entityId, componentType: GaussianAssetLinkComponent.self)
+    guard let component = scene.get(component: GaussianAssetLinkComponent.self, for: entityId) else { return }
+    component.payloadURL = link.payloadURL
+    component.flags = link.flags
+    component.lodCount = link.lodCount
+    component.lodSplatCounts = link.lodSplatCounts
+    component.lodSwitchScreenHeights = link.lodSwitchScreenHeights
+    component.occluderShrinkMeters = link.occluderShrinkMeters
+    component.exposureOffsetEV = link.exposureOffsetEV
+    component.swapDistanceMeters = link.swapDistanceMeters
 }
 
 /// Register all renderable nodes in a .untold RuntimeAsset as OCC stub entities.
@@ -704,6 +731,7 @@ private func registerUntoldRuntimeAssetOCC(
             let parentEntityId = node.parentID.flatMap { entityByNodeID[$0] } ?? entityId
             setParent(childId: containerEntityId, parentId: parentEntityId)
             entityByNodeID[node.id] = containerEntityId
+            attachGaussianAssetLinkIfPresent(entityId: containerEntityId, node: node)
 
         } else {
             // Renderable node — always a CHILD OCC stub (never the root entity).
@@ -874,6 +902,7 @@ private func registerUntoldRuntimeAsset(
             handleError(.assetDataMissing, "Node '\(assetName)' in '\(filename).\(withExtension)' has no renderable primitives")
             return false
         }
+        attachGaussianAssetLinkIfPresent(entityId: entityId, node: matchedNode)
         return true
     }
 
@@ -931,6 +960,8 @@ private func registerUntoldRuntimeAsset(
                 derived.nodePath = derivedComp.nodePath
             }
         }
+
+        attachGaussianAssetLinkIfPresent(entityId: targetEntityId, node: node)
 
         guard !node.primitives.isEmpty else {
             registerRuntimeSkeletonIfNeeded(
@@ -2882,6 +2913,16 @@ func removeEntityMesh(entityId: EntityID) {
     OctreeSystem.shared.unregisterEntity(entityId)
 
     MemoryBudgetManager.shared.unregisterMesh(entityId: entityId)
+
+    // A splat that stays resident after its mesh left becomes the entity's only
+    // representation again: its bytes take over the ledger entry.
+    if let gaussian = scene.get(component: GaussianComponent.self, for: entityId), gaussian.encodedSplatData != nil {
+        MemoryBudgetManager.shared.setAuxiliaryMeshBytes(entityId: entityId, bytes: 0)
+        MemoryBudgetManager.shared.registerMesh(entityId: entityId, meshSizeBytes: gaussian.estimatedGPUBytes)
+        if let box = gaussian.localBoundingBox, let localTransform = scene.get(component: LocalTransformComponent.self, for: entityId) {
+            localTransform.boundingBox = box
+        }
+    }
 }
 
 public func setEntityAnimations(entityId: EntityID, filename: String, withExtension: String, name: String) {
@@ -3104,6 +3145,13 @@ func registerRenderComponent(entityId: EntityID, meshes: [Mesh], url: URL, asset
     OctreeSystem.shared.registerEntity(entityId)
 
     MemoryBudgetManager.shared.registerMesh(entityId: entityId, meshes: resolvedMeshes)
+
+    // A mesh that (re)registers on an entity with a resident splat makes the splat the
+    // secondary representation: its bytes move beside the mesh entry (registerMesh replaced
+    // the entry).
+    if let gaussian = scene.get(component: GaussianComponent.self, for: entityId), gaussian.encodedSplatData != nil {
+        MemoryBudgetManager.shared.setAuxiliaryMeshBytes(entityId: entityId, bytes: gaussian.estimatedGPUBytes)
+    }
 }
 
 func associateMeshesToEntity(entityId: EntityID, meshes: [Mesh]) {
@@ -3337,6 +3385,9 @@ struct GaussianLoadResult {
     let encodedSplatBuffer: MTLBuffer
     let sphericalHarmonicsBuffer: MTLBuffer?
     let sphericalHarmonicsMetadata: GaussianSHMetadata?
+    /// Capture exposure and white balance from a `.untoldgs` header (0 and 1 for a `.ply`).
+    var captureExposureEV: Float = 0
+    var captureWhiteBalance = SIMD3<Float>(repeating: 1)
     /// Sum of all GPU buffer bytes above, for `MemoryBudgetManager` registration.
     let estimatedGPUBytes: Int
     /// Local-space bounding box computed from the actual loaded splat positions, for
@@ -3553,13 +3604,16 @@ func buildGaussianLoadResultFromUntoldGS(url: URL) -> GaussianLoadResult? {
     if GaussianChunkLoader.isAvailable {
         do {
             let loaded = try GaussianChunkLoader.load(url: url)
-            return buildGaussianLoadResult(
+            guard var result = buildGaussianLoadResult(
                 encodedSplatBuffer: loaded.encodedSplatBuffer,
                 splatCount: UInt(loaded.splatCount),
                 sphericalHarmonicsBuffer: loaded.sphericalHarmonicsBuffer,
                 sphericalHarmonicsMetadata: loaded.sphericalHarmonicsMetadata,
                 boundingBox: loaded.boundingBox
-            )
+            ) else { return nil }
+            result.captureExposureEV = loaded.captureExposureEV
+            result.captureWhiteBalance = loaded.captureWhiteBalance
+            return result
         } catch {
             handleError(.assetDataMissing, "Failed to load .untoldgs Gaussian asset \(url.lastPathComponent): \(error)")
             return nil
@@ -3576,12 +3630,17 @@ func buildGaussianLoadResultFromUntoldGS(url: URL) -> GaussianLoadResult? {
     let packedSphericalHarmonics = asset.shMetadata.map {
         PackedGaussianSphericalHarmonics(coefficients: asset.shCoefficients, metadata: $0)
     }
-    return buildGaussianLoadResult(
+    guard var result = buildGaussianLoadResult(
         encodedSplats: asset.encodedSplats,
         packedSphericalHarmonics: packedSphericalHarmonics,
         meanSquaredSplatExtent: asset.meanSquaredSplatExtent,
         sourceDescription: url.lastPathComponent
-    )
+    ) else { return nil }
+    if let header = try? UntoldGSFormat.readHeaderV3(from: url) {
+        result.captureExposureEV = header.captureExposureEV
+        result.captureWhiteBalance = header.captureWhiteBalance
+    }
+    return result
 }
 
 func buildGaussianComponentFromUntoldGS(url: URL) -> (
@@ -3609,7 +3668,19 @@ func buildGaussianComponentFromUntoldGS(url: URL) -> (
 /// Registers `GaussianComponent` on `entityId` from a built `GaussianLoadResult` and records
 /// its GPU footprint with `MemoryBudgetManager`. Must be called from within a world-mutation
 /// gate (`withWorldMutationGate`).
-private func applyGaussianLoadResult(_ result: GaussianLoadResult, to entityId: EntityID) {
+///
+/// An entity may carry a mesh and a splat at once (a captured twin standing in for its mesh).
+/// The mesh then stays the primary representation: the splat's bytes ride beside the mesh's
+/// ledger entry (`setAuxiliaryMeshBytes`) rather than replacing it, and the mesh keeps its own
+/// bounding box (the splat pass culls per splat on the GPU and never consults the entity box;
+/// the splat's box is kept on `GaussianComponent.localBoundingBox`). `registerRenderComponent`
+/// and `removeEntityMesh` keep that arrangement when the mesh arrives or leaves later.
+private func applyGaussianLoadResult(_ result: GaussianLoadResult, to entityId: EntityID, opacityScale: Float = 1) {
+    // Release a splat already on the entity first: re-assigning the component slot would
+    // leave the old instance and its Metal buffers alive (see `copyGaussianComponentBuffers`).
+    if scene.get(component: GaussianComponent.self, for: entityId) != nil {
+        removeEntityGaussian(entityId: entityId)
+    }
     registerComponent(entityId: entityId, componentType: GaussianComponent.self)
 
     guard let gaussianComponent = scene.get(component: GaussianComponent.self, for: entityId) else {
@@ -3618,11 +3689,90 @@ private func applyGaussianLoadResult(_ result: GaussianLoadResult, to entityId: 
     }
 
     copyGaussianLoadResult(result, to: gaussianComponent)
+    gaussianComponent.opacityScale = max(0, opacityScale)
+
+    if entityHasMesh(entityId) {
+        MemoryBudgetManager.shared.setAuxiliaryMeshBytes(entityId: entityId, bytes: result.estimatedGPUBytes)
+        return
+    }
+
     MemoryBudgetManager.shared.registerMesh(entityId: entityId, meshSizeBytes: result.estimatedGPUBytes)
 
     if let localTransform = scene.get(component: LocalTransformComponent.self, for: entityId) {
         localTransform.boundingBox = result.boundingBox
     }
+}
+
+/// Whether the entity draws a mesh (a `RenderComponent` with geometry) — the splat on such an
+/// entity is the secondary representation for the ledger and the bounding box.
+func entityHasMesh(_ entityId: EntityID) -> Bool {
+    scene.get(component: RenderComponent.self, for: entityId)?.mesh.isEmpty == false
+}
+
+/// Builds the GPU buffers for a splat file by URL — `.untoldgs` through `GaussianChunkLoader`,
+/// anything else as a `.ply`. `nil` on failure, reported through `handleError` like the other
+/// Gaussian load paths.
+func buildGaussianLoadResult(url: URL) -> GaussianLoadResult? {
+    if url.pathExtension.lowercased() == "untoldgs" {
+        return buildGaussianLoadResultFromUntoldGS(url: url)
+    }
+    do {
+        return try buildGaussianLoadResultFromPLY(url: url, sourceDescription: url.lastPathComponent)
+    } catch {
+        handleError(.assetDataMissing, "Failed to read Gaussian splats from \(url.lastPathComponent): \(error.localizedDescription)")
+        return nil
+    }
+}
+
+/// A splat read and encoded to GPU buffers but not yet attached to an entity: the result of
+/// `loadGaussianSplatPayload(url:)`, handed to `setEntityGaussian(entityId:payload:opacityScale:)`.
+/// Lets a caller load off the main thread and decide under its own world-mutation gate whether
+/// the load is still wanted (an entity relinked meanwhile, a superseded request).
+public struct GaussianSplatPayload: @unchecked Sendable {
+    let result: GaussianLoadResult
+
+    public var splatCount: Int {
+        Int(result.splatCount)
+    }
+
+    public var estimatedGPUBytes: Int {
+        result.estimatedGPUBytes
+    }
+
+    public var boundingBox: (min: simd_float3, max: simd_float3) {
+        result.boundingBox
+    }
+}
+
+/// Reads and encodes the splat at `url` (`.untoldgs` or `.ply`) off the caller's actor. `nil` on
+/// failure, reported through `handleError` like the other Gaussian load paths.
+public func loadGaussianSplatPayload(url: URL) async -> GaussianSplatPayload? {
+    guard let result = buildGaussianLoadResult(url: url) else { return nil }
+    return GaussianSplatPayload(result: result)
+}
+
+/// Attaches a loaded payload to `entityId` under the world-mutation gate. `opacityScale` is the
+/// weight the splat starts with — 0 keeps it resident but hidden until a cross-fade brings it in.
+/// The entity may already carry a mesh; see `applyGaussianLoadResult` for how the two share the
+/// ledger and the bounding box. Returns false if the entity is gone.
+@discardableResult
+public func setEntityGaussian(entityId: EntityID, payload: GaussianSplatPayload, opacityScale: Float = 1) -> Bool {
+    withWorldMutationGate {
+        guard scene.exists(entityId) else { return false }
+        applyGaussianLoadResult(payload.result, to: entityId, opacityScale: opacityScale)
+        return scene.get(component: GaussianComponent.self, for: entityId) != nil
+    }
+}
+
+/// `loadGaussianSplatPayload` followed by `setEntityGaussian(entityId:payload:opacityScale:)`, like
+/// `setEntityGaussianAsync(entityId:filename:withExtension:)` but for a payload the caller already
+/// located (a `GaussianAssetLinkComponent.payloadURL`, a file picked at runtime).
+@discardableResult
+public func setEntityGaussianAsync(entityId: EntityID, url: URL, opacityScale: Float = 1) async -> Bool {
+    guard let payload = await loadGaussianSplatPayload(url: url) else {
+        return false
+    }
+    return setEntityGaussian(entityId: entityId, payload: payload, opacityScale: opacityScale)
 }
 
 func copyGaussianLoadResult(_ result: GaussianLoadResult, to gaussianComponent: GaussianComponent) {
@@ -3633,6 +3783,10 @@ func copyGaussianLoadResult(_ result: GaussianLoadResult, to gaussianComponent: 
     gaussianComponent.encodedSplatData = result.encodedSplatBuffer
     gaussianComponent.sphericalHarmonicsData = result.sphericalHarmonicsBuffer
     gaussianComponent.sphericalHarmonicsMetadata = result.sphericalHarmonicsMetadata
+    gaussianComponent.captureExposureEV = result.captureExposureEV
+    gaussianComponent.captureWhiteBalance = result.captureWhiteBalance
+    gaussianComponent.estimatedGPUBytes = result.estimatedGPUBytes
+    gaussianComponent.localBoundingBox = result.boundingBox
 }
 
 public enum GaussianSource {
@@ -4520,7 +4674,12 @@ func removeEntityGaussianLOD(entityId: EntityID) {
     }
 }
 
-func removeEntityGaussian(entityId: EntityID) {
+/// Drops the entity's splat and its GPU buffers, and the resident tiers of a progressive splat
+/// (`GaussianLODComponent`) with it. On an entity that also draws a mesh only the splat's share
+/// of the memory ledger goes; the mesh keeps its entry. Also the `GaussianComponent` cleanup
+/// handler.
+public func removeEntityGaussian(entityId: EntityID) {
+    removeEntityGaussianLOD(entityId: entityId)
     if let gaussianComponent = scene.get(component: GaussianComponent.self, for: entityId) {
         // Release Metal buffers
         gaussianComponent.encodedSplatData = nil
@@ -4529,7 +4688,14 @@ func removeEntityGaussian(entityId: EntityID) {
         gaussianComponent.gaussianVisibleIndices.removeAll()
         gaussianComponent.gaussianVisibleCount.removeAll()
         gaussianComponent.visibleSplatCountForRendering = 0
+        gaussianComponent.estimatedGPUBytes = 0
+        gaussianComponent.localBoundingBox = nil
         scene.remove(component: GaussianComponent.self, from: entityId)
+        if entityHasMesh(entityId) {
+            MemoryBudgetManager.shared.setAuxiliaryMeshBytes(entityId: entityId, bytes: 0)
+            return
+        }
+        MemoryBudgetManager.shared.setAuxiliaryMeshBytes(entityId: entityId, bytes: 0)
         // Idempotent — safe to call again if `unloadGaussian` already unregistered this
         // entity as part of a streaming unload. Keeps MemoryBudgetManager's ledger accurate
         // for entities destroyed directly (e.g. a non-streamed setEntityGaussian caller).

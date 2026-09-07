@@ -342,6 +342,38 @@ public enum RenderPasses {
         )
     }
 
+    // MARK: - Mesh occluder shells and fades (MeshOccluderComponent, MeshFadeComponent)
+
+    /// An entity with an occluder shell or a running fade draws through the per-entity path even
+    /// while its batch group still contains it (the group is rebuilt without it a few frames
+    /// later), like an entity in a LOD or tile fade.
+    @inline(__always)
+    private static func isEntityInMeshOccluderOrFade(_ entityId: EntityID) -> Bool {
+        scene.get(component: MeshOccluderComponent.self, for: entityId) != nil
+            || scene.get(component: MeshFadeComponent.self, for: entityId) != nil
+    }
+
+    /// A mesh whose occluder shell has taken over draws no colour: depth comes from the shell
+    /// (`meshOccluderShellExecution`); shadows, physics and picking stay on because
+    /// `RenderComponent.isVisible` is untouched.
+    @inline(__always)
+    private static func meshSkipsColor(_ entityId: EntityID) -> Bool {
+        scene.get(component: MeshOccluderComponent.self, for: entityId)?.drawsColor == false
+    }
+
+    /// The app-driven cross-fade dither: outgoing (mode 2) or incoming (mode 1). Applied last so
+    /// it wins over a LOD or tile fade on the same entity.
+    @inline(__always)
+    private static func applyMeshFadeDither(
+        entityId: EntityID,
+        materialParameters: inout MaterialParametersUniform
+    ) {
+        guard let fade = scene.get(component: MeshFadeComponent.self, for: entityId) else { return }
+        let threshold = simd_clamp(fade.progress, 0.0, 1.0)
+        let mode: Float = fade.direction == .fadeOut ? 2.0 : 1.0
+        materialParameters.lodDither = simd_float4(threshold, mode, 0.0, 0.0)
+    }
+
     @inline(__always)
     private static func extractLODIndex(from batchKey: String) -> Int? {
         guard let markerRange = batchKey.range(of: "_LOD", options: .backwards) else {
@@ -540,7 +572,12 @@ public enum RenderPasses {
             else { continue }
             // Batch-eligible entities always cast shadows via shadowCasterBatchGroups.
             // Excluding them here prevents O(n_loaded_tiles) individual shadow draw calls.
-            if batchingEnabled, scene.get(component: StaticBatchComponent.self, for: entityId) != nil { continue }
+            // A mesh carrying an occluder shell or fade is out of its batch and casts on its
+            // own (the system that adds or removes those components invalidates this cache).
+            if batchingEnabled,
+               scene.get(component: StaticBatchComponent.self, for: entityId) != nil,
+               !isEntityInMeshOccluderOrFade(entityId)
+            { continue }
             candidates.append(entityId)
         }
 
@@ -615,7 +652,11 @@ public enum RenderPasses {
                 // scale with the scene and eventually overflow the GPU command buffer budget.
                 // During the brief batch-rebuild window their shadow is absent; this is
                 // preferable to the alternative of the app freezing at ~300+ loaded tiles.
-                if scene.get(component: StaticBatchComponent.self, for: entityId) != nil { continue }
+                // The exception is a mesh carrying an occluder shell or fade: it stays out of
+                // its batch for as long as the component is there, so it casts on its own.
+                if scene.get(component: StaticBatchComponent.self, for: entityId) != nil,
+                   !isEntityInMeshOccluderOrFade(entityId)
+                { continue }
                 if BatchingSystem.shared.isBatched(entityId: entityId) { continue }
             }
 
@@ -1768,13 +1809,15 @@ public enum RenderPasses {
             if BatchingSystem.shared.isEnabled(),
                BatchingSystem.shared.isBatched(entityId: entityId),
                !isEntityInActiveLODFade(entityId),
-               !isEntityInActiveTileRepresentationFade(entityId)
+               !isEntityInActiveTileRepresentationFade(entityId),
+               !isEntityInMeshOccluderOrFade(entityId)
             {
                 continue
             }
 
             if scene.get(component: SceneCameraComponent.self, for: entityId) != nil { continue }
             if scene.get(component: CameraComponent.self, for: entityId) != nil { continue }
+            if meshSkipsColor(entityId) { continue }
 
             guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
                 handleError(.noRenderComponent, entityId)
@@ -1910,6 +1953,7 @@ public enum RenderPasses {
                         applyStreamingTierDebugColorOverride(entityId: entityId, materialParameters: &materialParameters)
                         applyLODDither(draw: lodDraw, materialParameters: &materialParameters)
                         applyTileRepresentationDither(entityId: entityId, materialParameters: &materialParameters)
+                        applyMeshFadeDither(entityId: entityId, materialParameters: &materialParameters)
 
                         renderEncoder.setFragmentBytes(
                             &materialParameters, length: MemoryLayout<MaterialParametersUniform>.stride,
@@ -2253,12 +2297,14 @@ public enum RenderPasses {
             if BatchingSystem.shared.isEnabled(),
                BatchingSystem.shared.isBatched(entityId: entityId),
                !isEntityInActiveLODFade(entityId),
-               !isEntityInActiveTileRepresentationFade(entityId)
+               !isEntityInActiveTileRepresentationFade(entityId),
+               !isEntityInMeshOccluderOrFade(entityId)
             { continue }
             if scene.get(component: SceneCameraComponent.self, for: entityId) != nil { continue }
             if scene.get(component: CameraComponent.self, for: entityId) != nil { continue }
             if hasComponent(entityId: entityId, componentType: GizmoComponent.self) { continue }
             if hasComponent(entityId: entityId, componentType: LightComponent.self) { continue }
+            if meshSkipsColor(entityId) { continue }
 
             guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else { continue }
             guard let worldTransformComponent = scene.get(component: WorldTransformComponent.self, for: entityId) else { continue }
@@ -2327,6 +2373,7 @@ public enum RenderPasses {
                         applyStreamingTierDebugColorOverride(entityId: entityId, materialParameters: &materialParameters)
                         applyLODDither(draw: lodDraw, materialParameters: &materialParameters)
                         applyTileRepresentationDither(entityId: entityId, materialParameters: &materialParameters)
+                        applyMeshFadeDither(entityId: entityId, materialParameters: &materialParameters)
 
                         renderEncoder.setFragmentBytes(&materialParameters, length: MemoryLayout<MaterialParametersUniform>.stride, index: Int(modelPassFragmentMaterialParameterIndex.rawValue))
                         renderEncoder.setFragmentTexture(material.normal.texture, index: Int(modelPassNormalTextureIndex.rawValue))
@@ -3620,6 +3667,8 @@ public enum RenderPasses {
             if scene.get(component: CameraComponent.self, for: entityId) != nil { continue }
             if hasComponent(entityId: entityId, componentType: GizmoComponent.self) { continue }
             if hasComponent(entityId: entityId, componentType: LightComponent.self) { continue }
+            // Blend submeshes go with the colour (there is no dither path here).
+            if meshSkipsColor(entityId) { continue }
 
             guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
                 continue
@@ -3788,6 +3837,124 @@ public enum RenderPasses {
         }
 
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
+    }
+
+    /// Depth-only occluder shells of the meshes that carry a `MeshOccluderComponent`. Each mesh is
+    /// drawn again with depth only, pushed along its normals away from the camera by the
+    /// component's margin (`vertexMeshOccluderShellShader`), into the resolved opaque depth after
+    /// the colour geometry and before the HZB copy, SSAO and the splat pass's depth snapshot: a
+    /// stand-in shown in the mesh's place (a captured splat twin) is hidden only behind the
+    /// object's far side, never by the surface it sits on. Blend submeshes are left out (their
+    /// stand-in shows through them), and the unshrunk mesh keeps casting shadows as before.
+    public static let meshOccluderShellExecution: RenderPassExecution = { commandBuffer in
+        guard !GaussianDebugOptions.shared.disableOccluderShell else { return }
+        guard let depthTexture = textureResources.depthMap else { return }
+        guard let pipeline = PipelineManager.shared.renderPipelinesByType[.meshOccluderShell] else {
+            handleError(.pipelineStateNulled, "meshOccluderShellPipeline is nil")
+            return
+        }
+        guard pipeline.success, let pipelineState = pipeline.pipelineState else {
+            handleError(.pipelineStateNulled, pipeline.name ?? "Mesh Occluder Shell Pipeline")
+            return
+        }
+        guard let camera = CameraSystem.shared.activeCamera,
+              let cameraComponent = scene.get(component: CameraComponent.self, for: camera)
+        else {
+            handleError(.noActiveCamera)
+            return
+        }
+
+        let shellEntityIds = visibleEntityIds.filter { entityId in
+            guard scene.mask(for: entityId) != nil,
+                  scene.get(component: MeshOccluderComponent.self, for: entityId) != nil
+            else { return false }
+            if shouldHideSceneEntity(entityId: entityId) || shouldRenderSceneEntityAsWireframe(entityId: entityId) {
+                return false
+            }
+            guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId),
+                  renderComponent.isVisible,
+                  !renderComponent.mesh.isEmpty,
+                  scene.get(component: WorldTransformComponent.self, for: entityId) != nil
+            else { return false }
+            return true
+        }
+        guard !shellEntityIds.isEmpty else { return }
+
+        let viewMatrix = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
+        let effectiveCameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
+
+        let descriptor = MTLRenderPassDescriptor()
+        descriptor.renderTargetWidth = depthTexture.width
+        descriptor.renderTargetHeight = depthTexture.height
+        descriptor.depthAttachment.texture = depthTexture
+        descriptor.depthAttachment.loadAction = .load
+        descriptor.depthAttachment.storeAction = .store
+
+        guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor) else {
+            handleError(.renderPassCreationFailed, "Mesh Occluder Shell Pass")
+            return
+        }
+
+        defer {
+            renderEncoder.updateFence(renderInfo.fence, after: .fragment)
+            renderEncoder.popDebugGroup()
+            renderEncoder.endEncoding()
+        }
+
+        renderEncoder.label = "Mesh Occluder Shell Pass"
+        renderEncoder.pushDebugGroup("Mesh Occluder Shell Pass")
+        renderEncoder.setRenderPipelineState(pipelineState)
+        renderEncoder.setDepthStencilState(pipeline.depthState)
+        renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
+        renderEncoder.setCullMode(.none)
+        renderEncoder.setTriangleFillMode(.fill)
+
+        for entityId in shellEntityIds {
+            guard let occluder = scene.get(component: MeshOccluderComponent.self, for: entityId),
+                  let renderComponent = scene.get(component: RenderComponent.self, for: entityId),
+                  let worldTransformComponent = scene.get(component: WorldTransformComponent.self, for: entityId)
+            else { continue }
+
+            var shrinkMeters = max(0, occluder.shrinkMeters)
+            renderEncoder.setVertexBytes(
+                &shrinkMeters,
+                length: MemoryLayout<Float>.stride,
+                index: Int(modelPassOccluderShrinkIndex.rawValue)
+            )
+
+            for mesh in renderComponent.mesh {
+                var modelUniforms = Uniforms()
+                let modelMatrix = simd_mul(worldTransformComponent.space, mesh.localSpace)
+                let modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
+                let normalMatrix = matrix3x3_upper_left(modelMatrix).inverse.transpose
+
+                modelUniforms.modelViewMatrix = modelViewMatrix
+                modelUniforms.normalMatrix = normalMatrix
+                modelUniforms.viewMatrix = viewMatrix
+                modelUniforms.modelMatrix = modelMatrix
+                modelUniforms.cameraPosition = effectiveCameraPosition
+                modelUniforms.projectionMatrix = renderInfo.perspectiveSpace
+
+                renderEncoder.setVertexBytes(
+                    &modelUniforms,
+                    length: MemoryLayout<Uniforms>.stride,
+                    index: Int(modelPassUniformIndex.rawValue)
+                )
+
+                renderEncoder.bindModelVertexStreams(mesh: mesh, entityId: entityId)
+
+                for subMesh in mesh.submeshes where subMesh.material?.alphaMode != .blend {
+                    renderEncoder.drawIndexedPrimitivesTracked(
+                        type: subMesh.metalKitSubmesh.primitiveType,
+                        indexCount: subMesh.metalKitSubmesh.indexCount,
+                        indexType: subMesh.metalKitSubmesh.indexType,
+                        indexBuffer: subMesh.metalKitSubmesh.indexBuffer.buffer,
+                        indexBufferOffset: subMesh.metalKitSubmesh.indexBuffer.offset,
+                        category: .opaque
+                    )
+                }
+            }
+        }
     }
 
     public static let wireframeOcclusionDepthExecution: RenderPassExecution = { commandBuffer in

@@ -28,6 +28,9 @@ struct GaussianChunkLoadResult {
     let sphericalHarmonicsBuffer: MTLBuffer?
     let sphericalHarmonicsMetadata: GaussianSHMetadata?
     let meanSquaredSplatExtent: Float
+    /// Capture exposure (EV) and white balance the cook recorded in the header.
+    let captureExposureEV: Float
+    let captureWhiteBalance: SIMD3<Float>
     let boundingBox: (min: simd_float3, max: simd_float3)
     /// Chunk index of the file, kept for callers that want to page later.
     let index: UntoldGSIndex
@@ -173,6 +176,8 @@ enum GaussianChunkLoader {
             sphericalHarmonicsBuffer: sphericalHarmonicsBuffer,
             sphericalHarmonicsMetadata: header.shMetadata,
             meanSquaredSplatExtent: header.meanSquaredSplatExtent,
+            captureExposureEV: header.captureExposureEV,
+            captureWhiteBalance: header.captureWhiteBalance,
             boundingBox: (header.boundingBoxMin, header.boundingBoxMax),
             index: file.index
         )
