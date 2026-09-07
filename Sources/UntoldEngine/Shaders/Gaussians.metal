@@ -617,7 +617,8 @@ fragment GaussianTBDRFragmentStore fragmentGaussianTBDRShader(
     GaussianOutData in [[stage_in]],
     GaussianTBDRFragmentValues previousValues [[imageblock_data]],
     depth2d<float> opaqueDepth [[texture(gaussianTBDRDrawOpaqueDepthTextureIndex)]],
-    constant bool &reverseZ [[buffer(gaussianTBDRRenderReverseZIndex)]])
+    constant bool &reverseZ [[buffer(gaussianTBDRRenderReverseZIndex)]],
+    constant GaussianTBDRDrawDebug &debug [[buffer(gaussianTBDRRenderDrawDebugIndex)]])
 {
     GaussianTBDRFragmentStore out;
 
@@ -665,7 +666,7 @@ fragment GaussianTBDRFragmentStore fragmentGaussianTBDRShader(
     bool occludedByOpaque = reverseZ
         ? (splatDepth + depthBias < storedOpaqueDepth)
         : (splatDepth > storedOpaqueDepth + depthBias);
-    if (occludedByOpaque) {
+    if (occludedByOpaque && debug.skipOpaqueDepthTest == 0u) {
         // Return the accumulator unchanged so an occluded splat contributes nothing.
         out.values = previousValues;
         return out;
@@ -674,7 +675,10 @@ fragment GaussianTBDRFragmentStore fragmentGaussianTBDRShader(
     // Hard bound on the raster_order_group's serial chain length for this pixel — see
     // kGaussianMaxBlendedSplatsPerPixel. Only counts splats that actually reach the blend
     // below (occluded/negligible-alpha splats above never increment this).
-    if (previousValues.contributingSplatCount >= kGaussianMaxBlendedSplatsPerPixel) {
+    // The cap normally is kGaussianMaxBlendedSplatsPerPixel; GaussianDebugOptions can lift it
+    // to the counter's maximum for bisecting.
+    uchar maxBlended = (uchar)min(debug.maxBlendedSplatsPerPixel, 255u);
+    if (previousValues.contributingSplatCount >= maxBlended) {
         out.values = previousValues;
         return out;
     }
