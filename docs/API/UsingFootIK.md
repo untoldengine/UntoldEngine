@@ -91,7 +91,10 @@ IK target pins to the world position where the foot planted — the foot is
 world-stationary no matter what the root does. The lock releases when the
 animation swings the foot away (speed above the exit threshold, or pulled
 past the lock distance), and a short decay lets the foot catch up without
-a pop. Thresholds are hysteretic so a foot never flickers between states.
+a pop. The decay keeps running if the foot plants again before it has
+finished, so a foot that re-plants mid catch-up eases the last few
+centimetres into place instead of snapping. Thresholds are hysteretic so
+a foot never flickers between states.
 
 ## Tips and Best Practices
 
