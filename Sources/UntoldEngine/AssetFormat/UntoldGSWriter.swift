@@ -54,10 +54,17 @@ public extension UntoldGSFormat {
         }
 
         let shCount = shCoefficientCount(degree: options.shDegree)
-        for (index, splat) in splats.enumerated() where splat.sphericalHarmonics.count != shCount {
-            throw UntoldGSError.invalidInput(
-                "splat \(index) carries \(splat.sphericalHarmonics.count) SH coefficients, expected \(shCount)"
-            )
+        for (index, splat) in splats.enumerated() {
+            guard splat.sphericalHarmonics.count == shCount else {
+                throw UntoldGSError.invalidInput(
+                    "splat \(index) carries \(splat.sphericalHarmonics.count) SH coefficients, expected \(shCount)"
+                )
+            }
+            // One degenerate splat (a scale that overflowed through exp() on import, a NaN
+            // colour) must fail the bake, not trap inside an integer conversion.
+            guard splat.isFinite else {
+                throw UntoldGSError.invalidInput("splat \(index) has non-finite data or a non-positive scale")
+            }
         }
 
         let bounds = bounds(of: splats)
@@ -109,7 +116,10 @@ public extension UntoldGSFormat {
             flags |= UntoldGSFlags.environment
         }
 
-        let boundingBox = defaultBoundingBox(of: splats)
+        // Only scanned when the caller did not supply a box (the bake always does).
+        let boundingBox = (options.boundingBoxMin == nil || options.boundingBoxMax == nil)
+            ? defaultBoundingBox(of: splats)
+            : (min: options.boundingBoxMin!, max: options.boundingBoxMax!)
         let header = UntoldGSHeaderV3(
             flags: flags,
             shDegree: options.shDegree,
@@ -183,14 +193,26 @@ public extension UntoldGSFormat {
         return (minimum, maximum)
     }
 
-    /// Centre bounds expanded by each splat's largest scale, matching `computeGaussianSplatBoundingBox`.
+    /// Centre bounds expanded by each splat's largest scale (`computeGaussianSplatBoundingBox`
+    /// applies the same rule to importer splats through `expandedBoundingBox`).
     static func defaultBoundingBox(of splats: [UntoldGSSplat]) -> (min: SIMD3<Float>, max: SIMD3<Float>) {
+        expandedBoundingBox(count: splats.count, position: { splats[$0].position }, radius: { splats[$0].scale.max() })
+    }
+
+    /// Bounds of `count` centres, each grown by its radius: the box a splat visually extends
+    /// to, rather than a centres-only box. Empty input gives the empty (inverted) box.
+    static func expandedBoundingBox(
+        count: Int,
+        position: (Int) -> SIMD3<Float>,
+        radius: (Int) -> Float
+    ) -> (min: SIMD3<Float>, max: SIMD3<Float>) {
         var minimum = SIMD3<Float>(repeating: .greatestFiniteMagnitude)
         var maximum = SIMD3<Float>(repeating: -.greatestFiniteMagnitude)
-        for splat in splats {
-            let extent = SIMD3<Float>(repeating: splat.scale.max())
-            minimum = simd_min(minimum, splat.position - extent)
-            maximum = simd_max(maximum, splat.position + extent)
+        for index in 0 ..< count {
+            let extent = SIMD3<Float>(repeating: radius(index))
+            let center = position(index)
+            minimum = simd_min(minimum, center - extent)
+            maximum = simd_max(maximum, center + extent)
         }
         return (minimum, maximum)
     }

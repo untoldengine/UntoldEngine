@@ -314,6 +314,119 @@ final class UntoldGSFormatTests: XCTestCase {
         }
     }
 
+    /// A NaN or infinite value in one splat — a scale that overflowed through exp() on import, a
+    /// NaN colour — must fail the bake with an error, not trap inside an integer conversion.
+    func testWriterRejectsNonFiniteSplatsInsteadOfTrapping() {
+        var rng = SplitMix64(seed: 11)
+        let base = (0 ..< 8).map { _ in rng.nextSplat(boundsMin: [0, 0, 0], boundsMax: [1, 1, 1], shCount: 0) }
+
+        var nanPosition = base
+        nanPosition[2].position.y = .nan
+        var infiniteScale = base
+        infiniteScale[5].scale.x = .infinity
+        var zeroScale = base
+        zeroScale[1].scale.z = 0
+        var nanOpacity = base
+        nanOpacity[0].opacity = .nan
+        var nanRotation = base
+        nanRotation[4].rotation = simd_quatf(ix: .nan, iy: 0, iz: 0, r: 1)
+        var nanColor = base
+        nanColor[7].color.z = .nan
+
+        for (name, splats) in [("position", nanPosition), ("scale", infiniteScale), ("zero scale", zeroScale), ("opacity", nanOpacity), ("rotation", nanRotation), ("colour", nanColor)] {
+            XCTAssertThrowsError(try UntoldGSFormat.write(splats: splats), name) { error in
+                guard case UntoldGSError.invalidInput? = error as? UntoldGSError else {
+                    return XCTFail("\(name): unexpected error \(error)")
+                }
+            }
+        }
+        XCTAssertNoThrow(try UntoldGSFormat.write(splats: base), "The same set without the bad value writes")
+    }
+
+    func testNonFiniteValuesClampAndQuantiseInsteadOfTrapping() {
+        XCTAssertEqual(UntoldGSPacking.clamp01(.nan), 0)
+        XCTAssertEqual(UntoldGSPacking.clamp01(.infinity), 1)
+        XCTAssertEqual(UntoldGSPacking.clamp01(-.infinity), 0)
+        XCTAssertEqual(quantizeGaussianSHCoefficient(.nan), 128, "NaN quantises to zero (byte 128)")
+        XCTAssertEqual(quantizeGaussianSHCoefficient(.infinity), 128)
+        XCTAssertEqual(quantizeGaussianSHCoefficient(1), 255)
+        XCTAssertEqual(quantizeGaussianSHCoefficient(-1), 1)
+        XCTAssertEqual(UntoldGSPacking.packSHCoefficient(.nan), 128)
+    }
+
+    func testHeaderSectionsMustNotOverlap() {
+        var header = makeHeader()
+        XCTAssertNoThrow(try UntoldGSFormat.validate(header: header), "Sanity: the fixture header is valid")
+
+        header.nodeTreeOffset = header.chunkIndexOffset
+        XCTAssertThrowsError(try UntoldGSFormat.validate(header: header)) { error in
+            guard case UntoldGSError.sizeMismatch? = error as? UntoldGSError else {
+                return XCTFail("unexpected error \(error)")
+            }
+        }
+
+        header = makeHeader()
+        header.payloadOffset = header.nodeTreeOffset
+        XCTAssertThrowsError(try UntoldGSFormat.validate(header: header), "The payload may not start inside the node tree")
+
+        header = makeHeader()
+        header.chunkIndexOffset = 0
+        XCTAssertThrowsError(try UntoldGSFormat.validate(header: header), "The chunk index may not sit on the header")
+    }
+
+    /// Load-time cost of the v3 decode at a realistic splat count. v2 was one memcpy; v3 verifies
+    /// a CRC per chunk and rebuilds each splat (bit-unpack, quaternion normalise, covariance),
+    /// so the guard is relative to the cost of building the same GPU records straight from
+    /// memory (`encodedForTBDR`, what the raw `.ply` path pays): a regression that makes the
+    /// decode an order of magnitude heavier fails here on any machine, and the absolute ceiling
+    /// catches a pathological one. Timings are printed for the record.
+    func testHalfAMillionSplatsDecodeWithinABoundedMultipleOfTheInMemoryEncode() throws {
+        var rng = SplitMix64(seed: 21)
+        let count = 500_000
+        let splats = (0 ..< count).map { _ in rng.nextSplat(boundsMin: [-5, -5, -5], boundsMax: [5, 5, 5], shCount: 9) }
+        var options = UntoldGSWriteOptions()
+        options.shDegree = 1
+
+        let encodeStart = Date()
+        let direct = splats.map { $0.encodedForTBDR() }
+        let encodeSeconds = max(Date().timeIntervalSince(encodeStart), 1e-3)
+        XCTAssertEqual(direct.count, count)
+
+        let writeStart = Date()
+        let data = try UntoldGSFormat.write(splats: splats, options: options)
+        let writeSeconds = Date().timeIntervalSince(writeStart)
+        let url = try writeTemporaryFile(data)
+
+        let readStart = Date()
+        let asset = try UntoldGSFormat.read(from: url)
+        let readSeconds = Date().timeIntervalSince(readStart)
+
+        XCTAssertEqual(asset.encodedSplats.count, count)
+        print("[perf] \(count) splats: in-memory encode \(String(format: "%.3f", encodeSeconds)) s, v3 write \(String(format: "%.3f", writeSeconds)) s (\(data.count / 1024) KB), v3 read+decode \(String(format: "%.3f", readSeconds)) s")
+        XCTAssertLessThan(readSeconds, 12 * encodeSeconds + 0.5, "v3 read+decode should stay within a small multiple of the in-memory encode")
+        XCTAssertLessThan(readSeconds, 10, "Reading half a million splats should take well under ten seconds")
+    }
+
+    /// The importer path and the writer expand the bounding box by the same rule, through the
+    /// one shared helper.
+    func testImporterAndWriterBoundingBoxesAgree() {
+        var rng = SplitMix64(seed: 5)
+        let splats = (0 ..< 64).map { _ in rng.nextSplat(boundsMin: [-2, -1, 0], boundsMax: [3, 4, 5], shCount: 0) }
+        let importerSplats = splats.map { splat in
+            GaussianSplat(
+                center: simd_float4(splat.position.x, splat.position.y, splat.position.z, 1),
+                scale: simd_float4(splat.scale.x, splat.scale.y, splat.scale.z, 0),
+                color: simd_float4(splat.color.x, splat.color.y, splat.color.z, 1),
+                quat: simd_float4(splat.rotation.real, splat.rotation.imag.x, splat.rotation.imag.y, splat.rotation.imag.z),
+                opacity: splat.opacity
+            )
+        }
+        let writerBox = UntoldGSFormat.defaultBoundingBox(of: splats)
+        let importerBox = computeGaussianSplatBoundingBox(importerSplats)
+        XCTAssertEqual(writerBox.min, importerBox.min)
+        XCTAssertEqual(writerBox.max, importerBox.max)
+    }
+
     func testImportanceOrderKeepsOpaqueLargeSplatsFirst() throws {
         var rng = SplitMix64(seed: 8)
         let splats = (0 ..< 300).map { _ in rng.nextSplat(boundsMin: [0, 0, 0], boundsMax: [1, 1, 1], shCount: 0) }

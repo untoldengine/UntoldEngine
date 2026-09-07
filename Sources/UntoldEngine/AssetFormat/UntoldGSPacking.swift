@@ -60,15 +60,38 @@ public struct UntoldGSSplat: Sendable, Equatable {
     }
 
     /// The GPU layout the renderer consumes: covariance from rotation and scale, half precision.
+    /// The raw `.ply` load path (`encodeGaussianSplatForTBDR`) converts through this same
+    /// initialiser and call, so the rotation-to-covariance math lives here only.
     public func encodedForTBDR() -> EncodedGaussianSplat {
-        let transform = simd_float3x3(simd_normalize(rotation)) * simd_float3x3(diagonal: scale)
-        let covariance = transform * transform.transpose
+        let covariance = Self.covariance(rotation: rotation, scale: scale)
         return EncodedGaussianSplat(
             position: position,
             covA: simd_half3(Float16(covariance[0, 0]), Float16(covariance[0, 1]), Float16(covariance[0, 2])),
             covB: simd_half3(Float16(covariance[1, 1]), Float16(covariance[1, 2]), Float16(covariance[2, 2])),
             colorAndOpacity: simd_half4(Float16(color.x), Float16(color.y), Float16(color.z), Float16(opacity))
         )
+    }
+
+    /// The 3D covariance of a Gaussian with the given unit rotation and per-axis scale:
+    /// `(R S)(R S)ᵀ`. A zero-length rotation is treated as the identity.
+    public static func covariance(rotation: simd_quatf, scale: SIMD3<Float>) -> simd_float3x3 {
+        let unit = simd_length_squared(rotation.vector) > 0 ? simd_normalize(rotation) : simd_quatf(ix: 0, iy: 0, iz: 0, r: 1)
+        let transform = simd_float3x3(unit) * simd_float3x3(diagonal: scale)
+        return transform * transform.transpose
+    }
+
+    /// Every number the writer packs is finite and the scale is strictly positive (its log is
+    /// stored): the packers convert to integers, which traps on NaN, so this is checked before
+    /// any of them run.
+    public var isFinite: Bool {
+        position.x.isFinite && position.y.isFinite && position.z.isFinite
+            && scale.x.isFinite && scale.y.isFinite && scale.z.isFinite
+            && scale.x > 0 && scale.y > 0 && scale.z > 0
+            && rotation.vector.x.isFinite && rotation.vector.y.isFinite
+            && rotation.vector.z.isFinite && rotation.vector.w.isFinite
+            && color.x.isFinite && color.y.isFinite && color.z.isFinite
+            && opacity.isFinite
+            && sphericalHarmonics.allSatisfy(\.isFinite)
     }
 }
 
@@ -297,8 +320,11 @@ public enum UntoldGSPacking {
 
     // MARK: Helpers
 
+    /// Clamps to 0...1; NaN clamps to 0 (Swift's `min`/`max` would propagate it into the
+    /// integer conversions of the packers, which trap on NaN).
     static func clamp01(_ value: Float) -> Float {
-        min(max(value, 0), 1)
+        guard !value.isNaN else { return 0 }
+        return min(max(value, 0), 1)
     }
 }
 
