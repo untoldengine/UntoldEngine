@@ -37,9 +37,11 @@ public enum UntoldAssetPatcher {
         public var flags: UInt32
         /// Valid entries in `lodSplatCounts` / `lodSwitchScreenHeights`, 0...4. Zero means one level.
         public var lodCount: Int
-        /// Splat count per LOD level, coarsest first. At most `lodCount` entries.
+        /// Splat count per LOD level, coarsest first. `lodCount` entries; the initializer pads a
+        /// shorter array with zeros so a link compares equal to what `gaussianAssets(in:)` reads back.
         public var lodSplatCounts: [UInt32]
-        /// Screen height in pixels above which the next finer level is preferred. At most `lodCount` entries.
+        /// Screen height in pixels above which the next finer level is preferred. `lodCount`
+        /// entries, padded like `lodSplatCounts`.
         public var lodSwitchScreenHeights: [Float]
         /// Metres the mesh twin's depth-only occluder shell is shrunk along its normals.
         public var occluderShrinkMeters: Float
@@ -61,8 +63,12 @@ public enum UntoldAssetPatcher {
             self.payloadPath = payloadPath
             self.flags = flags
             self.lodCount = lodCount
-            self.lodSplatCounts = lodSplatCounts
-            self.lodSwitchScreenHeights = lodSwitchScreenHeights
+            // The record stores `maxLODLevels` slots and reads back `lodCount` of them, so a
+            // shorter array would come back zero-padded; pad here so the link round-trips.
+            // Longer arrays are left alone for `validate()` to reject.
+            let levels = min(max(lodCount, 0), UntoldGaussianAssetRecordV1.maxLODLevels)
+            self.lodSplatCounts = Self.padded(lodSplatCounts, to: levels, with: 0)
+            self.lodSwitchScreenHeights = Self.padded(lodSwitchScreenHeights, to: levels, with: 0)
             self.occluderShrinkMeters = occluderShrinkMeters
             self.exposureOffsetEV = exposureOffsetEV
             self.swapDistanceMeters = swapDistanceMeters
@@ -83,13 +89,16 @@ public enum UntoldAssetPatcher {
             )
         }
 
-        /// The record this link is written as, once the path sits in the string table.
+        /// The record this link is written as, once the path sits in the string table. The link
+        /// is expected to pass `validate()`; a link that does not is still turned into a record
+        /// (a negative `lodCount` clamps to zero, arrays are cut or padded to four slots) rather
+        /// than trapping, so a caller may preview the record before validating.
         public func record(entityId: UInt32, payloadPathOffset: UInt32) -> UntoldGaussianAssetRecordV1 {
             UntoldGaussianAssetRecordV1(
                 entityId: entityId,
                 payloadPathOffset: payloadPathOffset,
                 flags: flags,
-                lodCount: UInt32(lodCount),
+                lodCount: UInt32(clamping: lodCount),
                 lodSplatCounts: lodSplatCounts,
                 lodSwitchScreenHeights: lodSwitchScreenHeights,
                 occluderShrinkMeters: occluderShrinkMeters,
@@ -130,6 +139,11 @@ public enum UntoldAssetPatcher {
             guard exposureOffsetEV.isFinite else {
                 throw Error.invalidLink("exposureOffsetEV must be finite")
             }
+        }
+
+        private static func padded<T>(_ values: [T], to count: Int, with fill: T) -> [T] {
+            guard values.count < count else { return values }
+            return values + Array(repeating: fill, count: count - values.count)
         }
     }
 
@@ -312,11 +326,15 @@ public enum UntoldAssetPatcher {
                 guard !gaussianAssets.isEmpty else { continue }
                 payloads.append(gaussianAssetPayload(gaussianAssets, template: chunk))
             default:
-                let start = Int(chunk.fileOffset)
-                let end = start + Int(chunk.compressedSize)
-                guard start >= 0, end <= fileData.count else {
+                // Compared in UInt64 before converting: an entry the reader never touches (an
+                // unknown chunk type) may carry sizes that do not fit an Int.
+                guard chunk.fileOffset <= UInt64(fileData.count),
+                      chunk.compressedSize <= UInt64(fileData.count) - chunk.fileOffset
+                else {
                     throw Error.corruptFile("chunk \(chunk.chunkType.rawValue) points outside the file")
                 }
+                let start = Int(chunk.fileOffset)
+                let end = start + Int(chunk.compressedSize)
                 payloads.append(ChunkPayload(entry: chunk, storedBytes: fileData.subdata(in: start ..< end)))
             }
         }

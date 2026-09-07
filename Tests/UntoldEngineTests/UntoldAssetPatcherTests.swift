@@ -101,14 +101,49 @@ final class UntoldAssetPatcherTests: XCTestCase {
         XCTAssertEqual(try decoded.string(at: decoded.gaussianAssets[0].payloadPathOffset), "chair.untoldgs")
     }
 
+    func testAStringThatIsAPrefixOrHasAPrefixOfAnotherIsNotReused() throws {
+        // Both directions: an entry the path starts ("chair.untoldgs.bak") and an entry that
+        // starts the path ("chair"). Only a whole-entry match may be reused.
+        let fixture = makeFixture(extraStrings: ["chair.untoldgs.bak", "chair"])
+
+        let patched = try UntoldAssetPatcher.settingGaussianAsset(
+            UntoldAssetPatcher.GaussianAssetLink(payloadPath: "chair.untoldgs"),
+            onEntity: 0,
+            in: fixture.fileData
+        )
+        let decoded = try UntoldReader().readAsset(from: patched)
+        let record = try XCTUnwrap(decoded.gaussianAssets.first)
+        XCTAssertEqual(record.payloadPathOffset, UInt32(fixture.stringTableData.count), "Appended as its own entry")
+        XCTAssertEqual(try decoded.string(at: record.payloadPathOffset), "chair.untoldgs")
+
+        // Offsets are byte offsets: a non-ASCII path lands after the bytes already written.
+        let accented = "Möbel/stühle.untoldgs"
+        let again = try UntoldAssetPatcher.settingGaussianAsset(
+            UntoldAssetPatcher.GaussianAssetLink(payloadPath: accented),
+            onEntity: 0,
+            in: patched
+        )
+        let decodedAgain = try UntoldReader().readAsset(from: again)
+        let accentedRecord = try XCTUnwrap(decodedAgain.gaussianAssets.first)
+        XCTAssertEqual(accentedRecord.payloadPathOffset, UInt32(fixture.stringTableData.count + "chair.untoldgs\0".utf8.count))
+        XCTAssertEqual(try decodedAgain.string(at: accentedRecord.payloadPathOffset), accented)
+        XCTAssertEqual(decodedAgain.stringTableData.count, fixture.stringTableData.count + "chair.untoldgs\0".utf8.count + accented.utf8.count + 1)
+    }
+
     func testSettingAgainReplacesTheRecordInPlace() throws {
         let fixture = makeFixture(entityCount: 2)
         let first = UntoldAssetPatcher.GaussianAssetLink(payloadPath: "a.untoldgs", swapDistanceMeters: 5)
         let other = UntoldAssetPatcher.GaussianAssetLink(payloadPath: "b.untoldgs")
         let replacement = UntoldAssetPatcher.GaussianAssetLink(payloadPath: "c.untoldgs", occluderShrinkMeters: 0.1, swapDistanceMeters: 7)
 
-        var data = try UntoldAssetPatcher.settingGaussianAsset(first, onEntity: 0, in: fixture.fileData)
-        data = try UntoldAssetPatcher.settingGaussianAsset(other, onEntity: 1, in: data)
+        let once = try UntoldAssetPatcher.settingGaussianAsset(first, onEntity: 0, in: fixture.fileData)
+        XCTAssertEqual(
+            try UntoldAssetPatcher.settingGaussianAsset(first, onEntity: 0, in: once),
+            once,
+            "Setting an identical link is byte-identical: the path the replaced record points at is reused"
+        )
+
+        var data = try UntoldAssetPatcher.settingGaussianAsset(other, onEntity: 1, in: once)
         data = try UntoldAssetPatcher.settingGaussianAsset(replacement, onEntity: 0, in: data)
         let decoded = try UntoldReader().readAsset(from: data)
 
@@ -117,11 +152,51 @@ final class UntoldAssetPatcherTests: XCTestCase {
         XCTAssertEqual(decoded.chunks.filter { $0.chunkType == .gaussianAssetTable }.count, 1)
         XCTAssertEqual(try UntoldAssetPatcher.gaussianAssets(in: data), [0: replacement, 1: other])
 
-        // Append-only: the superseded path is still in the table, the others' offsets are intact.
+        // Append-only: the superseded path is still in the table, the others' offsets are intact,
+        // and exactly one string per distinct path was appended across the four sets.
         let table = decoded.stringTableData
         XCTAssertNotNil(range(of: "a.untoldgs", in: table))
+        XCTAssertEqual(table.count, fixture.stringTableData.count + "a.untoldgs\0b.untoldgs\0c.untoldgs\0".utf8.count)
         XCTAssertEqual(try decoded.string(at: fixture.entity.nameOffset), "root_entity")
         assertAligned(decoded.chunks)
+    }
+
+    func testALinkWithShortLODArraysRoundTripsEqual() throws {
+        // validate() allows fewer entries than lodCount; the record pads to four slots and the
+        // read-back keeps lodCount of them, so the link must already hold lodCount entries.
+        let short = UntoldAssetPatcher.GaussianAssetLink(payloadPath: "a.untoldgs", lodCount: 2, lodSplatCounts: [1000])
+        XCTAssertEqual(short.lodSplatCounts, [1000, 0])
+        XCTAssertEqual(short.lodSwitchScreenHeights, [0, 0])
+        XCTAssertNoThrow(try short.validate())
+        XCTAssertEqual(
+            UntoldAssetPatcher.GaussianAssetLink(record: short.record(entityId: 0, payloadPathOffset: 0), payloadPath: short.payloadPath),
+            short
+        )
+
+        let fixture = makeFixture()
+        let data = try UntoldAssetPatcher.settingGaussianAsset(short, onEntity: 0, in: fixture.fileData)
+        XCTAssertEqual(try UntoldAssetPatcher.gaussianAssets(in: data), [0: short])
+
+        let oneLevel = UntoldAssetPatcher.GaussianAssetLink(payloadPath: "a.untoldgs", lodCount: 1)
+        XCTAssertEqual(oneLevel.lodSplatCounts, [0])
+        let oneLevelData = try UntoldAssetPatcher.settingGaussianAsset(oneLevel, onEntity: 0, in: fixture.fileData)
+        XCTAssertEqual(try UntoldAssetPatcher.gaussianAssets(in: oneLevelData), [0: oneLevel])
+
+        // Longer arrays are not cut by the initializer; validate() still rejects them.
+        let long = UntoldAssetPatcher.GaussianAssetLink(payloadPath: "a.untoldgs", lodCount: 1, lodSplatCounts: [1, 2])
+        XCTAssertEqual(long.lodSplatCounts, [1, 2])
+        XCTAssertThrowsError(try long.validate())
+    }
+
+    func testRecordOfAnInvalidLinkDoesNotTrap() {
+        let negative = UntoldAssetPatcher.GaussianAssetLink(payloadPath: "a.untoldgs", lodCount: -1)
+        XCTAssertEqual(negative.lodSplatCounts, [])
+        XCTAssertThrowsError(try negative.validate())
+        XCTAssertEqual(negative.record(entityId: 3, payloadPathOffset: 7).lodCount, 0)
+
+        let tooMany = UntoldAssetPatcher.GaussianAssetLink(payloadPath: "a.untoldgs", lodCount: 9)
+        XCTAssertEqual(tooMany.lodSplatCounts.count, UntoldGaussianAssetRecordV1.maxLODLevels)
+        XCTAssertEqual(tooMany.record(entityId: 3, payloadPathOffset: 7).lodCount, 9)
     }
 
     func testSettingOnAFileWithAZeroHashKeepsItZero() throws {
@@ -167,13 +242,24 @@ final class UntoldAssetPatcherTests: XCTestCase {
         )
         let decoded = try UntoldReader().readAsset(from: patched)
 
+        XCTAssertEqual(fixture.chunkEntries.map(\.chunkType.rawValue), [1, 2, 25, 3, 4, 5, 6, 7], "The fixture's table sits mid-file")
         XCTAssertEqual(decoded.chunks.count, fixture.chunkEntries.count, "Replaced, not appended")
+        XCTAssertEqual(decoded.chunks.map(\.chunkType), fixture.chunkEntries.map(\.chunkType), "Input chunk order preserved")
         XCTAssertEqual(decoded.chunks[tableIndex].chunkType, .gaussianAssetTable)
         XCTAssertEqual(decoded.chunks[tableIndex].elementCount, 2)
         XCTAssertEqual(decoded.gaussianAssets.map(\.entityId), [1, 0])
         XCTAssertEqual(decoded.gaussianAssets[0].swapDistanceMeters, 3, "The other entity's record is carried over")
         assertOtherChunksPreserved(original: fixture.fileData, patched: patched, except: [.stringTable, .gaussianAssetTable])
+        assertAligned(decoded.chunks)
         try assertContentHashValid(patched)
+
+        // Dropping the table from the middle keeps the others in order, hash still valid.
+        var removed = try UntoldAssetPatcher.removingGaussianAsset(onEntity: 0, in: patched)
+        removed = try UntoldAssetPatcher.removingGaussianAsset(onEntity: 1, in: removed)
+        let decodedRemoved = try UntoldReader().readAsset(from: removed)
+        XCTAssertEqual(decodedRemoved.chunks.map(\.chunkType.rawValue), [1, 2, 3, 4, 5, 6, 7])
+        assertOtherChunksPreserved(original: fixture.fileData, patched: removed, except: [.stringTable, .gaussianAssetTable])
+        try assertContentHashValid(removed)
     }
 
     // MARK: - Removing a link
@@ -280,6 +366,39 @@ final class UntoldAssetPatcherTests: XCTestCase {
         }
     }
 
+    /// The reader ignores a chunk of an unknown core type and skips the hash on a zero-hash file,
+    /// so it accepts entries the patcher then has to copy; sizes that do not fit an Int must throw,
+    /// not trap.
+    func testAnUnknownChunkPointingOutsideTheFileThrowsCorruptFile() throws {
+        let unknown = UntoldChunkType(rawValue: 0x7FFF)
+        let phantoms: [UntoldChunkEntryV1] = [
+            .init(chunkType: unknown, fileOffset: 1 << 20, compressedSize: 16, uncompressedSize: 16),
+            .init(chunkType: unknown, fileOffset: 0, compressedSize: .max, uncompressedSize: 0),
+            .init(chunkType: unknown, fileOffset: 16, compressedSize: UInt64(Int.max), uncompressedSize: 0),
+            .init(chunkType: unknown, fileOffset: 1 << 63, compressedSize: 0, uncompressedSize: 0),
+        ]
+        for phantom in phantoms {
+            let fixture = makeFixture(phantomEntries: [phantom], computeHash: false)
+            XCTAssertNoThrow(try UntoldReader().readAsset(from: fixture.fileData), "the reader accepts the entry")
+            XCTAssertEqual(try UntoldAssetPatcher.gaussianAssets(in: fixture.fileData), [:])
+            XCTAssertThrowsError(try UntoldAssetPatcher.settingGaussianAsset(.init(payloadPath: "chair.untoldgs"), onEntity: 0, in: fixture.fileData), "\(phantom)") { error in
+                XCTAssertEqual(error as? UntoldAssetPatcher.Error, .corruptFile("chunk 32767 points outside the file"))
+            }
+            let linked = makeFixture(gaussianRecords: [.init(entityId: 0, payloadPathOffset: 0)], phantomEntries: [phantom])
+            XCTAssertThrowsError(try UntoldAssetPatcher.removingGaussianAsset(onEntity: 0, in: linked.fileData), "\(phantom)") { error in
+                XCTAssertEqual(error as? UntoldAssetPatcher.Error, .corruptFile("chunk 32767 points outside the file"))
+            }
+        }
+
+        // An in-range entry of an unknown type is copied like any other chunk.
+        let inRange = UntoldChunkEntryV1(chunkType: unknown, fileOffset: 0, compressedSize: 16, uncompressedSize: 16)
+        let fixture = makeFixture(phantomEntries: [inRange])
+        let patched = try UntoldAssetPatcher.settingGaussianAsset(.init(payloadPath: "chair.untoldgs"), onEntity: 0, in: fixture.fileData)
+        let decoded = try UntoldReader().readAsset(from: patched)
+        let copied = try XCTUnwrap(decoded.chunks.first { $0.chunkType == unknown })
+        XCTAssertEqual(patched.subdata(in: Int(copied.fileOffset) ..< Int(copied.fileOffset) + 16), fixture.fileData.prefix(16))
+    }
+
     // MARK: - Content hash
 
     func testContentHashMatchesTheExporterConvention() throws {
@@ -294,6 +413,11 @@ final class UntoldAssetPatcherTests: XCTestCase {
 
         var outOfBounds = decoded.chunks
         outOfBounds[0].compressedSize = UInt64(fixture.fileData.count)
+        XCTAssertThrowsError(try UntoldFormat.contentHash(of: outOfBounds, in: fixture.fileData))
+        outOfBounds[0].compressedSize = .max
+        XCTAssertThrowsError(try UntoldFormat.contentHash(of: outOfBounds, in: fixture.fileData), "sizes beyond Int throw, not trap")
+        outOfBounds[0].compressedSize = 0
+        outOfBounds[0].fileOffset = 1 << 63
         XCTAssertThrowsError(try UntoldFormat.contentHash(of: outOfBounds, in: fixture.fileData))
     }
 
@@ -437,11 +561,16 @@ final class UntoldAssetPatcherTests: XCTestCase {
 
     /// A tile with `entityCount` one-triangle entities, LZ4-compressed vertex and index chunks
     /// (to prove the patcher copies stored bytes rather than re-encoding), optional extra strings
-    /// and an optional pre-existing gaussianAsset table.
+    /// and an optional pre-existing gaussianAsset table. That table sits right after the entity
+    /// table — chunk order [1, 2, 25, 3, 4, 5, 6, 7] — so the file order differs from the
+    /// ascending-type order the hash uses and a patcher that re-sorted or appended would show.
+    /// `phantomEntries` are chunk-table entries written without a payload (the reader ignores
+    /// unknown core chunk types), for entries that point outside the file.
     private func makeFixture(
         entityCount: Int = 1,
         extraStrings: [String] = [],
         gaussianRecords: [UntoldGaussianAssetRecordV1] = [],
+        phantomEntries: [UntoldChunkEntryV1] = [],
         computeHash: Bool = false
     ) -> Fixture {
         var strings = ["root_entity", "mesh_0", "mat_0", "albedo.ktx2"]
@@ -526,15 +655,15 @@ final class UntoldAssetPatcherTests: XCTestCase {
         ]
         if !gaussianRecords.isEmpty {
             let table = encodeRecords(gaussianRecords)
-            payloads.append((.gaussianAssetTable, table, .none, UInt64(table.count), UInt32(gaussianRecords.count)))
+            payloads.insert((.gaussianAssetTable, table, .none, UInt64(table.count), UInt32(gaussianRecords.count)), at: 2)
         }
-        header.chunkCount = UInt32(payloads.count)
+        header.chunkCount = UInt32(payloads.count + phantomEntries.count)
         if computeHash {
             let sorted = payloads.sorted { $0.0.rawValue < $1.0.rawValue }
             header.contentHash = Array(SHA256.hash(data: sorted.reduce(Data()) { $0 + $1.1 }))
         }
 
-        let (fileData, entries) = buildFileData(header: header, payloads: payloads)
+        let (fileData, entries) = buildFileData(header: header, payloads: payloads, phantomEntries: phantomEntries)
         return Fixture(
             fileData: fileData,
             header: header,
@@ -565,7 +694,8 @@ final class UntoldAssetPatcherTests: XCTestCase {
 
     private func buildFileData(
         header: UntoldFileHeaderV1,
-        payloads: [(UntoldChunkType, Data, UntoldCompressionType, UInt64, UInt32)]
+        payloads: [(UntoldChunkType, Data, UntoldCompressionType, UInt64, UInt32)],
+        phantomEntries: [UntoldChunkEntryV1] = []
     ) -> (Data, [UntoldChunkEntryV1]) {
         let headerWriter = UntoldBinaryWriter()
         header.encode(to: headerWriter)
@@ -575,7 +705,7 @@ final class UntoldAssetPatcherTests: XCTestCase {
             return remainder == 0 ? value : value + (alignment - remainder)
         }
 
-        var runningOffset = headerWriter.count + 40 * payloads.count
+        var runningOffset = headerWriter.count + 40 * (payloads.count + phantomEntries.count)
         var entries: [UntoldChunkEntryV1] = []
         for (chunkType, storedBytes, compression, uncompressedSize, elementCount) in payloads {
             runningOffset = aligned(runningOffset)
@@ -589,6 +719,7 @@ final class UntoldAssetPatcherTests: XCTestCase {
             ))
             runningOffset += storedBytes.count
         }
+        entries.append(contentsOf: phantomEntries)
 
         let writer = UntoldBinaryWriter()
         header.encode(to: writer)

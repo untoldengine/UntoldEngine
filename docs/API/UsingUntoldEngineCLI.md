@@ -251,6 +251,31 @@ everywhere is cooked with `--splat-max-count 5242880`; one that only has to run 
 can go up to the Mac figure. Captures beyond that belong to the streamed environment
 path, which decodes and sorts only the visible chunks (part 6 of the series).
 
+### Linking a splat twin
+
+`untoldengine gaussian-link` attaches a cooked `.untoldgs` to an entity of a `.untold`
+asset after the export: it writes the asset's `gaussianAsset` record (chunk 25, flag
+`meshTwin`) through `UntoldAssetPatcher`, copying every other chunk unchanged. The payload
+path is stored relative to the directory of the file that is written (the input with
+`--in-place`, the `--output` file otherwise), which is where the runtime resolves it, so
+keep the payload inside or beside that file. The `.untoldgs` header fills the record's
+single LOD level with the payload's splat count. See [Writing the
+link](UsingGaussianSystem.md#a-splat-standing-in-for-a-mesh-the-twin-swap) for the
+patcher API.
+
+```bash
+untoldengine gaussian-link --untold Chair/chair.untold --entity 0 \
+  --payload Chair/chair.untoldgs --swap-distance 8 --occluder-shrink 0.02 --in-place
+untoldengine gaussian-link --untold Chair/chair.untold --entity 0 \
+  --remove --output Chair/chair_plain.untold
+untoldengine gaussian-link --untold Chair/chair.untold --list
+```
+
+`--entity` is the entity table's `entityId` (`--list` prints the ids that already carry a
+link); a `meshTwin` link on an entity without a mesh — the root of a multi-node asset —
+is written with a warning that names the mesh-bearing entities. Negative values are
+accepted as they are (`--exposure-offset -0.5`).
+
 ---
 
 ## Partitioning Scenes into Streaming Tiles

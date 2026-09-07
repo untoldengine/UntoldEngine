@@ -17,19 +17,25 @@ struct GaussianLinkCommand: ParsableCommand {
         commandName: "gaussian-link",
         abstract: "Link an entity of a .untold asset to a cooked .untoldgs splat payload",
         discussion: """
-        Writes, removes or lists the gaussianAsset records of a .untold file (chunk 25,
-        UntoldGaussianAssetRecordV1) through UntoldAssetPatcher. Every other chunk of the
-        file is copied byte for byte; the string table only grows.
+        Writes, removes or lists the gaussianAsset records of a .untold file
+        (chunk 25, UntoldGaussianAssetRecordV1) through UntoldAssetPatcher. Every
+        other chunk of the file is copied byte for byte; the string table only
+        grows.
 
-        The payload path is stored relative to the .untold file's directory when the
-        payload sits inside or beside it, otherwise as the bare file name (with a
-        warning) — the runtime resolves it next to the .untold file. The payload must be
-        a version 3 .untoldgs; its splat count fills the record's single LOD level.
+        The payload path is stored relative to the directory of the file that is
+        written (the input with --in-place, the --output file otherwise) when the
+        payload sits inside or beside it, else as the bare file name with a
+        warning — the runtime resolves it next to the .untold file it loads. The
+        payload must be a version 3 .untoldgs; its splat count fills the record's
+        single LOD level. The link is set on the entity table's entityId; a
+        meshTwin link on an entity without a mesh has nothing to swap from, so the
+        command warns and lists the entities that carry meshes.
 
         Examples:
           untoldengine gaussian-link --untold Chair/chair.untold --entity 0 \\
             --payload Chair/chair.untoldgs --swap-distance 8 --in-place
-          untoldengine gaussian-link --untold Chair/chair.untold --entity 0 --remove --output Chair/chair_plain.untold
+          untoldengine gaussian-link --untold Chair/chair.untold --entity 0 \\
+            --remove --output Chair/chair_plain.untold
           untoldengine gaussian-link --untold Chair/chair.untold --list
         """
     )
@@ -43,13 +49,15 @@ struct GaussianLinkCommand: ParsableCommand {
     @Option(name: .long, help: "The cooked .untoldgs payload to link")
     var payload: String?
 
-    @Option(name: .customLong("swap-distance"), help: "Camera distance in metres at which the swap arms (0 = always)")
+    // `.unconditional`: the next token is the value even when it starts with a minus sign, so
+    // `--exposure-offset -0.5` parses without the `--option=value` form.
+    @Option(name: .customLong("swap-distance"), parsing: .unconditional, help: "Camera distance in metres at which the swap arms (0 = always)")
     var swapDistance: Float = 0
 
-    @Option(name: .customLong("occluder-shrink"), help: "Metres the mesh twin's depth-only occluder shell is shrunk along its normals")
+    @Option(name: .customLong("occluder-shrink"), parsing: .unconditional, help: "Metres the mesh twin's depth-only occluder shell is shrunk along its normals")
     var occluderShrink: Float = 0.02
 
-    @Option(name: .customLong("exposure-offset"), help: "Exposure offset in EV on top of the payload's capture exposure")
+    @Option(name: .customLong("exposure-offset"), parsing: .unconditional, help: "Exposure offset in EV on top of the payload's capture exposure (negative darkens)")
     var exposureOffset: Float = 0
 
     @Flag(name: .customLong("in-place"), help: "Overwrite the .untold file")
@@ -103,6 +111,9 @@ struct GaussianLinkCommand: ParsableCommand {
         }
 
         guard let entity else { return } // validate() guarantees it
+        // The runtime resolves the stored path next to the file it loads, which is the
+        // destination — not the input — when --output points elsewhere.
+        let destination = output.map { resolvePath($0).standardizedFileURL } ?? untoldURL
         let patched: Data
         if remove {
             patched = try Self.removing(entity: entity, from: fileData)
@@ -113,9 +124,9 @@ struct GaussianLinkCommand: ParsableCommand {
             guard FileManager.default.fileExists(atPath: payloadURL.path) else {
                 throw GaussianLinkError.payloadNotFound(payloadURL.path)
             }
-            let stored = Self.storedPayloadPath(payloadURL: payloadURL, untoldURL: untoldURL)
+            let stored = Self.storedPayloadPath(payloadURL: payloadURL, untoldURL: destination)
             if !stored.isRelative {
-                printWarning("\(payloadURL.path) is not inside \(untoldURL.deletingLastPathComponent().path); storing the file name \(stored.path) — keep the payload next to the .untold file")
+                printWarning("\(payloadURL.path) is not inside \(destination.deletingLastPathComponent().path); storing the file name \(stored.path) — keep the payload next to the .untold file that is written")
             }
             let link = try Self.makeLink(
                 payloadURL: payloadURL,
@@ -124,26 +135,67 @@ struct GaussianLinkCommand: ParsableCommand {
                 occluderShrink: occluderShrink,
                 exposureOffset: exposureOffset
             )
+            if let warning = try Self.meshlessEntityWarning(entity: entity, link: link, in: fileData) {
+                printWarning(warning)
+            }
             patched = try Self.setting(link, entity: entity, in: fileData)
             printInfo("Linked entity \(entity) to \(stored.path) (\(link.lodSplatCounts.first ?? 0) splats, swap at \(swapDistance) m, shrink \(occluderShrink) m, \(exposureOffset) EV)")
         }
 
-        let destination = output.map { resolvePath($0).standardizedFileURL } ?? untoldURL
         try patched.write(to: destination, options: .atomic)
         printSuccess("Wrote \(destination.path)")
     }
 
     // MARK: - Logic (kept free of ArgumentParser so tests can call it)
 
-    /// The path written into the record: relative to the `.untold` file's directory when the
-    /// payload is inside or beside it, else the bare file name.
+    /// The path written into the record: relative to the directory of `untoldURL` — the file
+    /// the record will be loaded from, so the `--output` destination when there is one — when
+    /// the payload is inside or beside it, else the bare file name. The paths are compared as
+    /// given first, so a payload reached through a symlinked directory inside the asset folder
+    /// keeps that working relative path; only when that fails are symlinks resolved on both
+    /// sides, for an asset folder reached through a link.
     static func storedPayloadPath(payloadURL: URL, untoldURL: URL) -> (path: String, isRelative: Bool) {
-        let directory = untoldURL.deletingLastPathComponent().standardizedFileURL.resolvingSymlinksInPath().pathComponents
-        let payload = payloadURL.standardizedFileURL.resolvingSymlinksInPath().pathComponents
-        guard payload.count > directory.count, Array(payload.prefix(directory.count)) == directory else {
-            return (payloadURL.lastPathComponent, false)
+        let directory = untoldURL.deletingLastPathComponent().standardizedFileURL
+        let payload = payloadURL.standardizedFileURL
+        if let relative = relativePath(of: payload, inside: directory) {
+            return (relative, true)
         }
-        return (payload.dropFirst(directory.count).joined(separator: "/"), true)
+        if let relative = relativePath(of: payload.resolvingSymlinksInPath(), inside: directory.resolvingSymlinksInPath()) {
+            return (relative, true)
+        }
+        return (payloadURL.lastPathComponent, false)
+    }
+
+    private static func relativePath(of file: URL, inside directory: URL) -> String? {
+        let directory = directory.pathComponents
+        let file = file.pathComponents
+        guard file.count > directory.count, Array(file.prefix(directory.count)) == directory else {
+            return nil
+        }
+        return file.dropFirst(directory.count).joined(separator: "/")
+    }
+
+    /// A warning when `link` is a meshTwin and `entity` carries no mesh record — the root of a
+    /// multi-node asset, say — naming the entities that do, so the link can be moved to one of
+    /// them. Nil when the entity has a mesh, the link is not a meshTwin, or the entity is
+    /// unknown (the patcher reports that one).
+    static func meshlessEntityWarning(entity: UInt32, link: UntoldAssetPatcher.GaussianAssetLink, in fileData: Data) throws -> String? {
+        guard link.flags & UntoldGaussianAssetFlags.meshTwin != 0 else { return nil }
+        let decoded: UntoldDecodedAsset
+        do {
+            decoded = try UntoldReader().readAsset(from: fileData)
+        } catch {
+            throw GaussianLinkError.patchFailed(UntoldAssetPatcher.Error.corruptFile(String(describing: error)).description)
+        }
+        guard let record = decoded.entities.first(where: { $0.entityId == entity }), record.meshRecordCount == 0 else {
+            return nil
+        }
+        let withMeshes = decoded.entities.filter { $0.meshRecordCount > 0 }.map { record in
+            let name = try? decoded.string(at: record.nameOffset)
+            return name.map { "\(record.entityId) (\($0))" } ?? "\(record.entityId)"
+        }
+        let candidates = withMeshes.isEmpty ? "no entity of this file carries a mesh" : "entities with meshes: \(withMeshes.joined(separator: ", "))"
+        return "entity \(entity) has no mesh to swap from; the meshTwin link will load but GaussianTwinSystem has nothing to hide — \(candidates)"
     }
 
     /// The link for a payload: its header (which must be version 3) fills one LOD level with
