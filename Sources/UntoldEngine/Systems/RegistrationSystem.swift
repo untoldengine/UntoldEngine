@@ -3508,15 +3508,11 @@ func computeGaussianSplatPositionBoundingBox(_ positions: [simd_float3], padding
 /// `EncodedGaussianSplat` yet and real per-splat scale is still available.
 func computeGaussianSplatBoundingBox(_ splats: [GaussianSplat]) -> (min: simd_float3, max: simd_float3) {
     guard !splats.isEmpty else { return (min: .zero, max: .zero) }
-    var boundsMin = simd_float3(repeating: .infinity)
-    var boundsMax = simd_float3(repeating: -.infinity)
-    for splat in splats {
-        let center = simd_float3(splat.center.x, splat.center.y, splat.center.z)
-        let radius = simd_float3(repeating: gaussianMajorAxis(splat))
-        boundsMin = simd_min(boundsMin, center - radius)
-        boundsMax = simd_max(boundsMax, center + radius)
-    }
-    return (min: boundsMin, max: boundsMax)
+    return UntoldGSFormat.expandedBoundingBox(
+        count: splats.count,
+        position: { simd_float3(splats[$0].center.x, splats[$0].center.y, splats[$0].center.z) },
+        radius: { gaussianMajorAxis(splats[$0]) }
+    )
 }
 
 /// Reads a `.ply` Gaussian splat asset from disk and builds its GPU buffers.
@@ -4164,6 +4160,11 @@ private func gaussianTierWriteOptions(
     options.boundingBoxMin = boundingBox.min
     options.boundingBoxMax = boundingBox.max
     options.meanSquaredSplatExtent = meanSquaredSplatExtent
+    // What the importer knows about the source: its colours are the display-referred SH DC
+    // mapping (`UntoldGSSplat.color`), and the geometry is stored as read. The coordinate
+    // system and anti-aliasing flags become explicit cook options in the export command's
+    // cooking flags; until a source format carries them, the header keeps the defaults.
+    options.colorSpace = .sRGBDisplayReferred
     return options
 }
 
@@ -4288,6 +4289,8 @@ public struct PackedGaussianSphericalHarmonics {
 /// higher-order outliers (e.g. strong specular splats), and clamping only
 /// caps the affected highlight rather than discarding the whole asset.
 func quantizeGaussianSHCoefficient(_ value: Float) -> UInt8 {
+    // NaN would reach `Int(_:)` and trap (Swift's min/max propagate it); it quantises to 0.
+    guard value.isFinite else { return 128 }
     let clamped = min(max(value, -1), 1)
     return UInt8(clamping: Int(clamped * 127) + 128)
 }
@@ -4341,25 +4344,10 @@ func packGaussianSphericalHarmonics(
     )
 }
 
+/// The raw `.ply` path shares the rotation-to-covariance math with the v3 decoder
+/// (`UntoldGSSplat.encodedForTBDR`).
 private func encodeGaussianSplatForTBDR(_ splat: GaussianSplat) -> EncodedGaussianSplat {
-    let scale = simd_float3(splat.scale.x, splat.scale.y, splat.scale.z)
-    let rotation = simd_quatf(
-        ix: splat.quat.y,
-        iy: splat.quat.z,
-        iz: splat.quat.w,
-        r: splat.quat.x
-    ).normalized
-    let transform = simd_float3x3(rotation) * simd_float3x3(diagonal: scale)
-    let covariance = transform * transform.transpose
-
-    return EncodedGaussianSplat(
-        position: simd_float3(splat.center.x, splat.center.y, splat.center.z),
-        covA: simd_half3(Float16(covariance[0, 0]), Float16(covariance[0, 1]), Float16(covariance[0, 2])),
-        covB: simd_half3(Float16(covariance[1, 1]), Float16(covariance[1, 2]), Float16(covariance[2, 2])),
-        colorAndOpacity: simd_half4(
-            Float16(splat.color.x), Float16(splat.color.y), Float16(splat.color.z), Float16(splat.opacity)
-        )
-    )
+    UntoldGSSplat(splat).encodedForTBDR()
 }
 
 // MARK: Static Batching

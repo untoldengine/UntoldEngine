@@ -170,6 +170,24 @@ public extension UntoldGSFormat {
         guard header.payloadOffset <= header.fileSize else {
             throw UntoldGSError.sizeMismatch("payload offset \(header.payloadOffset) beyond file size \(header.fileSize)")
         }
+        // The three sections must not share bytes: a corrupt header could otherwise have the
+        // chunk index and the tree parsed from the same range and pass every per-section check.
+        let sections: [(name: String, start: UInt64, end: UInt64)] = [
+            ("header", 0, UInt64(headerSize)),
+            ("chunk index", header.chunkIndexOffset, header.chunkIndexOffset + indexSize),
+            ("node tree", header.nodeTreeOffset, header.nodeTreeOffset + treeSize),
+            ("payload", header.payloadOffset, header.fileSize),
+        ]
+        for first in sections.indices {
+            for second in sections.indices where second > first {
+                let a = sections[first]
+                let b = sections[second]
+                let overlap = a.start < b.end && b.start < a.end
+                guard !overlap else {
+                    throw UntoldGSError.sizeMismatch("\(a.name) and \(b.name) sections overlap")
+                }
+            }
+        }
     }
 
     internal static func validate(index: UntoldGSIndex) throws {
