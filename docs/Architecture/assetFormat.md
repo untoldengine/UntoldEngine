@@ -519,6 +519,12 @@ Rules:
   not here; this record holds what the scene author tunes
 - a file whose only geometry is a splat may omit the vertex and index chunks
 
+The exporter does not write this chunk; a link is authored after the export by
+`UntoldAssetPatcher` (Sources/UntoldEngine/AssetFormat/UntoldAssetPatcher.swift) or
+`untoldengine gaussian-link`, which re-emit only the string table (append-only) and this
+table, copy every other chunk's stored bytes, re-lay out the chunk offsets on the file
+alignment and recompute the content hash (`UntoldFormat.contentHash(of:in:)`).
+
 ## Compression Rules
 
 Supported compression types:

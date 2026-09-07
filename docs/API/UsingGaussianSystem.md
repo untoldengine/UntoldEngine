@@ -153,6 +153,20 @@ application-side system built on these pieces (see the proposal's §4.5).
   few frames, during which the batch still draws the mesh.
 - `GaussianDebugOptions.shared.disableOccluderShell` turns the shells off for bisecting.
 
+**Writing the link.** No whole-file `.untold` writer exists in Swift, and none is needed to
+author a link after the export: `UntoldAssetPatcher` (Sources/UntoldEngine/AssetFormat) rewrites
+just the gaussianAsset table. `settingGaussianAsset(_:onEntity:in:)` takes the file's bytes and a
+`GaussianAssetLink` (payload path relative to the `.untold` file's directory, flags, LOD table,
+occluder shrink, exposure offset, swap distance) and returns the patched bytes with every other
+chunk copied unchanged, the path appended to the string table (or an identical string reused),
+offsets re-laid out on 16-byte alignment and the content hash recomputed;
+`removingGaussianAsset(onEntity:in:)` drops a record (and the chunk when empty);
+`gaussianAssets(in:)` lists them. The result is read back through `UntoldReader` before it is
+returned. The same operation from the shell is `untoldengine gaussian-link --untold chair.untold
+--entity 0 --payload chair.untoldgs [--swap-distance m] [--occluder-shrink m] [--exposure-offset ev]
+--in-place | --output file`, with `--remove` and `--list`; the CLI reads the `.untoldgs` header to
+fill one LOD level with the payload's splat count.
+
 A typical swap: load the payload with `opacityScale: 0` when the camera is near; add a
 `MeshOccluderComponent`; add a `MeshFadeComponent` with `direction = .fadeOut` and raise its
 `progress` and the splat's `opacityScale` together to 1 over 250 ms; then set `drawsColor =
