@@ -566,7 +566,8 @@ typedef enum{
 typedef struct{
     uint32_t visibleCount;           // atomic_uint appended by gaussianFrustumCull
     uint32_t threadgroupCount;       // ceil(visibleCount / gaussianVisibleBlockSize)
-    uint32_t _pad0[2];
+    uint32_t overflowCount;          // shared set only: splats appended past its capacity (dropped)
+    uint32_t _pad0;
     uint32_t threadgroupsPerGrid[3]; // MTLDispatchThreadgroupsIndirectArguments
     uint32_t _pad1;
     uint32_t vertexCount;            // MTLDrawPrimitivesIndirectArguments: 4 (the splat quad)
@@ -578,6 +579,35 @@ typedef struct{
 /// Byte offsets of the two indirect-argument blocks inside GaussianVisibleSet.
 #define gaussianVisibleSetDispatchArgumentsOffset 16
 #define gaussianVisibleSetDrawArgumentsOffset 32
+
+/// Upper bound on splat entities the shared draw addresses per frame (entity slot in each record).
+#define gaussianMaxEntitiesPerFrame 256
+
+/// One entry of the frame's shared working set, written by gaussianPreprocess for every splat
+/// that survived its entity's cull: everything the splat draw needs. The draw projects
+/// `position` with the entity's per-eye constants, so one record serves both eyes.
+typedef struct{
+    simd_float4 positionAndEntity;  // xyz: entity-local centre; w: entity index as uint bits (index into GaussianEntityDrawConstants)
+    simd_float4 conicAndOpacity;    // xyz: inverse 2D covariance, head-centre view; w: opacity
+    simd_float4 color;              // xyz: linear colour, spherical harmonics evaluated for the head-centre view; w unused
+    simd_float4 axes;               // xy: quad semi-axis 1, zw: semi-axis 2, in pixels
+}GaussianWorkingSetSplat;           // 64 bytes; with its 8-byte key, the per-slot cost the removed per-entity buffers had
+
+/// Per-entity constants the shared splat draw reads through GaussianWorkingSetSplat.entityIndex,
+/// written per eye by the draw pass.
+typedef struct{
+    matrix_float4x4 projectionMatrix;
+    matrix_float4x4 modelViewMatrix;
+}GaussianEntityDrawConstants;
+
+/// Per-entity inputs of gaussianPreprocess beyond the splat data.
+typedef struct{
+    uint32_t entityIndex;
+    uint32_t workingSetCapacity;
+    uint32_t debugColorEnabled;
+    uint32_t _pad0;
+    simd_float4 debugColor;
+}GaussianPreprocessEntityConstants;
 
 typedef struct{
     simd_float4 center;
@@ -629,14 +659,6 @@ typedef struct{
 // (the common case — Gaussians are oriented however the surface they came from sits) can be
 // several times larger in area than the ellipse itself, costing that many more rasterized/
 // shaded fragments regardless of how cheap the per-fragment TBDR blend itself is.
-typedef struct{
-    simd_float3 conic;
-    float _pad0;
-    simd_float3 color;
-    float _pad1;
-    simd_float2 axis1;
-    simd_float2 axis2;
-}GaussianPrecomputedSplat;
 
 typedef enum{
     gaussianPreprocessSplatIndex = 0,
@@ -648,18 +670,19 @@ typedef enum{
     gaussianPreprocessSHIndex,
     gaussianPreprocessSHMetadataIndex,
     gaussianPreprocessLocalCameraIndex,
-    gaussianPreprocessOutputIndex,
+    gaussianPreprocessEntityConstantsIndex,   // GaussianPreprocessEntityConstants
+    gaussianPreprocessWorkingSetIndex,        // GaussianWorkingSetSplat[], shared per frame
+    gaussianPreprocessSharedKeysIndex,        // uint64_t depth keys, shared per frame
+    gaussianPreprocessSharedVisibleSetIndex,  // GaussianVisibleSet, shared per frame
 }GaussianPreprocessBufferIndices;
 
 typedef enum{
-      gaussianTBDRRenderIndicesIndex = 0,
-      gaussianTBDRRenderSplatIndex,
-      gaussianTBDRRenderUniformIndex,
+      gaussianTBDRRenderIndicesIndex = 0,      // sorted shared keys
+      gaussianTBDRRenderWorkingSetIndex,       // GaussianWorkingSetSplat[]
+      gaussianTBDRRenderEntityConstantsIndex,  // GaussianEntityDrawConstants[] for this eye
       gaussianTBDRRenderViewPortIndex,
       gaussianTBDRRenderReverseZIndex,
-      gaussianTBDRRenderPrecomputedIndex,
-      gaussianTBDRRenderDebugColorIndex,
-      gaussianTBDRRenderDrawDebugIndex,   // GaussianTBDRDrawDebug
+      gaussianTBDRRenderDrawDebugIndex,        // GaussianTBDRDrawDebug
   }GaussianTBDRRenderBufferIndices;
 
 /// Per-draw switches for the splat fragment shader, set from GaussianDebugOptions each frame.

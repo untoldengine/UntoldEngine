@@ -275,12 +275,9 @@ func clampGaussianLODForOverdraw(
 func copyGaussianComponentBuffers(from source: GaussianComponent, to destination: GaussianComponent) {
     destination.splatCount = source.splatCount
     destination.visibleSplatCountForRendering = source.splatCount
-    destination.gaussianSortedIndices = source.gaussianSortedIndices
     destination.gaussianVisibleIndices = source.gaussianVisibleIndices
     destination.gaussianVisibleCount = source.gaussianVisibleCount
     destination.encodedSplatData = source.encodedSplatData
-    destination.gaussianPrecomputedData = source.gaussianPrecomputedData
     destination.sphericalHarmonicsData = source.sphericalHarmonicsData
     destination.sphericalHarmonicsMetadata = source.sphericalHarmonicsMetadata
-    destination.spaceUniform = source.spaceUniform
 }

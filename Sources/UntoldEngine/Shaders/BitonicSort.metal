@@ -59,6 +59,7 @@ kernel void gaussianFinalizeVisibleSet(
     uint count = visibleSet->visibleCount;
     uint threadgroups = (count + (uint)gaussianVisibleBlockSize - 1u) / (uint)gaussianVisibleBlockSize;
     visibleSet->threadgroupCount = threadgroups;
+    visibleSet->overflowCount = 0u;
     visibleSet->threadgroupsPerGrid[0] = threadgroups;
     visibleSet->threadgroupsPerGrid[1] = 1u;
     visibleSet->threadgroupsPerGrid[2] = 1u;
@@ -118,35 +119,28 @@ kernel void gaussianFrustumCull(
     visibleIndices[writeIndex] = index;
 }
 
-kernel void gaussianDepthKeys(device uint64_t *outKeys              [[buffer(gaussianIndicesIndex)]],
-                              const device EncodedGaussianSplat *splats [[buffer(gaussianEncodedSplatIndex)]],
-                              constant uint &numOfSplats [[buffer(gaussianNumberOfSplatsIndex)]],
-                              constant Uniforms &uniforms     [[buffer(gaussianUniformIndex)]],
-                              const device uint *visibleIndices [[buffer(gaussianVisibleIndicesIndex)]],
-                              const device uint *visibleCount [[buffer(gaussianVisibleCountIndex)]],
-                              uint index                              [[thread_position_in_grid]],
-                              uint gridSize                           [[threads_per_grid]])
+// The frame's shared working set: gaussianPreprocess appends past the capacity when the
+// entities hold more visible splats than the set can take, so the count is clamped here and
+// the excess recorded. Runs once after every entity's preprocess dispatch, same encoder.
+kernel void gaussianFinalizeSharedVisibleSet(
+    device GaussianVisibleSet *visibleSet [[buffer(gaussianVisibleCountIndex)]],
+    constant uint &capacity [[buffer(gaussianNumberOfSplatsIndex)]],
+    uint index [[thread_position_in_grid]])
 {
-    if (index >= numOfSplats) return;
+    if (index != 0u) return;
 
-    if (index >= visibleCount[0]) {
-        uint64_t invalidPacked = ((uint64_t)0xffffffffu << 32) | (uint64_t)0xffffffffu;
-        outKeys[index] = invalidPacked;
-        return;
-    }
-
-    uint splatIndex = visibleIndices[index];
-
-    // 1) Eye-space depth
-    float z = eye_space_depth(uniforms.modelViewMatrix, splats[splatIndex].position);
-
-    // 2) Convert to lexicographically sortable unsigned int
-    uint keyFrontToBack = float_to_sortable_u32(z);
-
-    // gaussian sorting
-    //uint keyBackToFront = 0xffffffffu - keyFrontToBack;
-
-    // 3) Pack [key | index] for 64-bit radix sort (key in high bits)
-    uint64_t packed = (uint64_t)keyFrontToBack << 32 | (uint64_t)splatIndex;
-    outKeys[index] = packed;
+    uint appended = visibleSet->visibleCount;
+    uint count = min(appended, capacity);
+    uint threadgroups = (count + (uint)gaussianVisibleBlockSize - 1u) / (uint)gaussianVisibleBlockSize;
+    visibleSet->visibleCount = count;
+    visibleSet->overflowCount = appended - count;
+    visibleSet->threadgroupCount = threadgroups;
+    visibleSet->threadgroupsPerGrid[0] = threadgroups;
+    visibleSet->threadgroupsPerGrid[1] = 1u;
+    visibleSet->threadgroupsPerGrid[2] = 1u;
+    visibleSet->vertexCount = 4u;
+    visibleSet->instanceCount = count;
+    visibleSet->vertexStart = 0u;
+    visibleSet->baseInstance = 0u;
 }
+

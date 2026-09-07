@@ -434,11 +434,14 @@ kernel void gaussianPreprocess(
     const device uint                 *visibleIndices [[buffer(gaussianPreprocessVisibleIndicesIndex)]],
     const device uint                 *visibleCount [[buffer(gaussianPreprocessVisibleCountIndex)]],
     constant float2                   &viewport     [[buffer(gaussianPreprocessViewportIndex)]],
-    const device uchar                 *shCoefficients [[buffer(gaussianPreprocessSHIndex)]],
+    const device uchar                *shCoefficients [[buffer(gaussianPreprocessSHIndex)]],
     constant GaussianSHMetadata       &shMetadata   [[buffer(gaussianPreprocessSHMetadataIndex)]],
     constant float3                   &localCameraPosition [[buffer(gaussianPreprocessLocalCameraIndex)]],
-    device GaussianPrecomputedSplat   *precomputed  [[buffer(gaussianPreprocessOutputIndex)]],
-    uint                                index        [[thread_position_in_grid]])
+    constant GaussianPreprocessEntityConstants &entity [[buffer(gaussianPreprocessEntityConstantsIndex)]],
+    device GaussianWorkingSetSplat    *workingSet   [[buffer(gaussianPreprocessWorkingSetIndex)]],
+    device uint64_t                   *sharedKeys   [[buffer(gaussianPreprocessSharedKeysIndex)]],
+    device atomic_uint                *sharedVisibleCount [[buffer(gaussianPreprocessSharedVisibleSetIndex)]],
+    uint                               index        [[thread_position_in_grid]])
 {
     if (index >= numOfSplats || index >= visibleCount[0]) {
         return;
@@ -447,19 +450,10 @@ kernel void gaussianPreprocess(
     uint splatIndex = visibleIndices[index];
     const EncodedGaussianSplat splat = splats[splatIndex];
 
-    GaussianPrecomputedSplat out;
-    out.conic = float3(0.0f);
-    out.axis1 = float2(0.0f);
-    out.axis2 = float2(0.0f);
-    out.color = float3(0.0f);
-
     float3 centerLocal = splat.position;
-    float4 centerClip = uniforms.projectionMatrix *
-                        uniforms.modelViewMatrix *
-                        float4(centerLocal, 1.0);
-
+    float4 centerView = uniforms.modelViewMatrix * float4(centerLocal, 1.0);
+    float4 centerClip = uniforms.projectionMatrix * centerView;
     if (centerClip.w <= 0.0f) {
-        precomputed[splatIndex] = out;
         return;
     }
 
@@ -481,22 +475,36 @@ kernel void gaussianPreprocess(
     float3 conic = computeInverseCovarianceConic(cov2D, axis1, axis2, valid);
 
     if (!valid || (axis1.x == 0.0f && axis1.y == 0.0f) || (axis2.x == 0.0f && axis2.y == 0.0f)) {
-        precomputed[splatIndex] = out;
         return;
     }
 
-    out.conic = conic;
-    out.axis1 = axis1;
-    out.axis2 = axis2;
-    out.color = gaussianSRGBToLinear(evaluateGaussianSphericalHarmonics(
-        float3(splat.colorAndOpacity.xyz),
-        shCoefficients,
-        shMetadata,
-        splatIndex,
-        centerLocal - localCameraPosition
-    ));
+    // Reserve a slot in the frame's shared working set. Past its capacity the splat is dropped;
+    // gaussianFinalizeSharedVisibleSet clamps the count and records the overflow.
+    uint slot = atomic_fetch_add_explicit(sharedVisibleCount, 1u, memory_order_relaxed);
+    if (slot >= entity.workingSetCapacity) {
+        return;
+    }
 
-    precomputed[splatIndex] = out;
+    float3 color = entity.debugColorEnabled != 0u
+        ? entity.debugColor.xyz
+        : gaussianSRGBToLinear(evaluateGaussianSphericalHarmonics(
+            float3(splat.colorAndOpacity.xyz),
+            shCoefficients,
+            shMetadata,
+            splatIndex,
+            centerLocal - localCameraPosition
+        ));
+    GaussianWorkingSetSplat record;
+    record.positionAndEntity = float4(centerLocal, as_type<float>(entity.entityIndex));
+    record.conicAndOpacity = float4(conic, float(splat.colorAndOpacity.w));
+    record.color = float4(color, 0.0f);
+    record.axes = float4(axis1, axis2);
+    workingSet[slot] = record;
+
+    // Depth key for the one sort across every entity: eye-space depth of the centre in the
+    // head-centre view, front to back, with the slot in the low word.
+    float depth = max(-centerView.z, 0.0f);
+    sharedKeys[slot] = ((uint64_t)float_to_sortable_u32(depth) << 32) | (uint64_t)slot;
 }
 
 // Vertex: builds a quad around the splat center and passes center + conic
@@ -550,42 +558,35 @@ kernel void initializeGaussianFragmentStore(
 }
 
 vertex GaussianOutData vertexGaussianTBDRShader(
-    const device uint64_t             *packedKeys [[buffer(gaussianTBDRRenderIndicesIndex)]],
-    const device EncodedGaussianSplat *splats     [[buffer(gaussianTBDRRenderSplatIndex)]],
-    constant Uniforms                 &uniforms   [[buffer(gaussianTBDRRenderUniformIndex)]],
-    constant float2                   &viewport   [[buffer(gaussianTBDRRenderViewPortIndex)]],
-    const device GaussianPrecomputedSplat *precomputedSplats [[buffer(gaussianTBDRRenderPrecomputedIndex)]],
-    constant float4                   &debugColor [[buffer(gaussianTBDRRenderDebugColorIndex)]],
-    uint                               vid        [[vertex_id]],
-    uint                               iid        [[instance_id]])
+    const device uint64_t                  *packedKeys [[buffer(gaussianTBDRRenderIndicesIndex)]],
+    const device GaussianWorkingSetSplat   *workingSet [[buffer(gaussianTBDRRenderWorkingSetIndex)]],
+    const device GaussianEntityDrawConstants *entities [[buffer(gaussianTBDRRenderEntityConstantsIndex)]],
+    constant float2                        &viewport   [[buffer(gaussianTBDRRenderViewPortIndex)]],
+    uint                                    vid        [[vertex_id]],
+    uint                                    iid        [[instance_id]])
 {
     GaussianOutData out;
     out.valid = false;
     out.position = float4(0.0, 0.0, 0.0, 1.0);
 
     uint64_t packed = packedKeys[iid];
-    uint splatIndex = unpackIndex(packed);
-    if (splatIndex == 0xffffffffu) {
+    uint slot = unpackIndex(packed);
+    if (slot == 0xffffffffu) {
         return out;
     }
-    const EncodedGaussianSplat splat = splats[splatIndex];
-    const GaussianPrecomputedSplat precomputed = precomputedSplats[splatIndex];
-
-    // Zero axis vectors mean gaussianPreprocess found this splat invalid this frame (behind
-    // the camera, or a degenerate covariance) — same condition the old inline computation
-    // guarded against.
-    if ((precomputed.axis1.x == 0.0f && precomputed.axis1.y == 0.0f) ||
-        (precomputed.axis2.x == 0.0f && precomputed.axis2.y == 0.0f)) {
-        return out;
-    }
+    const GaussianWorkingSetSplat record = workingSet[slot];
+    const uint entityIndex = as_type<uint>(record.positionAndEntity.w);
+    const GaussianEntityDrawConstants entity = entities[entityIndex];
 
     float2 quad = getCurrentQuadVertex(vid);
     quad = quad * 2.0f - 1.0f;
 
-    float3 centerLocal = splat.position;
-    float4 centerClip = uniforms.projectionMatrix *
-                        uniforms.modelViewMatrix *
-                        float4(centerLocal, 1.0);
+    // Centre projected per eye; conic and axes come from the head-centre preprocess. An entity
+    // that left the scene since this slot was written has zero matrices here (see
+    // gaussianExecution), so its stale records fail the w test below and draw nothing.
+    float4 centerClip = entity.projectionMatrix *
+                        entity.modelViewMatrix *
+                        float4(record.positionAndEntity.xyz, 1.0);
 
     if (centerClip.w <= 0.0f) {
         return out;
@@ -596,18 +597,16 @@ vertex GaussianOutData vertexGaussianTBDRShader(
     float2 centerUV = centerNDC * float2(0.5f, 0.5f * projYSign) + 0.5f;
     out.coordxy = centerUV * viewport;
 
-    out.conic = precomputed.conic;
+    out.conic = record.conicAndOpacity.xyz;
 
     // Tight, rotated quad along the ellipse's true principal axes (see
-    // computeInverseCovarianceConic) instead of an axis-aligned bounding box — avoids
-    // rasterizing/shading several times more fragments than necessary for anisotropic,
-    // non-axis-aligned splats.
-    float2 pixelOffset = quad.x * precomputed.axis1 + quad.y * precomputed.axis2;
+    // computeInverseCovarianceConic) instead of an axis-aligned bounding box.
+    float2 pixelOffset = quad.x * record.axes.xy + quad.y * record.axes.zw;
     float2 ndcOffset = pixelOffset * 2.0f / viewport;
     out.position = centerClip;
     out.position.xy += ndcOffset * centerClip.w;
-    out.color = debugColor.w > 0.0f ? debugColor.xyz : precomputed.color;
-    out.alpha = float(splat.colorAndOpacity.w);
+    out.color = record.color.xyz;
+    out.alpha = record.conicAndOpacity.w;
     out.valid = true;
 
     return out;

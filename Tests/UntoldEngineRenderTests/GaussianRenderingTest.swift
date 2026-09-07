@@ -201,9 +201,9 @@ final class GaussianRenderingTest: BaseRenderSetup {
             return
         }
 
-        XCTAssertNotNil(gaussianComponent.spaceUniform,
-                        "Gaussian component should have space uniform array")
-        // Note: encodedSplatData and gaussianSortedIndices may be nil until loaded
+        XCTAssertEqual(gaussianComponent.gaussianVisibleCount.count, maxInFlightCommandBuffers,
+                       "Gaussian component should have one visible-set slot per frame in flight")
+        // Note: encodedSplatData and the per-slot buffers may be nil until loaded
     }
 
     func testLoadedGaussianUsesExactSizeGPUBufferAllocations() {
@@ -214,7 +214,7 @@ final class GaussianRenderingTest: BaseRenderSetup {
         guard let entity = entities.first,
               let component = scene.get(component: GaussianComponent.self, for: entity),
               let encodedSplats = component.encodedSplatData,
-              let sortedIndices = component.gaussianSortedIndices.first ?? nil
+              let visibleIndices = component.gaussianVisibleIndices.first ?? nil
         else {
             XCTFail("Expected the Gaussian test asset to be loaded")
             return
@@ -227,8 +227,8 @@ final class GaussianRenderingTest: BaseRenderSetup {
             count * MemoryLayout<EncodedGaussianSplat>.stride
         )
         XCTAssertEqual(
-            sortedIndices.length,
-            count * MemoryLayout<UInt64>.stride
+            visibleIndices.length,
+            count * MemoryLayout<UInt32>.stride
         )
 
         let metadata = component.sphericalHarmonicsMetadata

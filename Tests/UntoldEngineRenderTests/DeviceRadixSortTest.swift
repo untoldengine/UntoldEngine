@@ -148,16 +148,31 @@ extension DeviceRadixSortTest {
         return hist
     }
 
-    /// A `GaussianVisibleSet` record with `count` visible splats, the way a cull that kept
-    /// everything would leave it: `executeRadixSort` reads its element and threadgroup counts
-    /// from this buffer and dispatches indirectly from it.
-    private func makeVisibleSetBuffer(count: Int) -> MTLBuffer? {
-        guard let buffer = renderInfo.device.makeBuffer(
-            length: MemoryLayout<GaussianVisibleSet>.stride,
-            options: .storageModeShared
-        ) else { return nil }
-        buffer.contents().storeBytes(of: makeGaussianVisibleSet(visibleCount: UInt32(count)), as: GaussianVisibleSet.self)
-        return buffer
+    /// The frame slot's shared sort keys, the buffer `executeRadixSort` sorted in place.
+    private func readSharedKeys(count: Int) -> [UInt64] {
+        guard let buffer = GaussianSharedWorkingSet.shared.keys(slot: renderInfo.currentInFlightFrameSlot) else {
+            XCTFail("Expected the shared key buffer")
+            return []
+        }
+        return readU64(buffer, count: count)
+    }
+
+    private func readSharedVisibleSet(slot: Int) -> GaussianVisibleSet {
+        guard let buffer = GaussianSharedWorkingSet.shared.visibleSet(slot: slot) else {
+            XCTFail("Expected the shared visible set")
+            return GaussianVisibleSet()
+        }
+        return buffer.contents().load(as: GaussianVisibleSet.self)
+    }
+
+    /// Zeroes the shared set's append counter the way the preprocess pass does at the start of
+    /// a frame, for tests that run the preprocess without the cull.
+    private func resetSharedVisibleSet(slot: Int) {
+        guard let buffer = GaussianSharedWorkingSet.shared.visibleSet(slot: slot) else {
+            XCTFail("Expected the shared visible set")
+            return
+        }
+        buffer.contents().storeBytes(of: makeGaussianVisibleSet(visibleCount: 0), as: GaussianVisibleSet.self)
     }
 
     /// CPU reference: one scatter pass (stable).
@@ -726,10 +741,9 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         wt.space = matrix_identity_float4x4
 
         guard let keyBuf = makeBuffer(inputKeys) else { XCTFail("Buffer allocation failed"); return }
-        gc.gaussianSortedIndices = Array(repeating: keyBuf, count: maxInFlightCommandBuffers)
+        XCTAssertTrue(GaussianSharedWorkingSet.shared.seedForTesting(keys: readU64(keyBuf, count: keyBuf.length / MemoryLayout<UInt64>.stride), slot: renderInfo.currentInFlightFrameSlot, device: renderInfo.device))
         gc.splatCount = UInt(n)
         gc.visibleSplatCountForRendering = UInt(n)
-        gc.gaussianVisibleCount = Array(repeating: makeVisibleSetBuffer(count: n), count: maxInFlightCommandBuffers)
 
         guard let queue = renderInfo.device.makeCommandQueue(),
               let cmd = queue.makeCommandBuffer()
@@ -740,7 +754,7 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         cmd.commit()
         cmd.waitUntilCompleted()
 
-        let result = readU64(keyBuf, count: n)
+        let result = readSharedKeys(count: n)
 
         for i in 1 ..< n {
             let prev = UInt32((result[i - 1] >> 32) & 0xFFFF_FFFF)
@@ -783,10 +797,9 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         wt.space = matrix_identity_float4x4
 
         guard let keyBuf = makeBuffer(inputKeys) else { XCTFail("Buffer allocation failed"); return }
-        gc.gaussianSortedIndices = Array(repeating: keyBuf, count: maxInFlightCommandBuffers)
+        XCTAssertTrue(GaussianSharedWorkingSet.shared.seedForTesting(keys: readU64(keyBuf, count: keyBuf.length / MemoryLayout<UInt64>.stride), slot: renderInfo.currentInFlightFrameSlot, device: renderInfo.device))
         gc.splatCount = UInt(n)
         gc.visibleSplatCountForRendering = UInt(n)
-        gc.gaussianVisibleCount = Array(repeating: makeVisibleSetBuffer(count: n), count: maxInFlightCommandBuffers)
 
         guard let queue = renderInfo.device.makeCommandQueue(),
               let cmd = queue.makeCommandBuffer()
@@ -797,7 +810,7 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         cmd.commit()
         cmd.waitUntilCompleted()
 
-        let result = readU64(keyBuf, count: n)
+        let result = readSharedKeys(count: n)
 
         for i in 0 ..< n {
             XCTAssertEqual(result[i], expectedSorted[i],
@@ -836,10 +849,9 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         else { XCTFail("Setup failed"); return }
 
         wt1.space = matrix_identity_float4x4
-        gc1.gaussianSortedIndices = Array(repeating: buf1, count: maxInFlightCommandBuffers)
+        XCTAssertTrue(GaussianSharedWorkingSet.shared.seedForTesting(keys: readU64(buf1, count: buf1.length / MemoryLayout<UInt64>.stride), slot: renderInfo.currentInFlightFrameSlot, device: renderInfo.device))
         gc1.splatCount = UInt(n)
         gc1.visibleSplatCountForRendering = UInt(n)
-        gc1.gaussianVisibleCount = Array(repeating: makeVisibleSetBuffer(count: n), count: maxInFlightCommandBuffers)
 
         guard let queue = renderInfo.device.makeCommandQueue(),
               let cmd1 = queue.makeCommandBuffer()
@@ -849,7 +861,7 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         cmd1.commit()
         cmd1.waitUntilCompleted()
 
-        let result1 = readU64(buf1, count: n)
+        let result1 = readSharedKeys(count: n)
 
         for i in 0 ..< n {
             XCTAssertEqual(result1[i], expectedSorted[i],
@@ -931,29 +943,32 @@ final class DeviceRadixSortTest: BaseRenderSetup {
             as: GaussianVisibleSet.self
         )
         gc.encodedSplatData = splatBuf
-        gc.gaussianSortedIndices = Array(repeating: keyBuf, count: maxInFlightCommandBuffers)
         gc.gaussianVisibleIndices = Array(repeating: visibleIndexBuf, count: maxInFlightCommandBuffers)
         gc.gaussianVisibleCount = Array(repeating: visibleCountBuf, count: maxInFlightCommandBuffers)
         gc.splatCount = UInt(numSplats)
         gc.visibleSplatCountForRendering = UInt(numSplats)
-        gc.spaceUniform = (0 ..< 2).compactMap { _ in
-            renderInfo.device.makeBuffer(
-                length: MemoryLayout<Uniforms>.stride,
-                options: .storageModeShared
-            )
-        }
+        _ = keyBuf
+
+        // No cull in this test: size the shared set by hand and zero its append counter, as the
+        // cull would, then let the preprocess compact and key every splat and the sort order them.
+        let slot = renderInfo.currentInFlightFrameSlot
+        XCTAssertTrue(GaussianSharedWorkingSet.shared.ensureCapacity(numSplats, device: renderInfo.device))
+        resetSharedVisibleSet(slot: slot)
 
         guard let queue = renderInfo.device.makeCommandQueue(),
               let cmd = queue.makeCommandBuffer()
         else { XCTFail("Command queue failed"); return }
 
-        executeGaussianDepth(cmd)
+        executeGaussianPreprocess(cmd)
         executeRadixSort(cmd)
 
         cmd.commit()
         cmd.waitUntilCompleted()
 
-        let result = readU64(keyBuf, count: numSplats)
+        let sharedSet = readSharedVisibleSet(slot: slot)
+        XCTAssertEqual(Int(sharedSet.visibleCount), numSplats, "every splat was compacted into the shared set")
+        XCTAssertEqual(sharedSet.overflowCount, 0)
+        let result = readSharedKeys(count: numSplats)
 
         // Verify ascending depth key order (front-to-back)
         for i in 1 ..< numSplats {
@@ -966,7 +981,7 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         // Verify all indices are in valid range
         for i in 0 ..< numSplats {
             let idx = UInt32(result[i] & 0xFFFF_FFFF)
-            XCTAssertLessThan(idx, UInt32(numSplats), "Index \(idx) out of range at position \(i)")
+            XCTAssertLessThan(idx, UInt32(numSplats), "Slot \(idx) out of range at position \(i)")
         }
 
         print("✅ test_radixSort_depthOrdering_withCamera passed")
@@ -1001,10 +1016,9 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         else { XCTFail("Setup failed"); return }
 
         wt.space = matrix_identity_float4x4
-        gc.gaussianSortedIndices = Array(repeating: keyBuf, count: maxInFlightCommandBuffers)
+        XCTAssertTrue(GaussianSharedWorkingSet.shared.seedForTesting(keys: readU64(keyBuf, count: keyBuf.length / MemoryLayout<UInt64>.stride), slot: renderInfo.currentInFlightFrameSlot, device: renderInfo.device))
         gc.splatCount = UInt(n)
         gc.visibleSplatCountForRendering = UInt(n)
-        gc.gaussianVisibleCount = Array(repeating: makeVisibleSetBuffer(count: n), count: maxInFlightCommandBuffers)
 
         guard let queue = renderInfo.device.makeCommandQueue(),
               let cmd = queue.makeCommandBuffer()
@@ -1015,7 +1029,7 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         cmd.commit()
         cmd.waitUntilCompleted()
 
-        let result = readU64(keyBuf, count: n)
+        let result = readSharedKeys(count: n)
 
         // Check monotonically sorted
         for i in 1 ..< n {

@@ -27,22 +27,22 @@ struct GaussianProfileTotals {
     var maxSphericalHarmonicsDegree: UInt32 = 0
     var higherOrderCoefficientsPerSplat: UInt32 = 0
 
+    /// Sort keys, working-set records, visible sets and entity constants shared by every
+    /// entity of a frame (GaussianSharedWorkingSet), counted once per profile line.
+    var sharedWorkingSetBytes: Int = 0
+
     var totalResidentBytes: Int {
-        encodedBytes + sortedIndexBytes + visibleIndexBytes + visibleCountBytes + sphericalHarmonicsBytes + uniformBytes + scratchBytes
+        encodedBytes + sortedIndexBytes + visibleIndexBytes + visibleCountBytes + sphericalHarmonicsBytes + uniformBytes + scratchBytes + sharedWorkingSetBytes
     }
 
     mutating func include(component: GaussianComponent) {
         entityCount += 1
         splatCount += Int(component.splatCount)
         encodedBytes += component.encodedSplatData?.length ?? 0
-        sortedIndexBytes += component.gaussianSortedIndices.reduce(0) { $0 + ($1?.length ?? 0) }
         visibleIndexBytes += component.gaussianVisibleIndices.reduce(0) { $0 + ($1?.length ?? 0) }
         visibleCountBytes += component.gaussianVisibleCount.reduce(0) { $0 + ($1?.length ?? 0) }
         if let shBuffer = component.sphericalHarmonicsData {
             sphericalHarmonicsBytes += shBuffer.length
-        }
-        uniformBytes += component.spaceUniform.reduce(0) { total, buffer in
-            total + (buffer?.length ?? 0)
         }
         if let metadata = component.sphericalHarmonicsMetadata {
             maxSphericalHarmonicsDegree = max(maxSphericalHarmonicsDegree, metadata.degree)

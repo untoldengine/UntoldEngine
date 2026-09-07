@@ -3328,19 +3328,15 @@ public func loadRawMesh(
 struct GaussianLoadResult {
     let splatCount: UInt
     // One buffer per in-flight frame slot (see the comment on GaussianComponent's matching
-    // fields) — written fresh every frame by the cull/depth-key/radix-sort passes, so a
-    // single shared buffer would let an overlapping newer frame's writes clobber data an
-    // older in-flight frame's draw is still reading.
-    let gaussianSortedIndices: [MTLBuffer]
+    // fields) — written fresh every frame by the cull, so a single shared buffer would let an
+    // overlapping newer frame's writes clobber data an older in-flight frame is still reading.
+    // The sort keys and draw records are per frame and shared across entities
+    // (GaussianSharedWorkingSet), not per entity.
     let gaussianVisibleIndices: [MTLBuffer]
     let gaussianVisibleCount: [MTLBuffer]
     let encodedSplatBuffer: MTLBuffer
-    // Same per-in-flight-frame slotting as the buffers above — written by
-    // executeGaussianPreprocess every frame, read by that same frame's draw pass.
-    let gaussianPrecomputedData: [MTLBuffer]
     let sphericalHarmonicsBuffer: MTLBuffer?
     let sphericalHarmonicsMetadata: GaussianSHMetadata?
-    let spaceUniform: [MTLBuffer?]
     /// Sum of all GPU buffer bytes above, for `MemoryBudgetManager` registration.
     let estimatedGPUBytes: Int
     /// Local-space bounding box computed from the actual loaded splat positions, for
@@ -3419,19 +3415,9 @@ func buildGaussianLoadResult(
     sphericalHarmonicsMetadata: GaussianSHMetadata?,
     boundingBox: (min: simd_float3, max: simd_float3)
 ) -> GaussianLoadResult? {
-    var gaussianSortedIndices: [MTLBuffer] = []
     var gaussianVisibleIndices: [MTLBuffer] = []
     var gaussianVisibleCount: [MTLBuffer] = []
     for _ in 0 ..< maxInFlightCommandBuffers {
-        guard let sortedIndicesSlot = renderInfo.device.makeBuffer(
-            length: MemoryLayout<UInt64>.stride * Int(splatCount),
-            options: .storageModeShared
-        ) else {
-            handleError(.bufferAllocationFailed, "Gaussian sorted-index buffer is nil")
-            return nil
-        }
-        gaussianSortedIndices.append(sortedIndicesSlot)
-
         guard let visibleIndicesSlot = renderInfo.device.makeBuffer(
             length: MemoryLayout<UInt32>.stride * Int(splatCount),
             options: .storageModeShared
@@ -3458,27 +3444,7 @@ func buildGaussianLoadResult(
         gaussianVisibleCount.append(visibleCountSlot)
     }
 
-    var gaussianPrecomputedData: [MTLBuffer] = []
-    for _ in 0 ..< maxInFlightCommandBuffers {
-        guard let precomputedSlot = renderInfo.device.makeBuffer(
-            length: MemoryLayout<GaussianPrecomputedSplat>.stride * Int(splatCount),
-            options: .storageModeShared
-        ) else {
-            handleError(.bufferAllocationFailed, "Gaussian precomputed-splat buffer is nil")
-            return nil
-        }
-        gaussianPrecomputedData.append(precomputedSlot)
-    }
-
-    let spaceUniform = (0 ..< totalPerMeshUniformBuffers()).compactMap { _ in
-        renderInfo.device.makeBuffer(length: MemoryLayout<Uniforms>.stride,
-                                     options: [MTLResourceOptions.storageModeShared])
-    }
-
     var estimatedGPUBytes = 0
-    for buffer in gaussianSortedIndices {
-        estimatedGPUBytes += buffer.length
-    }
     for buffer in gaussianVisibleIndices {
         estimatedGPUBytes += buffer.length
     }
@@ -3486,24 +3452,19 @@ func buildGaussianLoadResult(
         estimatedGPUBytes += buffer.length
     }
     estimatedGPUBytes += encodedSplatBuffer.length
-    for buffer in gaussianPrecomputedData {
-        estimatedGPUBytes += buffer.length
-    }
     estimatedGPUBytes += sphericalHarmonicsBuffer?.length ?? 0
-    for buffer in spaceUniform {
-        estimatedGPUBytes += buffer.length
-    }
+    // This entity's share of the frame's shared working set (GaussianSharedWorkingSet grows to
+    // the resident total), so the memory budget sees the same per-splat cost the per-entity
+    // sort-key and precomputed buffers used to carry.
+    estimatedGPUBytes += maxInFlightCommandBuffers * GaussianSharedWorkingSet.bytesPerSplatPerSlot * Int(splatCount)
 
     return GaussianLoadResult(
         splatCount: splatCount,
-        gaussianSortedIndices: gaussianSortedIndices,
         gaussianVisibleIndices: gaussianVisibleIndices,
         gaussianVisibleCount: gaussianVisibleCount,
         encodedSplatBuffer: encodedSplatBuffer,
-        gaussianPrecomputedData: gaussianPrecomputedData,
         sphericalHarmonicsBuffer: sphericalHarmonicsBuffer,
         sphericalHarmonicsMetadata: sphericalHarmonicsMetadata,
-        spaceUniform: spaceUniform,
         estimatedGPUBytes: estimatedGPUBytes,
         boundingBox: boundingBox
     )
@@ -3667,14 +3628,11 @@ private func applyGaussianLoadResult(_ result: GaussianLoadResult, to entityId: 
 func copyGaussianLoadResult(_ result: GaussianLoadResult, to gaussianComponent: GaussianComponent) {
     gaussianComponent.splatCount = result.splatCount
     gaussianComponent.visibleSplatCountForRendering = result.splatCount
-    gaussianComponent.gaussianSortedIndices = result.gaussianSortedIndices.map { $0 as MTLBuffer? }
     gaussianComponent.gaussianVisibleIndices = result.gaussianVisibleIndices.map { $0 as MTLBuffer? }
     gaussianComponent.gaussianVisibleCount = result.gaussianVisibleCount.map { $0 as MTLBuffer? }
     gaussianComponent.encodedSplatData = result.encodedSplatBuffer
-    gaussianComponent.gaussianPrecomputedData = result.gaussianPrecomputedData.map { $0 as MTLBuffer? }
     gaussianComponent.sphericalHarmonicsData = result.sphericalHarmonicsBuffer
     gaussianComponent.sphericalHarmonicsMetadata = result.sphericalHarmonicsMetadata
-    gaussianComponent.spaceUniform = result.spaceUniform
 }
 
 public enum GaussianSource {
@@ -4244,7 +4202,7 @@ public struct GaussianProgressiveBakeResult {
     public let cookReport: UntoldGSCookReport
 }
 
-private func meanSquaredSplatExtent(_ splats: [GaussianSplat], keeping indices: [Int]) -> Float {
+func meanSquaredSplatExtent(_ splats: [GaussianSplat], keeping indices: [Int]) -> Float {
     guard !indices.isEmpty else { return 0 }
     let sumOfSquares = indices.reduce(Float(0)) { partial, index in
         let majorAxis = gaussianMajorAxis(splats[index])
@@ -4415,7 +4373,7 @@ func packGaussianSphericalHarmonics(
 
 /// The raw `.ply` path shares the rotation-to-covariance math with the v3 decoder
 /// (`UntoldGSSplat.encodedForTBDR`).
-private func encodeGaussianSplatForTBDR(_ splat: GaussianSplat) -> EncodedGaussianSplat {
+func encodeGaussianSplatForTBDR(_ splat: GaussianSplat) -> EncodedGaussianSplat {
     UntoldGSSplat(splat).encodedForTBDR()
 }
 
@@ -4568,12 +4526,9 @@ func removeEntityGaussian(entityId: EntityID) {
         gaussianComponent.encodedSplatData = nil
         gaussianComponent.sphericalHarmonicsData = nil
         gaussianComponent.sphericalHarmonicsMetadata = nil
-        gaussianComponent.gaussianSortedIndices.removeAll()
         gaussianComponent.gaussianVisibleIndices.removeAll()
         gaussianComponent.gaussianVisibleCount.removeAll()
-        gaussianComponent.gaussianPrecomputedData.removeAll()
         gaussianComponent.visibleSplatCountForRendering = 0
-        gaussianComponent.spaceUniform.removeAll()
         scene.remove(component: GaussianComponent.self, from: entityId)
         // Idempotent — safe to call again if `unloadGaussian` already unregistered this
         // entity as part of a streaming unload. Keeps MemoryBudgetManager's ledger accurate
