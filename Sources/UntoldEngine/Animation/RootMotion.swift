@@ -229,7 +229,14 @@ func applyRootMotion(
             yawDelta += compiledClip.rootYawPerLoop
         }
         yawDelta = wrapAngle(yawDelta)
-        horizontal = simd_float3(delta.x, 0, delta.z)
+        // The clip's travel is authored in model space, but the entity
+        // faces the pose with the root yaw stripped. Express the delta in
+        // the root's own heading frame (as Unreal's extraction does) so a
+        // clip captured facing any direction still moves the entity along
+        // the direction its pose is walking.
+        let headingInverse = simd_quatf(angle: -animationComponent.rootMotion.previousYaw, axis: simd_float3(0, 1, 0))
+        let local = headingInverse.act(delta)
+        horizontal = simd_float3(local.x, 0, local.z)
     }
 
     if drivesAnchor, scene.get(component: LocalTransformComponent.self, for: motionEntity) != nil {
