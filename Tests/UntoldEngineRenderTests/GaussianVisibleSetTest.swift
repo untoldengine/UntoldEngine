@@ -14,12 +14,11 @@ import simd
 @testable import UntoldEngine
 import XCTest
 
-/// The per-frame Gaussian passes (preprocess, depth keys, radix sort, draw) must be sized by
-/// the count the cull wrote on the GPU *this* frame, never by the CPU's readback of an older
-/// frame. That readback lags by the frames in flight, so while the camera moves and the
-/// visible set grows, sizing from it cut the tail of the visible list every frame — a hole
-/// that followed the camera and closed only once it stood still (contiguous in a `.untoldgs`
-/// v3 file, whose Morton order makes the tail a compact region; scattered in a `.ply`).
+/// The per-frame Gaussian passes (preprocess, radix sort, draw) must be sized by counts written
+/// on the GPU *this* frame — the entity's cull count and the shared working set's append count —
+/// never by the CPU's readback of an older frame. That readback lags by the frames in flight, so
+/// while the camera moves and the visible set grows, sizing from it cut the tail of the visible
+/// list every frame: a hole that followed the camera and closed once it stood still.
 final class GaussianVisibleSetTest: BaseRenderSetup {
     override func tearDown() async throws {
         destroyAllEntities()
@@ -70,8 +69,8 @@ final class GaussianVisibleSetTest: BaseRenderSetup {
 
     // MARK: - Tests
 
-    /// The record a freshly loaded entity starts with counts every splat as visible, so a draw
-    /// before the first cull is not empty, and its indirect arguments agree with that count.
+    /// The record a freshly loaded entity starts with counts every splat as visible, and its
+    /// indirect arguments agree with that count.
     func testLoadedEntityStartsWithEverySplatVisible() {
         guard let component = gaussianComponent(),
               let buffer = component.gaussianVisibleCount[frameSlot(for: component)]
@@ -86,7 +85,7 @@ final class GaussianVisibleSetTest: BaseRenderSetup {
         XCTAssertEqual(visibleSet.vertexCount, 4)
     }
 
-    /// After a cull, the indirect dispatch and draw arguments are derived on the GPU from the
+    /// After a cull, the entity's indirect dispatch arguments are derived on the GPU from the
     /// count the cull appended, in the same command buffer.
     func testCullFinalizesIndirectArgumentsFromGPUCount() {
         lookAtAsset()
@@ -116,72 +115,73 @@ final class GaussianVisibleSetTest: BaseRenderSetup {
 
     /// The regression itself. The CPU-side count is left at 1, as if the last completed frame
     /// had seen almost nothing, then a full frame of passes runs with the whole asset in view.
-    /// Every visible splat must still be preprocessed, keyed and sorted: the passes take their
-    /// size from this frame's GPU count, so the stale CPU value cannot cut the list.
+    /// Every visible splat must be compacted into the shared working set, keyed and sorted:
+    /// the passes take their sizes from this frame's GPU counts, so the stale value cannot cut
+    /// the list.
     func testStaleCPUCountDoesNotTruncateTheVisibleSet() {
         lookAtAsset()
         guard let component = gaussianComponent() else { return }
         let slot = frameSlot(for: component)
         guard let visibleSetBuffer = component.gaussianVisibleCount[slot],
-              let visibleIndicesBuffer = component.gaussianVisibleIndices[slot],
-              let sortedBuffer = component.gaussianSortedIndices[slot],
-              let precomputedBuffer = component.gaussianPrecomputedData[slot]
+              let visibleIndicesBuffer = component.gaussianVisibleIndices[slot]
         else {
             XCTFail("Expected the per-frame Gaussian buffers")
             return
         }
-        let splatCount = Int(component.splatCount)
 
         // Stale readback from a frame in which one splat was visible.
         component.visibleSplatCountForRendering = 1
-
-        // Sentinels so anything a pass skipped is visible afterwards.
-        let sentinelKey: UInt64 = 0xDEAD_BEEF_DEAD_BEEF
-        let sortedKeys = sortedBuffer.contents().bindMemory(to: UInt64.self, capacity: splatCount)
-        for index in 0 ..< splatCount {
-            sortedKeys[index] = sentinelKey
-        }
-        let sentinelConic = simd_float3(repeating: -12345)
-        let precomputed = precomputedBuffer.contents().bindMemory(to: GaussianPrecomputedSplat.self, capacity: splatCount)
-        for index in 0 ..< splatCount {
-            precomputed[index].conic = sentinelConic
-        }
 
         // The frame's pass order, see RenderingSystem.swift.
         runSynchronously { commandBuffer in
             executeGaussianFrustumCulling(commandBuffer)
             executeGaussianPreprocess(commandBuffer)
-            executeGaussianDepth(commandBuffer)
             executeRadixSort(commandBuffer)
         }
 
         let visibleCount = Int(visibleSetBuffer.contents().load(as: UInt32.self))
         XCTAssertGreaterThan(visibleCount, 1, "Sanity check: the whole asset is in view, far more than the stale count")
-
         let visibleIndices = Array(UnsafeBufferPointer(start: visibleIndicesBuffer.contents().bindMemory(to: UInt32.self, capacity: visibleCount), count: visibleCount))
         XCTAssertEqual(Set(visibleIndices).count, visibleCount, "Each visible splat appears once in the cull output")
 
-        // Preprocess reached every visible splat.
-        let skippedByPreprocess = visibleIndices.filter { precomputed[Int($0)].conic == sentinelConic }.count
-        XCTAssertEqual(skippedByPreprocess, 0, "\(skippedByPreprocess) of \(visibleCount) visible splats were never preprocessed")
+        let workingSet = GaussianSharedWorkingSet.shared
+        let sharedSlot = min(renderInfo.currentInFlightFrameSlot, maxInFlightCommandBuffers - 1)
+        guard let sharedSetBuffer = workingSet.visibleSet(slot: sharedSlot),
+              let keysBuffer = workingSet.keys(slot: sharedSlot),
+              let recordsBuffer = workingSet.records(slot: sharedSlot)
+        else {
+            XCTFail("Expected the shared working set")
+            return
+        }
+        let sharedSet = sharedSetBuffer.contents().load(as: GaussianVisibleSet.self)
+        XCTAssertEqual(Int(sharedSet.visibleCount), visibleCount, "Every culled-in splat was compacted into the shared set")
+        XCTAssertEqual(sharedSet.overflowCount, 0)
+        XCTAssertEqual(sharedSet.instanceCount, sharedSet.visibleCount)
 
-        // Depth keys and the sort covered the whole visible list: the first `visibleCount`
-        // sorted entries are exactly the visible splats, in ascending depth order.
-        var sortedSplatIndices: [UInt32] = []
-        var previousDepthKey: UInt32 = 0
+        // The sorted keys cover the whole shared list: ascending depth, each slot once, and every
+        // record carries the entity's index and a valid footprint.
+        let keys = keysBuffer.contents().bindMemory(to: UInt64.self, capacity: visibleCount)
+        let records = recordsBuffer.contents().bindMemory(to: GaussianWorkingSetSplat.self, capacity: visibleCount)
+        var slots = Set<UInt32>()
+        var previousDepth: UInt32 = 0
         var outOfOrder = 0
+        var badRecords = 0
         for position in 0 ..< visibleCount {
-            let packed = sortedKeys[position]
-            XCTAssertNotEqual(packed, sentinelKey, "Sorted entry \(position) was never written")
-            let depthKey = UInt32(truncatingIfNeeded: packed >> 32)
-            let splatIndex = UInt32(truncatingIfNeeded: packed)
-            if depthKey < previousDepthKey {
+            let packed = keys[position]
+            let depth = UInt32(truncatingIfNeeded: packed >> 32)
+            let recordSlot = UInt32(truncatingIfNeeded: packed)
+            if depth < previousDepth {
                 outOfOrder += 1
             }
-            previousDepthKey = depthKey
-            sortedSplatIndices.append(splatIndex)
+            previousDepth = depth
+            slots.insert(recordSlot)
+            let record = records[Int(recordSlot)]
+            if record.entityIndex != 0 || (record.axis1 == .zero && record.axis2 == .zero) {
+                badRecords += 1
+            }
         }
         XCTAssertEqual(outOfOrder, 0, "Depth keys are not ascending")
-        XCTAssertEqual(Set(sortedSplatIndices), Set(visibleIndices), "The sorted list is not a permutation of the visible list")
+        XCTAssertEqual(slots, Set(0 ..< UInt32(visibleCount)), "The sorted list is not a permutation of the shared slots")
+        XCTAssertEqual(badRecords, 0, "Records carry the entity index and a footprint")
     }
 }

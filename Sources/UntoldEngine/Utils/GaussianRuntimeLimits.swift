@@ -3,9 +3,9 @@
 //  UntoldEngine
 //
 //  Per-entity size limits of the Gaussian splat runtime. Every loaded splat keeps about
-//  270 bytes resident on the GPU (encoded record, per-frame precomputed data, sort keys and
-//  visible indices for every frame in flight, spherical harmonics), so the cap is a memory
-//  guard per platform, not a format limit. Cooks that must load everywhere use the mobile
+//  320 bytes resident on the GPU (48-byte encoded record, a visible index per frame in flight,
+//  its 72-byte share of the shared working set per frame in flight, spherical harmonics), so
+//  the cap is a memory guard per platform, not a format limit. Cooks that must load everywhere use the mobile
 //  figure as their splat budget (`UntoldGSCookOptions.maxSplatCount`).
 //
 // Copyright (C) Untold Engine Studios
@@ -17,9 +17,9 @@
 import Foundation
 
 public enum GaussianRuntimeLimits {
-    /// Apple Vision Pro, iPhone, iPad and Apple TV: 5,242,880 splats per entity (about 1.4 GB).
+    /// Apple Vision Pro, iPhone, iPad and Apple TV: 5,242,880 splats per entity (about 1.7 GB).
     public static let maxSplatsPerEntityMobile = 1024 * 1024 * 5
-    /// Mac: 16,777,216 splats per entity (about 4.5 GB of unified memory).
+    /// Mac: 16,777,216 splats per entity (about 5.4 GB of unified memory).
     public static let maxSplatsPerEntityMac = 1024 * 1024 * 16
 
     /// The cap the running binary enforces when a splat asset loads.

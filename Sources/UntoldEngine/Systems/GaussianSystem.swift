@@ -43,6 +43,7 @@ func makeGaussianVisibleSet(visibleCount: UInt32) -> GaussianVisibleSet {
     var visibleSet = GaussianVisibleSet()
     visibleSet.visibleCount = visibleCount
     visibleSet.threadgroupCount = threadgroups
+    visibleSet.overflowCount = 0
     visibleSet.threadgroupsPerGrid = (threadgroups, 1, 1)
     visibleSet.vertexCount = 4
     visibleSet.instanceCount = visibleCount
@@ -78,6 +79,12 @@ private func dispatchOverVisibleSplats(
     }
 }
 
+/// The shared visible set handed to a command buffer's completed handler: the buffer is only
+/// read there, after the GPU has finished with it, so the capture is safe.
+private struct GaussianSharedVisibleSetReadback: @unchecked Sendable {
+    let buffer: MTLBuffer
+}
+
 private struct GaussianVisibleCountUpdate: @unchecked Sendable {
     let entityId: EntityID
     let component: GaussianComponent
@@ -104,7 +111,7 @@ func initGuassianComputePipelines() {
 
     createComputePipeline(into: &gaussianPreprocessPipeline, device: renderInfo.device, library: renderInfo.library, functionName: "gaussianPreprocess", pipelineName: "Gaussian Preprocess")
 
-    createComputePipeline(into: &gaussianDepthPipeline, device: renderInfo.device, library: renderInfo.library, functionName: "gaussianDepthKeys", pipelineName: "Gaussian Depth")
+    createComputePipeline(into: &gaussianFinalizeSharedVisibleSetPipeline, device: renderInfo.device, library: renderInfo.library, functionName: "gaussianFinalizeSharedVisibleSet", pipelineName: "Gaussian Finalize Shared Visible Set")
 
     createComputePipeline(into: &gaussianDecodePipeline, device: renderInfo.device, library: renderInfo.library, functionName: "gaussianDecodeChunks", pipelineName: "Gaussian Decode Chunks")
 
@@ -151,6 +158,15 @@ public func executeGaussianFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
     let gaussianId = getComponentId(for: GaussianComponent.self)
     let entities = queryEntitiesWithComponentIds([transformId, gaussianId], in: scene)
     guard !entities.isEmpty else { return }
+
+    // The frame's shared working set must hold every splat the entities can contribute.
+    let residentSplats = entities.reduce(0) { total, entityId in
+        total + Int(scene.get(component: GaussianComponent.self, for: entityId)?.splatCount ?? 0)
+    }
+    guard GaussianSharedWorkingSet.shared.ensureCapacity(residentSplats, device: renderInfo.device) else {
+        handleError(.bufferAllocationFailed, "Gaussian shared working set")
+        return
+    }
 
     guard let computeEncoder = commandBuffer.makeComputeCommandEncoder() else { return }
     computeEncoder.label = "Gaussian Frustum Culling"
@@ -298,11 +314,11 @@ public func executeGaussianFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
     )
 }
 
-/// Computes conic/radius/color once per visible splat per frame — previously the draw
-/// vertex shader recomputed all three redundantly on each of its 4 instanced quad vertices
-/// per splat (see gaussianPreprocess in Gaussians.metal). Must run after
-/// executeGaussianFrustumCulling (consumes its visible-index output) and before the Gaussian
-/// draw pass (which reads gaussianComponent.gaussianPrecomputedData).
+/// Compacts every entity's visible splats into the frame's shared working set: one thread per
+/// entry of the entity's cull list (indirect from its GaussianVisibleSet) computes the footprint
+/// and colour once for the head-centre view, appends a GaussianWorkingSetSplat record and a
+/// depth key. Runs after executeGaussianFrustumCulling and before executeRadixSort, which sorts
+/// the shared keys once for all entities.
 public func executeGaussianPreprocess(_ commandBuffer: MTLCommandBuffer) {
     let profileStart = gaussianProfilingStartTime()
     var profileTotals = GaussianProfileTotals()
@@ -311,13 +327,22 @@ public func executeGaussianPreprocess(_ commandBuffer: MTLCommandBuffer) {
     guard gaussianPreprocessPipeline.success else {
         handleError(.pipelineStateNulled, gaussianPreprocessPipeline.name!); return
     }
+    guard gaussianFinalizeSharedVisibleSetPipeline.success else {
+        handleError(.pipelineStateNulled, gaussianFinalizeSharedVisibleSetPipeline.name!); return
+    }
+    guard gaussianResetVisibleCountPipeline.success else {
+        handleError(.pipelineStateNulled, gaussianResetVisibleCountPipeline.name!); return
+    }
     guard let camera = CameraSystem.shared.activeCamera,
           let cameraComponent = scene.get(component: CameraComponent.self, for: camera)
     else {
         handleError(.noActiveCamera)
         return
     }
-    guard let preprocessPipelineState = gaussianPreprocessPipeline.pipelineState else {
+    guard let preprocessPipelineState = gaussianPreprocessPipeline.pipelineState,
+          let finalizePipelineState = gaussianFinalizeSharedVisibleSetPipeline.pipelineState,
+          let resetPipelineState = gaussianResetVisibleCountPipeline.pipelineState
+    else {
         handleError(.pipelineStateNulled, "Gaussian preprocess pipeline state is nil")
         return
     }
@@ -327,16 +352,49 @@ public func executeGaussianPreprocess(_ commandBuffer: MTLCommandBuffer) {
     let entities = queryEntitiesWithComponentIds([transformId, gaussianId], in: scene)
     guard !entities.isEmpty else { return }
 
+    let workingSet = GaussianSharedWorkingSet.shared
+    let frameSlot = min(renderInfo.currentInFlightFrameSlot, maxInFlightCommandBuffers - 1)
+    guard let sharedKeys = workingSet.keys(slot: frameSlot),
+          let sharedRecords = workingSet.records(slot: frameSlot),
+          let sharedVisibleSet = workingSet.visibleSet(slot: frameSlot)
+    else {
+        handleError(.bufferAllocationFailed, "Gaussian shared working set")
+        return
+    }
+    let capacityValue = workingSet.capacity
+    var capacity = UInt32(capacityValue)
+
     guard let computeEncoder = commandBuffer.makeComputeCommandEncoder() else { return }
     computeEncoder.label = "Gaussian Preprocess"
+
+    // Zero the shared set's append counter on this same serial encoder, so the reset can never
+    // be skipped independently of the appends that follow it.
+    computeEncoder.setComputePipelineState(resetPipelineState)
+    computeEncoder.setBuffer(sharedVisibleSet, offset: 0, index: Int(gaussianVisibleCountIndex.rawValue))
+    computeEncoder.dispatchThreadgroups(MTLSizeMake(1, 1, 1), threadsPerThreadgroup: MTLSizeMake(1, 1, 1))
+    profileTotals.dispatchCount += 1
+
     computeEncoder.setComputePipelineState(preprocessPipelineState)
 
-    for entityId in entities {
+    // The draw resolves each record's entity index through this exact enumeration, even on a
+    // later frame that reuses the slot without re-running the preprocess.
+    workingSet.setEntityOrder(Array(entities.prefix(Int(gaussianMaxEntitiesPerFrame))), slot: frameSlot)
+
+    let colorByLOD = SpatialDebugVisualization.shared.colorRenderablesByLOD
+
+    for (entityIndex, entityId) in entities.enumerated() {
         guard let gaussianComponent = scene.get(component: GaussianComponent.self, for: entityId) else {
             handleError(.noGaussianComponent, entityId)
             continue
         }
         profileTotals.include(component: gaussianComponent)
+
+        // The draw looks the entity up by this index (see gaussianExecution); both walk the
+        // same query in the same frame. Entities past the table are skipped this frame.
+        guard entityIndex < Int(gaussianMaxEntitiesPerFrame) else {
+            handleError(.bufferAllocationFailed, "more than \(gaussianMaxEntitiesPerFrame) Gaussian entities in one frame")
+            break
+        }
 
         // Sized on the GPU from this frame's cull (dispatchOverVisibleSplats); the CPU count
         // is a stale readback and only feeds the profile line.
@@ -349,12 +407,15 @@ public func executeGaussianPreprocess(_ commandBuffer: MTLCommandBuffer) {
             continue
         }
         // Same frame-slot indexing as executeGaussianFrustumCulling — must match, since this
-        // reads that same frame's cull output and writes this same frame's precompute output.
-        let frameSlot = min(renderInfo.currentInFlightFrameSlot, gaussianComponent.gaussianVisibleIndices.count - 1)
+        // reads that same frame's cull output.
+        guard !gaussianComponent.gaussianVisibleIndices.isEmpty, !gaussianComponent.gaussianVisibleCount.isEmpty else {
+            handleError(.bufferAllocationFailed, "Gaussian preprocess buffers")
+            continue
+        }
+        let entitySlot = min(renderInfo.currentInFlightFrameSlot, gaussianComponent.gaussianVisibleIndices.count - 1)
         guard let encodedSplatData = gaussianComponent.encodedSplatData,
-              let visibleIndices = gaussianComponent.gaussianVisibleIndices[frameSlot],
-              let visibleCount = gaussianComponent.gaussianVisibleCount[frameSlot],
-              let precomputedData = gaussianComponent.gaussianPrecomputedData[frameSlot]
+              let visibleIndices = gaussianComponent.gaussianVisibleIndices[entitySlot],
+              let visibleCount = gaussianComponent.gaussianVisibleCount[min(entitySlot, gaussianComponent.gaussianVisibleCount.count - 1)]
         else {
             handleError(.bufferAllocationFailed, "Gaussian preprocess buffers")
             continue
@@ -362,8 +423,9 @@ public func executeGaussianPreprocess(_ commandBuffer: MTLCommandBuffer) {
 
         let modelMatrix = simd_mul(worldTransformComponent.space, .identity)
 
-        // Same effectiveViewMatrix/effectiveCameraPosition requirement as the cull/depth
-        // passes — see the comment on executeGaussianFrustumCulling.
+        // Same effectiveViewMatrix/effectiveCameraPosition requirement as the cull pass — see
+        // the comment on executeGaussianFrustumCulling. This is the head-centre view: the
+        // footprint and colour are computed once; the draw re-projects the centre per eye.
         let viewMatrix = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
         let modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
         let effectiveCameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
@@ -388,6 +450,15 @@ public func executeGaussianPreprocess(_ commandBuffer: MTLCommandBuffer) {
             modelMatrix: modelMatrix
         )
 
+        var entityConstants = GaussianPreprocessEntityConstants()
+        entityConstants.entityIndex = UInt32(entityIndex)
+        entityConstants.workingSetCapacity = capacity
+        if colorByLOD, let gaussianLOD = scene.get(component: GaussianLODComponent.self, for: entityId) {
+            let color = RenderPasses.lodDebugColor(for: gaussianLOD.currentLOD)
+            entityConstants.debugColorEnabled = 1
+            entityConstants.debugColor = simd_float4(color.x, color.y, color.z, 1.0)
+        }
+
         computeEncoder.setBuffer(encodedSplatData, offset: 0, index: Int(gaussianPreprocessSplatIndex.rawValue))
         computeEncoder.setBytes(&gaussianUniform, length: MemoryLayout<Uniforms>.stride, index: Int(gaussianPreprocessUniformIndex.rawValue))
         computeEncoder.setBytes(&localNumGaussians, length: MemoryLayout<UInt32>.stride, index: Int(gaussianPreprocessNumOfSplatsIndex.rawValue))
@@ -401,7 +472,10 @@ public func executeGaussianPreprocess(_ commandBuffer: MTLCommandBuffer) {
         )
         computeEncoder.setBytes(&shMetadata, length: MemoryLayout<GaussianSHMetadata>.stride, index: Int(gaussianPreprocessSHMetadataIndex.rawValue))
         computeEncoder.setBytes(&localCameraPosition, length: MemoryLayout<simd_float3>.stride, index: Int(gaussianPreprocessLocalCameraIndex.rawValue))
-        computeEncoder.setBuffer(precomputedData, offset: 0, index: Int(gaussianPreprocessOutputIndex.rawValue))
+        computeEncoder.setBytes(&entityConstants, length: MemoryLayout<GaussianPreprocessEntityConstants>.stride, index: Int(gaussianPreprocessEntityConstantsIndex.rawValue))
+        computeEncoder.setBuffer(sharedRecords, offset: 0, index: Int(gaussianPreprocessWorkingSetIndex.rawValue))
+        computeEncoder.setBuffer(sharedKeys, offset: 0, index: Int(gaussianPreprocessSharedKeysIndex.rawValue))
+        computeEncoder.setBuffer(sharedVisibleSet, offset: 0, index: Int(gaussianPreprocessSharedVisibleSetIndex.rawValue))
 
         dispatchOverVisibleSplats(
             computeEncoder,
@@ -412,155 +486,41 @@ public func executeGaussianPreprocess(_ commandBuffer: MTLCommandBuffer) {
         profileTotals.dispatchCount += 1
     }
 
+    // Same serial encoder, so this sees every entity's appends: clamps the shared count to the
+    // capacity, records the overflow and derives the sort and draw arguments for the frame.
+    computeEncoder.setComputePipelineState(finalizePipelineState)
+    computeEncoder.setBuffer(sharedVisibleSet, offset: 0, index: Int(gaussianVisibleCountIndex.rawValue))
+    computeEncoder.setBytes(&capacity, length: MemoryLayout<UInt32>.stride, index: Int(gaussianNumberOfSplatsIndex.rawValue))
+    computeEncoder.dispatchThreadgroups(MTLSizeMake(1, 1, 1), threadsPerThreadgroup: MTLSizeMake(1, 1, 1))
+    profileTotals.dispatchCount += 1
+
     computeEncoder.endEncoding()
 
+    // Profiling readback of the shared set, two or three frames late like the per-entity one.
+    // Overflow means splats were dropped this frame: reported once per change, not every frame.
+    let completedVisibleSet = GaussianSharedVisibleSetReadback(buffer: sharedVisibleSet)
+    commandBuffer.addCompletedHandler { _ in
+        let set = completedVisibleSet.buffer.contents().load(as: GaussianVisibleSet.self)
+        let previousOverflow = GaussianSharedWorkingSet.shared.lastOverflowCount
+        GaussianSharedWorkingSet.shared.recordCompletedFrame(visibleCount: Int(set.visibleCount), overflowCount: Int(set.overflowCount))
+        if set.overflowCount > 0, Int(set.overflowCount) != previousOverflow {
+            handleError(.bufferAllocationFailed, "Gaussian shared working set overflowed: \(set.overflowCount) visible splats dropped (capacity \(capacityValue))")
+        }
+    }
+
+    profileTotals.sharedWorkingSetBytes = workingSet.residentBytes
     logGaussianProfile(
         stage: "Preprocess",
         startTime: profileStart,
         totals: profileTotals,
-        extra: "activeSplats=\(activeSplatTotal)"
+        extra: "activeSplats=\(activeSplatTotal) sharedCapacity=\(workingSet.capacity) lastShared=\(workingSet.lastVisibleCount) lastOverflow=\(workingSet.lastOverflowCount)"
     )
 }
 
-public func executeGaussianDepth(_ commandBuffer: MTLCommandBuffer) {
-    let profileStart = gaussianProfilingStartTime()
-    var profileTotals = GaussianProfileTotals()
-    var activeSplatTotal = 0
-
-    if gaussianDepthPipeline.success == false {
-        handleError(.pipelineStateNulled, gaussianDepthPipeline.name!)
-        return
-    }
-
-    guard let camera = CameraSystem.shared.activeCamera, let cameraComponent = scene.get(component: CameraComponent.self, for: camera) else {
-        handleError(.noActiveCamera)
-        return
-    }
-
-    let computeEncoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()!
-
-    computeEncoder.label = "Gaussian Depth pass"
-
-    computeEncoder.setComputePipelineState(gaussianDepthPipeline.pipelineState!)
-
-    let transformId = getComponentId(for: WorldTransformComponent.self)
-    let gaussianId = getComponentId(for: GaussianComponent.self)
-    let entities = queryEntitiesWithComponentIds([transformId, gaussianId], in: scene)
-
-    for entityId in entities {
-        guard let gaussianComponent = scene.get(component: GaussianComponent.self, for: entityId) else {
-            handleError(.noGaussianComponent, entityId)
-            continue
-        }
-        profileTotals.include(component: gaussianComponent)
-
-        // Sized on the GPU from this frame's cull (dispatchOverVisibleSplats); the CPU count
-        // is a stale readback and only feeds the profile line.
-        let splatCount = Int(gaussianComponent.splatCount)
-        guard splatCount > 0 else { continue }
-        activeSplatTotal += activeGaussianSortCount(gaussianComponent)
-
-        guard let worldTransformComponent = scene.get(component: WorldTransformComponent.self, for: entityId) else {
-            handleError(.noWorldTransformComponent, entityId)
-            continue
-        }
-
-        guard scene.get(component: LocalTransformComponent.self, for: entityId) != nil else {
-            handleError(.noLocalTransformComponent, entityId)
-            continue
-        }
-
-        // Same frame-slot indexing as executeGaussianFrustumCulling — must match, since
-        // these are the same frame's cull output being consumed here.
-        guard !gaussianComponent.gaussianSortedIndices.isEmpty,
-              !gaussianComponent.gaussianVisibleCount.isEmpty
-        else {
-            handleError(.bufferAllocationFailed, "Gaussian depth buffers")
-            continue
-        }
-        let frameSlot = min(renderInfo.currentInFlightFrameSlot, gaussianComponent.gaussianSortedIndices.count - 1)
-        guard let visibleSet = gaussianComponent.gaussianVisibleCount[min(frameSlot, gaussianComponent.gaussianVisibleCount.count - 1)] else {
-            handleError(.bufferAllocationFailed, "Gaussian visible-set buffer")
-            continue
-        }
-        computeEncoder.setBuffer(gaussianComponent.gaussianSortedIndices[frameSlot], offset: 0, index: Int(gaussianIndicesIndex.rawValue))
-        computeEncoder.setBuffer(gaussianComponent.gaussianVisibleIndices[frameSlot], offset: 0, index: Int(gaussianVisibleIndicesIndex.rawValue))
-        computeEncoder.setBuffer(gaussianComponent.gaussianVisibleCount[frameSlot], offset: 0, index: Int(gaussianVisibleCountIndex.rawValue))
-        computeEncoder.setBuffer(
-            gaussianComponent.encodedSplatData,
-            offset: 0,
-            index: Int(gaussianEncodedSplatIndex.rawValue)
-        )
-
-        // update uniforms
-        var gaussianUniform = Uniforms()
-
-        let modelMatrix = simd_mul(worldTransformComponent.space, .identity)
-
-        // See the matching comment in executeGaussianFrustumCulling: worldTransformComponent
-        // is in entity space, so this must be the scene-root-corrected view, not the raw
-        // per-eye viewSpace.
-        let viewMatrix: simd_float4x4 = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
-
-        let modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
-
-        let upperModelMatrix: matrix_float3x3 = matrix3x3_upper_left(modelMatrix)
-
-        let inverseUpperModelMatrix: matrix_float3x3 = upperModelMatrix.inverse
-
-        let normalMatrix: matrix_float3x3 = inverseUpperModelMatrix.transpose
-
-        gaussianUniform.modelViewMatrix = modelViewMatrix
-
-        gaussianUniform.normalMatrix = normalMatrix
-
-        gaussianUniform.viewMatrix = viewMatrix
-
-        gaussianUniform.modelMatrix = modelMatrix
-
-        gaussianUniform.cameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
-
-        gaussianUniform.projectionMatrix = renderInfo.perspectiveSpace
-
-        guard !gaussianComponent.spaceUniform.isEmpty else {
-            handleError(.bufferAllocationFailed, "Gaussian Uniform buffer")
-            return
-        }
-        let uniformBufferIndex = min(currentUniformBufferIndex(), gaussianComponent.spaceUniform.count - 1)
-
-        if let gaussianUniformBuffer = gaussianComponent.spaceUniform[uniformBufferIndex] {
-            gaussianUniformBuffer.contents().copyMemory(
-                from: &gaussianUniform, byteCount: MemoryLayout<Uniforms>.stride
-            )
-        } else {
-            handleError(.bufferAllocationFailed, "Gaussian Uniform buffer")
-            return
-        }
-
-        computeEncoder.setBuffer(
-            gaussianComponent.spaceUniform[uniformBufferIndex], offset: 0, index: Int(gaussianUniformIndex.rawValue)
-        )
-
-        var localNumGaussians = UInt32(splatCount)
-        computeEncoder.setBytes(&localNumGaussians, length: MemoryLayout<UInt32>.stride, index: Int(gaussianNumberOfSplatsIndex.rawValue))
-
-        dispatchOverVisibleSplats(
-            computeEncoder,
-            pipelineState: gaussianDepthPipeline.pipelineState!,
-            visibleSet: visibleSet,
-            splatCount: splatCount
-        )
-        profileTotals.dispatchCount += 1
-    }
-
-    computeEncoder.endEncoding()
-    logGaussianProfile(
-        stage: "DepthKeys",
-        startTime: profileStart,
-        totals: profileTotals,
-        extra: "activeSplats=\(activeSplatTotal)"
-    )
-}
+/// The depth keys are written by `executeGaussianPreprocess` into the shared working set since
+/// the sort became shared across entities; kept so existing frame loops keep compiling.
+@available(*, deprecated, message: "Depth keys are written by executeGaussianPreprocess; remove this call.")
+public func executeGaussianDepth(_: MTLCommandBuffer) {}
 
 // MARK: - Device Radix Sort
 
@@ -585,7 +545,6 @@ public func executeGaussianDepth(_ commandBuffer: MTLCommandBuffer) {
 public func executeRadixSort(_ commandBuffer: MTLCommandBuffer) {
     let profileStart = gaussianProfilingStartTime()
     var profileTotals = GaussianProfileTotals()
-    var activeSplatTotal = 0
 
     guard radixClearHistogramPipeline.success else {
         handleError(.pipelineStateNulled, radixClearHistogramPipeline.name!); return
@@ -610,120 +569,103 @@ public func executeRadixSort(_ commandBuffer: MTLCommandBuffer) {
     }
     guard let histBuffer = radixHistogramBuffer else { return }
 
-    let transformId = getComponentId(for: WorldTransformComponent.self)
-    let gaussianId = getComponentId(for: GaussianComponent.self)
-    let entities = queryEntitiesWithComponentIds([transformId, gaussianId], in: scene)
+    // One sort for every entity: the shared key buffer the preprocess filled this frame,
+    // sized by the shared GaussianVisibleSet on the GPU. `n` only sizes the scratch buffers.
+    let workingSet = GaussianSharedWorkingSet.shared
+    let n = workingSet.capacity
+    guard n >= 2 else { return }
+    let frameSlot = min(renderInfo.currentInFlightFrameSlot, maxInFlightCommandBuffers - 1)
+    guard let sortedIndices = workingSet.keys(slot: frameSlot),
+          let visibleSet = workingSet.visibleSet(slot: frameSlot)
+    else { return }
 
-    // Single compute encoder for all entities and all passes.
-    // Dispatches within one encoder execute sequentially on the GPU,
-    // so no inter-encoder synchronisation is needed.
+    // Ping-pong temp buffer (CPU alloc before encoding)
+    let keyBufLen = n * MemoryLayout<UInt64>.stride
+    if radixSortTempBuffer == nil || radixSortTempBuffer!.length < keyBufLen {
+        radixSortTempBuffer = renderInfo.device.makeBuffer(
+            length: keyBufLen, options: .storageModeShared
+        )
+    }
+    guard let tempBuffer = radixSortTempBuffer else { return }
+
+    // Fixed block size: histogram and scatter MUST use the same value so
+    // that histGroups == scatterGroups and perTGStart indexing is correct — and it must
+    // equal gaussianVisibleBlockSize, the block the GPU-side threadgroup count assumes.
+    let radixBlock = Int(gaussianVisibleBlockSize)
+    let numGroups = (n + radixBlock - 1) / radixBlock
+
+    let perTGLen = numGroups * 256 * MemoryLayout<UInt32>.stride
+    if radixPerTGHistBuffer == nil || radixPerTGHistBuffer!.length < perTGLen {
+        radixPerTGHistBuffer = renderInfo.device.makeBuffer(
+            length: perTGLen, options: .storageModeShared
+        )
+    }
+    guard let perTGBuf = radixPerTGHistBuffer else { return }
+    profileTotals.scratchBytes = tempBuffer.length + histBuffer.length + perTGBuf.length
+    profileTotals.sharedWorkingSetBytes = workingSet.residentBytes
+
+    var numBuckets = UInt32(256)
+
+    // Single compute encoder for all passes. Dispatches within one encoder execute
+    // sequentially on the GPU, so no inter-encoder synchronisation is needed.
     guard let enc = commandBuffer.makeComputeCommandEncoder() else { return }
     enc.label = "Radix Sort"
 
-    for entityId in entities {
-        guard let gc = scene.get(component: GaussianComponent.self, for: entityId) else { continue }
-        // Same frame-slot indexing as executeGaussianFrustumCulling/executeGaussianDepth —
-        // sorting in place on this frame's own cull/depth-key output.
-        guard !gc.gaussianSortedIndices.isEmpty, !gc.gaussianVisibleCount.isEmpty else { continue }
-        let frameSlot = min(renderInfo.currentInFlightFrameSlot, gc.gaussianSortedIndices.count - 1)
-        guard let sortedIndices = gc.gaussianSortedIndices[frameSlot],
-              let visibleSet = gc.gaussianVisibleCount[min(frameSlot, gc.gaussianVisibleCount.count - 1)]
-        else { continue }
+    for pass in 0 ..< 4 {
+        let isEven = (pass % 2 == 0)
+        let keysIn = isEven ? sortedIndices : tempBuffer
+        let keysOut = isEven ? tempBuffer : sortedIndices
+        var passIdx = UInt32(pass)
 
-        // `n` only sizes the scratch buffers: the kernels take this frame's element and
-        // threadgroup counts from `visibleSet`, written on the GPU by the cull, and the
-        // histogram/scatter dispatches are indirect from the same record.
-        let n = Int(gc.splatCount)
-        guard n >= 2 else { continue }
-        profileTotals.include(component: gc)
-        activeSplatTotal += activeGaussianSortCount(gc)
+        // ── 0. Clear histogram ───────────────────────────────────────────
+        enc.setComputePipelineState(radixClearHistogramPipeline.pipelineState!)
+        enc.setBuffer(histBuffer, offset: 0, index: Int(radixClearHistogramBuffer.rawValue))
+        enc.dispatchThreadgroups(MTLSizeMake(1, 1, 1), threadsPerThreadgroup: MTLSizeMake(256, 1, 1))
+        profileTotals.dispatchCount += 1
 
-        // Ping-pong temp buffer (CPU alloc before encoding)
-        let keyBufLen = n * MemoryLayout<UInt64>.stride
-        if radixSortTempBuffer == nil || radixSortTempBuffer!.length < keyBufLen {
-            radixSortTempBuffer = renderInfo.device.makeBuffer(
-                length: keyBufLen, options: .storageModeShared
-            )
-        }
-        guard let tempBuffer = radixSortTempBuffer else { continue }
-        profileTotals.scratchBytes = max(profileTotals.scratchBytes, tempBuffer.length)
-
-        // Fixed block size: histogram and scatter MUST use the same value so
-        // that histGroups == scatterGroups and perTGStart indexing is correct — and it must
-        // equal gaussianVisibleBlockSize, the block the GPU-side threadgroup count assumes.
-        let radixBlock = Int(gaussianVisibleBlockSize)
-        let numGroups = (n + radixBlock - 1) / radixBlock
-
-        let perTGLen = numGroups * 256 * MemoryLayout<UInt32>.stride
-        if radixPerTGHistBuffer == nil || radixPerTGHistBuffer!.length < perTGLen {
-            radixPerTGHistBuffer = renderInfo.device.makeBuffer(
-                length: perTGLen, options: .storageModeShared
-            )
-        }
-        guard let perTGBuf = radixPerTGHistBuffer else { continue }
-        profileTotals.scratchBytes = max(
-            profileTotals.scratchBytes,
-            tempBuffer.length + histBuffer.length + perTGBuf.length
+        // ── 1. Histogram + per-TG counts ─────────────────────────────────
+        enc.setComputePipelineState(radixHistogramPipeline.pipelineState!)
+        enc.setBuffer(keysIn, offset: 0, index: Int(radixHistogramKeysIn.rawValue))
+        enc.setBuffer(histBuffer, offset: 0, index: Int(radixHistogramOutput.rawValue))
+        enc.setBuffer(perTGBuf, offset: 0, index: Int(radixHistogramPerTGOut.rawValue))
+        enc.setBuffer(visibleSet, offset: 0, index: Int(radixHistogramVisibleSet.rawValue))
+        enc.setBytes(&passIdx, length: MemoryLayout<UInt32>.stride, index: Int(radixHistogramPassIndex.rawValue))
+        enc.dispatchThreadgroups(
+            indirectBuffer: visibleSet,
+            indirectBufferOffset: Int(gaussianVisibleSetDispatchArgumentsOffset),
+            threadsPerThreadgroup: MTLSizeMake(radixBlock, 1, 1)
         )
+        profileTotals.dispatchCount += 1
 
-        var numBuckets = UInt32(256)
+        // ── 2. Per-TG column scan → per-TG starting offsets ─────────────
+        enc.setComputePipelineState(radixScanPerTGPipeline.pipelineState!)
+        enc.setBuffer(perTGBuf, offset: 0, index: Int(radixScanPerTGBuffer.rawValue))
+        enc.setBuffer(visibleSet, offset: 0, index: Int(radixScanPerTGVisibleSet.rawValue))
+        enc.dispatchThreadgroups(MTLSizeMake(1, 1, 1), threadsPerThreadgroup: MTLSizeMake(256, 1, 1))
+        profileTotals.dispatchCount += 1
 
-        for pass in 0 ..< 4 {
-            let isEven = (pass % 2 == 0)
-            let keysIn = isEven ? sortedIndices : tempBuffer
-            let keysOut = isEven ? tempBuffer : sortedIndices
-            var passIdx = UInt32(pass)
+        // ── 3. Global exclusive scan ─────────────────────────────────────
+        enc.setComputePipelineState(radixScanPipeline.pipelineState!)
+        enc.setBuffer(histBuffer, offset: 0, index: Int(radixScanHistogram.rawValue))
+        enc.setBytes(&numBuckets, length: MemoryLayout<UInt32>.stride, index: Int(radixScanNumBuckets.rawValue))
+        enc.dispatchThreadgroups(MTLSizeMake(1, 1, 1), threadsPerThreadgroup: MTLSizeMake(256, 1, 1))
+        profileTotals.dispatchCount += 1
 
-            // ── 0. Clear histogram ───────────────────────────────────────────
-            enc.setComputePipelineState(radixClearHistogramPipeline.pipelineState!)
-            enc.setBuffer(histBuffer, offset: 0, index: Int(radixClearHistogramBuffer.rawValue))
-            enc.dispatchThreadgroups(MTLSizeMake(1, 1, 1), threadsPerThreadgroup: MTLSizeMake(256, 1, 1))
-            profileTotals.dispatchCount += 1
-
-            // ── 1. Histogram + per-TG counts ─────────────────────────────────
-            enc.setComputePipelineState(radixHistogramPipeline.pipelineState!)
-            enc.setBuffer(keysIn, offset: 0, index: Int(radixHistogramKeysIn.rawValue))
-            enc.setBuffer(histBuffer, offset: 0, index: Int(radixHistogramOutput.rawValue))
-            enc.setBuffer(perTGBuf, offset: 0, index: Int(radixHistogramPerTGOut.rawValue))
-            enc.setBuffer(visibleSet, offset: 0, index: Int(radixHistogramVisibleSet.rawValue))
-            enc.setBytes(&passIdx, length: MemoryLayout<UInt32>.stride, index: Int(radixHistogramPassIndex.rawValue))
-            enc.dispatchThreadgroups(
-                indirectBuffer: visibleSet,
-                indirectBufferOffset: Int(gaussianVisibleSetDispatchArgumentsOffset),
-                threadsPerThreadgroup: MTLSizeMake(radixBlock, 1, 1)
-            )
-            profileTotals.dispatchCount += 1
-
-            // ── 2. Per-TG column scan → per-TG starting offsets ─────────────
-            enc.setComputePipelineState(radixScanPerTGPipeline.pipelineState!)
-            enc.setBuffer(perTGBuf, offset: 0, index: Int(radixScanPerTGBuffer.rawValue))
-            enc.setBuffer(visibleSet, offset: 0, index: Int(radixScanPerTGVisibleSet.rawValue))
-            enc.dispatchThreadgroups(MTLSizeMake(1, 1, 1), threadsPerThreadgroup: MTLSizeMake(256, 1, 1))
-            profileTotals.dispatchCount += 1
-
-            // ── 3. Global exclusive scan ─────────────────────────────────────
-            enc.setComputePipelineState(radixScanPipeline.pipelineState!)
-            enc.setBuffer(histBuffer, offset: 0, index: Int(radixScanHistogram.rawValue))
-            enc.setBytes(&numBuckets, length: MemoryLayout<UInt32>.stride, index: Int(radixScanNumBuckets.rawValue))
-            enc.dispatchThreadgroups(MTLSizeMake(1, 1, 1), threadsPerThreadgroup: MTLSizeMake(256, 1, 1))
-            profileTotals.dispatchCount += 1
-
-            // ── 4. Stable scatter ────────────────────────────────────────────
-            enc.setComputePipelineState(radixScatterPipeline.pipelineState!)
-            enc.setBuffer(keysIn, offset: 0, index: Int(radixScatterKeysIn.rawValue))
-            enc.setBuffer(keysOut, offset: 0, index: Int(radixScatterKeysOut.rawValue))
-            enc.setBuffer(histBuffer, offset: 0, index: Int(radixScatterOffsets.rawValue))
-            enc.setBuffer(perTGBuf, offset: 0, index: Int(radixScatterPerTGStart.rawValue))
-            enc.setBuffer(visibleSet, offset: 0, index: Int(radixScatterVisibleSet.rawValue))
-            enc.setBytes(&passIdx, length: MemoryLayout<UInt32>.stride, index: Int(radixScatterPassIdx.rawValue))
-            enc.dispatchThreadgroups(
-                indirectBuffer: visibleSet,
-                indirectBufferOffset: Int(gaussianVisibleSetDispatchArgumentsOffset),
-                threadsPerThreadgroup: MTLSizeMake(radixBlock, 1, 1)
-            )
-            profileTotals.dispatchCount += 1
-            profileTotals.radixPassCount += 1
-        }
+        // ── 4. Stable scatter ────────────────────────────────────────────
+        enc.setComputePipelineState(radixScatterPipeline.pipelineState!)
+        enc.setBuffer(keysIn, offset: 0, index: Int(radixScatterKeysIn.rawValue))
+        enc.setBuffer(keysOut, offset: 0, index: Int(radixScatterKeysOut.rawValue))
+        enc.setBuffer(histBuffer, offset: 0, index: Int(radixScatterOffsets.rawValue))
+        enc.setBuffer(perTGBuf, offset: 0, index: Int(radixScatterPerTGStart.rawValue))
+        enc.setBuffer(visibleSet, offset: 0, index: Int(radixScatterVisibleSet.rawValue))
+        enc.setBytes(&passIdx, length: MemoryLayout<UInt32>.stride, index: Int(radixScatterPassIdx.rawValue))
+        enc.dispatchThreadgroups(
+            indirectBuffer: visibleSet,
+            indirectBufferOffset: Int(gaussianVisibleSetDispatchArgumentsOffset),
+            threadsPerThreadgroup: MTLSizeMake(radixBlock, 1, 1)
+        )
+        profileTotals.dispatchCount += 1
+        profileTotals.radixPassCount += 1
     }
 
     enc.endEncoding()
@@ -731,6 +673,6 @@ public func executeRadixSort(_ commandBuffer: MTLCommandBuffer) {
         stage: "RadixSort",
         startTime: profileStart,
         totals: profileTotals,
-        extra: "activeSplats=\(activeSplatTotal)"
+        extra: "sharedCapacity=\(n) lastShared=\(workingSet.lastVisibleCount)"
     )
 }

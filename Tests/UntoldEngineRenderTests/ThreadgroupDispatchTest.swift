@@ -41,7 +41,7 @@ final class ThreadgroupDispatchTest: BaseRenderSetup {
         return (numThreadgroups, block)
     }
 
-    /// Calculate threadgroups for Gaussian depth (same pattern as frustum culling)
+    /// Calculate threadgroups for the Gaussian preprocess (same pattern as frustum culling)
     func calculateGaussianDepthThreadgroups(splatCount: Int, pipeline: MTLComputePipelineState) -> (threadgroups: Int, threadsPerThreadgroup: Int) {
         let tew = pipeline.threadExecutionWidth
         let maxT = pipeline.maxTotalThreadsPerThreadgroup
@@ -176,9 +176,9 @@ final class ThreadgroupDispatchTest: BaseRenderSetup {
         print("✅ executeReduceScanFrustumCulling compact threadgroup dispatch test passed!")
     }
 
-    func test_executeGaussianDepth_dispatches_correct_threadgroups() {
-        guard let pipeline = gaussianDepthPipeline.pipelineState else {
-            XCTFail("Gaussian depth pipeline not initialized")
+    func test_executeGaussianPreprocess_dispatches_correct_threadgroups() {
+        guard let pipeline = gaussianPreprocessPipeline.pipelineState else {
+            XCTFail("Gaussian preprocess pipeline not initialized")
             return
         }
 
@@ -207,10 +207,10 @@ final class ThreadgroupDispatchTest: BaseRenderSetup {
             XCTAssertEqual(threadsPerThreadgroup % pipeline.threadExecutionWidth, 0,
                            "Threads per threadgroup should be aligned to thread execution width for count \(count)")
 
-            print("✓ Gaussian Depth - Splat count \(count): \(threadgroups) threadgroups × \(threadsPerThreadgroup) threads = \(totalThreads) total")
+            print("✓ Gaussian Preprocess - Splat count \(count): \(threadgroups) threadgroups × \(threadsPerThreadgroup) threads = \(totalThreads) total")
         }
 
-        print("✅ executeGaussianDepth threadgroup dispatch test passed!")
+        print("✅ executeGaussianPreprocess threadgroup dispatch test passed!")
     }
 
     // MARK: - Edge Cases
@@ -251,7 +251,7 @@ final class ThreadgroupDispatchTest: BaseRenderSetup {
 
     func test_dispatch_calculation_consistency() {
         guard let frustumPipeline = frustumCullingPipeline.pipelineState,
-              let gaussianDepthPipeline = gaussianDepthPipeline.pipelineState,
+              let gaussianPreprocessState = gaussianPreprocessPipeline.pipelineState,
               let markVisiblePipeline = reduceScanMarkVisiblePipeline.pipelineState,
               let compactPipeline = reduceScanScatterCompactedPipeline.pipelineState
         else {
@@ -263,7 +263,7 @@ final class ThreadgroupDispatchTest: BaseRenderSetup {
 
         let results = [
             ("Frustum Culling", calculateFrustumCullingThreadgroups(count: testCount, pipeline: frustumPipeline)),
-            ("Gaussian Depth", calculateGaussianDepthThreadgroups(splatCount: testCount, pipeline: gaussianDepthPipeline)),
+            ("Gaussian Preprocess", calculateGaussianDepthThreadgroups(splatCount: testCount, pipeline: gaussianPreprocessState)),
             ("Mark Visible", calculateMarkVisibleThreadgroups(count: testCount, pipeline: markVisiblePipeline)),
             ("Compact", calculateCompactThreadgroups(count: testCount, pipeline: compactPipeline)),
         ]

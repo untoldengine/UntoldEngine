@@ -260,7 +260,7 @@ public enum RenderPasses {
     }
 
     @inline(__always)
-    private static func lodDebugColor(for lodIndex: Int) -> simd_float3 {
+    static func lodDebugColor(for lodIndex: Int) -> simd_float3 {
         let clamped = max(0, lodIndex)
         return lodDebugPalette[clamped % lodDebugPalette.count]
     }
@@ -4598,140 +4598,67 @@ public enum RenderPasses {
                 index: Int(gaussianTBDRRenderDrawDebugIndex.rawValue)
             )
 
-            let transformId = getComponentId(for: WorldTransformComponent.self)
-            let gaussianId = getComponentId(for: GaussianComponent.self)
-            let entities = queryEntitiesWithComponentIds([transformId, gaussianId], in: scene)
             let effectiveViewMatrix = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
-            let effectiveCameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
 
-            for entityId in entities {
-                guard let gaussianComponent = scene.get(component: GaussianComponent.self, for: entityId) else {
-                    handleError(.noGaussianComponent, entityId)
-                    continue
-                }
-                profileTotals.include(component: gaussianComponent)
+            // One instanced draw over the frame's shared, depth-sorted working set: every
+            // entity's splats in one list, so overlapping entities blend in true depth order.
+            // Each record names its entity by index into the enumeration the preprocess stamped
+            // into this slot (GaussianSharedWorkingSet.entityOrder) — not a fresh query, which
+            // could differ when an entity was added or removed since, or when the preprocess
+            // was skipped this frame behind the asset-loading gate and the slot is stale. This
+            // eye's projection and model-view matrices for those entities go into a table the
+            // vertex stage indexes, written per uniform ring index so the two eyes of a stereo
+            // frame keep their own matrices; an entity that has gone gets zero matrices, which
+            // makes its stale records fail the vertex stage's w test and draw nothing.
+            let workingSet = GaussianSharedWorkingSet.shared
+            let gaussianFrameSlot = min(renderInfo.currentInFlightFrameSlot, maxInFlightCommandBuffers - 1)
+            let uniformIndex = min(currentUniformBufferIndex(), totalPerMeshUniformBuffers() - 1)
+            let entities = workingSet.entityOrder(slot: gaussianFrameSlot)
+            if !entities.isEmpty,
+               let sortedKeys = workingSet.keys(slot: gaussianFrameSlot),
+               let sharedRecords = workingSet.records(slot: gaussianFrameSlot),
+               let sharedVisibleSet = workingSet.visibleSet(slot: gaussianFrameSlot),
+               let entityConstants = workingSet.entityConstants(uniformIndex: uniformIndex)
+            {
+                let constants = entityConstants.contents().bindMemory(
+                    to: GaussianEntityDrawConstants.self, capacity: Int(gaussianMaxEntitiesPerFrame)
+                )
+                let rejected = GaussianEntityDrawConstants(projectionMatrix: simd_float4x4(0), modelViewMatrix: simd_float4x4(0))
+                for (entityIndex, entityId) in entities.prefix(Int(gaussianMaxEntitiesPerFrame)).enumerated() {
+                    guard scene.exists(entityId),
+                          let gaussianComponent = scene.get(component: GaussianComponent.self, for: entityId),
+                          let worldTransformComponent = scene.get(component: WorldTransformComponent.self, for: entityId)
+                    else {
+                        // Removed since the slot was written: its records must not borrow another
+                        // entity's matrices.
+                        constants[entityIndex] = rejected
+                        continue
+                    }
+                    profileTotals.include(component: gaussianComponent)
+                    // Profiling estimate only: a stale readback (see activeGaussianSortCount in
+                    // GaussianSystem.swift). The instance count the draw uses is the shared count
+                    // this frame's preprocess wrote, read by the indirect draw.
+                    activeSplatTotal += min(Int(gaussianComponent.visibleSplatCountForRendering), Int(gaussianComponent.splatCount))
 
-                // Profiling estimate only: a stale readback (see activeGaussianSortCount in
-                // GaussianSystem.swift). The instance count the draw actually uses is the one
-                // this frame's cull wrote into GaussianVisibleSet, read by the indirect draw.
-                let activeSplatCount = min(Int(gaussianComponent.visibleSplatCountForRendering), Int(gaussianComponent.splatCount))
-                guard gaussianComponent.splatCount > 0 else { continue }
-                activeSplatTotal += activeSplatCount
-
-                guard gaussianComponent.encodedSplatData != nil else {
-                    handleError(.bufferAllocationFailed, "Encoded Gaussian splat buffer")
-                    continue
-                }
-
-                guard let worldTransformComponent = scene.get(component: WorldTransformComponent.self, for: entityId) else {
-                    handleError(.noWorldTransformComponent, entityId)
-                    continue
-                }
-
-                guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
-                    handleError(.noLocalTransformComponent, entityId)
-                    continue
-                }
-
-                // update uniforms
-                var gaussianUniform = Uniforms()
-
-                let rootMatrix = worldTransformComponent.space
-                var modelMatrix = simd_mul(rootMatrix, .identity)
-
-                let viewMatrix: simd_float4x4 = effectiveViewMatrix
-
-                let modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
-
-                let upperModelMatrix: matrix_float3x3 = matrix3x3_upper_left(modelMatrix)
-
-                let inverseUpperModelMatrix: matrix_float3x3 = upperModelMatrix.inverse
-
-                let normalMatrix: matrix_float3x3 = inverseUpperModelMatrix.transpose
-
-                gaussianUniform.modelViewMatrix = modelViewMatrix
-
-                gaussianUniform.normalMatrix = normalMatrix
-
-                gaussianUniform.viewMatrix = viewMatrix
-
-                gaussianUniform.modelMatrix = modelMatrix
-
-                gaussianUniform.cameraPosition = effectiveCameraPosition
-
-                gaussianUniform.projectionMatrix = renderInfo.perspectiveSpace
-
-                guard !gaussianComponent.spaceUniform.isEmpty else {
-                    handleError(.bufferAllocationFailed, "Gaussian Uniform buffer")
-                    return
-                }
-                let uniformBufferIndex = min(currentUniformBufferIndex(), gaussianComponent.spaceUniform.count - 1)
-
-                if let gaussianUniformBuffer = gaussianComponent.spaceUniform[uniformBufferIndex] {
-                    gaussianUniformBuffer.contents().copyMemory(
-                        from: &gaussianUniform, byteCount: MemoryLayout<Uniforms>.stride
+                    let modelMatrix = simd_mul(worldTransformComponent.space, .identity)
+                    constants[entityIndex] = GaussianEntityDrawConstants(
+                        projectionMatrix: renderInfo.perspectiveSpace,
+                        modelViewMatrix: simd_mul(effectiveViewMatrix, modelMatrix)
                     )
-                } else {
-                    handleError(.bufferAllocationFailed, "Gaussian Uniform buffer")
-                    return
                 }
+                profileTotals.sharedWorkingSetBytes = workingSet.residentBytes
 
-                // bind data here
-                // Same frame-slot indexing as executeGaussianFrustumCulling/executeGaussianDepth/
-                // executeRadixSort — renderInfo.currentInFlightFrameSlot is set once per frame
-                // and stays constant across both eyes, so this correctly reads back whichever
-                // slot this frame's cull/sort pipeline wrote into.
-                guard !gaussianComponent.gaussianSortedIndices.isEmpty,
-                      !gaussianComponent.gaussianVisibleCount.isEmpty
-                else {
-                    handleError(.bufferAllocationFailed, "Gaussian draw buffers")
-                    continue
-                }
-                let gaussianFrameSlot = min(renderInfo.currentInFlightFrameSlot, gaussianComponent.gaussianSortedIndices.count - 1)
-                guard let gaussianVisibleSet = gaussianComponent.gaussianVisibleCount[min(gaussianFrameSlot, gaussianComponent.gaussianVisibleCount.count - 1)] else {
-                    handleError(.bufferAllocationFailed, "Gaussian visible-set buffer")
-                    continue
-                }
-                renderEncoder.setVertexBuffer(
-                    gaussianComponent.gaussianSortedIndices[gaussianFrameSlot],
-                    offset: 0,
-                    index: Int(gaussianTBDRRenderIndicesIndex.rawValue)
-                )
-
-                renderEncoder.setVertexBuffer(gaussianComponent.encodedSplatData, offset: 0, index: Int(gaussianTBDRRenderSplatIndex.rawValue))
-                renderEncoder.setVertexBuffer(
-                    gaussianComponent.spaceUniform[uniformBufferIndex], offset: 0, index: Int(gaussianTBDRRenderUniformIndex.rawValue)
-                )
+                renderEncoder.setVertexBuffer(sortedKeys, offset: 0, index: Int(gaussianTBDRRenderIndicesIndex.rawValue))
+                renderEncoder.setVertexBuffer(sharedRecords, offset: 0, index: Int(gaussianTBDRRenderWorkingSetIndex.rawValue))
+                renderEncoder.setVertexBuffer(entityConstants, offset: 0, index: Int(gaussianTBDRRenderEntityConstantsIndex.rawValue))
                 renderEncoder.setVertexBytes(&renderInfo.viewPort, length: MemoryLayout<simd_float2>.stride, index: Int(gaussianTBDRRenderViewPortIndex.rawValue))
-
-                // Conic/radius/color are precomputed once per splat per frame by
-                // executeGaussianPreprocess (see GaussianSystem.swift) instead of being
-                // recomputed here 4x per splat (once per instanced quad vertex).
-                renderEncoder.setVertexBuffer(
-                    gaussianComponent.gaussianPrecomputedData[gaussianFrameSlot],
-                    offset: 0,
-                    index: Int(gaussianTBDRRenderPrecomputedIndex.rawValue)
-                )
-
-                var gaussianLODDebugColor = simd_float4(0, 0, 0, 0)
-                if SpatialDebugVisualization.shared.colorRenderablesByLOD,
-                   let gaussianLOD = scene.get(component: GaussianLODComponent.self, for: entityId)
-                {
-                    let color = lodDebugColor(for: gaussianLOD.currentLOD)
-                    gaussianLODDebugColor = simd_float4(color.x, color.y, color.z, 1.0)
-                }
-                renderEncoder.setVertexBytes(
-                    &gaussianLODDebugColor,
-                    length: MemoryLayout<simd_float4>.stride,
-                    index: Int(gaussianTBDRRenderDebugColorIndex.rawValue)
-                )
 
                 renderEncoder.drawPrimitivesTracked(
                     type: .triangleStrip,
-                    indirectBuffer: gaussianVisibleSet,
+                    indirectBuffer: sharedVisibleSet,
                     indirectBufferOffset: Int(gaussianVisibleSetDrawArgumentsOffset),
                     estimatedVertexCount: 4,
-                    estimatedInstanceCount: activeSplatCount
+                    estimatedInstanceCount: workingSet.lastVisibleCount
                 )
                 profileTotals.drawCallCount += 1
             }

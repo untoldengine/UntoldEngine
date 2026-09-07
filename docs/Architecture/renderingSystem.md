@@ -63,15 +63,15 @@ For XR, a reduce-scan variant runs the test against both eyes simultaneously.
 
 For entities carrying a `GaussianComponent` (3D Gaussian splat data), a compute pass culls splats against the camera frustum (and the previous frame's HZB) before the more expensive depth and sort passes run on them. Surviving splat indices are appended to a per-frame list with an atomic counter.
 
-That counter lives at the front of a `GaussianVisibleSet` record (`ShaderTypes.h`), one per entity per in-flight frame. A one-thread `gaussianFinalizeVisibleSet` dispatch in the same encoder turns the final count into indirect dispatch and draw arguments, and every later pass of the frame — preprocess, depth keys, radix sort and the splat draw — sizes itself from that record on the GPU. The CPU also reads the count back when the command buffer completes, but only for profiling and memory-budget accounting: with `maxInFlightCommandBuffers` frames overlapping, that readback is two or three frames old, and sizing the passes from it used to cut the tail of a visible list that had grown since (a hole that followed the camera and closed once it stood still).
+That counter lives at the front of a `GaussianVisibleSet` record (`ShaderTypes.h`), one per entity per in-flight frame. A one-thread `gaussianFinalizeVisibleSet` dispatch in the same encoder turns the final count into indirect dispatch and draw arguments, and every later pass of the frame — preprocess, radix sort and the splat draw — sizes itself from that record on the GPU. The CPU also reads the count back when the command buffer completes, but only for profiling and memory-budget accounting: with `maxInFlightCommandBuffers` frames overlapping, that readback is two or three frames old, and sizing the passes from it used to cut the tail of a visible list that had grown since (a hole that followed the camera and closed once it stood still).
 
-### 3c. Gaussian Depth → `executeGaussianDepth(commandBuffer)`
+### 3c. Gaussian Preprocess → `executeGaussianPreprocess(commandBuffer)`
 
-A compute pass calculates the camera-space depth of each surviving splat. This depth value is used as the sort key in the next step.
+One dispatch per entity, indirect from its `GaussianVisibleSet`, compacts the surviving splats into the frame's **shared working set** (`GaussianSharedWorkingSet`, one set per frame in flight, shared by every entity): for each splat it computes the screen footprint (conic and quad axes) and the colour (spherical harmonics for the head-centre view) once, appends a `GaussianWorkingSetSplat` record that also carries the entity index, and writes a depth key — eye-space depth of the centre in the high word, the record's slot in the low word. A one-thread finalize clamps the shared count to the set's capacity, records any overflow, and derives the indirect arguments for the sort and the draw.
 
 ### 3d. Radix Sort → `executeRadixSort(commandBuffer)`
 
-A GPU radix sort reorders the Gaussian splats **back-to-front** by depth. Gaussian splats must be composited in this order for correct alpha blending. The sort runs entirely on the GPU and its output feeds directly into the Gaussian render pass later in the graph.
+One GPU radix sort over the shared key buffer orders every entity's splats **front-to-back** by depth, so overlapping entities blend in true depth order rather than entity order. The sort runs entirely on the GPU, sized by the shared count, and its output feeds the single instanced splat draw later in the graph: the vertex stage reads each key's record and projects its centre with a per-entity, per-eye matrix table (`GaussianEntityDrawConstants`), which is what lets one sort and one working set serve both eyes of a stereo frame.
 
 ---
 
@@ -378,8 +378,8 @@ The completion handler fires on the GPU thread when the command buffer finishes 
         ▼
 [GPU compute] frustumCulling   → writes next frame's visibleEntityIds
 [GPU compute] gaussianFrustumCulling → cull splats against frustum
-[GPU compute] gaussianDepth    → depth per splat
-[GPU compute] radixSort        → sort splats back-to-front
+[GPU compute] gaussianPreprocess → compact visible splats + depth keys into the shared working set
+[GPU compute] radixSort        → sort every entity's splats front-to-back
         │
         ▼
 [CPU] buildGameModeGraph()     → construct render pass DAG

@@ -97,11 +97,15 @@ Once everything is set up:
 
 ---
 
+## Several splat entities in one scene
+
+Every frame the engine compacts the visible splats of all Gaussian entities into one shared working set, sorts it once by depth and draws it with one instanced draw. Two captures that overlap on screen — a chair partly in front of a table, a prop on a splat floor — therefore blend in true depth order; the order the entities were created in does not matter. The shared set is sized to the resident splat total, so every loaded splat fits; should the entities ever append more than it holds, the excess is dropped for that frame and reported through `handleError` and the Gaussian profile line as overflow. Up to 256 splat entities can be drawn in one frame.
+
 ## Per-entity splat limit
 
-Every loaded splat keeps about 270 bytes resident on the GPU (its encoded record, the
-per-frame precomputed data, sort keys and visible indices for each frame in flight, and
-its spherical harmonics), so the runtime caps one entity at
+Every loaded splat keeps about 320 bytes resident on the GPU (its 48-byte encoded record, a
+visible index per frame in flight, its 72-byte share of the shared working set per frame in
+flight, and its spherical harmonics), so the runtime caps one entity at
 `GaussianRuntimeLimits.maxSplatsPerEntity`: 5,242,880 splats on Apple Vision Pro, iPhone,
 iPad and Apple TV, 16,777,216 on the Mac. A `.untoldgs` or `.ply` above the cap fails to
 load with an "exceeds maximum" error. Cook large captures with a splat budget

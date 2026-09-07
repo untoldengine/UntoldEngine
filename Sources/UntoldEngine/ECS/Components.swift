@@ -97,21 +97,14 @@ public class GaussianComponent: Component {
     var encodedSplatData: MTLBuffer?
     var sphericalHarmonicsData: MTLBuffer?
     var sphericalHarmonicsMetadata: GaussianSHMetadata?
-    // Written every frame by the cull/depth-key/radix-sort/preprocess passes and read the
-    // same frame by the draw pass. With up to maxInFlightCommandBuffers frames overlapping
-    // on the GPU, a single shared buffer here lets a newer frame's CPU-side writes clobber
-    // data an older in-flight frame's draw is still reading — visible as splat flicker.
-    // Slotted per in-flight frame (indexed by renderInfo.currentInFlightFrameSlot), same
-    // pattern as spaceUniform below, to keep each frame's data isolated.
-    var gaussianSortedIndices: [MTLBuffer?] = Array(repeating: nil, count: maxInFlightCommandBuffers)
+    // Written every frame by the cull and read the same frame by the preprocess: the indices of
+    // the splats that survived, and a GaussianVisibleSet record with the count and the indirect
+    // arguments derived from it. Slotted per in-flight frame (renderInfo.currentInFlightFrameSlot)
+    // so an overlapping newer frame cannot clobber data an older frame is still reading. The
+    // per-frame sort keys and draw records live in the shared GaussianSharedWorkingSet.
     var gaussianVisibleIndices: [MTLBuffer?] = Array(repeating: nil, count: maxInFlightCommandBuffers)
     var gaussianVisibleCount: [MTLBuffer?] = Array(repeating: nil, count: maxInFlightCommandBuffers)
-    /// Per-splat conic/radius/color, written once per frame by executeGaussianPreprocess
-    /// and read by the draw vertex shader — see GaussianPrecomputedSplat. Same frame-slot
-    /// race as the buffers above, so it gets the same treatment.
-    var gaussianPrecomputedData: [MTLBuffer?] = Array(repeating: nil, count: maxInFlightCommandBuffers)
     var visibleSplatCountForRendering: UInt = 0
-    public var spaceUniform: [MTLBuffer?] = Array(repeating: nil, count: totalPerMeshUniformBuffers())
     var splatCount: UInt = 0
 
     public required init() {}

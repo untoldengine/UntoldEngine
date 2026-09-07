@@ -291,20 +291,13 @@ private func gaussianComponentEstimatedBytes(_ component: GaussianComponent) -> 
     var total = 0
     total += component.encodedSplatData?.length ?? 0
     total += component.sphericalHarmonicsData?.length ?? 0
-    for buffer in component.gaussianSortedIndices {
-        total += buffer?.length ?? 0
-    }
     for buffer in component.gaussianVisibleIndices {
         total += buffer?.length ?? 0
     }
     for buffer in component.gaussianVisibleCount {
         total += buffer?.length ?? 0
     }
-    for buffer in component.gaussianPrecomputedData {
-        total += buffer?.length ?? 0
-    }
-    for buffer in component.spaceUniform {
-        total += buffer?.length ?? 0
-    }
+    // Its share of the shared working set (see buildGaussianLoadResult).
+    total += maxInFlightCommandBuffers * GaussianSharedWorkingSet.bytesPerSplatPerSlot * Int(component.splatCount)
     return total
 }

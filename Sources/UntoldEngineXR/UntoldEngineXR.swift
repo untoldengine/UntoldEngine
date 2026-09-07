@@ -802,10 +802,6 @@
 
                 executeGaussianPreprocess(commandBuffer)
 
-                EngineProfiler.shared.beginScope(.gaussianDepth)
-                executeGaussianDepth(commandBuffer)
-                EngineProfiler.shared.endScope(.gaussianDepth)
-
                 EngineProfiler.shared.beginScope(.gaussianSort)
                 executeRadixSort(commandBuffer)
                 EngineProfiler.shared.endScope(.gaussianSort)
