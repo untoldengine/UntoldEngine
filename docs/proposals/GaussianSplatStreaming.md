@@ -219,6 +219,8 @@ Foveation: the Compositor Services rasterisation rate map applies to the splat p
 4. **Swapped.** Mesh colour draw disabled; depth-only shell, shadow-map draw and collision stay on.
 5. **Reverting** runs the fade in reverse and releases pages under memory pressure.
 
+The engine provides the mechanisms (the shell, the dither, the per-entity opacity weight, the scene link, a two-phase splat load) and stays a renderer; steps 1–5 are application policy and live outside the engine in a small package that depends on it (`UntoldGaussianTwins`, first version: whole-payload load on arming, distance with hysteresis, the cross-fade both ways, payload kept resident after a revert; prefetch, per-level loading and release under memory pressure follow with the streamed environment).
+
 **Lighting (decided).** Splats are unlit emissive surfaces in the linear scene. The shader already decodes sRGB→linear and the composite runs before the look and output transform, so a splat is tone-mapped exactly once like an emissive mesh; this keeps a twin consistent with neighbouring meshes under exposure, bloom, fog and grading. The capture was already tone-mapped by the camera, so contrast flattens slightly; the remedy is calibration: a per-asset gain from `captureExposureEV` applied in linear, the real-world tint from `XREnvironmentLightingSystem`, and an editor exposure offset per asset. Compositing after the output transform was rejected: it puts splats outside fog and bloom and breaks ordering with transparent meshes drawn over them. Capture discipline (soft, neutral, even light, recorded exposure) decides most of the result.
 
 **Registration.** ICP against the twin fixes scale and orientation at cook time. Soft objects differ from their model by centimetres; the shell margin must cover it (manifest value, editor slider).
@@ -286,7 +288,7 @@ Tests: an orbit around one swapped object at arm's length, and a walk through a 
 
 ## 8. Delivery plan — PR breakdown
 
-Each PR is one reviewable unit, lands on the fork first, and is replayed to `untoldengine/UntoldEngine` unchanged once the series is verified end to end. PR N+1 is based on PR N's branch when it depends on it. The first draft of this plan proposed a separate `.usplat` format and a `cook-splats` command; both were folded into the existing `.untoldgs` format and `export` command once the August 2026 gaussian work on `develop` was audited.
+Each PR is one reviewable unit, lands on the fork first, and is replayed to `untoldengine/UntoldEngine` once the series is verified end to end, with any follow-up patches the fork accumulated folded into it (parts 7 and its refactor squash into one). PR N+1 is based on PR N's branch when it depends on it. The first draft of this plan proposed a separate `.usplat` format and a `cook-splats` command; both were folded into the existing `.untoldgs` format and `export` command once the August 2026 gaussian work on `develop` was audited.
 
 | # | Branch | Title | Contents | Depends on |
 |---|---|---|---|---|
@@ -296,7 +298,7 @@ Each PR is one reviewable unit, lands on the fork first, and is replayed to `unt
 | 4 | `feature/cook_splats_cli` | [Feature] Cooking flags for `untoldengine export` | `UntoldGSCooker` (registration transform, crop, opacity floor, SH degree, chunk size) applied inside `bakeGaussianSplatProgressiveTiers`; `--splat-*` flags on `export`; CLI package identity pinned so it builds in worktrees. Tests on synthetic assets. | 2 |
 | 5 | `feature/gaussian_usplat_runtime` | [Feature] Range-load `.untoldgs` v3 with a GPU decode pass | Load chunks by range (FileHandle, then Metal IO) into a page pool; decode compute kernel producing `EncodedGaussianSplat` into the existing buffers; the existing async, LOD and streaming paths unchanged; render test PLY vs v3 by PSNR. | 2, 3 |
 | 6 | `feature/gaussian_shared_sort` | [Feature] Shared sort and single draw across splat entities | Chunk-level frustum cull with extent; shared budget-sized key buffer with packed entity index; one radix sort; one draw with per-entity constants; indirect dispatch removes the CPU readback. Render tests with two overlapping entities. | 5 |
-| 7 | `feature/gaussian_twin_swap` | [Feature] Mesh-to-splat twin swap with occluder shell and cross-fade | `GaussianTwinComponent`; depth-only shrunk shell pipeline; depth test in the splat pipeline; cross-fade; per-asset gain and XR tint uniform; how-to guide update. Render tests. | 6 |
+| 7 | `feature/gaussian_twin_swap`, `refactor/gaussian_twin_generic` | [Feature] Mesh occluder shell, mesh fade, per-entity splat blend and gaussianAsset link (the two fork PRs squash into this one upstream) | Engine mechanisms only: `MeshOccluderComponent` (depth-only shrunk shell pass), `MeshFadeComponent` (dither), per-entity splat opacity, exposure gain and XR tint, `GaussianAssetLinkComponent` from the `.untold` record, a URL splat loader for mesh entities; how-to guide update. Render tests. The swap policy (states, distance, hysteresis, fade clock) lives in the application-side `UntoldGaussianTwins` package. | 6 |
 
 Phase 2 (tiers as chunk ranges in one file, merged coarse levels, object budgets, the window bake) and phase 3 (streamed environment) follow as their own series once PRs 1–7 are merged upstream.
 

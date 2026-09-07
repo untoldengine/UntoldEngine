@@ -209,6 +209,18 @@ public func executeGaussianFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         computeEncoder.dispatchThreadgroups(MTLSizeMake(1, 1, 1), threadsPerThreadgroup: MTLSizeMake(1, 1, 1))
         profileTotals.dispatchCount += 1
 
+        // A hidden entity (opacityScale 0: resident but not shown) keeps a zero visible set:
+        // the finalize below derives empty indirect arguments from the reset count, so the
+        // preprocess and draw skip it without walking its splats.
+        if gaussianComponent.opacityScale <= 0 {
+            computeEncoder.setComputePipelineState(finalizePipelineState)
+            computeEncoder.setBuffer(visibleCount, offset: 0, index: Int(gaussianVisibleCountIndex.rawValue))
+            computeEncoder.dispatchThreadgroups(MTLSizeMake(1, 1, 1), threadsPerThreadgroup: MTLSizeMake(1, 1, 1))
+            profileTotals.dispatchCount += 1
+            gaussianComponent.visibleSplatCountForRendering = 0
+            continue
+        }
+
         let modelMatrix = simd_mul(worldTransformComponent.space, .identity)
         // Entity transforms are never modified when the scene root moves (SceneRootTransform
         // applies its offset to the camera instead, as a "virtual camera" trick — see
@@ -314,6 +326,19 @@ public func executeGaussianFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
     )
 }
 
+/// The real-world lighting estimate's colour, for splat entities that opt in through
+/// `GaussianComponent.useRealWorldTint`: available only while the lighting store's mode is
+/// `.realWorldEstimate` and the latest estimate is valid, so a splat shown on the Mac, or in XR
+/// with static IBL, keeps its captured colour.
+func gaussianRealWorldTint() -> SIMD3<Float>? {
+    let store = RuntimeEnvironmentLightingStore.shared
+    guard store.mode == .realWorldEstimate,
+          let lighting = store.latestXRLighting(),
+          lighting.isValid
+    else { return nil }
+    return lighting.tintColor
+}
+
 /// Compacts every entity's visible splats into the frame's shared working set: one thread per
 /// entry of the entity's cull list (indirect from its GaussianVisibleSet) computes the footprint
 /// and colour once for the head-centre view, appends a GaussianWorkingSetSplat record and a
@@ -375,6 +400,7 @@ public func executeGaussianPreprocess(_ commandBuffer: MTLCommandBuffer) {
     profileTotals.dispatchCount += 1
 
     computeEncoder.setComputePipelineState(preprocessPipelineState)
+    let realWorldTint = gaussianRealWorldTint()
 
     // The draw resolves each record's entity index through this exact enumeration, even on a
     // later frame that reuses the slot without re-running the preprocess.
@@ -453,6 +479,12 @@ public func executeGaussianPreprocess(_ commandBuffer: MTLCommandBuffer) {
         var entityConstants = GaussianPreprocessEntityConstants()
         entityConstants.entityIndex = UInt32(entityIndex)
         entityConstants.workingSetCapacity = capacity
+        var gain = gaussianComponent.colorGain
+        if gaussianComponent.useRealWorldTint, let realWorldTint {
+            gain *= realWorldTint
+        }
+        entityConstants.colorGain = simd_float4(gain.x, gain.y, gain.z, 1)
+        entityConstants.opacityScale = max(0, gaussianComponent.opacityScale)
         if colorByLOD, let gaussianLOD = scene.get(component: GaussianLODComponent.self, for: entityId) {
             let color = RenderPasses.lodDebugColor(for: gaussianLOD.currentLOD)
             entityConstants.debugColorEnabled = 1

@@ -22,6 +22,7 @@ public final class GaussianDebugOptions: @unchecked Sendable {
     private var _disableHZBOcclusionCull = false
     private var _disableOpaqueDepthTest = false
     private var _disableBlendCap = false
+    private var _disableOccluderShell = false
 
     /// Skips the per-splat test against the previous frame's HZB depth pyramid in
     /// `gaussianFrustumCull`. The frustum test still runs.
@@ -42,6 +43,13 @@ public final class GaussianDebugOptions: @unchecked Sendable {
     public var disableBlendCap: Bool {
         get { lock.lock(); defer { lock.unlock() }; return _disableBlendCap }
         set { lock.lock(); _disableBlendCap = newValue; lock.unlock() }
+    }
+
+    /// Skips the depth-only occluder shells (`meshOccluderShell` pass, `MeshOccluderComponent`),
+    /// so a splat standing in for a mesh is no longer hidden behind the mesh surface.
+    public var disableOccluderShell: Bool {
+        get { lock.lock(); defer { lock.unlock() }; return _disableOccluderShell }
+        set { lock.lock(); _disableOccluderShell = newValue; lock.unlock() }
     }
 
     /// The per-draw constants the splat fragment shader reads (see `GaussianTBDRDrawDebug`).

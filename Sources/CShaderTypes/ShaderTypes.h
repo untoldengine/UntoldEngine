@@ -131,6 +131,7 @@ typedef enum{
     modelPassUniformIndex,
     modelPassJointTransformIndex,
     modelPassHasArmature,
+    modelPassOccluderShrinkIndex,
 }ModelPassBufferIndices;
 typedef enum{
     modelPassFragmentUniformIndex,
@@ -607,6 +608,9 @@ typedef struct{
     uint32_t debugColorEnabled;
     uint32_t _pad0;
     simd_float4 debugColor;
+    simd_float4 colorGain;     // xyz: linear multiplier on the splat colour (capture exposure, editor offset, XR tint); w unused
+    float opacityScale;        // multiplier on every splat's opacity: 1 normal, 0 hidden (nothing is appended), between for a cross-fade
+    float _pad1[3];
 }GaussianPreprocessEntityConstants;
 
 typedef struct{

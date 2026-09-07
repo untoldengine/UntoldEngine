@@ -405,6 +405,40 @@ public struct RuntimeAnimationClip: Sendable, Equatable {
     }
 }
 
+/// A `gaussianAsset` record of a `.untold` scene resolved for one of its nodes: the payload to
+/// load and the settings the cook baked. Carried as data (see `GaussianAssetLinkComponent`).
+public struct RuntimeGaussianAssetLink: Sendable, Equatable {
+    public var payloadURL: URL
+    /// See `UntoldGaussianAssetFlags`.
+    public var flags: UInt32
+    public var lodCount: Int
+    public var lodSplatCounts: [UInt32]
+    public var lodSwitchScreenHeights: [Float]
+    public var occluderShrinkMeters: Float
+    public var exposureOffsetEV: Float
+    public var swapDistanceMeters: Float
+
+    public init(
+        payloadURL: URL,
+        flags: UInt32 = 0,
+        lodCount: Int = 0,
+        lodSplatCounts: [UInt32] = [],
+        lodSwitchScreenHeights: [Float] = [],
+        occluderShrinkMeters: Float = 0.02,
+        exposureOffsetEV: Float = 0,
+        swapDistanceMeters: Float = 0
+    ) {
+        self.payloadURL = payloadURL
+        self.flags = flags
+        self.lodCount = lodCount
+        self.lodSplatCounts = lodSplatCounts
+        self.lodSwitchScreenHeights = lodSwitchScreenHeights
+        self.occluderShrinkMeters = occluderShrinkMeters
+        self.exposureOffsetEV = exposureOffsetEV
+        self.swapDistanceMeters = swapDistanceMeters
+    }
+}
+
 public struct RuntimeAssetNode: Sendable, Equatable {
     public var id: UInt32
     public var parentID: UInt32?
@@ -415,6 +449,8 @@ public struct RuntimeAssetNode: Sendable, Equatable {
     public var worldBounds: RuntimeAABB
     public var skeleton: RuntimeSkeleton?
     public var primitives: [RuntimeMeshPrimitive]
+    /// The `gaussianAsset` record the scene attached to this node, if any.
+    public var gaussianAsset: RuntimeGaussianAssetLink?
 
     public init(
         id: UInt32,
@@ -425,7 +461,8 @@ public struct RuntimeAssetNode: Sendable, Equatable {
         localBounds: RuntimeAABB,
         worldBounds: RuntimeAABB,
         skeleton: RuntimeSkeleton? = nil,
-        primitives: [RuntimeMeshPrimitive]
+        primitives: [RuntimeMeshPrimitive],
+        gaussianAsset: RuntimeGaussianAssetLink? = nil
     ) {
         self.id = id
         self.parentID = parentID
@@ -436,6 +473,7 @@ public struct RuntimeAssetNode: Sendable, Equatable {
         self.worldBounds = worldBounds
         self.skeleton = skeleton
         self.primitives = primitives
+        self.gaussianAsset = gaussianAsset
     }
 }
 

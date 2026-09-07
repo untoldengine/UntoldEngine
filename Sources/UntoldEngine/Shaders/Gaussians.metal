@@ -446,6 +446,10 @@ kernel void gaussianPreprocess(
     if (index >= numOfSplats || index >= visibleCount[0]) {
         return;
     }
+    // A faded-out entity (cross-fade at zero, or hidden) contributes nothing to the frame.
+    if (entity.opacityScale <= 0.0f) {
+        return;
+    }
 
     uint splatIndex = visibleIndices[index];
     const EncodedGaussianSplat splat = splats[splatIndex];
@@ -496,8 +500,8 @@ kernel void gaussianPreprocess(
         ));
     GaussianWorkingSetSplat record;
     record.positionAndEntity = float4(centerLocal, as_type<float>(entity.entityIndex));
-    record.conicAndOpacity = float4(conic, float(splat.colorAndOpacity.w));
-    record.color = float4(color, 0.0f);
+    record.conicAndOpacity = float4(conic, float(splat.colorAndOpacity.w) * entity.opacityScale);
+    record.color = float4(color * entity.colorGain.xyz, 0.0f);
     record.axes = float4(axis1, axis2);
     workingSet[slot] = record;
 

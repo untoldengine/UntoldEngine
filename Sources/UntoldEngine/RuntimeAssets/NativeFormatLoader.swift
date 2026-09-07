@@ -56,7 +56,8 @@ public struct NativeFormatLoader: NamedRuntimeAssetLoading {
             indexChunkData: indexChunkData,
             edgeIndexChunkData: edgeIndexChunkData,
             jointIndexChunkData: jointIndexChunkData,
-            jointWeightChunkData: jointWeightChunkData
+            jointWeightChunkData: jointWeightChunkData,
+            baseURL: url.deletingLastPathComponent()
         )
 
         return try RuntimeAsset(
@@ -92,11 +93,13 @@ public struct NativeFormatLoader: NamedRuntimeAssetLoading {
         indexChunkData: Data,
         edgeIndexChunkData: Data?,
         jointIndexChunkData: Data?,
-        jointWeightChunkData: Data?
+        jointWeightChunkData: Data?,
+        baseURL: URL
     ) throws -> [RuntimeAssetNode] {
         guard decoded.header.fileType != .animation else { return [] }
         let entitiesByID = Dictionary(uniqueKeysWithValues: decoded.entities.map { ($0.entityId, $0) })
         let runtimeSkeletonsByEntity = try makeRuntimeSkeletonsByEntity(decoded: decoded)
+        let gaussianAssetsByEntity = try makeRuntimeGaussianAssetsByEntity(decoded: decoded, baseURL: baseURL)
         var worldTransformsByID: [UInt32: simd_float4x4] = [:]
         var visiting: Set<UInt32> = []
 
@@ -135,9 +138,46 @@ public struct NativeFormatLoader: NamedRuntimeAssetLoading {
                 edgeIndexChunkData: edgeIndexChunkData,
                 jointIndexChunkData: jointIndexChunkData,
                 jointWeightChunkData: jointWeightChunkData,
-                runtimeSkeletonsByEntity: runtimeSkeletonsByEntity
+                runtimeSkeletonsByEntity: runtimeSkeletonsByEntity,
+                gaussianAssetsByEntity: gaussianAssetsByEntity
             )
         }
+    }
+
+    /// The `gaussianAsset` records keyed by the entity they attach to. The payload path is
+    /// resolved next to the `.untold` file (or as the flattened bundle basename, like textures);
+    /// a missing file is not an error here — whoever loads the payload reports it.
+    private func makeRuntimeGaussianAssetsByEntity(
+        decoded: UntoldDecodedAsset,
+        baseURL: URL
+    ) throws -> [UInt32: RuntimeGaussianAssetLink] {
+        var links: [UInt32: RuntimeGaussianAssetLink] = [:]
+        for record in decoded.gaussianAssets {
+            guard links[record.entityId] == nil else {
+                Logger.logWarning(message: "[NativeFormatLoader] Entity \(record.entityId) has more than one gaussianAsset record; keeping the first")
+                continue
+            }
+            guard let path = try decoded.string(at: record.payloadPathOffset),
+                  let payloadURL = resolvedURL(from: path, baseURL: baseURL)
+            else { continue }
+            if record.flags & UntoldGaussianAssetFlags.meshTwin != 0,
+               let entity = decoded.entities.first(where: { $0.entityId == record.entityId }),
+               entity.meshRecordCount == 0
+            {
+                Logger.logWarning(message: "[NativeFormatLoader] meshTwin gaussianAsset record on entity \(record.entityId), which has no mesh to swap from")
+            }
+            links[record.entityId] = RuntimeGaussianAssetLink(
+                payloadURL: payloadURL,
+                flags: record.flags,
+                lodCount: Int(record.lodCount),
+                lodSplatCounts: Array(record.lodSplatCounts.prefix(Int(record.lodCount))),
+                lodSwitchScreenHeights: Array(record.lodSwitchScreenHeights.prefix(Int(record.lodCount))),
+                occluderShrinkMeters: record.occluderShrinkMeters,
+                exposureOffsetEV: record.exposureOffsetEV,
+                swapDistanceMeters: record.swapDistanceMeters
+            )
+        }
+        return links
     }
 
     private func makeRuntimeLights(decoded: UntoldDecodedAsset) throws -> [RuntimeLightSource] {
@@ -271,7 +311,8 @@ public struct NativeFormatLoader: NamedRuntimeAssetLoading {
         edgeIndexChunkData: Data?,
         jointIndexChunkData: Data?,
         jointWeightChunkData: Data?,
-        runtimeSkeletonsByEntity: [UInt32: RuntimeSkeleton]
+        runtimeSkeletonsByEntity: [UInt32: RuntimeSkeleton],
+        gaussianAssetsByEntity: [UInt32: RuntimeGaussianAssetLink] = [:]
     ) throws -> RuntimeAssetNode {
         let nodeName = try decoded.string(at: entity.nameOffset) ?? "entity_\(entity.entityId)"
         let meshStart = Int(entity.firstMeshRecordIndex)
@@ -305,7 +346,8 @@ public struct NativeFormatLoader: NamedRuntimeAssetLoading {
             localBounds: entity.localBounds,
             worldBounds: entity.worldBounds,
             skeleton: runtimeSkeletonsByEntity[entity.entityId],
-            primitives: primitives
+            primitives: primitives,
+            gaussianAsset: gaussianAssetsByEntity[entity.entityId]
         )
     }
 

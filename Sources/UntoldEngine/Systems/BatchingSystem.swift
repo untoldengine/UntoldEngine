@@ -1643,6 +1643,14 @@ public class BatchingSystem: @unchecked Sendable {
             return nil
         }
 
+        // A mesh with an occluder shell or an app-driven fade needs its own draw (dither,
+        // colour off, shell); it re-joins a batch once those components are gone.
+        if scene.get(component: MeshOccluderComponent.self, for: entityId) != nil
+            || scene.get(component: MeshFadeComponent.self, for: entityId) != nil
+        {
+            return nil
+        }
+
         // Identity-preserved streamed objects must stay individually renderable/selectable.
         if shouldPreserveSceneEntityIdentity(entityId: entityId) { return nil }
 

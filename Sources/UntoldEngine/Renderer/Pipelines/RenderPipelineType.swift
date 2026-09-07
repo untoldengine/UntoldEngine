@@ -64,5 +64,6 @@ public extension RenderPipelineType {
     static let transparency: RenderPipelineType = "transparency"
     static let wireframe: RenderPipelineType = "wireframe"
     static let wireframeOcclusionDepth: RenderPipelineType = "wireframeOcclusionDepth"
+    static let meshOccluderShell: RenderPipelineType = "meshOccluderShell"
     static let debug: RenderPipelineType = "debug"
 }

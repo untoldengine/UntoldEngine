@@ -187,6 +187,58 @@ vertex VertexOutModel vertexModelShader(
 }
 
 
+// Depth-only occluder shell of a mesh (MeshOccluderComponent): the same vertex streams and
+// skinning as vertexModelShader, but every vertex is pushed `shrinkMeters` along its world-space
+// normal, away from the camera, so the shell sits just behind the surface the camera sees.
+// Whatever stands in for the mesh on screen (a captured splat twin) then passes the depth test
+// where it lies on or slightly outside the surface, while what is behind the surface (the far
+// side of the object) is hidden. Choosing the side per vertex (rather than always inward) keeps
+// open or single-sided geometry seen from its back from moving toward the camera and hiding its
+// own stand-in. World-space offset keeps the margin in metres on scaled instances.
+struct MeshOccluderShellVertexOut {
+    float4 position [[position]];
+};
+
+vertex MeshOccluderShellVertexOut vertexMeshOccluderShellShader(
+    VertexInModel in [[stage_in]],
+    constant Uniforms &uniforms [[buffer(modelPassUniformIndex)]],
+    constant bool &hasArmature [[buffer(modelPassHasArmature)]],
+    const device simd_float4x4 *jointMatrices [[buffer(modelPassJointTransformIndex)]],
+    constant float &shrinkMeters [[buffer(modelPassOccluderShrinkIndex)]]
+) {
+    float4 position = in.position;
+    float4 normals = in.normals;
+
+    if (hasArmature) {
+        float4 weights = in.jointWeights;
+        ushort4 joints = in.jointIndices;
+
+        position = (weights.x * (jointMatrices[joints.x] * position) +
+                    weights.y * (jointMatrices[joints.y] * position) +
+                    weights.z * (jointMatrices[joints.z] * position) +
+                    weights.w * (jointMatrices[joints.w] * position));
+
+        normals = (weights.x * (jointMatrices[joints.x] * normals) +
+                   weights.y * (jointMatrices[joints.y] * normals) +
+                   weights.z * (jointMatrices[joints.z] * normals) +
+                   weights.w * (jointMatrices[joints.w] * normals));
+    }
+
+    float4 worldPosition = uniforms.modelMatrix * float4(position.xyz, 1.0);
+    float3 worldNormal = uniforms.normalMatrix * normals.xyz;
+    float normalLength = length(worldNormal);
+    if (normalLength > 1e-6) {
+        float3 toCamera = uniforms.cameraPosition - worldPosition.xyz;
+        float awayFromCamera = dot(worldNormal, toCamera) >= 0.0 ? -1.0 : 1.0;
+        worldPosition.xyz += (worldNormal / normalLength) * (shrinkMeters * awayFromCamera);
+    }
+
+    MeshOccluderShellVertexOut out;
+    out.position = uniforms.projectionMatrix * uniforms.viewMatrix * worldPosition;
+    return out;
+}
+
+
 fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
                                         constant Uniforms & uniforms [[ buffer(modelPassFragmentUniformIndex) ]],
                                  texture2d<float> baseColor [[texture(modelPassBaseTextureIndex)]],
