@@ -222,6 +222,7 @@ public func executeGaussianFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         // true, so the fallback texture below is only ever actually read when the flag
         // (and therefore the shader's own occlusion branch) is off.
         let hzbValid = renderInfo.hzbIsValid && textureResources.hzbDepthPyramid != nil
+            && !GaussianDebugOptions.shared.disableHZBOcclusionCull
         var hzbValidFlag: UInt32 = hzbValid ? 1 : 0
         var hzbReverseZFlag: UInt32 = renderInfo.reverseZEnabled ? 1 : 0
         var hzbOcclusionBias: Float = 0.02

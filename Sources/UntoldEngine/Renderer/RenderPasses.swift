@@ -4591,6 +4591,12 @@ public enum RenderPasses {
                 length: MemoryLayout<Bool>.stride,
                 index: Int(gaussianTBDRRenderReverseZIndex.rawValue)
             )
+            var gaussianDrawDebug = GaussianDebugOptions.shared.drawConstants
+            renderEncoder.setFragmentBytes(
+                &gaussianDrawDebug,
+                length: MemoryLayout<GaussianTBDRDrawDebug>.stride,
+                index: Int(gaussianTBDRRenderDrawDebugIndex.rawValue)
+            )
 
             let transformId = getComponentId(for: WorldTransformComponent.self)
             let gaussianId = getComponentId(for: GaussianComponent.self)

@@ -659,7 +659,14 @@ typedef enum{
       gaussianTBDRRenderReverseZIndex,
       gaussianTBDRRenderPrecomputedIndex,
       gaussianTBDRRenderDebugColorIndex,
+      gaussianTBDRRenderDrawDebugIndex,   // GaussianTBDRDrawDebug
   }GaussianTBDRRenderBufferIndices;
+
+/// Per-draw switches for the splat fragment shader, set from GaussianDebugOptions each frame.
+typedef struct{
+    uint32_t maxBlendedSplatsPerPixel;  // normally kGaussianMaxBlendedSplatsPerPixel (64); 255 lifts the cap
+    uint32_t skipOpaqueDepthTest;       // non-zero: never occlude splats by the opaque depth snapshot
+}GaussianTBDRDrawDebug;
 
 typedef enum{
       gaussianTBDRDrawOpaqueDepthTextureIndex = 0,
