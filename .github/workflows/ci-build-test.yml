@@ -71,7 +71,9 @@ jobs:
       # ✅ Run renderer tests (non-async suites)
       #
       - name: Run renderer tests (non-async suites)
-        timeout-minutes: 30
+        # The sweep takes 26-30 minutes on the hosted macOS runners and grows with
+        # every render suite; leave headroom so a slow runner is not a red build.
+        timeout-minutes: 45
         env:
           CI: true
           UNTOLD_PSNR_THRESHOLD: "33.5"   # tweak per suite/scene
