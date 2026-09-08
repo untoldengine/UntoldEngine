@@ -60,7 +60,8 @@ UntoldEngine4D/.DS_Store
 
 # Sources/UntoldEngine/Shaders/
 
-Sources/UntoldEngine/UntoldEngineKernels/UntoldEngineKernels.air
+# Metal compiler intermediates written by buildkernels.sh; only the .metallib files ship.
+Sources/UntoldEngine/UntoldEngineKernels/*.air
 
 # Sources/UntoldEngine/UntoldEngineKernels/UntoldEngineKernels.metal
 
