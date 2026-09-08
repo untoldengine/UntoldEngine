@@ -88,7 +88,11 @@ let package = Package(
             name: "UntoldEngine",
             dependencies: ["CShaderTypes"],
             path: "Sources/UntoldEngine",
-            exclude: ["Shaders"],
+            exclude: [
+                "Shaders",
+                // Kernel source; only the prebuilt .metallib resources below are shipped.
+                "UntoldEngineKernels/UntoldEngineKernels.metal",
+            ],
 
             // 📦 Ship prebuilt metallibs for each platform; pick at runtime.
             resources: engineResources,
