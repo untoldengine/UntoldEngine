@@ -54,9 +54,11 @@ public final class GaussianDebugOptions: @unchecked Sendable {
     }
 
     /// Makes the chunk-level cull of `.untoldgs` entities (`gaussianChunkCull`) keep every chunk,
-    /// so the per-splat pass walks the whole asset as it does for a `.ply`. The frame is the same
-    /// either way — the chunk cull only skips splats the per-splat test would reject — which is
-    /// what this switch is for: an A/B of cost and of that guarantee.
+    /// so the per-splat pass walks the whole asset. The entity stays on the chunk path — the
+    /// per-splat kernel is still `gaussianChunkSplatCull`, dispatched over every chunk, not the
+    /// whole-buffer `gaussianFrustumCull` a `.ply` runs. The frame is the same either way — the
+    /// chunk cull only skips splats the per-splat test would reject — which is what this switch
+    /// is for: an A/B of the chunk stage's cost and of that guarantee.
     public var disableChunkCull: Bool {
         get { lock.lock(); defer { lock.unlock() }; return _disableChunkCull }
         set { lock.lock(); _disableChunkCull = newValue; lock.unlock() }
