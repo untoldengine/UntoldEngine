@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Earlier versions of this script left .air intermediates in the kernels directory, which
+# SwiftPM flags as unhandled files; clear any stale ones from an existing checkout first.
+rm -f Sources/UntoldEngine/UntoldEngineKernels/*.air
+
 cd Sources/UntoldEngine/UntoldEngineKernels
 
 # .air files are compiler intermediates that embed this machine's paths; keep them out of the package tree.
