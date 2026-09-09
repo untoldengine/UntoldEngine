@@ -778,18 +778,21 @@ typedef enum{
 /// The frame's working-set budget state, one persistent buffer read and written on the GPU
 /// every frame (command buffers on one queue run in order, so frame N+1 sees frame N's scale):
 /// gaussianFinalizeVisibleChunks adds each chunked entity's visible splat total to
-/// requestedSplats, gaussianComputeBudgetScale turns the total into the scale the quotas apply
-/// (smoothed against the previous frame's), gaussianComputeChunkQuotas adds the quotas it
-/// grants to quotaSplats, and gaussianPublishBudgetState copies the record into the frame's
-/// in-flight slot for the CPU readback (profiling, tests).
+/// requestedSplats, gaussianReserveBudgetSplats adds each whole-buffer entity's visible count
+/// to reservedSplats, gaussianComputeBudgetScale fits the request to what the reservation
+/// leaves of the budget as the scale the quotas apply (a fall taken at once, a rise smoothed
+/// against the previous frame's), gaussianComputeChunkQuotas adds the quotas it grants to
+/// quotaSplats, and gaussianPublishBudgetState copies the record into the frame's in-flight
+/// slot for the CPU readback (profiling, tests).
 typedef struct{
     uint32_t requestedSplats;   // atomic: Σ over chunked entities of their visible chunks' splat counts
     uint32_t quotaSplats;       // atomic: Σ over chunked entities of the quotas granted
     uint32_t budget;            // records the quotas were fitted to this frame (the shared set's capacity)
     uint32_t frameCount;        // frames the state has been through; 0 means the first frame takes the target as is
-    float targetScale;          // min(1, headroom · budget / requestedSplats)
-    float scale;                // targetScale moved from the previous frame's scale by at most maxStepFraction
-    float _pad0[2];
+    float targetScale;          // min(1, (headroom · budget − reservedSplats) / requestedSplats)
+    float scale;                // targetScale, or the previous frame's scale raised by at most one step when the target is above it
+    uint32_t reservedSplats;    // atomic: Σ over whole-buffer entities of their visible counts, granted before the quotas
+    uint32_t _pad0;
 }GaussianBudgetState;           // 32 bytes
 
 /// Inputs of gaussianComputeBudgetScale.
@@ -797,16 +800,20 @@ typedef struct{
     uint32_t budget;            // the shared set's capacity this frame
     uint32_t forceUnitScale;    // GaussianDebugOptions.disableWorkingSetBudget: every chunk keeps its whole splat count
     float headroom;             // fraction of the budget the quotas aim for (0.98), leaving room for rounding
-    float maxStepFraction;      // largest relative change of scale per frame (0.1)
-}GaussianBudgetScaleConstants;  // 16 bytes
+    float maxStepFraction;      // largest relative rise of scale per frame (0.1)
+    float minStep;              // smallest absolute rise per frame (0.05), so a climb from a low scale does not crawl
+    uint32_t resetHysteresis;   // 1: take the target as on the first frame (a frame without splat entities went by)
+    uint32_t _pad0[2];
+}GaussianBudgetScaleConstants;  // 32 bytes
 
 typedef enum{
     gaussianBudgetStateIndex = 0,        // GaussianBudgetState, persistent
     gaussianBudgetScaleConstantsIndex,   // GaussianBudgetScaleConstants
-    gaussianBudgetChunkSetIndex,         // gaussianComputeChunkQuotas: the entity's chunk record (GaussianVisibleSet)
+    gaussianBudgetChunkSetIndex,         // gaussianComputeChunkQuotas: the entity's chunk record (GaussianVisibleSet); gaussianReserveBudgetSplats: the whole-buffer entity's GaussianVisibleSet
     gaussianBudgetVisibleChunksIndex,    // gaussianComputeChunkQuotas: the entity's GaussianVisibleChunk[]
     gaussianBudgetReadbackIndex,         // gaussianPublishBudgetState: this frame slot's copy of the state
     gaussianBudgetQuotaTotalIndex,       // gaussianComputeChunkQuotas: atomic_uint, the state's quotaSplats (byte offset 4)
+    gaussianBudgetReservedTotalIndex,    // gaussianReserveBudgetSplats: atomic_uint, the state's reservedSplats (byte offset 24)
 }GaussianBudgetBufferIndices;
 
 // MARK: - Fused decode, test, project and compact of .untoldgs entities (GaussianChunkPreprocess.metal)

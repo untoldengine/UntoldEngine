@@ -63,12 +63,13 @@ static inline bool gaussianChunkVisibleInView(
     const float3 boxMax,
     constant float4x4 &viewProjection,
     constant GaussianChunkCullConstants &params,
+    const uint hzbValid,
     texture2d<float, access::sample> hzbDepthPyramid)
 {
     if (!gaussianBoxPassesClipPlanes(boxMin, boxMax, viewProjection, params.clipGuardBand)) {
         return false;
     }
-    if (params.hzbValid == 0u) {
+    if (hzbValid == 0u) {
         return true;
     }
     const bool reverseZ = params.hzbReverseZ != 0u;
@@ -94,7 +95,9 @@ kernel void gaussianResetVisibleChunkSet(
 // One thread per chunk of one entity. A chunk's box is its centre AABB (the decode constants)
 // padded on every side by kGaussianQuadSigma·exp(logScaleMax): the largest splat in the chunk
 // reaches at most that far from its centre along any axis, so the box holds every splat's
-// rendered quad. Visible if it passes any of the frame's views.
+// rendered quad. Visible if it passes any of the frame's views. In stereo the HZB is the mono
+// pyramid of the last eye drawn (eye 1), so only eye 1's test samples it (see
+// gaussianChunkSplatPassesCull); in mono view 0 is the head view the pyramid was built from.
 kernel void gaussianChunkCull(
     const device GaussianChunkDecodeConstants *chunks [[buffer(gaussianChunkCullChunkTableIndex)]],
     constant GaussianChunkCullConstants &params [[buffer(gaussianChunkCullConstantsIndex)]],
@@ -112,9 +115,10 @@ kernel void gaussianChunkCull(
         const float pad = kGaussianQuadSigma * exp(chunk.logScaleMax);
         const float3 boxMin = float3(chunk.aabbMinX, chunk.aabbMinY, chunk.aabbMinZ) - pad;
         const float3 boxMax = float3(chunk.aabbMaxX, chunk.aabbMaxY, chunk.aabbMaxZ) + pad;
-        visible = gaussianChunkVisibleInView(boxMin, boxMax, params.viewProjection0, params, hzbDepthPyramid);
+        const uint hzbValidForView0 = params.viewCount > 1u ? 0u : params.hzbValid;
+        visible = gaussianChunkVisibleInView(boxMin, boxMax, params.viewProjection0, params, hzbValidForView0, hzbDepthPyramid);
         if (!visible && params.viewCount > 1u) {
-            visible = gaussianChunkVisibleInView(boxMin, boxMax, params.viewProjection1, params, hzbDepthPyramid);
+            visible = gaussianChunkVisibleInView(boxMin, boxMax, params.viewProjection1, params, params.hzbValid, hzbDepthPyramid);
         }
     }
     if (!visible) return;

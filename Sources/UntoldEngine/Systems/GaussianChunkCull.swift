@@ -40,8 +40,14 @@ let gaussianOpacityBandFraction: Float = 0.8
 /// The fraction of the working set the quotas aim for, leaving room for the frame's rounding.
 let gaussianBudgetHeadroom: Float = 0.98
 
-/// The largest relative change of the budget scale from one frame to the next.
+/// The largest relative rise of the budget scale from one frame to the next; a fall is taken at
+/// once (a lower scale never overflows the set, a lagging one would).
 let gaussianBudgetMaxStepFraction: Float = 0.1
+
+/// The smallest absolute rise of the budget scale per frame, so a climb from a low scale (a cut
+/// from a dense view to one that fits the budget) does not crawl: from 0.06 to 1 in about 17
+/// frames instead of 30.
+let gaussianBudgetMinStep: Float = 0.05
 
 /// CPU mirror of the chunk test in `gaussianChunkCull` (GaussianChunkCull.metal), without the
 /// HZB part: the chunk's centre AABB padded by `extentPadding(logScaleMax:)` on every side,
@@ -121,20 +127,42 @@ enum GaussianChunkCullMath {
 
     // MARK: Budget mirrors (GaussianWorkingSetBudget.metal, GaussianChunkPreprocess.metal)
 
-    /// The scale a frame targets: 1 while the request fits the budget, else the fraction of every
-    /// visible chunk that fits it with the headroom.
-    static func targetScale(requestedSplats: Int, budget: Int, headroom: Float = gaussianBudgetHeadroom) -> Float {
-        guard requestedSplats > budget else { return 1 }
-        return min(1, headroom * Float(budget) / Float(requestedSplats))
+    /// The scale a frame targets: 1 while the chunked request fits what the whole-buffer
+    /// entities' `reservedSplats` leave of the budget, else the fraction of every visible chunk
+    /// that fits the headroom's share of that room (0 when nothing is left).
+    static func targetScale(requestedSplats: Int, budget: Int, reservedSplats: Int = 0, headroom: Float = gaussianBudgetHeadroom) -> Float {
+        guard requestedSplats > budget - reservedSplats else { return 1 }
+        let room = max(headroom * Float(budget) - Float(reservedSplats), 0)
+        return min(1, room / Float(requestedSplats))
     }
 
-    /// The scale applied after the hysteresis: the target, moved from the previous frame's scale
-    /// by at most `maxStepFraction` of it; the first frame takes the target.
-    static func smoothedScale(target: Float, previous: Float?, maxStepFraction: Float = gaussianBudgetMaxStepFraction) -> Float {
-        guard let previous else { return target }
+    /// The scale applied after the hysteresis: the target when it is at or below the previous
+    /// frame's scale, else the previous scale raised by at most max(`maxStepFraction` × previous,
+    /// `minStep`); the first frame, and a frame with no chunked request (`requestedSplats` 0,
+    /// nothing drawn under the scale), take the target.
+    static func smoothedScale(
+        target: Float,
+        previous: Float?,
+        requestedSplats: Int = 1,
+        maxStepFraction: Float = gaussianBudgetMaxStepFraction,
+        minStep: Float = gaussianBudgetMinStep
+    ) -> Float {
+        guard let previous, requestedSplats > 0 else { return target }
         let clamped = min(max(previous, 0), 1)
-        let step = max(clamped * maxStepFraction, 1e-4)
-        return min(max(target, clamped - step), clamped + step)
+        guard target > clamped else { return target }
+        let step = max(clamped * maxStepFraction, minStep)
+        return min(target, clamped + step)
+    }
+
+    /// Frames a rise from `previous` to `target` takes through `smoothedScale`.
+    static func framesToReach(target: Float, from previous: Float) -> Int {
+        var scale = previous
+        var frames = 0
+        while scale < target, frames < 10000 {
+            scale = smoothedScale(target: target, previous: scale)
+            frames += 1
+        }
+        return frames
     }
 
     /// A visible chunk's quota at `scale`: floor(scale × splatCount), never above the count.
@@ -211,6 +239,8 @@ struct GaussianChunkCullPipelineStates {
     let budgetScale: MTLComputePipelineState
     let chunkQuotas: MTLComputePipelineState
     let publishBudget: MTLComputePipelineState
+    /// `gaussianReserveBudgetSplats`: a whole-buffer entity's visible count, reserved before the quotas.
+    let reserveBudget: MTLComputePipelineState
 
     static func current() -> GaussianChunkCullPipelineStates? {
         guard gaussianResetVisibleChunkSetPipeline.success,
@@ -221,6 +251,7 @@ struct GaussianChunkCullPipelineStates {
               gaussianComputeBudgetScalePipeline.success,
               gaussianComputeChunkQuotasPipeline.success,
               gaussianPublishBudgetStatePipeline.success,
+              gaussianReserveBudgetSplatsPipeline.success,
               let reset = gaussianResetVisibleChunkSetPipeline.pipelineState,
               let cull = gaussianChunkCullPipeline.pipelineState,
               let finalize = gaussianFinalizeVisibleChunksPipeline.pipelineState,
@@ -228,7 +259,8 @@ struct GaussianChunkCullPipelineStates {
               let resetBudget = gaussianResetBudgetRequestPipeline.pipelineState,
               let budgetScale = gaussianComputeBudgetScalePipeline.pipelineState,
               let chunkQuotas = gaussianComputeChunkQuotasPipeline.pipelineState,
-              let publishBudget = gaussianPublishBudgetStatePipeline.pipelineState
+              let publishBudget = gaussianPublishBudgetStatePipeline.pipelineState,
+              let reserveBudget = gaussianReserveBudgetSplatsPipeline.pipelineState
         else { return nil }
         return GaussianChunkCullPipelineStates(
             reset: reset,
@@ -238,7 +270,8 @@ struct GaussianChunkCullPipelineStates {
             resetBudget: resetBudget,
             budgetScale: budgetScale,
             chunkQuotas: chunkQuotas,
-            publishBudget: publishBudget
+            publishBudget: publishBudget,
+            reserveBudget: reserveBudget
         )
     }
 }
@@ -365,19 +398,36 @@ func encodeGaussianEmptyChunkSet(
 // MARK: - Budget and quotas
 
 /// The scale kernel's inputs for a frame whose shared set holds `budget` records.
-func gaussianBudgetScaleConstants(budget: Int, forceUnitScale: Bool = GaussianDebugOptions.shared.disableWorkingSetBudget) -> GaussianBudgetScaleConstants {
+/// `resetHysteresis` makes the frame take its target as a first frame would.
+func gaussianBudgetScaleConstants(
+    budget: Int,
+    forceUnitScale: Bool = GaussianDebugOptions.shared.disableWorkingSetBudget,
+    resetHysteresis: Bool = false
+) -> GaussianBudgetScaleConstants {
     var constants = GaussianBudgetScaleConstants()
     constants.budget = UInt32(max(0, min(budget, Int(UInt32.max))))
     constants.forceUnitScale = forceUnitScale ? 1 : 0
     constants.headroom = gaussianBudgetHeadroom
     constants.maxStepFraction = gaussianBudgetMaxStepFraction
+    constants.minStep = gaussianBudgetMinStep
+    constants.resetHysteresis = resetHysteresis ? 1 : 0
     return constants
 }
 
-/// Zeroes the frame's request and grant counters, before any entity's chunk cull. One dispatch.
+/// Zeroes the frame's request, reservation and grant counters, before any entity's cull. One dispatch.
 func encodeGaussianBudgetReset(_ encoder: MTLComputeCommandEncoder, pipelines: GaussianChunkCullPipelineStates, budgetState: MTLBuffer) {
     encoder.setComputePipelineState(pipelines.resetBudget)
     encoder.setBuffer(budgetState, offset: 0, index: Int(gaussianBudgetStateIndex.rawValue))
+    encoder.dispatchThreadgroups(MTLSizeMake(1, 1, 1), threadsPerThreadgroup: MTLSizeMake(1, 1, 1))
+}
+
+/// Reserves one whole-buffer entity's visible count out of the frame's budget, after its
+/// `gaussianFinalizeVisibleSet` on the same encoder and before the scale dispatch. One dispatch.
+func encodeGaussianBudgetReserve(_ encoder: MTLComputeCommandEncoder, pipelines: GaussianChunkCullPipelineStates, visibleSet: MTLBuffer, budgetState: MTLBuffer) {
+    encoder.setComputePipelineState(pipelines.reserveBudget)
+    encoder.setBuffer(visibleSet, offset: 0, index: Int(gaussianBudgetChunkSetIndex.rawValue))
+    // reservedSplats is the state's seventh word — see GaussianBudgetState.
+    encoder.setBuffer(budgetState, offset: 6 * MemoryLayout<UInt32>.stride, index: Int(gaussianBudgetReservedTotalIndex.rawValue))
     encoder.dispatchThreadgroups(MTLSizeMake(1, 1, 1), threadsPerThreadgroup: MTLSizeMake(1, 1, 1))
 }
 
