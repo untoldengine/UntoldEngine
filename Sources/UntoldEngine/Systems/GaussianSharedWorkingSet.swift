@@ -6,7 +6,8 @@
 //  depth key per splat that survived its entity's cull, sorted once and drawn once, so splats
 //  of overlapping entities blend in true depth order instead of entity order. Sized to a budget
 //  (`GaussianRuntimeLimits.workingSetSplats`, clamped by the memory budget and by the resident
-//  total) rather than to what is loaded; the frame's chunked entities are fitted to it through
+//  total, never below the whole-buffer entities' resident total) rather than to what is loaded;
+//  the frame's chunked entities are fitted to what the whole-buffer entities leave of it through
 //  per-chunk quotas whose state (`GaussianBudgetState`) lives here too.
 //
 // Copyright (C) Untold Engine Studios
@@ -52,6 +53,9 @@ final class GaussianSharedWorkingSet: @unchecked Sendable {
     private var entityOrder: [[EntityID]] = Array(repeating: [], count: maxInFlightCommandBuffers)
     private var _lastVisibleCount = 0
     private var _lastOverflowCount = 0
+    /// Set by a frame that found no splat entity, consumed by the next frame that has some: the
+    /// scale the previous scene settled at must not fade the new one in.
+    private var _hysteresisResetPending = false
 
     var capacity: Int {
         lock.lock()
@@ -94,22 +98,51 @@ final class GaussianSharedWorkingSet: @unchecked Sendable {
     }
 
     /// Sizes the set for a frame: at least min(`budget`, `residentSplats`) records — no frame can
-    /// compact more than is loaded — growing when that rises and shrinking only when the set is
-    /// above `budget` (an override or the debug switch changed). Returns the capacity the frame
-    /// runs with, or nil when a buffer could not be allocated.
-    func fitCapacity(residentSplats: Int, budget: Int, device: MTLDevice) -> Int? {
-        let cap = max(1, budget)
+    /// compact more than is loaded — and never below `wholeBufferSplats`, the resident total of
+    /// the whole-buffer (`.ply`) entities, which are not budgeted and must always fit; growing
+    /// when that rises and shrinking only when the set is above the budget (an override or the
+    /// debug switch changed). Returns the capacity the frame runs with, or nil when a buffer
+    /// could not be allocated.
+    func fitCapacity(residentSplats: Int, budget: Int, wholeBufferSplats: Int = 0, device: MTLDevice) -> Int? {
+        let cap = max(1, budget, min(wholeBufferSplats, residentSplats))
         let wanted = max(1, min(residentSplats, cap))
         let current = capacity
         let target = current > cap ? wanted : max(current, wanted)
         guard ensureCapacity(target, device: device, exact: true) else { return nil }
+        // The ledger entry is written when the buffers change; a `MemoryBudgetManager.clear()`
+        // (scene unload) zeroes it while the set, which is not scene-owned, lives on.
+        let bytes = residentBytes
+        if MemoryBudgetManager.shared.gaussianWorkingSetBytesTracked != bytes {
+            MemoryBudgetManager.shared.setGaussianWorkingSetBytes(bytes)
+        }
         return capacity
+    }
+
+    /// A frame without any splat entity: the next frame with some takes its budget scale
+    /// directly instead of climbing from the one the previous scene settled at.
+    func noteFrameWithoutEntities() {
+        lock.lock()
+        _hysteresisResetPending = true
+        lock.unlock()
+    }
+
+    /// Whether the frame being encoded should take its target scale as a first frame would;
+    /// clears the flag.
+    func takeHysteresisReset() -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        let pending = _hysteresisResetPending
+        _hysteresisResetPending = false
+        return pending
     }
 
     /// Grows the per-slot buffers to hold `splatCount` records (`exact` also shrinks them to it).
     /// Allocation is all-or-nothing: the stored buffers change only once every new one exists.
     /// Returns false when one could not be allocated (the previous buffers stay usable). The
-    /// budget state buffers are allocated here too.
+    /// budget state buffers are allocated here too. A change of capacity forgets every slot's
+    /// entity order: the other slots' records and visible sets were written for the old
+    /// buffers, and a frame that reuses one without re-running the preprocess (asset-loading
+    /// gate) must not draw its old count over the new, possibly smaller, buffers.
     @discardableResult
     func ensureCapacity(_ splatCount: Int, device: MTLDevice, exact: Bool = false) -> Bool {
         let wanted = max(splatCount, 1)
@@ -164,6 +197,9 @@ final class GaussianSharedWorkingSet: @unchecked Sendable {
             buffer.label = "Gaussian Entity Draw Constants \(index)"
             newEntityConstants[index] = buffer
         }
+        if newCapacity != _capacity {
+            entityOrder = Array(repeating: [], count: maxInFlightCommandBuffers)
+        }
         keys = newKeys
         records = newRecords
         visibleSets = newVisibleSets
@@ -189,12 +225,14 @@ final class GaussianSharedWorkingSet: @unchecked Sendable {
         return budgetReadbacks[min(slot, budgetReadbacks.count - 1)]
     }
 
-    /// Forgets the previous frames' scale, so the next frame takes its target directly: after a
-    /// scene change, and in tests that want to start from a known state.
+    /// Forgets the previous frames' scale, so the next frame takes its target directly. For
+    /// tests that want to start from a known state with no frame in flight; a running scene
+    /// resets through `noteFrameWithoutEntities` on the GPU's own timeline instead.
     func resetBudgetHysteresis() {
         lock.lock()
         defer { lock.unlock() }
         _budgetState?.contents().storeBytes(of: GaussianBudgetState(), as: GaussianBudgetState.self)
+        _hysteresisResetPending = false
     }
 
     func keys(slot: Int) -> MTLBuffer? {

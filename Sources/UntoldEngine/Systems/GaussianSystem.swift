@@ -164,6 +164,8 @@ func initGuassianComputePipelines() {
 
     createComputePipeline(into: &gaussianPublishBudgetStatePipeline, device: renderInfo.device, library: renderInfo.library, functionName: "gaussianPublishBudgetState", pipelineName: "Gaussian Publish Budget State")
 
+    createComputePipeline(into: &gaussianReserveBudgetSplatsPipeline, device: renderInfo.device, library: renderInfo.library, functionName: "gaussianReserveBudgetSplats", pipelineName: "Gaussian Reserve Budget Splats")
+
     createComputePipeline(into: &radixClearHistogramPipeline, device: renderInfo.device, library: renderInfo.library, functionName: "gaussianRadixClearHistogram", pipelineName: "Radix Clear")
 
     createComputePipeline(into: &radixHistogramPipeline, device: renderInfo.device, library: renderInfo.library, functionName: "gaussianRadixHistogram", pipelineName: "Radix Histogram")
@@ -256,18 +258,29 @@ public func executeGaussianFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
     let transformId = getComponentId(for: WorldTransformComponent.self)
     let gaussianId = getComponentId(for: GaussianComponent.self)
     let entities = queryEntitiesWithComponentIds([transformId, gaussianId], in: scene)
-    guard !entities.isEmpty else { return }
+    let workingSet = GaussianSharedWorkingSet.shared
+    guard !entities.isEmpty else {
+        // The budget scale the last scene settled at must not fade the next one in.
+        workingSet.noteFrameWithoutEntities()
+        return
+    }
 
     // The frame's shared working set: sized to the budget (never above the resident total, which
-    // no frame can exceed). Chunked entities are fitted to it through per-chunk quotas below;
-    // whole-buffer entities append whatever their cull keeps, the finalize clamp catching any
-    // excess.
-    let residentSplats = entities.reduce(0) { total, entityId in
-        total + Int(scene.get(component: GaussianComponent.self, for: entityId)?.splatCount ?? 0)
+    // no frame can exceed, and never below the whole-buffer entities' total, which is not
+    // budgeted). Whole-buffer entities append whatever their cull keeps and reserve that count
+    // out of the budget first; chunked entities are fitted to the rest through per-chunk quotas
+    // below, so the set never overflows.
+    var residentSplats = 0
+    var wholeBufferSplats = 0
+    for entityId in entities {
+        guard let component = scene.get(component: GaussianComponent.self, for: entityId) else { continue }
+        residentSplats += Int(component.splatCount)
+        if !component.isChunked {
+            wholeBufferSplats += Int(component.splatCount)
+        }
     }
-    let workingSet = GaussianSharedWorkingSet.shared
     let budget = gaussianWorkingSetBudget(residentSplats: residentSplats)
-    guard let capacity = workingSet.fitCapacity(residentSplats: residentSplats, budget: budget, device: renderInfo.device) else {
+    guard let capacity = workingSet.fitCapacity(residentSplats: residentSplats, budget: budget, wholeBufferSplats: wholeBufferSplats, device: renderInfo.device) else {
         handleError(.bufferAllocationFailed, "Gaussian shared working set")
         return
     }
@@ -431,6 +444,13 @@ public func executeGaussianFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         computeEncoder.dispatchThreadgroups(MTLSizeMake(1, 1, 1), threadsPerThreadgroup: MTLSizeMake(1, 1, 1))
         profileTotals.dispatchCount += 1
 
+        // The count this entity will append unbudgeted, reserved out of the budget before the
+        // chunked entities are fitted to it.
+        if let chunkPipelines, let budgetState {
+            encodeGaussianBudgetReserve(computeEncoder, pipelines: chunkPipelines, visibleSet: visibleCount, budgetState: budgetState)
+            profileTotals.dispatchCount += 1
+        }
+
         visibleCountUpdates.append(
             GaussianVisibleCountUpdate(
                 entityId: entityId,
@@ -441,11 +461,14 @@ public func executeGaussianFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         )
     }
 
-    // Every chunked entity's request is in: fit them to the capacity. The scale kernel smooths
-    // the frame's target against the previous frame's scale, each entity's quota pass grants its
-    // visible chunks floor(scale × splats), and the state is published for this slot's readback.
+    // Every chunked entity's request and every whole-buffer entity's reservation is in: fit the
+    // chunked entities to what is left of the capacity. The scale kernel takes a fall of the
+    // target at once and smooths a rise against the previous frame's scale (unless a frame
+    // without splat entities went by), each entity's quota pass grants its visible chunks
+    // floor(scale × splats), and the state is published for this slot's readback.
     if let chunkPipelines, let budgetState {
-        encodeGaussianBudgetScale(computeEncoder, pipelines: chunkPipelines, budgetState: budgetState, constants: gaussianBudgetScaleConstants(budget: capacity))
+        let scaleConstants = gaussianBudgetScaleConstants(budget: capacity, resetHysteresis: workingSet.takeHysteresisReset())
+        encodeGaussianBudgetScale(computeEncoder, pipelines: chunkPipelines, budgetState: budgetState, constants: scaleConstants)
         profileTotals.dispatchCount += 1
         for chunked in chunkedEntities {
             encodeGaussianChunkQuotas(
@@ -488,7 +511,7 @@ public func executeGaussianFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         stage: "FrustumCull",
         startTime: profileStart,
         totals: profileTotals,
-        extra: "previousActiveSplats=\(activeSplatTotal) budget=\(budget) capacity=\(capacity) resident=\(residentSplats) chunkedEntities=\(chunkedEntities.count)"
+        extra: "previousActiveSplats=\(activeSplatTotal) budget=\(budget) capacity=\(capacity) resident=\(residentSplats) wholeBuffer=\(wholeBufferSplats) chunkedEntities=\(chunkedEntities.count)"
     )
 }
 
@@ -738,10 +761,9 @@ public func executeGaussianPreprocess(_ commandBuffer: MTLCommandBuffer) {
     computeEncoder.endEncoding()
 
     // Profiling readback of the shared set and the budget state, two or three frames late like
-    // the per-entity one. Overflow means splats were dropped this frame: reported once per
-    // change, not every frame, and not while the budget scale is still settling toward its
-    // target (the quotas then deliberately lag the budget for a few frames and the clamp is
-    // doing its job).
+    // the per-entity one. Overflow means splats were dropped this frame by arrival order, which
+    // the reservation and the quotas are fitted to rule out: reported once per change, not
+    // every frame.
     let completedVisibleSet = GaussianSharedVisibleSetReadback(buffer: sharedVisibleSet)
     let completedBudget = GaussianBudgetReadback(buffer: chunkPipelines == nil ? nil : workingSet.budgetReadback(slot: frameSlot))
     commandBuffer.addCompletedHandler { _ in
@@ -749,8 +771,7 @@ public func executeGaussianPreprocess(_ commandBuffer: MTLCommandBuffer) {
         let budgetState = completedBudget.buffer?.contents().load(as: GaussianBudgetState.self)
         let previousOverflow = GaussianSharedWorkingSet.shared.lastOverflowCount
         GaussianSharedWorkingSet.shared.recordCompletedFrame(visibleCount: Int(set.visibleCount), overflowCount: Int(set.overflowCount), budgetState: budgetState)
-        let settling = budgetState.map { $0.scale != $0.targetScale } ?? false
-        if set.overflowCount > 0, Int(set.overflowCount) != previousOverflow, !settling {
+        if set.overflowCount > 0, Int(set.overflowCount) != previousOverflow {
             handleError(.bufferAllocationFailed, "Gaussian shared working set overflowed: \(set.overflowCount) visible splats dropped (capacity \(capacityValue))")
         }
     }
@@ -762,9 +783,9 @@ public func executeGaussianPreprocess(_ commandBuffer: MTLCommandBuffer) {
         startTime: profileStart,
         totals: profileTotals,
         extra: String(
-            format: "activeSplats=%d sharedCapacity=%d lastShared=%d lastOverflow=%d budget=%u requested=%u quota=%u scale=%.3f targetScale=%.3f",
+            format: "activeSplats=%d sharedCapacity=%d lastShared=%d lastOverflow=%d budget=%u requested=%u reserved=%u quota=%u scale=%.3f targetScale=%.3f",
             activeSplatTotal, workingSet.capacity, workingSet.lastVisibleCount, workingSet.lastOverflowCount,
-            lastBudget.budget, lastBudget.requestedSplats, lastBudget.quotaSplats, lastBudget.scale, lastBudget.targetScale
+            lastBudget.budget, lastBudget.requestedSplats, lastBudget.reservedSplats, lastBudget.quotaSplats, lastBudget.scale, lastBudget.targetScale
         )
     )
 }

@@ -66,6 +66,7 @@ private final class CoreRuntimeGlobals: @unchecked Sendable {
     var gaussianComputeBudgetScalePipeline = ComputePipeline()
     var gaussianComputeChunkQuotasPipeline = ComputePipeline()
     var gaussianPublishBudgetStatePipeline = ComputePipeline()
+    var gaussianReserveBudgetSplatsPipeline = ComputePipeline()
     var radixClearHistogramPipeline = ComputePipeline()
     var radixHistogramPipeline = ComputePipeline()
     var radixScanPerTGPipeline = ComputePipeline()
@@ -712,6 +713,27 @@ var gaussianPublishBudgetStatePipeline: ComputePipeline {
         state.lock.lock()
         defer { state.lock.unlock() }
         yield &state.gaussianPublishBudgetStatePipeline
+    }
+}
+
+var gaussianReserveBudgetSplatsPipeline: ComputePipeline {
+    get {
+        let state = CoreRuntimeGlobals.shared
+        state.lock.lock()
+        defer { state.lock.unlock() }
+        return state.gaussianReserveBudgetSplatsPipeline
+    }
+    set {
+        let state = CoreRuntimeGlobals.shared
+        state.lock.lock()
+        state.gaussianReserveBudgetSplatsPipeline = newValue
+        state.lock.unlock()
+    }
+    _modify {
+        let state = CoreRuntimeGlobals.shared
+        state.lock.lock()
+        defer { state.lock.unlock() }
+        yield &state.gaussianReserveBudgetSplatsPipeline
     }
 }
 

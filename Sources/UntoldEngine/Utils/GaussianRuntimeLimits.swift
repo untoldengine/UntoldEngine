@@ -6,9 +6,10 @@
 //  and its spherical harmonics resident on the GPU and nothing else per splat — the frame's
 //  working set (records, keys) is shared by every entity and sized to a budget, not to the
 //  resident total — so the per-entity cap is a memory guard per platform, not a format limit.
-//  A `.ply` (or a `.untoldgs` decoded on the CPU) keeps the 48-byte encoded record and a
-//  visible index per frame in flight instead, about 60 bytes per splat plus harmonics. Cooks
-//  that must load everywhere use the mobile figure as their splat budget
+//  A `.ply` (or a `.untoldgs` decoded on the CPU, or expanded at load because the per-chunk
+//  kernels are unavailable) keeps the 48-byte encoded record and a visible index per frame in
+//  flight instead, about 60 bytes per splat plus harmonics, so that whole-buffer path has its
+//  own, lower cap. Cooks that must load everywhere use the mobile figure as their splat budget
 //  (`UntoldGSCookOptions.maxSplatCount`).
 //
 // Copyright (C) Untold Engine Studios
@@ -27,12 +28,29 @@ public enum GaussianRuntimeLimits {
     /// degree-3 harmonics).
     public static let maxSplatsPerEntityMac = 40_000_000
 
-    /// The cap the running binary enforces when a splat asset loads.
+    /// The cap the running binary enforces when a `.untoldgs` loads onto the per-chunk path.
     public static var maxSplatsPerEntity: Int {
         #if os(macOS)
             maxSplatsPerEntityMac
         #else
             maxSplatsPerEntityMobile
+        #endif
+    }
+
+    /// The whole-buffer path (`.ply`, or a `.untoldgs` decoded whole): 5,242,880 splats per
+    /// entity on Apple Vision Pro, iPhone, iPad and Apple TV — about 60 bytes per splat (48-byte
+    /// record and three 4-byte visible indices), 315 MB, 550 MB with degree-3 harmonics.
+    public static let maxWholeBufferSplatsPerEntityMobile = 1024 * 1024 * 5
+    /// Mac: 16,777,216 splats per entity on the whole-buffer path (about 1 GB, 1.8 GB with
+    /// degree-3 harmonics).
+    public static let maxWholeBufferSplatsPerEntityMac = 1024 * 1024 * 16
+
+    /// The cap the running binary enforces when a splat asset loads onto the whole-buffer path.
+    public static var maxWholeBufferSplatsPerEntity: Int {
+        #if os(macOS)
+            maxWholeBufferSplatsPerEntityMac
+        #else
+            maxWholeBufferSplatsPerEntityMobile
         #endif
     }
 

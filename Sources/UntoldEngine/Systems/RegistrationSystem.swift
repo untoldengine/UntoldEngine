@@ -3754,8 +3754,10 @@ func buildGaussianLoadResult(
     meanSquaredSplatExtent: Float = 0,
     sourceDescription: String
 ) -> GaussianLoadResult? {
-    guard encodedSplats.count <= Int(maxNumOfGaussians) else {
-        handleError(.bufferAllocationFailed, "Too many Gaussian splats: \(encodedSplats.count) exceeds maximum \(maxNumOfGaussians)")
+    // The whole-buffer path costs about 60 bytes per splat resident, so its cap is lower than
+    // the per-chunk path's (GaussianRuntimeLimits).
+    guard encodedSplats.count <= GaussianRuntimeLimits.maxWholeBufferSplatsPerEntity else {
+        handleError(.bufferAllocationFailed, "Too many Gaussian splats: \(encodedSplats.count) exceeds maximum \(GaussianRuntimeLimits.maxWholeBufferSplatsPerEntity) for the whole-buffer path")
         return nil
     }
 
@@ -4001,6 +4003,11 @@ func buildGaussianLoadResultFromUntoldGS(url: URL) -> GaussianLoadResult? {
                     chunkTable: loaded.chunkTable
                 )
             } else {
+                // Expanded to 48-byte records plus index buffers: the whole-buffer path's cap.
+                guard loaded.splatCount <= GaussianRuntimeLimits.maxWholeBufferSplatsPerEntity else {
+                    handleError(.bufferAllocationFailed, "Too many Gaussian splats: \(loaded.splatCount) exceeds maximum \(GaussianRuntimeLimits.maxWholeBufferSplatsPerEntity) for the whole-buffer path (\(url.lastPathComponent), per-chunk kernels unavailable)")
+                    return nil
+                }
                 result = try buildGaussianLoadResult(
                     encodedSplatBuffer: GaussianChunkLoader.decodeEncodedSplats(loaded),
                     splatCount: UInt(loaded.splatCount),

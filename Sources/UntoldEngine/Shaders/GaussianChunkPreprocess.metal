@@ -43,6 +43,9 @@ inline float gaussianOpacityBandFactor(uint rank, uint quota, uint splatCount)
 // The per-splat test of a chunked entity: exactly the whole-buffer kernel's in mono (the same
 // head-centre matrices, the same arithmetic, so the set kept is identical), and in stereo the
 // centre passes if either eye's view-projection keeps it — a splat only one eye sees is drawn.
+// The HZB is the mono pyramid built from the last eye drawn (eye 1), so only eye 1's test
+// samples it: eye 0's clip test alone decides for eye 0, else a splat in eye 0's margin would
+// be tested against depth eye 1 saw ~6 cm to the side and pop out near depth edges.
 inline bool gaussianChunkSplatPassesCull(
     float3 position,
     constant Uniforms &uniforms,
@@ -53,7 +56,7 @@ inline bool gaussianChunkSplatPassesCull(
         return gaussianSplatPassesCull(position, uniforms, params.clipGuardBand, params.hzbReverseZ, params.hzbOcclusionBias, params.hzbValid, hzbDepthPyramid);
     }
     const float4 local = float4(position, 1.0f);
-    if (gaussianClipCentrePassesCull(params.viewProjection0 * local, params.clipGuardBand, params.hzbReverseZ, params.hzbOcclusionBias, params.hzbValid, hzbDepthPyramid)) {
+    if (gaussianClipCentrePassesCull(params.viewProjection0 * local, params.clipGuardBand, params.hzbReverseZ, params.hzbOcclusionBias, 0u, hzbDepthPyramid)) {
         return true;
     }
     return gaussianClipCentrePassesCull(params.viewProjection1 * local, params.clipGuardBand, params.hzbReverseZ, params.hzbOcclusionBias, params.hzbValid, hzbDepthPyramid);
@@ -149,7 +152,8 @@ kernel void gaussianChunkDecodePreprocess(
 
         // Reserve a slot in the frame's shared working set. Past its capacity the splat is
         // dropped; gaussianFinalizeSharedVisibleSet clamps the count and records the overflow.
-        // The quotas are fitted so this only happens while the budget scale is still settling.
+        // The quotas are fitted below the capacity less the whole-buffer entities' counts, and
+        // the scale never lags above its target, so this does not happen in practice.
         uint slot = atomic_fetch_add_explicit(sharedVisibleCount, 1u, memory_order_relaxed);
         if (slot >= entity.workingSetCapacity) {
             continue;

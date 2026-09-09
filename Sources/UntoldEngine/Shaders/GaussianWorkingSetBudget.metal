@@ -3,14 +3,17 @@
 //  UntoldEngine
 //
 //  Fits the frame's chunked (.untoldgs) entities to the shared working set's capacity. After
-//  every entity's chunk cull has added its visible splat total to the frame's GaussianBudgetState,
-//  gaussianComputeBudgetScale turns the total into one scale — the fraction of each visible
-//  chunk's splats the frame may keep — smoothed against the previous frame's so a budget
-//  boundary never flickers, and gaussianComputeChunkQuotas grants each visible chunk its quota,
-//  the first (most important) floor(scale · splatCount) records the bake ordered it by. Because
-//  the fused pass never reads past a chunk's quota, the atomic slot reservation in the shared set
-//  cannot overflow once the scale has settled; gaussianFinalizeSharedVisibleSet stays as the
-//  safety net while it moves.
+//  every chunked entity's chunk cull has added its visible splat total to the frame's
+//  GaussianBudgetState and every whole-buffer entity's cull has reserved its visible count,
+//  gaussianComputeBudgetScale turns the request into one scale — the fraction of each visible
+//  chunk's splats the frame may keep in what the reservation leaves of the budget — and
+//  gaussianComputeChunkQuotas grants each visible chunk its quota, the first (most important)
+//  floor(scale · splatCount) records the bake ordered it by. A fall of the scale is taken at
+//  once (the set is already at its capacity, and a lower scale never overflows it), a rise is
+//  smoothed against the previous frame's scale so a budget boundary never flickers. Because the
+//  fused pass never reads past a chunk's quota and the reservation is counted first, the atomic
+//  slot reservation in the shared set never overflows; gaussianFinalizeSharedVisibleSet stays
+//  as the safety net.
 //
 // Copyright (C) Untold Engine Studios
 //
@@ -22,7 +25,8 @@
 #include "../../CShaderTypes/ShaderTypes.h"
 using namespace metal;
 
-// Zeroes the frame's request and grant counters before the entities' chunk culls add to them.
+// Zeroes the frame's request, reservation and grant counters before the entities' culls add
+// to them.
 kernel void gaussianResetBudgetRequest(
     device GaussianBudgetState *state [[buffer(gaussianBudgetStateIndex)]],
     uint index [[thread_position_in_grid]])
@@ -30,14 +34,32 @@ kernel void gaussianResetBudgetRequest(
     if (index != 0u) return;
     state->requestedSplats = 0u;
     state->quotaSplats = 0u;
+    state->reservedSplats = 0u;
 }
 
-// One thread, after every chunked entity's request is in: target = 1 while the request fits the
-// budget, else headroom · budget / requested; then the scale applied this frame moves from the
-// previous frame's by at most maxStepFraction of it in either direction (the first frame takes
-// the target as is), so a step in the budget or in what the camera sees converges over several
-// frames instead of flipping the visible set. With the budget switched off every chunk keeps
-// its whole count.
+// One thread per whole-buffer entity, after its gaussianFinalizeVisibleSet on the same serial
+// encoder: its visible count is appended to the shared set unbudgeted, so it is reserved out of
+// the budget before the chunked entities are fitted to the rest.
+kernel void gaussianReserveBudgetSplats(
+    const device GaussianVisibleSet *visibleSet [[buffer(gaussianBudgetChunkSetIndex)]],
+    device atomic_uint *reservedSplats [[buffer(gaussianBudgetReservedTotalIndex)]],
+    uint index [[thread_position_in_grid]])
+{
+    if (index != 0u) return;
+    atomic_fetch_add_explicit(reservedSplats, visibleSet->visibleCount, memory_order_relaxed);
+}
+
+// One thread, after every entity's request and reservation is in: the chunked request is fitted
+// to what the whole-buffer entities leave of the budget with the headroom — target = 1 while
+// it fits, else that room over the request (0 when nothing is left). A target below the
+// previous frame's scale is taken at once: the set is already at its capacity, so a lower scale
+// can never overflow it, and a lagging scale would grant more than the set holds, dropping
+// splats by arrival order for several frames. A target above the previous scale is approached
+// by at most max(maxStepFraction · previous, minStep) per frame, so a step in the budget or a
+// turn to a sparser view fades the chunks back in over several frames instead of flipping the
+// visible set. The first frame, the first after a frame without splat entities, and a frame
+// with no chunked request take the target as is. With the budget switched off every chunk
+// keeps its whole count.
 kernel void gaussianComputeBudgetScale(
     device GaussianBudgetState *state [[buffer(gaussianBudgetStateIndex)]],
     constant GaussianBudgetScaleConstants &constants [[buffer(gaussianBudgetScaleConstantsIndex)]],
@@ -46,15 +68,25 @@ kernel void gaussianComputeBudgetScale(
     if (index != 0u) return;
 
     const uint requested = state->requestedSplats;
+    const uint reserved = state->reservedSplats;
+    // The request fits when it is within what the reservation leaves of the budget; only a
+    // truncated frame aims for the headroom's share, so a scene that exactly fills the set
+    // keeps every splat.
+    const uint available = constants.budget > reserved ? constants.budget - reserved : 0u;
     float target = 1.0f;
-    if (constants.forceUnitScale == 0u && requested > constants.budget) {
-        target = min(1.0f, constants.headroom * (float)constants.budget / (float)requested);
+    if (constants.forceUnitScale == 0u && requested > available) {
+        const float room = max(constants.headroom * (float)constants.budget - (float)reserved, 0.0f);
+        target = min(1.0f, room / (float)requested);
     }
+    // With no chunked request nothing is drawn under the scale, so nothing can pop: the frame
+    // takes the target rather than fading a scale nobody sees.
     float scale = target;
-    if (state->frameCount > 0u && constants.forceUnitScale == 0u) {
+    if (state->frameCount > 0u && constants.forceUnitScale == 0u && constants.resetHysteresis == 0u && requested > 0u) {
         const float previous = clamp(state->scale, 0.0f, 1.0f);
-        const float step = max(previous * constants.maxStepFraction, 1.0e-4f);
-        scale = clamp(target, previous - step, previous + step);
+        if (target > previous) {
+            const float step = max(previous * constants.maxStepFraction, constants.minStep);
+            scale = min(target, previous + step);
+        }
     }
     state->budget = constants.budget;
     state->targetScale = target;
