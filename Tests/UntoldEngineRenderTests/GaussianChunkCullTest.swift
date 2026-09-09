@@ -10,8 +10,10 @@
 //  against the whole-buffer path, a partial view culls chunks, the fused pass strides correctly
 //  over a chunk wider than its threadgroup, the HZB part of the chunk test culls occluded chunks
 //  and only those, the extent padding keeps a chunk whose splats reach into the view, a stereo
-//  chunk — and a stereo splat — survives when only one eye sees it, and a real stereo frame
-//  tests both eyes with the current scene root.
+//  chunk — and a stereo splat — survives when only one eye sees it (either eye, and the union
+//  of two views that each miss part of the asset), in stereo only eye 1's test samples the mono
+//  HZB, the fused pass evaluates spherical harmonics by original splat index like the
+//  whole-buffer path, and a real stereo frame tests both eyes with the current scene root.
 //
 // Copyright (C) Untold Engine Studios
 //
@@ -268,11 +270,93 @@ final class GaussianChunkCullTest: BaseRenderSetup {
                 chunkSet: table.visibleChunkSets[0],
                 budgetState: budgetState,
                 constants: constants,
-                hzbTexture: textureResources.depthMap
+                hzbTexture: textureResources.hzbDepthPyramid ?? textureResources.depthMap
             )
             encoder.endEncoding()
         }
         return visibleChunkReadback(table, slot: 0)
+    }
+
+    /// The chunk cull and the fused pass by hand with `constants` — the view-projections, view
+    /// count and HZB inputs a frame would bind — and the head-centre uniforms of the active
+    /// camera, as executeGaussianPreprocess builds them; returns the asset indices compacted.
+    private func fusedPassSurvivors(entity: EntityID, component: GaussianComponent, table: GaussianChunkTable, constants: GaussianChunkCullConstants) throws -> [UInt32] {
+        let camera = try XCTUnwrap(CameraSystem.shared.activeCamera)
+        let cameraComponent = try XCTUnwrap(scene.get(component: CameraComponent.self, for: camera))
+        let world = try XCTUnwrap(scene.get(component: WorldTransformComponent.self, for: entity))
+        let viewMatrix = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
+        var uniforms = Uniforms()
+        uniforms.modelMatrix = world.space
+        uniforms.viewMatrix = viewMatrix
+        uniforms.modelViewMatrix = simd_mul(viewMatrix, world.space)
+        uniforms.projectionMatrix = renderInfo.perspectiveSpace
+        var entityConstants = GaussianPreprocessEntityConstants()
+        entityConstants.workingSetCapacity = UInt32(GaussianSharedWorkingSet.shared.capacity)
+        entityConstants.colorGain = simd_float4(1, 1, 1, 1)
+        entityConstants.opacityScale = 1
+        let pipelines = try XCTUnwrap(GaussianChunkCullPipelineStates.current())
+        let workingSet = GaussianSharedWorkingSet.shared
+        let sharedSlot = min(renderInfo.currentInFlightFrameSlot, maxInFlightCommandBuffers - 1)
+        let sharedSet = try XCTUnwrap(workingSet.visibleSet(slot: sharedSlot))
+        let packedSplats = try XCTUnwrap(component.packedSplatData)
+
+        // The chunk cull with the same views lists the chunks into slot 0; the fused pass follows.
+        _ = try cullChunks(table, constants: constants)
+        sharedSet.contents().storeBytes(of: makeGaussianVisibleSet(visibleCount: 0), as: GaussianVisibleSet.self)
+        let inputs = GaussianChunkPreprocessInputs(
+            packedSplats: packedSplats,
+            chunkTable: table,
+            visibleChunks: table.visibleChunks[0],
+            uniforms: uniforms,
+            cullConstants: constants,
+            viewport: renderInfo.viewPort ?? simd_float2(1, 1),
+            sphericalHarmonics: component.sphericalHarmonicsData,
+            shMetadata: component.sphericalHarmonicsMetadata ?? GaussianSHMetadata(degree: 0, coefficientsPerChannel: 0, higherOrderCoefficientsPerSplat: 0, _pad0: 0),
+            localCameraPosition: gaussianLocalCameraPosition(cameraWorldPosition: SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition), modelMatrix: world.space),
+            entityConstants: entityConstants,
+            hzbTexture: textureResources.hzbDepthPyramid ?? textureResources.depthMap
+        )
+        runSynchronously { commandBuffer in
+            guard let encoder = commandBuffer.makeComputeCommandEncoder() else { return }
+            encodeGaussianChunkDecodePreprocess(
+                encoder,
+                pipelineState: pipelines.decodePreprocess,
+                inputs: inputs,
+                chunkSet: table.visibleChunkSets[0],
+                sharedRecords: workingSet.records(slot: sharedSlot)!,
+                sharedKeys: workingSet.keys(slot: sharedSlot)!,
+                sharedVisibleSet: sharedSet
+            )
+            encoder.endEncoding()
+        }
+        return try XCTUnwrap(indexResolver).indices(of: sharedGaussianRecords())
+    }
+
+    /// The view-projection of a camera at `eye` looking at `target` for `entity`, from a
+    /// temporary camera entity so the active camera does not move.
+    private func viewProjection(entity: EntityID, eye: simd_float3, target: simd_float3) throws -> simd_float4x4 {
+        let world = try XCTUnwrap(scene.get(component: WorldTransformComponent.self, for: entity))
+        let cameraEntity = createEntity()
+        defer { destroyEntity(entityId: cameraEntity) }
+        _ = scene.assign(to: cameraEntity, component: CameraComponent.self)
+        cameraLookAt(entityId: cameraEntity, eye: eye, target: target, up: simd_float3(0, 1, 0))
+        let view = try XCTUnwrap(scene.get(component: CameraComponent.self, for: cameraEntity)).viewSpace
+        return simd_mul(renderInfo.perspectiveSpace, simd_mul(view, world.space))
+    }
+
+    /// `cameras[0]` turned around: the asset behind it.
+    private func lookingAwayViewProjection(entity: EntityID) throws -> simd_float4x4 {
+        try viewProjection(entity: entity, eye: cameras[0].eye, target: cameras[0].eye * 2)
+    }
+
+    /// The frame's cull constants for `entity` with the two eye matrices replaced.
+    private func stereoConstants(table: GaussianChunkTable, entity: EntityID, eye0: simd_float4x4, eye1: simd_float4x4, hzbValid: Bool = false) throws -> GaussianChunkCullConstants {
+        let world = try XCTUnwrap(scene.get(component: WorldTransformComponent.self, for: entity))
+        var constants = gaussianChunkCullConstants(chunkTable: table, modelMatrix: world.space, viewMatrix: matrix_identity_float4x4, hzbValid: hzbValid, forceAllVisible: false)
+        constants.viewProjection0 = eye0
+        constants.viewProjection1 = eye1
+        constants.viewCount = 2
+        return constants
     }
 
     /// The frame's persistent budget state, allocated with the shared set.
@@ -605,83 +689,196 @@ final class GaussianChunkCullTest: BaseRenderSetup {
         GaussianDebugOptions.shared.disableHZBOcclusionCull = true
         let (entity, component, table) = try loadChunkedEntity()
         placeGaussianTestCamera(eye: cameras[0].eye, target: cameras[0].target)
-        let camera = try XCTUnwrap(CameraSystem.shared.activeCamera)
-        let cameraComponent = try XCTUnwrap(scene.get(component: CameraComponent.self, for: camera))
-        let world = try XCTUnwrap(scene.get(component: WorldTransformComponent.self, for: entity))
-        let viewMatrix = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
-        let lookingAt = simd_mul(renderInfo.perspectiveSpace, simd_mul(viewMatrix, world.space))
+        let lookingAt = try headViewProjection(entity: entity)
         let legacy = try legacySurvivors(component)
         XCTAssertGreaterThan(legacy.count, 0)
-
-        // The turned camera's view-projection (the asset behind it), without moving the active camera.
-        let awayEntity = createEntity()
-        defer { destroyEntity(entityId: awayEntity) }
-        _ = scene.assign(to: awayEntity, component: CameraComponent.self)
-        cameraLookAt(entityId: awayEntity, eye: cameras[0].eye, target: cameras[0].eye * 2, up: simd_float3(0, 1, 0))
-        let awayView = try XCTUnwrap(scene.get(component: CameraComponent.self, for: awayEntity)).viewSpace
-        let lookingAway = simd_mul(renderInfo.perspectiveSpace, simd_mul(awayView, world.space))
+        let lookingAway = try lookingAwayViewProjection(entity: entity)
         XCTAssertEqual(expectedVisibleChunks(table, viewProjections: [lookingAway]).count, 0, "sanity — nothing is in front of the turned camera")
 
-        var uniforms = Uniforms()
-        uniforms.modelMatrix = world.space
-        uniforms.viewMatrix = viewMatrix
-        uniforms.modelViewMatrix = simd_mul(viewMatrix, world.space)
-        uniforms.projectionMatrix = renderInfo.perspectiveSpace
-        var entityConstants = GaussianPreprocessEntityConstants()
-        entityConstants.workingSetCapacity = UInt32(GaussianSharedWorkingSet.shared.capacity)
-        entityConstants.colorGain = simd_float4(1, 1, 1, 1)
-        entityConstants.opacityScale = 1
-        var constants = gaussianChunkCullConstants(chunkTable: table, modelMatrix: world.space, viewMatrix: viewMatrix, hzbValid: false, forceAllVisible: false)
-        constants.viewProjection0 = lookingAway
-        constants.viewProjection1 = lookingAt
-        constants.viewCount = 2
-
-        let pipelines = try XCTUnwrap(GaussianChunkCullPipelineStates.current())
-        let workingSet = GaussianSharedWorkingSet.shared
-        let sharedSlot = min(renderInfo.currentInFlightFrameSlot, maxInFlightCommandBuffers - 1)
-        let sharedSet = try XCTUnwrap(workingSet.visibleSet(slot: sharedSlot))
-        let packedSplats = try XCTUnwrap(component.packedSplatData)
-        let slot = 0
-
-        func fusedSurvivors(_ constants: GaussianChunkCullConstants) throws -> [UInt32] {
-            // The chunk cull with the same two views lists the chunks; the fused pass follows.
-            _ = try cullChunks(table, constants: constants)
-            sharedSet.contents().storeBytes(of: makeGaussianVisibleSet(visibleCount: 0), as: GaussianVisibleSet.self)
-            let inputs = GaussianChunkPreprocessInputs(
-                packedSplats: packedSplats,
-                chunkTable: table,
-                visibleChunks: table.visibleChunks[slot],
-                uniforms: uniforms,
-                cullConstants: constants,
-                viewport: renderInfo.viewPort ?? simd_float2(1, 1),
-                sphericalHarmonics: component.sphericalHarmonicsData,
-                shMetadata: component.sphericalHarmonicsMetadata ?? GaussianSHMetadata(degree: 0, coefficientsPerChannel: 0, higherOrderCoefficientsPerSplat: 0, _pad0: 0),
-                localCameraPosition: gaussianLocalCameraPosition(cameraWorldPosition: SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition), modelMatrix: world.space),
-                entityConstants: entityConstants,
-                hzbTexture: textureResources.depthMap
-            )
-            runSynchronously { commandBuffer in
-                guard let encoder = commandBuffer.makeComputeCommandEncoder() else { return }
-                encodeGaussianChunkDecodePreprocess(
-                    encoder,
-                    pipelineState: pipelines.decodePreprocess,
-                    inputs: inputs,
-                    chunkSet: table.visibleChunkSets[slot],
-                    sharedRecords: workingSet.records(slot: sharedSlot)!,
-                    sharedKeys: workingSet.keys(slot: sharedSlot)!,
-                    sharedVisibleSet: sharedSet
-                )
-                encoder.endEncoding()
-            }
-            return try XCTUnwrap(indexResolver).indices(of: sharedGaussianRecords())
-        }
-
-        let eitherEye = try fusedSurvivors(constants)
+        var constants = try stereoConstants(table: table, entity: entity, eye0: lookingAway, eye1: lookingAt)
+        let eitherEye = try fusedPassSurvivors(entity: entity, component: component, table: table, constants: constants)
         XCTAssertEqual(Set(eitherEye), Set(legacy), "with eye 0 seeing nothing the fused pass keeps every splat eye 1 sees")
         XCTAssertEqual(eitherEye.count, legacy.count)
 
         constants.viewCount = 1
-        XCTAssertEqual(try fusedSurvivors(constants).count, 0, "eye 0 alone, looking away, keeps nothing")
+        XCTAssertEqual(try fusedPassSurvivors(entity: entity, component: component, table: table, constants: constants).count, 0, "eye 0 alone, looking away, keeps nothing")
+    }
+
+    /// Mirrored: eye 0 at the asset, eye 1 away. Eye 0's matrix alone decides, so a stereo
+    /// branch that only read eye 1 would keep nothing here — for the chunk kernel and the fused
+    /// pass. In mono (viewCount 1) the head-centre uniforms decide and the eye matrices are
+    /// ignored.
+    func testFusedPassKeepsASplatOnlyEyeZeroSees() throws {
+        GaussianDebugOptions.shared.disableHZBOcclusionCull = true
+        let (entity, component, table) = try loadChunkedEntity()
+        placeGaussianTestCamera(eye: cameras[0].eye, target: cameras[0].target)
+        let lookingAt = try headViewProjection(entity: entity)
+        let legacy = try legacySurvivors(component)
+        XCTAssertGreaterThan(legacy.count, 0)
+        let lookingAway = try lookingAwayViewProjection(entity: entity)
+        let seenByEye0 = expectedVisibleChunks(table, viewProjections: [lookingAt])
+        XCTAssertEqual(seenByEye0.count, expectedChunkCount)
+
+        var constants = try stereoConstants(table: table, entity: entity, eye0: lookingAt, eye1: lookingAway)
+        XCTAssertEqual(try cullChunks(table, constants: constants).chunks, seenByEye0, "the chunk kernel keeps every chunk eye 0 sees although eye 1 sees none")
+        let eitherEye = try fusedPassSurvivors(entity: entity, component: component, table: table, constants: constants)
+        XCTAssertEqual(Set(eitherEye), Set(legacy), "with eye 1 seeing nothing the fused pass keeps every splat eye 0 sees")
+        XCTAssertEqual(eitherEye.count, legacy.count)
+
+        // Mono with the eye matrices swapped to the away view: the head-centre uniforms decide.
+        constants.viewProjection0 = lookingAway
+        constants.viewProjection1 = lookingAway
+        constants.viewCount = 1
+        var forced = constants
+        forced.forceAllVisible = 1
+        XCTAssertEqual(try Set(fusedPassSurvivors(entity: entity, component: component, table: table, constants: forced)), Set(legacy), "in mono the fused pass tests against the head-centre uniforms, not the eye matrices")
+    }
+
+    /// Two eyes that each miss part of the asset — the corner view and the −x view — keep the
+    /// union of what each keeps alone, strictly more than either: on the chunk kernel against the
+    /// CPU mirror, and on the fused pass against the whole-buffer path run at each view.
+    func testStereoKeepsTheUnionOfTwoPartialViews() throws {
+        GaussianDebugOptions.shared.disableHZBOcclusionCull = true
+        let (entity, component, table) = try loadChunkedEntity()
+
+        placeGaussianTestCamera(eye: cameras[1].eye, target: cameras[1].target)
+        let cornerViewProjection = try headViewProjection(entity: entity)
+        let cornerLegacy = try Set(legacySurvivors(component))
+        // The −x view is the head-centre view the fused pass projects with; its splats all lie
+        // in front of both cameras, so either can be the head.
+        placeGaussianTestCamera(eye: cameras[2].eye, target: cameras[2].target)
+        let sideViewProjection = try headViewProjection(entity: entity)
+        let sideLegacy = try Set(legacySurvivors(component))
+        XCTAssertFalse(cornerLegacy.isSubset(of: sideLegacy), "sanity — the corner view keeps splats the −x view culls")
+        XCTAssertFalse(sideLegacy.isSubset(of: cornerLegacy), "sanity — and the other way round")
+
+        let cornerChunks = expectedVisibleChunks(table, viewProjections: [cornerViewProjection])
+        let sideChunks = expectedVisibleChunks(table, viewProjections: [sideViewProjection])
+        let unionChunks = expectedVisibleChunks(table, viewProjections: [cornerViewProjection, sideViewProjection])
+        XCTAssertEqual(unionChunks, cornerChunks.union(sideChunks))
+        XCTAssertGreaterThan(unionChunks.count, max(cornerChunks.count, sideChunks.count), "sanity — each view misses a chunk the other keeps")
+
+        let constants = try stereoConstants(table: table, entity: entity, eye0: cornerViewProjection, eye1: sideViewProjection)
+        XCTAssertEqual(try cullChunks(table, constants: constants).chunks, unionChunks, "the chunk kernel keeps the union of the two eyes")
+        let survivors = try fusedPassSurvivors(entity: entity, component: component, table: table, constants: constants)
+        XCTAssertEqual(Set(survivors), cornerLegacy.union(sideLegacy), "the fused pass keeps the union of what the whole-buffer path keeps at each eye")
+        XCTAssertEqual(survivors.count, cornerLegacy.union(sideLegacy).count, "each once")
+        XCTAssertGreaterThan(survivors.count, max(cornerLegacy.count, sideLegacy.count))
+
+        // Swapping the eyes changes nothing.
+        let swapped = try stereoConstants(table: table, entity: entity, eye0: sideViewProjection, eye1: cornerViewProjection)
+        XCTAssertEqual(try cullChunks(table, constants: swapped).chunks, unionChunks)
+        XCTAssertEqual(try Set(fusedPassSurvivors(entity: entity, component: component, table: table, constants: swapped)), cornerLegacy.union(sideLegacy))
+    }
+
+    /// The HZB is the mono pyramid of the last eye drawn (eye 1), so in stereo only eye 1's
+    /// test samples it: a solid pyramid culls nothing eye 0 sees and everything eye 1 sees —
+    /// on the chunk kernel and the fused pass — while in mono it culls everything as before.
+    func testStereoSamplesTheHZBForEyeOneOnly() throws {
+        GaussianDebugOptions.shared.disableHZBOcclusionCull = true
+        let (entity, component, table) = try loadChunkedEntity()
+        placeGaussianTestCamera(eye: cameras[0].eye, target: cameras[0].target)
+        let lookingAt = try headViewProjection(entity: entity)
+        let legacyWithoutHZB = try Set(legacySurvivors(component))
+        XCTAssertGreaterThan(legacyWithoutHZB.count, 0)
+        let lookingAway = try lookingAwayViewProjection(entity: entity)
+        let allChunks = expectedVisibleChunks(table, viewProjections: [lookingAt])
+        XCTAssertEqual(allChunks.count, expectedChunkCount)
+
+        GaussianDebugOptions.shared.disableHZBOcclusionCull = false
+        try withInjectedHZB(depths: [nearDepth], valid: true) {
+            // Eye 0 sees the asset, eye 1 looks away: eye 0 decides by its frustum alone.
+            let eyeZeroSees = try stereoConstants(table: table, entity: entity, eye0: lookingAt, eye1: lookingAway, hzbValid: true)
+            XCTAssertEqual(eyeZeroSees.hzbValid, 1)
+            XCTAssertEqual(try cullChunks(table, constants: eyeZeroSees).chunks, allChunks, "the solid pyramid is not eye 0's: every chunk eye 0 sees survives")
+            XCTAssertEqual(try Set(fusedPassSurvivors(entity: entity, component: component, table: table, constants: eyeZeroSees)), legacyWithoutHZB, "and so does every splat eye 0 sees")
+
+            // Eye 0 looks away, eye 1 sees the asset behind the occluder: nothing survives.
+            let eyeOneSees = try stereoConstants(table: table, entity: entity, eye0: lookingAway, eye1: lookingAt, hzbValid: true)
+            XCTAssertEqual(try cullChunks(table, constants: eyeOneSees).chunks.count, 0, "eye 1's test samples the pyramid")
+            XCTAssertEqual(try fusedPassSurvivors(entity: entity, component: component, table: table, constants: eyeOneSees).count, 0)
+
+            // Mono: the head view is the pyramid's, and it culls everything.
+            var mono = eyeZeroSees
+            mono.viewCount = 1
+            XCTAssertEqual(try cullChunks(table, constants: mono).chunks.count, 0)
+            XCTAssertEqual(try fusedPassSurvivors(entity: entity, component: component, table: table, constants: mono).count, 0)
+        }
+    }
+
+    // MARK: - Spherical harmonics by original splat index
+
+    /// A synthetic asset with distinct degree-1 harmonics per splat in four chunks: for every
+    /// compacted splat the fused pass's colour is the whole-buffer path's for the same splat at
+    /// each of the three cameras (the harmonics are read by original index, so a chunk's second
+    /// splat does not get the first's), the colour is view-dependent, and the frames match.
+    func testFusedPassEvaluatesHarmonicsByOriginalSplatIndex() throws {
+        GaussianDebugOptions.shared.disableHZBOcclusionCull = true
+        GaussianDebugOptions.shared.disableChunkCull = false
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("GaussianChunkCullTest-SH-\(UUID().uuidString)")
+            .appendingPathExtension("untoldgs")
+        try GaussianSyntheticAsset.writeHarmonicsAsset(splatCount: 256, degree: 1, log2ChunkSplats: 6, to: url)
+        temporaryFiles.append(url)
+        let entity = createEntity()
+        setEntityGaussian(entityId: entity, filename: url.deletingPathExtension().path, withExtension: "untoldgs")
+        let component = try XCTUnwrap(scene.get(component: GaussianComponent.self, for: entity))
+        let table = try XCTUnwrap(component.chunkTable)
+        XCTAssertEqual(table.chunkCount, 4)
+        XCTAssertTrue(table.index.chunks.dropLast().allSatisfy { $0.splatCount == 64 })
+        let metadata = try XCTUnwrap(component.sphericalHarmonicsMetadata, "the load keeps the harmonics")
+        XCTAssertEqual(metadata.degree, 1)
+        XCTAssertEqual(try XCTUnwrap(component.sphericalHarmonicsData).length, 256 * 9)
+        legacyTwin = try GaussianLegacyTwin(loaded: GaussianChunkLoader.load(url: url))
+        XCTAssertNotNil(legacyTwin?.result.sphericalHarmonicsBuffer)
+        indexResolver = try GaussianSplatIndexResolver(positions: UntoldGSFormat.read(from: url).encodedSplats.map(\.position))
+
+        func coloursByIndex() throws -> [UInt32: simd_float3] {
+            let records = sharedGaussianRecords()
+            let indices = try XCTUnwrap(indexResolver).indices(of: records)
+            var colours: [UInt32: simd_float3] = [:]
+            for (record, index) in zip(records, indices) {
+                colours[index] = simd_float3(record.color.x, record.color.y, record.color.z)
+            }
+            XCTAssertEqual(colours.count, records.count, "each splat once")
+            return colours
+        }
+
+        var coloursPerCamera: [[UInt32: simd_float3]] = []
+        for (cameraIndex, camera) in cameras.enumerated() {
+            let cameraEntity = placeGaussianTestCamera(eye: camera.eye, target: camera.target)
+            defer { destroyEntity(entityId: cameraEntity) }
+
+            runGaussianCullAndPreprocess()
+            let fused = try coloursByIndex()
+            let legacy = try XCTUnwrap(legacyTwin).withLegacyBuffers(component) {
+                runGaussianCullAndPreprocess()
+                return try coloursByIndex()
+            }
+            XCTAssertGreaterThan(fused.count, 10, "camera \(cameraIndex): sanity — part of the cloud is in view")
+            XCTAssertEqual(Set(fused.keys), Set(legacy.keys), "camera \(cameraIndex): the same splats")
+            var maxDelta: Float = 0
+            for (index, colour) in fused {
+                guard let expected = legacy[index] else { continue }
+                maxDelta = max(maxDelta, simd_reduce_max(abs(colour - expected)))
+            }
+            XCTAssertLessThanOrEqual(maxDelta, 1e-3, "camera \(cameraIndex): the fused pass reads each splat's harmonics by its original index — largest channel difference \(maxDelta)")
+            coloursPerCamera.append(fused)
+
+            _ = renderGaussianSplatLayer()
+            let chunked = renderGaussianSplatLayer()
+            let (kernel, _) = try legacyFrame(component)
+            let quality = compareGaussianSplatLayers(chunked, kernel)
+            XCTAssertGreaterThan(quality.covered, 500, "camera \(cameraIndex): sanity — the cloud covers part of the frame")
+            XCTAssertLessThanOrEqual(quality.differingPixels, 50, "camera \(cameraIndex): \(quality.differingPixels) of \(quality.covered) covered pixels differ by more than one 8-bit step from the whole-buffer path's frame")
+            XCTAssertGreaterThan(quality.psnr, 55, "camera \(cameraIndex): \(quality.psnr) dB over covered pixels")
+        }
+
+        // The harmonics do something: a splat's colour differs between the far and the −x view.
+        let shared = Set(coloursPerCamera[0].keys).intersection(coloursPerCamera[2].keys)
+        XCTAssertGreaterThan(shared.count, 30)
+        let viewDependent = shared.filter { simd_reduce_max(abs(coloursPerCamera[0][$0]! - coloursPerCamera[2][$0]!)) > 1e-3 }
+        XCTAssertGreaterThan(viewDependent.count, shared.count / 2, "the colour is view-dependent for most splats, so the oracle is not the base colour")
     }
 
     // MARK: - (f) The HZB part of the chunk test
@@ -979,6 +1176,6 @@ final class GaussianChunkCullTest: BaseRenderSetup {
         XCTAssertEqual(MemoryLayout<GaussianChunkCullConstants>.stride, 176)
         XCTAssertEqual(MemoryLayout<GaussianVisibleChunk>.stride, 16)
         XCTAssertEqual(MemoryLayout<GaussianBudgetState>.stride, 32)
-        XCTAssertEqual(MemoryLayout<GaussianBudgetScaleConstants>.stride, 16)
+        XCTAssertEqual(MemoryLayout<GaussianBudgetScaleConstants>.stride, 32)
     }
 }
