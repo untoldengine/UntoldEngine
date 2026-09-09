@@ -51,6 +51,8 @@ using namespace metal;
 #include "../Shaders/DeviceRadixSort.metal"
 #include "../Shaders/Gaussians.metal"
 #include "../Shaders/GaussianChunkCull.metal"
+#include "../Shaders/GaussianChunkPreprocess.metal"
+#include "../Shaders/GaussianWorkingSetBudget.metal"
 
 // Shaders used by editor when in edit mode- These pipeline is ignored by iOS since iOS will never be in edit mode
 #include "../Shaders/OutlineShader.metal"

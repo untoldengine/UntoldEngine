@@ -2,10 +2,12 @@
 //  GaussianChunkCull.swift
 //  UntoldEngine
 //
-//  CPU side of the chunk-level cull of .untoldgs entities (GaussianChunkCull.metal): the
-//  per-slot buffers a chunked entity carries, the per-frame constants, the encode of the three
-//  chunk dispatches, and a CPU mirror of the chunk test for tests and callers that want to
-//  predict what the GPU keeps.
+//  CPU side of the per-chunk path of .untoldgs entities: the chunk-level cull
+//  (GaussianChunkCull.metal), the working-set budget and its per-chunk quotas
+//  (GaussianWorkingSetBudget.metal) and the fused decode/test/project/compact pass
+//  (GaussianChunkPreprocess.metal) — the per-slot buffers a chunked entity carries, the
+//  per-frame constants, the encodes, and CPU mirrors of the chunk test, the quota and the
+//  opacity band for tests and callers that want to predict what the GPU keeps.
 //
 // Copyright (C) Untold Engine Studios
 //
@@ -30,6 +32,16 @@ let gaussianCullClipGuardBand: Float = 0.25
 
 /// NDC depth bias of the HZB tests, shared by the mesh cull, the per-splat cull and the chunk cull.
 let gaussianCullHZBOcclusionBias: Float = 0.02
+
+/// Mirrors `kGaussianOpacityBandFraction` (GaussianChunkPreprocess.metal): the ranks of a
+/// truncated chunk from this fraction of its quota up to the quota fade linearly to zero.
+let gaussianOpacityBandFraction: Float = 0.8
+
+/// The fraction of the working set the quotas aim for, leaving room for the frame's rounding.
+let gaussianBudgetHeadroom: Float = 0.98
+
+/// The largest relative change of the budget scale from one frame to the next.
+let gaussianBudgetMaxStepFraction: Float = 0.1
 
 /// CPU mirror of the chunk test in `gaussianChunkCull` (GaussianChunkCull.metal), without the
 /// HZB part: the chunk's centre AABB padded by `extentPadding(logScaleMax:)` on every side,
@@ -106,6 +118,38 @@ enum GaussianChunkCullMath {
             clipGuardBand: clipGuardBand
         )
     }
+
+    // MARK: Budget mirrors (GaussianWorkingSetBudget.metal, GaussianChunkPreprocess.metal)
+
+    /// The scale a frame targets: 1 while the request fits the budget, else the fraction of every
+    /// visible chunk that fits it with the headroom.
+    static func targetScale(requestedSplats: Int, budget: Int, headroom: Float = gaussianBudgetHeadroom) -> Float {
+        guard requestedSplats > budget else { return 1 }
+        return min(1, headroom * Float(budget) / Float(requestedSplats))
+    }
+
+    /// The scale applied after the hysteresis: the target, moved from the previous frame's scale
+    /// by at most `maxStepFraction` of it; the first frame takes the target.
+    static func smoothedScale(target: Float, previous: Float?, maxStepFraction: Float = gaussianBudgetMaxStepFraction) -> Float {
+        guard let previous else { return target }
+        let clamped = min(max(previous, 0), 1)
+        let step = max(clamped * maxStepFraction, 1e-4)
+        return min(max(target, clamped - step), clamped + step)
+    }
+
+    /// A visible chunk's quota at `scale`: floor(scale × splatCount), never above the count.
+    static func quota(scale: Float, splatCount: UInt32) -> UInt32 {
+        guard scale < 1 else { return splatCount }
+        return min(splatCount, UInt32(max(0, floor(scale * Float(splatCount)))))
+    }
+
+    /// The opacity multiplier of rank `rank` in a chunk granted `quota` of its `splatCount`.
+    static func opacityBandFactor(rank: UInt32, quota: UInt32, splatCount: UInt32) -> Float {
+        guard quota < splatCount else { return 1 }
+        let bandStart = UInt32(gaussianOpacityBandFraction * Float(quota))
+        guard rank >= bandStart, quota > bandStart else { return 1 }
+        return Float(quota - rank) / Float(quota - bandStart)
+    }
 }
 
 /// The visible-chunk record with `visibleChunks` chunks holding `visibleSplats` splats counted as
@@ -128,7 +172,7 @@ func makeGaussianVisibleChunkSet(visibleChunks: UInt32, visibleSplats: UInt32) -
 func allocateGaussianVisibleChunkBuffers(for table: GaussianChunkTable) -> GaussianChunkTable? {
     guard let device = renderInfo.device else { return nil }
     let entries: [GaussianVisibleChunk] = table.index.chunks.enumerated().map { index, chunk in
-        GaussianVisibleChunk(chunkIndex: UInt32(index), splatCount: chunk.splatCount)
+        GaussianVisibleChunk(chunkIndex: UInt32(index), splatCount: chunk.splatCount, quota: chunk.splatCount, _pad0: 0)
     }
     let splatTotal = entries.reduce(UInt32(0)) { $0 &+ $1.splatCount }
     let listLength = max(1, entries.count) * MemoryLayout<GaussianVisibleChunk>.stride
@@ -155,25 +199,47 @@ func allocateGaussianVisibleChunkBuffers(for table: GaussianChunkTable) -> Gauss
     return result
 }
 
-/// The compiled chunk-cull kernels, or nil while any of them is missing (the chunked entity then
-/// takes the whole-buffer per-splat path).
+/// The compiled kernels of the per-chunk path, or nil while any of them is missing (a `.untoldgs`
+/// is then decoded at load into the whole-buffer path like a `.ply`).
 struct GaussianChunkCullPipelineStates {
     let reset: MTLComputePipelineState
     let cull: MTLComputePipelineState
     let finalize: MTLComputePipelineState
-    let splatCull: MTLComputePipelineState
+    /// `gaussianChunkDecodePreprocess`: the fused decode, test, project and compact.
+    let decodePreprocess: MTLComputePipelineState
+    let resetBudget: MTLComputePipelineState
+    let budgetScale: MTLComputePipelineState
+    let chunkQuotas: MTLComputePipelineState
+    let publishBudget: MTLComputePipelineState
 
     static func current() -> GaussianChunkCullPipelineStates? {
         guard gaussianResetVisibleChunkSetPipeline.success,
               gaussianChunkCullPipeline.success,
               gaussianFinalizeVisibleChunksPipeline.success,
-              gaussianChunkSplatCullPipeline.success,
+              gaussianChunkDecodePreprocessPipeline.success,
+              gaussianResetBudgetRequestPipeline.success,
+              gaussianComputeBudgetScalePipeline.success,
+              gaussianComputeChunkQuotasPipeline.success,
+              gaussianPublishBudgetStatePipeline.success,
               let reset = gaussianResetVisibleChunkSetPipeline.pipelineState,
               let cull = gaussianChunkCullPipeline.pipelineState,
               let finalize = gaussianFinalizeVisibleChunksPipeline.pipelineState,
-              let splatCull = gaussianChunkSplatCullPipeline.pipelineState
+              let decodePreprocess = gaussianChunkDecodePreprocessPipeline.pipelineState,
+              let resetBudget = gaussianResetBudgetRequestPipeline.pipelineState,
+              let budgetScale = gaussianComputeBudgetScalePipeline.pipelineState,
+              let chunkQuotas = gaussianComputeChunkQuotasPipeline.pipelineState,
+              let publishBudget = gaussianPublishBudgetStatePipeline.pipelineState
         else { return nil }
-        return GaussianChunkCullPipelineStates(reset: reset, cull: cull, finalize: finalize, splatCull: splatCull)
+        return GaussianChunkCullPipelineStates(
+            reset: reset,
+            cull: cull,
+            finalize: finalize,
+            decodePreprocess: decodePreprocess,
+            resetBudget: resetBudget,
+            budgetScale: budgetScale,
+            chunkQuotas: chunkQuotas,
+            publishBudget: publishBudget
+        )
     }
 }
 
@@ -234,14 +300,16 @@ func gaussianChunkCullConstants(
 }
 
 /// Encodes one entity's chunk cull for one in-flight slot on an open compute encoder: reset the
-/// record, one thread per chunk, finalize into indirect arguments. Serial on the encoder, so
-/// the per-splat dispatch that follows sees the final list. Returns the dispatch count.
+/// record, one thread per chunk, finalize into indirect arguments and add the entity's visible
+/// splat total to `budgetState`'s request. Serial on the encoder, so the quota and fused
+/// dispatches that follow see the final list. Returns the dispatch count.
 func encodeGaussianChunkCull(
     _ encoder: MTLComputeCommandEncoder,
     pipelines: GaussianChunkCullPipelineStates,
     chunkTable: GaussianChunkTable,
     visibleChunks: MTLBuffer,
     chunkSet: MTLBuffer,
+    budgetState: MTLBuffer,
     constants: GaussianChunkCullConstants,
     hzbTexture: MTLTexture?
 ) -> Int {
@@ -269,13 +337,151 @@ func encodeGaussianChunkCull(
 
     encoder.setComputePipelineState(pipelines.finalize)
     encoder.setBuffer(chunkSet, offset: 0, index: Int(gaussianVisibleCountIndex.rawValue))
+    encoder.setBuffer(budgetState, offset: 0, index: Int(gaussianChunkCullBudgetStateIndex.rawValue))
     encoder.dispatchThreadgroups(MTLSizeMake(1, 1, 1), threadsPerThreadgroup: MTLSizeMake(1, 1, 1))
 
     return 3
 }
 
-/// Threads per threadgroup of `gaussianChunkSplatCull`: one threadgroup covers one chunk, striding
-/// when the chunk holds more splats than the pipeline allows per group.
-func gaussianChunkSplatCullThreadsPerThreadgroup(chunkTable: GaussianChunkTable, pipelineState: MTLComputePipelineState) -> Int {
+/// Encodes an empty visible-chunk record for one entity — reset and finalize, no cull — so a
+/// hidden entity (opacityScale 0) lists no chunk, asks nothing of the budget and dispatches no
+/// threadgroup of the fused pass. Returns the dispatch count.
+func encodeGaussianEmptyChunkSet(
+    _ encoder: MTLComputeCommandEncoder,
+    pipelines: GaussianChunkCullPipelineStates,
+    chunkSet: MTLBuffer,
+    budgetState: MTLBuffer
+) -> Int {
+    encoder.setComputePipelineState(pipelines.reset)
+    encoder.setBuffer(chunkSet, offset: 0, index: Int(gaussianVisibleCountIndex.rawValue))
+    encoder.dispatchThreadgroups(MTLSizeMake(1, 1, 1), threadsPerThreadgroup: MTLSizeMake(1, 1, 1))
+    encoder.setComputePipelineState(pipelines.finalize)
+    encoder.setBuffer(chunkSet, offset: 0, index: Int(gaussianVisibleCountIndex.rawValue))
+    encoder.setBuffer(budgetState, offset: 0, index: Int(gaussianChunkCullBudgetStateIndex.rawValue))
+    encoder.dispatchThreadgroups(MTLSizeMake(1, 1, 1), threadsPerThreadgroup: MTLSizeMake(1, 1, 1))
+    return 2
+}
+
+// MARK: - Budget and quotas
+
+/// The scale kernel's inputs for a frame whose shared set holds `budget` records.
+func gaussianBudgetScaleConstants(budget: Int, forceUnitScale: Bool = GaussianDebugOptions.shared.disableWorkingSetBudget) -> GaussianBudgetScaleConstants {
+    var constants = GaussianBudgetScaleConstants()
+    constants.budget = UInt32(max(0, min(budget, Int(UInt32.max))))
+    constants.forceUnitScale = forceUnitScale ? 1 : 0
+    constants.headroom = gaussianBudgetHeadroom
+    constants.maxStepFraction = gaussianBudgetMaxStepFraction
+    return constants
+}
+
+/// Zeroes the frame's request and grant counters, before any entity's chunk cull. One dispatch.
+func encodeGaussianBudgetReset(_ encoder: MTLComputeCommandEncoder, pipelines: GaussianChunkCullPipelineStates, budgetState: MTLBuffer) {
+    encoder.setComputePipelineState(pipelines.resetBudget)
+    encoder.setBuffer(budgetState, offset: 0, index: Int(gaussianBudgetStateIndex.rawValue))
+    encoder.dispatchThreadgroups(MTLSizeMake(1, 1, 1), threadsPerThreadgroup: MTLSizeMake(1, 1, 1))
+}
+
+/// Turns the frame's request into its scale, after every entity's chunk cull. One dispatch.
+func encodeGaussianBudgetScale(_ encoder: MTLComputeCommandEncoder, pipelines: GaussianChunkCullPipelineStates, budgetState: MTLBuffer, constants: GaussianBudgetScaleConstants) {
+    var constants = constants
+    encoder.setComputePipelineState(pipelines.budgetScale)
+    encoder.setBuffer(budgetState, offset: 0, index: Int(gaussianBudgetStateIndex.rawValue))
+    encoder.setBytes(&constants, length: MemoryLayout<GaussianBudgetScaleConstants>.stride, index: Int(gaussianBudgetScaleConstantsIndex.rawValue))
+    encoder.dispatchThreadgroups(MTLSizeMake(1, 1, 1), threadsPerThreadgroup: MTLSizeMake(1, 1, 1))
+}
+
+/// Grants one entity's visible chunks their quotas at the frame's scale, after the scale
+/// dispatch: one threadgroup striding over the visible-chunk list. One dispatch.
+func encodeGaussianChunkQuotas(
+    _ encoder: MTLComputeCommandEncoder,
+    pipelines: GaussianChunkCullPipelineStates,
+    chunkTable: GaussianChunkTable,
+    visibleChunks: MTLBuffer,
+    chunkSet: MTLBuffer,
+    budgetState: MTLBuffer
+) {
+    encoder.setComputePipelineState(pipelines.chunkQuotas)
+    encoder.setBuffer(chunkSet, offset: 0, index: Int(gaussianBudgetChunkSetIndex.rawValue))
+    encoder.setBuffer(visibleChunks, offset: 0, index: Int(gaussianBudgetVisibleChunksIndex.rawValue))
+    encoder.setBuffer(budgetState, offset: 0, index: Int(gaussianBudgetStateIndex.rawValue))
+    // quotaSplats is the state's second word — see GaussianBudgetState.
+    encoder.setBuffer(budgetState, offset: MemoryLayout<UInt32>.stride, index: Int(gaussianBudgetQuotaTotalIndex.rawValue))
+    let tew = pipelines.chunkQuotas.threadExecutionWidth
+    let threads = max(min(chunkTable.chunkCount, pipelines.chunkQuotas.maxTotalThreadsPerThreadgroup) / tew * tew, tew)
+    encoder.dispatchThreadgroups(MTLSizeMake(1, 1, 1), threadsPerThreadgroup: MTLSizeMake(threads, 1, 1))
+}
+
+/// Copies the frame's final budget state into `readback` for the CPU. One dispatch.
+func encodeGaussianBudgetPublish(_ encoder: MTLComputeCommandEncoder, pipelines: GaussianChunkCullPipelineStates, budgetState: MTLBuffer, readback: MTLBuffer) {
+    encoder.setComputePipelineState(pipelines.publishBudget)
+    encoder.setBuffer(budgetState, offset: 0, index: Int(gaussianBudgetStateIndex.rawValue))
+    encoder.setBuffer(readback, offset: 0, index: Int(gaussianBudgetReadbackIndex.rawValue))
+    encoder.dispatchThreadgroups(MTLSizeMake(1, 1, 1), threadsPerThreadgroup: MTLSizeMake(1, 1, 1))
+}
+
+// MARK: - Fused decode and preprocess
+
+/// The per-entity inputs of `gaussianChunkDecodePreprocess` beyond the shared working set.
+struct GaussianChunkPreprocessInputs {
+    var packedSplats: MTLBuffer
+    var chunkTable: GaussianChunkTable
+    var visibleChunks: MTLBuffer
+    var uniforms: Uniforms
+    var cullConstants: GaussianChunkCullConstants
+    var viewport: simd_float2
+    var sphericalHarmonics: MTLBuffer?
+    var shMetadata: GaussianSHMetadata
+    var localCameraPosition: simd_float3
+    var entityConstants: GaussianPreprocessEntityConstants
+    var hzbTexture: MTLTexture?
+}
+
+/// Threads per threadgroup of the fused pass: one threadgroup covers one chunk, striding when
+/// the chunk holds more splats than the pipeline allows per group.
+func gaussianChunkPreprocessThreadsPerThreadgroup(chunkTable: GaussianChunkTable, pipelineState: MTLComputePipelineState) -> Int {
     max(1, min(chunkTable.splatsPerChunk, pipelineState.maxTotalThreadsPerThreadgroup))
+}
+
+/// Binds the fused pass for one entity and dispatches it: one threadgroup per visible chunk,
+/// indirect from `chunkSet`'s dispatch arguments, or `threadgroups` direct dispatches when a
+/// test drives it by hand. `threadsPerThreadgroup` defaults to the chunk width.
+func encodeGaussianChunkDecodePreprocess(
+    _ encoder: MTLComputeCommandEncoder,
+    pipelineState: MTLComputePipelineState,
+    inputs: GaussianChunkPreprocessInputs,
+    chunkSet: MTLBuffer,
+    sharedRecords: MTLBuffer,
+    sharedKeys: MTLBuffer,
+    sharedVisibleSet: MTLBuffer,
+    threadsPerThreadgroup: Int? = nil,
+    threadgroups: Int? = nil
+) {
+    var inputs = inputs
+    encoder.setComputePipelineState(pipelineState)
+    encoder.setBuffer(inputs.packedSplats, offset: 0, index: Int(gaussianChunkPreprocessPackedIndex.rawValue))
+    encoder.setBuffer(inputs.chunkTable.constantsBuffer, offset: 0, index: Int(gaussianChunkPreprocessChunkTableIndex.rawValue))
+    encoder.setBuffer(inputs.visibleChunks, offset: 0, index: Int(gaussianChunkPreprocessVisibleChunksIndex.rawValue))
+    encoder.setBytes(&inputs.uniforms, length: MemoryLayout<Uniforms>.stride, index: Int(gaussianChunkPreprocessUniformIndex.rawValue))
+    encoder.setBytes(&inputs.cullConstants, length: MemoryLayout<GaussianChunkCullConstants>.stride, index: Int(gaussianChunkPreprocessCullConstantsIndex.rawValue))
+    encoder.setBytes(&inputs.viewport, length: MemoryLayout<simd_float2>.stride, index: Int(gaussianChunkPreprocessViewportIndex.rawValue))
+    // Without harmonics the metadata's degree is 0 and the kernel never reads the buffer.
+    encoder.setBuffer(inputs.sphericalHarmonics ?? inputs.packedSplats, offset: 0, index: Int(gaussianChunkPreprocessSHIndex.rawValue))
+    encoder.setBytes(&inputs.shMetadata, length: MemoryLayout<GaussianSHMetadata>.stride, index: Int(gaussianChunkPreprocessSHMetadataIndex.rawValue))
+    encoder.setBytes(&inputs.localCameraPosition, length: MemoryLayout<simd_float3>.stride, index: Int(gaussianChunkPreprocessLocalCameraIndex.rawValue))
+    encoder.setBytes(&inputs.entityConstants, length: MemoryLayout<GaussianPreprocessEntityConstants>.stride, index: Int(gaussianChunkPreprocessEntityConstantsIndex.rawValue))
+    encoder.setBuffer(sharedRecords, offset: 0, index: Int(gaussianChunkPreprocessWorkingSetIndex.rawValue))
+    encoder.setBuffer(sharedKeys, offset: 0, index: Int(gaussianChunkPreprocessSharedKeysIndex.rawValue))
+    encoder.setBuffer(sharedVisibleSet, offset: 0, index: Int(gaussianChunkPreprocessSharedVisibleSetIndex.rawValue))
+    encoder.setTexture(inputs.hzbTexture, index: Int(gaussianChunkPreprocessHZBDepthPyramidTextureIndex.rawValue))
+
+    let threads = threadsPerThreadgroup ?? gaussianChunkPreprocessThreadsPerThreadgroup(chunkTable: inputs.chunkTable, pipelineState: pipelineState)
+    if let threadgroups {
+        encoder.dispatchThreadgroups(MTLSizeMake(threadgroups, 1, 1), threadsPerThreadgroup: MTLSizeMake(threads, 1, 1))
+    } else {
+        encoder.dispatchThreadgroups(
+            indirectBuffer: chunkSet,
+            indirectBufferOffset: Int(gaussianVisibleSetDispatchArgumentsOffset),
+            threadsPerThreadgroup: MTLSizeMake(threads, 1, 1)
+        )
+    }
 }

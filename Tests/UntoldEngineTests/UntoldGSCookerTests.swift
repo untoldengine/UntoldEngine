@@ -91,8 +91,8 @@ final class UntoldGSCookerTests: XCTestCase {
     }
 
     func testSplatBudgetPresetsMatchTheRuntimeLimits() {
-        XCTAssertEqual(UntoldGSCookOptions.splatBudgetMobile, 5_242_880)
-        XCTAssertEqual(UntoldGSCookOptions.splatBudgetMac, 16_777_216)
+        XCTAssertEqual(UntoldGSCookOptions.splatBudgetMobile, 20_000_000)
+        XCTAssertEqual(UntoldGSCookOptions.splatBudgetMac, 40_000_000)
         #if os(macOS)
             XCTAssertEqual(GaussianRuntimeLimits.maxSplatsPerEntity, GaussianRuntimeLimits.maxSplatsPerEntityMac)
         #else

@@ -2,14 +2,16 @@
 //  GaussianChunkCullTest.swift
 //  UntoldEngine
 //
-//  The chunk-level cull of .untoldgs entities (GaussianChunkCull.metal): the chunk table reaches
-//  the component, the GPU keeps exactly the chunks the CPU mirror predicts, the chunk path keeps
-//  exactly the splats the whole-buffer kernel keeps (an oracle that never runs the chunk code),
-//  the frame is the same with the chunk cull on and off and against the whole-buffer kernel, a
-//  partial view culls chunks, the per-splat pass strides correctly over a chunk wider than its
-//  threadgroup, the HZB part of the chunk test culls occluded chunks and only those, the extent
-//  padding keeps a chunk whose splats reach into the view, a stereo chunk survives when only one
-//  eye sees it, and a real stereo frame tests both eyes with the current scene root.
+//  The per-chunk path of .untoldgs entities (GaussianChunkCull.metal, GaussianChunkPreprocess.metal)
+//  with the budget unlimited: the chunk table and the packed records reach the component and
+//  nothing else per splat, the GPU keeps exactly the chunks the CPU mirror predicts, the fused
+//  pass compacts exactly the splats the whole-buffer path keeps (a legacy twin of the same file
+//  that never runs the chunk code), the frame is the same with the chunk cull on and off and
+//  against the whole-buffer path, a partial view culls chunks, the fused pass strides correctly
+//  over a chunk wider than its threadgroup, the HZB part of the chunk test culls occluded chunks
+//  and only those, the extent padding keeps a chunk whose splats reach into the view, a stereo
+//  chunk — and a stereo splat — survives when only one eye sees it, and a real stereo frame
+//  tests both eyes with the current scene root.
 //
 // Copyright (C) Untold Engine Studios
 //
@@ -28,6 +30,10 @@ final class GaussianChunkCullTest: BaseRenderSetup {
     private var temporaryFiles: [URL] = []
     private var savedDisableHZBOcclusionCull = false
     private var savedDisableChunkCull = false
+    private var savedWorkingSetOverride: Int?
+    /// The legacy twin of the last chunked load, and the CPU decode of its positions.
+    private var legacyTwin: GaussianLegacyTwin?
+    private var indexResolver: GaussianSplatIndexResolver?
 
     /// The 200-splat fixture baked with 16 splats per chunk: 13 chunks.
     private let expectedChunkCount = 13
@@ -48,11 +54,19 @@ final class GaussianChunkCullTest: BaseRenderSetup {
         try await super.setUp()
         savedDisableHZBOcclusionCull = GaussianDebugOptions.shared.disableHZBOcclusionCull
         savedDisableChunkCull = GaussianDebugOptions.shared.disableChunkCull
+        savedWorkingSetOverride = GaussianRuntimeLimits.workingSetSplatsOverride
+        // Budget unlimited for this suite: the default far exceeds the fixture, and the scale a
+        // previous test left behind must not linger through the hysteresis.
+        GaussianRuntimeLimits.workingSetSplatsOverride = nil
+        GaussianSharedWorkingSet.shared.resetBudgetHysteresis()
     }
 
     override func tearDown() async throws {
         GaussianDebugOptions.shared.disableHZBOcclusionCull = savedDisableHZBOcclusionCull
         GaussianDebugOptions.shared.disableChunkCull = savedDisableChunkCull
+        GaussianRuntimeLimits.workingSetSplatsOverride = savedWorkingSetOverride
+        legacyTwin = nil
+        indexResolver = nil
         destroyAllEntities()
         for url in temporaryFiles {
             try? FileManager.default.removeItem(at: url)
@@ -84,7 +98,36 @@ final class GaussianChunkCullTest: BaseRenderSetup {
         setEntityGaussian(entityId: entity, filename: url.deletingPathExtension().path, withExtension: "untoldgs")
         let component = try XCTUnwrap(scene.get(component: GaussianComponent.self, for: entity))
         let table = try XCTUnwrap(component.chunkTable, "a .untoldgs load keeps its chunk table")
+        XCTAssertTrue(component.isChunked)
+        legacyTwin = try GaussianLegacyTwin(loaded: GaussianChunkLoader.load(url: url))
+        indexResolver = try GaussianSplatIndexResolver(positions: UntoldGSFormat.read(from: url).encodedSplats.map(\.position))
         return (entity, component, table)
+    }
+
+    /// The asset indices of the splats the frame's cull and preprocess compacted into the shared
+    /// set for the current camera: the fused per-chunk pass for a chunked entity, the whole-buffer
+    /// kernels for a legacy one.
+    private func compactedSurvivors() throws -> [UInt32] {
+        runGaussianCullAndPreprocess()
+        let records = sharedGaussianRecords()
+        XCTAssertEqual(sharedGaussianVisibleCount(), records.count)
+        return try XCTUnwrap(indexResolver).indices(of: records)
+    }
+
+    /// The survivors of the whole-buffer path on the legacy twin of `component`'s file.
+    private func legacySurvivors(_ component: GaussianComponent) throws -> [UInt32] {
+        try XCTUnwrap(legacyTwin).withLegacyBuffers(component) {
+            try compactedSurvivors()
+        }
+    }
+
+    /// The whole-buffer path's frame for `component`, rendered twice so the HZB is its own.
+    private func legacyFrame(_ component: GaussianComponent) throws -> (image: [Float16], visible: Int) {
+        try XCTUnwrap(legacyTwin).withLegacyBuffers(component) {
+            _ = renderGaussianSplatLayer()
+            let image = renderGaussianSplatLayer()
+            return (image, sharedGaussianVisibleCount())
+        }
     }
 
     private func runSynchronously(_ encode: (MTLCommandBuffer) -> Void) {
@@ -99,15 +142,16 @@ final class GaussianChunkCullTest: BaseRenderSetup {
     }
 
     private func frameSlot(for component: GaussianComponent) -> Int {
-        min(renderInfo.currentInFlightFrameSlot, component.gaussianVisibleCount.count - 1)
+        let slots = component.chunkTable?.visibleChunkSets.count ?? component.gaussianVisibleCount.count
+        return min(renderInfo.currentInFlightFrameSlot, max(0, slots - 1))
     }
 
     /// The visible-chunk list and record of the current slot, as the GPU left them.
-    private func visibleChunkReadback(_ table: GaussianChunkTable, slot: Int) -> (chunks: Set<UInt32>, record: GaussianVisibleSet) {
+    private func visibleChunkReadback(_ table: GaussianChunkTable, slot: Int) -> (chunks: Set<UInt32>, record: GaussianVisibleSet, entries: [GaussianVisibleChunk]) {
         let record = table.visibleChunkSets[slot].contents().load(as: GaussianVisibleSet.self)
         let count = Int(record.threadgroupCount)
-        let entries = UnsafeBufferPointer(start: table.visibleChunks[slot].contents().bindMemory(to: GaussianVisibleChunk.self, capacity: count), count: count)
-        return (Set(entries.map(\.chunkIndex)), record)
+        let entries = Array(UnsafeBufferPointer(start: table.visibleChunks[slot].contents().bindMemory(to: GaussianVisibleChunk.self, capacity: count), count: count))
+        return (Set(entries.map(\.chunkIndex)), record, entries)
     }
 
     private func visibleSplatIndices(_ component: GaussianComponent, slot: Int) throws -> [UInt32] {
@@ -139,26 +183,6 @@ final class GaussianChunkCullTest: BaseRenderSetup {
             owner.append(contentsOf: repeatElement(UInt32(index), count: Int(entry.splatCount)))
         }
         return owner
-    }
-
-    /// Runs `body` with the entity's chunk table detached, so `executeGaussianFrustumCulling`
-    /// takes the whole-buffer `gaussianFrustumCull` over the same encoded buffer and per-slot
-    /// buffers — the kernel every .ply runs, an oracle that never executes the chunk code.
-    /// `disableChunkCull` is not that: it keeps the entity on the chunk path with every chunk
-    /// listed, so the per-splat kernel is still `gaussianChunkSplatCull`.
-    private func withLegacyKernel<T>(_ component: GaussianComponent, _ body: () throws -> T) rethrows -> T {
-        let table = component.chunkTable
-        component.chunkTable = nil
-        defer { component.chunkTable = table }
-        return try body()
-    }
-
-    /// The per-splat survivors of the whole-buffer kernel for the current camera.
-    private func legacyKernelSurvivors(_ component: GaussianComponent, slot: Int) throws -> [UInt32] {
-        try withLegacyKernel(component) {
-            runSynchronously { executeGaussianFrustumCulling($0) }
-            return try visibleSplatIndices(component, slot: slot)
-        }
     }
 
     /// The depth of an occluder right in front of the camera and of nothing at all, in the
@@ -231,8 +255,9 @@ final class GaussianChunkCullTest: BaseRenderSetup {
     }
 
     /// Encodes one chunk cull of `table` into slot 0 with `constants` and returns the record.
-    private func cullChunks(_ table: GaussianChunkTable, constants: GaussianChunkCullConstants) throws -> (chunks: Set<UInt32>, record: GaussianVisibleSet) {
+    private func cullChunks(_ table: GaussianChunkTable, constants: GaussianChunkCullConstants) throws -> (chunks: Set<UInt32>, record: GaussianVisibleSet, entries: [GaussianVisibleChunk]) {
         let pipelines = try XCTUnwrap(GaussianChunkCullPipelineStates.current())
+        let budgetState = try budgetStateBuffer()
         runSynchronously { commandBuffer in
             guard let encoder = commandBuffer.makeComputeCommandEncoder() else { return }
             _ = encodeGaussianChunkCull(
@@ -241,12 +266,19 @@ final class GaussianChunkCullTest: BaseRenderSetup {
                 chunkTable: table,
                 visibleChunks: table.visibleChunks[0],
                 chunkSet: table.visibleChunkSets[0],
+                budgetState: budgetState,
                 constants: constants,
                 hzbTexture: textureResources.depthMap
             )
             encoder.endEncoding()
         }
         return visibleChunkReadback(table, slot: 0)
+    }
+
+    /// The frame's persistent budget state, allocated with the shared set.
+    private func budgetStateBuffer() throws -> MTLBuffer {
+        XCTAssertTrue(GaussianSharedWorkingSet.shared.ensureCapacity(1, device: renderInfo.device))
+        return try XCTUnwrap(GaussianSharedWorkingSet.shared.budgetState)
     }
 
     /// A unit box just past the guard band on the right of a camera looking down −z: outside
@@ -292,6 +324,8 @@ final class GaussianChunkCullTest: BaseRenderSetup {
             XCTAssertEqual(record.threadgroupCount, UInt32(expectedChunkCount), "every chunk counts as visible until the first cull")
             XCTAssertEqual(record.threadgroupsPerGrid.0, UInt32(expectedChunkCount))
             XCTAssertEqual(record.visibleCount, UInt32(component.splatCount))
+            let entries = UnsafeBufferPointer(start: table.visibleChunks[slot].contents().bindMemory(to: GaussianVisibleChunk.self, capacity: expectedChunkCount), count: expectedChunkCount)
+            XCTAssertTrue(entries.allSatisfy { $0.quota == $0.splatCount }, "every chunk starts with its whole count as quota")
         }
         // The table's first splats tile the buffer.
         let constants = UnsafeBufferPointer(start: table.constantsBuffer.contents().bindMemory(to: GaussianChunkDecodeConstants.self, capacity: table.chunkCount), count: table.chunkCount)
@@ -301,7 +335,15 @@ final class GaussianChunkCullTest: BaseRenderSetup {
             next += chunk.splatCount
         }
         XCTAssertEqual(next, UInt32(component.splatCount))
-        XCTAssertGreaterThanOrEqual(component.estimatedGPUBytes, table.gpuBytes + Int(component.splatCount) * MemoryLayout<EncodedGaussianSplat>.stride)
+
+        // Per splat only the 16-byte record (and its harmonics) stays resident: no encoded
+        // buffer, no per-slot index buffers, and the estimate says so.
+        let packed = try XCTUnwrap(component.packedSplatData)
+        XCTAssertEqual(packed.length, Int(component.splatCount) * UntoldGSFormat.coreRecordSize)
+        XCTAssertNil(component.encodedSplatData)
+        XCTAssertTrue(component.gaussianVisibleIndices.isEmpty)
+        XCTAssertTrue(component.gaussianVisibleCount.isEmpty)
+        XCTAssertEqual(component.estimatedGPUBytes, packed.length + (component.sphericalHarmonicsData?.length ?? 0) + table.gpuBytes)
     }
 
     func testPLYEntityHasNoChunkTable() throws {
@@ -330,10 +372,9 @@ final class GaussianChunkCullTest: BaseRenderSetup {
             let expected = expectedVisibleChunks(table, viewProjections: [viewProjection])
 
             GaussianDebugOptions.shared.disableChunkCull = false
-            runSynchronously { executeGaussianFrustumCulling($0) }
+            let chunkedSurvivors = try compactedSurvivors()
             let slot = frameSlot(for: component)
             let culled = visibleChunkReadback(table, slot: slot)
-            let chunkedSurvivors = try visibleSplatIndices(component, slot: slot)
 
             XCTAssertEqual(culled.chunks, expected, "camera \(cameraIndex): the GPU keeps the chunks the CPU mirror predicts")
             XCTAssertEqual(expected.count, expectedVisibleChunkCounts[cameraIndex], "camera \(cameraIndex): the CPU mirror sees the promised \(expectedVisibleChunkCounts[cameraIndex]) of \(expectedChunkCount) chunks")
@@ -342,54 +383,57 @@ final class GaussianChunkCullTest: BaseRenderSetup {
             }
             XCTAssertEqual(culled.record.threadgroupsPerGrid.0, culled.record.threadgroupCount, "camera \(cameraIndex): one threadgroup per visible chunk")
             let expectedSplatTotal = culled.chunks.reduce(UInt32(0)) { $0 + table.index.chunks[Int($1)].splatCount }
-            XCTAssertEqual(culled.record.visibleCount, expectedSplatTotal, "camera \(cameraIndex): the record sums the visible chunks' splats")
+            XCTAssertEqual(culled.record.instanceCount, expectedSplatTotal, "camera \(cameraIndex): the record keeps the visible chunks' splat total as the request")
+            XCTAssertEqual(culled.record.visibleCount, expectedSplatTotal, "camera \(cameraIndex): with the budget unlimited every chunk is granted its whole count")
+            XCTAssertTrue(culled.entries.allSatisfy { $0.quota == $0.splatCount }, "camera \(cameraIndex): unlimited budget, whole quotas")
             XCTAssertLessThanOrEqual(UInt32(chunkedSurvivors.count), culled.record.visibleCount)
             XCTAssertEqual(Set(chunkedSurvivors).count, chunkedSurvivors.count, "camera \(cameraIndex): each splat appears once")
 
             // The debug switch: every chunk forced visible, the per-splat test alone decides —
-            // still gaussianChunkSplatCull, over all 13 chunks.
+            // still the fused pass, over all 13 chunks.
             GaussianDebugOptions.shared.disableChunkCull = true
-            runSynchronously { executeGaussianFrustumCulling($0) }
+            let forcedSurvivors = try compactedSurvivors()
             let forced = visibleChunkReadback(table, slot: slot)
-            let forcedSurvivors = try visibleSplatIndices(component, slot: slot)
             XCTAssertEqual(forced.chunks.count, expectedChunkCount, "camera \(cameraIndex): disableChunkCull keeps every chunk")
+            GaussianDebugOptions.shared.disableChunkCull = false
 
-            // The independent oracle: the whole-buffer gaussianFrustumCull on the same encoded
-            // buffer and per-slot buffers, which never touches the chunk table or kernels.
-            let legacySurvivors = try legacyKernelSurvivors(component, slot: slot)
-            XCTAssertNotNil(component.chunkTable, "the chunk table is back after the legacy run")
+            // The independent oracle: the whole-buffer gaussianFrustumCull and gaussianPreprocess
+            // over the legacy twin's encoded buffer and per-slot buffers, which never touch the
+            // chunk table or kernels.
+            let legacy = try legacySurvivors(component)
+            XCTAssertTrue(component.isChunked, "the chunk table and packed records are back after the legacy run")
 
-            XCTAssertGreaterThan(legacySurvivors.count, 0, "camera \(cameraIndex): sanity — the camera sees part of the asset")
-            let strays = legacySurvivors.filter { !culled.chunks.contains(owner[Int($0)]) }
+            XCTAssertGreaterThan(legacy.count, 0, "camera \(cameraIndex): sanity — the camera sees part of the asset")
+            let strays = legacy.filter { !culled.chunks.contains(owner[Int($0)]) }
             XCTAssertEqual(strays.count, 0, "camera \(cameraIndex): \(strays.count) splats the whole-buffer cull keeps lie in chunks the chunk cull dropped")
-            XCTAssertEqual(Set(chunkedSurvivors), Set(legacySurvivors), "camera \(cameraIndex): the chunk path keeps exactly what gaussianFrustumCull keeps")
-            XCTAssertEqual(chunkedSurvivors.count, legacySurvivors.count, "camera \(cameraIndex): and each once")
-            XCTAssertEqual(Set(forcedSurvivors), Set(legacySurvivors), "camera \(cameraIndex): with every chunk forced visible the per-splat pass keeps exactly what gaussianFrustumCull keeps")
+            XCTAssertEqual(Set(chunkedSurvivors), Set(legacy), "camera \(cameraIndex): the fused pass keeps exactly what the whole-buffer path keeps")
+            XCTAssertEqual(chunkedSurvivors.count, legacy.count, "camera \(cameraIndex): and each once")
+            XCTAssertEqual(Set(forcedSurvivors), Set(legacy), "camera \(cameraIndex): with every chunk forced visible the fused pass keeps exactly what the whole-buffer path keeps")
         }
     }
 
-    // MARK: - The per-splat pass strides over a chunk wider than its threadgroup
+    // MARK: - The fused pass strides over a chunk wider than its threadgroup
 
-    /// Real assets hold 4096 splats per chunk on a 1024-thread pipeline, so each thread of
-    /// gaussianChunkSplatCull visits several splats; the fixture's 16-splat chunks fit one pass
-    /// at the width the frame dispatches. Dispatching the kernel by hand with 1, 4 and 16
-    /// threads per group makes it stride 16, 4 and 1 times over every chunk, and each time it
-    /// has to keep exactly what the whole-buffer kernel keeps.
-    func testChunkSplatCullStridesOverWideChunks() throws {
+    /// Real assets hold 1024 or 4096 splats per chunk, so each thread of the fused pass visits
+    /// several ranks; the fixture's 16-splat chunks fit one pass at the width the frame
+    /// dispatches. Dispatching the kernel by hand with 1, 4 and 16 threads per group makes it
+    /// stride 16, 4 and 1 times over every chunk, and each time it has to compact exactly what
+    /// the whole-buffer path compacts.
+    func testFusedPassStridesOverWideChunks() throws {
         GaussianDebugOptions.shared.disableHZBOcclusionCull = true
         let (entity, component, table) = try loadChunkedEntity()
         placeGaussianTestCamera(eye: cameras[1].eye, target: cameras[1].target)
-        let slot = frameSlot(for: component)
-        let legacy = try legacyKernelSurvivors(component, slot: slot)
+        let legacy = try legacySurvivors(component)
         XCTAssertGreaterThan(legacy.count, 0)
         XCTAssertLessThan(legacy.count, Int(component.splatCount), "sanity — the close view culls some splats")
 
-        // Every chunk listed in the slot, as disableChunkCull leaves it.
+        // Every chunk listed in the slot with its whole quota, as disableChunkCull leaves it.
         GaussianDebugOptions.shared.disableChunkCull = true
         runSynchronously { executeGaussianFrustumCulling($0) }
+        let slot = frameSlot(for: component)
         XCTAssertEqual(visibleChunkReadback(table, slot: slot).chunks.count, expectedChunkCount)
 
-        // The per-splat inputs as executeGaussianFrustumCulling binds them.
+        // The fused pass's inputs as executeGaussianPreprocess binds them.
         let camera = try XCTUnwrap(CameraSystem.shared.activeCamera)
         let cameraComponent = try XCTUnwrap(scene.get(component: CameraComponent.self, for: camera))
         let world = try XCTUnwrap(scene.get(component: WorldTransformComponent.self, for: entity))
@@ -399,39 +443,49 @@ final class GaussianChunkCullTest: BaseRenderSetup {
         uniforms.viewMatrix = viewMatrix
         uniforms.modelViewMatrix = simd_mul(viewMatrix, world.space)
         uniforms.projectionMatrix = renderInfo.perspectiveSpace
-        var totalSplats = UInt32(component.splatCount)
-        var clipGuardBand = gaussianCullClipGuardBand
-        var hzbReverseZ: UInt32 = renderInfo.reverseZEnabled ? 1 : 0
-        var hzbOcclusionBias = gaussianCullHZBOcclusionBias
-        var hzbValid: UInt32 = 0
-        let pipeline = try XCTUnwrap(GaussianChunkCullPipelineStates.current()).splatCull
-        let encodedSplatData = try XCTUnwrap(component.encodedSplatData)
-        let visibleIndices = try XCTUnwrap(component.gaussianVisibleIndices[slot])
-        let visibleCount = try XCTUnwrap(component.gaussianVisibleCount[slot])
+        var entityConstants = GaussianPreprocessEntityConstants()
+        entityConstants.workingSetCapacity = UInt32(GaussianSharedWorkingSet.shared.capacity)
+        entityConstants.colorGain = simd_float4(1, 1, 1, 1)
+        entityConstants.opacityScale = 1
+        let packedSplats = try XCTUnwrap(component.packedSplatData)
+        let inputs = GaussianChunkPreprocessInputs(
+            packedSplats: packedSplats,
+            chunkTable: table,
+            visibleChunks: table.visibleChunks[slot],
+            uniforms: uniforms,
+            cullConstants: gaussianChunkCullConstants(chunkTable: table, modelMatrix: world.space, viewMatrix: viewMatrix, hzbValid: false),
+            viewport: renderInfo.viewPort ?? simd_float2(1, 1),
+            sphericalHarmonics: component.sphericalHarmonicsData,
+            shMetadata: component.sphericalHarmonicsMetadata ?? GaussianSHMetadata(degree: 0, coefficientsPerChannel: 0, higherOrderCoefficientsPerSplat: 0, _pad0: 0),
+            localCameraPosition: gaussianLocalCameraPosition(cameraWorldPosition: SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition), modelMatrix: world.space),
+            entityConstants: entityConstants,
+            hzbTexture: textureResources.depthMap
+        )
+        let pipeline = try XCTUnwrap(GaussianChunkCullPipelineStates.current()).decodePreprocess
+        let sharedSlot = min(renderInfo.currentInFlightFrameSlot, maxInFlightCommandBuffers - 1)
+        let workingSet = GaussianSharedWorkingSet.shared
+        let sharedSet = try XCTUnwrap(workingSet.visibleSet(slot: sharedSlot))
 
         for threadsPerChunk in [1, 4, 16] {
-            visibleCount.contents().storeBytes(of: GaussianVisibleSet(), as: GaussianVisibleSet.self)
+            sharedSet.contents().storeBytes(of: makeGaussianVisibleSet(visibleCount: 0), as: GaussianVisibleSet.self)
             runSynchronously { commandBuffer in
                 guard let encoder = commandBuffer.makeComputeCommandEncoder() else { return }
-                encoder.setComputePipelineState(pipeline)
-                encoder.setBuffer(encodedSplatData, offset: 0, index: Int(gaussianEncodedSplatIndex.rawValue))
-                encoder.setBytes(&uniforms, length: MemoryLayout<Uniforms>.stride, index: Int(gaussianUniformIndex.rawValue))
-                encoder.setBytes(&totalSplats, length: MemoryLayout<UInt32>.stride, index: Int(gaussianNumberOfSplatsIndex.rawValue))
-                encoder.setBuffer(visibleIndices, offset: 0, index: Int(gaussianVisibleIndicesIndex.rawValue))
-                encoder.setBuffer(visibleCount, offset: 0, index: Int(gaussianVisibleCountIndex.rawValue))
-                encoder.setBytes(&clipGuardBand, length: MemoryLayout<Float>.stride, index: Int(gaussianIndicesIndex.rawValue))
-                encoder.setBytes(&hzbReverseZ, length: MemoryLayout<UInt32>.stride, index: Int(gaussianCullHZBReverseZIndex.rawValue))
-                encoder.setBytes(&hzbOcclusionBias, length: MemoryLayout<Float>.stride, index: Int(gaussianCullHZBOcclusionBiasIndex.rawValue))
-                encoder.setBytes(&hzbValid, length: MemoryLayout<UInt32>.stride, index: Int(gaussianCullHZBValidIndex.rawValue))
-                encoder.setBuffer(table.visibleChunks[slot], offset: 0, index: Int(gaussianCullVisibleChunksIndex.rawValue))
-                encoder.setBuffer(table.constantsBuffer, offset: 0, index: Int(gaussianCullChunkTableIndex.rawValue))
-                encoder.setTexture(textureResources.depthMap, index: Int(gaussianCullHZBDepthPyramidTextureIndex.rawValue))
-                encoder.dispatchThreadgroups(MTLSizeMake(expectedChunkCount, 1, 1), threadsPerThreadgroup: MTLSizeMake(threadsPerChunk, 1, 1))
+                encodeGaussianChunkDecodePreprocess(
+                    encoder,
+                    pipelineState: pipeline,
+                    inputs: inputs,
+                    chunkSet: table.visibleChunkSets[slot],
+                    sharedRecords: workingSet.records(slot: sharedSlot)!,
+                    sharedKeys: workingSet.keys(slot: sharedSlot)!,
+                    sharedVisibleSet: sharedSet,
+                    threadsPerThreadgroup: threadsPerChunk,
+                    threadgroups: expectedChunkCount
+                )
                 encoder.endEncoding()
             }
-            let strided = try visibleSplatIndices(component, slot: slot)
+            let strided = try XCTUnwrap(indexResolver).indices(of: sharedGaussianRecords())
             XCTAssertEqual(strided.count, legacy.count, "\(threadsPerChunk) threads per chunk: the strided pass keeps each survivor once")
-            XCTAssertEqual(Set(strided), Set(legacy), "\(threadsPerChunk) threads per chunk: the strided pass keeps exactly what gaussianFrustumCull keeps")
+            XCTAssertEqual(Set(strided), Set(legacy), "\(threadsPerChunk) threads per chunk: the strided pass keeps exactly what the whole-buffer path keeps")
         }
     }
 
@@ -459,14 +513,10 @@ final class GaussianChunkCullTest: BaseRenderSetup {
                 let legacy = renderGaussianSplatLayer()
                 let legacyVisible = sharedGaussianVisibleCount()
 
-                // The whole-buffer kernel on the same buffers: the frame this file rendered
-                // before the chunk path existed, never through the chunk code.
+                // The whole-buffer path on the legacy twin: the frame this file rendered before
+                // the chunk path existed, never through the chunk code.
                 GaussianDebugOptions.shared.disableChunkCull = false
-                let (kernel, kernelVisible) = withLegacyKernel(component) {
-                    _ = renderGaussianSplatLayer()
-                    let image = renderGaussianSplatLayer()
-                    return (image, sharedGaussianVisibleCount())
-                }
+                let (kernel, kernelVisible) = try legacyFrame(component)
 
                 let quality = compareGaussianSplatLayers(chunked, legacy)
                 XCTAssertGreaterThan(quality.covered, 500, "camera \(cameraIndex) hzb=\(hzbEnabled): sanity — the asset covers part of the frame")
@@ -475,9 +525,9 @@ final class GaussianChunkCullTest: BaseRenderSetup {
                 XCTAssertGreaterThan(quality.psnr, 55, "camera \(cameraIndex) hzb=\(hzbEnabled): \(quality.psnr) dB over covered pixels between the chunk cull on and off")
 
                 let kernelQuality = compareGaussianSplatLayers(chunked, kernel)
-                XCTAssertEqual(chunkedVisible, kernelVisible, "camera \(cameraIndex) hzb=\(hzbEnabled): the chunk path sends the same splats to the shared set as gaussianFrustumCull")
-                XCTAssertLessThanOrEqual(kernelQuality.differingPixels, 50, "camera \(cameraIndex) hzb=\(hzbEnabled): \(kernelQuality.differingPixels) of \(kernelQuality.covered) covered pixels differ by more than one 8-bit step from the whole-buffer kernel's frame")
-                XCTAssertGreaterThan(kernelQuality.psnr, 55, "camera \(cameraIndex) hzb=\(hzbEnabled): \(kernelQuality.psnr) dB over covered pixels against the whole-buffer kernel's frame")
+                XCTAssertEqual(chunkedVisible, kernelVisible, "camera \(cameraIndex) hzb=\(hzbEnabled): the fused pass sends the same splats to the shared set as the whole-buffer path")
+                XCTAssertLessThanOrEqual(kernelQuality.differingPixels, 50, "camera \(cameraIndex) hzb=\(hzbEnabled): \(kernelQuality.differingPixels) of \(kernelQuality.covered) covered pixels differ by more than one 8-bit step from the whole-buffer path's frame")
+                XCTAssertGreaterThan(kernelQuality.psnr, 55, "camera \(cameraIndex) hzb=\(hzbEnabled): \(kernelQuality.psnr) dB over covered pixels against the whole-buffer path's frame")
             }
         }
     }
@@ -491,10 +541,9 @@ final class GaussianChunkCullTest: BaseRenderSetup {
         placeGaussianTestCamera(eye: cameras[1].eye, target: cameras[1].target)
         let viewProjection = try headViewProjection(entity: entity)
 
-        runSynchronously { executeGaussianFrustumCulling($0) }
+        let survivors = try compactedSurvivors()
         let slot = frameSlot(for: component)
         let culled = visibleChunkReadback(table, slot: slot)
-        let survivors = try visibleSplatIndices(component, slot: slot)
 
         XCTAssertGreaterThan(culled.chunks.count, 0, "the camera looks at part of the asset")
         XCTAssertLessThan(culled.chunks.count, expectedChunkCount, "a close view of one corner leaves chunks outside the frustum")
@@ -534,46 +583,105 @@ final class GaussianChunkCullTest: BaseRenderSetup {
         }
 
         // GPU kernel with eye 0 = away, eye 1 = at, as a stereo frame binds them.
-        let pipelines = try XCTUnwrap(GaussianChunkCullPipelineStates.current())
         var constants = gaussianChunkCullConstants(chunkTable: table, modelMatrix: world.space, viewMatrix: matrix_identity_float4x4, hzbValid: false, forceAllVisible: false)
         constants.viewProjection0 = lookingAway
         constants.viewProjection1 = lookingAt
         constants.viewCount = 2
-        let slot = 0
-        runSynchronously { commandBuffer in
-            guard let encoder = commandBuffer.makeComputeCommandEncoder() else { return }
-            _ = encodeGaussianChunkCull(
-                encoder,
-                pipelines: pipelines,
-                chunkTable: table,
-                visibleChunks: table.visibleChunks[slot],
-                chunkSet: table.visibleChunkSets[slot],
-                constants: constants,
-                hzbTexture: textureResources.depthMap
-            )
-            encoder.endEncoding()
-        }
-        XCTAssertEqual(visibleChunkReadback(table, slot: slot).chunks, seenByEye1, "the GPU keeps every chunk eye 1 sees although eye 0 sees none")
+        XCTAssertEqual(try cullChunks(table, constants: constants).chunks, seenByEye1, "the GPU keeps every chunk eye 1 sees although eye 0 sees none")
 
         // And with eye 0 alone (viewCount 1) the away view keeps nothing.
         constants.viewCount = 1
-        runSynchronously { commandBuffer in
-            guard let encoder = commandBuffer.makeComputeCommandEncoder() else { return }
-            _ = encodeGaussianChunkCull(
-                encoder,
-                pipelines: pipelines,
-                chunkTable: table,
-                visibleChunks: table.visibleChunks[slot],
-                chunkSet: table.visibleChunkSets[slot],
-                constants: constants,
-                hzbTexture: textureResources.depthMap
-            )
-            encoder.endEncoding()
-        }
-        let awayOnly = visibleChunkReadback(table, slot: slot)
+        let awayOnly = try cullChunks(table, constants: constants)
         XCTAssertEqual(awayOnly.chunks.count, 0)
         XCTAssertEqual(awayOnly.record.threadgroupsPerGrid.0, 0)
         XCTAssertEqual(awayOnly.record.visibleCount, 0)
+    }
+
+    /// The same for the fused pass: driven with eye 0 looking away and eye 1 at the asset (the
+    /// head-centre uniforms of eye 1), it compacts every splat the whole-buffer path keeps for
+    /// eye 1; with eye 0 alone it compacts nothing. In a stereo frame a splat only one eye sees
+    /// is therefore drawn, where the whole-buffer path would have culled it against the head.
+    func testFusedPassKeepsASplatOnlyEyeOneSees() throws {
+        GaussianDebugOptions.shared.disableHZBOcclusionCull = true
+        let (entity, component, table) = try loadChunkedEntity()
+        placeGaussianTestCamera(eye: cameras[0].eye, target: cameras[0].target)
+        let camera = try XCTUnwrap(CameraSystem.shared.activeCamera)
+        let cameraComponent = try XCTUnwrap(scene.get(component: CameraComponent.self, for: camera))
+        let world = try XCTUnwrap(scene.get(component: WorldTransformComponent.self, for: entity))
+        let viewMatrix = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
+        let lookingAt = simd_mul(renderInfo.perspectiveSpace, simd_mul(viewMatrix, world.space))
+        let legacy = try legacySurvivors(component)
+        XCTAssertGreaterThan(legacy.count, 0)
+
+        // The turned camera's view-projection (the asset behind it), without moving the active camera.
+        let awayEntity = createEntity()
+        defer { destroyEntity(entityId: awayEntity) }
+        _ = scene.assign(to: awayEntity, component: CameraComponent.self)
+        cameraLookAt(entityId: awayEntity, eye: cameras[0].eye, target: cameras[0].eye * 2, up: simd_float3(0, 1, 0))
+        let awayView = try XCTUnwrap(scene.get(component: CameraComponent.self, for: awayEntity)).viewSpace
+        let lookingAway = simd_mul(renderInfo.perspectiveSpace, simd_mul(awayView, world.space))
+        XCTAssertEqual(expectedVisibleChunks(table, viewProjections: [lookingAway]).count, 0, "sanity — nothing is in front of the turned camera")
+
+        var uniforms = Uniforms()
+        uniforms.modelMatrix = world.space
+        uniforms.viewMatrix = viewMatrix
+        uniforms.modelViewMatrix = simd_mul(viewMatrix, world.space)
+        uniforms.projectionMatrix = renderInfo.perspectiveSpace
+        var entityConstants = GaussianPreprocessEntityConstants()
+        entityConstants.workingSetCapacity = UInt32(GaussianSharedWorkingSet.shared.capacity)
+        entityConstants.colorGain = simd_float4(1, 1, 1, 1)
+        entityConstants.opacityScale = 1
+        var constants = gaussianChunkCullConstants(chunkTable: table, modelMatrix: world.space, viewMatrix: viewMatrix, hzbValid: false, forceAllVisible: false)
+        constants.viewProjection0 = lookingAway
+        constants.viewProjection1 = lookingAt
+        constants.viewCount = 2
+
+        let pipelines = try XCTUnwrap(GaussianChunkCullPipelineStates.current())
+        let workingSet = GaussianSharedWorkingSet.shared
+        let sharedSlot = min(renderInfo.currentInFlightFrameSlot, maxInFlightCommandBuffers - 1)
+        let sharedSet = try XCTUnwrap(workingSet.visibleSet(slot: sharedSlot))
+        let packedSplats = try XCTUnwrap(component.packedSplatData)
+        let slot = 0
+
+        func fusedSurvivors(_ constants: GaussianChunkCullConstants) throws -> [UInt32] {
+            // The chunk cull with the same two views lists the chunks; the fused pass follows.
+            _ = try cullChunks(table, constants: constants)
+            sharedSet.contents().storeBytes(of: makeGaussianVisibleSet(visibleCount: 0), as: GaussianVisibleSet.self)
+            let inputs = GaussianChunkPreprocessInputs(
+                packedSplats: packedSplats,
+                chunkTable: table,
+                visibleChunks: table.visibleChunks[slot],
+                uniforms: uniforms,
+                cullConstants: constants,
+                viewport: renderInfo.viewPort ?? simd_float2(1, 1),
+                sphericalHarmonics: component.sphericalHarmonicsData,
+                shMetadata: component.sphericalHarmonicsMetadata ?? GaussianSHMetadata(degree: 0, coefficientsPerChannel: 0, higherOrderCoefficientsPerSplat: 0, _pad0: 0),
+                localCameraPosition: gaussianLocalCameraPosition(cameraWorldPosition: SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition), modelMatrix: world.space),
+                entityConstants: entityConstants,
+                hzbTexture: textureResources.depthMap
+            )
+            runSynchronously { commandBuffer in
+                guard let encoder = commandBuffer.makeComputeCommandEncoder() else { return }
+                encodeGaussianChunkDecodePreprocess(
+                    encoder,
+                    pipelineState: pipelines.decodePreprocess,
+                    inputs: inputs,
+                    chunkSet: table.visibleChunkSets[slot],
+                    sharedRecords: workingSet.records(slot: sharedSlot)!,
+                    sharedKeys: workingSet.keys(slot: sharedSlot)!,
+                    sharedVisibleSet: sharedSet
+                )
+                encoder.endEncoding()
+            }
+            return try XCTUnwrap(indexResolver).indices(of: sharedGaussianRecords())
+        }
+
+        let eitherEye = try fusedSurvivors(constants)
+        XCTAssertEqual(Set(eitherEye), Set(legacy), "with eye 0 seeing nothing the fused pass keeps every splat eye 1 sees")
+        XCTAssertEqual(eitherEye.count, legacy.count)
+
+        constants.viewCount = 1
+        XCTAssertEqual(try fusedSurvivors(constants).count, 0, "eye 0 alone, looking away, keeps nothing")
     }
 
     // MARK: - (f) The HZB part of the chunk test
@@ -587,19 +695,17 @@ final class GaussianChunkCullTest: BaseRenderSetup {
         placeGaussianTestCamera(eye: cameras[0].eye, target: cameras[0].target)
         try withInjectedHZB(depths: [nearDepth], valid: true) {
             GaussianDebugOptions.shared.disableChunkCull = false
-            runSynchronously { executeGaussianFrustumCulling($0) }
+            XCTAssertEqual(try compactedSurvivors().count, 0)
             let slot = frameSlot(for: component)
             let culled = visibleChunkReadback(table, slot: slot)
             XCTAssertEqual(culled.chunks.count, 0, "every chunk lies behind the occluder")
             XCTAssertEqual(culled.record.threadgroupsPerGrid.0, 0)
             XCTAssertEqual(culled.record.visibleCount, 0)
-            XCTAssertEqual(try visibleSplatIndices(component, slot: slot).count, 0)
 
             GaussianDebugOptions.shared.disableChunkCull = true
-            runSynchronously { executeGaussianFrustumCulling($0) }
+            XCTAssertEqual(try compactedSurvivors().count, 0, "the per-splat HZB test culls what the chunk stage let through")
             let forced = visibleChunkReadback(table, slot: slot)
             XCTAssertEqual(forced.chunks.count, expectedChunkCount, "disableChunkCull lists every chunk regardless of the HZB")
-            XCTAssertEqual(try visibleSplatIndices(component, slot: slot).count, 0, "the per-splat HZB test culls what the chunk stage let through")
         }
     }
 
@@ -613,15 +719,14 @@ final class GaussianChunkCullTest: BaseRenderSetup {
         let frustumOnly = try expectedVisibleChunks(table, viewProjections: [headViewProjection(entity: entity)])
 
         GaussianDebugOptions.shared.disableHZBOcclusionCull = true
-        runSynchronously { executeGaussianFrustumCulling($0) }
-        let frustumSurvivors = try visibleSplatIndices(component, slot: slot)
+        let frustumSurvivors = try compactedSurvivors()
         XCTAssertEqual(visibleChunkReadback(table, slot: slot).chunks, frustumOnly)
 
         GaussianDebugOptions.shared.disableHZBOcclusionCull = false
         try withInjectedHZB(depths: [farDepth], valid: true) {
-            runSynchronously { executeGaussianFrustumCulling($0) }
+            let survivors = try compactedSurvivors()
             XCTAssertEqual(visibleChunkReadback(table, slot: slot).chunks, frustumOnly, "nothing is behind the far plane")
-            XCTAssertEqual(try Set(visibleSplatIndices(component, slot: slot)), Set(frustumSurvivors))
+            XCTAssertEqual(Set(survivors), Set(frustumSurvivors))
         }
     }
 
@@ -672,14 +777,12 @@ final class GaussianChunkCullTest: BaseRenderSetup {
         let depths = (0 ..< texelCount).map { $0 >= bandStart ? nearDepth : farDepth }
 
         GaussianDebugOptions.shared.disableHZBOcclusionCull = true
-        runSynchronously { executeGaussianFrustumCulling($0) }
-        let frustumSurvivors = try Set(visibleSplatIndices(component, slot: slot))
+        let frustumSurvivors = try Set(compactedSurvivors())
 
         GaussianDebugOptions.shared.disableHZBOcclusionCull = false
         try withInjectedHZB(depths: depths, valid: true) {
-            runSynchronously { executeGaussianFrustumCulling($0) }
+            let chunkedSurvivors = try compactedSurvivors()
             let culled = visibleChunkReadback(table, slot: slot)
-            let chunkedSurvivors = try visibleSplatIndices(component, slot: slot)
             XCTAssertEqual(culled.chunks, frustumOnly.subtracting(expectedOccluded), "the chunks whose rect lies inside the band are culled, no others")
             XCTAssertFalse(culled.chunks.contains(UInt32(rightMost)), "the right-most chunk lies behind the occluder")
             XCTAssertGreaterThan(culled.chunks.count, 0, "chunks straddling the band's edge survive")
@@ -690,14 +793,14 @@ final class GaussianChunkCullTest: BaseRenderSetup {
             XCTAssertEqual(chunkedSurvivors.filter { !culled.chunks.contains(owner[Int($0)]) }.count, 0, "every survivor lies in a surviving chunk")
 
             GaussianDebugOptions.shared.disableChunkCull = true
-            runSynchronously { executeGaussianFrustumCulling($0) }
-            let forcedSurvivors = try visibleSplatIndices(component, slot: slot)
+            let forcedSurvivors = try compactedSurvivors()
+            GaussianDebugOptions.shared.disableChunkCull = false
             XCTAssertEqual(Set(forcedSurvivors), Set(chunkedSurvivors), "the per-splat HZB test alone keeps the same splats")
             let strays = forcedSurvivors.filter { !culled.chunks.contains(owner[Int($0)]) }
             XCTAssertEqual(strays.count, 0, "\(strays.count) splats the per-splat HZB test keeps lie in chunks the chunk HZB test dropped")
 
-            let legacySurvivors = try legacyKernelSurvivors(component, slot: slot)
-            XCTAssertEqual(Set(legacySurvivors), Set(chunkedSurvivors), "the whole-buffer kernel keeps the same splats against the same pyramid")
+            let legacy = try legacySurvivors(component)
+            XCTAssertEqual(Set(legacy), Set(chunkedSurvivors), "the whole-buffer path keeps the same splats against the same pyramid")
         }
     }
 
@@ -709,10 +812,10 @@ final class GaussianChunkCullTest: BaseRenderSetup {
         placeGaussianTestCamera(eye: cameras[1].eye, target: cameras[1].target)
         let frustumOnly = try expectedVisibleChunks(table, viewProjections: [headViewProjection(entity: entity)])
         try withInjectedHZB(depths: [nearDepth], valid: false) {
-            runSynchronously { executeGaussianFrustumCulling($0) }
+            let survivors = try compactedSurvivors()
             let slot = frameSlot(for: component)
             XCTAssertEqual(visibleChunkReadback(table, slot: slot).chunks, frustumOnly, "hzbIsValid=false disables the chunk HZB test regardless of the texture")
-            XCTAssertGreaterThan(try visibleSplatIndices(component, slot: slot).count, 0)
+            XCTAssertGreaterThan(survivors.count, 0)
         }
     }
 
@@ -874,6 +977,8 @@ final class GaussianChunkCullTest: BaseRenderSetup {
         XCTAssertEqual(constants.clipGuardBand, gaussianCullClipGuardBand)
         XCTAssertEqual(constants.hzbOcclusionBias, gaussianCullHZBOcclusionBias)
         XCTAssertEqual(MemoryLayout<GaussianChunkCullConstants>.stride, 176)
-        XCTAssertEqual(MemoryLayout<GaussianVisibleChunk>.stride, 8)
+        XCTAssertEqual(MemoryLayout<GaussianVisibleChunk>.stride, 16)
+        XCTAssertEqual(MemoryLayout<GaussianBudgetState>.stride, 32)
+        XCTAssertEqual(MemoryLayout<GaussianBudgetScaleConstants>.stride, 16)
     }
 }

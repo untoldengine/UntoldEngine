@@ -547,8 +547,6 @@ typedef enum{
     gaussianCullHZBReverseZIndex,
     gaussianCullHZBOcclusionBiasIndex,
     gaussianCullHZBValidIndex,
-    gaussianCullVisibleChunksIndex,     // gaussianChunkSplatCull only: GaussianVisibleChunk[] of this frame
-    gaussianCullChunkTableIndex,        // gaussianChunkSplatCull only: GaussianChunkDecodeConstants[]
 }GaussianDepthBufferIndices;
 
 typedef enum{
@@ -568,10 +566,11 @@ typedef enum{
 /// and a list that grew since then must not be cut to that older size.
 ///
 /// The same record shape describes an entity's visible-chunk list (gaussianChunkCull /
-/// gaussianFinalizeVisibleChunks): there visibleCount is the sum of the visible chunks' splat
-/// counts (an upper bound on what the per-splat pass can keep), threadgroupCount and
+/// gaussianFinalizeVisibleChunks / gaussianComputeChunkQuotas): there threadgroupCount and
 /// threadgroupsPerGrid[0] are the number of visible chunks — one threadgroup of
-/// gaussianChunkSplatCull per chunk — and the draw arguments mirror visibleCount unused.
+/// gaussianChunkDecodePreprocess per chunk — instanceCount is the sum of the visible chunks'
+/// splat counts (what the entity asked of the frame's budget) and visibleCount the sum of their
+/// quotas (the most the fused pass can append for this entity), both for readbacks only.
 typedef struct{
     uint32_t visibleCount;           // atomic_uint appended by gaussianFrustumCull
     uint32_t threadgroupCount;       // ceil(visibleCount / gaussianVisibleBlockSize)
@@ -708,8 +707,9 @@ typedef enum{
   }GaussianTBDRDrawTextureIndices;
 
 // Per-chunk constants for decoding a .untoldgs v3 chunk on the GPU — see gaussianDecodeChunks
-// in Gaussians.metal and UntoldGSChunkEntry (Swift). Plain floats rather than simd_float3 so
-// the C, Swift and Metal layouts agree byte for byte (48 bytes, no alignment padding).
+// in Gaussians.metal, gaussianChunkDecodePreprocess in GaussianChunkPreprocess.metal and
+// UntoldGSChunkEntry (Swift). Plain floats rather than simd_float3 so the C, Swift and Metal
+// layouts agree byte for byte (48 bytes, no alignment padding).
 typedef struct{
     float aabbMinX, aabbMinY, aabbMinZ;
     float logScaleMin;
@@ -731,12 +731,16 @@ typedef enum{
 // MARK: - Chunk-level cull of .untoldgs entities (GaussianChunkCull.metal)
 
 /// One entry of the per-entity, per-in-flight-frame visible-chunk list gaussianChunkCull appends
-/// to: the chunk's index into the entity's GaussianChunkDecodeConstants table and its splat count,
-/// which one threadgroup of gaussianChunkSplatCull then strides over.
+/// to: the chunk's index into the entity's GaussianChunkDecodeConstants table, its splat count,
+/// and the quota gaussianComputeChunkQuotas grants it from the frame's working-set budget — the
+/// number of its first (most important) splats one threadgroup of gaussianChunkDecodePreprocess
+/// then decodes, tests and appends. The cull writes quota = splatCount; the quota pass lowers it.
 typedef struct{
     uint32_t chunkIndex;
     uint32_t splatCount;
-}GaussianVisibleChunk;   // 8 bytes
+    uint32_t quota;
+    uint32_t _pad0;
+}GaussianVisibleChunk;   // 16 bytes
 
 /// Per-entity inputs of gaussianChunkCull. Both view-projections already include the entity's
 /// model matrix; a chunk is visible when its padded box passes either one (viewCount 2, the two
@@ -762,11 +766,73 @@ typedef enum{
     gaussianChunkCullVisibleChunksIndex,   // GaussianVisibleChunk[] (output, chunkCount entries)
     gaussianChunkCullSplatTotalIndex,      // atomic_uint: the chunk record's visibleCount (sum of appended splat counts), byte offset 0
     gaussianChunkCullChunkTotalIndex,      // atomic_uint: the chunk record's threadgroupCount (appended chunks), byte offset 4
+    gaussianChunkCullBudgetStateIndex = 6, // gaussianFinalizeVisibleChunks: GaussianBudgetState whose requestedSplats the entity's total joins (the record itself sits at gaussianVisibleCountIndex, 5)
 }GaussianChunkCullBufferIndices;
 
 typedef enum{
     gaussianChunkCullHZBDepthPyramidTextureIndex = 0,
 }GaussianChunkCullTextureIndices;
+
+// MARK: - Budgeted working set (GaussianWorkingSetBudget.metal)
+
+/// The frame's working-set budget state, one persistent buffer read and written on the GPU
+/// every frame (command buffers on one queue run in order, so frame N+1 sees frame N's scale):
+/// gaussianFinalizeVisibleChunks adds each chunked entity's visible splat total to
+/// requestedSplats, gaussianComputeBudgetScale turns the total into the scale the quotas apply
+/// (smoothed against the previous frame's), gaussianComputeChunkQuotas adds the quotas it
+/// grants to quotaSplats, and gaussianPublishBudgetState copies the record into the frame's
+/// in-flight slot for the CPU readback (profiling, tests).
+typedef struct{
+    uint32_t requestedSplats;   // atomic: Σ over chunked entities of their visible chunks' splat counts
+    uint32_t quotaSplats;       // atomic: Σ over chunked entities of the quotas granted
+    uint32_t budget;            // records the quotas were fitted to this frame (the shared set's capacity)
+    uint32_t frameCount;        // frames the state has been through; 0 means the first frame takes the target as is
+    float targetScale;          // min(1, headroom · budget / requestedSplats)
+    float scale;                // targetScale moved from the previous frame's scale by at most maxStepFraction
+    float _pad0[2];
+}GaussianBudgetState;           // 32 bytes
+
+/// Inputs of gaussianComputeBudgetScale.
+typedef struct{
+    uint32_t budget;            // the shared set's capacity this frame
+    uint32_t forceUnitScale;    // GaussianDebugOptions.disableWorkingSetBudget: every chunk keeps its whole splat count
+    float headroom;             // fraction of the budget the quotas aim for (0.98), leaving room for rounding
+    float maxStepFraction;      // largest relative change of scale per frame (0.1)
+}GaussianBudgetScaleConstants;  // 16 bytes
+
+typedef enum{
+    gaussianBudgetStateIndex = 0,        // GaussianBudgetState, persistent
+    gaussianBudgetScaleConstantsIndex,   // GaussianBudgetScaleConstants
+    gaussianBudgetChunkSetIndex,         // gaussianComputeChunkQuotas: the entity's chunk record (GaussianVisibleSet)
+    gaussianBudgetVisibleChunksIndex,    // gaussianComputeChunkQuotas: the entity's GaussianVisibleChunk[]
+    gaussianBudgetReadbackIndex,         // gaussianPublishBudgetState: this frame slot's copy of the state
+    gaussianBudgetQuotaTotalIndex,       // gaussianComputeChunkQuotas: atomic_uint, the state's quotaSplats (byte offset 4)
+}GaussianBudgetBufferIndices;
+
+// MARK: - Fused decode, test, project and compact of .untoldgs entities (GaussianChunkPreprocess.metal)
+
+/// Bindings of gaussianChunkDecodePreprocess: one threadgroup per visible chunk, indirect from
+/// the entity's chunk record, reading the resident 16-byte records and writing the frame's
+/// shared working set the way gaussianPreprocess does for a whole-buffer entity.
+typedef enum{
+    gaussianChunkPreprocessPackedIndex = 0,      // uint4 per splat: the resident .untoldgs core records
+    gaussianChunkPreprocessChunkTableIndex,      // GaussianChunkDecodeConstants[]
+    gaussianChunkPreprocessVisibleChunksIndex,   // GaussianVisibleChunk[] of this frame
+    gaussianChunkPreprocessUniformIndex,         // Uniforms: head-centre model-view and projection
+    gaussianChunkPreprocessCullConstantsIndex,   // GaussianChunkCullConstants: the eye view-projections and HZB inputs of the per-splat test
+    gaussianChunkPreprocessViewportIndex,        // float2
+    gaussianChunkPreprocessSHIndex,              // uchar[]: spherical harmonics by original splat index
+    gaussianChunkPreprocessSHMetadataIndex,      // GaussianSHMetadata
+    gaussianChunkPreprocessLocalCameraIndex,     // float3: camera position in entity space
+    gaussianChunkPreprocessEntityConstantsIndex, // GaussianPreprocessEntityConstants
+    gaussianChunkPreprocessWorkingSetIndex,      // GaussianWorkingSetSplat[], shared per frame
+    gaussianChunkPreprocessSharedKeysIndex,      // uint64_t depth keys, shared per frame
+    gaussianChunkPreprocessSharedVisibleSetIndex,// GaussianVisibleSet, shared per frame
+}GaussianChunkPreprocessBufferIndices;
+
+typedef enum{
+    gaussianChunkPreprocessHZBDepthPyramidTextureIndex = 0,
+}GaussianChunkPreprocessTextureIndices;
 
 typedef enum{
       outputTransformPassEncodingModeIndex

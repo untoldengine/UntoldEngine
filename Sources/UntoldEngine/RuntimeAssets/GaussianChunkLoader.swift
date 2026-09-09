@@ -3,12 +3,14 @@
 //  UntoldEngine
 //
 //  Loads a version-3 `.untoldgs` file for rendering: reads every chunk by byte
-//  range (CRC-verified) into a packed staging buffer, binds the SH bytes as they
-//  are (the file already stores the renderer's byte contract), and runs the
-//  `gaussianDecodeChunks` kernel once to expand the 16-byte records into the
-//  `EncodedGaussianSplat` layout the existing cull, sort and draw passes consume.
-//  The file is never read whole and no CPU decode runs. The chunk table the decode
-//  used stays resident (`GaussianChunkTable`) so the frame can cull chunk by chunk.
+//  range (CRC-verified) into the packed buffer that stays resident — the 16-byte
+//  core records the fused per-chunk pass (`gaussianChunkDecodePreprocess`) decodes
+//  every frame — binds the SH bytes as they are (the file already stores the
+//  renderer's byte contract), and keeps the chunk table (`GaussianChunkTable`) so the
+//  frame can cull chunk by chunk. The file is never read whole and no CPU decode
+//  runs. `decodeEncodedSplats` expands the same records once into the
+//  `EncodedGaussianSplat` layout with the `gaussianDecodeChunks` kernel, for the
+//  whole-buffer path (when the per-chunk kernels are unavailable) and for tests.
 //
 //
 // Copyright (C) Untold Engine Studios
@@ -29,17 +31,17 @@ import simd
 struct GaussianChunkTable {
     /// `GaussianChunkDecodeConstants × chunkCount`, in chunk order; `firstSplat` runs
     /// contiguously so chunk `i` owns splats `firstSplat ..< firstSplat + splatCount` of the
-    /// encoded buffer.
+    /// packed buffer (and of the SH buffer).
     let constantsBuffer: MTLBuffer
     let chunkCount: Int
     /// `1 << header.log2ChunkSplats`: the most splats any chunk holds, the threadgroup width
     /// of the per-chunk passes.
     let splatsPerChunk: Int
     let index: UntoldGSIndex
-    /// Per in-flight frame slot, written by `gaussianChunkCull` and read by the per-splat pass
-    /// the same frame: the visible-chunk list (`GaussianVisibleChunk × chunkCount`) and its
-    /// `GaussianVisibleSet`-shaped record. Allocated by `buildGaussianLoadResult`
-    /// (`allocateGaussianVisibleChunkBuffers`), slotted like `gaussianVisibleIndices`.
+    /// Per in-flight frame slot, written by `gaussianChunkCull` and `gaussianComputeChunkQuotas`
+    /// and read by the fused pass the same frame: the visible-chunk list
+    /// (`GaussianVisibleChunk × chunkCount`) and its `GaussianVisibleSet`-shaped record.
+    /// Allocated by `buildGaussianLoadResult` (`allocateGaussianVisibleChunkBuffers`).
     var visibleChunks: [MTLBuffer] = []
     var visibleChunkSets: [MTLBuffer] = []
 
@@ -50,10 +52,11 @@ struct GaussianChunkTable {
     }
 }
 
-/// GPU-resident result of decoding a `.untoldgs` file.
+/// GPU-resident result of loading a `.untoldgs` file.
 struct GaussianChunkLoadResult {
     let splatCount: Int
-    let encodedSplatBuffer: MTLBuffer
+    /// The file's 16-byte core records, contiguous in chunk order (`uint4` per splat).
+    let packedSplatBuffer: MTLBuffer
     let sphericalHarmonicsBuffer: MTLBuffer?
     let sphericalHarmonicsMetadata: GaussianSHMetadata?
     let meanSquaredSplatExtent: Float
@@ -91,14 +94,14 @@ enum GaussianChunkLoader {
         gaussianDecodePipeline.success && gaussianDecodePipeline.pipelineState != nil
     }
 
-    /// Reads and decodes `url` on the GPU. Synchronous: the caller is already off the
-    /// render thread on the async and streaming paths, and the synchronous
-    /// `setEntityGaussian` blocks by contract.
+    /// Reads `url` into GPU buffers. Synchronous: the caller is already off the render thread
+    /// on the async and streaming paths, and the synchronous `setEntityGaussian` blocks by
+    /// contract. Nothing runs on the GPU here; the records are decoded by the frame.
     static func load(url: URL) throws -> GaussianChunkLoadResult {
-        guard let device = renderInfo.device, let commandQueue = renderInfo.commandQueue else {
+        guard let device = renderInfo.device else {
             throw GaussianChunkLoadError.deviceUnavailable
         }
-        guard isAvailable, let pipelineState = gaussianDecodePipeline.pipelineState else {
+        guard isAvailable else {
             throw GaussianChunkLoadError.decodePipelineUnavailable
         }
 
@@ -110,9 +113,9 @@ enum GaussianChunkLoader {
         }
         let shBytesPerSplat = header.shBytesPerSplat
 
-        // Packed records for every chunk, contiguous, in chunk order.
+        // Packed records for every chunk, contiguous, in chunk order: the resident splat data.
         guard let packedBuffer = device.makeBuffer(length: splatCount * UntoldGSFormat.coreRecordSize, options: .storageModeShared) else {
-            throw GaussianChunkLoadError.bufferAllocationFailed("Gaussian packed staging buffer")
+            throw GaussianChunkLoadError.bufferAllocationFailed("Gaussian packed splat buffer")
         }
         packedBuffer.label = "Gaussian Packed Chunks"
 
@@ -161,10 +164,6 @@ enum GaussianChunkLoader {
             firstSplat += count
         }
 
-        guard let encodedSplatBuffer = device.makeBuffer(length: splatCount * MemoryLayout<EncodedGaussianSplat>.stride, options: .storageModeShared) else {
-            throw GaussianChunkLoadError.bufferAllocationFailed("Encoded Gaussian splat buffer")
-        }
-        encodedSplatBuffer.label = "Gaussian Encoded Splats"
         guard let constantsBuffer = device.makeBuffer(
             bytes: constants,
             length: constants.count * MemoryLayout<GaussianChunkDecodeConstants>.stride,
@@ -174,37 +173,9 @@ enum GaussianChunkLoader {
         }
         constantsBuffer.label = "Gaussian Chunk Table"
 
-        guard let commandBuffer = commandQueue.makeCommandBuffer(),
-              let encoder = commandBuffer.makeComputeCommandEncoder()
-        else {
-            throw GaussianChunkLoadError.gpuDecodeFailed("could not create a command buffer")
-        }
-        commandBuffer.label = "Gaussian Chunk Decode"
-        encoder.label = "Gaussian Decode Chunks"
-        encoder.setComputePipelineState(pipelineState)
-        encoder.setBuffer(packedBuffer, offset: 0, index: Int(gaussianDecodePackedIndex.rawValue))
-        encoder.setBuffer(constantsBuffer, offset: 0, index: Int(gaussianDecodeChunksIndex.rawValue))
-        var chunkCount = UInt32(constants.count)
-        encoder.setBytes(&chunkCount, length: MemoryLayout<UInt32>.stride, index: Int(gaussianDecodeChunkCountIndex.rawValue))
-        encoder.setBuffer(encodedSplatBuffer, offset: 0, index: Int(gaussianDecodeOutputIndex.rawValue))
-
-        // One threadgroup per chunk; the kernel strides over the chunk when it holds more
-        // splats than a threadgroup has threads.
-        let threadsPerGroup = min(header.splatsPerChunk, pipelineState.maxTotalThreadsPerThreadgroup)
-        encoder.dispatchThreadgroups(
-            MTLSize(width: constants.count, height: 1, depth: 1),
-            threadsPerThreadgroup: MTLSize(width: threadsPerGroup, height: 1, depth: 1)
-        )
-        encoder.endEncoding()
-        commandBuffer.commit()
-        commandBuffer.waitUntilCompleted()
-        if let error = commandBuffer.error {
-            throw GaussianChunkLoadError.gpuDecodeFailed(error.localizedDescription)
-        }
-
         return GaussianChunkLoadResult(
             splatCount: splatCount,
-            encodedSplatBuffer: encodedSplatBuffer,
+            packedSplatBuffer: packedBuffer,
             sphericalHarmonicsBuffer: sphericalHarmonicsBuffer,
             sphericalHarmonicsMetadata: header.shMetadata,
             meanSquaredSplatExtent: header.meanSquaredSplatExtent,
@@ -219,5 +190,51 @@ enum GaussianChunkLoader {
                 index: file.index
             )
         )
+    }
+
+    /// Expands `loaded`'s packed records into a new `EncodedGaussianSplat` buffer with the
+    /// `gaussianDecodeChunks` kernel, waiting for the GPU: the whole-buffer representation a
+    /// `.ply` loads to, for a `.untoldgs` that has to take that path (the per-chunk kernels are
+    /// unavailable) and for tests of the decode.
+    static func decodeEncodedSplats(_ loaded: GaussianChunkLoadResult) throws -> MTLBuffer {
+        guard let device = renderInfo.device, let commandQueue = renderInfo.commandQueue else {
+            throw GaussianChunkLoadError.deviceUnavailable
+        }
+        guard isAvailable, let pipelineState = gaussianDecodePipeline.pipelineState else {
+            throw GaussianChunkLoadError.decodePipelineUnavailable
+        }
+        guard let encodedSplatBuffer = device.makeBuffer(length: max(1, loaded.splatCount) * MemoryLayout<EncodedGaussianSplat>.stride, options: .storageModeShared) else {
+            throw GaussianChunkLoadError.bufferAllocationFailed("Encoded Gaussian splat buffer")
+        }
+        encodedSplatBuffer.label = "Gaussian Encoded Splats"
+
+        guard let commandBuffer = commandQueue.makeCommandBuffer(),
+              let encoder = commandBuffer.makeComputeCommandEncoder()
+        else {
+            throw GaussianChunkLoadError.gpuDecodeFailed("could not create a command buffer")
+        }
+        commandBuffer.label = "Gaussian Chunk Decode"
+        encoder.label = "Gaussian Decode Chunks"
+        encoder.setComputePipelineState(pipelineState)
+        encoder.setBuffer(loaded.packedSplatBuffer, offset: 0, index: Int(gaussianDecodePackedIndex.rawValue))
+        encoder.setBuffer(loaded.chunkTable.constantsBuffer, offset: 0, index: Int(gaussianDecodeChunksIndex.rawValue))
+        var chunkCount = UInt32(loaded.chunkTable.chunkCount)
+        encoder.setBytes(&chunkCount, length: MemoryLayout<UInt32>.stride, index: Int(gaussianDecodeChunkCountIndex.rawValue))
+        encoder.setBuffer(encodedSplatBuffer, offset: 0, index: Int(gaussianDecodeOutputIndex.rawValue))
+
+        // One threadgroup per chunk; the kernel strides over the chunk when it holds more
+        // splats than a threadgroup has threads.
+        let threadsPerGroup = max(1, min(loaded.chunkTable.splatsPerChunk, pipelineState.maxTotalThreadsPerThreadgroup))
+        encoder.dispatchThreadgroups(
+            MTLSize(width: max(1, loaded.chunkTable.chunkCount), height: 1, depth: 1),
+            threadsPerThreadgroup: MTLSize(width: threadsPerGroup, height: 1, depth: 1)
+        )
+        encoder.endEncoding()
+        commandBuffer.commit()
+        commandBuffer.waitUntilCompleted()
+        if let error = commandBuffer.error {
+            throw GaussianChunkLoadError.gpuDecodeFailed(error.localizedDescription)
+        }
+        return encodedSplatBuffer
     }
 }

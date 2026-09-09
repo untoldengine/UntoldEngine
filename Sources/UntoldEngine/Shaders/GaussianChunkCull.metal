@@ -3,14 +3,13 @@
 //  UntoldEngine
 //
 //  Chunk-level culling of .untoldgs entities. Runs inside the "Gaussian Frustum Culling"
-//  encoder before the per-splat pass: one thread per chunk tests the chunk's centre AABB,
-//  padded by the largest splat it holds, against the guard-banded clip volume of each view
-//  (either eye in stereo) and, when a pyramid is valid, against the previous frame's HZB with
-//  the mesh cull's conservative sampling. Survivors are appended to a per-entity, per-frame
-//  visible-chunk list whose GaussianVisibleSet-shaped record then drives one threadgroup of
-//  gaussianChunkSplatCull per visible chunk — the same per-splat test as gaussianFrustumCull,
-//  striding over the chunk's splats and appending into the entity's visible-index list, so the
-//  preprocess, sort and draw see exactly what they saw before.
+//  encoder: one thread per chunk tests the chunk's centre AABB, padded by the largest splat it
+//  holds, against the guard-banded clip volume of each view (either eye in stereo) and, when a
+//  pyramid is valid, against the previous frame's HZB with the mesh cull's conservative
+//  sampling. Survivors are appended to a per-entity, per-frame visible-chunk list whose
+//  GaussianVisibleSet-shaped record then drives one threadgroup of gaussianChunkDecodePreprocess
+//  (GaussianChunkPreprocess.metal) per visible chunk, after gaussianComputeChunkQuotas
+//  (GaussianWorkingSetBudget.metal) has fitted the list to the frame's working-set budget.
 //
 // Copyright (C) Untold Engine Studios
 //
@@ -125,15 +124,19 @@ kernel void gaussianChunkCull(
     GaussianVisibleChunk entry;
     entry.chunkIndex = chunkIndex;
     entry.splatCount = chunk.splatCount;
+    entry.quota = chunk.splatCount;   // gaussianComputeChunkQuotas lowers it when the frame is over budget
+    entry._pad0 = 0u;
     visibleChunks[slot] = entry;
 }
 
 // Runs once per entity after gaussianChunkCull, same serial encoder: turns the appended chunk
-// count into the indirect dispatch of gaussianChunkSplatCull — one threadgroup per visible
-// chunk — and mirrors the splat total into the draw-argument slots for symmetry with
-// gaussianFinalizeVisibleSet (nothing draws from this record).
+// count into the indirect dispatch of gaussianChunkDecodePreprocess — one threadgroup per
+// visible chunk — keeps the splat total as the entity's request in instanceCount (visibleCount
+// holds it too until gaussianComputeChunkQuotas replaces it with the quota sum; nothing draws
+// from this record), and adds the request to the frame's budget state.
 kernel void gaussianFinalizeVisibleChunks(
     device GaussianVisibleSet *chunkSet [[buffer(gaussianVisibleCountIndex)]],
+    device atomic_uint *requestedSplats [[buffer(gaussianChunkCullBudgetStateIndex)]],
     uint index [[thread_position_in_grid]])
 {
     if (index != 0u) return;
@@ -148,39 +151,5 @@ kernel void gaussianFinalizeVisibleChunks(
     chunkSet->instanceCount = visibleSplats;
     chunkSet->vertexStart = 0u;
     chunkSet->baseInstance = 0u;
-}
-
-// The per-splat cull of a chunked entity: one threadgroup per visible chunk (indirect from the
-// chunk record, threads = min(splatsPerChunk, maxTotalThreadsPerThreadgroup)), each thread
-// striding over the chunk's splats with the test gaussianFrustumCull applies to every splat,
-// appending the survivors into the same per-entity visible-index list. Chunks the chunk cull
-// rejected are never read.
-kernel void gaussianChunkSplatCull(
-    const device EncodedGaussianSplat *splats [[buffer(gaussianEncodedSplatIndex)]],
-    constant Uniforms &uniforms [[buffer(gaussianUniformIndex)]],
-    constant uint &numOfSplats [[buffer(gaussianNumberOfSplatsIndex)]],
-    constant float &clipGuardBand [[buffer(gaussianIndicesIndex)]],
-    device uint *visibleIndices [[buffer(gaussianVisibleIndicesIndex)]],
-    device atomic_uint *visibleCount [[buffer(gaussianVisibleCountIndex)]],
-    constant uint &hzbReverseZ [[buffer(gaussianCullHZBReverseZIndex)]],
-    constant float &hzbOcclusionBias [[buffer(gaussianCullHZBOcclusionBiasIndex)]],
-    constant uint &hzbValid [[buffer(gaussianCullHZBValidIndex)]],
-    const device GaussianVisibleChunk *visibleChunks [[buffer(gaussianCullVisibleChunksIndex)]],
-    const device GaussianChunkDecodeConstants *chunks [[buffer(gaussianCullChunkTableIndex)]],
-    texture2d<float, access::sample> hzbDepthPyramid [[texture(gaussianCullHZBDepthPyramidTextureIndex)]],
-    uint chunkSlot [[threadgroup_position_in_grid]],
-    uint localIndex [[thread_position_in_threadgroup]],
-    uint threadsPerGroup [[threads_per_threadgroup]])
-{
-    const GaussianVisibleChunk visibleChunk = visibleChunks[chunkSlot];
-    const uint firstSplat = chunks[visibleChunk.chunkIndex].firstSplat;
-
-    for (uint i = localIndex; i < visibleChunk.splatCount; i += threadsPerGroup) {
-        const uint index = firstSplat + i;
-        if (index >= numOfSplats) break;
-        if (!gaussianSplatPassesCull(splats[index].position, uniforms, clipGuardBand, hzbReverseZ, hzbOcclusionBias, hzbValid, hzbDepthPyramid)) continue;
-
-        const uint writeIndex = atomic_fetch_add_explicit(visibleCount, 1u, memory_order_relaxed);
-        visibleIndices[writeIndex] = index;
-    }
+    atomic_fetch_add_explicit(requestedSplats, visibleSplats, memory_order_relaxed);
 }
