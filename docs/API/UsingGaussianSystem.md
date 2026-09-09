@@ -101,6 +101,32 @@ Once everything is set up:
 
 Every frame the engine compacts the visible splats of all Gaussian entities into one shared working set, sorts it once by depth and draws it with one instanced draw. Two captures that overlap on screen — a chair partly in front of a table, a prop on a splat floor — therefore blend in true depth order; the order the entities were created in does not matter. The shared set is sized to the resident splat total, so every loaded splat fits; should the entities ever append more than it holds, the excess is dropped for that frame and reported through `handleError` and the Gaussian profile line as overflow. Up to 256 splat entities can be drawn in one frame.
 
+## Chunk-level culling of `.untoldgs` assets
+
+A baked `.untoldgs` asset keeps its chunk table after the load: the per-chunk decode constants
+(`GaussianChunkDecodeConstants`, 48 bytes per chunk — the chunk's centre bounding box, its
+log-scale range, its first splat and count) stay on the GPU, and the file's index stays on the
+CPU (`GaussianComponent.chunkTable`). Every frame the engine first tests whole chunks — the
+centre box padded by the largest splat the chunk holds, against the camera frustum and, when
+available, the previous frame's depth pyramid — and only then runs the per-splat test over the
+chunks that survived, one threadgroup per chunk (see
+[renderingSystem.md §3b](../Architecture/renderingSystem.md#3b-gaussian-frustum-culling--executegaussianfrustumcullingcommandbuffer)).
+In a stereo frame a chunk is kept when either eye sees it. The chunk stage never removes a
+splat the per-splat test would keep, so the picture is the same with it on or off; what changes
+is how many splats the per-splat pass has to read when part of the asset is off screen or
+behind an occluder.
+
+- The chunk table costs 48 bytes per chunk plus, per frame in flight, an 8-byte visible-chunk
+  entry per chunk and one 48-byte record — a few hundred kilobytes for a million splats at the
+  default 1024 splats per chunk. Everything else a splat costs (below) is unchanged for now:
+  the 48-byte encoded record, the per-slot visible index and the shared working set sized to
+  the resident total stay as they are.
+- `GaussianDebugOptions.shared.disableChunkCull` keeps every chunk, so the per-splat pass walks
+  the whole asset as it does for a `.ply` — for bisecting, and for A/B timing of the chunk
+  stage. `disableHZBOcclusionCull` turns the depth-pyramid part off for both stages.
+- A `.ply` asset, or a `.untoldgs` decoded on the CPU because the decode kernel is unavailable,
+  has no chunk table and keeps the per-splat cull over its whole buffer.
+
 ## Per-entity splat limit
 
 Every loaded splat keeps about 320 bytes resident on the GPU (its 48-byte encoded record, a
