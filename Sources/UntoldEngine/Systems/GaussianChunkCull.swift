@@ -178,24 +178,32 @@ struct GaussianChunkCullPipelineStates {
 }
 
 /// The view-projections one entity's chunks are tested against this frame. In a stereo frame
-/// these are the previous frame's two eye matrices (`renderInfo.xrEye0/1ViewProjection`, written
-/// per eye by `renderXR`) with the entity's model matrix folded in — never the single
-/// head-centre matrix the per-splat passes use, because a chunk that only one eye sees has to
-/// survive for that eye's draw. In mono, or before the first stereo frame has written the eye
-/// matrices, both are the camera's projection × view × model and `count` is 1.
+/// these are the two eyes: each eye's projection × the scene root's effective view of the raw
+/// per-eye view `renderXR` last received (`renderInfo.xrEye0/1View`, `xrEye0/1Projection`) ×
+/// the entity's model matrix. Rebuilding them here rather than reusing the composed
+/// `renderInfo.xrEye0/1ViewProjection` matters: those carry the scene root of the frame that
+/// drew them, while the per-splat pass this frame uses `effectiveViewMatrix` with the root
+/// `updateIfNeeded` just committed — with the same root on both sides, eye 1's matrix here is
+/// exactly the per-splat matrix (`cameraComponent.viewSpace` and `perspectiveSpace` hold the
+/// last eye's raw view and projection), so the chunk stage still never removes a splat the
+/// per-splat test keeps, even on a frame the root jumped (recentre, pinch-drag). The chunk list
+/// itself is eye-agnostic — a chunk only one eye sees survives — but in Stage 1 the per-splat
+/// stage that follows still filters against that single head-centre view; the either-eye rule
+/// only changes the stereo image once the fused per-chunk pass replaces it. In mono, or before
+/// the first stereo frame has written the eye matrices, both are the camera's projection × view
+/// × model and `count` is 1.
 func gaussianChunkCullViewProjections(
     modelMatrix: simd_float4x4,
     viewMatrix: simd_float4x4
 ) -> (first: simd_float4x4, second: simd_float4x4, count: UInt32) {
     if renderInfo.isXRStereoMode,
-       renderInfo.xrEye0ViewProjection != matrix_identity_float4x4,
-       renderInfo.xrEye1ViewProjection != matrix_identity_float4x4
+       renderInfo.xrEye0Projection != matrix_identity_float4x4,
+       renderInfo.xrEye1Projection != matrix_identity_float4x4
     {
-        return (
-            simd_mul(renderInfo.xrEye0ViewProjection, modelMatrix),
-            simd_mul(renderInfo.xrEye1ViewProjection, modelMatrix),
-            2
-        )
+        let root = SceneRootTransform.shared
+        let eye0 = simd_mul(renderInfo.xrEye0Projection, simd_mul(root.effectiveViewMatrix(renderInfo.xrEye0View), modelMatrix))
+        let eye1 = simd_mul(renderInfo.xrEye1Projection, simd_mul(root.effectiveViewMatrix(renderInfo.xrEye1View), modelMatrix))
+        return (eye0, eye1, 2)
     }
     let headViewProjection = simd_mul(renderInfo.perspectiveSpace, simd_mul(viewMatrix, modelMatrix))
     return (headViewProjection, headViewProjection, 1)

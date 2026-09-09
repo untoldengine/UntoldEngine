@@ -65,6 +65,15 @@ public struct RenderInfo {
     public var isXRStereoMode: Bool = false
     public var xrEye0ViewProjection: simd_float4x4 = matrix_identity_float4x4
     public var xrEye1ViewProjection: simd_float4x4 = matrix_identity_float4x4
+    // The raw per-eye view and projection `renderXR` last received, without the scene root
+    // folded in (the two matrices above already include it, as of that frame). The Gaussian
+    // chunk cull rebuilds each eye's view-projection from these at prep time with the scene
+    // root of the frame being culled, so its frusta match the per-splat pass exactly even on
+    // a frame the root moved (recentre, pinch-drag).
+    public var xrEye0View: simd_float4x4 = matrix_identity_float4x4
+    public var xrEye0Projection: simd_float4x4 = matrix_identity_float4x4
+    public var xrEye1View: simd_float4x4 = matrix_identity_float4x4
+    public var xrEye1Projection: simd_float4x4 = matrix_identity_float4x4
 }
 
 @inline(__always)
