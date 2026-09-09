@@ -2,12 +2,14 @@
 //  GaussianChunkCullBenchmark.swift
 //  UntoldEngine
 //
-//  Informational timing of the chunk-level cull on a synthetic million-splat asset: the whole
-//  frame's command-buffer GPU time (renderInfo.lastCommandBuffer gpuStartTime/gpuEndTime) with
-//  the per-splat cull over the whole buffer (legacy, no chunk table), through the chunk path
-//  with every chunk forced visible (disableChunkCull), and through the chunk path proper, at a
-//  camera that sees about 30 % of the asset. Skipped unless UNTOLD_PERF_GAUSSIAN_CHUNK_CULL=1:
-//  the bake takes seconds and the numbers are machine-specific, so this is a tool, not a gate.
+//  Informational timing of the per-chunk path on synthetic one- and two-million-splat slabs: the
+//  whole frame's command-buffer GPU time (renderInfo.lastCommandBuffer gpuStartTime/gpuEndTime)
+//  and the resident bytes with the per-splat cull over the whole buffer (legacy: 48-byte records,
+//  index buffers, the set sized to the asset), through the chunk path with every chunk forced
+//  visible (disableChunkCull), through the chunk path proper with the budget unlimited, and
+//  through the chunk path with the budget at a quarter of the visible count, at a camera that
+//  sees about 30 % of the asset. Skipped unless UNTOLD_PERF_GAUSSIAN_CHUNK_CULL=1: the bakes take
+//  tens of seconds and the numbers are machine-specific, so this is a tool, not a gate.
 //
 // Copyright (C) Untold Engine Studios
 //
@@ -25,16 +27,20 @@ import XCTest
 final class GaussianChunkCullBenchmark: BaseRenderSetup {
     private var savedDisableChunkCull = false
     private var savedDisableHZBOcclusionCull = false
+    private var savedWorkingSetOverride: Int?
 
     override func setUp() async throws {
         try await super.setUp()
         savedDisableChunkCull = GaussianDebugOptions.shared.disableChunkCull
         savedDisableHZBOcclusionCull = GaussianDebugOptions.shared.disableHZBOcclusionCull
+        savedWorkingSetOverride = GaussianRuntimeLimits.workingSetSplatsOverride
     }
 
     override func tearDown() async throws {
         GaussianDebugOptions.shared.disableChunkCull = savedDisableChunkCull
         GaussianDebugOptions.shared.disableHZBOcclusionCull = savedDisableHZBOcclusionCull
+        GaussianRuntimeLimits.workingSetSplatsOverride = savedWorkingSetOverride
+        GaussianSharedWorkingSet.shared.resetBudgetHysteresis()
         destroyAllEntities()
         try await super.tearDown()
     }
@@ -48,64 +54,8 @@ final class GaussianChunkCullBenchmark: BaseRenderSetup {
 
     // MARK: - Synthetic asset
 
-    /// Deterministic generator: splats spread over a 12 × 0.6 × 12 slab (a captured floor) so a
-    /// camera near one corner sees a fraction of the chunks, scales exp(U[−4.5, −2.5]) and
-    /// opacities U[0.2, 1].
-    private struct SplitMix64 {
-        private var state: UInt64
-        init(seed: UInt64) {
-            state = seed
-        }
-
-        mutating func next() -> UInt64 {
-            state &+= 0x9E37_79B9_7F4A_7C15
-            var z = state
-            z = (z ^ (z >> 30)) &* 0xBF58_476D_1CE4_E5B9
-            z = (z ^ (z >> 27)) &* 0x94D0_49BB_1331_11EB
-            return z ^ (z >> 31)
-        }
-
-        mutating func unit() -> Float {
-            Float(next() >> 40) / Float(1 << 24)
-        }
-
-        mutating func value(in range: ClosedRange<Float>) -> Float {
-            range.lowerBound + unit() * (range.upperBound - range.lowerBound)
-        }
-    }
-
-    private static let slabMin = simd_float3(-6, -0.3, -6)
-    private static let slabMax = simd_float3(6, 0.3, 6)
-
     private func syntheticAssetURL(splatCount: Int) throws -> URL {
-        let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent("GaussianChunkCullBenchmark-\(splatCount)-v1")
-            .appendingPathExtension("untoldgs")
-        if FileManager.default.fileExists(atPath: url.path) {
-            return url
-        }
-        var generator = SplitMix64(seed: 0x5EED_CAFE)
-        var splats: [UntoldGSSplat] = []
-        splats.reserveCapacity(splatCount)
-        for _ in 0 ..< splatCount {
-            let t = simd_float3(generator.unit(), generator.unit(), generator.unit())
-            let scale = simd_float3(exp(generator.value(in: -4.5 ... -2.5)), exp(generator.value(in: -4.5 ... -2.5)), exp(generator.value(in: -4.5 ... -2.5)))
-            let q = simd_normalize(simd_float4(generator.value(in: -1 ... 1), generator.value(in: -1 ... 1), generator.value(in: -1 ... 1), generator.value(in: -1 ... 1)))
-            splats.append(UntoldGSSplat(
-                position: Self.slabMin + t * (Self.slabMax - Self.slabMin),
-                scale: scale,
-                rotation: simd_quatf(vector: q),
-                color: simd_float3(generator.unit(), generator.unit(), generator.unit()),
-                opacity: generator.value(in: 0.2 ... 1),
-                sphericalHarmonics: []
-            ))
-        }
-        var options = UntoldGSWriteOptions()
-        options.log2ChunkSplats = 10
-        let start = CFAbsoluteTimeGetCurrent()
-        try UntoldGSFormat.write(splats: splats, options: options, to: url)
-        print("[GaussianChunkCullBenchmark] baked \(splatCount) splats in \(String(format: "%.1f", CFAbsoluteTimeGetCurrent() - start)) s -> \(url.path)")
-        return url
+        try GaussianSyntheticAsset.url(splatCount: splatCount)
     }
 
     // MARK: - Scene
@@ -194,12 +144,25 @@ final class GaussianChunkCullBenchmark: BaseRenderSetup {
         return String(format: "mean %.3f ms, median %.3f ms, min %.3f ms, max %.3f ms over %d", mean, sorted[sorted.count / 2], sorted.first!, sorted.last!, sorted.count)
     }
 
-    private func report(_ label: String, _ samples: [FrameSample], cullOnly: [Double], warmup: Int) -> String {
+    private func report(_ label: String, _ samples: [FrameSample], cullOnly: [Double], warmup: Int, component: GaussianComponent) -> String {
         let measured = Array(samples.dropFirst(warmup))
         guard let last = measured.last else { return "\(label): no samples" }
-        let line = "\(label): frame gpu \(summary(measured.map(\.gpuMs))) frames; cull-only gpu \(summary(Array(cullOnly.dropFirst(warmup)))) buffers; visible splats \(last.visibleSplats), visible chunks \(last.visibleChunks)"
+        let workingSet = GaussianSharedWorkingSet.shared
+        let state = workingSet.lastBudgetState
+        let line = "\(label): frame gpu \(summary(measured.map(\.gpuMs))) frames; cull-only gpu \(summary(Array(cullOnly.dropFirst(warmup)))) buffers; visible splats \(last.visibleSplats), visible chunks \(last.visibleChunks); entity \(gaussianFormatBytes(component.estimatedGPUBytes)), shared set \(gaussianFormatBytes(workingSet.residentBytes)) (capacity \(workingSet.capacity)), total \(gaussianFormatBytes(component.estimatedGPUBytes + workingSet.residentBytes)); budget \(state.budget) requested \(state.requestedSplats) quota \(state.quotaSplats) scale \(String(format: "%.3f", state.scale))"
         print("[GaussianChunkCullBenchmark] \(line)")
         return line
+    }
+
+    /// One configuration on one asset: add the entity, converge the budget scale, measure.
+    private func bench(_ label: String, result: GaussianLoadResult, index: UntoldGSIndex, frames: Int, warmup: Int) -> (line: String, visibleSplats: Int)? {
+        GaussianSharedWorkingSet.shared.resetBudgetHysteresis()
+        _ = placeCameraSeeing(target: 0.30, index: index)
+        guard let component = addEntity(result) else { return nil }
+        defer { destroyAllEntities() }
+        let samples = measure(frames: frames + warmup, component: component)
+        let cullOnly = measureCullOnly(frames: frames + warmup)
+        return (report(label, samples, cullOnly: cullOnly, warmup: warmup, component: component), samples.last?.visibleSplats ?? 0)
     }
 
     // MARK: - Bench
@@ -209,49 +172,63 @@ final class GaussianChunkCullBenchmark: BaseRenderSetup {
             throw XCTSkip("Set UNTOLD_PERF_GAUSSIAN_CHUNK_CULL=1 to run the chunk-cull benchmark")
         }
         guard renderer != nil else { throw XCTSkip("Renderer not initialized") }
-        let splatCount = intEnv("UNTOLD_PERF_SPLAT_COUNT", default: 1_000_000)
+        let splatCounts = ProcessInfo.processInfo.environment["UNTOLD_PERF_SPLAT_COUNT"].flatMap { Int($0) }.map { [$0] } ?? [1_000_000, 2_000_000]
         let frames = intEnv("UNTOLD_PERF_GAUSSIAN_FRAMES", default: 30)
         let warmup = intEnv("UNTOLD_PERF_WARMUP_FRAMES", default: 5)
         GaussianDebugOptions.shared.disableHZBOcclusionCull = false
 
-        let url = try syntheticAssetURL(splatCount: splatCount)
-        let loaded = try GaussianChunkLoader.load(url: url)
-        let chunked = try XCTUnwrap(buildGaussianLoadResult(
-            packedSplatBuffer: loaded.packedSplatBuffer,
-            splatCount: UInt(loaded.splatCount),
-            sphericalHarmonicsBuffer: loaded.sphericalHarmonicsBuffer,
-            sphericalHarmonicsMetadata: loaded.sphericalHarmonicsMetadata,
-            boundingBox: loaded.boundingBox,
-            chunkTable: loaded.chunkTable
-        ))
-        // The same records decoded once into the whole-buffer path: the legacy per-splat cull.
-        let legacy = try GaussianLegacyTwin(loaded: loaded).result
-
-        let view = placeCameraSeeing(target: 0.30, index: loaded.index)
-        print(String(format: "[GaussianChunkCullBenchmark] %d splats in %d chunks; camera at (%.2f, %.2f, %.2f) sees %.1f %% of the splats by unpadded chunk box",
-                     loaded.splatCount, loaded.chunkTable.chunkCount, view.eye.x, view.eye.y, view.eye.z, view.fraction * 100))
-
         var lines: [String] = []
+        for splatCount in splatCounts {
+            let url = try syntheticAssetURL(splatCount: splatCount)
+            let loaded = try GaussianChunkLoader.load(url: url)
+            let chunked = try XCTUnwrap(buildGaussianLoadResult(
+                packedSplatBuffer: loaded.packedSplatBuffer,
+                splatCount: UInt(loaded.splatCount),
+                sphericalHarmonicsBuffer: loaded.sphericalHarmonicsBuffer,
+                sphericalHarmonicsMetadata: loaded.sphericalHarmonicsMetadata,
+                boundingBox: loaded.boundingBox,
+                chunkTable: loaded.chunkTable
+            ))
+            // The same records decoded once into the whole-buffer path: the legacy per-splat cull.
+            let legacy = try GaussianLegacyTwin(loaded: loaded).result
 
-        GaussianDebugOptions.shared.disableChunkCull = false
-        if let component = addEntity(legacy) {
-            lines.append(report("legacy per-splat cull (no chunk table)", measure(frames: frames + warmup, component: component), cullOnly: measureCullOnly(frames: frames + warmup), warmup: warmup))
+            let view = placeCameraSeeing(target: 0.30, index: loaded.index)
+            print(String(format: "[GaussianChunkCullBenchmark] %d splats in %d chunks; camera at (%.2f, %.2f, %.2f) sees %.1f %% of the splats by unpadded chunk box",
+                         loaded.splatCount, loaded.chunkTable.chunkCount, view.eye.x, view.eye.y, view.eye.z, view.fraction * 100))
+            destroyAllEntities()
+            let prefix = "\(splatCount / 1_000_000) M"
+
+            // Legacy, the set sized to the resident total (the debug switch restores that sizing).
+            GaussianDebugOptions.shared.disableChunkCull = false
+            GaussianDebugOptions.shared.disableWorkingSetBudget = true
+            GaussianRuntimeLimits.workingSetSplatsOverride = nil
+            if let legacyRun = bench("\(prefix) legacy per-splat cull (48 B records, set sized to the asset)", result: legacy, index: loaded.index, frames: frames, warmup: warmup) {
+                lines.append(legacyRun.line)
+            }
+            GaussianDebugOptions.shared.disableWorkingSetBudget = false
+
+            // Chunked and fused, budget unlimited (the set still never exceeds the resident total).
+            GaussianRuntimeLimits.workingSetSplatsOverride = splatCount
+            GaussianDebugOptions.shared.disableChunkCull = true
+            if let forced = bench("\(prefix) chunk path, every chunk forced visible, budget unlimited", result: chunked, index: loaded.index, frames: frames, warmup: warmup) {
+                lines.append(forced.line)
+            }
+            GaussianDebugOptions.shared.disableChunkCull = false
+            var visibleUnlimited = 0
+            if let unlimited = bench("\(prefix) chunk cull + fused pass, budget unlimited", result: chunked, index: loaded.index, frames: frames, warmup: warmup) {
+                lines.append(unlimited.line)
+                visibleUnlimited = unlimited.visibleSplats
+            }
+
+            // Budget at a quarter of what the camera sees.
+            let quarter = max(1, visibleUnlimited / 4)
+            GaussianRuntimeLimits.workingSetSplatsOverride = quarter
+            if let budgeted = bench("\(prefix) chunk cull + fused pass, budget \(quarter) (25 %% of the visible count)", result: chunked, index: loaded.index, frames: frames, warmup: warmup) {
+                lines.append(budgeted.line)
+            }
+            GaussianRuntimeLimits.workingSetSplatsOverride = nil
         }
-        destroyAllEntities()
 
-        GaussianDebugOptions.shared.disableChunkCull = true
-        _ = placeCameraSeeing(target: 0.30, index: loaded.index)
-        if let component = addEntity(chunked) {
-            lines.append(report("chunk path, every chunk forced visible", measure(frames: frames + warmup, component: component), cullOnly: measureCullOnly(frames: frames + warmup), warmup: warmup))
-        }
-        destroyAllEntities()
-
-        GaussianDebugOptions.shared.disableChunkCull = false
-        _ = placeCameraSeeing(target: 0.30, index: loaded.index)
-        if let component = addEntity(chunked) {
-            lines.append(report("chunk cull", measure(frames: frames + warmup, component: component), cullOnly: measureCullOnly(frames: frames + warmup), warmup: warmup))
-        }
-
-        XCTAssertEqual(lines.count, 3)
+        XCTAssertEqual(lines.count, splatCounts.count * 4)
     }
 }
