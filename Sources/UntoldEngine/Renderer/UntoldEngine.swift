@@ -826,12 +826,21 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
 
         cameraComponent.viewSpace = viewMatrix
 
-        // Save this eye's view-projection for next frame's per-eye HZB culling.
+        // Save this eye's view-projection for next frame's per-eye HZB culling, and the raw
+        // view and projection it was built from for the Gaussian chunk cull, which folds in
+        // the scene root of the frame it runs in instead of this one's.
         if renderInfo.isXRStereoMode {
             let effectiveVM = SceneRootTransform.shared.effectiveViewMatrix(viewMatrix)
             let eyeVP = simd_mul(projectionMatrix, effectiveVM)
-            if eyeIndex == 0 { renderInfo.xrEye0ViewProjection = eyeVP }
-            else { renderInfo.xrEye1ViewProjection = eyeVP }
+            if eyeIndex == 0 {
+                renderInfo.xrEye0ViewProjection = eyeVP
+                renderInfo.xrEye0View = viewMatrix
+                renderInfo.xrEye0Projection = projectionMatrix
+            } else {
+                renderInfo.xrEye1ViewProjection = eyeVP
+                renderInfo.xrEye1View = viewMatrix
+                renderInfo.xrEye1Projection = projectionMatrix
+            }
         }
 
         configuration.updateXRRenderingSystemCallback!(.xr(commandBuffer: commandBuffer, passDescriptor: passDescriptor))
