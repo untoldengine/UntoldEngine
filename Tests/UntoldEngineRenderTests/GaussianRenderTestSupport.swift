@@ -117,6 +117,38 @@ extension BaseRenderSetup {
         commandBuffer.waitUntilCompleted()
         XCTAssertEqual(commandBuffer.status, .completed)
     }
+
+    /// Fraction of an asset's splats whose chunk's *unpadded* centre box is in view — with a
+    /// uniform density a stand-in for the fraction of splats the per-splat cull keeps. (The
+    /// padded boxes the chunk cull tests keep more.)
+    func gaussianVisibleFraction(index: UntoldGSIndex, viewProjection: simd_float4x4) -> Double {
+        let visible = index.chunks.filter {
+            GaussianChunkCullMath.boxPassesClipPlanes(boxMin: $0.aabbMin, boxMax: $0.aabbMax, viewProjection: viewProjection)
+        }
+        let splats = visible.reduce(0) { $0 + Int($1.splatCount) }
+        return Double(splats) / Double(max(1, Int(index.header.splatCount)))
+    }
+
+    /// An oblique view down onto the origin, raised until the chunk mirror keeps about `target`
+    /// of the asset's splats: the higher the camera, the more of a slab its frustum covers.
+    @discardableResult
+    func placeGaussianCameraSeeing(target: Double, index: UntoldGSIndex) -> (fraction: Double, eye: simd_float3) {
+        let camera = placeGaussianTestCamera(eye: simd_float3(0, 5, 3), target: .zero)
+        var low: Float = 0.3
+        var high: Float = 20
+        var best: (Double, simd_float3) = (0, .zero)
+        for _ in 0 ..< 24 {
+            let height = 0.5 * (low + high)
+            let eye = simd_float3(0, height, 0.6 * height)
+            cameraLookAt(entityId: camera, eye: eye, target: .zero, up: simd_float3(0, 1, 0))
+            let view = scene.get(component: CameraComponent.self, for: camera)?.viewSpace ?? matrix_identity_float4x4
+            let fraction = gaussianVisibleFraction(index: index, viewProjection: simd_mul(renderInfo.perspectiveSpace, view))
+            best = (fraction, eye)
+            if abs(fraction - target) < 0.01 { break }
+            if fraction > target { high = height } else { low = height }
+        }
+        return best
+    }
 }
 
 /// Recovers which splat of an asset each working-set record came from by its entity-local
@@ -226,10 +258,12 @@ struct GaussianLegacyTwin {
 
 // MARK: - Synthetic assets
 
-/// Deterministic large `.untoldgs` assets for the budget tests and the benchmark: splats spread
-/// over a 12 × 0.6 × 12 slab (a captured floor) so a camera near one corner sees a fraction of
-/// the chunks, scales exp(U[−4.5, −2.5]) and opacities U[0.2, 1], 1024 splats per chunk. Baked
-/// once per process into the temporary directory and reused.
+/// Deterministic `.untoldgs` assets for the budget tests and the benchmark. The slabs: splats
+/// spread over a 12 × 0.6 × 12 slab (a captured floor) so a camera near one corner sees a
+/// fraction of the chunks, scales exp(U[−4.5, −2.5]) and opacities U[0.2, 1], 1024 splats per
+/// chunk, baked once per process into the temporary directory and reused. The harmonics asset:
+/// a small cloud over the 200-splat fixture's region with distinct per-splat degree-1
+/// coefficients, for the spherical-harmonics-by-index oracle.
 enum GaussianSyntheticAsset {
     struct SplitMix64 {
         private var state: UInt64
@@ -286,5 +320,34 @@ enum GaussianSyntheticAsset {
         try UntoldGSFormat.write(splats: splats, options: options, to: url)
         print("[GaussianSyntheticAsset] baked \(splatCount) splats in \(String(format: "%.1f", CFAbsoluteTimeGetCurrent() - start)) s -> \(url.path)")
         return url
+    }
+
+    /// `splatCount` splats over x, y in ±1.4 and z in 0…0.5 (where GaussianChunkCullTest's three
+    /// cameras look), `degree`-order harmonics whose coefficients differ splat by splat, chunks
+    /// of 2^`log2ChunkSplats`. A fresh file at `url`; the caller removes it.
+    static func writeHarmonicsAsset(splatCount: Int, degree: UInt8, log2ChunkSplats: UInt8, to url: URL) throws {
+        var generator = SplitMix64(seed: 0x5EED_0005_4000)
+        let coefficientCount = UntoldGSFormat.shCoefficientCount(degree: degree)
+        var splats: [UntoldGSSplat] = []
+        splats.reserveCapacity(splatCount)
+        for index in 0 ..< splatCount {
+            let q = simd_normalize(simd_float4(generator.value(in: -1 ... 1), generator.value(in: -1 ... 1), generator.value(in: -1 ... 1), generator.value(in: -1 ... 1)))
+            // Distinct per splat and per coefficient, small enough that the colour stays in range.
+            let harmonics = (0 ..< coefficientCount).map { k in
+                0.15 * sin(Float(index) * 0.731 + Float(k) * 1.37) * (k % 2 == 0 ? 1 : -1)
+            }
+            splats.append(UntoldGSSplat(
+                position: simd_float3(generator.value(in: -1.4 ... 1.4), generator.value(in: -1.4 ... 1.4), generator.value(in: 0 ... 0.5)),
+                scale: simd_float3(exp(generator.value(in: -3 ... -1.5)), exp(generator.value(in: -3 ... -1.5)), exp(generator.value(in: -3 ... -1.5))),
+                rotation: simd_quatf(vector: q),
+                color: simd_float3(generator.value(in: 0.3 ... 0.7), generator.value(in: 0.3 ... 0.7), generator.value(in: 0.3 ... 0.7)),
+                opacity: generator.value(in: 0.5 ... 1),
+                sphericalHarmonics: harmonics
+            ))
+        }
+        var options = UntoldGSWriteOptions()
+        options.log2ChunkSplats = log2ChunkSplats
+        options.shDegree = degree
+        try UntoldGSFormat.write(splats: splats, options: options, to: url)
     }
 }

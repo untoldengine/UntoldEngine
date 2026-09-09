@@ -71,35 +71,9 @@ final class GaussianChunkCullBenchmark: BaseRenderSetup {
         return component
     }
 
-    /// Fraction of the asset's splats whose chunk's *unpadded* centre box is in view — with the
-    /// uniform synthetic density a stand-in for the fraction of splats the per-splat cull keeps.
-    /// (The padded boxes the chunk cull tests keep more: see the visible-chunk counts reported.)
-    private func visibleFraction(index: UntoldGSIndex, viewProjection: simd_float4x4) -> Double {
-        let visible = index.chunks.filter {
-            GaussianChunkCullMath.boxPassesClipPlanes(boxMin: $0.aabbMin, boxMax: $0.aabbMax, viewProjection: viewProjection)
-        }
-        let splats = visible.reduce(0) { $0 + Int($1.splatCount) }
-        return Double(splats) / Double(max(1, Int(index.header.splatCount)))
-    }
-
-    /// An oblique view down onto the slab's centre, raised until the chunk mirror keeps about
-    /// `target` of the splats: the higher the camera, the more of the slab its frustum covers.
+    /// The oblique view the budget test's partial-view case uses too (GaussianRenderTestSupport).
     private func placeCameraSeeing(target: Double, index: UntoldGSIndex) -> (fraction: Double, eye: simd_float3) {
-        let camera = placeGaussianTestCamera(eye: simd_float3(0, 5, 3), target: .zero)
-        var low: Float = 0.3
-        var high: Float = 20
-        var best: (Double, simd_float3) = (0, .zero)
-        for _ in 0 ..< 24 {
-            let height = 0.5 * (low + high)
-            let eye = simd_float3(0, height, 0.6 * height)
-            cameraLookAt(entityId: camera, eye: eye, target: .zero, up: simd_float3(0, 1, 0))
-            let view = scene.get(component: CameraComponent.self, for: camera)?.viewSpace ?? matrix_identity_float4x4
-            let fraction = visibleFraction(index: index, viewProjection: simd_mul(renderInfo.perspectiveSpace, view))
-            best = (fraction, eye)
-            if abs(fraction - target) < 0.01 { break }
-            if fraction > target { high = height } else { low = height }
-        }
-        return best
+        placeGaussianCameraSeeing(target: target, index: index)
     }
 
     private struct FrameSample {
