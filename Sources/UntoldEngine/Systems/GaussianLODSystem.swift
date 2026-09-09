@@ -277,6 +277,7 @@ func copyGaussianComponentBuffers(from source: GaussianComponent, to destination
     destination.visibleSplatCountForRendering = source.splatCount
     destination.gaussianVisibleIndices = source.gaussianVisibleIndices
     destination.gaussianVisibleCount = source.gaussianVisibleCount
+    destination.chunkTable = source.chunkTable
     destination.encodedSplatData = source.encodedSplatData
     destination.sphericalHarmonicsData = source.sphericalHarmonicsData
     destination.sphericalHarmonicsMetadata = source.sphericalHarmonicsMetadata

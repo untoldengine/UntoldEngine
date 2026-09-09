@@ -297,6 +297,7 @@ private func gaussianComponentEstimatedBytes(_ component: GaussianComponent) -> 
     for buffer in component.gaussianVisibleCount {
         total += buffer?.length ?? 0
     }
+    total += component.chunkTable?.gpuBytes ?? 0
     // Its share of the shared working set (see buildGaussianLoadResult).
     total += maxInFlightCommandBuffers * GaussianSharedWorkingSet.bytesPerSplatPerSlot * Int(component.splatCount)
     return total
