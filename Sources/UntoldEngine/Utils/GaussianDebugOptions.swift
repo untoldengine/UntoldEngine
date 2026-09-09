@@ -23,6 +23,7 @@ public final class GaussianDebugOptions: @unchecked Sendable {
     private var _disableOpaqueDepthTest = false
     private var _disableBlendCap = false
     private var _disableOccluderShell = false
+    private var _disableChunkCull = false
 
     /// Skips the per-splat test against the previous frame's HZB depth pyramid in
     /// `gaussianFrustumCull`. The frustum test still runs.
@@ -50,6 +51,15 @@ public final class GaussianDebugOptions: @unchecked Sendable {
     public var disableOccluderShell: Bool {
         get { lock.lock(); defer { lock.unlock() }; return _disableOccluderShell }
         set { lock.lock(); _disableOccluderShell = newValue; lock.unlock() }
+    }
+
+    /// Makes the chunk-level cull of `.untoldgs` entities (`gaussianChunkCull`) keep every chunk,
+    /// so the per-splat pass walks the whole asset as it does for a `.ply`. The frame is the same
+    /// either way — the chunk cull only skips splats the per-splat test would reject — which is
+    /// what this switch is for: an A/B of cost and of that guarantee.
+    public var disableChunkCull: Bool {
+        get { lock.lock(); defer { lock.unlock() }; return _disableChunkCull }
+        set { lock.lock(); _disableChunkCull = newValue; lock.unlock() }
     }
 
     /// The per-draw constants the splat fragment shader reads (see `GaussianTBDRDrawDebug`).

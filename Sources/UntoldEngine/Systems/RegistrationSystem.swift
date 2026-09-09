@@ -3811,6 +3811,17 @@ func buildGaussianLoadResult(
     boundingBox: (min: simd_float3, max: simd_float3),
     chunkTable: GaussianChunkTable? = nil
 ) -> GaussianLoadResult? {
+    // A chunked asset also gets its per-slot visible-chunk list and record, so the frame can
+    // cull whole chunks before the per-splat pass (see GaussianChunkCull.swift).
+    var chunkTable = chunkTable
+    if let table = chunkTable {
+        guard let allocated = allocateGaussianVisibleChunkBuffers(for: table) else {
+            handleError(.bufferAllocationFailed, "Gaussian visible-chunk buffers are nil")
+            return nil
+        }
+        chunkTable = allocated
+    }
+
     var gaussianVisibleIndices: [MTLBuffer] = []
     var gaussianVisibleCount: [MTLBuffer] = []
     for _ in 0 ..< maxInFlightCommandBuffers {
