@@ -99,48 +99,89 @@ Once everything is set up:
 
 ## Several splat entities in one scene
 
-Every frame the engine compacts the visible splats of all Gaussian entities into one shared working set, sorts it once by depth and draws it with one instanced draw. Two captures that overlap on screen — a chair partly in front of a table, a prop on a splat floor — therefore blend in true depth order; the order the entities were created in does not matter. The shared set is sized to the resident splat total, so every loaded splat fits; should the entities ever append more than it holds, the excess is dropped for that frame and reported through `handleError` and the Gaussian profile line as overflow. Up to 256 splat entities can be drawn in one frame.
+Every frame the engine compacts the visible splats of all Gaussian entities into one shared working set, sorts it once by depth and draws it with one instanced draw. Two captures that overlap on screen — a chair partly in front of a table, a prop on a splat floor — therefore blend in true depth order; the order the entities were created in does not matter. The shared set is sized to a **working-set budget** (below), not to what is loaded; `.untoldgs` entities are fitted to it chunk by chunk, so a scene that asks for more than the budget draws the most important splats of every visible chunk. Should the entities ever append more than the set holds — a `.ply`, which is not budgeted, can — the excess is dropped for that frame and reported through `handleError` and the Gaussian profile line as overflow. Up to 256 splat entities can be drawn in one frame.
 
-## Chunk-level culling of `.untoldgs` assets
+## Chunk-level culling and the working-set budget of `.untoldgs` assets
 
 A baked `.untoldgs` asset keeps its chunk table after the load: the per-chunk decode constants
 (`GaussianChunkDecodeConstants`, 48 bytes per chunk — the chunk's centre bounding box, its
 log-scale range, its first splat and count) stay on the GPU, and the file's index stays on the
-CPU (`GaussianComponent.chunkTable`). Every frame the engine first tests whole chunks — the
-centre box padded by the largest splat the chunk holds, against the camera frustum and, when
-available, the previous frame's depth pyramid — and only then runs the per-splat test over the
-chunks that survived, one threadgroup per chunk (see
-[renderingSystem.md §3b](../Architecture/renderingSystem.md#3b-gaussian-frustum-culling--executegaussianfrustumcullingcommandbuffer)).
-In a stereo frame a chunk is kept when either eye sees it; the per-splat stage that follows
-still filters against the head-centre view as it always has, so the either-eye rule only affects
-which chunks the per-splat pass walks — the stereo image changes only once the fused per-chunk
-pass (Stage 2) replaces that per-splat test. The chunk stage never removes a splat the
-per-splat test would keep, so the picture is the same with it on or off; what changes is how
-many splats the per-splat pass has to read when part of the asset is off screen or behind an
-occluder.
+CPU (`GaussianComponent.chunkTable`). Its splats stay resident as the file's own 16-byte
+records (`GaussianComponent.packedSplatData`) and are decoded every frame, only for the chunks
+in view: the engine first tests whole chunks — the centre box padded by the largest splat the
+chunk holds, against the camera frustum and, when available, the previous frame's depth
+pyramid — then fits the survivors to the working-set budget, and only then runs one fused pass
+per visible chunk that decodes, tests, projects and compacts its splats (see
+[renderingSystem.md §3b–3c](../Architecture/renderingSystem.md#3b-gaussian-frustum-culling--executegaussianfrustumcullingcommandbuffer)).
+In a stereo frame a chunk, and a splat, is kept when either eye sees it. With the budget
+unlimited the picture is the same as the whole-buffer path's; what changes is how many splats
+the frame reads when part of the asset is off screen or behind an occluder.
 
-- The chunk table costs 48 bytes per chunk plus, per frame in flight, an 8-byte visible-chunk
-  entry per chunk and one 48-byte record — about 70 KB for a million splats at the default
-  1024 splats per chunk (48 B × 977 chunks, plus 3 × (977 × 8 B + 48 B) of visible-chunk lists
-  and records). Everything else a splat costs (below) is unchanged for now:
-  the 48-byte encoded record, the per-slot visible index and the shared working set sized to
-  the resident total stay as they are.
-- `GaussianDebugOptions.shared.disableChunkCull` keeps every chunk, so the per-splat pass walks
-  the whole asset as it does for a `.ply` — for bisecting, and for A/B timing of the chunk
-  stage. `disableHZBOcclusionCull` turns the depth-pyramid part off for both stages.
-- A `.ply` asset, or a `.untoldgs` decoded on the CPU because the decode kernel is unavailable,
-  has no chunk table and keeps the per-splat cull over its whole buffer.
+### The budget
+
+The shared working set holds at most `GaussianRuntimeLimits.workingSetSplats` records:
+1,000,000 on Apple Vision Pro, iPhone, iPad and Apple TV, 6,000,000 on the Mac, clamped so its
+3 × 72 bytes per record stay within a quarter of `MemoryBudgetManager.geometryBudget`, and
+never more than the resident splat total. `GaussianRuntimeLimits.workingSetSplatsOverride`
+replaces the figure for an application that knows its scene (or a test); `nil` restores the
+default.
+
+When the chunks in view hold more splats than the budget, every visible chunk is granted a
+quota — the same fraction of its splats for every chunk, `floor(scale × count)` with
+`scale = 0.98 × budget / requested` — and the fused pass reads only the first `quota` records
+of the chunk. The bake orders each chunk by importance (opacity × size), so a quota is a
+continuous level of detail: the splats that matter least go first. Two things keep the cut from
+popping as the camera moves:
+
+- **Hysteresis.** The scale moves from the previous frame's by at most 10 % per frame, so a
+  step in the budget, or a turn that brings a dense region into view, settles over a dozen
+  frames instead of flipping the visible set. While it settles the shared set's clamp catches
+  the excess silently.
+- **The opacity band.** In a truncated chunk the last fifth of the kept ranks fade linearly
+  toward zero opacity, so the splats a shrinking quota drops next are already nearly invisible.
+
+A `.ply` is not budgeted: its whole-buffer cull appends everything it keeps into the same set,
+and overflows if the set is full. Read the state through `GaussianSharedWorkingSet.shared`
+(`capacity`, `lastVisibleCount`, `lastOverflowCount`, `lastBudgetState` — the request, the
+grant, the scale and its target of the last completed frame) or the `[Gaussian][Preprocess]`
+profile line (`budget=… requested=… quota=… scale=… targetScale=…`, `LogCategory.gaussian`).
+
+### Cost and switches
+
+| Resident per splat | `.untoldgs` (chunked) | `.ply` / CPU-decoded (whole buffer) |
+|---|---|---|
+| Splat record | 16 B packed | 48 B encoded |
+| Visible index, per frame in flight | — (visible-chunk lists: 16 B per chunk per slot) | 4 B |
+| Spherical harmonics | 0 / 9 / 24 / 45 B (degree 0–3) | same |
+| Chunk table | 48 B per chunk | — |
+
+The shared working set costs 3 × 72 B × budget once, whatever is loaded (216 MB for a million
+splats), carried by its own `MemoryBudgetManager` entry
+(`setGaussianWorkingSetBytes`), not by the entities. A million-splat `.untoldgs` at degree 3
+therefore keeps about 61 MB resident (16 B + 45 B per splat, plus about 70 KB of chunk table
+and visible-chunk lists at 1024 splats per chunk) where the same asset used to cost about
+320 MB.
+
+- `GaussianDebugOptions.shared.disableChunkCull` keeps every chunk, so the fused pass walks
+  the whole asset as the whole-buffer cull does for a `.ply` — for bisecting, and for A/B timing
+  of the chunk stage. `disableHZBOcclusionCull` turns the depth-pyramid part off for both stages.
+- `GaussianDebugOptions.shared.disableWorkingSetBudget` sizes the set to the resident total and
+  grants every chunk its whole count — the pre-budget behaviour, for an A/B of what the budget
+  cuts and what it saves.
+- A `.ply` asset, or a `.untoldgs` decoded on the CPU because the decode kernel is unavailable
+  (or expanded once at load because the per-chunk kernels are), has no chunk table and keeps
+  the per-splat cull over its whole encoded buffer.
 
 ## Per-entity splat limit
 
-Every loaded splat keeps about 320 bytes resident on the GPU (its 48-byte encoded record, a
-visible index per frame in flight, its 72-byte share of the shared working set per frame in
-flight, and its spherical harmonics), so the runtime caps one entity at
-`GaussianRuntimeLimits.maxSplatsPerEntity`: 5,242,880 splats on Apple Vision Pro, iPhone,
-iPad and Apple TV, 16,777,216 on the Mac. A `.untoldgs` or `.ply` above the cap fails to
-load with an "exceeds maximum" error. Cook large captures with a splat budget
+A `.untoldgs` splat keeps 16 bytes plus its spherical harmonics resident (see the table above),
+so the runtime caps one entity at `GaussianRuntimeLimits.maxSplatsPerEntity`: 20,000,000
+splats on Apple Vision Pro, iPhone, iPad and Apple TV (320 MB of records, 1.2 GB with degree-3
+harmonics), 40,000,000 on the Mac. A `.untoldgs` or `.ply` above the cap fails to load with an
+"exceeds maximum" error. Cook large captures with a splat budget
 (`UntoldGSCookOptions.maxSplatCount`, `untoldengine export --splat-max-count`) that fits
-every platform the asset ships on, or split the scene into streamed tiles.
+every platform the asset ships on, or split the scene into streamed tiles. What the frame can
+draw is bounded separately by the working-set budget above.
 
 ## A splat standing in for a mesh: shells, fades and scene links
 

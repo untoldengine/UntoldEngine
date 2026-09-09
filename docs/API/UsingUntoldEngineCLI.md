@@ -245,11 +245,13 @@ command prints how many splats were kept and pruned per reason.
 
 `--splat-max-count N` keeps at most N splats, dropping the least important first (opacity
 times the geometric mean of the scales). The runtime refuses to load an entity above its
-per-platform cap — 5,242,880 splats on Apple Vision Pro, iPhone, iPad and Apple TV,
-16,777,216 on the Mac (`GaussianRuntimeLimits`) — so a large capture that has to load
-everywhere is cooked with `--splat-max-count 5242880`; one that only has to run on a Mac
-can go up to the Mac figure. Captures beyond that belong to the streamed environment
-path, which decodes and sorts only the visible chunks (part 6 of the series).
+per-platform cap — 20,000,000 splats on Apple Vision Pro, iPhone, iPad and Apple TV,
+40,000,000 on the Mac (`GaussianRuntimeLimits`; a `.untoldgs` splat keeps 16 bytes plus its
+harmonics resident) — so a large capture that has to load everywhere is cooked with
+`--splat-max-count 20000000`; one that only has to run on a Mac can go up to the Mac figure.
+What the frame draws is bounded separately by the working-set budget
+(`GaussianRuntimeLimits.workingSetSplats`), which fits the visible chunks by quota. Captures
+beyond the cap belong to the streamed environment path (part 6 of the series).
 
 ---
 
