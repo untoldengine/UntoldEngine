@@ -106,6 +106,10 @@ public class GaussianComponent: Component {
     var gaussianVisibleCount: [MTLBuffer?] = Array(repeating: nil, count: maxInFlightCommandBuffers)
     var visibleSplatCountForRendering: UInt = 0
     var splatCount: UInt = 0
+    /// The `.untoldgs` chunk table (decode constants on the GPU, index on the CPU), kept from
+    /// the load so the frame can cull whole chunks before it looks at their splats. nil for a
+    /// `.ply` or a CPU-decoded asset, which keep the per-splat cull over the whole buffer.
+    var chunkTable: GaussianChunkTable?
 
     /// Multiplier on every splat's opacity this frame: 1 draws the asset as captured, 0 hides
     /// it without unloading (nothing is compacted into the frame; its cull is skipped), values

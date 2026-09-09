@@ -21,6 +21,8 @@ struct GaussianProfileTotals {
     var sortedIndexBytes: Int = 0
     var visibleIndexBytes: Int = 0
     var visibleCountBytes: Int = 0
+    /// `.untoldgs` chunk tables (GaussianChunkDecodeConstants per chunk) and their visible-chunk lists.
+    var chunkTableBytes: Int = 0
     var sphericalHarmonicsBytes: Int = 0
     var uniformBytes: Int = 0
     var scratchBytes: Int = 0
@@ -32,7 +34,7 @@ struct GaussianProfileTotals {
     var sharedWorkingSetBytes: Int = 0
 
     var totalResidentBytes: Int {
-        encodedBytes + sortedIndexBytes + visibleIndexBytes + visibleCountBytes + sphericalHarmonicsBytes + uniformBytes + scratchBytes + sharedWorkingSetBytes
+        encodedBytes + sortedIndexBytes + visibleIndexBytes + visibleCountBytes + chunkTableBytes + sphericalHarmonicsBytes + uniformBytes + scratchBytes + sharedWorkingSetBytes
     }
 
     mutating func include(component: GaussianComponent) {
@@ -41,6 +43,7 @@ struct GaussianProfileTotals {
         encodedBytes += component.encodedSplatData?.length ?? 0
         visibleIndexBytes += component.gaussianVisibleIndices.reduce(0) { $0 + ($1?.length ?? 0) }
         visibleCountBytes += component.gaussianVisibleCount.reduce(0) { $0 + ($1?.length ?? 0) }
+        chunkTableBytes += component.chunkTable?.gpuBytes ?? 0
         if let shBuffer = component.sphericalHarmonicsData {
             sphericalHarmonicsBytes += shBuffer.length
         }
@@ -76,7 +79,7 @@ func logGaussianProfile(
 
     Logger.log(
         message: String(
-            format: "[Gaussian][%@] cpuEncodeMs=%.3f entities=%d splats=%d draws=%d dispatches=%d radixPasses=%d shDegree=%u shRestCoeffsPerSplat=%u memory=%@ bytesPerSplat=%.1f encoded=%@ sorted=%@ visible=%@ sh=%@ uniforms=%@ scratch=%@%@",
+            format: "[Gaussian][%@] cpuEncodeMs=%.3f entities=%d splats=%d draws=%d dispatches=%d radixPasses=%d shDegree=%u shRestCoeffsPerSplat=%u memory=%@ bytesPerSplat=%.1f encoded=%@ sorted=%@ visible=%@ chunks=%@ sh=%@ uniforms=%@ scratch=%@%@",
             stage,
             elapsedMs,
             totals.entityCount,
@@ -91,6 +94,7 @@ func logGaussianProfile(
             gaussianFormatBytes(totals.encodedBytes),
             gaussianFormatBytes(totals.sortedIndexBytes),
             gaussianFormatBytes(totals.visibleIndexBytes + totals.visibleCountBytes),
+            gaussianFormatBytes(totals.chunkTableBytes),
             gaussianFormatBytes(totals.sphericalHarmonicsBytes),
             gaussianFormatBytes(totals.uniformBytes),
             gaussianFormatBytes(totals.scratchBytes),

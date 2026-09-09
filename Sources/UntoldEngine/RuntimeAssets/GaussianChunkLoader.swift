@@ -7,7 +7,8 @@
 //  are (the file already stores the renderer's byte contract), and runs the
 //  `gaussianDecodeChunks` kernel once to expand the 16-byte records into the
 //  `EncodedGaussianSplat` layout the existing cull, sort and draw passes consume.
-//  The file is never read whole and no CPU decode runs.
+//  The file is never read whole and no CPU decode runs. The chunk table the decode
+//  used stays resident (`GaussianChunkTable`) so the frame can cull chunk by chunk.
 //
 //
 // Copyright (C) Untold Engine Studios
@@ -20,6 +21,26 @@ import CShaderTypes
 import Foundation
 import Metal
 import simd
+
+/// The chunk table of a `.untoldgs` asset as the renderer keeps it after the load: the
+/// per-chunk decode constants (`GaussianChunkDecodeConstants`, 48 bytes per chunk — centre
+/// AABB, log-scale range, first splat and count) GPU-resident for the chunk-level cull
+/// (`gaussianChunkCull`), and the file's index on the CPU for tests and later paging.
+struct GaussianChunkTable {
+    /// `GaussianChunkDecodeConstants × chunkCount`, in chunk order; `firstSplat` runs
+    /// contiguously so chunk `i` owns splats `firstSplat ..< firstSplat + splatCount` of the
+    /// encoded buffer.
+    let constantsBuffer: MTLBuffer
+    let chunkCount: Int
+    /// `1 << header.log2ChunkSplats`: the most splats any chunk holds, the threadgroup width
+    /// of the per-chunk passes.
+    let splatsPerChunk: Int
+    let index: UntoldGSIndex
+
+    var gpuBytes: Int {
+        constantsBuffer.length
+    }
+}
 
 /// GPU-resident result of decoding a `.untoldgs` file.
 struct GaussianChunkLoadResult {
@@ -34,6 +55,8 @@ struct GaussianChunkLoadResult {
     let boundingBox: (min: simd_float3, max: simd_float3)
     /// Chunk index of the file, kept for callers that want to page later.
     let index: UntoldGSIndex
+    /// The same index's decode constants, GPU-resident, for the chunk-level cull.
+    let chunkTable: GaussianChunkTable
 }
 
 enum GaussianChunkLoadError: Error, CustomStringConvertible {
@@ -141,6 +164,7 @@ enum GaussianChunkLoader {
         ) else {
             throw GaussianChunkLoadError.bufferAllocationFailed("Gaussian chunk constants buffer")
         }
+        constantsBuffer.label = "Gaussian Chunk Table"
 
         guard let commandBuffer = commandQueue.makeCommandBuffer(),
               let encoder = commandBuffer.makeComputeCommandEncoder()
@@ -179,7 +203,13 @@ enum GaussianChunkLoader {
             captureExposureEV: header.captureExposureEV,
             captureWhiteBalance: header.captureWhiteBalance,
             boundingBox: (header.boundingBoxMin, header.boundingBoxMax),
-            index: file.index
+            index: file.index,
+            chunkTable: GaussianChunkTable(
+                constantsBuffer: constantsBuffer,
+                chunkCount: constants.count,
+                splatsPerChunk: header.splatsPerChunk,
+                index: file.index
+            )
         )
     }
 }

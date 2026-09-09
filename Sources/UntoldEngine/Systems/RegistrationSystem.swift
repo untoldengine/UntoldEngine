@@ -3729,6 +3729,9 @@ struct GaussianLoadResult {
     /// Capture exposure and white balance from a `.untoldgs` header (0 and 1 for a `.ply`).
     var captureExposureEV: Float = 0
     var captureWhiteBalance = SIMD3<Float>(repeating: 1)
+    /// The `.untoldgs` chunk table kept from the load (see `GaussianChunkTable`); nil for a
+    /// `.ply` or a CPU-decoded asset.
+    let chunkTable: GaussianChunkTable?
     /// Sum of all GPU buffer bytes above, for `MemoryBudgetManager` registration.
     let estimatedGPUBytes: Int
     /// Local-space bounding box computed from the actual loaded splat positions, for
@@ -3805,7 +3808,8 @@ func buildGaussianLoadResult(
     splatCount: UInt,
     sphericalHarmonicsBuffer: MTLBuffer?,
     sphericalHarmonicsMetadata: GaussianSHMetadata?,
-    boundingBox: (min: simd_float3, max: simd_float3)
+    boundingBox: (min: simd_float3, max: simd_float3),
+    chunkTable: GaussianChunkTable? = nil
 ) -> GaussianLoadResult? {
     var gaussianVisibleIndices: [MTLBuffer] = []
     var gaussianVisibleCount: [MTLBuffer] = []
@@ -3845,6 +3849,7 @@ func buildGaussianLoadResult(
     }
     estimatedGPUBytes += encodedSplatBuffer.length
     estimatedGPUBytes += sphericalHarmonicsBuffer?.length ?? 0
+    estimatedGPUBytes += chunkTable?.gpuBytes ?? 0
     // This entity's share of the frame's shared working set (GaussianSharedWorkingSet grows to
     // the resident total), so the memory budget sees the same per-splat cost the per-entity
     // sort-key and precomputed buffers used to carry.
@@ -3857,6 +3862,7 @@ func buildGaussianLoadResult(
         encodedSplatBuffer: encodedSplatBuffer,
         sphericalHarmonicsBuffer: sphericalHarmonicsBuffer,
         sphericalHarmonicsMetadata: sphericalHarmonicsMetadata,
+        chunkTable: chunkTable,
         estimatedGPUBytes: estimatedGPUBytes,
         boundingBox: boundingBox
     )
@@ -3950,7 +3956,8 @@ func buildGaussianLoadResultFromUntoldGS(url: URL) -> GaussianLoadResult? {
                 splatCount: UInt(loaded.splatCount),
                 sphericalHarmonicsBuffer: loaded.sphericalHarmonicsBuffer,
                 sphericalHarmonicsMetadata: loaded.sphericalHarmonicsMetadata,
-                boundingBox: loaded.boundingBox
+                boundingBox: loaded.boundingBox,
+                chunkTable: loaded.chunkTable
             ) else { return nil }
             result.captureExposureEV = loaded.captureExposureEV
             result.captureWhiteBalance = loaded.captureWhiteBalance
@@ -4121,6 +4128,7 @@ func copyGaussianLoadResult(_ result: GaussianLoadResult, to gaussianComponent: 
     gaussianComponent.visibleSplatCountForRendering = result.splatCount
     gaussianComponent.gaussianVisibleIndices = result.gaussianVisibleIndices.map { $0 as MTLBuffer? }
     gaussianComponent.gaussianVisibleCount = result.gaussianVisibleCount.map { $0 as MTLBuffer? }
+    gaussianComponent.chunkTable = result.chunkTable
     gaussianComponent.encodedSplatData = result.encodedSplatBuffer
     gaussianComponent.sphericalHarmonicsData = result.sphericalHarmonicsBuffer
     gaussianComponent.sphericalHarmonicsMetadata = result.sphericalHarmonicsMetadata
@@ -5029,6 +5037,7 @@ public func removeEntityGaussian(entityId: EntityID) {
         gaussianComponent.sphericalHarmonicsMetadata = nil
         gaussianComponent.gaussianVisibleIndices.removeAll()
         gaussianComponent.gaussianVisibleCount.removeAll()
+        gaussianComponent.chunkTable = nil
         gaussianComponent.visibleSplatCountForRendering = 0
         gaussianComponent.estimatedGPUBytes = 0
         gaussianComponent.localBoundingBox = nil
