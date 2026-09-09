@@ -111,14 +111,18 @@ centre box padded by the largest splat the chunk holds, against the camera frust
 available, the previous frame's depth pyramid — and only then runs the per-splat test over the
 chunks that survived, one threadgroup per chunk (see
 [renderingSystem.md §3b](../Architecture/renderingSystem.md#3b-gaussian-frustum-culling--executegaussianfrustumcullingcommandbuffer)).
-In a stereo frame a chunk is kept when either eye sees it. The chunk stage never removes a
-splat the per-splat test would keep, so the picture is the same with it on or off; what changes
-is how many splats the per-splat pass has to read when part of the asset is off screen or
-behind an occluder.
+In a stereo frame a chunk is kept when either eye sees it; the per-splat stage that follows
+still filters against the head-centre view as it always has, so the either-eye rule only affects
+which chunks the per-splat pass walks — the stereo image changes only once the fused per-chunk
+pass (Stage 2) replaces that per-splat test. The chunk stage never removes a splat the
+per-splat test would keep, so the picture is the same with it on or off; what changes is how
+many splats the per-splat pass has to read when part of the asset is off screen or behind an
+occluder.
 
 - The chunk table costs 48 bytes per chunk plus, per frame in flight, an 8-byte visible-chunk
-  entry per chunk and one 48-byte record — a few hundred kilobytes for a million splats at the
-  default 1024 splats per chunk. Everything else a splat costs (below) is unchanged for now:
+  entry per chunk and one 48-byte record — about 70 KB for a million splats at the default
+  1024 splats per chunk (48 B × 977 chunks, plus 3 × (977 × 8 B + 48 B) of visible-chunk lists
+  and records). Everything else a splat costs (below) is unchanged for now:
   the 48-byte encoded record, the per-slot visible index and the shared working set sized to
   the resident total stay as they are.
 - `GaussianDebugOptions.shared.disableChunkCull` keeps every chunk, so the per-splat pass walks
