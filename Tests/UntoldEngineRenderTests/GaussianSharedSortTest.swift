@@ -58,55 +58,20 @@ final class GaussianSharedSortTest: BaseRenderSetup {
     }
 
     private func lookAtAsset() -> EntityID {
-        let cameraEntity = createEntity()
-        if let cameraComponent = scene.assign(to: cameraEntity, component: CameraComponent.self) {
-            CameraSystem.shared.activeCamera = cameraEntity
-            cameraComponent.viewSpace = matrix_identity_float4x4
-            cameraComponent.localPosition = .zero
-        }
-        cameraLookAt(entityId: cameraEntity, eye: simd_float3(0, 3, 7), target: .zero, up: simd_float3(0, 1, 0))
-        return cameraEntity
+        placeGaussianTestCamera(eye: simd_float3(0, 3, 7))
     }
 
-    /// Renders one frame, waits for its command buffer, and returns the splat layer
-    /// (premultiplied colour and alpha, rgba16Float).
+    /// Frame readback and layer comparison live in GaussianRenderTestSupport.swift.
     private func renderSplatLayer() -> [Float16] {
-        renderer.draw(in: renderer.metalView)
-        renderInfo.lastCommandBuffer?.waitUntilCompleted()
-        let texture = renderInfo.gaussianRenderPassDescriptor.colorAttachments[0].texture!
-        var pixels = [Float16](repeating: 0, count: texture.width * texture.height * 4)
-        texture.getBytes(&pixels, bytesPerRow: texture.width * 8, from: MTLRegionMake2D(0, 0, texture.width, texture.height), mipmapLevel: 0)
-        return pixels
+        renderGaussianSplatLayer()
     }
 
-    /// Compares two splat layers over the pixels either of them covers: PSNR over those pixels
-    /// and the number of pixels where any channel differs by more than one 8-bit step. The old
-    /// entity-order blending measured about 56 dB over the whole (mostly empty) frame on this
-    /// asset, so the bounds below have to be far tighter than that.
-    private func compare(_ a: [Float16], _ b: [Float16]) -> (psnr: Float, differingPixels: Int, covered: Int) {
-        var sum: Double = 0
-        var covered = 0
-        var differing = 0
-        for i in stride(from: 0, to: a.count, by: 4) {
-            guard Float(a[i + 3]) > 0.001 || Float(b[i + 3]) > 0.001 else { continue }
-            covered += 1
-            var maxDelta: Float = 0
-            for c in 0 ..< 4 {
-                let d = Float(a[i + c]) - Float(b[i + c])
-                sum += Double(d * d)
-                maxDelta = max(maxDelta, abs(d))
-            }
-            if maxDelta > 1.0 / 255.0 {
-                differing += 1
-            }
-        }
-        let mse = covered == 0 ? 0 : sum / Double(covered * 4)
-        return (mse == 0 ? .infinity : Float(10 * log10(1 / mse)), differing, covered)
+    private func compare(_ a: [Float16], _ b: [Float16]) -> GaussianLayerComparison {
+        compareGaussianSplatLayers(a, b)
     }
 
     private func sharedVisibleCount() -> Int {
-        let slot = min(renderInfo.currentInFlightFrameSlot, maxInFlightCommandBuffers - 1)
-        return Int(GaussianSharedWorkingSet.shared.visibleSet(slot: slot)!.contents().load(as: GaussianVisibleSet.self).visibleCount)
+        sharedGaussianVisibleCount()
     }
 
     // MARK: - Tests
