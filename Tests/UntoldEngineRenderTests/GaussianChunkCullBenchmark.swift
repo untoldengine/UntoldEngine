@@ -164,9 +164,9 @@ final class GaussianChunkCullBenchmark: BaseRenderSetup {
             renderer.draw(in: renderer.metalView)
             guard let commandBuffer = renderInfo.lastCommandBuffer else { continue }
             commandBuffer.waitUntilCompleted()
-            let slot = min(renderInfo.currentInFlightFrameSlot, component.gaussianVisibleCount.count - 1)
-            let visible = component.gaussianVisibleCount[slot].map { Int($0.contents().load(as: GaussianVisibleSet.self).visibleCount) } ?? 0
-            let chunks = component.chunkTable.map { Int($0.visibleChunkSets[slot].contents().load(as: GaussianVisibleSet.self).threadgroupCount) } ?? -1
+            let slot = min(renderInfo.currentInFlightFrameSlot, maxInFlightCommandBuffers - 1)
+            let visible = sharedGaussianVisibleCount()
+            let chunks = component.chunkTable.map { Int($0.visibleChunkSets[min(slot, $0.visibleChunkSets.count - 1)].contents().load(as: GaussianVisibleSet.self).threadgroupCount) } ?? -1
             samples.append(FrameSample(gpuMs: (commandBuffer.gpuEndTime - commandBuffer.gpuStartTime) * 1000, visibleSplats: visible, visibleChunks: chunks))
         }
         return samples
@@ -217,21 +217,15 @@ final class GaussianChunkCullBenchmark: BaseRenderSetup {
         let url = try syntheticAssetURL(splatCount: splatCount)
         let loaded = try GaussianChunkLoader.load(url: url)
         let chunked = try XCTUnwrap(buildGaussianLoadResult(
-            encodedSplatBuffer: loaded.encodedSplatBuffer,
+            packedSplatBuffer: loaded.packedSplatBuffer,
             splatCount: UInt(loaded.splatCount),
             sphericalHarmonicsBuffer: loaded.sphericalHarmonicsBuffer,
             sphericalHarmonicsMetadata: loaded.sphericalHarmonicsMetadata,
             boundingBox: loaded.boundingBox,
             chunkTable: loaded.chunkTable
         ))
-        // The same GPU buffers without a chunk table: the legacy whole-buffer per-splat cull.
-        let legacy = try XCTUnwrap(buildGaussianLoadResult(
-            encodedSplatBuffer: loaded.encodedSplatBuffer,
-            splatCount: UInt(loaded.splatCount),
-            sphericalHarmonicsBuffer: loaded.sphericalHarmonicsBuffer,
-            sphericalHarmonicsMetadata: loaded.sphericalHarmonicsMetadata,
-            boundingBox: loaded.boundingBox
-        ))
+        // The same records decoded once into the whole-buffer path: the legacy per-splat cull.
+        let legacy = try GaussianLegacyTwin(loaded: loaded).result
 
         let view = placeCameraSeeing(target: 0.30, index: loaded.index)
         print(String(format: "[GaussianChunkCullBenchmark] %d splats in %d chunks; camera at (%.2f, %.2f, %.2f) sees %.1f %% of the splats by unpadded chunk box",

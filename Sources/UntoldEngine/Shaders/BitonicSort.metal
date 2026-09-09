@@ -69,23 +69,19 @@ kernel void gaussianFinalizeVisibleSet(
     visibleSet->baseInstance = 0u;
 }
 
-// The per-splat visibility test, shared by gaussianFrustumCull (one thread per resident splat)
-// and gaussianChunkSplatCull (GaussianChunkCull.metal, one threadgroup per visible chunk) so
-// the two paths keep exactly the same splats: centre inside the guard-banded clip volume,
-// then optionally not behind the previous frame's HZB.
-inline bool gaussianSplatPassesCull(
-    float3 position,
-    constant Uniforms &uniforms,
+// The per-splat visibility test on an already projected centre, shared by gaussianFrustumCull
+// (one thread per resident splat, head-centre view) and gaussianChunkDecodePreprocess
+// (GaussianChunkPreprocess.metal, one threadgroup per visible chunk, either eye) so the two
+// paths keep exactly the same splats: centre inside the guard-banded clip volume, then
+// optionally not behind the previous frame's HZB.
+inline bool gaussianClipCentrePassesCull(
+    float4 centerClip,
     float clipGuardBand,
     uint hzbReverseZ,
     float hzbOcclusionBias,
     uint hzbValid,
     texture2d<float, access::sample> hzbDepthPyramid)
 {
-    float4 centerClip = uniforms.projectionMatrix *
-                        uniforms.modelViewMatrix *
-                        float4(position, 1.0f);
-
     if (centerClip.w <= 0.0f) return false;
 
     float limit = max(0.0f, 1.0f + clipGuardBand);
@@ -115,8 +111,26 @@ inline bool gaussianSplatPassesCull(
     return true;
 }
 
+// The whole-buffer kernel's form of the test: the centre projected through the head-centre
+// model-view and projection.
+inline bool gaussianSplatPassesCull(
+    float3 position,
+    constant Uniforms &uniforms,
+    float clipGuardBand,
+    uint hzbReverseZ,
+    float hzbOcclusionBias,
+    uint hzbValid,
+    texture2d<float, access::sample> hzbDepthPyramid)
+{
+    float4 centerClip = uniforms.projectionMatrix *
+                        uniforms.modelViewMatrix *
+                        float4(position, 1.0f);
+    return gaussianClipCentrePassesCull(centerClip, clipGuardBand, hzbReverseZ, hzbOcclusionBias, hzbValid, hzbDepthPyramid);
+}
+
 // One thread per resident splat: the whole-buffer cull for entities without a chunk table
-// (.ply, CPU-decoded .untoldgs). Chunked entities run gaussianChunkSplatCull instead.
+// (.ply, CPU-decoded .untoldgs). Chunked entities test per splat inside
+// gaussianChunkDecodePreprocess instead.
 kernel void gaussianFrustumCull(
     const device EncodedGaussianSplat *splats [[buffer(gaussianEncodedSplatIndex)]],
     constant Uniforms &uniforms [[buffer(gaussianUniformIndex)]],

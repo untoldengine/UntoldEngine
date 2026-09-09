@@ -18,6 +18,8 @@ struct GaussianProfileTotals {
     var dispatchCount: Int = 0
     var radixPassCount: Int = 0
     var encodedBytes: Int = 0
+    /// `.untoldgs` entities' resident 16-byte core records.
+    var packedBytes: Int = 0
     var sortedIndexBytes: Int = 0
     var visibleIndexBytes: Int = 0
     var visibleCountBytes: Int = 0
@@ -34,13 +36,14 @@ struct GaussianProfileTotals {
     var sharedWorkingSetBytes: Int = 0
 
     var totalResidentBytes: Int {
-        encodedBytes + sortedIndexBytes + visibleIndexBytes + visibleCountBytes + chunkTableBytes + sphericalHarmonicsBytes + uniformBytes + scratchBytes + sharedWorkingSetBytes
+        encodedBytes + packedBytes + sortedIndexBytes + visibleIndexBytes + visibleCountBytes + chunkTableBytes + sphericalHarmonicsBytes + uniformBytes + scratchBytes + sharedWorkingSetBytes
     }
 
     mutating func include(component: GaussianComponent) {
         entityCount += 1
         splatCount += Int(component.splatCount)
         encodedBytes += component.encodedSplatData?.length ?? 0
+        packedBytes += component.packedSplatData?.length ?? 0
         visibleIndexBytes += component.gaussianVisibleIndices.reduce(0) { $0 + ($1?.length ?? 0) }
         visibleCountBytes += component.gaussianVisibleCount.reduce(0) { $0 + ($1?.length ?? 0) }
         chunkTableBytes += component.chunkTable?.gpuBytes ?? 0
@@ -79,7 +82,7 @@ func logGaussianProfile(
 
     Logger.log(
         message: String(
-            format: "[Gaussian][%@] cpuEncodeMs=%.3f entities=%d splats=%d draws=%d dispatches=%d radixPasses=%d shDegree=%u shRestCoeffsPerSplat=%u memory=%@ bytesPerSplat=%.1f encoded=%@ sorted=%@ visible=%@ chunks=%@ sh=%@ uniforms=%@ scratch=%@%@",
+            format: "[Gaussian][%@] cpuEncodeMs=%.3f entities=%d splats=%d draws=%d dispatches=%d radixPasses=%d shDegree=%u shRestCoeffsPerSplat=%u memory=%@ bytesPerSplat=%.1f encoded=%@ packed=%@ sorted=%@ visible=%@ chunks=%@ sh=%@ uniforms=%@ scratch=%@ sharedSet=%@%@",
             stage,
             elapsedMs,
             totals.entityCount,
@@ -92,12 +95,14 @@ func logGaussianProfile(
             gaussianFormatBytes(totals.totalResidentBytes),
             bytesPerSplat,
             gaussianFormatBytes(totals.encodedBytes),
+            gaussianFormatBytes(totals.packedBytes),
             gaussianFormatBytes(totals.sortedIndexBytes),
             gaussianFormatBytes(totals.visibleIndexBytes + totals.visibleCountBytes),
             gaussianFormatBytes(totals.chunkTableBytes),
             gaussianFormatBytes(totals.sphericalHarmonicsBytes),
             gaussianFormatBytes(totals.uniformBytes),
             gaussianFormatBytes(totals.scratchBytes),
+            gaussianFormatBytes(totals.sharedWorkingSetBytes),
             suffix
         ),
         category: LogCategory.gaussian.rawValue

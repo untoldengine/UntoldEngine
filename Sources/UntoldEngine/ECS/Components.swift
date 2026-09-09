@@ -94,14 +94,21 @@ public class EntitySceneChannelsComponent: Component {
 }
 
 public class GaussianComponent: Component {
+    /// A whole-buffer (legacy) entity's splats — `.ply`, or a `.untoldgs` decoded on the CPU —
+    /// as `EncodedGaussianSplat` records; nil for a chunked entity.
     var encodedSplatData: MTLBuffer?
+    /// A chunked (`.untoldgs`) entity's splats as the file's 16-byte core records, decoded every
+    /// frame by the fused per-chunk pass; nil for a whole-buffer entity.
+    var packedSplatData: MTLBuffer?
     var sphericalHarmonicsData: MTLBuffer?
     var sphericalHarmonicsMetadata: GaussianSHMetadata?
-    // Written every frame by the cull and read the same frame by the preprocess: the indices of
-    // the splats that survived, and a GaussianVisibleSet record with the count and the indirect
-    // arguments derived from it. Slotted per in-flight frame (renderInfo.currentInFlightFrameSlot)
-    // so an overlapping newer frame cannot clobber data an older frame is still reading. The
-    // per-frame sort keys and draw records live in the shared GaussianSharedWorkingSet.
+    // Whole-buffer entities only: written every frame by the cull and read the same frame by the
+    // preprocess, the indices of the splats that survived, and a GaussianVisibleSet record with
+    // the count and the indirect arguments derived from it. Slotted per in-flight frame
+    // (renderInfo.currentInFlightFrameSlot) so an overlapping newer frame cannot clobber data an
+    // older frame is still reading. A chunked entity keeps its per-slot visible-chunk lists on
+    // its chunk table instead. The per-frame sort keys and draw records live in the shared
+    // GaussianSharedWorkingSet.
     var gaussianVisibleIndices: [MTLBuffer?] = Array(repeating: nil, count: maxInFlightCommandBuffers)
     var gaussianVisibleCount: [MTLBuffer?] = Array(repeating: nil, count: maxInFlightCommandBuffers)
     var visibleSplatCountForRendering: UInt = 0
@@ -110,6 +117,17 @@ public class GaussianComponent: Component {
     /// the load so the frame can cull whole chunks before it looks at their splats. nil for a
     /// `.ply` or a CPU-decoded asset, which keep the per-splat cull over the whole buffer.
     var chunkTable: GaussianChunkTable?
+
+    /// Whether the entity holds splat data on the GPU, on either path.
+    var hasResidentSplats: Bool {
+        encodedSplatData != nil || packedSplatData != nil
+    }
+
+    /// Whether the frame decodes this entity's splats from its chunk table (the fused per-chunk
+    /// pass) rather than culling its encoded buffer whole.
+    var isChunked: Bool {
+        chunkTable != nil && packedSplatData != nil
+    }
 
     /// Multiplier on every splat's opacity this frame: 1 draws the asset as captured, 0 hides
     /// it without unloading (nothing is compacted into the frame; its cull is skipped), values

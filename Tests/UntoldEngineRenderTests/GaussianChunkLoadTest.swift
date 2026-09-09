@@ -2,9 +2,11 @@
 //  GaussianChunkLoadTest.swift
 //  UntoldEngine
 //
-//  The .untoldgs v3 GPU load path: chunks read by range, decoded by the
-//  gaussianDecodeChunks kernel, and bound to the same buffers the renderer
-//  consumes. Verified against the CPU decode of the same file.
+//  The .untoldgs v3 GPU load path: chunks read by range into the resident packed
+//  buffer the fused per-chunk pass decodes every frame, with the chunk table beside
+//  it and no encoded or per-slot index buffers. The gaussianDecodeChunks kernel that
+//  expands the same records for the whole-buffer path is verified against the CPU
+//  decode of the same file.
 //
 //
 // Copyright (C) Untold Engine Studios
@@ -70,8 +72,12 @@ final class GaussianChunkLoadTest: BaseRenderSetup {
         XCTAssertEqual(gpu.meanSquaredSplatExtent, cpu.meanSquaredSplatExtent)
         XCTAssertEqual(gpu.sphericalHarmonicsMetadata?.degree, cpu.shMetadata?.degree)
 
+        XCTAssertEqual(gpu.packedSplatBuffer.length, gpu.splatCount * UntoldGSFormat.coreRecordSize, "the 16-byte records stay resident as read")
+
         let count = gpu.splatCount
-        let decoded = UnsafeBufferPointer(start: gpu.encodedSplatBuffer.contents().bindMemory(to: EncodedGaussianSplat.self, capacity: count), count: count)
+        let encodedSplatBuffer = try GaussianChunkLoader.decodeEncodedSplats(gpu)
+        XCTAssertEqual(encodedSplatBuffer.length, count * MemoryLayout<EncodedGaussianSplat>.stride)
+        let decoded = UnsafeBufferPointer(start: encodedSplatBuffer.contents().bindMemory(to: EncodedGaussianSplat.self, capacity: count), count: count)
         var maxCovarianceError: Float = 0
         for (index, reference) in cpu.encodedSplats.enumerated() {
             let splat = decoded[index]
@@ -106,8 +112,12 @@ final class GaussianChunkLoadTest: BaseRenderSetup {
         let component = try XCTUnwrap(scene.get(component: GaussianComponent.self, for: entity))
         let expected = try UntoldGSFormat.readHeaderV3(from: url)
         XCTAssertEqual(component.splatCount, UInt(expected.splatCount))
-        XCTAssertNotNil(component.encodedSplatData)
-        XCTAssertEqual(component.encodedSplatData?.length, Int(expected.splatCount) * MemoryLayout<EncodedGaussianSplat>.stride)
+        XCTAssertTrue(component.isChunked, "a .untoldgs load takes the per-chunk path")
+        XCTAssertNil(component.encodedSplatData, "no 48-byte encoded buffer is kept for a chunked entity")
+        XCTAssertEqual(component.packedSplatData?.length, Int(expected.splatCount) * UntoldGSFormat.coreRecordSize)
+        XCTAssertTrue(component.gaussianVisibleIndices.isEmpty, "no per-slot visible-index buffers either")
+        XCTAssertTrue(component.gaussianVisibleCount.isEmpty)
+        XCTAssertEqual(component.chunkTable?.visibleChunks.count, maxInFlightCommandBuffers)
         let local = try XCTUnwrap(scene.get(component: LocalTransformComponent.self, for: entity))
         XCTAssertEqual(local.boundingBox.min, expected.boundingBoxMin)
         XCTAssertEqual(local.boundingBox.max, expected.boundingBoxMax)
@@ -124,7 +134,13 @@ final class GaussianChunkLoadTest: BaseRenderSetup {
         XCTAssertEqual(built.component.splatCount, UInt(header.splatCount))
         XCTAssertEqual(built.meanSquaredSplatExtent, header.meanSquaredSplatExtent)
         XCTAssertEqual(built.boundingBox.min, header.boundingBoxMin)
-        XCTAssertGreaterThan(built.estimatedGPUBytes, Int(header.splatCount) * MemoryLayout<EncodedGaussianSplat>.stride)
+        let table = try XCTUnwrap(built.component.chunkTable)
+        XCTAssertEqual(
+            built.estimatedGPUBytes,
+            Int(header.splatCount) * UntoldGSFormat.coreRecordSize + (built.component.sphericalHarmonicsData?.length ?? 0) + table.gpuBytes,
+            "a chunked tier costs its packed records, its harmonics and its chunk table"
+        )
+        XCTAssertLessThan(built.estimatedGPUBytes, Int(header.splatCount) * MemoryLayout<EncodedGaussianSplat>.stride, "far less than the 48-byte encoded records alone")
     }
 
     func testCorruptedFileFailsTheLoad() throws {

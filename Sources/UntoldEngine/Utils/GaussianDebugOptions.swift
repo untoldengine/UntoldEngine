@@ -24,6 +24,7 @@ public final class GaussianDebugOptions: @unchecked Sendable {
     private var _disableBlendCap = false
     private var _disableOccluderShell = false
     private var _disableChunkCull = false
+    private var _disableWorkingSetBudget = false
 
     /// Skips the per-splat test against the previous frame's HZB depth pyramid in
     /// `gaussianFrustumCull`. The frustum test still runs.
@@ -54,14 +55,24 @@ public final class GaussianDebugOptions: @unchecked Sendable {
     }
 
     /// Makes the chunk-level cull of `.untoldgs` entities (`gaussianChunkCull`) keep every chunk,
-    /// so the per-splat pass walks the whole asset. The entity stays on the chunk path — the
-    /// per-splat kernel is still `gaussianChunkSplatCull`, dispatched over every chunk, not the
-    /// whole-buffer `gaussianFrustumCull` a `.ply` runs. The frame is the same either way — the
-    /// chunk cull only skips splats the per-splat test would reject — which is what this switch
-    /// is for: an A/B of the chunk stage's cost and of that guarantee.
+    /// so the fused per-chunk pass walks the whole asset. The entity stays on the chunk path —
+    /// the per-splat kernel is still `gaussianChunkDecodePreprocess`, dispatched over every
+    /// chunk, not the whole-buffer `gaussianFrustumCull` a `.ply` runs. With the budget
+    /// unlimited the frame is the same either way — the chunk cull only skips splats the
+    /// per-splat test would reject — which is what this switch is for: an A/B of the chunk
+    /// stage's cost and of that guarantee.
     public var disableChunkCull: Bool {
         get { lock.lock(); defer { lock.unlock() }; return _disableChunkCull }
         set { lock.lock(); _disableChunkCull = newValue; lock.unlock() }
+    }
+
+    /// Sizes the frame's shared working set to the resident splat total instead of the budget
+    /// (`GaussianRuntimeLimits.workingSetSplats`) and grants every visible chunk its whole splat
+    /// count, so nothing is ever truncated: the pre-budget behaviour, for an A/B of the budget's
+    /// cost and of what it cuts.
+    public var disableWorkingSetBudget: Bool {
+        get { lock.lock(); defer { lock.unlock() }; return _disableWorkingSetBudget }
+        set { lock.lock(); _disableWorkingSetBudget = newValue; lock.unlock() }
     }
 
     /// The per-draw constants the splat fragment shader reads (see `GaussianTBDRDrawDebug`).
