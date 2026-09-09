@@ -36,9 +36,17 @@ struct GaussianChunkTable {
     /// of the per-chunk passes.
     let splatsPerChunk: Int
     let index: UntoldGSIndex
+    /// Per in-flight frame slot, written by `gaussianChunkCull` and read by the per-splat pass
+    /// the same frame: the visible-chunk list (`GaussianVisibleChunk × chunkCount`) and its
+    /// `GaussianVisibleSet`-shaped record. Allocated by `buildGaussianLoadResult`
+    /// (`allocateGaussianVisibleChunkBuffers`), slotted like `gaussianVisibleIndices`.
+    var visibleChunks: [MTLBuffer] = []
+    var visibleChunkSets: [MTLBuffer] = []
 
     var gpuBytes: Int {
         constantsBuffer.length
+            + visibleChunks.reduce(0) { $0 + $1.length }
+            + visibleChunkSets.reduce(0) { $0 + $1.length }
     }
 }
 

@@ -92,6 +92,40 @@ private struct GaussianVisibleCountUpdate: @unchecked Sendable {
     let splatCount: UInt
 }
 
+/// The per-splat cull's inputs, identical for `gaussianFrustumCull` (whole buffer) and
+/// `gaussianChunkSplatCull` (visible chunks only); the two kernels share the argument table.
+private struct GaussianSplatCullInputs {
+    var uniforms: Uniforms
+    var totalSplats: UInt32
+    var clipGuardBand: Float = gaussianCullClipGuardBand
+    var hzbReverseZ: UInt32
+    var hzbOcclusionBias: Float = gaussianCullHZBOcclusionBias
+    var hzbValid: UInt32
+}
+
+private func bindGaussianSplatCullInputs(
+    _ encoder: MTLComputeCommandEncoder,
+    pipelineState: MTLComputePipelineState,
+    inputs: GaussianSplatCullInputs,
+    encodedSplatData: MTLBuffer,
+    visibleIndices: MTLBuffer,
+    visibleCount: MTLBuffer,
+    hzbTexture: MTLTexture?
+) {
+    var inputs = inputs
+    encoder.setComputePipelineState(pipelineState)
+    encoder.setBuffer(encodedSplatData, offset: 0, index: Int(gaussianEncodedSplatIndex.rawValue))
+    encoder.setBytes(&inputs.uniforms, length: MemoryLayout<Uniforms>.stride, index: Int(gaussianUniformIndex.rawValue))
+    encoder.setBytes(&inputs.totalSplats, length: MemoryLayout<UInt32>.stride, index: Int(gaussianNumberOfSplatsIndex.rawValue))
+    encoder.setBuffer(visibleIndices, offset: 0, index: Int(gaussianVisibleIndicesIndex.rawValue))
+    encoder.setBuffer(visibleCount, offset: 0, index: Int(gaussianVisibleCountIndex.rawValue))
+    encoder.setBytes(&inputs.clipGuardBand, length: MemoryLayout<Float>.stride, index: Int(gaussianIndicesIndex.rawValue))
+    encoder.setBytes(&inputs.hzbReverseZ, length: MemoryLayout<UInt32>.stride, index: Int(gaussianCullHZBReverseZIndex.rawValue))
+    encoder.setBytes(&inputs.hzbOcclusionBias, length: MemoryLayout<Float>.stride, index: Int(gaussianCullHZBOcclusionBiasIndex.rawValue))
+    encoder.setBytes(&inputs.hzbValid, length: MemoryLayout<UInt32>.stride, index: Int(gaussianCullHZBValidIndex.rawValue))
+    encoder.setTexture(hzbTexture, index: Int(gaussianCullHZBDepthPyramidTextureIndex.rawValue))
+}
+
 func initGuassianComputePipelines() {
     if renderInfo.device == nil {
         handleError(.metalDeviceNotFound)
@@ -114,6 +148,14 @@ func initGuassianComputePipelines() {
     createComputePipeline(into: &gaussianFinalizeSharedVisibleSetPipeline, device: renderInfo.device, library: renderInfo.library, functionName: "gaussianFinalizeSharedVisibleSet", pipelineName: "Gaussian Finalize Shared Visible Set")
 
     createComputePipeline(into: &gaussianDecodePipeline, device: renderInfo.device, library: renderInfo.library, functionName: "gaussianDecodeChunks", pipelineName: "Gaussian Decode Chunks")
+
+    createComputePipeline(into: &gaussianResetVisibleChunkSetPipeline, device: renderInfo.device, library: renderInfo.library, functionName: "gaussianResetVisibleChunkSet", pipelineName: "Gaussian Reset Visible Chunk Set")
+
+    createComputePipeline(into: &gaussianChunkCullPipeline, device: renderInfo.device, library: renderInfo.library, functionName: "gaussianChunkCull", pipelineName: "Gaussian Chunk Cull")
+
+    createComputePipeline(into: &gaussianFinalizeVisibleChunksPipeline, device: renderInfo.device, library: renderInfo.library, functionName: "gaussianFinalizeVisibleChunks", pipelineName: "Gaussian Finalize Visible Chunks")
+
+    createComputePipeline(into: &gaussianChunkSplatCullPipeline, device: renderInfo.device, library: renderInfo.library, functionName: "gaussianChunkSplatCull", pipelineName: "Gaussian Chunk Splat Cull")
 
     createComputePipeline(into: &radixClearHistogramPipeline, device: renderInfo.device, library: renderInfo.library, functionName: "gaussianRadixClearHistogram", pipelineName: "Radix Clear")
 
@@ -170,6 +212,10 @@ public func executeGaussianFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
 
     guard let computeEncoder = commandBuffer.makeComputeCommandEncoder() else { return }
     computeEncoder.label = "Gaussian Frustum Culling"
+
+    // Chunked (.untoldgs) entities cull chunk by chunk first; without these kernels they take
+    // the whole-buffer path like a .ply.
+    let chunkPipelines = GaussianChunkCullPipelineStates.current()
 
     var visibleCountUpdates: [GaussianVisibleCountUpdate] = []
 
@@ -240,46 +286,91 @@ public func executeGaussianFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         gaussianUniform.cameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
         gaussianUniform.projectionMatrix = renderInfo.perspectiveSpace
 
-        var totalSplats = UInt32(gaussianComponent.splatCount)
-        var clipGuardBand: Float = 0.25
-
-        // Coarse per-splat HZB occlusion pre-cull, fused into this same dispatch — see
-        // the comment in gaussianFrustumCull (BitonicSort.metal). Reuses the exact same
+        // Coarse per-splat HZB occlusion pre-cull, fused into the per-splat dispatch — see
+        // the comment in gaussianSplatPassesCull (BitonicSort.metal). Reuses the exact same
         // temporal HZB pyramid mesh occlusion culling builds each frame
         // (buildHZBDepthPyramid); hzbIsValid guarantees hzbDepthPyramid is non-nil when
         // true, so the fallback texture below is only ever actually read when the flag
         // (and therefore the shader's own occlusion branch) is off.
         let hzbValid = renderInfo.hzbIsValid && textureResources.hzbDepthPyramid != nil
             && !GaussianDebugOptions.shared.disableHZBOcclusionCull
-        var hzbValidFlag: UInt32 = hzbValid ? 1 : 0
-        var hzbReverseZFlag: UInt32 = renderInfo.reverseZEnabled ? 1 : 0
-        var hzbOcclusionBias: Float = 0.02
-
-        computeEncoder.setComputePipelineState(cullPipelineState)
-        computeEncoder.setBuffer(encodedSplatData, offset: 0, index: Int(gaussianEncodedSplatIndex.rawValue))
-        computeEncoder.setBytes(&gaussianUniform, length: MemoryLayout<Uniforms>.stride, index: Int(gaussianUniformIndex.rawValue))
-        computeEncoder.setBytes(&totalSplats, length: MemoryLayout<UInt32>.stride, index: Int(gaussianNumberOfSplatsIndex.rawValue))
-        computeEncoder.setBuffer(visibleIndices, offset: 0, index: Int(gaussianVisibleIndicesIndex.rawValue))
-        computeEncoder.setBuffer(visibleCount, offset: 0, index: Int(gaussianVisibleCountIndex.rawValue))
-        computeEncoder.setBytes(&clipGuardBand, length: MemoryLayout<Float>.stride, index: Int(gaussianIndicesIndex.rawValue))
-        computeEncoder.setBytes(&hzbReverseZFlag, length: MemoryLayout<UInt32>.stride, index: Int(gaussianCullHZBReverseZIndex.rawValue))
-        computeEncoder.setBytes(&hzbOcclusionBias, length: MemoryLayout<Float>.stride, index: Int(gaussianCullHZBOcclusionBiasIndex.rawValue))
-        computeEncoder.setBytes(&hzbValidFlag, length: MemoryLayout<UInt32>.stride, index: Int(gaussianCullHZBValidIndex.rawValue))
-        computeEncoder.setTexture(
-            textureResources.hzbDepthPyramid ?? textureResources.depthMap,
-            index: Int(gaussianCullHZBDepthPyramidTextureIndex.rawValue)
+        let hzbTexture = textureResources.hzbDepthPyramid ?? textureResources.depthMap
+        let splatCullInputs = GaussianSplatCullInputs(
+            uniforms: gaussianUniform,
+            totalSplats: UInt32(gaussianComponent.splatCount),
+            hzbReverseZ: renderInfo.reverseZEnabled ? 1 : 0,
+            hzbValid: hzbValid ? 1 : 0
         )
 
-        let tew = cullPipelineState.threadExecutionWidth
-        let maxT = cullPipelineState.maxTotalThreadsPerThreadgroup
-        var block = min(256, maxT)
-        block = max((block / tew) * tew, tew)
-        let numThreadgroups = (Int(gaussianComponent.splatCount) + block - 1) / block
-        computeEncoder.dispatchThreadgroups(
-            MTLSizeMake(numThreadgroups, 1, 1),
-            threadsPerThreadgroup: MTLSizeMake(block, 1, 1)
-        )
-        profileTotals.dispatchCount += 1
+        if let chunkPipelines,
+           let chunkTable = gaussianComponent.chunkTable,
+           frameSlot < chunkTable.visibleChunks.count,
+           frameSlot < chunkTable.visibleChunkSets.count
+        {
+            // Chunk level first: one thread per chunk appends the chunks whose padded box
+            // passes either eye's frustum (and the HZB) to this slot's visible-chunk list and
+            // finalizes it into indirect arguments, all on this serial encoder. The per-splat
+            // pass then runs one threadgroup per visible chunk, striding over its splats with
+            // the same test the whole-buffer kernel applies — chunks that failed are never
+            // read, and the visible-index list the preprocess consumes is unchanged in kind.
+            let visibleChunks = chunkTable.visibleChunks[frameSlot]
+            let chunkSet = chunkTable.visibleChunkSets[frameSlot]
+            let chunkConstants = gaussianChunkCullConstants(
+                chunkTable: chunkTable,
+                modelMatrix: modelMatrix,
+                viewMatrix: viewMatrix,
+                hzbValid: hzbValid
+            )
+            profileTotals.dispatchCount += encodeGaussianChunkCull(
+                computeEncoder,
+                pipelines: chunkPipelines,
+                chunkTable: chunkTable,
+                visibleChunks: visibleChunks,
+                chunkSet: chunkSet,
+                constants: chunkConstants,
+                hzbTexture: hzbTexture
+            )
+
+            bindGaussianSplatCullInputs(
+                computeEncoder,
+                pipelineState: chunkPipelines.splatCull,
+                inputs: splatCullInputs,
+                encodedSplatData: encodedSplatData,
+                visibleIndices: visibleIndices,
+                visibleCount: visibleCount,
+                hzbTexture: hzbTexture
+            )
+            computeEncoder.setBuffer(visibleChunks, offset: 0, index: Int(gaussianCullVisibleChunksIndex.rawValue))
+            computeEncoder.setBuffer(chunkTable.constantsBuffer, offset: 0, index: Int(gaussianCullChunkTableIndex.rawValue))
+            let threadsPerChunk = gaussianChunkSplatCullThreadsPerThreadgroup(chunkTable: chunkTable, pipelineState: chunkPipelines.splatCull)
+            computeEncoder.dispatchThreadgroups(
+                indirectBuffer: chunkSet,
+                indirectBufferOffset: Int(gaussianVisibleSetDispatchArgumentsOffset),
+                threadsPerThreadgroup: MTLSizeMake(threadsPerChunk, 1, 1)
+            )
+            profileTotals.dispatchCount += 1
+        } else {
+            bindGaussianSplatCullInputs(
+                computeEncoder,
+                pipelineState: cullPipelineState,
+                inputs: splatCullInputs,
+                encodedSplatData: encodedSplatData,
+                visibleIndices: visibleIndices,
+                visibleCount: visibleCount,
+                hzbTexture: hzbTexture
+            )
+
+            let tew = cullPipelineState.threadExecutionWidth
+            let maxT = cullPipelineState.maxTotalThreadsPerThreadgroup
+            var block = min(256, maxT)
+            block = max((block / tew) * tew, tew)
+            let numThreadgroups = (Int(gaussianComponent.splatCount) + block - 1) / block
+            computeEncoder.dispatchThreadgroups(
+                MTLSizeMake(numThreadgroups, 1, 1),
+                threadsPerThreadgroup: MTLSizeMake(block, 1, 1)
+            )
+            profileTotals.dispatchCount += 1
+        }
 
         // Same serial encoder, so this runs after the cull and sees its final count: derives
         // the indirect dispatch and draw arguments the rest of this frame is sized from.

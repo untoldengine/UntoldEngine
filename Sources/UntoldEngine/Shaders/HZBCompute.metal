@@ -10,6 +10,7 @@
 
 #include <metal_stdlib>
 #include "../../CShaderTypes/ShaderTypes.h"
+#include "HZBOcclusion.h"
 
 using namespace metal;
 
@@ -69,63 +70,6 @@ kernel void hzbBuildDepthPyramid(
     destMipTexture.write(depth, gid);
 }
 
-static inline bool projectAABBToScreenRect(
-    const float3 center,
-    const float3 extent,
-    constant float4x4 &viewProjection,
-    const bool reverseZ,
-    thread float2 &uvMinOut,
-    thread float2 &uvMaxOut,
-    thread float &nearDepthOut
-) {
-    float minX = 1.0;
-    float minY = 1.0;
-    float maxX = -1.0;
-    float maxY = -1.0;
-    float minZ = 1.0;
-    float maxZ = 0.0;
-
-    for (uint i = 0u; i < 8u; ++i) {
-        float3 corner = center;
-        corner.x += ((i & 1u) != 0u) ? extent.x : -extent.x;
-        corner.y += ((i & 2u) != 0u) ? extent.y : -extent.y;
-        corner.z += ((i & 4u) != 0u) ? extent.z : -extent.z;
-
-        float4 clip = viewProjection * float4(corner, 1.0);
-        if (clip.w <= 0.0) {
-            return false;
-        }
-
-        float3 ndc = clip.xyz / clip.w;
-        minX = min(minX, ndc.x);
-        minY = min(minY, ndc.y);
-        maxX = max(maxX, ndc.x);
-        maxY = max(maxY, ndc.y);
-        minZ = min(minZ, ndc.z);
-        maxZ = max(maxZ, ndc.z);
-    }
-
-    if (maxX < -1.0 || minX > 1.0 || maxY < -1.0 || minY > 1.0) {
-        return false;
-    }
-
-    float2 uvMin;
-    float2 uvMax;
-    uvMin.x = clamp(minX * 0.5 + 0.5, 0.0, 1.0);
-    uvMax.x = clamp(maxX * 0.5 + 0.5, 0.0, 1.0);
-    uvMin.y = clamp(1.0 - (maxY * 0.5 + 0.5), 0.0, 1.0);
-    uvMax.y = clamp(1.0 - (minY * 0.5 + 0.5), 0.0, 1.0);
-
-    if ((uvMax.x - uvMin.x) <= 1e-6 || (uvMax.y - uvMin.y) <= 1e-6) {
-        return false;
-    }
-
-    uvMinOut = uvMin;
-    uvMaxOut = uvMax;
-    nearDepthOut = clamp(reverseZ ? maxZ : minZ, 0.0, 1.0);
-    return true;
-}
-
 kernel void hzbCullVisibleEntities(
     device HZBVisibleEntity *outVisible [[buffer(hzbCullPassEntityAABBIndex)]],
     device const uint *inputVisibleCount [[buffer(hzbCullPassEntityAABBCountIndex)]],
@@ -155,36 +99,8 @@ kernel void hzbCullVisibleEntities(
         return;
     }
 
-    float rectWidth = max(1.0, (uvMax.x - uvMin.x) * viewport.x);
-    float rectHeight = max(1.0, (uvMax.y - uvMin.y) * viewport.y);
-    float rectMaxDim = max(rectWidth, rectHeight);
-
-    uint mipLevel = 0u;
-    if (mipCount > 1u) {
-        mipLevel = min((uint)floor(log2(rectMaxDim)), mipCount - 1u);
-    }
-
-    constexpr sampler pointSampler(coord::normalized, address::clamp_to_edge, filter::nearest);
-    const float lod = float(mipLevel);
-
-    // Sample a dense grid across the projected rect. Porous occluders such as
-    // window frames or glass assemblies can leave only part of a candidate
-    // visible; sparse samples can land entirely on the solid frame and falsely
-    // cull the object behind it.
-    float hzbDepth = (reverseZ != 0u) ? 1.0 : 0.0;
-    for (uint y = 0u; y < 5u; ++y) {
-        const float ty = float(y) * 0.25;
-        for (uint x = 0u; x < 5u; ++x) {
-            const float tx = float(x) * 0.25;
-            const float2 uv = mix(uvMin, uvMax, float2(tx, ty));
-            const float sampleDepth = hzbDepthPyramid.sample(pointSampler, uv, level(lod)).x;
-            hzbDepth = (reverseZ != 0u) ? min(hzbDepth, sampleDepth) : max(hzbDepth, sampleDepth);
-        }
-    }
-
-    bool isOccluded = (reverseZ != 0u)
-        ? (nearDepth < hzbDepth - occlusionBias)
-        : (nearDepth > hzbDepth + occlusionBias);
+    // Shared with the Gaussian chunk cull — see HZBOcclusion.h.
+    bool isOccluded = hzbRectIsOccluded(hzbDepthPyramid, uvMin, uvMax, nearDepth, viewport, mipCount, reverseZ != 0u, occlusionBias);
     if (!isOccluded) {
         uint dst = atomic_fetch_add_explicit(outVisibleCount, 1u, memory_order_relaxed);
         outVisible[dst] = candidate;

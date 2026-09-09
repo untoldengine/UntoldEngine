@@ -547,6 +547,8 @@ typedef enum{
     gaussianCullHZBReverseZIndex,
     gaussianCullHZBOcclusionBiasIndex,
     gaussianCullHZBValidIndex,
+    gaussianCullVisibleChunksIndex,     // gaussianChunkSplatCull only: GaussianVisibleChunk[] of this frame
+    gaussianCullChunkTableIndex,        // gaussianChunkSplatCull only: GaussianChunkDecodeConstants[]
 }GaussianDepthBufferIndices;
 
 typedef enum{
@@ -564,6 +566,12 @@ typedef enum{
 /// keys, preprocess, radix sort, draw) is sized on the GPU from this frame's count. The CPU
 /// only ever sees this count through a completed-buffer readback two or three frames later,
 /// and a list that grew since then must not be cut to that older size.
+///
+/// The same record shape describes an entity's visible-chunk list (gaussianChunkCull /
+/// gaussianFinalizeVisibleChunks): there visibleCount is the sum of the visible chunks' splat
+/// counts (an upper bound on what the per-splat pass can keep), threadgroupCount and
+/// threadgroupsPerGrid[0] are the number of visible chunks — one threadgroup of
+/// gaussianChunkSplatCull per chunk — and the draw arguments mirror visibleCount unused.
 typedef struct{
     uint32_t visibleCount;           // atomic_uint appended by gaussianFrustumCull
     uint32_t threadgroupCount;       // ceil(visibleCount / gaussianVisibleBlockSize)
@@ -719,6 +727,46 @@ typedef enum{
     gaussianDecodeChunkCountIndex,   // uint
     gaussianDecodeOutputIndex,       // EncodedGaussianSplat[]
 }GaussianDecodeBufferIndices;
+
+// MARK: - Chunk-level cull of .untoldgs entities (GaussianChunkCull.metal)
+
+/// One entry of the per-entity, per-in-flight-frame visible-chunk list gaussianChunkCull appends
+/// to: the chunk's index into the entity's GaussianChunkDecodeConstants table and its splat count,
+/// which one threadgroup of gaussianChunkSplatCull then strides over.
+typedef struct{
+    uint32_t chunkIndex;
+    uint32_t splatCount;
+}GaussianVisibleChunk;   // 8 bytes
+
+/// Per-entity inputs of gaussianChunkCull. Both view-projections already include the entity's
+/// model matrix; a chunk is visible when its padded box passes either one (viewCount 2, the two
+/// eyes of a stereo frame) or the first (viewCount 1, mono).
+typedef struct{
+    matrix_float4x4 viewProjection0;
+    matrix_float4x4 viewProjection1;
+    simd_float2 viewport;        // pixels; picks the HZB mip whose texel covers the chunk's rect
+    float clipGuardBand;         // the per-splat cull's guard band (0.25)
+    float hzbOcclusionBias;      // the mesh cull's bias (0.02)
+    uint32_t chunkCount;
+    uint32_t viewCount;          // 1 or 2
+    uint32_t hzbValid;           // non-zero: also test the box against the previous frame's HZB
+    uint32_t hzbReverseZ;
+    uint32_t hzbMipCount;
+    uint32_t forceAllVisible;    // GaussianDebugOptions.disableChunkCull: every chunk is appended
+    uint32_t _pad0[2];
+}GaussianChunkCullConstants;  // 176 bytes
+
+typedef enum{
+    gaussianChunkCullChunkTableIndex = 0,  // GaussianChunkDecodeConstants[]
+    gaussianChunkCullConstantsIndex,       // GaussianChunkCullConstants
+    gaussianChunkCullVisibleChunksIndex,   // GaussianVisibleChunk[] (output, chunkCount entries)
+    gaussianChunkCullSplatTotalIndex,      // atomic_uint: the chunk record's visibleCount (sum of appended splat counts), byte offset 0
+    gaussianChunkCullChunkTotalIndex,      // atomic_uint: the chunk record's threadgroupCount (appended chunks), byte offset 4
+}GaussianChunkCullBufferIndices;
+
+typedef enum{
+    gaussianChunkCullHZBDepthPyramidTextureIndex = 0,
+}GaussianChunkCullTextureIndices;
 
 typedef enum{
       outputTransformPassEncodingModeIndex
