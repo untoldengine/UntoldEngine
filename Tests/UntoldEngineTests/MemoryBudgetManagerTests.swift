@@ -210,6 +210,36 @@ final class MemoryBudgetManagerTests: XCTestCase {
         XCTAssertFalse(manager.isTracked(entityId: 1))
     }
 
+    // MARK: - Gaussian working set
+
+    /// The Gaussian splat frame's shared working set is one ledger entry beside the entities',
+    /// replaced on every call, counted with the geometry and cleared with everything else.
+    func testGaussianWorkingSetBytesAreOneReplaceableGeometryEntry() {
+        manager.registerMesh(entityId: 1, meshSizeBytes: 1000)
+
+        manager.setGaussianWorkingSetBytes(5000)
+        XCTAssertEqual(manager.gaussianWorkingSetBytesTracked, 5000)
+        XCTAssertEqual(manager.totalMeshMemoryUsed, 6000)
+        XCTAssertEqual(manager.getMemorySize(for: 1), 1000, "the set is not any entity's")
+        XCTAssertEqual(manager.entityCount, 1)
+
+        manager.setGaussianWorkingSetBytes(2000)
+        XCTAssertEqual(manager.gaussianWorkingSetBytesTracked, 2000, "replaced, not accumulated")
+        XCTAssertEqual(manager.totalMeshMemoryUsed, 3000)
+
+        manager.setGaussianWorkingSetBytes(-1)
+        XCTAssertEqual(manager.gaussianWorkingSetBytesTracked, 0, "clamped at zero")
+        XCTAssertEqual(manager.totalMeshMemoryUsed, 1000)
+
+        manager.setGaussianWorkingSetBytes(4000)
+        XCTAssertFalse(manager.canAcceptMesh(sizeBytes: manager.geometryBudget - 4000), "it counts against the geometry budget")
+        XCTAssertTrue(manager.canAcceptMesh(sizeBytes: manager.geometryBudget - 5000))
+
+        manager.clear()
+        XCTAssertEqual(manager.gaussianWorkingSetBytesTracked, 0)
+        XCTAssertEqual(manager.totalMeshMemoryUsed, 0)
+    }
+
     // MARK: - Disabled State Tests
 
     func testDisabledManagerDoesNotTrack() {
