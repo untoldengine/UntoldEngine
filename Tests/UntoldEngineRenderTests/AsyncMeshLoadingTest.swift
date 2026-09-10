@@ -493,9 +493,9 @@ final class AsyncMeshLoadingTest: BaseRenderSetup {
             LoadingSystem.shared.resourceURLFn = originalResourceURLFn
         }
 
-        deserializeScene(sceneData: sceneData, meshLoadingMode: .asyncDefault) {
+        deserializeScene(sceneData: sceneData, meshLoadingMode: .asyncDefault, completion: {
             completionExpectation.fulfill()
-        }
+        })
 
         // Then: Should trigger async loading and complete before test exits
         await fulfillment(of: [expectation, completionExpectation], timeout: 5.0)

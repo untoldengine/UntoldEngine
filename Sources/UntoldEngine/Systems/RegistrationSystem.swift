@@ -4178,7 +4178,13 @@ public func setEntityGaussianAsync(entityId: EntityID, url: URL, opacityScale: F
     guard let payload = await loadGaussianSplatPayload(url: url) else {
         return false
     }
-    return setEntityGaussian(entityId: entityId, payload: payload, opacityScale: opacityScale)
+    let didAttach = setEntityGaussian(entityId: entityId, payload: payload, opacityScale: opacityScale)
+    if didAttach {
+        withWorldMutationGate {
+            scene.get(component: GaussianComponent.self, for: entityId)?.sourceURL = url
+        }
+    }
+    return didAttach
 }
 
 func copyGaussianLoadResult(_ result: GaussianLoadResult, to gaussianComponent: GaussianComponent) {
@@ -4222,9 +4228,11 @@ public func setEntityGaussian(entityId: EntityID, filename: String, withExtensio
     guard let result = buildGaussianLoadResult(filename: filename, withExtension: withExtension) else {
         return
     }
+    let sourceURL = LoadingSystem.shared.resourceURL(forResource: filename, withExtension: withExtension, subResource: nil)
 
     withWorldMutationGate {
         applyGaussianLoadResult(result, to: entityId)
+        scene.get(component: GaussianComponent.self, for: entityId)?.sourceURL = sourceURL
     }
 }
 
@@ -4273,6 +4281,8 @@ public func setEntityGaussianAsync(
 
     withWorldMutationGate {
         applyGaussianLoadResult(result, to: entityId)
+        scene.get(component: GaussianComponent.self, for: entityId)?.sourceURL =
+            LoadingSystem.shared.resourceURL(forResource: filename, withExtension: withExtension, subResource: nil)
     }
 
     completion?(true)

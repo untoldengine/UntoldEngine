@@ -2118,13 +2118,13 @@ final class SceneSerializerTests: BaseRenderSetup {
         // Test completion handler is called
         let expectation = XCTestExpectation(description: "Completion handler should be called")
 
-        deserializeScene(sceneData: sceneData, meshLoadingMode: .sync) {
+        deserializeScene(sceneData: sceneData, meshLoadingMode: .sync, completion: {
             // Verify entity was recreated before completion handler
             let entities = getAllGameEntities()
             XCTAssertEqual(entities.count, 1, "Entity should be recreated before completion")
 
             expectation.fulfill()
-        }
+        })
 
         wait(for: [expectation], timeout: 1.0)
     }
@@ -2197,7 +2197,7 @@ final class SceneSerializerTests: BaseRenderSetup {
         var entitiesAtCompletionTime = 0
         var meshLoadedStates: [Bool] = []
 
-        deserializeScene(sceneData: sceneData, meshLoadingMode: .asyncDefault) {
+        deserializeScene(sceneData: sceneData, meshLoadingMode: .asyncDefault, completion: {
             completionCallTime = Date()
 
             // Capture state at completion time
@@ -2220,7 +2220,7 @@ final class SceneSerializerTests: BaseRenderSetup {
             }
 
             completionExpectation.fulfill()
-        }
+        })
 
         // Then: Wait for completion and verify it was called after all loads finished
         await fulfillment(of: [completionExpectation], timeout: 15.0)

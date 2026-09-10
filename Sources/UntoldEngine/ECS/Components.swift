@@ -163,6 +163,10 @@ public class GaussianComponent: Component {
     public internal(set) var estimatedGPUBytes = 0
     public internal(set) var localBoundingBox: (min: simd_float3, max: simd_float3)?
 
+    /// The file this splat was loaded from, when the load path knows it. Scene serialization
+    /// uses this to save resident splats as asset references instead of embedding payload bytes.
+    public internal(set) var sourceURL: URL?
+
     public required init() {}
 }
 
