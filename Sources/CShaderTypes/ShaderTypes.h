@@ -733,19 +733,36 @@ typedef enum{
 
 /// One entry of the per-entity, per-in-flight-frame visible-chunk list gaussianChunkCull appends
 /// to: the chunk's index into the entity's GaussianChunkDecodeConstants table, its splat count,
-/// and the quota gaussianComputeChunkQuotas grants it from the frame's working-set budget — the
+/// the quota gaussianComputeChunkQuotas grants it from the frame's working-set budget — the
 /// number of its first (most important) splats one threadgroup of gaussianChunkDecodePreprocess
-/// then decodes, tests and appends. The cull writes quota = splatCount; the quota pass lowers it.
+/// then decodes, tests and appends — and the screen area the quota is weighted by: the chunk's
+/// padded box projected and clipped to the guard-banded view, in view units (a box filling the
+/// view has area 1; kGaussianScreenAreaGuard when it reaches behind the eye), the larger of the
+/// two eyes' in stereo, clamped to at least kGaussianScreenAreaMin. The cull writes
+/// quota = splatCount; the quota pass lowers it to min(splatCount, floor(densityCap × screenArea)).
+/// With GaussianDebugOptions.disableScreenWeightedQuotas the cull writes screenArea = splatCount
+/// (every chunk at density 1), which turns that rule into the uniform floor(scale × splatCount).
 typedef struct{
     uint32_t chunkIndex;
     uint32_t splatCount;
     uint32_t quota;
-    uint32_t _pad0;
+    float screenArea;
 }GaussianVisibleChunk;   // 16 bytes
+
+/// The smallest screen area a visible chunk is charged for: 2^-24 view units, a quarter of a
+/// pixel at 4K. A chunk no view keeps (GaussianDebugOptions.disableChunkCull) carries it and is
+/// therefore the densest chunk of the frame, cut first under a budget.
+#define kGaussianScreenAreaMin (1.0f / 16777216.0f)
+
+/// The screen area of a chunk whose padded box reaches behind the eye — the chunk the camera
+/// stands in: the whole guard-banded clip volume, (1 + clipGuardBand)² with the 0.25 band. The
+/// cull recomputes it from its own limit; this is the value for the 0.25 band.
+#define kGaussianScreenAreaGuard 1.5625f
 
 /// Per-entity inputs of gaussianChunkCull. Both view-projections already include the entity's
 /// model matrix; a chunk is visible when its padded box passes either one (viewCount 2, the two
-/// eyes of a stereo frame) or the first (viewCount 1, mono).
+/// eyes of a stereo frame) or the first (viewCount 1, mono). In stereo both views are always
+/// evaluated: the chunk's screen area is the larger of the two eyes' that keep it.
 typedef struct{
     matrix_float4x4 viewProjection0;
     matrix_float4x4 viewProjection1;
@@ -758,7 +775,8 @@ typedef struct{
     uint32_t hzbReverseZ;
     uint32_t hzbMipCount;
     uint32_t forceAllVisible;    // GaussianDebugOptions.disableChunkCull: every chunk is appended
-    uint32_t _pad0[2];
+    uint32_t uniformQuotas;      // GaussianDebugOptions.disableScreenWeightedQuotas: screenArea = splatCount, the uniform quota rule
+    uint32_t _pad0;
 }GaussianChunkCullConstants;  // 176 bytes
 
 typedef enum{
@@ -768,6 +786,7 @@ typedef enum{
     gaussianChunkCullSplatTotalIndex,      // atomic_uint: the chunk record's visibleCount (sum of appended splat counts), byte offset 0
     gaussianChunkCullChunkTotalIndex,      // atomic_uint: the chunk record's threadgroupCount (appended chunks), byte offset 4
     gaussianChunkCullBudgetStateIndex = 6, // gaussianFinalizeVisibleChunks: GaussianBudgetState whose requestedSplats the entity's total joins (the record itself sits at gaussianVisibleCountIndex, 5)
+    gaussianChunkCullDensityHistogramIndex = 7, // gaussianChunkCull: the frame's GaussianBudgetDensityHistogram tiers as atomic_uint words (2t splats, 2t + 1 scaledArea); gaussianFinalizeVisibleChunks: its visibleChunks, bound at byte offset 524
 }GaussianChunkCullBufferIndices;
 
 typedef enum{
@@ -777,14 +796,16 @@ typedef enum{
 // MARK: - Budgeted working set (GaussianWorkingSetBudget.metal)
 
 /// The frame's working-set budget state, one persistent buffer read and written on the GPU
-/// every frame (command buffers on one queue run in order, so frame N+1 sees frame N's scale):
-/// gaussianFinalizeVisibleChunks adds each chunked entity's visible splat total to
-/// requestedSplats, gaussianReserveBudgetSplats adds each whole-buffer entity's visible count
-/// to reservedSplats, gaussianComputeBudgetScale fits the request to what the reservation
-/// leaves of the budget as the scale the quotas apply (a fall taken at once, a rise smoothed
-/// against the previous frame's), gaussianComputeChunkQuotas adds the quotas it grants to
-/// quotaSplats, and gaussianPublishBudgetState copies the record into the frame's in-flight
-/// slot for the CPU readback (profiling, tests).
+/// every frame (command buffers on one queue run in order, so frame N+1 sees frame N's scale
+/// and density cap): gaussianFinalizeVisibleChunks adds each chunked entity's visible splat
+/// total to requestedSplats, gaussianReserveBudgetSplats adds each whole-buffer entity's
+/// visible count to reservedSplats, gaussianComputeBudgetScale fits the request to what the
+/// reservation leaves of the budget — the scale (the uniform rule's fraction, diagnostic when
+/// the quotas are weighted) and the density cap the weighted quotas apply, each with its own
+/// hysteresis (a fall taken at once, a rise smoothed against the previous frame's) —
+/// gaussianComputeChunkQuotas adds the quotas it grants to quotaSplats, and
+/// gaussianPublishBudgetState copies the record into the frame's in-flight slot for the CPU
+/// readback (profiling, tests).
 typedef struct{
     uint32_t requestedSplats;   // atomic: Σ over chunked entities of their visible chunks' splat counts
     uint32_t quotaSplats;       // atomic: Σ over chunked entities of the quotas granted
@@ -793,7 +814,7 @@ typedef struct{
     float targetScale;          // min(1, (headroom · budget − reservedSplats) / requestedSplats)
     float scale;                // targetScale, or the previous frame's scale raised by at most one step when the target is above it
     uint32_t reservedSplats;    // atomic: Σ over whole-buffer entities of their visible counts, granted before the quotas
-    uint32_t _pad0;
+    float densityCap;           // splats per view unit of screen area the quotas apply this frame, after the density hysteresis: +inf = every chunk whole, 0 = nothing left; the scale itself with uniform quotas
 }GaussianBudgetState;           // 32 bytes
 
 /// Inputs of gaussianComputeBudgetScale.
@@ -801,11 +822,50 @@ typedef struct{
     uint32_t budget;            // the shared set's capacity this frame
     uint32_t forceUnitScale;    // GaussianDebugOptions.disableWorkingSetBudget: every chunk keeps its whole splat count
     float headroom;             // fraction of the budget the quotas aim for (0.98), leaving room for rounding
-    float maxStepFraction;      // largest relative rise of scale per frame (0.1)
-    float minStep;              // smallest absolute rise per frame (0.05), so a climb from a low scale does not crawl
+    float maxStepFraction;      // largest relative rise of scale (and of the density cap) per frame (0.1)
+    float minStep;              // smallest absolute rise of the scale per frame (0.05), so a climb from a low scale does not crawl
     uint32_t resetHysteresis;   // 1: take the target as on the first frame (a frame without splat entities went by)
-    uint32_t _pad0[2];
+    uint32_t uniformQuotas;     // GaussianDebugOptions.disableScreenWeightedQuotas: the density cap is the scale, no solve
+    float densityMinStepFraction; // smallest rise of the density cap per frame as a fraction of its target (0.05)
 }GaussianBudgetScaleConstants;  // 32 bytes
+
+/// The density histogram the weighted quotas are solved from: how many half-octave tiers of
+/// splats per view unit of screen area, from 2^gaussianBudgetDensityTierLog2Floor upward
+/// (densities above the last tier clamp into it).
+#define gaussianBudgetDensityTierCount 64
+#define gaussianBudgetDensityTiersPerOctave 2
+#define gaussianBudgetDensityTierLog2Floor (-2)
+
+/// The tail of the request a climb toward a fitting frame leaves to the whole: the density the
+/// cap climbs to (and becomes whole, +inf, at) is the floor of the tier above the densest tiers
+/// holding together at most this fraction of the requested splats, so the smallest chunks on
+/// screen — a sliver in the guard band, a forced chunk no view keeps — set neither the step nor
+/// the frames of the climb; they become whole with the cap.
+#define kGaussianBudgetDensityClimbTail 0.05f
+
+/// One tier of GaussianBudgetDensityHistogram: the splats of the visible chunks whose density
+/// falls in the tier, and their screen area in whole-splat units of the tier's lower density,
+/// Σ ceil(area × ρ_t) — an over-estimate of the area, so the grant it bounds is one-sided.
+typedef struct{
+    uint32_t splats;
+    uint32_t scaledArea;
+}GaussianBudgetDensityTier;     // 8 bytes
+
+/// The frame's density histogram, one persistent buffer beside GaussianBudgetState and a copy
+/// per in-flight slot for the readback: gaussianResetBudgetRequest zeroes it, gaussianChunkCull
+/// adds every visible chunk to the tier of its density (splatCount / screenArea),
+/// gaussianFinalizeVisibleChunks adds each entity's visible chunk count, and
+/// gaussianComputeBudgetScale solves the density cap from the tiers and records the solve in
+/// the header: the target cap before the hysteresis (+inf when the frame fits), the density at
+/// which every visible chunk is whole (+inf when no chunk is visible) and the grant the cap was
+/// solved against (the room the headroom leaves, or the request when it fits).
+typedef struct{
+    GaussianBudgetDensityTier tiers[gaussianBudgetDensityTierCount]; // atomics
+    float targetDensity;        // 512
+    float fullDensity;          // 516
+    uint32_t grant;             // 520
+    uint32_t visibleChunks;     // 524, atomic
+}GaussianBudgetDensityHistogram; // 528 bytes
 
 typedef enum{
     gaussianBudgetStateIndex = 0,        // GaussianBudgetState, persistent
@@ -815,6 +875,8 @@ typedef enum{
     gaussianBudgetReadbackIndex,         // gaussianPublishBudgetState: this frame slot's copy of the state
     gaussianBudgetQuotaTotalIndex,       // gaussianComputeChunkQuotas: atomic_uint, the state's quotaSplats (byte offset 4)
     gaussianBudgetReservedTotalIndex,    // gaussianReserveBudgetSplats: atomic_uint, the state's reservedSplats (byte offset 24)
+    gaussianBudgetDensityHistogramIndex = 7, // GaussianBudgetDensityHistogram, persistent (gaussianResetBudgetRequest, gaussianComputeBudgetScale, gaussianPublishBudgetState)
+    gaussianBudgetDensityReadbackIndex = 8,  // gaussianPublishBudgetState: this frame slot's copy of the histogram
 }GaussianBudgetBufferIndices;
 
 // MARK: - Fused decode, test, project and compact of .untoldgs entities (GaussianChunkPreprocess.metal)
