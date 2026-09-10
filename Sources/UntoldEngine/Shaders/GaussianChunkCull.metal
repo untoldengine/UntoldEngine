@@ -129,7 +129,7 @@ kernel void gaussianChunkCull(
     entry.chunkIndex = chunkIndex;
     entry.splatCount = chunk.splatCount;
     entry.quota = chunk.splatCount;   // gaussianComputeChunkQuotas lowers it when the frame is over budget
-    entry._pad0 = 0u;
+    entry.screenArea = (float)chunk.splatCount;   // the weight of the quota once the screen area is computed; seeded as the count
     visibleChunks[slot] = entry;
 }
 
