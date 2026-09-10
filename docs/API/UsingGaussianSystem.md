@@ -265,18 +265,21 @@ link:
 
 - **`GaussianComponent.splatToEntity`** (`simd_float4x4`, identity by default) is where the
   splat sits in its entity's local space. The splat is drawn with `entityWorld × splatToEntity`
-  by the cull, the preprocess, the chunk cull and the draw alike, so setting it moves, turns or
-  scales the splat exactly as moving the entity would, while the mesh the twin stands in for
-  stays put. It belongs to the entity, not the payload: tier swaps and reloads of the same
-  entity keep it. A splat-only entity's bounding box is the splat's box carried through it; a
-  twin entity keeps the mesh's box.
+  by the cull, the preprocess, the chunk cull and the draw alike, so setting it — through
+  `setGaussianSplatToEntity(entityId:_:)` — moves, turns or scales the splat exactly as moving
+  the entity would, while the mesh the twin stands in for stays put. It belongs to the entity,
+  not the payload: tier swaps, reloads of the same entity and a streaming eviction and reload
+  keep it (`StreamingComponent` holds it while the splat is out). A splat-only entity's
+  bounding box is the splat's box carried through it, kept in step by the setter as well as by
+  every load; a twin entity keeps the mesh's box, and a progressive entity whose box the caller
+  supplied keeps that one.
 - **`GaussianSplatAlignment`** (`translation`, `yawDegrees`, `scale`; `matrix` = `T · R_y · S`,
   yaw about +Y, right-handed, uniform scale) is the authored form: the `gaussianAsset` record
   stores it in its last five words under `UntoldGaussianAssetFlags.alignment`, the loader hands
   it over as `GaussianAssetLinkComponent.alignment` (`RuntimeGaussianAssetLink.alignment`), and
-  whoever loads the payload applies `alignment.matrix` to `splatToEntity` — a twin policy such
-  as `GaussianTwinOptions.alignment` in UntoldGaussianTwins does this every tick, so an editor
-  can change the value live. Files written before the flag existed read as no alignment.
+  whoever loads the payload applies `alignment.matrix` through `setGaussianSplatToEntity` — a
+  twin policy such as `GaussianTwinOptions.alignment` in UntoldGaussianTwins does this every
+  tick (an unchanged matrix costs nothing), so an editor can change the value live. Files written before the flag existed read as no alignment.
 - The `.untoldgs` header's `splatToMesh` stays the record of the cook transform; the
   alignment composes on top of whatever the cook baked. A full three-axis rotation is left to
   a later extension: captures are up-axis corrected at cook time.
