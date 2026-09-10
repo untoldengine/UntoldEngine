@@ -248,6 +248,41 @@ struct StreamingData: Codable {
     var assetName: String?
 }
 
+struct GaussianSceneData: Codable {
+    /// Portable identifier for a non-progressive source: a bare filename (no directories),
+    /// searched at load time through `LoadingSystem`'s asset folders the same way
+    /// `StreamingData.assetFilename` already is, or — only for a source outside the project
+    /// (e.g. a file loaded at runtime via `setEntityGaussianAsync(entityId:url:)`) — a resolved
+    /// absolute path, matching how `sceneAssetReference` falls back for non-project assets.
+    /// Deliberately not a machine-specific absolute path for project assets: that would bake
+    /// the current developer's filesystem layout into the scene file (see `legacyAssetURL`'s
+    /// comment on why every other asset kind here avoids that). nil when `isProgressive` —
+    /// `baseFilename` carries the identifier instead.
+    var sourcePath: String? = nil
+    var isProgressive: Bool = false
+    var baseFilename: String? = nil
+    var fileExtension: String
+    var levelCount: Int? = nil
+    var maxDistances: [Float]? = nil
+    var isStreaming: Bool = false
+    var streamingRadius: Float? = nil
+    var unloadRadius: Float? = nil
+    var priority: Int? = nil
+}
+
+public struct GaussianSceneRestoreInfo {
+    public let sourceURL: URL
+    public let isProgressive: Bool
+    public let baseFilename: String?
+    public let fileExtension: String
+    public let levelCount: Int?
+    public let maxDistances: [Float]?
+    public let isStreaming: Bool
+    public let streamingRadius: Float?
+    public let unloadRadius: Float?
+    public let priority: Int?
+}
+
 struct EntityData: Codable {
     var uuid: UUID = .init() // Unique identifier for this entity
     var parentUUID: UUID? = nil // UUID of the parent entity, if any
@@ -294,6 +329,9 @@ struct EntityData: Codable {
 
     /// Geometry Streaming system
     var streamingData: StreamingData? = nil
+
+    /// Gaussian splat asset reference
+    var gaussianData: GaussianSceneData? = nil
 }
 
 private func isProceduralAssetURL(_ url: URL) -> Bool {
@@ -333,6 +371,171 @@ func sceneAssetReference(kind: SceneAssetKind, url: URL, displayName: String? = 
     }
 
     return SceneAssetReference(kind: kind, path: relativePath, displayName: displayName)
+}
+
+/// A portable identifier for a Gaussian asset URL: the full project-relative path, including
+/// subdirectories — Gaussian assets are baked one-per-folder (e.g.
+/// "Gaussians/robot/robot_lod0.untoldgs", "Gaussians/Lego Hulkbuster/Lego Hulkbuster.ply"), the
+/// same layout `sceneAssetReference` already preserves for every other asset kind — when the URL
+/// lives inside the project. A bare filename would lose that subdirectory and only resolve
+/// through `LoadingSystem`'s flat `Gaussians/<name>.<ext>` search, which doesn't match this
+/// layout. Falls back to the resolved absolute path for a source outside the project (e.g. a
+/// file loaded at runtime via `setEntityGaussianAsync(entityId:url:)`), matching how
+/// `sceneAssetReference` treats non-project assets.
+private func gaussianPortableName(for url: URL) -> String {
+    let noExtension = url.deletingPathExtension()
+    return projectRelativeAssetPath(for: noExtension) ?? noExtension.path
+}
+
+/// Resolves a portable Gaussian identifier (from `gaussianPortableName`/
+/// `gaussianProgressiveBaseFilename`) back into a path `setEntityGaussian`/
+/// `setEntityGaussianProgressive` can load directly: an absolute path joined against this
+/// machine's `assetBasePath` when the identifier is project-relative (mirrors
+/// `resolvedSceneAssetURL`'s handling of `SceneAssetReference.path`), or the identifier
+/// unchanged when it's already absolute or no `assetBasePath` is configured — `LoadingSystem`'s
+/// own search then gets a shot at it, same as any other filename.
+private func resolvedGaussianAssetPath(_ portableName: String) -> String {
+    if portableName.hasPrefix("/") {
+        return portableName
+    }
+    if portableName.hasPrefix("~") {
+        return NSString(string: portableName).expandingTildeInPath
+    }
+    guard let assetBasePath else {
+        return portableName
+    }
+    return assetBasePath.appendingPathComponent(portableName).path
+}
+
+private func gaussianSceneData(for entityId: EntityID) -> GaussianSceneData? {
+    let streamingComponent = scene.get(component: StreamingComponent.self, for: entityId)
+    let isGaussianStreaming = streamingComponent?.assetKind == .gaussianSplat
+
+    if let lodComponent = scene.get(component: GaussianLODComponent.self, for: entityId),
+       let firstURL = lodComponent.lodLevels.first?.url
+    {
+        let baseFilename = gaussianProgressiveBaseFilename(from: firstURL, levelCount: lodComponent.lodLevels.count)
+        return GaussianSceneData(
+            isProgressive: true,
+            baseFilename: baseFilename,
+            fileExtension: firstURL.pathExtension,
+            levelCount: lodComponent.lodLevels.count,
+            maxDistances: lodComponent.lodLevels.map(\.maxDistance),
+            isStreaming: isGaussianStreaming,
+            streamingRadius: streamingComponent?.streamingRadius,
+            unloadRadius: streamingComponent?.unloadRadius,
+            priority: streamingComponent?.priority
+        )
+    }
+
+    if let streamingComponent, isGaussianStreaming {
+        // Already a bare, portable resource name — no need to resolve to a URL and back.
+        return GaussianSceneData(
+            sourcePath: streamingComponent.assetFilename,
+            fileExtension: streamingComponent.assetExtension,
+            isStreaming: true,
+            streamingRadius: streamingComponent.streamingRadius,
+            unloadRadius: streamingComponent.unloadRadius,
+            priority: streamingComponent.priority
+        )
+    }
+
+    guard let gaussianComponent = scene.get(component: GaussianComponent.self, for: entityId),
+          let sourceURL = gaussianComponent.sourceURL
+    else {
+        return nil
+    }
+
+    return GaussianSceneData(
+        sourcePath: gaussianPortableName(for: sourceURL),
+        fileExtension: sourceURL.pathExtension
+    )
+}
+
+private func gaussianProgressiveBaseFilename(from firstTierURL: URL, levelCount: Int) -> String {
+    let portableName = gaussianPortableName(for: firstTierURL)
+    guard levelCount > 1, portableName.hasSuffix("_lod0") else {
+        return portableName
+    }
+    return String(portableName.dropLast("_lod0".count))
+}
+
+private func restoreInfo(from data: GaussianSceneData) -> GaussianSceneRestoreInfo {
+    // `baseFilename`/`sourcePath` are project-relative (from `gaussianPortableName`) and need
+    // `resolvedGaussianAssetPath` to become loadable — except a streaming source's `sourcePath`,
+    // which is already the bare `StreamingComponent.assetFilename` resource name and is used
+    // as-is, same as `restoreGaussianSceneData` below.
+    let tierZeroName: String
+    if data.isProgressive, let baseFilename = data.baseFilename {
+        let resolvedBase = resolvedGaussianAssetPath(baseFilename)
+        tierZeroName = (data.levelCount ?? 1) > 1 ? "\(resolvedBase)_lod0" : resolvedBase
+    } else {
+        let sourcePath = data.sourcePath ?? ""
+        tierZeroName = data.isStreaming ? sourcePath : resolvedGaussianAssetPath(sourcePath)
+    }
+    let resolvedURL = LoadingSystem.shared.resourceURL(
+        forResource: tierZeroName,
+        withExtension: data.fileExtension,
+        subResource: nil
+    ) ?? URL(fileURLWithPath: tierZeroName).appendingPathExtension(data.fileExtension)
+
+    return GaussianSceneRestoreInfo(
+        sourceURL: resolvedURL,
+        isProgressive: data.isProgressive,
+        baseFilename: data.baseFilename,
+        fileExtension: data.fileExtension,
+        levelCount: data.levelCount,
+        maxDistances: data.maxDistances,
+        isStreaming: data.isStreaming,
+        streamingRadius: data.streamingRadius,
+        unloadRadius: data.unloadRadius,
+        priority: data.priority
+    )
+}
+
+private func restoreGaussianSceneData(
+    _ data: GaussianSceneData,
+    entityId: EntityID,
+    onGaussianEntityRestored: ((EntityID, GaussianSceneRestoreInfo) -> Void)?
+) {
+    let source: GaussianSource
+    if data.isProgressive,
+       let baseFilename = data.baseFilename,
+       let levelCount = data.levelCount,
+       let maxDistances = data.maxDistances
+    {
+        source = .progressive(
+            baseFilename: resolvedGaussianAssetPath(baseFilename),
+            withExtension: data.fileExtension,
+            levelCount: levelCount,
+            maxDistances: maxDistances
+        )
+    } else if let sourcePath = data.sourcePath {
+        // A streaming source's `sourcePath` is already the bare `assetFilename` resource name
+        // (see `gaussianSceneData(for:)`) — passed through as-is, not project-relative like the
+        // resident single-file case, so it doesn't go through `resolvedGaussianAssetPath`.
+        let filename = data.isStreaming ? sourcePath : resolvedGaussianAssetPath(sourcePath)
+        source = .single(filename: filename, withExtension: data.fileExtension)
+    } else {
+        Logger.logWarning(message: "[SceneSerializer] Gaussian scene data for entity \(entityId) has neither a progressive base filename nor a source path — skipping.")
+        return
+    }
+
+    if data.isStreaming {
+        setEntityGaussianStreaming(
+            entityId: entityId,
+            source: source,
+            options: GaussianStreamingOptions(
+                streamingRadius: data.streamingRadius ?? 100.0,
+                unloadRadius: data.unloadRadius ?? 150.0,
+                priority: data.priority ?? 0
+            )
+        )
+    } else {
+        setEntityGaussian(entityId: entityId, source: source)
+    }
+
+    onGaussianEntityRestored?(entityId, restoreInfo(from: data))
 }
 
 /// Value stored in the legacy (pre-`SceneAssetReference`) `assetURL`/`animations` fields.
@@ -945,23 +1148,30 @@ public func serializeScene() -> SceneData {
             entityData.hasStaticBatchComponent = true
         }
 
-        // Geometry Streaming properties
+        // Geometry Streaming properties. Gaussian-streaming entities are excluded here and
+        // fully described by `gaussianData` below instead: restoring them also through this
+        // generic path would `registerComponent`/`scene.assign` a second, freshly-defaulted
+        // StreamingComponent on top of the one the Gaussian-specific restore already
+        // configured — assetKind isn't among the fields the generic restore re-sets, so it
+        // would silently revert from .gaussianSplat back to the .mesh default and the entity
+        // would stream through the wrong loader after every reload.
         let hasStreaming: Bool = hasComponent(entityId: entityId, componentType: StreamingComponent.self)
 
-        if hasStreaming {
-            entityData.hasStreamingComponent = hasStreaming
-
-            if let streamingComponent = scene.get(component: StreamingComponent.self, for: entityId) {
-                entityData.streamingData = StreamingData(
-                    streamingRadius: streamingComponent.streamingRadius,
-                    unloadRadius: streamingComponent.unloadRadius,
-                    priority: streamingComponent.priority,
-                    assetFilename: streamingComponent.assetFilename,
-                    assetExtension: streamingComponent.assetExtension,
-                    assetName: streamingComponent.assetName
-                )
-            }
+        if hasStreaming, let streamingComponent = scene.get(component: StreamingComponent.self, for: entityId),
+           streamingComponent.assetKind != .gaussianSplat
+        {
+            entityData.hasStreamingComponent = true
+            entityData.streamingData = StreamingData(
+                streamingRadius: streamingComponent.streamingRadius,
+                unloadRadius: streamingComponent.unloadRadius,
+                priority: streamingComponent.priority,
+                assetFilename: streamingComponent.assetFilename,
+                assetExtension: streamingComponent.assetExtension,
+                assetName: streamingComponent.assetName
+            )
         }
+
+        entityData.gaussianData = gaussianSceneData(for: entityId)
 
         // custom component
         var customComponents: [String: Data] = [:]
@@ -1285,6 +1495,7 @@ private final class AsyncLoadTracker: @unchecked Sendable {
 public func deserializeScene(
     sceneData: SceneData,
     meshLoadingMode: MeshLoadingMode = .asyncDefault,
+    onGaussianEntityRestored: ((EntityID, GaussianSceneRestoreInfo) -> Void)? = nil,
     completion: (() -> Void)? = nil
 ) {
     var uuidToEntityMap: [UUID: EntityID] = [:]
@@ -1792,6 +2003,14 @@ public func deserializeScene(
                 applyDeserializedRenderProperties(entityId: entityId, entityData: sceneDataEntity)
             }
 
+            if let gaussianData = sceneDataEntity.gaussianData {
+                restoreGaussianSceneData(
+                    gaussianData,
+                    entityId: entityId,
+                    onGaussianEntityRestored: onGaussianEntityRestored
+                )
+            }
+
             if sceneDataEntity.hasCameraComponent == true {
                 if let camera = sceneDataEntity.cameraData {
                     let eye = camera.eye
@@ -1988,10 +2207,10 @@ public func loadUntoldScene(
 
         Logger.log(message: "📄 Loading Untold scene: \(sceneURL.lastPathComponent)")
 
-        deserializeScene(sceneData: sceneData, meshLoadingMode: meshLoadingMode) {
+        deserializeScene(sceneData: sceneData, meshLoadingMode: meshLoadingMode, completion: {
             Logger.log(message: "✅ Finished loading scene: \(sceneURL.lastPathComponent)")
             completion?(true)
-        }
+        })
     } catch {
         Logger.log(message: "❌ Failed to load scene \(sceneURL.lastPathComponent): \(error.localizedDescription)")
         completion?(false)

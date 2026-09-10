@@ -171,6 +171,10 @@ public class GaussianComponent: Component {
     /// a streaming eviction (`StreamingComponent` keeps it while the splat is out).
     public internal(set) var splatToEntity: simd_float4x4 = matrix_identity_float4x4
 
+    /// The file this splat was loaded from, when the load path knows it. Scene serialization
+    /// uses this to save resident splats as asset references instead of embedding payload bytes.
+    public internal(set) var sourceURL: URL?
+
     public required init() {}
 }
 

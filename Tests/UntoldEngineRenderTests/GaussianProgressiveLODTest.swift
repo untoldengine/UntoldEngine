@@ -234,6 +234,63 @@ final class GaussianProgressiveLODTest: BaseRenderSetup {
         XCTAssertEqual(scene.get(component: GaussianComponent.self, for: entity)?.splatCount, lod.lodLevels[0].buffers?.splatCount)
     }
 
+    /// Regression test for a scene-serialization bug: a Gaussian asset baked into a
+    /// per-asset subfolder (e.g. "Gaussians/robot/robot_lod0.untoldgs" — how the editor's cook
+    /// pipeline actually lays assets out, not flat under "Gaussians/") failed to reload from a
+    /// saved `.untoldscene` with "Filename not found for robot_lod0", because the serializer
+    /// stored only the bare last-path-component and dropped the subfolder. Also asserts the
+    /// saved JSON doesn't bake in this machine's absolute temp-directory path.
+    func testProgressiveGaussianRoundTripsThroughSceneSerializationWithNestedAssetFolder() throws {
+        let savedAssetBasePath = assetBasePath
+        defer { assetBasePath = savedAssetBasePath }
+
+        let tempRoot = FileManager.default.temporaryDirectory
+            .appendingPathComponent("GaussianSerializeRoundTrip-\(UUID().uuidString)")
+        let assetDir = tempRoot.appendingPathComponent("Gaussians/robot")
+        try FileManager.default.createDirectory(at: assetDir, withIntermediateDirectories: true)
+
+        let outputBase = assetDir.appendingPathComponent("robot").appendingPathExtension("untoldgs")
+        _ = try bakeGaussianSplatProgressiveTiers(plyURL: testPLYURL(), outputBaseURL: outputBase, levelCount: 2)
+
+        assetBasePath = tempRoot
+
+        let entity = createEntity()
+        translateTo(entityId: entity, position: .zero)
+        setEntityGaussian(
+            entityId: entity,
+            source: .progressive(baseFilename: "robot/robot", levelCount: 2, maxDistances: [20, .greatestFiniteMagnitude])
+        )
+
+        let originalLOD = try XCTUnwrap(scene.get(component: GaussianLODComponent.self, for: entity))
+        let originalTierZeroURL = try XCTUnwrap(originalLOD.lodLevels.first?.url)
+        XCTAssertTrue(
+            originalTierZeroURL.path.hasPrefix(tempRoot.path),
+            "Sanity check: tier URL should resolve under the temp asset root"
+        )
+
+        let sceneData = serializeScene()
+
+        let json = try JSONEncoder().encode(sceneData)
+        let jsonString = String(decoding: json, as: UTF8.self)
+        XCTAssertFalse(
+            jsonString.contains(tempRoot.path),
+            "Scene JSON should store a project-relative Gaussian path, not this machine's absolute temp path"
+        )
+
+        let entitiesBeforeRestore = Set(getAllGameEntities())
+        deserializeScene(sceneData: sceneData, meshLoadingMode: .sync)
+
+        let restoredEntity = try XCTUnwrap(
+            getAllGameEntities().first {
+                !entitiesBeforeRestore.contains($0) && scene.get(component: GaussianLODComponent.self, for: $0) != nil
+            },
+            "Restored entity should have a GaussianLODComponent"
+        )
+        let restoredLOD = try XCTUnwrap(scene.get(component: GaussianLODComponent.self, for: restoredEntity))
+        XCTAssertEqual(restoredLOD.lodLevels.count, 2)
+        XCTAssertEqual(restoredLOD.lodLevels.first?.url, originalTierZeroURL)
+    }
+
     func testBakeProgressiveTiersReturnsAssetLevelBoundingBox() throws {
         let asset = try PLYReader.readGaussianAsset(from: testPLYURL())
         let expected = computeGaussianSplatBoundingBox(asset.splats)

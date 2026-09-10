@@ -213,9 +213,9 @@ public func playSceneAt(url: URL, completion: (() -> Void)? = nil) {
     }
 
     destroyAllEntities {
-        deserializeScene(sceneData: scene) {
+        deserializeScene(sceneData: scene, completion: {
             completion?()
-        }
+        })
 
         // Rebind as soon as authored entities are created to avoid referencing a destroyed
         // startup camera while async mesh loads are still finishing.
