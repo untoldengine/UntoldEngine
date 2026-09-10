@@ -1492,6 +1492,71 @@ private final class AsyncLoadTracker: @unchecked Sendable {
     }
 }
 
+/// Runs a batch of async load-starter closures through a bounded concurrency window
+/// instead of firing all of them at once. Mirrors `PackLoadDispatcher`
+/// (RegistrationSystem.swift): `setEntityMeshAsync`'s Task body eventually takes
+/// `withWorldMutationGate`'s thread-blocking lock, and firing dozens of these
+/// simultaneously -- one per scene entity, as `deserializeScene` used to -- can park
+/// every thread in Swift's cooperative pool on that lock with none free to run the
+/// continuation that would release it. That's a genuine deadlock, reproducible with
+/// plain `setEntityMeshAsync` calls in a tight loop regardless of where they come
+/// from, and it's exactly what a multi-dozen-entity scene load hit here.
+private final class BoundedAsyncLoadDispatcher: @unchecked Sendable {
+    private let lock = NSLock()
+    private let starters: [(@escaping (Bool) -> Void) -> Void]
+    private let onAllComplete: (() -> Void)?
+    private var nextIndex = 0
+    private var remaining: Int
+
+    private static let maxConcurrentLoads = 8
+
+    init(starters: [(@escaping (Bool) -> Void) -> Void], onAllComplete: (() -> Void)? = nil) {
+        self.starters = starters
+        self.onAllComplete = onAllComplete
+        remaining = starters.count
+    }
+
+    func start() {
+        guard starters.isEmpty == false else {
+            onAllComplete?()
+            return
+        }
+        let initialCount = min(Self.maxConcurrentLoads, starters.count)
+        for _ in 0 ..< initialCount {
+            startNext()
+        }
+    }
+
+    private func startNext() {
+        lock.lock()
+        let index = nextIndex
+        guard index < starters.count else {
+            lock.unlock()
+            return
+        }
+        nextIndex += 1
+        lock.unlock()
+
+        let starter = starters[index]
+        starter { [self] _ in
+            recordCompletionAndAdvance()
+        }
+    }
+
+    private func recordCompletionAndAdvance() {
+        lock.lock()
+        remaining -= 1
+        let isDone = remaining <= 0
+        lock.unlock()
+
+        if isDone {
+            onAllComplete?()
+        } else {
+            startNext()
+        }
+    }
+}
+
 public func deserializeScene(
     sceneData: SceneData,
     meshLoadingMode: MeshLoadingMode = .asyncDefault,
@@ -1631,6 +1696,11 @@ public func deserializeScene(
         SMAAParams.shared.edgeThreshold = antiAliasing.smaa.edgeThreshold
     }
 
+    // Mesh loads discovered below are queued here rather than fired immediately --
+    // see BoundedAsyncLoadDispatcher for why an unbounded burst of setEntityMeshAsync
+    // calls (one per entity) can deadlock Swift's cooperative thread pool.
+    var pendingMeshLoads: [(@escaping (Bool) -> Void) -> Void] = []
+
     withWorldMutationGate {
         for sourceEntityData in sceneData.entities {
             var sceneDataEntity = sourceEntityData
@@ -1688,43 +1758,49 @@ public func deserializeScene(
                 switch meshLoadingMode {
                 case .sync:
                     loadTracker.registerLoad()
-                    setEntityMeshAsync(entityId: entityId, filename: filename, withExtension: withExtension, assetName: nil) { success in
-                        applyDeserializedLocalTransform(entityId: entityId, entityData: sceneDataEntity)
-                        applyDeserializedRenderProperties(entityId: entityId, entityData: sceneDataEntity)
-                        if success {
-                            if sceneDataEntity.hasStaticBatchComponent == true {
-                                setEntityStaticBatchComponent(entityId: entityId)
+                    pendingMeshLoads.append { loadDone in
+                        setEntityMeshAsync(entityId: entityId, filename: filename, withExtension: withExtension, assetName: nil) { success in
+                            applyDeserializedLocalTransform(entityId: entityId, entityData: sceneDataEntity)
+                            applyDeserializedRenderProperties(entityId: entityId, entityData: sceneDataEntity)
+                            if success {
+                                if sceneDataEntity.hasStaticBatchComponent == true {
+                                    setEntityStaticBatchComponent(entityId: entityId)
+                                }
+                                applyAssetInstanceOverrides(entityId: entityId, overrides: assetInstance.overrides)
+                                if sceneDataEntity.hasAnimationComponent == true {
+                                    applyDeserializedAnimations(entityId: entityId, entityData: sceneDataEntity)
+                                }
                             }
-                            applyAssetInstanceOverrides(entityId: entityId, overrides: assetInstance.overrides)
-                            if sceneDataEntity.hasAnimationComponent == true {
-                                applyDeserializedAnimations(entityId: entityId, entityData: sceneDataEntity)
-                            }
+                            loadTracker.completeLoad()
+                            loadDone(success)
                         }
-                        loadTracker.completeLoad()
                     }
                 case .asyncDefault:
                     loadTracker.registerLoad()
-                    setEntityMeshAsync(entityId: entityId, filename: filename, withExtension: withExtension, assetName: nil) { success in
-                        applyDeserializedLocalTransform(entityId: entityId, entityData: sceneDataEntity)
-                        applyDeserializedRenderProperties(entityId: entityId, entityData: sceneDataEntity)
-                        if success {
-                            Logger.log(message: "✅ Asset instance '\(sceneDataEntity.name)' loaded")
-                            // Restore Static Batch Component (meshes now loaded)
-                            if sceneDataEntity.hasStaticBatchComponent == true {
-                                setEntityStaticBatchComponent(entityId: entityId)
-                            }
-                            // Apply overrides after async import completes (must run after static restore so
-                            // per-node static opt-outs can remove static from selected children).
-                            applyAssetInstanceOverrides(entityId: entityId, overrides: assetInstance.overrides)
+                    pendingMeshLoads.append { loadDone in
+                        setEntityMeshAsync(entityId: entityId, filename: filename, withExtension: withExtension, assetName: nil) { success in
+                            applyDeserializedLocalTransform(entityId: entityId, entityData: sceneDataEntity)
+                            applyDeserializedRenderProperties(entityId: entityId, entityData: sceneDataEntity)
+                            if success {
+                                Logger.log(message: "✅ Asset instance '\(sceneDataEntity.name)' loaded")
+                                // Restore Static Batch Component (meshes now loaded)
+                                if sceneDataEntity.hasStaticBatchComponent == true {
+                                    setEntityStaticBatchComponent(entityId: entityId)
+                                }
+                                // Apply overrides after async import completes (must run after static restore so
+                                // per-node static opt-outs can remove static from selected children).
+                                applyAssetInstanceOverrides(entityId: entityId, overrides: assetInstance.overrides)
 
-                            // Setup animations (skeleton is now available)
-                            if sceneDataEntity.hasAnimationComponent == true {
-                                applyDeserializedAnimations(entityId: entityId, entityData: sceneDataEntity)
+                                // Setup animations (skeleton is now available)
+                                if sceneDataEntity.hasAnimationComponent == true {
+                                    applyDeserializedAnimations(entityId: entityId, entityData: sceneDataEntity)
+                                }
+                            } else {
+                                Logger.logWarning(message: "❌ Asset instance '\(sceneDataEntity.name)' failed to load")
                             }
-                        } else {
-                            Logger.logWarning(message: "❌ Asset instance '\(sceneDataEntity.name)' failed to load")
+                            loadTracker.completeLoad()
+                            loadDone(success)
                         }
-                        loadTracker.completeLoad()
                     }
                 }
             } else if sceneDataEntity.hasRenderingComponent == true {
@@ -1747,19 +1823,22 @@ public func deserializeScene(
                         }
                     } else {
                         loadTracker.registerLoad()
-                        setEntityMeshAsync(entityId: entityId, filename: filename, withExtension: withExtension, assetName: sceneDataEntity.assetName) { success in
-                            applyDeserializedLocalTransform(entityId: entityId, entityData: sceneDataEntity)
-                            applyDeserializedRenderProperties(entityId: entityId, entityData: sceneDataEntity)
-                            if success {
-                                applyDeserializedMaterialData(entityId: entityId, entityData: sceneDataEntity)
-                                if sceneDataEntity.hasStaticBatchComponent == true {
-                                    setEntityStaticBatchComponent(entityId: entityId)
+                        pendingMeshLoads.append { loadDone in
+                            setEntityMeshAsync(entityId: entityId, filename: filename, withExtension: withExtension, assetName: sceneDataEntity.assetName) { success in
+                                applyDeserializedLocalTransform(entityId: entityId, entityData: sceneDataEntity)
+                                applyDeserializedRenderProperties(entityId: entityId, entityData: sceneDataEntity)
+                                if success {
+                                    applyDeserializedMaterialData(entityId: entityId, entityData: sceneDataEntity)
+                                    if sceneDataEntity.hasStaticBatchComponent == true {
+                                        setEntityStaticBatchComponent(entityId: entityId)
+                                    }
+                                    if sceneDataEntity.hasAnimationComponent == true {
+                                        applyDeserializedAnimations(entityId: entityId, entityData: sceneDataEntity)
+                                    }
                                 }
-                                if sceneDataEntity.hasAnimationComponent == true {
-                                    applyDeserializedAnimations(entityId: entityId, entityData: sceneDataEntity)
-                                }
+                                loadTracker.completeLoad()
+                                loadDone(success)
                             }
-                            loadTracker.completeLoad()
                         }
                     }
                 case .asyncDefault:
@@ -1778,27 +1857,30 @@ public func deserializeScene(
                         let fallbackLabel = withExtension.isEmpty ? filename : "\(filename).\(withExtension)"
                         let meshLabel = sceneDataEntity.name.isEmpty ? fallbackLabel : sceneDataEntity.name
                         loadTracker.registerLoad()
-                        setEntityMeshAsync(entityId: entityId, filename: filename, withExtension: withExtension, assetName: sceneDataEntity.assetName) { success in
-                            applyDeserializedLocalTransform(entityId: entityId, entityData: sceneDataEntity)
-                            applyDeserializedRenderProperties(entityId: entityId, entityData: sceneDataEntity)
-                            if success {
-                                Logger.log(message: "✅ Mesh loaded for \(meshLabel)")
+                        pendingMeshLoads.append { loadDone in
+                            setEntityMeshAsync(entityId: entityId, filename: filename, withExtension: withExtension, assetName: sceneDataEntity.assetName) { success in
+                                applyDeserializedLocalTransform(entityId: entityId, entityData: sceneDataEntity)
+                                applyDeserializedRenderProperties(entityId: entityId, entityData: sceneDataEntity)
+                                if success {
+                                    Logger.log(message: "✅ Mesh loaded for \(meshLabel)")
 
-                                applyDeserializedMaterialData(entityId: entityId, entityData: sceneDataEntity)
+                                    applyDeserializedMaterialData(entityId: entityId, entityData: sceneDataEntity)
 
-                                // Restore Static Batch Component (mesh now loaded)
-                                if sceneDataEntity.hasStaticBatchComponent == true {
-                                    setEntityStaticBatchComponent(entityId: entityId)
+                                    // Restore Static Batch Component (mesh now loaded)
+                                    if sceneDataEntity.hasStaticBatchComponent == true {
+                                        setEntityStaticBatchComponent(entityId: entityId)
+                                    }
+
+                                    // Setup animations (skeleton is now available)
+                                    if sceneDataEntity.hasAnimationComponent == true {
+                                        applyDeserializedAnimations(entityId: entityId, entityData: sceneDataEntity)
+                                    }
+                                } else {
+                                    Logger.logWarning(message: "❌ Mesh failed for \(meshLabel)")
                                 }
-
-                                // Setup animations (skeleton is now available)
-                                if sceneDataEntity.hasAnimationComponent == true {
-                                    applyDeserializedAnimations(entityId: entityId, entityData: sceneDataEntity)
-                                }
-                            } else {
-                                Logger.logWarning(message: "❌ Mesh failed for \(meshLabel)")
+                                loadTracker.completeLoad()
+                                loadDone(success)
                             }
-                            loadTracker.completeLoad()
                         }
                     }
                 }
@@ -2138,6 +2220,12 @@ public func deserializeScene(
             setParent(childId: childId, parentId: parentId)
         }
     }
+
+    // Fire the queued mesh loads now that entity creation/hierarchy setup is done and
+    // the world-mutation gate above has been released -- bounded so a scene with many
+    // entities doesn't burst dozens of setEntityMeshAsync calls at once (see
+    // BoundedAsyncLoadDispatcher).
+    BoundedAsyncLoadDispatcher(starters: pendingMeshLoads).start()
 
     // Allow completion once all registrations are known and async work is finished.
     loadTracker.finishRegistration()
