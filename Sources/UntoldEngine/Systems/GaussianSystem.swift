@@ -192,8 +192,11 @@ private struct GaussianEntityFrameMatrices {
     let effectiveCameraPosition: simd_float3
     let uniforms: Uniforms
 
-    init(worldTransform: WorldTransformComponent, cameraComponent: CameraComponent) {
-        modelMatrix = simd_mul(worldTransform.space, .identity)
+    init(worldTransform: WorldTransformComponent, gaussianComponent: GaussianComponent, cameraComponent: CameraComponent) {
+        // The splat's model matrix: the entity's world transform with the splat's own placement
+        // inside the entity composed on the right (GaussianComponent.splatToEntity). The draw
+        // pass (RenderPasses.gaussianExecution) composes the same product per eye.
+        modelMatrix = simd_mul(worldTransform.space, gaussianComponent.splatToEntity)
         // Entity transforms are never modified when the scene root moves (SceneRootTransform
         // applies its offset to the camera instead, as a "virtual camera" trick — see
         // SceneRootTransform.swift). worldTransform.space above is therefore in entity space,
@@ -314,7 +317,7 @@ public func executeGaussianFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         }
         profileTotals.include(component: gaussianComponent)
         activeSplatTotal += activeGaussianSortCount(gaussianComponent)
-        let matrices = GaussianEntityFrameMatrices(worldTransform: worldTransformComponent, cameraComponent: cameraComponent)
+        let matrices = GaussianEntityFrameMatrices(worldTransform: worldTransformComponent, gaussianComponent: gaussianComponent, cameraComponent: cameraComponent)
 
         if gaussianComponent.isChunked {
             guard let chunkPipelines, let budgetState, let chunkTable = gaussianComponent.chunkTable,
@@ -635,7 +638,7 @@ public func executeGaussianPreprocess(_ commandBuffer: MTLCommandBuffer) {
         // Same effectiveViewMatrix/effectiveCameraPosition requirement as the cull pass — see
         // GaussianEntityFrameMatrices. This is the head-centre view: the footprint and colour
         // are computed once; the draw re-projects the centre per eye.
-        let matrices = GaussianEntityFrameMatrices(worldTransform: worldTransformComponent, cameraComponent: cameraComponent)
+        let matrices = GaussianEntityFrameMatrices(worldTransform: worldTransformComponent, gaussianComponent: gaussianComponent, cameraComponent: cameraComponent)
         var gaussianUniform = matrices.uniforms
         var localNumGaussians = UInt32(splatCount)
         var viewportBytes = viewport

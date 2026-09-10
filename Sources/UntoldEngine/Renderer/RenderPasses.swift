@@ -4807,7 +4807,9 @@ public enum RenderPasses {
                     // this frame's preprocess wrote, read by the indirect draw.
                     activeSplatTotal += min(Int(gaussianComponent.visibleSplatCountForRendering), Int(gaussianComponent.splatCount))
 
-                    let modelMatrix = simd_mul(worldTransformComponent.space, .identity)
+                    // The same product the cull and preprocess used (GaussianEntityFrameMatrices):
+                    // the entity's world transform with the splat's placement inside it.
+                    let modelMatrix = simd_mul(worldTransformComponent.space, gaussianComponent.splatToEntity)
                     constants[entityIndex] = GaussianEntityDrawConstants(
                         projectionMatrix: renderInfo.perspectiveSpace,
                         modelViewMatrix: simd_mul(effectiveViewMatrix, modelMatrix)

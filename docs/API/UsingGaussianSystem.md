@@ -227,8 +227,8 @@ application-side system built on these pieces (see the proposal's §4.5).
   left out of the shell and stop drawing with the colour.
 - **`GaussianAssetLinkComponent`** carries a `.untold` scene's `gaussianAsset` record
   (`UntoldGaussianAssetRecordV1`: payload path resolved next to the scene file, flags such as
-  `meshTwin`, occluder margin, exposure offset, swap distance) onto the entity as data.
-  `setEntityMesh`/`setEntityMeshAsync` attach it; nothing is loaded.
+  `meshTwin`, occluder margin, exposure offset, swap distance, alignment) onto the entity as
+  data. `setEntityMesh`/`setEntityMeshAsync` attach it; nothing is loaded.
 - A mesh carrying a `MeshOccluderComponent` or `MeshFadeComponent` is excluded from static
   batching when the batcher next evaluates it, and re-admitted once they are gone. The system
   that adds or removes them tells the batcher with
@@ -240,7 +240,7 @@ application-side system built on these pieces (see the proposal's §4.5).
 author a link after the export: `UntoldAssetPatcher` (Sources/UntoldEngine/AssetFormat) rewrites
 just the gaussianAsset table. `settingGaussianAsset(_:onEntity:in:)` takes the file's bytes and a
 `GaussianAssetLink` (payload path relative to the `.untold` file's directory, flags, LOD table,
-occluder shrink, exposure offset, swap distance) and returns the patched bytes with every other
+occluder shrink, exposure offset, swap distance, alignment) and returns the patched bytes with every other
 chunk copied unchanged, the path appended to the string table (or an identical string reused),
 offsets re-laid out on 16-byte alignment and the content hash recomputed;
 `removingGaussianAsset(onEntity:in:)` drops a record (and the chunk when empty);
@@ -254,6 +254,37 @@ A typical swap: load the payload with `opacityScale: 0` when the camera is near;
 `MeshOccluderComponent`; add a `MeshFadeComponent` with `direction = .fadeOut` and raise its
 `progress` and the splat's `opacityScale` together to 1 over 250 ms; then set `drawsColor =
 false` and remove the fade. Reverse the steps when the camera leaves.
+
+### Aligning a twin
+
+A capture never shares its mesh's frame: the scanner picks the origin, the up axis and the
+scale. Registering the two used to mean baking a transform at cook time
+(`UntoldGSCookOptions.transform`, recorded in the `.untoldgs` header's `splatToMesh`), and that
+is still possible — but an alignment can also be edited after the cook and saved with the
+link:
+
+- **`GaussianComponent.splatToEntity`** (`simd_float4x4`, identity by default) is where the
+  splat sits in its entity's local space. The splat is drawn with `entityWorld × splatToEntity`
+  by the cull, the preprocess, the chunk cull and the draw alike, so setting it moves, turns or
+  scales the splat exactly as moving the entity would, while the mesh the twin stands in for
+  stays put. It belongs to the entity, not the payload: tier swaps and reloads of the same
+  entity keep it. A splat-only entity's bounding box is the splat's box carried through it; a
+  twin entity keeps the mesh's box.
+- **`GaussianSplatAlignment`** (`translation`, `yawDegrees`, `scale`; `matrix` = `T · R_y · S`,
+  yaw about +Y, right-handed, uniform scale) is the authored form: the `gaussianAsset` record
+  stores it in its last five words under `UntoldGaussianAssetFlags.alignment`, the loader hands
+  it over as `GaussianAssetLinkComponent.alignment` (`RuntimeGaussianAssetLink.alignment`), and
+  whoever loads the payload applies `alignment.matrix` to `splatToEntity` — a twin policy such
+  as `GaussianTwinOptions.alignment` in UntoldGaussianTwins does this every tick, so an editor
+  can change the value live. Files written before the flag existed read as no alignment.
+- The `.untoldgs` header's `splatToMesh` stays the record of the cook transform; the
+  alignment composes on top of whatever the cook baked. A full three-axis rotation is left to
+  a later extension: captures are up-axis corrected at cook time.
+
+`UntoldAssetPatcher.GaussianAssetLink.alignment` writes it (the flag follows the optional; a
+non-finite value or a scale of zero is rejected), and `untoldengine gaussian-link` takes
+`--align-translate x,y,z`, `--align-yaw-degrees`, `--align-scale` (each defaulting to what the
+entity's link already stores) and `--clear-alignment`; `--list` prints it.
 
 ### Calibrating the capture
 

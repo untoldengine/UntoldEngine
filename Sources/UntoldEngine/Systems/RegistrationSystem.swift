@@ -687,6 +687,7 @@ private func attachGaussianAssetLinkIfPresent(entityId: EntityID, node: RuntimeA
     component.occluderShrinkMeters = link.occluderShrinkMeters
     component.exposureOffsetEV = link.exposureOffsetEV
     component.swapDistanceMeters = link.swapDistanceMeters
+    component.alignment = link.alignment
 }
 
 /// Register all renderable nodes in a .untold RuntimeAsset as OCC stub entities.
@@ -3260,7 +3261,7 @@ func removeEntityMesh(entityId: EntityID) {
         MemoryBudgetManager.shared.setAuxiliaryMeshBytes(entityId: entityId, bytes: 0)
         MemoryBudgetManager.shared.registerMesh(entityId: entityId, meshSizeBytes: gaussian.estimatedGPUBytes)
         if let box = gaussian.localBoundingBox, let localTransform = scene.get(component: LocalTransformComponent.self, for: entityId) {
-            localTransform.boundingBox = box
+            localTransform.boundingBox = gaussianEntityBoundingBox(box, splatToEntity: gaussian.splatToEntity)
         }
     }
 }
@@ -4084,7 +4085,10 @@ func buildGaussianComponentFromUntoldGS(url: URL) -> (
 private func applyGaussianLoadResult(_ result: GaussianLoadResult, to entityId: EntityID, opacityScale: Float = 1) {
     // Release a splat already on the entity first: re-assigning the component slot would
     // leave the old instance and its Metal buffers alive (see `copyGaussianComponentBuffers`).
-    if scene.get(component: GaussianComponent.self, for: entityId) != nil {
+    // Its alignment is the entity's, not the payload's, and carries over to the reload.
+    var splatToEntity = matrix_identity_float4x4
+    if let previous = scene.get(component: GaussianComponent.self, for: entityId) {
+        splatToEntity = previous.splatToEntity
         removeEntityGaussian(entityId: entityId)
     }
     registerComponent(entityId: entityId, componentType: GaussianComponent.self)
@@ -4096,6 +4100,7 @@ private func applyGaussianLoadResult(_ result: GaussianLoadResult, to entityId: 
 
     copyGaussianLoadResult(result, to: gaussianComponent)
     gaussianComponent.opacityScale = max(0, opacityScale)
+    gaussianComponent.splatToEntity = splatToEntity
 
     if entityHasMesh(entityId) {
         MemoryBudgetManager.shared.setAuxiliaryMeshBytes(entityId: entityId, bytes: result.estimatedGPUBytes)
@@ -4105,8 +4110,33 @@ private func applyGaussianLoadResult(_ result: GaussianLoadResult, to entityId: 
     MemoryBudgetManager.shared.registerMesh(entityId: entityId, meshSizeBytes: result.estimatedGPUBytes)
 
     if let localTransform = scene.get(component: LocalTransformComponent.self, for: entityId) {
-        localTransform.boundingBox = result.boundingBox
+        localTransform.boundingBox = gaussianEntityBoundingBox(result.boundingBox, splatToEntity: gaussianComponent.splatToEntity)
     }
+}
+
+/// The splat's own box carried into the entity's local space through `splatToEntity`: the box
+/// of its eight transformed corners. What the entity's bounding box becomes when the splat is
+/// the entity's only representation.
+func gaussianEntityBoundingBox(
+    _ box: (min: simd_float3, max: simd_float3),
+    splatToEntity: simd_float4x4
+) -> (min: simd_float3, max: simd_float3) {
+    if splatToEntity == matrix_identity_float4x4 {
+        return box
+    }
+    var result = (min: simd_float3(repeating: .greatestFiniteMagnitude), max: simd_float3(repeating: -.greatestFiniteMagnitude))
+    for corner in 0 ..< 8 {
+        let local = simd_float3(
+            corner & 1 == 0 ? box.min.x : box.max.x,
+            corner & 2 == 0 ? box.min.y : box.max.y,
+            corner & 4 == 0 ? box.min.z : box.max.z
+        )
+        let transformed = simd_mul(splatToEntity, simd_float4(local, 1))
+        let point = simd_float3(transformed.x, transformed.y, transformed.z)
+        result.min = simd_min(result.min, point)
+        result.max = simd_max(result.max, point)
+    }
+    return result
 }
 
 /// Whether the entity draws a mesh (a `RenderComponent` with geometry) — the splat on such an

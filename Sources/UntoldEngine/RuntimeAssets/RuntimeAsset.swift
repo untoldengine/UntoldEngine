@@ -417,6 +417,9 @@ public struct RuntimeGaussianAssetLink: Sendable, Equatable {
     public var occluderShrinkMeters: Float
     public var exposureOffsetEV: Float
     public var swapDistanceMeters: Float
+    /// How the splat sits in the entity's local space (`GaussianComponent.splatToEntity`); nil
+    /// when the record carries none, which is identity.
+    public var alignment: GaussianSplatAlignment?
 
     public init(
         payloadURL: URL,
@@ -426,7 +429,8 @@ public struct RuntimeGaussianAssetLink: Sendable, Equatable {
         lodSwitchScreenHeights: [Float] = [],
         occluderShrinkMeters: Float = 0.02,
         exposureOffsetEV: Float = 0,
-        swapDistanceMeters: Float = 0
+        swapDistanceMeters: Float = 0,
+        alignment: GaussianSplatAlignment? = nil
     ) {
         self.payloadURL = payloadURL
         self.flags = flags
@@ -436,6 +440,7 @@ public struct RuntimeGaussianAssetLink: Sendable, Equatable {
         self.occluderShrinkMeters = occluderShrinkMeters
         self.exposureOffsetEV = exposureOffsetEV
         self.swapDistanceMeters = swapDistanceMeters
+        self.alignment = alignment
     }
 }
 
