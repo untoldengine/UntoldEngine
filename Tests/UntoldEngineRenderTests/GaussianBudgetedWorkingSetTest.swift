@@ -16,7 +16,9 @@
 //  plus harmonics and chunk table, the shared set its budget rather than the resident total
 //  (re-published after a ledger clear), and a large synthetic asset (two million splats when
 //  UNTOLD_PERF_GAUSSIAN_CHUNK_CULL=1, else 300,000) loads and renders under a budget below its
-//  request.
+//  request. The suite runs with GaussianDebugOptions.disableScreenWeightedQuotas on — its
+//  assertions are the uniform rule's — except where noted; the budget-step and reservation
+//  sequences are replayed once with the weighted quotas, asserting only that every frame fits.
 //
 // Copyright (C) Untold Engine Studios
 //
@@ -125,31 +127,6 @@ final class GaussianBudgetedWorkingSetTest: BaseRenderSetup {
         runGaussianCullAndPreprocess()
     }
 
-    /// The published budget state of the slot the manual frames run in.
-    private func budgetState() throws -> GaussianBudgetState {
-        let slot = min(renderInfo.currentInFlightFrameSlot, maxInFlightCommandBuffers - 1)
-        return try XCTUnwrap(GaussianSharedWorkingSet.shared.budgetReadback(slot: slot)).contents().load(as: GaussianBudgetState.self)
-    }
-
-    private func sharedVisibleSet() -> GaussianVisibleSet {
-        let slot = min(renderInfo.currentInFlightFrameSlot, maxInFlightCommandBuffers - 1)
-        return GaussianSharedWorkingSet.shared.visibleSet(slot: slot)!.contents().load(as: GaussianVisibleSet.self)
-    }
-
-    /// The frame that just ran dropped nothing: no overflow, and the set holds no more than its
-    /// capacity and no more than the quotas plus the whole-buffer reservation granted.
-    private func assertFrameFits(file: StaticString = #filePath, line: UInt = #line) throws {
-        let set = sharedVisibleSet()
-        let state = try budgetState()
-        XCTAssertEqual(set.overflowCount, 0, "no splat was dropped by arrival order", file: file, line: line)
-        XCTAssertLessThanOrEqual(Int(set.visibleCount), GaussianSharedWorkingSet.shared.capacity, file: file, line: line)
-        XCTAssertLessThanOrEqual(Int(set.visibleCount), Int(state.quotaSplats) + Int(state.reservedSplats), "the appends never exceed the grant", file: file, line: line)
-        XCTAssertLessThanOrEqual(Int(state.quotaSplats) + Int(state.reservedSplats), Int(state.budget), "the grant fits the capacity", file: file, line: line)
-        if state.scale < 1 {
-            XCTAssertLessThanOrEqual(Int(state.quotaSplats) + Int(state.reservedSplats), max(Int(Float(state.budget) * gaussianBudgetHeadroom), Int(state.reservedSplats)), "a truncated frame leaves the headroom", file: file, line: line)
-        }
-    }
-
     /// The asset indices of the records the chunked `entity` compacted this frame.
     private func chunkedIndices(_ fixture: ChunkedFixture) -> [UInt32] {
         let slot = min(renderInfo.currentInFlightFrameSlot, maxInFlightCommandBuffers - 1)
@@ -158,29 +135,6 @@ final class GaussianBudgetedWorkingSetTest: BaseRenderSetup {
             return []
         }
         return fixture.resolver.indices(of: sharedGaussianRecords().filter { Int($0.entityIndex) == entityIndex })
-    }
-
-    private func visibleChunkEntries(_ table: GaussianChunkTable) -> (record: GaussianVisibleSet, entries: [GaussianVisibleChunk]) {
-        let slot = min(renderInfo.currentInFlightFrameSlot, table.visibleChunkSets.count - 1)
-        let record = table.visibleChunkSets[slot].contents().load(as: GaussianVisibleSet.self)
-        let count = Int(record.threadgroupCount)
-        let entries = Array(UnsafeBufferPointer(start: table.visibleChunks[slot].contents().bindMemory(to: GaussianVisibleChunk.self, capacity: count), count: count))
-        return (record, entries)
-    }
-
-    /// Runs the frame's cull and sort as the renderer does, and returns the sorted keys' depth
-    /// words (the low word is the append slot, which no two frames need share).
-    private func sortedDepthWords() -> [UInt32] {
-        guard let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() else {
-            XCTFail("Expected to allocate a command buffer")
-            return []
-        }
-        executeGaussianFrustumCulling(commandBuffer)
-        executeGaussianPreprocess(commandBuffer)
-        executeRadixSort(commandBuffer)
-        commandBuffer.commit()
-        commandBuffer.waitUntilCompleted()
-        return sharedGaussianSortedKeys().map { UInt32(truncatingIfNeeded: $0 >> 32) }
     }
 
     // MARK: - (b) The budget: quotas, first ranks, determinism, no overflow
@@ -502,6 +456,124 @@ final class GaussianBudgetedWorkingSetTest: BaseRenderSetup {
         destroyEntity(entityId: cameraEntity)
     }
 
+    // MARK: - The same sequences under the weighted quotas
+
+    /// The budget-step sequence and the reservation sequence again with the screen-weighted
+    /// quotas (the switch off): the per-chunk quotas differ, but every frame still fits — no
+    /// overflow, the grant within the capacity and, when truncated, within the headroom — and
+    /// the reservation still comes first.
+    func testTheBudgetSequencesFitUnderTheWeightedQuotasToo() throws {
+        GaussianDebugOptions.shared.disableScreenWeightedQuotas = false
+        try replayBudgetStepSequence()
+        destroyAllEntities()
+        GaussianSharedWorkingSet.shared.resetBudgetHysteresis()
+        try replayReservationSequence()
+    }
+
+    /// The frames of testBudgetStepFallsAtOnceAndClimbsBackOverSeveralFrames, asserting only
+    /// the fit and what the two rules share.
+    private func replayBudgetStepSequence() throws {
+        let fixture = try loadFixture()
+        placeGaussianTestCamera(eye: farCamera.eye, target: farCamera.target)
+        let splatCount = Int(fixture.component.splatCount)
+        runFrame()
+        try assertFrameFits()
+        XCTAssertEqual(Int(sharedVisibleSet().visibleCount), splatCount)
+
+        GaussianRuntimeLimits.workingSetSplatsOverride = splatCount / 4
+        for _ in 0 ..< 4 {
+            runFrame()
+            try assertFrameFits()
+            XCTAssertEqual(GaussianSharedWorkingSet.shared.capacity, splatCount / 4)
+            XCTAssertLessThan(try budgetState().targetScale, 1)
+        }
+        GaussianRuntimeLimits.workingSetSplatsOverride = nil
+        var previousQuota = 0
+        var frames = 0
+        for _ in 0 ..< 60 {
+            runFrame()
+            try assertFrameFits()
+            let state = try budgetState()
+            XCTAssertGreaterThanOrEqual(Int(state.quotaSplats), previousQuota, "the grant never falls while the budget lifts")
+            previousQuota = Int(state.quotaSplats)
+            frames += 1
+            if state.densityCap.isInfinite { break }
+        }
+        XCTAssertLessThanOrEqual(frames, 20, "the climb to whole takes at most twenty frames")
+        XCTAssertEqual(Int(sharedVisibleSet().visibleCount), splatCount)
+
+        GaussianSharedWorkingSet.shared.resetBudgetHysteresis()
+        placeGaussianTestCamera(eye: cornerCamera.eye, target: cornerCamera.target)
+        runFrame()
+        let sparseRequest = try Int(budgetState().requestedSplats)
+        let fixedBudget = Int(ceil(Float(sparseRequest) / gaussianBudgetHeadroom)) + 1
+        GaussianRuntimeLimits.workingSetSplatsOverride = fixedBudget
+        runFrame()
+        try assertFrameFits()
+        XCTAssertTrue(try budgetState().densityCap.isInfinite, "the sparse view fits the budget")
+        placeGaussianTestCamera(eye: farCamera.eye, target: farCamera.target)
+        runFrame()
+        try assertFrameFits()
+        XCTAssertLessThan(try budgetState().targetScale, 1, "the dense view is truncated")
+        XCTAssertFalse(try budgetState().densityCap.isInfinite, "and the cap falls at once")
+
+        GaussianDebugOptions.shared.disableWorkingSetBudget = true
+        runFrame()
+        XCTAssertTrue(try budgetState().densityCap.isInfinite)
+        XCTAssertEqual(Int(sharedVisibleSet().visibleCount), splatCount)
+        GaussianDebugOptions.shared.disableWorkingSetBudget = false
+        GaussianRuntimeLimits.workingSetSplatsOverride = nil
+    }
+
+    /// The frames of testWholeBufferEntitiesAreReservedBeforeTheChunkedOnesAreFitted, asserting
+    /// the fit and the reservation.
+    private func replayReservationSequence() throws {
+        let fixture = try loadFixture()
+        placeGaussianTestCamera(eye: farCamera.eye, target: farCamera.target)
+        let splatCount = Int(fixture.component.splatCount)
+        let ply = createEntity()
+        setEntityGaussian(entityId: ply, filename: "test_gaussians", withExtension: "ply")
+        let plyComponent = try XCTUnwrap(scene.get(component: GaussianComponent.self, for: ply))
+        translateTo(entityId: ply, position: simd_float3(0.5, 0, 0))
+        runFrame()
+        try assertFrameFits()
+        let plySlot = min(renderInfo.currentInFlightFrameSlot, plyComponent.gaussianVisibleCount.count - 1)
+        let plyVisible = try Int(XCTUnwrap(plyComponent.gaussianVisibleCount[plySlot]).contents().load(as: GaussianVisibleSet.self).visibleCount)
+        XCTAssertEqual(try Int(budgetState().reservedSplats), plyVisible)
+        XCTAssertEqual(Int(sharedVisibleSet().visibleCount), 2 * splatCount)
+
+        // Three frames per budget; a budget above the .ply that follows one below it runs on
+        // until the chunked entity has a quota again — the cap climbs from zero by the step, as
+        // the scale does, so the entity fades back in over a few frames rather than popping.
+        for budget in [splatCount + splatCount / 4, splatCount / 2, splatCount + splatCount / 2, splatCount / 4] {
+            GaussianRuntimeLimits.workingSetSplatsOverride = budget
+            var previousQuota = 0
+            var previousCap: Float = 0
+            for frame in 0 ..< 20 {
+                runFrame()
+                try assertFrameFits()
+                let state = try budgetState()
+                XCTAssertEqual(Int(state.reservedSplats), plyVisible, "the .ply is reserved first")
+                XCTAssertGreaterThanOrEqual(Int(sharedVisibleSet().visibleCount), plyVisible, "the .ply always fits")
+                if budget <= splatCount {
+                    XCTAssertEqual(state.quotaSplats, 0, "nothing is left for the chunked entity below the .ply")
+                    XCTAssertEqual(state.densityCap, 0)
+                    if frame >= 2 { break }
+                } else {
+                    XCTAssertGreaterThanOrEqual(Int(state.quotaSplats), previousQuota, "budget \(budget) frame \(frame): the grant never falls while the budget holds")
+                    XCTAssertGreaterThanOrEqual(state.densityCap, previousCap, "budget \(budget) frame \(frame): the cap climbs")
+                    previousQuota = Int(state.quotaSplats)
+                    previousCap = state.densityCap
+                    if frame >= 2, state.quotaSplats > 0 { break }
+                }
+            }
+            if budget > splatCount {
+                XCTAssertGreaterThan(previousQuota, 0, "budget \(budget): the chunked entity gets part of what the .ply leaves within the climb's frames")
+            }
+        }
+        GaussianRuntimeLimits.workingSetSplatsOverride = nil
+    }
+
     // MARK: - A capacity change forgets the stale slots
 
     /// The other in-flight slots' records and visible sets were written for the old buffers; a
@@ -739,12 +811,16 @@ final class GaussianBudgetedWorkingSetTest: BaseRenderSetup {
     /// A large synthetic slab — two million splats, above the old mobile cap, when
     /// UNTOLD_PERF_GAUSSIAN_CHUNK_CULL=1 (a bake of ten seconds or more, shared with the
     /// benchmark), else 300,000 — loads as 16 bytes per splat of packed records (no encoded
-    /// buffer, no index buffers) and renders under a budget below its request with no overflow,
-    /// the set sized to the budget rather than to the asset and the quota sum within the
-    /// headroom exactly. A partial view then records how much of the budget the per-chunk
-    /// quotas fill when chunks straddle the frustum (informational: the quotas are by splat
-    /// count, so a chunk half in view is granted for its whole count).
+    /// buffer, no index buffers) and renders, with the weighted quotas, under a budget below its
+    /// request with no overflow, the set sized to the budget rather than to the asset and the
+    /// quota sum within the headroom exactly. A partial view then checks how much of the grant
+    /// the quotas fill when chunks straddle the frustum — the clipped area charges an edge chunk
+    /// for its on-screen part only, so what the per-splat test still drops is the off-screen
+    /// share of its kept ranks (the importance order is not spatial) — and that the weighted
+    /// quotas put at least as many splats into the set as the uniform rule does, and at least
+    /// the share of the request the view keeps unlimited.
     func testLargeSyntheticAssetLoadsAndRendersUnderTheBudget() throws {
+        GaussianDebugOptions.shared.disableScreenWeightedQuotas = false
         let full = ProcessInfo.processInfo.environment["UNTOLD_PERF_GAUSSIAN_CHUNK_CULL"] == "1"
         let splatCount = full ? 2_000_000 : 300_000
         let budget = full ? 1_000_000 : 100_000
@@ -777,6 +853,11 @@ final class GaussianBudgetedWorkingSetTest: BaseRenderSetup {
         XCTAssertGreaterThan(Int(state.requestedSplats), budget, "sanity — the view asks for more than the budget")
         XCTAssertLessThan(state.scale, 1)
         XCTAssertEqual(state.scale, state.targetScale, "settled: a fall is taken at once")
+        let density = try densityReadback()
+        XCTAssertEqual(state.densityCap, density.targetDensity, "the cap too")
+        XCTAssertFalse(state.densityCap.isInfinite)
+        XCTAssertEqual(Int(density.grant), Int(gaussianBudgetHeadroom * Float(budget)), "the grant is the room")
+        XCTAssertGreaterThanOrEqual(Int(state.quotaSplats), Int(0.9 * Double(density.grant)) - Int(density.visibleChunks), "the weighted quotas fill the grant to within the straddling tier and a splat per chunk")
         XCTAssertLessThanOrEqual(Int(set.visibleCount), budget)
         XCTAssertGreaterThan(Int(set.visibleCount), budget / 2, "the budget is used")
         XCTAssertEqual(set.overflowCount, 0)
@@ -815,8 +896,25 @@ final class GaussianBudgetedWorkingSetTest: BaseRenderSetup {
         XCTAssertLessThanOrEqual(Int(partialSet.visibleCount), Int(partialState.quotaSplats))
         XCTAssertLessThanOrEqual(Int(partialState.quotaSplats), Int(Float(quarter) * gaussianBudgetHeadroom))
         XCTAssertGreaterThan(Int(partialSet.visibleCount), 0)
+        let partialDensity = try densityReadback()
+        XCTAssertGreaterThanOrEqual(Int(partialState.quotaSplats), Int(0.9 * Double(partialDensity.grant)) - Int(partialDensity.visibleChunks), "the quotas fill the grant")
+        let quotaFill = Double(partialState.quotaSplats) / Double(max(1, partialDensity.grant))
         let fill = Double(partialSet.visibleCount) / Double(quarter)
-        print(String(format: "[GaussianBudgetedWorkingSetTest] %d splats, partial view sees %.1f %% by chunk box: request %u, budget %d, quota %u, compacted %u — fill %.1f %% of the budget",
-                     splatCount, view.fraction * 100, partialState.requestedSplats, quarter, partialState.quotaSplats, partialSet.visibleCount, fill * 100))
+        XCTAssertGreaterThanOrEqual(fill, Double(unlimitedVisible) / Double(partialRequest), "the weighted quotas reach the set at least as well as the view's unlimited share of its request")
+
+        // The same frame under the uniform rule: the weighting spends the grant on the chunks
+        // that are on screen, so more of it survives the per-splat test.
+        GaussianDebugOptions.shared.disableScreenWeightedQuotas = true
+        GaussianSharedWorkingSet.shared.resetBudgetHysteresis()
+        _ = renderGaussianSplatLayer()
+        _ = renderGaussianSplatLayer()
+        let uniformSet = sharedVisibleSet()
+        let uniformState = try budgetState()
+        GaussianDebugOptions.shared.disableScreenWeightedQuotas = false
+        XCTAssertEqual(uniformSet.overflowCount, 0)
+        XCTAssertLessThanOrEqual(Int(uniformState.quotaSplats), Int(Float(quarter) * gaussianBudgetHeadroom))
+        XCTAssertGreaterThanOrEqual(partialSet.visibleCount, uniformSet.visibleCount, "the weighted quotas put at least as many splats into the set as the uniform rule")
+        print(String(format: "[GaussianBudgetedWorkingSetTest] %d splats, partial view sees %.1f %% by chunk box: request %u, budget %d, grant %u, quota %u (fill %.1f %% of the grant), compacted %u — fill %.1f %% of the budget (uniform rule: quota %u, compacted %u, fill %.1f %%), density=%.4g over %u chunks",
+                     splatCount, view.fraction * 100, partialState.requestedSplats, quarter, partialDensity.grant, partialState.quotaSplats, quotaFill * 100, partialSet.visibleCount, fill * 100, uniformState.quotaSplats, uniformSet.visibleCount, Double(uniformSet.visibleCount) / Double(quarter) * 100, Double(partialState.densityCap), partialDensity.visibleChunks))
     }
 }

@@ -32,6 +32,7 @@ final class GaussianChunkCullTest: BaseRenderSetup {
     private var temporaryFiles: [URL] = []
     private var savedDisableHZBOcclusionCull = false
     private var savedDisableChunkCull = false
+    private var savedDisableScreenWeightedQuotas = false
     private var savedWorkingSetOverride: Int?
     /// The legacy twin of the last chunked load, and the CPU decode of its positions.
     private var legacyTwin: GaussianLegacyTwin?
@@ -56,9 +57,12 @@ final class GaussianChunkCullTest: BaseRenderSetup {
         try await super.setUp()
         savedDisableHZBOcclusionCull = GaussianDebugOptions.shared.disableHZBOcclusionCull
         savedDisableChunkCull = GaussianDebugOptions.shared.disableChunkCull
+        savedDisableScreenWeightedQuotas = GaussianDebugOptions.shared.disableScreenWeightedQuotas
         savedWorkingSetOverride = GaussianRuntimeLimits.workingSetSplatsOverride
         // Budget unlimited for this suite: the default far exceeds the fixture, and the scale a
-        // previous test left behind must not linger through the hysteresis.
+        // previous test left behind must not linger through the hysteresis. The quotas weighted:
+        // the screen-area assertions are the weighted mode's (uniform mode writes the count).
+        GaussianDebugOptions.shared.disableScreenWeightedQuotas = false
         GaussianRuntimeLimits.workingSetSplatsOverride = nil
         GaussianSharedWorkingSet.shared.resetBudgetHysteresis()
     }
@@ -66,6 +70,7 @@ final class GaussianChunkCullTest: BaseRenderSetup {
     override func tearDown() async throws {
         GaussianDebugOptions.shared.disableHZBOcclusionCull = savedDisableHZBOcclusionCull
         GaussianDebugOptions.shared.disableChunkCull = savedDisableChunkCull
+        GaussianDebugOptions.shared.disableScreenWeightedQuotas = savedDisableScreenWeightedQuotas
         GaussianRuntimeLimits.workingSetSplatsOverride = savedWorkingSetOverride
         legacyTwin = nil
         indexResolver = nil
@@ -132,28 +137,9 @@ final class GaussianChunkCullTest: BaseRenderSetup {
         }
     }
 
-    private func runSynchronously(_ encode: (MTLCommandBuffer) -> Void) {
-        guard let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() else {
-            XCTFail("Expected to allocate a command buffer")
-            return
-        }
-        encode(commandBuffer)
-        commandBuffer.commit()
-        commandBuffer.waitUntilCompleted()
-        XCTAssertEqual(commandBuffer.status, .completed)
-    }
-
     private func frameSlot(for component: GaussianComponent) -> Int {
         let slots = component.chunkTable?.visibleChunkSets.count ?? component.gaussianVisibleCount.count
         return min(renderInfo.currentInFlightFrameSlot, max(0, slots - 1))
-    }
-
-    /// The visible-chunk list and record of the current slot, as the GPU left them.
-    private func visibleChunkReadback(_ table: GaussianChunkTable, slot: Int) -> (chunks: Set<UInt32>, record: GaussianVisibleSet, entries: [GaussianVisibleChunk]) {
-        let record = table.visibleChunkSets[slot].contents().load(as: GaussianVisibleSet.self)
-        let count = Int(record.threadgroupCount)
-        let entries = Array(UnsafeBufferPointer(start: table.visibleChunks[slot].contents().bindMemory(to: GaussianVisibleChunk.self, capacity: count), count: count))
-        return (Set(entries.map(\.chunkIndex)), record, entries)
     }
 
     private func visibleSplatIndices(_ component: GaussianComponent, slot: Int) throws -> [UInt32] {
@@ -197,39 +183,6 @@ final class GaussianChunkCullTest: BaseRenderSetup {
         renderInfo.reverseZEnabled ? 0.0 : 1.0
     }
 
-    /// A one-row depth texture whose texels span the screen from left to right, one mip level:
-    /// with clamp_to_edge and nearest sampling every UV reads the texel of its horizontal band,
-    /// so one texel stands in for a full-frame occluder (as GaussianRenderingTest's
-    /// makeHZBTestTexture does for the whole-buffer kernel) and two for a half-covered frame.
-    private func makeHZBTestTexture(depths: [Float]) throws -> MTLTexture {
-        let descriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .r32Float, width: depths.count, height: 1, mipmapped: false)
-        descriptor.usage = [.shaderRead]
-        descriptor.storageMode = .shared
-        let texture = try XCTUnwrap(renderInfo.device.makeTexture(descriptor: descriptor))
-        depths.withUnsafeBytes { bytes in
-            texture.replace(region: MTLRegionMake2D(0, 0, depths.count, 1), mipmapLevel: 0, withBytes: bytes.baseAddress!, bytesPerRow: depths.count * MemoryLayout<Float>.stride)
-        }
-        return texture
-    }
-
-    /// Runs `body` with `depths` installed as the frame's HZB pyramid (one mip, so the chunk
-    /// test samples level 0 like the per-splat test) and `hzbIsValid` set to `valid`, then
-    /// restores the real pyramid.
-    private func withInjectedHZB<T>(depths: [Float], valid: Bool, _ body: () throws -> T) throws -> T {
-        let savedTexture = textureResources.hzbDepthPyramid
-        let savedValid = renderInfo.hzbIsValid
-        let savedMipCount = renderInfo.hzbMipCount
-        defer {
-            textureResources.hzbDepthPyramid = savedTexture
-            renderInfo.hzbIsValid = savedValid
-            renderInfo.hzbMipCount = savedMipCount
-        }
-        textureResources.hzbDepthPyramid = try makeHZBTestTexture(depths: depths)
-        renderInfo.hzbIsValid = valid
-        renderInfo.hzbMipCount = 1
-        return try body()
-    }
-
     /// A chunk table with one chunk of 16 splats over `aabbMin...aabbMax`, its log-scale range
     /// topping out at `logScaleMax`, with the per-slot visible-chunk buffers allocated.
     private func makeOneChunkTable(aabbMin: simd_float3, aabbMax: simd_float3, logScaleMax: Float) throws -> GaussianChunkTable {
@@ -254,29 +207,6 @@ final class GaussianChunkCullTest: BaseRenderSetup {
         let index = UntoldGSIndex(header: header, chunks: [entry], nodes: [])
         let table = GaussianChunkTable(constantsBuffer: buffer, chunkCount: 1, splatsPerChunk: 16, index: index)
         return try XCTUnwrap(allocateGaussianVisibleChunkBuffers(for: table))
-    }
-
-    /// Encodes one chunk cull of `table` into slot 0 with `constants` and returns the record.
-    private func cullChunks(_ table: GaussianChunkTable, constants: GaussianChunkCullConstants) throws -> (chunks: Set<UInt32>, record: GaussianVisibleSet, entries: [GaussianVisibleChunk]) {
-        let pipelines = try XCTUnwrap(GaussianChunkCullPipelineStates.current())
-        let budgetState = try budgetStateBuffer()
-        let densityHistogram = try XCTUnwrap(GaussianSharedWorkingSet.shared.densityHistogram)
-        runSynchronously { commandBuffer in
-            guard let encoder = commandBuffer.makeComputeCommandEncoder() else { return }
-            _ = encodeGaussianChunkCull(
-                encoder,
-                pipelines: pipelines,
-                chunkTable: table,
-                visibleChunks: table.visibleChunks[0],
-                chunkSet: table.visibleChunkSets[0],
-                budgetState: budgetState,
-                densityHistogram: densityHistogram,
-                constants: constants,
-                hzbTexture: textureResources.hzbDepthPyramid ?? textureResources.depthMap
-            )
-            encoder.endEncoding()
-        }
-        return visibleChunkReadback(table, slot: 0)
     }
 
     /// The chunk cull and the fused pass by hand with `constants` — the view-projections, view
@@ -334,37 +264,9 @@ final class GaussianChunkCullTest: BaseRenderSetup {
         return try XCTUnwrap(indexResolver).indices(of: sharedGaussianRecords())
     }
 
-    /// The view-projection of a camera at `eye` looking at `target` for `entity`, from a
-    /// temporary camera entity so the active camera does not move.
-    private func viewProjection(entity: EntityID, eye: simd_float3, target: simd_float3) throws -> simd_float4x4 {
-        let world = try XCTUnwrap(scene.get(component: WorldTransformComponent.self, for: entity))
-        let cameraEntity = createEntity()
-        defer { destroyEntity(entityId: cameraEntity) }
-        _ = scene.assign(to: cameraEntity, component: CameraComponent.self)
-        cameraLookAt(entityId: cameraEntity, eye: eye, target: target, up: simd_float3(0, 1, 0))
-        let view = try XCTUnwrap(scene.get(component: CameraComponent.self, for: cameraEntity)).viewSpace
-        return simd_mul(renderInfo.perspectiveSpace, simd_mul(view, world.space))
-    }
-
     /// `cameras[0]` turned around: the asset behind it.
     private func lookingAwayViewProjection(entity: EntityID) throws -> simd_float4x4 {
         try viewProjection(entity: entity, eye: cameras[0].eye, target: cameras[0].eye * 2)
-    }
-
-    /// The frame's cull constants for `entity` with the two eye matrices replaced.
-    private func stereoConstants(table: GaussianChunkTable, entity: EntityID, eye0: simd_float4x4, eye1: simd_float4x4, hzbValid: Bool = false) throws -> GaussianChunkCullConstants {
-        let world = try XCTUnwrap(scene.get(component: WorldTransformComponent.self, for: entity))
-        var constants = gaussianChunkCullConstants(chunkTable: table, modelMatrix: world.space, viewMatrix: matrix_identity_float4x4, hzbValid: hzbValid, forceAllVisible: false, uniformQuotas: false)
-        constants.viewProjection0 = eye0
-        constants.viewProjection1 = eye1
-        constants.viewCount = 2
-        return constants
-    }
-
-    /// The frame's persistent budget state, allocated with the shared set.
-    private func budgetStateBuffer() throws -> MTLBuffer {
-        XCTAssertTrue(GaussianSharedWorkingSet.shared.ensureCapacity(1, device: renderInfo.device))
-        return try XCTUnwrap(GaussianSharedWorkingSet.shared.budgetState)
     }
 
     /// A unit box just past the guard band on the right of a camera looking down −z: outside
@@ -412,6 +314,7 @@ final class GaussianChunkCullTest: BaseRenderSetup {
             XCTAssertEqual(record.visibleCount, UInt32(component.splatCount))
             let entries = UnsafeBufferPointer(start: table.visibleChunks[slot].contents().bindMemory(to: GaussianVisibleChunk.self, capacity: expectedChunkCount), count: expectedChunkCount)
             XCTAssertTrue(entries.allSatisfy { $0.quota == $0.splatCount }, "every chunk starts with its whole count as quota")
+            XCTAssertTrue(entries.allSatisfy { $0.screenArea == Float($0.splatCount) }, "and its count as screen area: density 1, the uniform rule, until the first cull")
         }
         // The table's first splats tile the buffer.
         let constants = UnsafeBufferPointer(start: table.constantsBuffer.contents().bindMemory(to: GaussianChunkDecodeConstants.self, capacity: table.chunkCount), count: table.chunkCount)
@@ -472,6 +375,18 @@ final class GaussianChunkCullTest: BaseRenderSetup {
             XCTAssertEqual(culled.record.instanceCount, expectedSplatTotal, "camera \(cameraIndex): the record keeps the visible chunks' splat total as the request")
             XCTAssertEqual(culled.record.visibleCount, expectedSplatTotal, "camera \(cameraIndex): with the budget unlimited every chunk is granted its whole count")
             XCTAssertTrue(culled.entries.allSatisfy { $0.quota == $0.splatCount }, "camera \(cameraIndex): unlimited budget, whole quotas")
+            // The clipped screen area of every entry is the CPU mirror's (mono, HZB off).
+            let chunkConstants = UnsafeBufferPointer(start: table.constantsBuffer.contents().bindMemory(to: GaussianChunkDecodeConstants.self, capacity: table.chunkCount), count: table.chunkCount)
+            let frameConstants = gaussianChunkCullConstants(chunkTable: table, modelMatrix: matrix_identity_float4x4, viewMatrix: matrix_identity_float4x4, hzbValid: false, forceAllVisible: false, uniformQuotas: false)
+            var mirrorConstants = frameConstants
+            mirrorConstants.viewProjection0 = viewProjection
+            mirrorConstants.viewProjection1 = viewProjection
+            mirrorConstants.viewCount = 1
+            for entry in culled.entries {
+                XCTAssertGreaterThan(entry.screenArea, 0, "camera \(cameraIndex) chunk \(entry.chunkIndex): a kept chunk has a screen area")
+                let expectedArea = GaussianChunkCullMath.chunkScreenArea(chunk: chunkConstants[Int(entry.chunkIndex)], constants: mirrorConstants)
+                XCTAssertEqual(entry.screenArea, expectedArea, accuracy: max(1e-5 * expectedArea, 1e-6), "camera \(cameraIndex) chunk \(entry.chunkIndex): the screen area is the CPU mirror's")
+            }
             XCTAssertLessThanOrEqual(UInt32(chunkedSurvivors.count), culled.record.visibleCount)
             XCTAssertEqual(Set(chunkedSurvivors).count, chunkedSurvivors.count, "camera \(cameraIndex): each splat appears once")
 
@@ -1175,6 +1090,8 @@ final class GaussianChunkCullTest: BaseRenderSetup {
         XCTAssertEqual(constants.chunkCount, UInt32(expectedChunkCount))
         XCTAssertEqual(constants.clipGuardBand, gaussianCullClipGuardBand)
         XCTAssertEqual(constants.hzbOcclusionBias, gaussianCullHZBOcclusionBias)
+        XCTAssertEqual(constants.uniformQuotas, 0, "the weighted quotas are the default")
+        XCTAssertEqual(gaussianChunkCullConstants(chunkTable: table, modelMatrix: world.space, viewMatrix: matrix_identity_float4x4, hzbValid: false, uniformQuotas: true).uniformQuotas, 1)
         XCTAssertEqual(MemoryLayout<GaussianChunkCullConstants>.stride, 176)
         XCTAssertEqual(MemoryLayout<GaussianVisibleChunk>.stride, 16)
         XCTAssertEqual(MemoryLayout<GaussianBudgetState>.stride, 32)
