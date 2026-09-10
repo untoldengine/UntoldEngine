@@ -33,8 +33,13 @@ public enum UntoldAssetPatcher {
     public struct GaussianAssetLink: Sendable, Equatable {
         /// Path of the `.untoldgs` payload, relative to the `.untold` file's directory.
         public var payloadPath: String
-        /// See `UntoldGaussianAssetFlags`.
-        public var flags: UInt32
+        /// See `UntoldGaussianAssetFlags`. The alignment bit is never held here — it follows
+        /// `alignment` — so a value that carries it, copied from a decoded record say, is
+        /// stored without it.
+        public var flags: UInt32 {
+            didSet { flags &= ~UntoldGaussianAssetFlags.alignment }
+        }
+
         /// Valid entries in `lodSplatCounts` / `lodSwitchScreenHeights`, 0...4. Zero means one level.
         public var lodCount: Int
         /// Splat count per LOD level, coarsest first. `lodCount` entries; the initializer pads a
@@ -105,7 +110,7 @@ public enum UntoldAssetPatcher {
             UntoldGaussianAssetRecordV1(
                 entityId: entityId,
                 payloadPathOffset: payloadPathOffset,
-                flags: flags,
+                flags: flags & ~UntoldGaussianAssetFlags.alignment,
                 lodCount: UInt32(clamping: lodCount),
                 lodSplatCounts: lodSplatCounts,
                 lodSwitchScreenHeights: lodSwitchScreenHeights,

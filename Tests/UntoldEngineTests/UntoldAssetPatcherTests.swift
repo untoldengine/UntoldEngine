@@ -216,6 +216,23 @@ final class UntoldAssetPatcherTests: XCTestCase {
         let flagOnly = UntoldAssetPatcher.GaussianAssetLink(payloadPath: "chair.untoldgs", flags: UntoldGaussianAssetFlags.meshTwin | UntoldGaussianAssetFlags.alignment)
         XCTAssertEqual(flagOnly.flags, UntoldGaussianAssetFlags.meshTwin)
         XCTAssertNil(flagOnly.record(entityId: 0, payloadPathOffset: 0).alignment)
+
+        // Nor is one set on `flags` after the fact, or copied from an aligned record: the link
+        // still validates, writes a record without the bit and reads back with no alignment
+        // instead of failing the read-back with a zero scale.
+        var mutated = plain
+        mutated.flags |= UntoldGaussianAssetFlags.alignment
+        XCTAssertEqual(mutated.flags, UntoldGaussianAssetFlags.meshTwin, "the bit is dropped as it is set")
+        XCTAssertEqual(mutated, plain)
+        var copiedFlags = plain
+        copiedFlags.flags = record.flags
+        XCTAssertEqual(copiedFlags.flags, UntoldGaussianAssetFlags.meshTwin)
+        XCTAssertNoThrow(try copiedFlags.validate())
+        XCTAssertEqual(copiedFlags.record(entityId: 0, payloadPathOffset: 0).flags, UntoldGaussianAssetFlags.meshTwin)
+        XCTAssertNil(copiedFlags.record(entityId: 0, payloadPathOffset: 0).alignment)
+        let written = try UntoldAssetPatcher.settingGaussianAsset(copiedFlags, onEntity: 0, in: data)
+        XCTAssertEqual(try UntoldAssetPatcher.gaussianAssets(in: written), [0: plain])
+        XCTAssertNil(try UntoldReader().readAsset(from: written).gaussianAssets.first?.alignment)
     }
 
     func testRecordOfAnInvalidLinkDoesNotTrap() {
