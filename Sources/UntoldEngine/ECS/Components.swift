@@ -162,6 +162,12 @@ public class GaussianComponent: Component {
     /// entry and the entity keeps the mesh's bounding box; this box is the splat's own.
     public internal(set) var estimatedGPUBytes = 0
     public internal(set) var localBoundingBox: (min: simd_float3, max: simd_float3)?
+    /// Where the splat sits in the entity's local space: the splat is drawn with
+    /// `worldTransform × splatToEntity`, so moving, turning or scaling this is the same as
+    /// moving the entity, without touching the mesh a twin stands in for. Identity by default;
+    /// `GaussianSplatAlignment.matrix` builds it from a scene link's alignment. Survives tier
+    /// swaps and reloads of the same entity.
+    public var splatToEntity: simd_float4x4 = matrix_identity_float4x4
 
     public required init() {}
 }
@@ -227,6 +233,9 @@ public class GaussianAssetLinkComponent: Component {
     public var exposureOffsetEV: Float = 0
     /// Camera distance at which a twin swap arms; 0 means always.
     public var swapDistanceMeters: Float = 0
+    /// How the splat sits in the entity's local space, to be applied as
+    /// `GaussianComponent.splatToEntity` by whoever loads the payload; nil means identity.
+    public var alignment: GaussianSplatAlignment?
 
     public var isMeshTwin: Bool {
         flags & UntoldGaussianAssetFlags.meshTwin != 0

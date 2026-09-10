@@ -14,6 +14,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import Foundation
+import simd
 
 extension GeometryStreamingSystem {
     /// Dispatches the async load for a streamed Gaussian-splat entity and installs the
@@ -211,7 +212,8 @@ extension GeometryStreamingSystem {
                 if !lod.hasExplicitBoundingBox,
                    let local = scene.get(component: LocalTransformComponent.self, for: entityId)
                 {
-                    local.boundingBox = built.boundingBox
+                    let splatToEntity = scene.get(component: GaussianComponent.self, for: entityId)?.splatToEntity ?? matrix_identity_float4x4
+                    local.boundingBox = gaussianEntityBoundingBox(built.boundingBox, splatToEntity: splatToEntity)
                 }
 
                 // Reuse the entity's existing GaussianComponent if it already has one — scene.assign

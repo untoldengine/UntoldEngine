@@ -174,7 +174,8 @@ public struct NativeFormatLoader: NamedRuntimeAssetLoading {
                 lodSwitchScreenHeights: Array(record.lodSwitchScreenHeights.prefix(Int(record.lodCount))),
                 occluderShrinkMeters: record.occluderShrinkMeters,
                 exposureOffsetEV: record.exposureOffsetEV,
-                swapDistanceMeters: record.swapDistanceMeters
+                swapDistanceMeters: record.swapDistanceMeters,
+                alignment: record.alignment
             )
         }
         return links

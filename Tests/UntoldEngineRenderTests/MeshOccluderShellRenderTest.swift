@@ -243,6 +243,7 @@ final class MeshOccluderShellRenderTest: BaseRenderSetup {
         XCTAssertEqual(link.occluderShrinkMeters, 0.03)
         XCTAssertEqual(link.exposureOffsetEV, 0.5)
         XCTAssertEqual(link.swapDistanceMeters, 12)
+        XCTAssertEqual(link.alignment, GaussianSplatAlignment(translation: SIMD3<Float>(0, 0.02, 0), yawDegrees: 90, scale: 1.02), "The record's alignment arrives on the link")
         XCTAssertEqual(link.lodCount, 1)
         XCTAssertEqual(link.lodSplatCounts.count, 1)
         XCTAssertEqual(link.lodSwitchScreenHeights.count, 1)
@@ -398,7 +399,8 @@ final class MeshOccluderShellRenderTest: BaseRenderSetup {
             lodCount: 1,
             occluderShrinkMeters: 0.03,
             exposureOffsetEV: 0.5,
-            swapDistanceMeters: 12
+            swapDistanceMeters: 12,
+            alignment: GaussianSplatAlignment(translation: SIMD3<Float>(0, 0.02, 0), yawDegrees: 90, scale: 1.02)
         )
 
         var header = UntoldFileHeaderV1(
