@@ -188,6 +188,36 @@ final class UntoldAssetPatcherTests: XCTestCase {
         XCTAssertThrowsError(try long.validate())
     }
 
+    func testAlignmentRoundTripsThroughTheRecordAndTheFile() throws {
+        let alignment = GaussianSplatAlignment(translation: SIMD3<Float>(0.1, 0, -0.3), yawDegrees: 90, scale: 1.02)
+        let aligned = UntoldAssetPatcher.GaussianAssetLink(payloadPath: "chair.untoldgs", lodCount: 1, lodSplatCounts: [300], alignment: alignment)
+        XCTAssertNoThrow(try aligned.validate())
+        XCTAssertEqual(aligned.flags, UntoldGaussianAssetFlags.meshTwin, "the alignment flag is derived, not kept in flags")
+
+        let record = aligned.record(entityId: 0, payloadPathOffset: 0)
+        XCTAssertEqual(record.flags, UntoldGaussianAssetFlags.meshTwin | UntoldGaussianAssetFlags.alignment)
+        XCTAssertEqual(record.alignment, alignment)
+        XCTAssertEqual(UntoldAssetPatcher.GaussianAssetLink(record: record, payloadPath: "chair.untoldgs"), aligned)
+
+        let fixture = makeFixture()
+        let data = try UntoldAssetPatcher.settingGaussianAsset(aligned, onEntity: 0, in: fixture.fileData)
+        XCTAssertEqual(try UntoldAssetPatcher.gaussianAssets(in: data), [0: aligned])
+        XCTAssertEqual(try UntoldReader().readAsset(from: data).gaussianAssets.first?.alignment, alignment)
+
+        // Setting the link again without an alignment clears the flag and the words.
+        let plain = UntoldAssetPatcher.GaussianAssetLink(payloadPath: "chair.untoldgs", lodCount: 1, lodSplatCounts: [300])
+        let cleared = try UntoldAssetPatcher.settingGaussianAsset(plain, onEntity: 0, in: data)
+        XCTAssertEqual(try UntoldAssetPatcher.gaussianAssets(in: cleared), [0: plain])
+        let clearedRecord = try XCTUnwrap(UntoldReader().readAsset(from: cleared).gaussianAssets.first)
+        XCTAssertEqual(clearedRecord.flags, UntoldGaussianAssetFlags.meshTwin)
+        XCTAssertEqual(clearedRecord.alignmentScale, 0)
+
+        // A flags value carrying the bit without an alignment is not written as one.
+        let flagOnly = UntoldAssetPatcher.GaussianAssetLink(payloadPath: "chair.untoldgs", flags: UntoldGaussianAssetFlags.meshTwin | UntoldGaussianAssetFlags.alignment)
+        XCTAssertEqual(flagOnly.flags, UntoldGaussianAssetFlags.meshTwin)
+        XCTAssertNil(flagOnly.record(entityId: 0, payloadPathOffset: 0).alignment)
+    }
+
     func testRecordOfAnInvalidLinkDoesNotTrap() {
         let negative = UntoldAssetPatcher.GaussianAssetLink(payloadPath: "a.untoldgs", lodCount: -1)
         XCTAssertEqual(negative.lodSplatCounts, [])
@@ -330,6 +360,10 @@ final class UntoldAssetPatcherTests: XCTestCase {
         links.append(.init(payloadPath: "chair.untoldgs", exposureOffsetEV: .nan))
         links.append(.init(payloadPath: "chair.untoldgs", swapDistanceMeters: -1))
         links.append(.init(payloadPath: "chair.untoldgs", swapDistanceMeters: .infinity))
+        links.append(.init(payloadPath: "chair.untoldgs", alignment: GaussianSplatAlignment(scale: 0)))
+        links.append(.init(payloadPath: "chair.untoldgs", alignment: GaussianSplatAlignment(scale: -1)))
+        links.append(.init(payloadPath: "chair.untoldgs", alignment: GaussianSplatAlignment(yawDegrees: .nan)))
+        links.append(.init(payloadPath: "chair.untoldgs", alignment: GaussianSplatAlignment(translation: SIMD3<Float>(0, 0, .infinity))))
 
         for link in links {
             XCTAssertThrowsError(try UntoldAssetPatcher.settingGaussianAsset(link, onEntity: 0, in: fixture.fileData), "\(link)") { error in
@@ -347,7 +381,8 @@ final class UntoldAssetPatcherTests: XCTestCase {
             lodSwitchScreenHeights: [1, 2, 3, 4],
             occluderShrinkMeters: 0,
             exposureOffsetEV: -4,
-            swapDistanceMeters: 0
+            swapDistanceMeters: 0,
+            alignment: GaussianSplatAlignment(translation: SIMD3<Float>(-100, 0, 100), yawDegrees: 720, scale: 0.001)
         )
         XCTAssertNoThrow(try UntoldAssetPatcher.settingGaussianAsset(edge, onEntity: 0, in: fixture.fileData))
     }

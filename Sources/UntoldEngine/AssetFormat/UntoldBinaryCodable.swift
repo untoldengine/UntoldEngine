@@ -866,7 +866,8 @@ extension UntoldPBRStaticVertexV1: UntoldBinaryEncodable, UntoldBinaryDecodable 
 }
 
 extension UntoldGaussianAssetRecordV1: UntoldBinaryEncodable, UntoldBinaryDecodable {
-    /// Serialized size in bytes: 4 words, 4 + 4 LOD entries, 3 floats, 5 reserved words.
+    /// Serialized size in bytes: 4 words, 4 + 4 LOD entries, 3 floats, 5 alignment floats
+    /// (translation, yaw, scale — the former reserved words).
     public static let encodedSize = 80
 
     public func encode(to writer: UntoldBinaryWriter) {
@@ -883,9 +884,11 @@ extension UntoldGaussianAssetRecordV1: UntoldBinaryEncodable, UntoldBinaryDecoda
         writer.writeFloat32LE(occluderShrinkMeters)
         writer.writeFloat32LE(exposureOffsetEV)
         writer.writeFloat32LE(swapDistanceMeters)
-        for index in 0 ..< Self.reservedWordCount {
-            writer.writeUInt32LE(reserved0[index])
-        }
+        writer.writeFloat32LE(alignmentTranslation.x)
+        writer.writeFloat32LE(alignmentTranslation.y)
+        writer.writeFloat32LE(alignmentTranslation.z)
+        writer.writeFloat32LE(alignmentYawDegrees)
+        writer.writeFloat32LE(alignmentScale)
     }
 
     public static func decode(from reader: UntoldBinaryReader) throws -> UntoldGaussianAssetRecordV1 {
@@ -904,11 +907,14 @@ extension UntoldGaussianAssetRecordV1: UntoldBinaryEncodable, UntoldBinaryDecoda
         let occluderShrinkMeters = try reader.readFloat32LE()
         let exposureOffsetEV = try reader.readFloat32LE()
         let swapDistanceMeters = try reader.readFloat32LE()
-        var reserved0: [UInt32] = []
-        for _ in 0 ..< reservedWordCount {
-            try reserved0.append(reader.readUInt32LE())
-        }
-        return UntoldGaussianAssetRecordV1(
+        let translationX = try reader.readFloat32LE()
+        let translationY = try reader.readFloat32LE()
+        let translationZ = try reader.readFloat32LE()
+        let yawDegrees = try reader.readFloat32LE()
+        let scale = try reader.readFloat32LE()
+        // The alignment words are read as stored, flag or not: a record round-trips byte for
+        // byte, and `alignment` reports nil while the flag is clear.
+        var record = UntoldGaussianAssetRecordV1(
             entityId: entityId,
             payloadPathOffset: payloadPathOffset,
             flags: flags,
@@ -917,9 +923,12 @@ extension UntoldGaussianAssetRecordV1: UntoldBinaryEncodable, UntoldBinaryDecoda
             lodSwitchScreenHeights: lodSwitchScreenHeights,
             occluderShrinkMeters: occluderShrinkMeters,
             exposureOffsetEV: exposureOffsetEV,
-            swapDistanceMeters: swapDistanceMeters,
-            reserved0: reserved0
+            swapDistanceMeters: swapDistanceMeters
         )
+        record.alignmentTranslation = SIMD3<Float>(translationX, translationY, translationZ)
+        record.alignmentYawDegrees = yawDegrees
+        record.alignmentScale = scale
+        return record
     }
 }
 

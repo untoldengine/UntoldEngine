@@ -703,6 +703,51 @@ public enum UntoldGaussianAssetFlags {
     public static let environment: UInt32 = 1 << 1
     /// The payload is a world seen through a window from a fixed view cell.
     public static let windowWorld: UInt32 = 1 << 2
+    /// The record's `alignmentTranslation`, `alignmentYawDegrees` and `alignmentScale` are
+    /// valid: the splat is drawn with that transform composed onto the entity's. Clear (the
+    /// words are zero) in files written before the alignment existed, which means identity.
+    public static let alignment: UInt32 = 1 << 3
+}
+
+/// How a splat sits in its entity's local space without a re-cook: `matrix` is
+/// `T(translation) · R_y(yawDegrees) · S(scale)`, applied to the splat positions before the
+/// entity's world transform (`GaussianComponent.splatToEntity`). Yaw turns about the entity's
+/// +Y axis (right-handed, like `rotateTo(entityId:angle:axis:)`); the scale is uniform. Stored
+/// in the scene's `gaussianAsset` record (`UntoldGaussianAssetRecordV1`, flag
+/// `UntoldGaussianAssetFlags.alignment`), so the cook transform baked into the `.untoldgs`
+/// header (`splatToMesh`) stays what it is and this is an edit on top of it.
+public struct GaussianSplatAlignment: Sendable, Equatable, Codable {
+    public static let identity = GaussianSplatAlignment()
+
+    /// Offset in the entity's local space, metres.
+    public var translation: SIMD3<Float>
+    /// Rotation about the entity's +Y axis, degrees.
+    public var yawDegrees: Float
+    /// Uniform scale; must be greater than zero.
+    public var scale: Float
+
+    public init(translation: SIMD3<Float> = .zero, yawDegrees: Float = 0, scale: Float = 1) {
+        self.translation = translation
+        self.yawDegrees = yawDegrees
+        self.scale = scale
+    }
+
+    /// `T · R_y · S` as the splat-to-entity matrix.
+    public var matrix: simd_float4x4 {
+        let radians = yawDegrees * .pi / 180
+        var result = simd_float4x4(simd_quatf(angle: radians, axis: SIMD3<Float>(0, 1, 0)))
+        result.columns.0 *= scale
+        result.columns.1 *= scale
+        result.columns.2 *= scale
+        result.columns.3 = SIMD4<Float>(translation.x, translation.y, translation.z, 1)
+        return result
+    }
+
+    /// Every field finite and the scale positive: what `UntoldReader` and the patcher accept.
+    public var isValid: Bool {
+        translation.x.isFinite && translation.y.isFinite && translation.z.isFinite
+            && yawDegrees.isFinite && scale.isFinite && scale > 0
+    }
 }
 
 /// Links an entity to a cooked Gaussian splat payload (`.untoldgs`, see
@@ -712,7 +757,6 @@ public enum UntoldGaussianAssetFlags {
 /// header; this record holds what the scene author tunes.
 public struct UntoldGaussianAssetRecordV1: Sendable, Equatable {
     public static let maxLODLevels = 4
-    public static let reservedWordCount = 5
 
     public var entityId: UInt32
     /// String-table offset of the payload path, relative to this asset's directory.
@@ -731,9 +775,17 @@ public struct UntoldGaussianAssetRecordV1: Sendable, Equatable {
     public var exposureOffsetEV: Float
     /// Camera distance at which the swap and its prefetch arm. Zero means always.
     public var swapDistanceMeters: Float
-    /// Always 5 words. Write as zero.
-    public var reserved0: [UInt32]
+    /// Offset of the splat in the entity's local space, metres. Valid only with
+    /// `UntoldGaussianAssetFlags.alignment`; written as zero otherwise (these three fields were
+    /// the record's reserved words, so a file written before them reads as no alignment).
+    public var alignmentTranslation: SIMD3<Float>
+    /// Rotation of the splat about the entity's +Y axis, degrees. Valid with the `alignment` flag.
+    public var alignmentYawDegrees: Float
+    /// Uniform scale of the splat, greater than zero. Valid with the `alignment` flag.
+    public var alignmentScale: Float
 
+    /// `alignment` non-nil sets `UntoldGaussianAssetFlags.alignment` in `flags` and fills the
+    /// alignment fields; nil leaves `flags` as given and the fields zero.
     public init(
         entityId: UInt32,
         payloadPathOffset: UInt32,
@@ -744,18 +796,43 @@ public struct UntoldGaussianAssetRecordV1: Sendable, Equatable {
         occluderShrinkMeters: Float = 0.02,
         exposureOffsetEV: Float = 0,
         swapDistanceMeters: Float = 0,
-        reserved0: [UInt32] = []
+        alignment: GaussianSplatAlignment? = nil
     ) {
         self.entityId = entityId
         self.payloadPathOffset = payloadPathOffset
-        self.flags = flags
+        self.flags = alignment == nil ? flags : flags | UntoldGaussianAssetFlags.alignment
         self.lodCount = lodCount
         self.lodSplatCounts = Self.fixed(lodSplatCounts, count: Self.maxLODLevels, fill: 0)
         self.lodSwitchScreenHeights = Self.fixed(lodSwitchScreenHeights, count: Self.maxLODLevels, fill: 0)
         self.occluderShrinkMeters = occluderShrinkMeters
         self.exposureOffsetEV = exposureOffsetEV
         self.swapDistanceMeters = swapDistanceMeters
-        self.reserved0 = Self.fixed(reserved0, count: Self.reservedWordCount, fill: 0)
+        alignmentTranslation = alignment?.translation ?? .zero
+        alignmentYawDegrees = alignment?.yawDegrees ?? 0
+        alignmentScale = alignment?.scale ?? 0
+    }
+
+    /// The alignment the record carries: the three fields when `flags` has
+    /// `UntoldGaussianAssetFlags.alignment`, nil otherwise. Setting it sets or clears the flag
+    /// and, when cleared, zeroes the fields.
+    public var alignment: GaussianSplatAlignment? {
+        get {
+            guard flags & UntoldGaussianAssetFlags.alignment != 0 else { return nil }
+            return GaussianSplatAlignment(translation: alignmentTranslation, yawDegrees: alignmentYawDegrees, scale: alignmentScale)
+        }
+        set {
+            if let newValue {
+                flags |= UntoldGaussianAssetFlags.alignment
+                alignmentTranslation = newValue.translation
+                alignmentYawDegrees = newValue.yawDegrees
+                alignmentScale = newValue.scale
+            } else {
+                flags &= ~UntoldGaussianAssetFlags.alignment
+                alignmentTranslation = .zero
+                alignmentYawDegrees = 0
+                alignmentScale = 0
+            }
+        }
     }
 
     private static func fixed<T>(_ values: [T], count: Int, fill: T) -> [T] {
