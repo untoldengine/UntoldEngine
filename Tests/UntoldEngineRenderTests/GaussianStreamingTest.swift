@@ -461,6 +461,43 @@ final class GaussianStreamingTest: BaseRenderSetup {
         XCTAssertGreaterThan(gaussian?.splatCount ?? 0, 0, "❌ Reloaded splat count should be nonzero")
     }
 
+    /// The entity's alignment outlives a residency cycle: `unloadGaussian` drops the
+    /// `GaussianComponent`, and the component the reload builds carries the `splatToEntity`
+    /// the evicted one had, with the entity's box carried through it.
+    func testAReloadAfterEvictionKeepsSplatToEntity() async throws {
+        let entity = makeUnloadedGaussianEntity(distance: 0.0, streamingRadius: 10.0, unloadRadius: 20.0)
+        let alignment = GaussianSplatAlignment(translation: SIMD3<Float>(1, 0, 0), yawDegrees: 30, scale: 1.5)
+
+        GeometryStreamingSystem.shared.update(cameraPosition: .zero, deltaTime: 0.1)
+        await scene.get(component: StreamingComponent.self, for: entity)?.loadTask?.value
+        XCTAssertEqual(scene.get(component: StreamingComponent.self, for: entity)?.state, .loaded, "Pre-condition: first load should succeed")
+        let loaded = try XCTUnwrap(scene.get(component: GaussianComponent.self, for: entity))
+        let splatBox = try XCTUnwrap(loaded.localBoundingBox)
+        setGaussianSplatToEntity(entityId: entity, alignment.matrix)
+        XCTAssertNil(scene.get(component: StreamingComponent.self, for: entity)?.retainedSplatToEntity, "nothing stashed while the splat is resident")
+
+        visibleEntityIds = []
+        for _ in 0 ..< 3 {
+            GeometryStreamingSystem.shared.update(cameraPosition: simd_float3(1000, 0, 0), deltaTime: 0.1)
+        }
+        XCTAssertEqual(scene.get(component: StreamingComponent.self, for: entity)?.state, .unloaded, "Pre-condition: entity should unload when far")
+        XCTAssertNil(scene.get(component: GaussianComponent.self, for: entity), "Pre-condition: GaussianComponent should be removed on unload")
+        XCTAssertEqual(scene.get(component: StreamingComponent.self, for: entity)?.retainedSplatToEntity, alignment.matrix, "the eviction stashed the alignment")
+
+        GeometryStreamingSystem.shared.update(cameraPosition: .zero, deltaTime: 0.1)
+        await scene.get(component: StreamingComponent.self, for: entity)?.loadTask?.value
+        XCTAssertEqual(scene.get(component: StreamingComponent.self, for: entity)?.state, .loaded, "Entity should reload after camera re-enters streaming radius")
+
+        let reloaded = try XCTUnwrap(scene.get(component: GaussianComponent.self, for: entity))
+        XCTAssertTrue(reloaded !== loaded, "the reload builds a fresh component")
+        XCTAssertEqual(reloaded.splatToEntity, alignment.matrix, "…that keeps the alignment the evicted one had")
+        XCTAssertNil(scene.get(component: StreamingComponent.self, for: entity)?.retainedSplatToEntity, "the stash is spent on the reload")
+        let entityBox = try XCTUnwrap(scene.get(component: LocalTransformComponent.self, for: entity)).boundingBox
+        let expected = gaussianEntityBoundingBox(splatBox, splatToEntity: alignment.matrix)
+        XCTAssertEqual(entityBox.min, expected.min, "the entity box is the splat's carried through the alignment")
+        XCTAssertEqual(entityBox.max, expected.max)
+    }
+
     // MARK: - Tile ownership / tile unload interaction
 
     /// Regression test: `GeometryStreamingSystem.unloadTile` tears down every scenegraph

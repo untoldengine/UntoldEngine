@@ -4085,11 +4085,17 @@ func buildGaussianComponentFromUntoldGS(url: URL) -> (
 private func applyGaussianLoadResult(_ result: GaussianLoadResult, to entityId: EntityID, opacityScale: Float = 1) {
     // Release a splat already on the entity first: re-assigning the component slot would
     // leave the old instance and its Metal buffers alive (see `copyGaussianComponentBuffers`).
-    // Its alignment is the entity's, not the payload's, and carries over to the reload.
+    // Its alignment is the entity's, not the payload's, and carries over to the reload — from
+    // the resident component, or from the stash a streaming eviction left behind.
     var splatToEntity = matrix_identity_float4x4
     if let previous = scene.get(component: GaussianComponent.self, for: entityId) {
         splatToEntity = previous.splatToEntity
         removeEntityGaussian(entityId: entityId)
+    } else if let streaming = scene.get(component: StreamingComponent.self, for: entityId),
+              let retained = streaming.retainedSplatToEntity
+    {
+        splatToEntity = retained
+        streaming.retainedSplatToEntity = nil
     }
     registerComponent(entityId: entityId, componentType: GaussianComponent.self)
 
@@ -4112,6 +4118,28 @@ private func applyGaussianLoadResult(_ result: GaussianLoadResult, to entityId: 
     if let localTransform = scene.get(component: LocalTransformComponent.self, for: entityId) {
         localTransform.boundingBox = gaussianEntityBoundingBox(result.boundingBox, splatToEntity: gaussianComponent.splatToEntity)
     }
+}
+
+/// Places the entity's splat inside the entity: `GaussianComponent.splatToEntity` becomes
+/// `splatToEntity` (`GaussianSplatAlignment.matrix` for a scene link's alignment; identity puts
+/// the splat back where the payload has it). When the splat is the entity's only representation
+/// its bounding box is carried through the new value as well, so the LOD selection and the
+/// bounds tools see the splat where it is drawn; a twin entity keeps its mesh's box, and a
+/// progressive entity whose box the caller supplied keeps that one. Cheap to call every tick
+/// with the same value: an unchanged matrix does nothing. Nothing happens on an entity
+/// without a splat.
+public func setGaussianSplatToEntity(entityId: EntityID, _ splatToEntity: simd_float4x4) {
+    guard let gaussian = scene.get(component: GaussianComponent.self, for: entityId),
+          gaussian.splatToEntity != splatToEntity
+    else { return }
+    gaussian.splatToEntity = splatToEntity
+
+    guard !entityHasMesh(entityId),
+          let box = gaussian.localBoundingBox,
+          let localTransform = scene.get(component: LocalTransformComponent.self, for: entityId),
+          scene.get(component: GaussianLODComponent.self, for: entityId)?.hasExplicitBoundingBox != true
+    else { return }
+    localTransform.boundingBox = gaussianEntityBoundingBox(box, splatToEntity: splatToEntity)
 }
 
 /// The splat's own box carried into the entity's local space through `splatToEntity`: the box

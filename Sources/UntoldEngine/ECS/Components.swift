@@ -165,9 +165,11 @@ public class GaussianComponent: Component {
     /// Where the splat sits in the entity's local space: the splat is drawn with
     /// `worldTransform × splatToEntity`, so moving, turning or scaling this is the same as
     /// moving the entity, without touching the mesh a twin stands in for. Identity by default;
-    /// `GaussianSplatAlignment.matrix` builds it from a scene link's alignment. Survives tier
-    /// swaps and reloads of the same entity.
-    public var splatToEntity: simd_float4x4 = matrix_identity_float4x4
+    /// `GaussianSplatAlignment.matrix` builds it from a scene link's alignment. Set through
+    /// `setGaussianSplatToEntity(entityId:_:)`, which also carries a splat-only entity's
+    /// bounding box through the new value. Survives tier swaps, reloads of the same entity and
+    /// a streaming eviction (`StreamingComponent` keeps it while the splat is out).
+    public internal(set) var splatToEntity: simd_float4x4 = matrix_identity_float4x4
 
     public required init() {}
 }
@@ -1084,6 +1086,12 @@ public class StreamingComponent: Component {
 
     /// Task handle for cancellation
     var loadTask: Task<Void, Never>?
+
+    /// A streamed splat's `GaussianComponent.splatToEntity` while it is evicted: stashed by
+    /// `unloadGaussian` before the component goes and put back on the component the reload
+    /// builds, so the entity's alignment outlives the residency cycle like it does a reload of
+    /// a resident entity. Nil until a splat with one has been evicted.
+    var retainedSplatToEntity: simd_float4x4?
 
     public required init() {}
 

@@ -209,19 +209,27 @@ extension GeometryStreamingSystem {
                 // marks hasExplicitBoundingBox, so this never overwrites it), auto-populate one
                 // from this tier's actual splat data instead of leaving the entity on its
                 // default placeholder box forever.
+                // The entity's alignment: the resident component's, else the one a streaming
+                // eviction stashed, else identity.
+                let streaming = scene.get(component: StreamingComponent.self, for: entityId)
+                let splatToEntity = scene.get(component: GaussianComponent.self, for: entityId)?.splatToEntity
+                    ?? streaming?.retainedSplatToEntity
+                    ?? matrix_identity_float4x4
                 if !lod.hasExplicitBoundingBox,
                    let local = scene.get(component: LocalTransformComponent.self, for: entityId)
                 {
-                    let splatToEntity = scene.get(component: GaussianComponent.self, for: entityId)?.splatToEntity ?? matrix_identity_float4x4
                     local.boundingBox = gaussianEntityBoundingBox(built.boundingBox, splatToEntity: splatToEntity)
                 }
 
                 // Reuse the entity's existing GaussianComponent if it already has one — scene.assign
                 // unconditionally re-initializes the component slot, which would drop the previous
                 // instance (and every Metal buffer it retained) without releasing it.
-                if let live = scene.get(component: GaussianComponent.self, for: entityId)
-                    ?? scene.assign(to: entityId, component: GaussianComponent.self)
-                {
+                if let live = scene.get(component: GaussianComponent.self, for: entityId) {
+                    copyGaussianComponentBuffers(from: built.component, to: live)
+                    lod.currentLOD = lodIndex
+                } else if let live = scene.assign(to: entityId, component: GaussianComponent.self) {
+                    live.splatToEntity = splatToEntity
+                    streaming?.retainedSplatToEntity = nil
                     copyGaussianComponentBuffers(from: built.component, to: live)
                     lod.currentLOD = lodIndex
                 }
@@ -264,6 +272,11 @@ extension GeometryStreamingSystem {
                 lod.desiredLOD = max(0, lod.lodLevels.count - 1)
             }
 
+            // The alignment is the entity's, not the payload's: keep it for the reload, which
+            // builds a fresh component (`applyGaussianLoadResult`).
+            if let gaussian = scene.get(component: GaussianComponent.self, for: entityId) {
+                streaming.retainedSplatToEntity = gaussian.splatToEntity
+            }
             removeEntityGaussian(entityId: entityId)
 
             // removeEntityGaussian already unregisters from MemoryBudgetManager, but the call
