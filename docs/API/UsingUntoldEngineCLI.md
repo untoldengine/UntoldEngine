@@ -290,8 +290,12 @@ twin](UsingGaussianSystem.md#aligning-a-twin)): `--align-translate x,y,z` in met
 `--align-yaw-degrees` about the entity's +Y axis, `--align-scale` uniform and greater than
 zero. Each option left out keeps the value the entity's existing link stores (identity when
 there is none and at least one is given); `--clear-alignment` drops the alignment; with no
-alignment option at all the stored alignment is carried over unchanged. `--list` prints it
-after the exposure (`align (x, y, z) m, yaw d°, scale s`).
+alignment option at all the stored alignment is carried over unchanged — also when
+`--payload` names a different capture than the link had, with a warning that names the old
+payload: an alignment registers one capture to one mesh, so pass `--clear-alignment` or the
+new capture's `--align-*` values then (the other tunables go back to their option defaults
+on every re-link). `--list` prints it after the exposure (`align (x, y, z) m, yaw d°,
+scale s`).
 
 ---
 

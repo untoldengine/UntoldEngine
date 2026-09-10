@@ -281,6 +281,26 @@ final class GaussianLinkCommandTests: XCTestCase {
         let turned = try GaussianLinkCommand.setting(again, entity: 0, in: kept)
         XCTAssertEqual(try UntoldAssetPatcher.gaussianAssets(in: turned)[0]?.alignment, GaussianSplatAlignment(translation: alignment.translation, yawDegrees: -30, scale: 1.02))
 
+        // Another payload with no alignment option: the stored alignment is carried over, and
+        // the command says so; the same payload, an option or --clear-alignment say nothing.
+        let otherURL = directory.appendingPathComponent("chairB.untoldgs")
+        try makePayload(splatCount: 7).write(to: otherURL)
+        let otherStored = GaussianLinkCommand.storedPayloadPath(payloadURL: otherURL, untoldURL: untoldURL)
+        var other = try GaussianLinkCommand.makeLink(payloadURL: otherURL, storedPath: otherStored.path, swapDistance: 0, occluderShrink: 0.02, exposureOffset: 0)
+        let before = try XCTUnwrap(GaussianLinkCommand.existingLink(entity: 0, in: turned))
+        XCTAssertEqual(before.payloadPath, stored.path)
+        other.alignment = GaussianLinkCommand.mergedAlignment(existing: before.alignment, translate: nil, yawDegrees: nil, scale: nil, clear: false)
+        let carried = try GaussianLinkCommand.setting(other, entity: 0, in: turned)
+        let carriedLink = try XCTUnwrap(UntoldAssetPatcher.gaussianAssets(in: carried)[0])
+        XCTAssertEqual(carriedLink.payloadPath, "chairB.untoldgs")
+        XCTAssertEqual(carriedLink.alignment, GaussianSplatAlignment(translation: alignment.translation, yawDegrees: -30, scale: 1.02), "carried onto the new capture")
+        let warning = try XCTUnwrap(GaussianLinkCommand.carriedAlignmentWarning(from: before, to: otherStored.path, alignmentGiven: false))
+        XCTAssertTrue(warning.hasPrefix("keeping the alignment stored for chair.untoldgs on chairB.untoldgs (align (0.0, 0.02, -0.1) m, yaw -30.0°, scale 1.02)"), warning)
+        XCTAssertNil(GaussianLinkCommand.carriedAlignmentWarning(from: before, to: stored.path, alignmentGiven: false), "same payload: kept without a word")
+        XCTAssertNil(GaussianLinkCommand.carriedAlignmentWarning(from: before, to: otherStored.path, alignmentGiven: true), "an alignment option or --clear-alignment decides")
+        XCTAssertNil(GaussianLinkCommand.carriedAlignmentWarning(from: nil, to: otherStored.path, alignmentGiven: false), "no link, nothing carried")
+        XCTAssertNil(GaussianLinkCommand.carriedAlignmentWarning(from: link.with(alignment: nil), to: otherStored.path, alignmentGiven: false), "no alignment, nothing carried")
+
         // The loader hands it to the entity's link.
         try turned.write(to: untoldURL)
         let asset = try NativeFormatLoader().loadAssetSync(from: untoldURL)
@@ -420,5 +440,13 @@ final class GaussianLinkCommandTests: XCTestCase {
             writer.writeData(data)
         }
         return writer.data
+    }
+}
+
+private extension UntoldAssetPatcher.GaussianAssetLink {
+    func with(alignment: GaussianSplatAlignment?) -> Self {
+        var copy = self
+        copy.alignment = alignment
+        return copy
     }
 }

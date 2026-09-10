@@ -35,8 +35,9 @@ struct GaussianLinkCommand: ParsableCommand {
         The alignment options place the splat inside the entity without a re-cook
         (translation in metres, yaw about +Y in degrees, uniform scale; the runtime
         draws the splat with T·R·S composed onto the entity transform). Options
-        left out keep what the entity's existing link already stores;
-        --clear-alignment removes it.
+        left out keep what the entity's existing link already stores — also when
+        --payload names a different capture, with a warning, since an alignment
+        registers one capture to one mesh; --clear-alignment removes it.
 
         Examples:
           untoldengine gaussian-link --untold Chair/chair.untold --entity 0 \\
@@ -173,13 +174,17 @@ struct GaussianLinkCommand: ParsableCommand {
                 occluderShrink: occluderShrink,
                 exposureOffset: exposureOffset
             )
+            let existing = try Self.existingLink(entity: entity, in: fileData)
             link.alignment = try Self.mergedAlignment(
-                existing: Self.existingAlignment(entity: entity, in: fileData),
+                existing: existing?.alignment,
                 translate: alignTranslate.map { try Self.parseTranslation($0) },
                 yawDegrees: alignYawDegrees,
                 scale: alignScale,
                 clear: clearAlignment
             )
+            if let warning = Self.carriedAlignmentWarning(from: existing, to: stored.path, alignmentGiven: hasAlignmentOption || clearAlignment) {
+                printWarning(warning)
+            }
             if let warning = try Self.meshlessEntityWarning(entity: entity, link: link, in: fileData) {
                 printWarning(warning)
             }
@@ -284,13 +289,31 @@ struct GaussianLinkCommand: ParsableCommand {
         return SIMD3<Float>(values[0], values[1], values[2])
     }
 
-    /// The alignment the entity's link in `fileData` stores, nil without a link or alignment.
-    static func existingAlignment(entity: UInt32, in fileData: Data) throws -> GaussianSplatAlignment? {
+    /// The link the entity carries in `fileData`, nil without one.
+    static func existingLink(entity: UInt32, in fileData: Data) throws -> UntoldAssetPatcher.GaussianAssetLink? {
         do {
-            return try UntoldAssetPatcher.gaussianAssets(in: fileData)[entity]?.alignment
+            return try UntoldAssetPatcher.gaussianAssets(in: fileData)[entity]
         } catch let error as UntoldAssetPatcher.Error {
             throw GaussianLinkError.patchFailed(error.description)
         }
+    }
+
+    /// The alignment the entity's link in `fileData` stores, nil without a link or alignment.
+    static func existingAlignment(entity: UInt32, in fileData: Data) throws -> GaussianSplatAlignment? {
+        try existingLink(entity: entity, in: fileData)?.alignment
+    }
+
+    /// A warning when the stored alignment is carried over onto another capture: `existing`
+    /// has an alignment, its payload path is not `storedPath`, and no alignment option
+    /// (`alignmentGiven`: an --align-* value or --clear-alignment) says what the new payload
+    /// gets. An alignment registers one capture to one mesh, so the carried one is likely
+    /// wrong for the new file — but dropping it silently would lose a tuned value, so it is
+    /// kept and named. Nil otherwise.
+    static func carriedAlignmentWarning(from existing: UntoldAssetPatcher.GaussianAssetLink?, to storedPath: String, alignmentGiven: Bool) -> String? {
+        guard !alignmentGiven, let existing, let alignment = existing.alignment, existing.payloadPath != storedPath else {
+            return nil
+        }
+        return "keeping the alignment stored for \(existing.payloadPath) on \(storedPath) (\(describe(alignment))) — an alignment is per capture; pass --clear-alignment or the --align-* values \(storedPath) needs"
     }
 
     /// What the new link stores: nothing with `clear`; `existing` untouched when no field is
