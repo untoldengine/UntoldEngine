@@ -128,20 +128,33 @@ resident total. `GaussianRuntimeLimits.workingSetSplatsOverride` replaces the fi
 application that knows its scene (or a test); `nil` restores the default.
 
 When the chunks in view hold more splats than the budget leaves after the whole-buffer
-entities' visible counts are reserved, every visible chunk is granted a quota — the same
-fraction of its splats for every chunk, `floor(scale × count)` with
-`scale = (0.98 × budget − reserved) / requested` — and the fused pass reads only the first
-`quota` records of the chunk. The bake orders each chunk by importance (opacity × size), so a
-quota is a continuous level of detail: the splats that matter least go first. Two things keep
-the cut from popping as the camera moves:
+entities' visible counts are reserved, every visible chunk is granted a quota **weighted by
+its screen area**: the frame picks one density cap `d` — splats per unit of screen area, a
+chunk filling the view having area 1 — and grants each chunk `min(count, floor(d × area))`,
+with `d` solved on the GPU so that the quotas stay within the room the reservation leaves
+(`0.98 × budget − reserved`). A chunk sparser than the cap — near, large on screen — keeps all
+of its splats; a denser one — far, a few pixels holding thousands of splats — is cut to the
+cap, where the cut is least visible. The fused pass reads only the first `quota` records of the
+chunk, and the bake orders each chunk by importance (opacity × size), so a quota is a
+continuous level of detail: the splats that matter least go first. For example, with a budget
+of 100 and two visible chunks of 80 splats, a near one covering half the view and a far one
+covering half a percent of it, the cap lands at 3,600 splats per view: the near chunk keeps
+all 80 and the far one 18 — where the same fraction for every chunk would have kept 49 and 49.
+Two things keep the cut from popping as the camera moves:
 
-- **Hysteresis.** A fall of the scale — a smaller budget, a turn that brings a dense region
-  into view — is taken at once: the set is already at its capacity, and a scale lagging above
-  its target would grant more than the set holds and drop splats by arrival order. A rise — a
-  larger budget, a turn to a sparser view — climbs by at most max(10 % of the scale, 0.05) per
-  frame, so the chunks fade back in over several frames (about fifteen from a quarter, about
-  seventeen from 6 %) instead of flipping the visible set. A frame with no splat entity (a scene
-  unload) resets the climb, so the next scene starts at its own target.
+- **Hysteresis.** A fall of the cap — a smaller budget, a turn that brings a dense region into
+  view — is taken at once: the set is already at its capacity, and a cap lagging above its
+  target would grant more than the set holds and drop splats by arrival order. A rise — a
+  larger budget, a turn to a sparser view — climbs by at most max(10 % of the cap, 5 % of its
+  target) per frame, so the chunks fade back in over several frames (at most about twenty)
+  instead of flipping the visible set. A frame that fits is whole at once and stays whole even
+  when a denser chunk enters; a truncated frame that comes to fit climbs toward the density
+  below which all but the densest 5 % of the requested splats are whole and is whole from
+  there — the densest chunks are the smallest on screen (a sliver of a chunk just entering the
+  guard band can be denser than every other chunk by orders of magnitude), so they do not set
+  the step, and become whole with the cap. A chunked entity that got nothing (a `.ply` that
+  filled the set) fades in the same way when room appears. A frame with no splat entity (a
+  scene unload) resets the climb, so the next scene starts at its own target.
 - **The opacity band.** In a truncated chunk the last fifth of the kept ranks fade linearly
   toward zero opacity, so the splats a shrinking quota drops next are already nearly invisible.
 
@@ -150,9 +163,13 @@ the set is never smaller than its resident total, and its visible count is reser
 `.untoldgs` entities are fitted, so neither loses a splat by arrival order (a `.ply` that fills
 the budget on its own leaves the `.untoldgs` entities nothing). Read the state through
 `GaussianSharedWorkingSet.shared` (`capacity`, `lastVisibleCount`, `lastOverflowCount`,
-`lastBudgetState` — the request, the reservation, the grant, the scale and its target of the
-last completed frame) or the `[Gaussian][Preprocess]` profile line (`budget=… requested=…
-reserved=… quota=… scale=… targetScale=…`, `LogCategory.gaussian`).
+`lastBudgetState` — the request, the reservation, the grant, the density cap `densityCap`
+(`+inf` when every chunk is whole) and the uniform rule's scale and its target of the last
+completed frame; `lastDensityHistogram` — the 64 density tiers the cap was solved from, the
+target and full densities, the grant and the visible chunk count) or the
+`[Gaussian][Preprocess]` profile line (`budget=… requested=… reserved=… quota=… scale=…
+targetScale=… density=… targetDensity=… visibleChunks=… fill=…`, `LogCategory.gaussian`;
+`fill` is the quota sum over the grant).
 
 ### Cost and switches
 
@@ -164,7 +181,8 @@ reserved=… quota=… scale=… targetScale=…`, `LogCategory.gaussian`).
 | Chunk table | 48 B per chunk | — |
 
 The shared working set costs 3 × 72 B × budget once, whatever is loaded (216 MB for a million
-splats), carried by its own `MemoryBudgetManager` entry
+splats), plus about 3 KB of fixed state (the budget state and the 528-byte density histogram
+with their per-slot readbacks), carried by its own `MemoryBudgetManager` entry
 (`setGaussianWorkingSetBytes`), not by the entities. A million-splat `.untoldgs` at degree 3
 therefore keeps about 61 MB resident (16 B + 45 B per splat, plus about 70 KB of chunk table
 and visible-chunk lists at 1024 splats per chunk) where the same asset used to cost about
@@ -176,6 +194,11 @@ and visible-chunk lists at 1024 splats per chunk) where the same asset used to c
 - `GaussianDebugOptions.shared.disableWorkingSetBudget` sizes the set to the resident total and
   grants every chunk its whole count — the pre-budget behaviour, for an A/B of what the budget
   cuts and what it saves.
+- `GaussianDebugOptions.shared.disableScreenWeightedQuotas` grants every visible chunk the same
+  fraction of its splats, `floor(scale × count)` with `scale = (0.98 × budget − reserved) /
+  requested`, instead of weighting the quotas by screen area — the pre-weighting rule, byte
+  for byte, for an A/B of what the weighting moves. (With `disableChunkCull` and this off, the
+  chunks no view keeps carry the minimum screen area and are cut first on a truncated frame.)
 - A `.ply` asset, or a `.untoldgs` decoded on the CPU because the decode kernel is unavailable
   (or expanded once at load because the per-chunk kernels are), has no chunk table and keeps
   the per-splat cull over its whole encoded buffer.
