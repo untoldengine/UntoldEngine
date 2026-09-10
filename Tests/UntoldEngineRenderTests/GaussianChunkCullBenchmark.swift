@@ -7,9 +7,12 @@
 //  and the resident bytes with the per-splat cull over the whole buffer (legacy: 48-byte records,
 //  index buffers, the set sized to the asset), through the chunk path with every chunk forced
 //  visible (disableChunkCull), through the chunk path proper with the budget unlimited, and
-//  through the chunk path with the budget at a quarter of the visible count, at a camera that
-//  sees about 30 % of the asset. Skipped unless UNTOLD_PERF_GAUSSIAN_CHUNK_CULL=1: the bakes take
-//  tens of seconds and the numbers are machine-specific, so this is a tool, not a gate.
+//  through the chunk path with the budget at a quarter of the visible count — once with the
+//  screen-weighted quotas and once with the uniform rule (disableScreenWeightedQuotas), with
+//  the PSNR of each against the unlimited frame over the near (bottom) and far (top) halves of
+//  the image — at a camera that sees about 30 % of the asset. Skipped unless
+//  UNTOLD_PERF_GAUSSIAN_CHUNK_CULL=1: the bakes take tens of seconds and the numbers are
+//  machine-specific, so this is a tool, not a gate.
 //
 // Copyright (C) Untold Engine Studios
 //
@@ -27,18 +30,21 @@ import XCTest
 final class GaussianChunkCullBenchmark: BaseRenderSetup {
     private var savedDisableChunkCull = false
     private var savedDisableHZBOcclusionCull = false
+    private var savedDisableScreenWeightedQuotas = false
     private var savedWorkingSetOverride: Int?
 
     override func setUp() async throws {
         try await super.setUp()
         savedDisableChunkCull = GaussianDebugOptions.shared.disableChunkCull
         savedDisableHZBOcclusionCull = GaussianDebugOptions.shared.disableHZBOcclusionCull
+        savedDisableScreenWeightedQuotas = GaussianDebugOptions.shared.disableScreenWeightedQuotas
         savedWorkingSetOverride = GaussianRuntimeLimits.workingSetSplatsOverride
     }
 
     override func tearDown() async throws {
         GaussianDebugOptions.shared.disableChunkCull = savedDisableChunkCull
         GaussianDebugOptions.shared.disableHZBOcclusionCull = savedDisableHZBOcclusionCull
+        GaussianDebugOptions.shared.disableScreenWeightedQuotas = savedDisableScreenWeightedQuotas
         GaussianRuntimeLimits.workingSetSplatsOverride = savedWorkingSetOverride
         GaussianSharedWorkingSet.shared.resetBudgetHysteresis()
         destroyAllEntities()
@@ -123,20 +129,40 @@ final class GaussianChunkCullBenchmark: BaseRenderSetup {
         guard let last = measured.last else { return "\(label): no samples" }
         let workingSet = GaussianSharedWorkingSet.shared
         let state = workingSet.lastBudgetState
-        let line = "\(label): frame gpu \(summary(measured.map(\.gpuMs))) frames; cull-only gpu \(summary(Array(cullOnly.dropFirst(warmup)))) buffers; visible splats \(last.visibleSplats), visible chunks \(last.visibleChunks); entity \(gaussianFormatBytes(component.estimatedGPUBytes)), shared set \(gaussianFormatBytes(workingSet.residentBytes)) (capacity \(workingSet.capacity)), total \(gaussianFormatBytes(component.estimatedGPUBytes + workingSet.residentBytes)); budget \(state.budget) requested \(state.requestedSplats) quota \(state.quotaSplats) scale \(String(format: "%.3f", state.scale))"
+        let density = workingSet.lastDensityHistogram
+        let fill = density.grant == 0 ? 1 : Double(state.quotaSplats) / Double(density.grant)
+        let line = "\(label): frame gpu \(summary(measured.map(\.gpuMs))) frames; cull-only gpu \(summary(Array(cullOnly.dropFirst(warmup)))) buffers; visible splats \(last.visibleSplats), visible chunks \(last.visibleChunks); entity \(gaussianFormatBytes(component.estimatedGPUBytes)), shared set \(gaussianFormatBytes(workingSet.residentBytes)) (capacity \(workingSet.capacity)), total \(gaussianFormatBytes(component.estimatedGPUBytes + workingSet.residentBytes)); budget \(state.budget) requested \(state.requestedSplats) quota \(state.quotaSplats) scale \(String(format: "%.3f", state.scale)) density \(String(format: "%.4g", Double(state.densityCap))) fill \(String(format: "%.3f", fill)) visibleChunks \(density.visibleChunks)"
         print("[GaussianChunkCullBenchmark] \(line)")
         return line
     }
 
-    /// One configuration on one asset: add the entity, converge the budget scale, measure.
-    private func bench(_ label: String, result: GaussianLoadResult, index: UntoldGSIndex, frames: Int, warmup: Int) -> (line: String, visibleSplats: Int)? {
+    /// One configuration on one asset: add the entity, converge the budget scale, measure, and
+    /// keep one rendered splat layer for the quality comparison.
+    private func bench(_ label: String, result: GaussianLoadResult, index: UntoldGSIndex, frames: Int, warmup: Int) -> (line: String, visibleSplats: Int, image: [Float16])? {
         GaussianSharedWorkingSet.shared.resetBudgetHysteresis()
         _ = placeCameraSeeing(target: 0.30, index: index)
         guard let component = addEntity(result) else { return nil }
         defer { destroyAllEntities() }
         let samples = measure(frames: frames + warmup, component: component)
         let cullOnly = measureCullOnly(frames: frames + warmup)
-        return (report(label, samples, cullOnly: cullOnly, warmup: warmup, component: component), samples.last?.visibleSplats ?? 0)
+        let image = renderGaussianSplatLayer()
+        return (report(label, samples, cullOnly: cullOnly, warmup: warmup, component: component), samples.last?.visibleSplats ?? 0, image)
+    }
+
+    /// The two halves of a splat layer: the bottom half (the near content of the oblique view,
+    /// the camera looking down at the slab) and the top half (the far content).
+    private func halves(_ image: [Float16]) -> (near: [Float16], far: [Float16]) {
+        let texture = renderInfo.gaussianRenderPassDescriptor.colorAttachments[0].texture!
+        let rowStride = texture.width * 4
+        let split = (texture.height / 2) * rowStride
+        return (Array(image[split...]), Array(image[..<split]))
+    }
+
+    /// PSNR of `image` against `reference` over the near and far halves.
+    private func psnrByHalf(_ image: [Float16], reference: [Float16]) -> (near: Float, far: Float) {
+        let a = halves(image)
+        let b = halves(reference)
+        return (compareGaussianSplatLayers(a.near, b.near).psnr, compareGaussianSplatLayers(a.far, b.far).psnr)
     }
 
     // MARK: - Bench
@@ -189,20 +215,41 @@ final class GaussianChunkCullBenchmark: BaseRenderSetup {
             }
             GaussianDebugOptions.shared.disableChunkCull = false
             var visibleUnlimited = 0
+            var reference: [Float16] = []
             if let unlimited = bench("\(prefix) chunk cull + fused pass, budget unlimited", result: chunked, index: loaded.index, frames: frames, warmup: warmup) {
                 lines.append(unlimited.line)
                 visibleUnlimited = unlimited.visibleSplats
+                reference = unlimited.image
             }
 
-            // Budget at a quarter of what the camera sees.
+            // Budget at a quarter of what the camera sees: the screen-weighted quotas, then the
+            // uniform rule, each compared with the unlimited frame over the near and far halves.
             let quarter = max(1, visibleUnlimited / 4)
             GaussianRuntimeLimits.workingSetSplatsOverride = quarter
-            if let budgeted = bench("\(prefix) chunk cull + fused pass, budget \(quarter) (25 %% of the visible count)", result: chunked, index: loaded.index, frames: frames, warmup: warmup) {
-                lines.append(budgeted.line)
+            GaussianDebugOptions.shared.disableScreenWeightedQuotas = false
+            var weightedQuality: (near: Float, far: Float)?
+            if let weighted = bench("\(prefix) chunk cull + fused pass, budget \(quarter) (25 %% of the visible count), screen-weighted quotas", result: chunked, index: loaded.index, frames: frames, warmup: warmup) {
+                lines.append(weighted.line)
+                weightedQuality = psnrByHalf(weighted.image, reference: reference)
+            }
+            GaussianDebugOptions.shared.disableScreenWeightedQuotas = true
+            var uniformQuality: (near: Float, far: Float)?
+            if let uniform = bench("\(prefix) chunk cull + fused pass, budget \(quarter) (25 %% of the visible count), uniform quotas", result: chunked, index: loaded.index, frames: frames, warmup: warmup) {
+                lines.append(uniform.line)
+                uniformQuality = psnrByHalf(uniform.image, reference: reference)
+            }
+            GaussianDebugOptions.shared.disableScreenWeightedQuotas = false
+            if let weightedQuality, let uniformQuality {
+                print(String(format: "[GaussianChunkCullBenchmark] %@ PSNR vs unlimited at a quarter budget — near half: weighted %.2f dB, uniform %.2f dB; far half: weighted %.2f dB, uniform %.2f dB",
+                             prefix, weightedQuality.near, uniformQuality.near, weightedQuality.far, uniformQuality.far))
+                // The weighting spends the budget on the near content: its near half is never
+                // worse than the uniform rule's beyond the sort's ties. The far half is where it
+                // spends less; logged, not asserted.
+                XCTAssertGreaterThanOrEqual(weightedQuality.near, uniformQuality.near - 0.25, "the weighted quotas keep the near half at least as well as the uniform rule")
             }
             GaussianRuntimeLimits.workingSetSplatsOverride = nil
         }
 
-        XCTAssertEqual(lines.count, splatCounts.count * 4)
+        XCTAssertEqual(lines.count, splatCounts.count * 5)
     }
 }

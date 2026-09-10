@@ -4,7 +4,8 @@
 //
 //  Shared readback and comparison helpers for the Gaussian render tests: render one frame and
 //  read the splat layer, compare two layers over the pixels they cover, read the shared
-//  working set's count.
+//  working set's count, the budget state, the density histogram and an entity's visible-chunk
+//  list, assert that a frame fits its budget, drive the chunk cull by hand.
 //
 // Copyright (C) Untold Engine Studios
 //
@@ -148,6 +149,181 @@ extension BaseRenderSetup {
             if fraction > target { high = height } else { low = height }
         }
         return best
+    }
+}
+
+// MARK: - Budget readback
+
+extension BaseRenderSetup {
+    /// The in-flight slot the manual frames run in.
+    var gaussianFrameSlot: Int {
+        min(renderInfo.currentInFlightFrameSlot, maxInFlightCommandBuffers - 1)
+    }
+
+    /// The published budget state of the slot the manual frames run in.
+    func budgetState() throws -> GaussianBudgetState {
+        try XCTUnwrap(GaussianSharedWorkingSet.shared.budgetReadback(slot: gaussianFrameSlot)).contents().load(as: GaussianBudgetState.self)
+    }
+
+    /// The published density histogram of the slot the manual frames run in.
+    func densityReadback() throws -> GaussianBudgetDensityHistogram {
+        try XCTUnwrap(GaussianSharedWorkingSet.shared.densityReadback(slot: gaussianFrameSlot)).contents().load(as: GaussianBudgetDensityHistogram.self)
+    }
+
+    /// The shared working set's record for the current slot.
+    func sharedVisibleSet() -> GaussianVisibleSet {
+        GaussianSharedWorkingSet.shared.visibleSet(slot: gaussianFrameSlot)!.contents().load(as: GaussianVisibleSet.self)
+    }
+
+    /// The frame that just ran dropped nothing: no overflow, and the set holds no more than its
+    /// capacity and no more than the quotas plus the whole-buffer reservation granted, which fit
+    /// the capacity — and, on a truncated frame (the request above what the reservation leaves
+    /// of the budget, so the target scale is below 1), leave the headroom.
+    func assertFrameFits(file: StaticString = #filePath, line: UInt = #line) throws {
+        let set = sharedVisibleSet()
+        let state = try budgetState()
+        XCTAssertEqual(set.overflowCount, 0, "no splat was dropped by arrival order", file: file, line: line)
+        XCTAssertLessThanOrEqual(Int(set.visibleCount), GaussianSharedWorkingSet.shared.capacity, file: file, line: line)
+        XCTAssertLessThanOrEqual(Int(set.visibleCount), Int(state.quotaSplats) + Int(state.reservedSplats), "the appends never exceed the grant", file: file, line: line)
+        XCTAssertLessThanOrEqual(Int(state.quotaSplats) + Int(state.reservedSplats), Int(state.budget), "the grant fits the capacity", file: file, line: line)
+        if state.targetScale < 1 {
+            XCTAssertLessThanOrEqual(Int(state.quotaSplats) + Int(state.reservedSplats), max(Int(Float(state.budget) * gaussianBudgetHeadroom), Int(state.reservedSplats)), "a truncated frame leaves the headroom", file: file, line: line)
+        }
+    }
+
+    /// The visible-chunk list and record of `table` for the current slot, as the GPU left them.
+    func visibleChunkEntries(_ table: GaussianChunkTable) -> (record: GaussianVisibleSet, entries: [GaussianVisibleChunk]) {
+        let readback = visibleChunkReadback(table, slot: min(renderInfo.currentInFlightFrameSlot, table.visibleChunkSets.count - 1))
+        return (readback.record, readback.entries)
+    }
+
+    /// The visible-chunk list and record of `table` in `slot`, as the GPU left them.
+    func visibleChunkReadback(_ table: GaussianChunkTable, slot: Int) -> (chunks: Set<UInt32>, record: GaussianVisibleSet, entries: [GaussianVisibleChunk]) {
+        let record = table.visibleChunkSets[slot].contents().load(as: GaussianVisibleSet.self)
+        let count = Int(record.threadgroupCount)
+        let entries = Array(UnsafeBufferPointer(start: table.visibleChunks[slot].contents().bindMemory(to: GaussianVisibleChunk.self, capacity: count), count: count))
+        return (Set(entries.map(\.chunkIndex)), record, entries)
+    }
+
+    /// Runs the frame's cull, preprocess and sort as the renderer does, and returns the sorted
+    /// keys' depth words (the low word is the append slot, which no two frames need share).
+    func sortedDepthWords() -> [UInt32] {
+        guard let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() else {
+            XCTFail("Expected to allocate a command buffer")
+            return []
+        }
+        executeGaussianFrustumCulling(commandBuffer)
+        executeGaussianPreprocess(commandBuffer)
+        executeRadixSort(commandBuffer)
+        commandBuffer.commit()
+        commandBuffer.waitUntilCompleted()
+        return sharedGaussianSortedKeys().map { UInt32(truncatingIfNeeded: $0 >> 32) }
+    }
+}
+
+// MARK: - The chunk cull by hand
+
+extension BaseRenderSetup {
+    func runSynchronously(_ encode: (MTLCommandBuffer) -> Void) {
+        guard let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() else {
+            XCTFail("Expected to allocate a command buffer")
+            return
+        }
+        encode(commandBuffer)
+        commandBuffer.commit()
+        commandBuffer.waitUntilCompleted()
+        XCTAssertEqual(commandBuffer.status, .completed)
+    }
+
+    /// The frame's persistent budget state, allocated with the shared set.
+    func budgetStateBuffer() throws -> MTLBuffer {
+        XCTAssertTrue(GaussianSharedWorkingSet.shared.ensureCapacity(1, device: renderInfo.device))
+        return try XCTUnwrap(GaussianSharedWorkingSet.shared.budgetState)
+    }
+
+    /// The frame's persistent density histogram, allocated with the shared set.
+    func densityHistogramBuffer() throws -> MTLBuffer {
+        XCTAssertTrue(GaussianSharedWorkingSet.shared.ensureCapacity(1, device: renderInfo.device))
+        return try XCTUnwrap(GaussianSharedWorkingSet.shared.densityHistogram)
+    }
+
+    /// Encodes one chunk cull of `table` into slot 0 with `constants` — after zeroing the
+    /// persistent histogram, so it holds this cull alone — and returns the record.
+    func cullChunks(_ table: GaussianChunkTable, constants: GaussianChunkCullConstants) throws -> (chunks: Set<UInt32>, record: GaussianVisibleSet, entries: [GaussianVisibleChunk]) {
+        let pipelines = try XCTUnwrap(GaussianChunkCullPipelineStates.current())
+        let budgetState = try budgetStateBuffer()
+        let densityHistogram = try densityHistogramBuffer()
+        densityHistogram.contents().storeBytes(of: GaussianBudgetDensityHistogram(), as: GaussianBudgetDensityHistogram.self)
+        runSynchronously { commandBuffer in
+            guard let encoder = commandBuffer.makeComputeCommandEncoder() else { return }
+            _ = encodeGaussianChunkCull(
+                encoder,
+                pipelines: pipelines,
+                chunkTable: table,
+                visibleChunks: table.visibleChunks[0],
+                chunkSet: table.visibleChunkSets[0],
+                budgetState: budgetState,
+                densityHistogram: densityHistogram,
+                constants: constants,
+                hzbTexture: textureResources.hzbDepthPyramid ?? textureResources.depthMap
+            )
+            encoder.endEncoding()
+        }
+        return visibleChunkReadback(table, slot: 0)
+    }
+
+    /// The frame's cull constants for `entity` with the two eye matrices replaced.
+    func stereoConstants(table: GaussianChunkTable, entity: EntityID, eye0: simd_float4x4, eye1: simd_float4x4, hzbValid: Bool = false) throws -> GaussianChunkCullConstants {
+        let world = try XCTUnwrap(scene.get(component: WorldTransformComponent.self, for: entity))
+        var constants = gaussianChunkCullConstants(chunkTable: table, modelMatrix: world.space, viewMatrix: matrix_identity_float4x4, hzbValid: hzbValid, forceAllVisible: false, uniformQuotas: false)
+        constants.viewProjection0 = eye0
+        constants.viewProjection1 = eye1
+        constants.viewCount = 2
+        return constants
+    }
+
+    /// The view-projection of a camera at `eye` looking at `target` for `entity`, from a
+    /// temporary camera entity so the active camera does not move.
+    func viewProjection(entity: EntityID, eye: simd_float3, target: simd_float3) throws -> simd_float4x4 {
+        let world = try XCTUnwrap(scene.get(component: WorldTransformComponent.self, for: entity))
+        let cameraEntity = createEntity()
+        defer { destroyEntity(entityId: cameraEntity) }
+        _ = scene.assign(to: cameraEntity, component: CameraComponent.self)
+        cameraLookAt(entityId: cameraEntity, eye: eye, target: target, up: simd_float3(0, 1, 0))
+        let view = try XCTUnwrap(scene.get(component: CameraComponent.self, for: cameraEntity)).viewSpace
+        return simd_mul(renderInfo.perspectiveSpace, simd_mul(view, world.space))
+    }
+
+    /// A one-row depth texture whose texels span the screen from left to right, one mip level:
+    /// with clamp_to_edge and nearest sampling every UV reads the texel of its horizontal band,
+    /// so one texel stands in for a full-frame occluder and two for a half-covered frame.
+    func makeHZBTestTexture(depths: [Float]) throws -> MTLTexture {
+        let descriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .r32Float, width: depths.count, height: 1, mipmapped: false)
+        descriptor.usage = [.shaderRead]
+        descriptor.storageMode = .shared
+        let texture = try XCTUnwrap(renderInfo.device.makeTexture(descriptor: descriptor))
+        depths.withUnsafeBytes { bytes in
+            texture.replace(region: MTLRegionMake2D(0, 0, depths.count, 1), mipmapLevel: 0, withBytes: bytes.baseAddress!, bytesPerRow: depths.count * MemoryLayout<Float>.stride)
+        }
+        return texture
+    }
+
+    /// Runs `body` with `depths` installed as the frame's HZB pyramid (one mip, so the chunk
+    /// test samples level 0 like the per-splat test) and `hzbIsValid` set to `valid`, then
+    /// restores the real pyramid.
+    func withInjectedHZB<T>(depths: [Float], valid: Bool, _ body: () throws -> T) throws -> T {
+        let savedTexture = textureResources.hzbDepthPyramid
+        let savedValid = renderInfo.hzbIsValid
+        let savedMipCount = renderInfo.hzbMipCount
+        defer {
+            textureResources.hzbDepthPyramid = savedTexture
+            renderInfo.hzbIsValid = savedValid
+            renderInfo.hzbMipCount = savedMipCount
+        }
+        textureResources.hzbDepthPyramid = try makeHZBTestTexture(depths: depths)
+        renderInfo.hzbIsValid = valid
+        renderInfo.hzbMipCount = 1
+        return try body()
     }
 }
 

@@ -56,17 +56,6 @@ final class GaussianVisibleSetTest: BaseRenderSetup {
         min(renderInfo.currentInFlightFrameSlot, component.gaussianVisibleCount.count - 1)
     }
 
-    private func runSynchronously(_ encode: (MTLCommandBuffer) -> Void) {
-        guard let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() else {
-            XCTFail("Expected to allocate a command buffer")
-            return
-        }
-        encode(commandBuffer)
-        commandBuffer.commit()
-        commandBuffer.waitUntilCompleted()
-        XCTAssertEqual(commandBuffer.status, .completed)
-    }
-
     // MARK: - Tests
 
     /// The record a freshly loaded entity starts with counts every splat as visible, and its
