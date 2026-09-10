@@ -174,6 +174,7 @@ final class GaussianLinkCommandTests: XCTestCase {
         XCTAssertThrowsError(try GaussianLinkCommand.parse(["--untold", "a.untold", "--entity", "0", "--payload", "a.untoldgs", "--align-translate", "1,2", "--in-place"]), "three components")
         XCTAssertThrowsError(try GaussianLinkCommand.parse(["--untold", "a.untold", "--entity", "0", "--payload", "a.untoldgs", "--align-translate", "1,x,2", "--in-place"]), "numbers")
         XCTAssertThrowsError(try GaussianLinkCommand.parse(["--untold", "a.untold", "--entity", "0", "--payload", "a.untoldgs", "--align-scale", "0", "--in-place"]), "scale > 0")
+        XCTAssertThrowsError(try GaussianLinkCommand.parse(["--untold", "a.untold", "--entity", "0", "--payload", "a.untoldgs", "--align-yaw-degrees", "nan", "--in-place"]), "yaw finite")
         XCTAssertThrowsError(try GaussianLinkCommand.parse(["--untold", "a.untold", "--entity", "0", "--payload", "a.untoldgs", "--align-scale", "1", "--clear-alignment", "--in-place"]), "clear takes no align option")
         XCTAssertThrowsError(try GaussianLinkCommand.parse(["--untold", "a.untold", "--entity", "0", "--remove", "--align-yaw-degrees", "1", "--in-place"]), "remove takes no alignment")
         XCTAssertThrowsError(try GaussianLinkCommand.parse(["--untold", "a.untold", "--entity", "0", "--remove", "--clear-alignment", "--in-place"]), "remove takes no alignment")

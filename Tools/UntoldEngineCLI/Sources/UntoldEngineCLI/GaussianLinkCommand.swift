@@ -129,6 +129,9 @@ struct GaussianLinkCommand: ParsableCommand {
             if let alignTranslate {
                 _ = try Self.parseTranslation(alignTranslate)
             }
+            if let alignYawDegrees, !alignYawDegrees.isFinite {
+                throw ValidationError("--align-yaw-degrees must be finite.")
+            }
             if let alignScale, !(alignScale.isFinite && alignScale > 0) {
                 throw ValidationError("--align-scale must be greater than zero.")
             }
