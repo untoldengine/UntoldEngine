@@ -49,6 +49,11 @@ public enum UntoldAssetPatcher {
         public var exposureOffsetEV: Float
         /// Camera distance at which the swap and its prefetch arm. Zero means always.
         public var swapDistanceMeters: Float
+        /// How the splat sits in the entity's local space (`GaussianComponent.splatToEntity`),
+        /// or nil for identity. Written as the record's alignment fields with
+        /// `UntoldGaussianAssetFlags.alignment` set when non-nil; that flag is derived from this
+        /// property and never kept in `flags`.
+        public var alignment: GaussianSplatAlignment?
 
         public init(
             payloadPath: String,
@@ -58,10 +63,12 @@ public enum UntoldAssetPatcher {
             lodSwitchScreenHeights: [Float] = [],
             occluderShrinkMeters: Float = 0.02,
             exposureOffsetEV: Float = 0,
-            swapDistanceMeters: Float = 0
+            swapDistanceMeters: Float = 0,
+            alignment: GaussianSplatAlignment? = nil
         ) {
             self.payloadPath = payloadPath
-            self.flags = flags
+            self.flags = flags & ~UntoldGaussianAssetFlags.alignment
+            self.alignment = alignment
             self.lodCount = lodCount
             // The record stores `maxLODLevels` slots and reads back `lodCount` of them, so a
             // shorter array would come back zero-padded; pad here so the link round-trips.
@@ -85,7 +92,8 @@ public enum UntoldAssetPatcher {
                 lodSwitchScreenHeights: Array(record.lodSwitchScreenHeights.prefix(levels)),
                 occluderShrinkMeters: record.occluderShrinkMeters,
                 exposureOffsetEV: record.exposureOffsetEV,
-                swapDistanceMeters: record.swapDistanceMeters
+                swapDistanceMeters: record.swapDistanceMeters,
+                alignment: record.alignment
             )
         }
 
@@ -103,14 +111,16 @@ public enum UntoldAssetPatcher {
                 lodSwitchScreenHeights: lodSwitchScreenHeights,
                 occluderShrinkMeters: occluderShrinkMeters,
                 exposureOffsetEV: exposureOffsetEV,
-                swapDistanceMeters: swapDistanceMeters
+                swapDistanceMeters: swapDistanceMeters,
+                alignment: alignment
             )
         }
 
         /// Throws `UntoldAssetPatcher.Error.invalidLink` when the link cannot be written as a
         /// record `UntoldReader` would accept: an empty path or one containing NUL (the string
         /// table is NUL-terminated), more than `UntoldGaussianAssetRecordV1.maxLODLevels` levels or
-        /// more LOD entries than levels, negative or non-finite distances, a non-finite exposure.
+        /// more LOD entries than levels, negative or non-finite distances, a non-finite exposure,
+        /// an alignment that is not finite or whose scale is not greater than zero.
         public func validate() throws {
             guard !payloadPath.isEmpty else {
                 throw Error.invalidLink("payload path is empty")
@@ -138,6 +148,9 @@ public enum UntoldAssetPatcher {
             }
             guard exposureOffsetEV.isFinite else {
                 throw Error.invalidLink("exposureOffsetEV must be finite")
+            }
+            if let alignment, !alignment.isValid {
+                throw Error.invalidLink("alignment must be finite with a scale greater than zero (\(alignment))")
             }
         }
 

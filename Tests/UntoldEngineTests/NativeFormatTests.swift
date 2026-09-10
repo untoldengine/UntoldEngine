@@ -304,7 +304,8 @@ final class NativeFormatTests: XCTestCase {
         )
         XCTAssertEqual(record.lodSplatCounts, [20000, 60000, 180_000, 0])
         XCTAssertEqual(record.lodSwitchScreenHeights, [120, 360, 1080, 0])
-        XCTAssertEqual(record.reserved0, [0, 0, 0, 0, 0])
+        XCTAssertNil(record.alignment)
+        XCTAssertEqual(record.alignmentScale, 0, "no alignment: the former reserved words stay zero")
 
         let writer = UntoldBinaryWriter()
         record.encode(to: writer)
@@ -331,6 +332,123 @@ final class NativeFormatTests: XCTestCase {
         XCTAssertEqual(try decoded.string(at: decoded.gaussianAssets[0].payloadPathOffset), "albedo.ktx2")
         XCTAssertTrue(decoded.pluginChunks.isEmpty)
         XCTAssertEqual(decoded.meshes.count, 1)
+    }
+
+    func testGaussianAssetAlignmentRoundTripsInTheFormerReservedWords() throws {
+        let alignment = GaussianSplatAlignment(translation: SIMD3<Float>(0.5, -0.25, 2), yawDegrees: 37.5, scale: 1.25)
+        let record = UntoldGaussianAssetRecordV1(
+            entityId: 3,
+            payloadPathOffset: 25,
+            flags: UntoldGaussianAssetFlags.meshTwin,
+            swapDistanceMeters: 4,
+            alignment: alignment
+        )
+        XCTAssertEqual(record.flags, UntoldGaussianAssetFlags.meshTwin | UntoldGaussianAssetFlags.alignment, "a non-nil alignment sets the flag")
+        XCTAssertEqual(record.alignment, alignment)
+        XCTAssertEqual(record.alignmentTranslation, alignment.translation)
+        XCTAssertEqual(record.alignmentYawDegrees, 37.5)
+        XCTAssertEqual(record.alignmentScale, 1.25)
+
+        let writer = UntoldBinaryWriter()
+        record.encode(to: writer)
+        XCTAssertEqual(writer.count, UntoldGaussianAssetRecordV1.encodedSize, "the record keeps its 80 bytes")
+        let decoded = try UntoldGaussianAssetRecordV1.decode(from: UntoldBinaryReader(data: writer.data))
+        XCTAssertEqual(decoded, record)
+        XCTAssertEqual(decoded.alignment, alignment)
+
+        // The words sit where the reserved words were: bytes 60...79, translation, yaw, scale.
+        let tail = writer.data.subdata(in: 60 ..< 80).withUnsafeBytes { Array($0.bindMemory(to: Float.self)) }
+        XCTAssertEqual(tail, [0.5, -0.25, 2, 37.5, 1.25])
+
+        // Clearing drops the flag and zeroes the words, so the bytes match a pre-alignment record.
+        var cleared = record
+        cleared.alignment = nil
+        XCTAssertEqual(cleared.flags, UntoldGaussianAssetFlags.meshTwin)
+        XCTAssertNil(cleared.alignment)
+        XCTAssertEqual(cleared, UntoldGaussianAssetRecordV1(entityId: 3, payloadPathOffset: 25, flags: UntoldGaussianAssetFlags.meshTwin, swapDistanceMeters: 4))
+    }
+
+    func testGaussianAssetRecordWithoutTheFlagHasNoAlignmentWhateverTheWordsHold() throws {
+        // A file written before the alignment existed: flag clear, words zero.
+        let old = UntoldGaussianAssetRecordV1(entityId: 1, payloadPathOffset: 25, flags: UntoldGaussianAssetFlags.meshTwin)
+        let writer = UntoldBinaryWriter()
+        old.encode(to: writer)
+        XCTAssertEqual(Array(writer.data.suffix(20)), Array(repeating: 0, count: 20))
+        XCTAssertNil(try UntoldGaussianAssetRecordV1.decode(from: UntoldBinaryReader(data: writer.data)).alignment)
+
+        // Words without the flag are kept as read (a byte-for-byte round trip) but mean nothing.
+        var stale = old
+        stale.alignmentScale = 3
+        let staleWriter = UntoldBinaryWriter()
+        stale.encode(to: staleWriter)
+        let decoded = try UntoldGaussianAssetRecordV1.decode(from: UntoldBinaryReader(data: staleWriter.data))
+        XCTAssertEqual(decoded, stale)
+        XCTAssertNil(decoded.alignment)
+    }
+
+    func testGaussianAssetAlignmentMatrixIsTranslationYawScale() {
+        XCTAssertEqual(GaussianSplatAlignment.identity.matrix, matrix_identity_float4x4)
+        XCTAssertTrue(GaussianSplatAlignment.identity.isValid)
+
+        let alignment = GaussianSplatAlignment(translation: SIMD3<Float>(1, 2, 3), yawDegrees: 90, scale: 2)
+        let matrix = alignment.matrix
+        // A point on the splat's +X axis turns about +Y (right-handed) onto -Z, doubled, then offset.
+        let point = simd_mul(matrix, SIMD4<Float>(1, 0, 0, 1))
+        XCTAssertEqual(point.x, 1, accuracy: 1e-5)
+        XCTAssertEqual(point.y, 2, accuracy: 1e-5)
+        XCTAssertEqual(point.z, 3 - 2, accuracy: 1e-5)
+        XCTAssertEqual(point.w, 1)
+        // Same as the engine's own rotation helper composed T · R · S.
+        let expected = simd_mul(
+            matrix4x4Translation(1, 2, 3),
+            simd_mul(matrix4x4Rotation(radians: .pi / 2, axis: SIMD3<Float>(0, 1, 0)), matrix4x4Scale(2, 2, 2))
+        )
+        for column in 0 ..< 4 {
+            for row in 0 ..< 4 {
+                XCTAssertEqual(matrix[column][row], expected[column][row], accuracy: 1e-5, "[\(column)][\(row)]")
+            }
+        }
+
+        XCTAssertFalse(GaussianSplatAlignment(scale: 0).isValid)
+        XCTAssertFalse(GaussianSplatAlignment(scale: -1).isValid)
+        XCTAssertFalse(GaussianSplatAlignment(yawDegrees: .nan).isValid)
+        XCTAssertFalse(GaussianSplatAlignment(translation: SIMD3<Float>(0, .infinity, 0)).isValid)
+    }
+
+    func testGaussianAssetRejectsAnInvalidAlignmentOnlyWhenFlagged() throws {
+        let probe = makeTinyFixture()
+        func fixture(_ record: UntoldGaussianAssetRecordV1) -> Data {
+            let writer = UntoldBinaryWriter()
+            record.encode(to: writer)
+            return makeTinyFixture(pluginChunks: [(.gaussianAssetTable, writer.data, 1)]).fileData
+        }
+        let base = UntoldGaussianAssetRecordV1(entityId: probe.entity.entityId, payloadPathOffset: probe.texture.uriOffset)
+
+        for bad in [
+            GaussianSplatAlignment(scale: 0),
+            GaussianSplatAlignment(scale: -0.5),
+            GaussianSplatAlignment(scale: .infinity),
+            GaussianSplatAlignment(yawDegrees: .nan),
+            GaussianSplatAlignment(translation: SIMD3<Float>(.nan, 0, 0)),
+        ] {
+            var record = base
+            record.alignment = bad
+            XCTAssertThrowsError(try UntoldReader().readAsset(from: fixture(record)), "\(bad)") { error in
+                guard case .invalidGaussianAssetRecord? = error as? UntoldValidationError else {
+                    return XCTFail("unexpected error \(error)")
+                }
+            }
+        }
+
+        var good = base
+        good.alignment = GaussianSplatAlignment(translation: SIMD3<Float>(0, 0.02, 0), yawDegrees: -180, scale: 0.01)
+        XCTAssertEqual(try UntoldReader().readAsset(from: fixture(good)).gaussianAssets, [good])
+
+        // The same words without the flag are not looked at.
+        var unflagged = good
+        unflagged.flags &= ~UntoldGaussianAssetFlags.alignment
+        unflagged.alignmentScale = 0
+        XCTAssertNil(try UntoldReader().readAsset(from: fixture(unflagged)).gaussianAssets.first?.alignment)
     }
 
     func testGaussianAssetWithoutTableDecodesEmpty() throws {

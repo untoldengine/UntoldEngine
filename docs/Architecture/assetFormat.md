@@ -500,21 +500,30 @@ Types 22–24 are reserved for the morph-target channel.
 ```text
 entityId                     UInt32
 payloadPathOffset            UInt32   // string table, path relative to this file
-flags                        UInt32   // 1 = meshTwin, 2 = environment, 4 = windowWorld
+flags                        UInt32   // 1 = meshTwin, 2 = environment, 4 = windowWorld, 8 = alignment
 lodCount                     UInt32   // valid LOD entries, 0...4 (0 means one level)
 lodSplatCounts               UInt32 x 4   // per level, coarsest first
 lodSwitchScreenHeights       Float32 x 4  // pixels above which the next finer level is preferred
 occluderShrinkMeters         Float32  // mesh twin depth-only shell shrink along normals
 exposureOffsetEV             Float32  // editor offset on top of the payload's capture exposure
 swapDistanceMeters           Float32  // 0 = always armed
-reserved0                    UInt32 x 5
+alignmentTranslation         Float32 x 3  // splat offset in entity space, metres (flag 8)
+alignmentYawDegrees          Float32  // splat rotation about entity +Y, degrees (flag 8)
+alignmentScale               Float32  // uniform splat scale, > 0 (flag 8)
 ```
+
+The alignment fields were the record's five reserved words: they are read only when
+`flags` has the `alignment` bit (8) and are written as zero otherwise, so a file from
+before the bit existed decodes as no alignment (identity). The runtime draws the splat with
+`entityWorld × T(translation) · R_y(yaw) · S(scale)` (`GaussianComponent.splatToEntity`);
+the cook transform in the `.untoldgs` header (`splatToMesh`) is untouched by it.
 
 Rules:
 
 - `entityId` must be present in the entity table
 - `payloadPathOffset` must resolve to a non-empty string
 - `lodCount <= 4`; `occluderShrinkMeters` and `swapDistanceMeters` are non-negative
+- with the `alignment` bit set, the three alignment fields are finite and `alignmentScale > 0`
 - registration onto the mesh twin and capture exposure live in the `.untoldgs` header,
   not here; this record holds what the scene author tunes
 - a file whose only geometry is a splat may omit the vertex and index chunks

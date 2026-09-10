@@ -249,6 +249,12 @@ public final class UntoldReader: @unchecked Sendable {
             guard record.occluderShrinkMeters >= 0, record.swapDistanceMeters >= 0 else {
                 throw UntoldValidationError.invalidGaussianAssetRecord(index: index, reason: "negative distance")
             }
+            if let alignment = record.alignment, !alignment.isValid {
+                throw UntoldValidationError.invalidGaussianAssetRecord(
+                    index: index,
+                    reason: "alignment must be finite with a scale greater than zero"
+                )
+            }
         }
     }
 
