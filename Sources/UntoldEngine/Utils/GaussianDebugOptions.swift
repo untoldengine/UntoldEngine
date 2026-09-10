@@ -25,6 +25,7 @@ public final class GaussianDebugOptions: @unchecked Sendable {
     private var _disableOccluderShell = false
     private var _disableChunkCull = false
     private var _disableWorkingSetBudget = false
+    private var _disableScreenWeightedQuotas = false
 
     /// Skips the per-splat test against the previous frame's HZB depth pyramid in
     /// `gaussianFrustumCull`. The frustum test still runs.
@@ -60,7 +61,10 @@ public final class GaussianDebugOptions: @unchecked Sendable {
     /// chunk, not the whole-buffer `gaussianFrustumCull` a `.ply` runs. With the budget
     /// unlimited the frame is the same either way — the chunk cull only skips splats the
     /// per-splat test would reject — which is what this switch is for: an A/B of the chunk
-    /// stage's cost and of that guarantee.
+    /// stage's cost and of that guarantee. Under a budget the chunks no view keeps carry the
+    /// minimum screen area, so they are cut first, and when they hold more than the climb's tail
+    /// of the request they set the climb density, so a lift to a fitting budget takes the kept
+    /// chunks to whole in one frame.
     public var disableChunkCull: Bool {
         get { lock.lock(); defer { lock.unlock() }; return _disableChunkCull }
         set { lock.lock(); _disableChunkCull = newValue; lock.unlock() }
@@ -73,6 +77,16 @@ public final class GaussianDebugOptions: @unchecked Sendable {
     public var disableWorkingSetBudget: Bool {
         get { lock.lock(); defer { lock.unlock() }; return _disableWorkingSetBudget }
         set { lock.lock(); _disableWorkingSetBudget = newValue; lock.unlock() }
+    }
+
+    /// Grants every visible chunk the same fraction of its splats, floor(scale × count), instead of
+    /// weighting the quotas by screen area (the density cap): the pre-weighting rule, byte for
+    /// byte, for an A/B of what the weighting moves. Note that with `disableChunkCull` and this
+    /// off, chunks no view keeps carry the minimum screen area and are cut first on a truncated
+    /// frame.
+    public var disableScreenWeightedQuotas: Bool {
+        get { lock.lock(); defer { lock.unlock() }; return _disableScreenWeightedQuotas }
+        set { lock.lock(); _disableScreenWeightedQuotas = newValue; lock.unlock() }
     }
 
     /// The per-draw constants the splat fragment shader reads (see `GaussianTBDRDrawDebug`).

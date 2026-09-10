@@ -260,6 +260,7 @@ final class GaussianChunkCullTest: BaseRenderSetup {
     private func cullChunks(_ table: GaussianChunkTable, constants: GaussianChunkCullConstants) throws -> (chunks: Set<UInt32>, record: GaussianVisibleSet, entries: [GaussianVisibleChunk]) {
         let pipelines = try XCTUnwrap(GaussianChunkCullPipelineStates.current())
         let budgetState = try budgetStateBuffer()
+        let densityHistogram = try XCTUnwrap(GaussianSharedWorkingSet.shared.densityHistogram)
         runSynchronously { commandBuffer in
             guard let encoder = commandBuffer.makeComputeCommandEncoder() else { return }
             _ = encodeGaussianChunkCull(
@@ -269,6 +270,7 @@ final class GaussianChunkCullTest: BaseRenderSetup {
                 visibleChunks: table.visibleChunks[0],
                 chunkSet: table.visibleChunkSets[0],
                 budgetState: budgetState,
+                densityHistogram: densityHistogram,
                 constants: constants,
                 hzbTexture: textureResources.hzbDepthPyramid ?? textureResources.depthMap
             )
@@ -352,7 +354,7 @@ final class GaussianChunkCullTest: BaseRenderSetup {
     /// The frame's cull constants for `entity` with the two eye matrices replaced.
     private func stereoConstants(table: GaussianChunkTable, entity: EntityID, eye0: simd_float4x4, eye1: simd_float4x4, hzbValid: Bool = false) throws -> GaussianChunkCullConstants {
         let world = try XCTUnwrap(scene.get(component: WorldTransformComponent.self, for: entity))
-        var constants = gaussianChunkCullConstants(chunkTable: table, modelMatrix: world.space, viewMatrix: matrix_identity_float4x4, hzbValid: hzbValid, forceAllVisible: false)
+        var constants = gaussianChunkCullConstants(chunkTable: table, modelMatrix: world.space, viewMatrix: matrix_identity_float4x4, hzbValid: hzbValid, forceAllVisible: false, uniformQuotas: false)
         constants.viewProjection0 = eye0
         constants.viewProjection1 = eye1
         constants.viewCount = 2
@@ -537,7 +539,7 @@ final class GaussianChunkCullTest: BaseRenderSetup {
             chunkTable: table,
             visibleChunks: table.visibleChunks[slot],
             uniforms: uniforms,
-            cullConstants: gaussianChunkCullConstants(chunkTable: table, modelMatrix: world.space, viewMatrix: viewMatrix, hzbValid: false),
+            cullConstants: gaussianChunkCullConstants(chunkTable: table, modelMatrix: world.space, viewMatrix: viewMatrix, hzbValid: false, uniformQuotas: false),
             viewport: renderInfo.viewPort ?? simd_float2(1, 1),
             sphericalHarmonics: component.sphericalHarmonicsData,
             shMetadata: component.sphericalHarmonicsMetadata ?? GaussianSHMetadata(degree: 0, coefficientsPerChannel: 0, higherOrderCoefficientsPerSplat: 0, _pad0: 0),
@@ -667,7 +669,7 @@ final class GaussianChunkCullTest: BaseRenderSetup {
         }
 
         // GPU kernel with eye 0 = away, eye 1 = at, as a stereo frame binds them.
-        var constants = gaussianChunkCullConstants(chunkTable: table, modelMatrix: world.space, viewMatrix: matrix_identity_float4x4, hzbValid: false, forceAllVisible: false)
+        var constants = gaussianChunkCullConstants(chunkTable: table, modelMatrix: world.space, viewMatrix: matrix_identity_float4x4, hzbValid: false, forceAllVisible: false, uniformQuotas: false)
         constants.viewProjection0 = lookingAway
         constants.viewProjection1 = lookingAt
         constants.viewCount = 2
@@ -1038,7 +1040,7 @@ final class GaussianChunkCullTest: BaseRenderSetup {
     func testGPUChunkCullPadsTheBoxByTheLargestSplat() throws {
         let box = try boxJustOutsideTheGuardBand()
         let table = try makeOneChunkTable(aabbMin: box.min, aabbMax: box.max, logScaleMax: -10)
-        var constants = gaussianChunkCullConstants(chunkTable: table, modelMatrix: matrix_identity_float4x4, viewMatrix: matrix_identity_float4x4, hzbValid: false, forceAllVisible: false)
+        var constants = gaussianChunkCullConstants(chunkTable: table, modelMatrix: matrix_identity_float4x4, viewMatrix: matrix_identity_float4x4, hzbValid: false, forceAllVisible: false, uniformQuotas: false)
         constants.viewProjection0 = box.viewProjection
         constants.viewProjection1 = box.viewProjection
         constants.viewCount = 1
@@ -1116,7 +1118,7 @@ final class GaussianChunkCullTest: BaseRenderSetup {
             simd_mul(renderInfo.perspectiveSpace, simd_mul(SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace), model))
         }
         func frameConstants() -> GaussianChunkCullConstants {
-            gaussianChunkCullConstants(chunkTable: table, modelMatrix: model, viewMatrix: SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace), hzbValid: false, forceAllVisible: false)
+            gaussianChunkCullConstants(chunkTable: table, modelMatrix: model, viewMatrix: SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace), hzbValid: false, forceAllVisible: false, uniformQuotas: false)
         }
 
         var constants = frameConstants()
@@ -1167,7 +1169,7 @@ final class GaussianChunkCullTest: BaseRenderSetup {
         let (entity, _, table) = try loadChunkedEntity()
         placeGaussianTestCamera(eye: cameras[0].eye, target: cameras[0].target)
         let world = try XCTUnwrap(scene.get(component: WorldTransformComponent.self, for: entity))
-        let constants = gaussianChunkCullConstants(chunkTable: table, modelMatrix: world.space, viewMatrix: matrix_identity_float4x4, hzbValid: false)
+        let constants = gaussianChunkCullConstants(chunkTable: table, modelMatrix: world.space, viewMatrix: matrix_identity_float4x4, hzbValid: false, uniformQuotas: false)
         XCTAssertEqual(constants.viewCount, 1)
         XCTAssertEqual(constants.viewProjection0, constants.viewProjection1)
         XCTAssertEqual(constants.chunkCount, UInt32(expectedChunkCount))

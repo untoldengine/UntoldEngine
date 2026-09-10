@@ -8,7 +8,8 @@
 //  (`GaussianRuntimeLimits.workingSetSplats`, clamped by the memory budget and by the resident
 //  total, never below the whole-buffer entities' resident total) rather than to what is loaded;
 //  the frame's chunked entities are fitted to what the whole-buffer entities leave of it through
-//  per-chunk quotas whose state (`GaussianBudgetState`) lives here too.
+//  per-chunk quotas whose state (`GaussianBudgetState`) and density histogram
+//  (`GaussianBudgetDensityHistogram`) live here too.
 //
 // Copyright (C) Untold Engine Studios
 //
@@ -47,6 +48,12 @@ final class GaussianSharedWorkingSet: @unchecked Sendable {
     private var _budgetState: MTLBuffer?
     private var budgetReadbacks: [MTLBuffer?] = Array(repeating: nil, count: maxInFlightCommandBuffers)
     private var _lastBudgetState = GaussianBudgetState()
+    /// The frame's density histogram (`GaussianBudgetDensityHistogram`) the chunk culls fill and
+    /// the scale kernel solves the density cap from, one persistent buffer, and a copy per
+    /// in-flight slot the frame publishes for the CPU readback.
+    private var _densityHistogram: MTLBuffer?
+    private var densityReadbacks: [MTLBuffer?] = Array(repeating: nil, count: maxInFlightCommandBuffers)
+    private var _lastDensityHistogram = GaussianBudgetDensityHistogram()
     /// The entity enumeration the preprocess stamped into each slot's records, so the draw builds
     /// its constants table from the same order even when the scene changed in between or the
     /// preprocess was skipped this frame (asset loading gate) and the slot is stale.
@@ -78,11 +85,19 @@ final class GaussianSharedWorkingSet: @unchecked Sendable {
     }
 
     /// The budget state of the last completed frame (`recordCompletedFrame`): what the chunked
-    /// entities asked for, what they were granted, the scale and its target.
+    /// entities asked for, what they were granted, the scale and its target, the density cap.
     var lastBudgetState: GaussianBudgetState {
         lock.lock()
         defer { lock.unlock() }
         return _lastBudgetState
+    }
+
+    /// The density histogram of the last completed frame: the tiers, the target and full
+    /// densities, the grant the cap was solved against and the visible chunk count.
+    var lastDensityHistogram: GaussianBudgetDensityHistogram {
+        lock.lock()
+        defer { lock.unlock() }
+        return _lastDensityHistogram
     }
 
     /// The working-set budget in splats for this platform: the override when set, otherwise the
@@ -150,6 +165,7 @@ final class GaussianSharedWorkingSet: @unchecked Sendable {
         defer { lock.unlock() }
         let complete = visibleSets.allSatisfy { $0 != nil } && entityConstants.allSatisfy { $0 != nil } && keys.allSatisfy { $0 != nil }
             && _budgetState != nil && budgetReadbacks.allSatisfy { $0 != nil }
+            && _densityHistogram != nil && densityReadbacks.allSatisfy { $0 != nil }
         if complete, exact ? wanted == _capacity : wanted <= _capacity {
             return true
         }
@@ -160,6 +176,8 @@ final class GaussianSharedWorkingSet: @unchecked Sendable {
         var newEntityConstants = entityConstants
         var newBudgetState = _budgetState
         var newBudgetReadbacks = budgetReadbacks
+        var newDensityHistogram = _densityHistogram
+        var newDensityReadbacks = densityReadbacks
         for slot in 0 ..< maxInFlightCommandBuffers {
             if newCapacity != _capacity || newKeys[slot] == nil || newRecords[slot] == nil {
                 guard let keyBuffer = device.makeBuffer(length: MemoryLayout<UInt64>.stride * newCapacity, options: .storageModeShared),
@@ -182,12 +200,24 @@ final class GaussianSharedWorkingSet: @unchecked Sendable {
                 readback.contents().storeBytes(of: GaussianBudgetState(), as: GaussianBudgetState.self)
                 newBudgetReadbacks[slot] = readback
             }
+            if newDensityReadbacks[slot] == nil {
+                guard let readback = device.makeBuffer(length: MemoryLayout<GaussianBudgetDensityHistogram>.stride, options: .storageModeShared) else { return false }
+                readback.label = "Gaussian Budget Density Readback \(slot)"
+                readback.contents().storeBytes(of: GaussianBudgetDensityHistogram(), as: GaussianBudgetDensityHistogram.self)
+                newDensityReadbacks[slot] = readback
+            }
         }
         if newBudgetState == nil {
             guard let state = device.makeBuffer(length: MemoryLayout<GaussianBudgetState>.stride, options: .storageModeShared) else { return false }
             state.label = "Gaussian Budget State"
             state.contents().storeBytes(of: GaussianBudgetState(), as: GaussianBudgetState.self)
             newBudgetState = state
+        }
+        if newDensityHistogram == nil {
+            guard let histogram = device.makeBuffer(length: MemoryLayout<GaussianBudgetDensityHistogram>.stride, options: .storageModeShared) else { return false }
+            histogram.label = "Gaussian Budget Density Histogram"
+            histogram.contents().storeBytes(of: GaussianBudgetDensityHistogram(), as: GaussianBudgetDensityHistogram.self)
+            newDensityHistogram = histogram
         }
         for index in newEntityConstants.indices where newEntityConstants[index] == nil {
             guard let buffer = device.makeBuffer(
@@ -206,6 +236,8 @@ final class GaussianSharedWorkingSet: @unchecked Sendable {
         entityConstants = newEntityConstants
         _budgetState = newBudgetState
         budgetReadbacks = newBudgetReadbacks
+        _densityHistogram = newDensityHistogram
+        densityReadbacks = newDensityReadbacks
         _capacity = newCapacity
         MemoryBudgetManager.shared.setGaussianWorkingSetBytes(residentBytesLocked)
         return true
@@ -225,13 +257,28 @@ final class GaussianSharedWorkingSet: @unchecked Sendable {
         return budgetReadbacks[min(slot, budgetReadbacks.count - 1)]
     }
 
-    /// Forgets the previous frames' scale, so the next frame takes its target directly. For
-    /// tests that want to start from a known state with no frame in flight; a running scene
-    /// resets through `noteFrameWithoutEntities` on the GPU's own timeline instead.
+    /// The persistent density histogram the frame's chunk culls fill and the scale kernel reads.
+    var densityHistogram: MTLBuffer? {
+        lock.lock()
+        defer { lock.unlock() }
+        return _densityHistogram
+    }
+
+    /// The copy of the density histogram the frame publishes for `slot`'s readback.
+    func densityReadback(slot: Int) -> MTLBuffer? {
+        lock.lock()
+        defer { lock.unlock() }
+        return densityReadbacks[min(slot, densityReadbacks.count - 1)]
+    }
+
+    /// Forgets the previous frames' scale and density cap, so the next frame takes its target
+    /// directly. For tests that want to start from a known state with no frame in flight; a
+    /// running scene resets through `noteFrameWithoutEntities` on the GPU's own timeline instead.
     func resetBudgetHysteresis() {
         lock.lock()
         defer { lock.unlock() }
         _budgetState?.contents().storeBytes(of: GaussianBudgetState(), as: GaussianBudgetState.self)
+        _densityHistogram?.contents().storeBytes(of: GaussianBudgetDensityHistogram(), as: GaussianBudgetDensityHistogram.self)
         _hysteresisResetPending = false
     }
 
@@ -275,12 +322,15 @@ final class GaussianSharedWorkingSet: @unchecked Sendable {
         return entityOrder[min(slot, entityOrder.count - 1)]
     }
 
-    func recordCompletedFrame(visibleCount: Int, overflowCount: Int, budgetState: GaussianBudgetState? = nil) {
+    func recordCompletedFrame(visibleCount: Int, overflowCount: Int, budgetState: GaussianBudgetState? = nil, densityHistogram: GaussianBudgetDensityHistogram? = nil) {
         lock.lock()
         _lastVisibleCount = visibleCount
         _lastOverflowCount = overflowCount
         if let budgetState {
             _lastBudgetState = budgetState
+        }
+        if let densityHistogram {
+            _lastDensityHistogram = densityHistogram
         }
         lock.unlock()
     }
@@ -293,7 +343,7 @@ final class GaussianSharedWorkingSet: @unchecked Sendable {
     }
 
     private var residentBytesLocked: Int {
-        (keys + records + visibleSets + entityConstants + budgetReadbacks + [_budgetState]).reduce(0) { $0 + ($1?.length ?? 0) }
+        (keys + records + visibleSets + entityConstants + budgetReadbacks + [_budgetState] + densityReadbacks + [_densityHistogram]).reduce(0) { $0 + ($1?.length ?? 0) }
     }
 
     /// Tests: fills one slot's key buffer and visible set as if `keys.count` splats had been
