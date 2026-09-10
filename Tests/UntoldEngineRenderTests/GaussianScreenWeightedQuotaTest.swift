@@ -34,6 +34,7 @@ final class GaussianScreenWeightedQuotaTest: BaseRenderSetup {
     private var savedDisableHZBOcclusionCull = false
     private var savedDisableChunkCull = false
     private var savedDisableWorkingSetBudget = false
+    private var savedDisableScreenWeightedQuotas = false
     private var savedWorkingSetOverride: Int?
 
     override func setUp() async throws {
@@ -41,10 +42,12 @@ final class GaussianScreenWeightedQuotaTest: BaseRenderSetup {
         savedDisableHZBOcclusionCull = GaussianDebugOptions.shared.disableHZBOcclusionCull
         savedDisableChunkCull = GaussianDebugOptions.shared.disableChunkCull
         savedDisableWorkingSetBudget = GaussianDebugOptions.shared.disableWorkingSetBudget
+        savedDisableScreenWeightedQuotas = GaussianDebugOptions.shared.disableScreenWeightedQuotas
         savedWorkingSetOverride = GaussianRuntimeLimits.workingSetSplatsOverride
         GaussianDebugOptions.shared.disableHZBOcclusionCull = true
         GaussianDebugOptions.shared.disableChunkCull = false
         GaussianDebugOptions.shared.disableWorkingSetBudget = false
+        GaussianDebugOptions.shared.disableScreenWeightedQuotas = false
         GaussianRuntimeLimits.workingSetSplatsOverride = nil
         GaussianSharedWorkingSet.shared.resetBudgetHysteresis()
     }
@@ -53,6 +56,7 @@ final class GaussianScreenWeightedQuotaTest: BaseRenderSetup {
         GaussianDebugOptions.shared.disableHZBOcclusionCull = savedDisableHZBOcclusionCull
         GaussianDebugOptions.shared.disableChunkCull = savedDisableChunkCull
         GaussianDebugOptions.shared.disableWorkingSetBudget = savedDisableWorkingSetBudget
+        GaussianDebugOptions.shared.disableScreenWeightedQuotas = savedDisableScreenWeightedQuotas
         GaussianRuntimeLimits.workingSetSplatsOverride = savedWorkingSetOverride
         GaussianSharedWorkingSet.shared.resetBudgetHysteresis()
         destroyAllEntities()

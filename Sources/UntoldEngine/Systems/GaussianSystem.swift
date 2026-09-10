@@ -296,12 +296,15 @@ public func executeGaussianFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
     // only the whole-buffer entities (a chunked entity is never loaded without the kernels).
     let chunkPipelines = GaussianChunkCullPipelineStates.current()
     let budgetState = workingSet.budgetState
+    let densityHistogram = workingSet.densityHistogram
     let frameSlot = min(renderInfo.currentInFlightFrameSlot, maxInFlightCommandBuffers - 1)
-    if let chunkPipelines, let budgetState {
-        encodeGaussianBudgetReset(computeEncoder, pipelines: chunkPipelines, budgetState: budgetState)
+    if let chunkPipelines, let budgetState, let densityHistogram {
+        encodeGaussianBudgetReset(computeEncoder, pipelines: chunkPipelines, budgetState: budgetState, densityHistogram: densityHistogram)
         profileTotals.dispatchCount += 1
     }
     let hzb = gaussianHZBInputs()
+    // Read once per frame so the chunk culls and the scale kernel agree on the quota rule.
+    let uniformQuotas = GaussianDebugOptions.shared.disableScreenWeightedQuotas
 
     var chunkedEntities: [GaussianChunkedEntityFrame] = []
     var visibleCountUpdates: [GaussianVisibleCountUpdate] = []
@@ -320,18 +323,19 @@ public func executeGaussianFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         let matrices = GaussianEntityFrameMatrices(worldTransform: worldTransformComponent, gaussianComponent: gaussianComponent, cameraComponent: cameraComponent)
 
         if gaussianComponent.isChunked {
-            guard let chunkPipelines, let budgetState, let chunkTable = gaussianComponent.chunkTable,
+            guard let chunkPipelines, let budgetState, let densityHistogram, let chunkTable = gaussianComponent.chunkTable,
                   frameSlot < chunkTable.visibleChunks.count, frameSlot < chunkTable.visibleChunkSets.count
             else {
                 handleError(.pipelineStateNulled, "Gaussian chunk kernels")
                 continue
             }
             // Chunk level: one thread per chunk appends the chunks whose padded box passes either
-            // eye's frustum (and the HZB) to this slot's visible-chunk list and finalizes it into
-            // indirect arguments, adding the entity's visible splat total to the frame's budget
-            // request. The quotas follow once every entity's request is in; the fused per-chunk
-            // pass in executeGaussianPreprocess then decodes, tests and compacts the survivors.
-            // A hidden entity (opacityScale 0: resident but not shown) lists no chunk at all.
+            // eye's frustum (and the HZB) to this slot's visible-chunk list with their clipped
+            // screen area, bins their density into the frame's histogram, and finalizes the list
+            // into indirect arguments, adding the entity's visible splat total to the frame's
+            // budget request. The quotas follow once every entity's request is in; the fused
+            // per-chunk pass in executeGaussianPreprocess then decodes, tests and compacts the
+            // survivors. A hidden entity (opacityScale 0: resident but not shown) lists no chunk.
             let visibleChunks = chunkTable.visibleChunks[frameSlot]
             let chunkSet = chunkTable.visibleChunkSets[frameSlot]
             let chunkConstants = gaussianChunkCullConstants(
@@ -339,10 +343,11 @@ public func executeGaussianFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
                 modelMatrix: matrices.modelMatrix,
                 viewMatrix: matrices.viewMatrix,
                 hzbValid: hzb.valid,
-                forceAllVisible: gaussianComponent.opacityScale <= 0 ? false : GaussianDebugOptions.shared.disableChunkCull
+                forceAllVisible: gaussianComponent.opacityScale <= 0 ? false : GaussianDebugOptions.shared.disableChunkCull,
+                uniformQuotas: uniformQuotas
             )
             if gaussianComponent.opacityScale <= 0 {
-                profileTotals.dispatchCount += encodeGaussianEmptyChunkSet(computeEncoder, pipelines: chunkPipelines, chunkSet: chunkSet, budgetState: budgetState)
+                profileTotals.dispatchCount += encodeGaussianEmptyChunkSet(computeEncoder, pipelines: chunkPipelines, chunkSet: chunkSet, budgetState: budgetState, densityHistogram: densityHistogram)
                 gaussianComponent.visibleSplatCountForRendering = 0
                 continue
             }
@@ -353,6 +358,7 @@ public func executeGaussianFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
                 visibleChunks: visibleChunks,
                 chunkSet: chunkSet,
                 budgetState: budgetState,
+                densityHistogram: densityHistogram,
                 constants: chunkConstants,
                 hzbTexture: hzb.texture
             )
@@ -465,13 +471,15 @@ public func executeGaussianFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
     }
 
     // Every chunked entity's request and every whole-buffer entity's reservation is in: fit the
-    // chunked entities to what is left of the capacity. The scale kernel takes a fall of the
-    // target at once and smooths a rise against the previous frame's scale (unless a frame
-    // without splat entities went by), each entity's quota pass grants its visible chunks
-    // floor(scale × splats), and the state is published for this slot's readback.
-    if let chunkPipelines, let budgetState {
-        let scaleConstants = gaussianBudgetScaleConstants(budget: capacity, resetHysteresis: workingSet.takeHysteresisReset())
-        encodeGaussianBudgetScale(computeEncoder, pipelines: chunkPipelines, budgetState: budgetState, constants: scaleConstants)
+    // chunked entities to what is left of the capacity. The scale kernel solves the density cap
+    // from the histogram against the room the headroom leaves, taking a fall of the target at
+    // once and smoothing a rise against the previous frame's cap (unless a frame without splat
+    // entities went by), each entity's quota pass grants its visible chunks
+    // min(splats, floor(cap × screen area)), and the state and the histogram are published for
+    // this slot's readback.
+    if let chunkPipelines, let budgetState, let densityHistogram {
+        let scaleConstants = gaussianBudgetScaleConstants(budget: capacity, resetHysteresis: workingSet.takeHysteresisReset(), uniformQuotas: uniformQuotas)
+        encodeGaussianBudgetScale(computeEncoder, pipelines: chunkPipelines, budgetState: budgetState, densityHistogram: densityHistogram, constants: scaleConstants)
         profileTotals.dispatchCount += 1
         for chunked in chunkedEntities {
             encodeGaussianChunkQuotas(
@@ -484,8 +492,15 @@ public func executeGaussianFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
             )
             profileTotals.dispatchCount += 1
         }
-        if let readback = workingSet.budgetReadback(slot: frameSlot) {
-            encodeGaussianBudgetPublish(computeEncoder, pipelines: chunkPipelines, budgetState: budgetState, readback: readback)
+        if let readback = workingSet.budgetReadback(slot: frameSlot), let densityReadback = workingSet.densityReadback(slot: frameSlot) {
+            encodeGaussianBudgetPublish(
+                computeEncoder,
+                pipelines: chunkPipelines,
+                budgetState: budgetState,
+                readback: readback,
+                densityHistogram: densityHistogram,
+                densityReadback: densityReadback
+            )
             profileTotals.dispatchCount += 1
         }
     }
@@ -531,9 +546,11 @@ func gaussianRealWorldTint() -> SIMD3<Float>? {
     return lighting.tintColor
 }
 
-/// The budget state of a completed frame, read from the slot the frame published to.
+/// The budget state and density histogram of a completed frame, read from the slot the frame
+/// published to.
 private struct GaussianBudgetReadback: @unchecked Sendable {
     let buffer: MTLBuffer?
+    let densityBuffer: MTLBuffer?
 }
 
 /// Compacts every entity's visible splats into the frame's shared working set. A whole-buffer
@@ -590,6 +607,7 @@ public func executeGaussianPreprocess(_ commandBuffer: MTLCommandBuffer) {
     var capacity = UInt32(capacityValue)
     let chunkPipelines = GaussianChunkCullPipelineStates.current()
     let hzb = gaussianHZBInputs()
+    let uniformQuotas = GaussianDebugOptions.shared.disableScreenWeightedQuotas
 
     guard let computeEncoder = commandBuffer.makeComputeCommandEncoder() else { return }
     computeEncoder.label = "Gaussian Preprocess"
@@ -688,7 +706,8 @@ public func executeGaussianPreprocess(_ commandBuffer: MTLCommandBuffer) {
                     chunkTable: chunkTable,
                     modelMatrix: matrices.modelMatrix,
                     viewMatrix: matrices.viewMatrix,
-                    hzbValid: hzb.valid
+                    hzbValid: hzb.valid,
+                    uniformQuotas: uniformQuotas
                 ),
                 viewport: viewport,
                 sphericalHarmonics: gaussianComponent.sphericalHarmonicsData,
@@ -768,12 +787,16 @@ public func executeGaussianPreprocess(_ commandBuffer: MTLCommandBuffer) {
     // the reservation and the quotas are fitted to rule out: reported once per change, not
     // every frame.
     let completedVisibleSet = GaussianSharedVisibleSetReadback(buffer: sharedVisibleSet)
-    let completedBudget = GaussianBudgetReadback(buffer: chunkPipelines == nil ? nil : workingSet.budgetReadback(slot: frameSlot))
+    let completedBudget = GaussianBudgetReadback(
+        buffer: chunkPipelines == nil ? nil : workingSet.budgetReadback(slot: frameSlot),
+        densityBuffer: chunkPipelines == nil ? nil : workingSet.densityReadback(slot: frameSlot)
+    )
     commandBuffer.addCompletedHandler { _ in
         let set = completedVisibleSet.buffer.contents().load(as: GaussianVisibleSet.self)
         let budgetState = completedBudget.buffer?.contents().load(as: GaussianBudgetState.self)
+        let densityHistogram = completedBudget.densityBuffer?.contents().load(as: GaussianBudgetDensityHistogram.self)
         let previousOverflow = GaussianSharedWorkingSet.shared.lastOverflowCount
-        GaussianSharedWorkingSet.shared.recordCompletedFrame(visibleCount: Int(set.visibleCount), overflowCount: Int(set.overflowCount), budgetState: budgetState)
+        GaussianSharedWorkingSet.shared.recordCompletedFrame(visibleCount: Int(set.visibleCount), overflowCount: Int(set.overflowCount), budgetState: budgetState, densityHistogram: densityHistogram)
         if set.overflowCount > 0, Int(set.overflowCount) != previousOverflow {
             handleError(.bufferAllocationFailed, "Gaussian shared working set overflowed: \(set.overflowCount) visible splats dropped (capacity \(capacityValue))")
         }
@@ -781,14 +804,18 @@ public func executeGaussianPreprocess(_ commandBuffer: MTLCommandBuffer) {
 
     profileTotals.sharedWorkingSetBytes = workingSet.residentBytes
     let lastBudget = workingSet.lastBudgetState
+    let lastDensity = workingSet.lastDensityHistogram
+    // How much of the grant the weighted quotas filled: 1 when nothing was granted.
+    let fill = lastDensity.grant == 0 ? 1 : Double(lastBudget.quotaSplats) / Double(lastDensity.grant)
     logGaussianProfile(
         stage: "Preprocess",
         startTime: profileStart,
         totals: profileTotals,
         extra: String(
-            format: "activeSplats=%d sharedCapacity=%d lastShared=%d lastOverflow=%d budget=%u requested=%u reserved=%u quota=%u scale=%.3f targetScale=%.3f",
+            format: "activeSplats=%d sharedCapacity=%d lastShared=%d lastOverflow=%d budget=%u requested=%u reserved=%u quota=%u scale=%.3f targetScale=%.3f density=%.4g targetDensity=%.4g visibleChunks=%u fill=%.3f",
             activeSplatTotal, workingSet.capacity, workingSet.lastVisibleCount, workingSet.lastOverflowCount,
-            lastBudget.budget, lastBudget.requestedSplats, lastBudget.reservedSplats, lastBudget.quotaSplats, lastBudget.scale, lastBudget.targetScale
+            lastBudget.budget, lastBudget.requestedSplats, lastBudget.reservedSplats, lastBudget.quotaSplats, lastBudget.scale, lastBudget.targetScale,
+            Double(lastBudget.densityCap), Double(lastDensity.targetDensity), lastDensity.visibleChunks, fill
         )
     )
 }

@@ -36,6 +36,7 @@ final class GaussianBudgetedWorkingSetTest: BaseRenderSetup {
     private var savedDisableHZBOcclusionCull = false
     private var savedDisableChunkCull = false
     private var savedDisableWorkingSetBudget = false
+    private var savedDisableScreenWeightedQuotas = false
     private var savedWorkingSetOverride: Int?
 
     /// The far camera of GaussianChunkCullTest: the whole 200-splat fixture in view.
@@ -48,10 +49,15 @@ final class GaussianBudgetedWorkingSetTest: BaseRenderSetup {
         savedDisableHZBOcclusionCull = GaussianDebugOptions.shared.disableHZBOcclusionCull
         savedDisableChunkCull = GaussianDebugOptions.shared.disableChunkCull
         savedDisableWorkingSetBudget = GaussianDebugOptions.shared.disableWorkingSetBudget
+        savedDisableScreenWeightedQuotas = GaussianDebugOptions.shared.disableScreenWeightedQuotas
         savedWorkingSetOverride = GaussianRuntimeLimits.workingSetSplatsOverride
         GaussianDebugOptions.shared.disableHZBOcclusionCull = true
         GaussianDebugOptions.shared.disableChunkCull = false
         GaussianDebugOptions.shared.disableWorkingSetBudget = false
+        // This suite asserts the uniform rule — the same fraction of every chunk, the scale's
+        // climb — which is the mode the switch selects; the weighted rule has its own suite
+        // (GaussianScreenWeightedQuotaTest).
+        GaussianDebugOptions.shared.disableScreenWeightedQuotas = true
         GaussianRuntimeLimits.workingSetSplatsOverride = nil
         GaussianSharedWorkingSet.shared.resetBudgetHysteresis()
     }
@@ -60,6 +66,7 @@ final class GaussianBudgetedWorkingSetTest: BaseRenderSetup {
         GaussianDebugOptions.shared.disableHZBOcclusionCull = savedDisableHZBOcclusionCull
         GaussianDebugOptions.shared.disableChunkCull = savedDisableChunkCull
         GaussianDebugOptions.shared.disableWorkingSetBudget = savedDisableWorkingSetBudget
+        GaussianDebugOptions.shared.disableScreenWeightedQuotas = savedDisableScreenWeightedQuotas
         GaussianRuntimeLimits.workingSetSplatsOverride = savedWorkingSetOverride
         GaussianSharedWorkingSet.shared.resetBudgetHysteresis()
         destroyAllEntities()
@@ -720,11 +727,12 @@ final class GaussianBudgetedWorkingSetTest: BaseRenderSetup {
         XCTAssertEqual(GaussianSharedWorkingSet.budgetSplats(geometryBudgetBytes: 216), 7, "the override wins over both")
     }
 
-    /// The shared set's bytes that do not scale with the budget: visible sets, entity constants
-    /// and budget state.
+    /// The shared set's bytes that do not scale with the budget: visible sets, entity constants,
+    /// budget state and density histogram (each with its per-slot readbacks).
     private func fixedWorkingSetBytes() -> Int {
-        maxInFlightCommandBuffers * (MemoryLayout<GaussianVisibleSet>.stride + MemoryLayout<GaussianBudgetState>.stride)
+        maxInFlightCommandBuffers * (MemoryLayout<GaussianVisibleSet>.stride + MemoryLayout<GaussianBudgetState>.stride + MemoryLayout<GaussianBudgetDensityHistogram>.stride)
             + MemoryLayout<GaussianBudgetState>.stride
+            + MemoryLayout<GaussianBudgetDensityHistogram>.stride
             + totalPerMeshUniformBuffers() * MemoryLayout<GaussianEntityDrawConstants>.stride * Int(gaussianMaxEntitiesPerFrame)
     }
 
