@@ -662,13 +662,14 @@ typedef struct{
 // draw vertex shader — see gaussianPreprocess in Gaussians.metal. Indexed by the same
 // original splat index as EncodedGaussianSplat.
 //
-// axis1/axis2 are the projected covariance ellipse's two (orthogonal) kGaussianQuadSigma-sigma
-// semi-axis vectors in screen pixels — i.e. eigenvectors of the 2D covariance scaled by
-// kGaussianQuadSigma*sqrt(eigenvalue) — used to build a tight, rotated quad instead of an
-// axis-aligned bounding box. An axis-aligned box has
-// to cover a rotated ellipse's full extent along screen X/Y, which for an anisotropic splat
-// (the common case — Gaussians are oriented however the surface they came from sits) can be
-// several times larger in area than the ellipse itself, costing that many more rasterized/
+// axis1/axis2 are the projected covariance ellipse's two (orthogonal) semi-axis vectors in
+// screen pixels — i.e. eigenvectors of the 2D covariance scaled by sigma*sqrt(eigenvalue),
+// where sigma is this splat's opacity-adaptive extent (gaussianAdaptiveSigma in Gaussians.metal,
+// which reaches kGaussianQuadSigma exactly at opacity 1 and shrinks below it as opacity drops) —
+// used to build a tight, rotated quad instead of an axis-aligned bounding box. An axis-aligned
+// box has to cover a rotated ellipse's full extent along screen X/Y, which for an anisotropic
+// splat (the common case — Gaussians are oriented however the surface they came from sits) can
+// be several times larger in area than the ellipse itself, costing that many more rasterized/
 // shaded fragments regardless of how cheap the per-fragment TBDR blend itself is.
 
 typedef enum{

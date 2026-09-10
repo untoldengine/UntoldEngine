@@ -142,10 +142,18 @@ kernel void gaussianChunkDecodePreprocess(
                                     uniforms.projectionMatrix,
                                     viewport);
 
+        // Computed here (before sizing the quad, not just before writing the record) so a
+        // truncated chunk's fading tail — gaussianOpacityBandFactor ramping toward zero near
+        // the cut — shrinks its quad the same way any other low-opacity splat does; see
+        // gaussianAdaptiveSigma (Gaussians.metal).
+        const float opacity = float(colorAndOpacity.w) * entity.opacityScale
+            * gaussianOpacityBandFactor(rank, quota, chunk.splatCount);
+        float sigma = gaussianAdaptiveSigma(opacity);
+
         float2 axis1 = float2(0.0f);
         float2 axis2 = float2(0.0f);
         bool valid = true;
-        float3 conic = computeInverseCovarianceConic(cov2D, axis1, axis2, valid);
+        float3 conic = computeInverseCovarianceConic(cov2D, sigma, axis1, axis2, valid);
         if (!valid || (axis1.x == 0.0f && axis1.y == 0.0f) || (axis2.x == 0.0f && axis2.y == 0.0f)) {
             continue;
         }
@@ -168,8 +176,6 @@ kernel void gaussianChunkDecodePreprocess(
                 splatIndex,
                 centerLocal - localCameraPosition
             ));
-        const float opacity = float(colorAndOpacity.w) * entity.opacityScale
-            * gaussianOpacityBandFactor(rank, quota, chunk.splatCount);
         GaussianWorkingSetSplat out;
         out.positionAndEntity = float4(centerLocal, as_type<float>(entity.entityIndex));
         out.conicAndOpacity = float4(conic, opacity);
