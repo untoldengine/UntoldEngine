@@ -41,15 +41,26 @@ constant float GAUSSIAN_SH_C3[7] = {
 // cost per splat.
 constant float kGaussianMaxScreenRadius = 128.0f;
 
-// How many standard deviations out the rendered quad extends along each principal axis.
-// fragmentGaussianTBDRShader discards any fragment whose alpha falls below 1/255 (any dimmer
-// than that rounds to nothing in 8-bit output anyway) — so the quad edge needs alpha =
-// opacity*exp(-0.5*k^2) to already be under that bar for a fully-opaque splat, i.e. k >
-// sqrt(2*ln(255)) ≈ 3.33, or the geometric edge itself becomes a faint but visible boundary
-// (most noticeable on large, high-opacity, texturally-flat splats — e.g. sky/cloud splats —
-// where there's nothing else nearby to mask a subtle discontinuity). 3.5 clears that with a
-// small margin; going further trades quad area (~k^2) for diminishing returns.
+// How many standard deviations out the rendered quad extends along each principal axis, for
+// a fully-opaque (opacity == 1) splat. fragmentGaussianTBDRShader discards any fragment whose
+// alpha falls below kGaussianAlphaDiscardThreshold (any dimmer than that rounds to nothing in
+// 8-bit output anyway) — so the quad edge needs alpha = opacity*exp(-0.5*k^2) to already be
+// under that bar, i.e. k > sqrt(2*ln(255)) ≈ 3.33 at opacity 1, or the geometric edge itself
+// becomes a faint but visible boundary (most noticeable on large, high-opacity, texturally-flat
+// splats — e.g. sky/cloud splats — where there's nothing else nearby to mask a subtle
+// discontinuity). 3.5 clears that with a small margin — the edge alpha it produces,
+// exp(-0.5*3.5^2) ≈ 0.00219, sits safely under the ≈0.00392 discard bar rather than exactly on
+// it, so rasterization/precision noise at the edge can't round back above the bar into a visible
+// seam. going further trades quad area (~k^2) for diminishing returns. gaussianAdaptiveSigma
+// below reproduces this exact margin at every opacity, not just opacity 1, and its result
+// reaches this constant (as a hard ceiling) exactly at opacity == 1.
 constant float kGaussianQuadSigma = 3.5f;
+
+// Fragments this dim round to nothing in 8-bit output; fragmentGaussianTBDRShader's
+// per-fragment discard keys off this bar directly. The quad-sizing math (gaussianAdaptiveSigma)
+// intentionally targets a lower alpha than this — see kGaussianQuadSigma's comment — so a
+// splat's quad edge sits under this bar with margin, not exactly on it.
+constant float kGaussianAlphaDiscardThreshold = 1.0f / 255.0f;
 
 // Hard ceiling on how many splats may blend into a single pixel. [[raster_order_group(0)]]
 // forces every fragment touching a given pixel to execute serially (a correct ordered
@@ -324,7 +335,31 @@ float3 computeCov2D(float4      splatCenter,
     return float3(cov[0][0], cov[0][1], cov[1][1]);
 }
 
-// Compute inverse covariance (conic) and the two orthogonal kGaussianQuadSigma-sigma semi-axis
+// Per-splat standard-deviation extent: the same derivation as kGaussianQuadSigma's comment,
+// but solved for this splat's actual opacity instead of assuming opacity == 1. The quad only
+// needs to reach the k where opacity*exp(-0.5*k^2) crosses kGaussianQuadSigma's own edge-alpha
+// target, target = exp(-0.5*kGaussianQuadSigma^2) — the same value a fully-opaque splat's edge
+// already lands on today, safely under (not exactly on) kGaussianAlphaDiscardThreshold. Solving
+// opacity*exp(-0.5*k^2) = exp(-0.5*kGaussianQuadSigma^2) for k gives the closed form below; for
+// a low-opacity splat (thin geometry, foliage, dust) that's substantially smaller than the
+// opacity-1 bound, shrinking its quad (and the fragments it rasterizes) while preserving the
+// same edge-alpha margin every opacity gets — not just opacity 1 — so precision/rasterization
+// noise at the edge still can't round back into a visible seam. A splat whose center alpha is
+// already below the discard threshold (opacity <= kGaussianAlphaDiscardThreshold) needs no quad
+// at all — returns 0, which callers treat as "cull this splat" the same way an invalid/
+// degenerate covariance is. Once past that gate, opacity > kGaussianAlphaDiscardThreshold >
+// exp(-0.5*kGaussianQuadSigma^2) always holds, so kSquared below is guaranteed positive — the
+// max(..., 0.0f) only guards float round-off right at that boundary.
+inline float gaussianAdaptiveSigma(float opacity)
+{
+    if (opacity <= kGaussianAlphaDiscardThreshold) {
+        return 0.0f;
+    }
+    float kSquared = 2.0f * log(opacity) + kGaussianQuadSigma * kGaussianQuadSigma;
+    return min(kGaussianQuadSigma, sqrt(max(kSquared, 0.0f)));
+}
+
+// Compute inverse covariance (conic) and the two orthogonal sigma-scaled semi-axis
 // vectors (in screen pixels) of the projected covariance ellipse, via eigen-decomposition of
 // the symmetric 2×2 [[a,b],[b,c]] matrix. axis1/axis2 point along the ellipse's true principal directions —
 // used to build a tight, rotated quad instead of an axis-aligned bounding box, which for an
@@ -332,8 +367,10 @@ float3 computeCov2D(float4      splatCenter,
 // surface they came from sits) can be several times larger in area than the ellipse itself,
 // costing that many more rasterized/shaded fragments regardless of how cheap the per-fragment
 // TBDR blend itself is. Eigenvector formula matches the standard closed-form solution for a
-// symmetric 2×2 matrix (as used by e.g. MetalSplatter's decomposeCovariance).
+// symmetric 2×2 matrix (as used by e.g. MetalSplatter's decomposeCovariance). sigma is the
+// per-splat extent from gaussianAdaptiveSigma, not always kGaussianQuadSigma — see there.
 float3 computeInverseCovarianceConic(float3 cov2D,
+                                     float sigma,
                                      thread float2 &axis1,
                                      thread float2 &axis2,
                                      thread bool  &valid)
@@ -348,7 +385,7 @@ float3 computeInverseCovarianceConic(float3 cov2D,
     // negative reading can only come from float round-off on a near-singular matrix. Guarding
     // <= 0 (not just == 0) catches that case before it flips the sign of detInv/conic, which
     // would otherwise invert the falloff (alpha growing instead of decaying away from center).
-    if (det <= 0.0f) {
+    if (det <= 0.0f || sigma <= 0.0f) {
         valid = false;
         axis1 = float2(0.0f);
         axis2 = float2(0.0f);
@@ -374,10 +411,10 @@ float3 computeInverseCovarianceConic(float3 cov2D,
     // The second eigenvector of a symmetric 2x2 matrix is always orthogonal to the first.
     float2 eigenvector2 = float2(eigenvector1.y, -eigenvector1.x);
 
-    float radius1 = kGaussianQuadSigma * sqrt(lambda1);
-    float radius2 = kGaussianQuadSigma * sqrt(lambda2);
+    float radius1 = sigma * sqrt(lambda1);
+    float radius2 = sigma * sqrt(lambda2);
 
-    // A splat whose true kGaussianQuadSigma-sigma extent along either principal axis exceeds
+    // A splat whose true sigma extent along either principal axis exceeds
     // kGaussianMaxScreenRadius (very close to the camera — radius grows ~1/distance) needs
     // its rendered quad clamped down for overdraw reasons, but the falloff must be clamped
     // along with it, or the (smaller) quad sits within the Gaussian's near-flat peak and
@@ -473,10 +510,16 @@ kernel void gaussianPreprocess(
                                 uniforms.projectionMatrix,
                                 viewport);
 
+    // Same effective opacity the fragment shader will blend with (record.conicAndOpacity.w
+    // below) — sizing the quad off this, not the raw per-splat opacity, keeps the adaptive
+    // radius consistent with an entity fading via opacityScale (e.g. cross-fade LOD transitions).
+    float effectiveOpacity = float(splat.colorAndOpacity.w) * entity.opacityScale;
+    float sigma = gaussianAdaptiveSigma(effectiveOpacity);
+
     float2 axis1 = float2(0.0f);
     float2 axis2 = float2(0.0f);
     bool valid = true;
-    float3 conic = computeInverseCovarianceConic(cov2D, axis1, axis2, valid);
+    float3 conic = computeInverseCovarianceConic(cov2D, sigma, axis1, axis2, valid);
 
     if (!valid || (axis1.x == 0.0f && axis1.y == 0.0f) || (axis2.x == 0.0f && axis2.y == 0.0f)) {
         return;
@@ -642,7 +685,7 @@ fragment GaussianTBDRFragmentStore fragmentGaussianTBDRShader(
 
     // Evaluate the Gaussian falloff before touching the opaque-depth texture: this is pure
     // ALU (no memory fetch), and most of a splat's rasterized area — out near the quad edge
-    // (kGaussianQuadSigma sigma out) — has negligible alpha. Rejecting those tail fragments
+    // (gaussianAdaptiveSigma sigma out) — has negligible alpha. Rejecting those tail fragments
     // here means they never pay for the depth-texture read at all, on top of never reaching
     // the blend math below.
     const float projYSign = 1.0f;
@@ -650,7 +693,7 @@ fragment GaussianTBDRFragmentStore fragmentGaussianTBDRShader(
     float power = calcPowerFromConic(in.conic, d);
 
     half alpha = half(saturate(in.alpha * exp(power)));
-    if (alpha < half(1.0f / 255.0f)) {
+    if (alpha < half(kGaussianAlphaDiscardThreshold)) {
         // Contribution rounds to nothing — skip the opaque-depth read and blend math below.
         out.values = previousValues;
         return out;
