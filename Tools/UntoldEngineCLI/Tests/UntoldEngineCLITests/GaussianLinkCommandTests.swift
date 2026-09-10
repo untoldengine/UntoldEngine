@@ -167,6 +167,17 @@ final class GaussianLinkCommandTests: XCTestCase {
         XCTAssertThrowsError(try GaussianLinkCommand.parse(["--untold", "a.untold", "--entity", "0", "--in-place"]), "needs --payload or --remove")
         XCTAssertThrowsError(try GaussianLinkCommand.parse(["--untold", "a.untold", "--entity", "0", "--remove", "--payload", "a.untoldgs", "--in-place"]), "remove takes no payload")
         XCTAssertThrowsError(try GaussianLinkCommand.parse(["--untold", "a.untold", "--list", "--remove"]), "list is alone")
+
+        // Alignment options: with a payload only, negative values as they are, x,y,z checked.
+        XCTAssertNoThrow(try GaussianLinkCommand.parse(["--untold", "a.untold", "--entity", "0", "--payload", "a.untoldgs", "--align-translate", "-1,0.5,2", "--align-yaw-degrees", "-90", "--align-scale", "1.02", "--in-place"]))
+        XCTAssertNoThrow(try GaussianLinkCommand.parse(["--untold", "a.untold", "--entity", "0", "--payload", "a.untoldgs", "--clear-alignment", "--in-place"]))
+        XCTAssertThrowsError(try GaussianLinkCommand.parse(["--untold", "a.untold", "--entity", "0", "--payload", "a.untoldgs", "--align-translate", "1,2", "--in-place"]), "three components")
+        XCTAssertThrowsError(try GaussianLinkCommand.parse(["--untold", "a.untold", "--entity", "0", "--payload", "a.untoldgs", "--align-translate", "1,x,2", "--in-place"]), "numbers")
+        XCTAssertThrowsError(try GaussianLinkCommand.parse(["--untold", "a.untold", "--entity", "0", "--payload", "a.untoldgs", "--align-scale", "0", "--in-place"]), "scale > 0")
+        XCTAssertThrowsError(try GaussianLinkCommand.parse(["--untold", "a.untold", "--entity", "0", "--payload", "a.untoldgs", "--align-scale", "1", "--clear-alignment", "--in-place"]), "clear takes no align option")
+        XCTAssertThrowsError(try GaussianLinkCommand.parse(["--untold", "a.untold", "--entity", "0", "--remove", "--align-yaw-degrees", "1", "--in-place"]), "remove takes no alignment")
+        XCTAssertThrowsError(try GaussianLinkCommand.parse(["--untold", "a.untold", "--entity", "0", "--remove", "--clear-alignment", "--in-place"]), "remove takes no alignment")
+        XCTAssertThrowsError(try GaussianLinkCommand.parse(["--untold", "a.untold", "--list", "--align-scale", "1"]), "list is alone")
         XCTAssertThrowsError(try GaussianLinkCommand.parse(["--entity", "0", "--list"]), "untold is required")
     }
 
@@ -207,6 +218,80 @@ final class GaussianLinkCommandTests: XCTestCase {
         XCTAssertThrowsError(try GaussianLinkCommand.setting(link, entity: 7, in: patched)) { error in
             XCTAssertEqual((error as? GaussianLinkError)?.errorDescription, "entity 7 is not in the entity table")
         }
+    }
+
+    func testTranslationParsing() throws {
+        XCTAssertEqual(try GaussianLinkCommand.parseTranslation("1,2,3"), SIMD3<Float>(1, 2, 3))
+        XCTAssertEqual(try GaussianLinkCommand.parseTranslation(" -0.5, 0 ,1e-2"), SIMD3<Float>(-0.5, 0, 0.01))
+        XCTAssertThrowsError(try GaussianLinkCommand.parseTranslation("1,2"))
+        XCTAssertThrowsError(try GaussianLinkCommand.parseTranslation("1,2,3,4"))
+        XCTAssertThrowsError(try GaussianLinkCommand.parseTranslation("1,,3"))
+        XCTAssertThrowsError(try GaussianLinkCommand.parseTranslation("inf,0,0"))
+    }
+
+    func testAlignmentOptionsMergeOverTheExistingAlignment() {
+        let existing = GaussianSplatAlignment(translation: SIMD3<Float>(1, 2, 3), yawDegrees: 45, scale: 2)
+
+        XCTAssertNil(GaussianLinkCommand.mergedAlignment(existing: existing, translate: nil, yawDegrees: nil, scale: nil, clear: true), "clear drops it")
+        XCTAssertNil(GaussianLinkCommand.mergedAlignment(existing: nil, translate: nil, yawDegrees: nil, scale: nil, clear: false), "nothing given, nothing stored")
+        XCTAssertEqual(GaussianLinkCommand.mergedAlignment(existing: existing, translate: nil, yawDegrees: nil, scale: nil, clear: false), existing, "nothing given keeps the existing one")
+        XCTAssertEqual(
+            GaussianLinkCommand.mergedAlignment(existing: existing, translate: nil, yawDegrees: 90, scale: nil, clear: false),
+            GaussianSplatAlignment(translation: SIMD3<Float>(1, 2, 3), yawDegrees: 90, scale: 2),
+            "one field over the existing one"
+        )
+        XCTAssertEqual(
+            GaussianLinkCommand.mergedAlignment(existing: nil, translate: SIMD3<Float>(0, 0.02, 0), yawDegrees: nil, scale: nil, clear: false),
+            GaussianSplatAlignment(translation: SIMD3<Float>(0, 0.02, 0), yawDegrees: 0, scale: 1),
+            "one field over identity"
+        )
+    }
+
+    func testAlignmentIsWrittenKeptAndClearedOnAFixture() throws {
+        let directory = try makeTemporaryDirectory()
+        let untoldURL = directory.appendingPathComponent("chair.untold")
+        try makeUntoldFixture().write(to: untoldURL)
+        let payloadURL = directory.appendingPathComponent("chair.untoldgs")
+        try makePayload(splatCount: 12).write(to: payloadURL)
+        let stored = GaussianLinkCommand.storedPayloadPath(payloadURL: payloadURL, untoldURL: untoldURL)
+
+        // Set with an alignment.
+        var link = try GaussianLinkCommand.makeLink(payloadURL: payloadURL, storedPath: stored.path, swapDistance: 0, occluderShrink: 0.02, exposureOffset: 0)
+        XCTAssertNil(link.alignment, "makeLink stores no alignment of its own")
+        let alignment = GaussianSplatAlignment(translation: SIMD3<Float>(0, 0.02, -0.1), yawDegrees: 90, scale: 1.02)
+        link.alignment = try GaussianLinkCommand.mergedAlignment(
+            existing: GaussianLinkCommand.existingAlignment(entity: 0, in: Data(contentsOf: untoldURL)),
+            translate: alignment.translation, yawDegrees: alignment.yawDegrees, scale: alignment.scale, clear: false
+        )
+        let aligned = try GaussianLinkCommand.setting(link, entity: 0, in: Data(contentsOf: untoldURL))
+        XCTAssertEqual(try UntoldAssetPatcher.gaussianAssets(in: aligned)[0]?.alignment, alignment)
+        let lines = try GaussianLinkCommand.listing(of: aligned)
+        XCTAssertEqual(lines.count, 1)
+        XCTAssertTrue(lines[0].hasSuffix("align (0.0, 0.02, -0.1) m, yaw 90.0°, scale 1.02"), lines[0])
+        XCTAssertEqual(try GaussianLinkCommand.existingAlignment(entity: 0, in: aligned), alignment)
+
+        // Set again with no alignment option: the stored one is kept, one field changes it.
+        var again = try GaussianLinkCommand.makeLink(payloadURL: payloadURL, storedPath: stored.path, swapDistance: 5, occluderShrink: 0.02, exposureOffset: 0)
+        again.alignment = try GaussianLinkCommand.mergedAlignment(existing: GaussianLinkCommand.existingAlignment(entity: 0, in: aligned), translate: nil, yawDegrees: nil, scale: nil, clear: false)
+        let kept = try GaussianLinkCommand.setting(again, entity: 0, in: aligned)
+        XCTAssertEqual(try UntoldAssetPatcher.gaussianAssets(in: kept)[0]?.alignment, alignment)
+        XCTAssertEqual(try UntoldAssetPatcher.gaussianAssets(in: kept)[0]?.swapDistanceMeters, 5)
+
+        again.alignment = try GaussianLinkCommand.mergedAlignment(existing: GaussianLinkCommand.existingAlignment(entity: 0, in: kept), translate: nil, yawDegrees: -30, scale: nil, clear: false)
+        let turned = try GaussianLinkCommand.setting(again, entity: 0, in: kept)
+        XCTAssertEqual(try UntoldAssetPatcher.gaussianAssets(in: turned)[0]?.alignment, GaussianSplatAlignment(translation: alignment.translation, yawDegrees: -30, scale: 1.02))
+
+        // The loader hands it to the entity's link.
+        try turned.write(to: untoldURL)
+        let asset = try NativeFormatLoader().loadAssetSync(from: untoldURL)
+        XCTAssertEqual(asset.nodes.first { $0.id == 0 }?.gaussianAsset?.alignment, GaussianSplatAlignment(translation: alignment.translation, yawDegrees: -30, scale: 1.02))
+
+        // Cleared.
+        again.alignment = try GaussianLinkCommand.mergedAlignment(existing: GaussianLinkCommand.existingAlignment(entity: 0, in: turned), translate: nil, yawDegrees: nil, scale: nil, clear: true)
+        let cleared = try GaussianLinkCommand.setting(again, entity: 0, in: turned)
+        XCTAssertNil(try UntoldAssetPatcher.gaussianAssets(in: cleared)[0]?.alignment)
+        XCTAssertFalse(try GaussianLinkCommand.listing(of: cleared)[0].contains("align"), "no alignment, none listed")
+        XCTAssertNil(try GaussianLinkCommand.existingAlignment(entity: 3, in: cleared), "no link, no alignment")
     }
 
     func testAPayloadThatIsNotAVersion3UntoldgsIsRejected() throws {

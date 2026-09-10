@@ -10,6 +10,7 @@
 
 import ArgumentParser
 import Foundation
+import simd
 import UntoldEngine
 
 struct GaussianLinkCommand: ParsableCommand {
@@ -31,9 +32,18 @@ struct GaussianLinkCommand: ParsableCommand {
         meshTwin link on an entity without a mesh has nothing to swap from, so the
         command warns and lists the entities that carry meshes.
 
+        The alignment options place the splat inside the entity without a re-cook
+        (translation in metres, yaw about +Y in degrees, uniform scale; the runtime
+        draws the splat with T·R·S composed onto the entity transform). Options
+        left out keep what the entity's existing link already stores;
+        --clear-alignment removes it.
+
         Examples:
           untoldengine gaussian-link --untold Chair/chair.untold --entity 0 \\
             --payload Chair/chair.untoldgs --swap-distance 8 --in-place
+          untoldengine gaussian-link --untold Chair/chair.untold --entity 0 \\
+            --payload Chair/chair.untoldgs --align-translate 0,0.02,-0.1 \\
+            --align-yaw-degrees 90 --align-scale 1.02 --in-place
           untoldengine gaussian-link --untold Chair/chair.untold --entity 0 \\
             --remove --output Chair/chair_plain.untold
           untoldengine gaussian-link --untold Chair/chair.untold --list
@@ -60,6 +70,18 @@ struct GaussianLinkCommand: ParsableCommand {
     @Option(name: .customLong("exposure-offset"), parsing: .unconditional, help: "Exposure offset in EV on top of the payload's capture exposure (negative darkens)")
     var exposureOffset: Float = 0
 
+    @Option(name: .customLong("align-translate"), parsing: .unconditional, help: "Offset of the splat in the entity's local space, metres, as x,y,z")
+    var alignTranslate: String?
+
+    @Option(name: .customLong("align-yaw-degrees"), parsing: .unconditional, help: "Rotation of the splat about the entity's +Y axis, degrees")
+    var alignYawDegrees: Float?
+
+    @Option(name: .customLong("align-scale"), parsing: .unconditional, help: "Uniform scale of the splat, greater than zero")
+    var alignScale: Float?
+
+    @Flag(name: .customLong("clear-alignment"), help: "Drop the alignment the entity's existing link stores")
+    var clearAlignment = false
+
     @Flag(name: .customLong("in-place"), help: "Overwrite the .untold file")
     var inPlace = false
 
@@ -72,9 +94,13 @@ struct GaussianLinkCommand: ParsableCommand {
     @Flag(name: .long, help: "Print the links the file carries and exit")
     var list = false
 
+    private var hasAlignmentOption: Bool {
+        alignTranslate != nil || alignYawDegrees != nil || alignScale != nil
+    }
+
     func validate() throws {
         if list {
-            guard !remove, payload == nil, !inPlace, output == nil else {
+            guard !remove, payload == nil, !inPlace, output == nil, !hasAlignmentOption, !clearAlignment else {
                 throw ValidationError("--list takes no other option than --untold.")
             }
             return
@@ -89,9 +115,21 @@ struct GaussianLinkCommand: ParsableCommand {
             guard payload == nil else {
                 throw ValidationError("--remove takes no --payload.")
             }
+            guard !hasAlignmentOption, !clearAlignment else {
+                throw ValidationError("--remove takes no alignment option.")
+            }
         } else {
             guard payload != nil else {
                 throw ValidationError("Provide --payload, --remove or --list.")
+            }
+            guard !(clearAlignment && hasAlignmentOption) else {
+                throw ValidationError("--clear-alignment takes no --align-* option.")
+            }
+            if let alignTranslate {
+                _ = try Self.parseTranslation(alignTranslate)
+            }
+            if let alignScale, !(alignScale.isFinite && alignScale > 0) {
+                throw ValidationError("--align-scale must be greater than zero.")
             }
         }
     }
@@ -128,18 +166,26 @@ struct GaussianLinkCommand: ParsableCommand {
             if !stored.isRelative {
                 printWarning("\(payloadURL.path) is not inside \(destination.deletingLastPathComponent().path); storing the file name \(stored.path) — keep the payload next to the .untold file that is written")
             }
-            let link = try Self.makeLink(
+            var link = try Self.makeLink(
                 payloadURL: payloadURL,
                 storedPath: stored.path,
                 swapDistance: swapDistance,
                 occluderShrink: occluderShrink,
                 exposureOffset: exposureOffset
             )
+            link.alignment = try Self.mergedAlignment(
+                existing: Self.existingAlignment(entity: entity, in: fileData),
+                translate: alignTranslate.map { try Self.parseTranslation($0) },
+                yawDegrees: alignYawDegrees,
+                scale: alignScale,
+                clear: clearAlignment
+            )
             if let warning = try Self.meshlessEntityWarning(entity: entity, link: link, in: fileData) {
                 printWarning(warning)
             }
             patched = try Self.setting(link, entity: entity, in: fileData)
-            printInfo("Linked entity \(entity) to \(stored.path) (\(link.lodSplatCounts.first ?? 0) splats, swap at \(swapDistance) m, shrink \(occluderShrink) m, \(exposureOffset) EV)")
+            let alignment = link.alignment.map { ", \(Self.describe($0))" } ?? ""
+            printInfo("Linked entity \(entity) to \(stored.path) (\(link.lodSplatCounts.first ?? 0) splats, swap at \(swapDistance) m, shrink \(occluderShrink) m, \(exposureOffset) EV\(alignment))")
         }
 
         try patched.write(to: destination, options: .atomic)
@@ -225,6 +271,52 @@ struct GaussianLinkCommand: ParsableCommand {
         )
     }
 
+    /// `x,y,z` as three finite floats (spaces around the commas allowed).
+    static func parseTranslation(_ text: String) throws -> SIMD3<Float> {
+        let parts = text.split(separator: ",", omittingEmptySubsequences: false).map { $0.trimmingCharacters(in: .whitespaces) }
+        guard parts.count == 3 else {
+            throw ValidationError("--align-translate takes x,y,z; got '\(text)'.")
+        }
+        let values = parts.compactMap(Float.init)
+        guard values.count == 3, values.allSatisfy(\.isFinite) else {
+            throw ValidationError("--align-translate takes three finite numbers; got '\(text)'.")
+        }
+        return SIMD3<Float>(values[0], values[1], values[2])
+    }
+
+    /// The alignment the entity's link in `fileData` stores, nil without a link or alignment.
+    static func existingAlignment(entity: UInt32, in fileData: Data) throws -> GaussianSplatAlignment? {
+        do {
+            return try UntoldAssetPatcher.gaussianAssets(in: fileData)[entity]?.alignment
+        } catch let error as UntoldAssetPatcher.Error {
+            throw GaussianLinkError.patchFailed(error.description)
+        }
+    }
+
+    /// What the new link stores: nothing with `clear`; `existing` untouched when no field is
+    /// given; otherwise the given fields over `existing` (identity when there is none).
+    static func mergedAlignment(
+        existing: GaussianSplatAlignment?,
+        translate: SIMD3<Float>?,
+        yawDegrees: Float?,
+        scale: Float?,
+        clear: Bool
+    ) -> GaussianSplatAlignment? {
+        if clear { return nil }
+        guard translate != nil || yawDegrees != nil || scale != nil else { return existing }
+        var alignment = existing ?? .identity
+        if let translate { alignment.translation = translate }
+        if let yawDegrees { alignment.yawDegrees = yawDegrees }
+        if let scale { alignment.scale = scale }
+        return alignment
+    }
+
+    /// `align (x, y, z) m, yaw d°, scale s` for the listing and the info line.
+    static func describe(_ alignment: GaussianSplatAlignment) -> String {
+        let t = alignment.translation
+        return "align (\(t.x), \(t.y), \(t.z)) m, yaw \(alignment.yawDegrees)°, scale \(alignment.scale)"
+    }
+
     static func setting(_ link: UntoldAssetPatcher.GaussianAssetLink, entity: UInt32, in fileData: Data) throws -> Data {
         do {
             return try UntoldAssetPatcher.settingGaussianAsset(link, onEntity: entity, in: fileData)
@@ -259,7 +351,8 @@ struct GaussianLinkCommand: ParsableCommand {
             ]
             let flags = names.filter { link.flags & $0.0 != 0 }.map(\.1)
             let levels = link.lodCount == 0 ? "1 level" : "\(link.lodCount) level\(link.lodCount == 1 ? "" : "s") \(link.lodSplatCounts)"
-            return "entity \(entity): \(link.payloadPath) [\(flags.joined(separator: ","))] \(levels), swap \(link.swapDistanceMeters) m, shrink \(link.occluderShrinkMeters) m, \(link.exposureOffsetEV) EV"
+            let alignment = link.alignment.map { ", \(describe($0))" } ?? ""
+            return "entity \(entity): \(link.payloadPath) [\(flags.joined(separator: ","))] \(levels), swap \(link.swapDistanceMeters) m, shrink \(link.occluderShrinkMeters) m, \(link.exposureOffsetEV) EV\(alignment)"
         }
     }
 }

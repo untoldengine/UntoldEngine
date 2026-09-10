@@ -271,6 +271,11 @@ patcher API.
 untoldengine gaussian-link --untold Chair/chair.untold --entity 0 \
   --payload Chair/chair.untoldgs --swap-distance 8 --occluder-shrink 0.02 --in-place
 untoldengine gaussian-link --untold Chair/chair.untold --entity 0 \
+  --payload Chair/chair.untoldgs --align-translate 0,0.02,-0.1 \
+  --align-yaw-degrees 90 --align-scale 1.02 --in-place
+untoldengine gaussian-link --untold Chair/chair.untold --entity 0 \
+  --payload Chair/chair.untoldgs --clear-alignment --in-place
+untoldengine gaussian-link --untold Chair/chair.untold --entity 0 \
   --remove --output Chair/chair_plain.untold
 untoldengine gaussian-link --untold Chair/chair.untold --list
 ```
@@ -278,7 +283,15 @@ untoldengine gaussian-link --untold Chair/chair.untold --list
 `--entity` is the entity table's `entityId` (`--list` prints the ids that already carry a
 link); a `meshTwin` link on an entity without a mesh — the root of a multi-node asset —
 is written with a warning that names the mesh-bearing entities. Negative values are
-accepted as they are (`--exposure-offset -0.5`).
+accepted as they are (`--exposure-offset -0.5`, `--align-translate -1,0,0`).
+
+The alignment options place the splat inside the entity without a re-cook (see [Aligning a
+twin](UsingGaussianSystem.md#aligning-a-twin)): `--align-translate x,y,z` in metres,
+`--align-yaw-degrees` about the entity's +Y axis, `--align-scale` uniform and greater than
+zero. Each option left out keeps the value the entity's existing link stores (identity when
+there is none and at least one is given); `--clear-alignment` drops the alignment; with no
+alignment option at all the stored alignment is carried over unchanged. `--list` prints it
+after the exposure (`align (x, y, z) m, yaw d°, scale s`).
 
 ---
 
