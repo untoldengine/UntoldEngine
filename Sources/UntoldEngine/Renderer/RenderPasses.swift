@@ -2718,6 +2718,9 @@ public enum RenderPasses {
 
         var reverseZ = renderInfo.reverseZEnabled
         renderEncoder.setFragmentBytes(&reverseZ, length: MemoryLayout<Bool>.stride, index: Int(ssaoPassReverseZIndex.rawValue))
+
+        var projScale = simd_float2(renderInfo.perspectiveSpace.columns.0.x, renderInfo.perspectiveSpace.columns.1.y)
+        renderEncoder.setFragmentBytes(&projScale, length: MemoryLayout<simd_float2>.stride, index: Int(ssaoPassProjScaleIndex.rawValue))
         // set the draw command
 
         renderEncoder.drawIndexedPrimitivesTracked(
@@ -2915,6 +2918,9 @@ public enum RenderPasses {
 
         var reverseZ = renderInfo.reverseZEnabled
         renderEncoder.setFragmentBytes(&reverseZ, length: MemoryLayout<Bool>.stride, index: Int(ssaoPassReverseZIndex.rawValue))
+
+        var projScale = simd_float2(renderInfo.perspectiveSpace.columns.0.x, renderInfo.perspectiveSpace.columns.1.y)
+        renderEncoder.setFragmentBytes(&projScale, length: MemoryLayout<simd_float2>.stride, index: Int(ssaoPassProjScaleIndex.rawValue))
 
         // SSAO properties
         renderEncoder.setFragmentBytes(&SSAOParams.shared.radius, length: MemoryLayout<Float>.stride, index: Int(ssaoPassRadiusIndex.rawValue))

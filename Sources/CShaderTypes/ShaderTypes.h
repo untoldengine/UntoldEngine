@@ -324,6 +324,7 @@ typedef enum{
     ssaoPassViewPortIndex,
     ssaoPassFrustumIndex,
     ssaoPassReverseZIndex,
+    ssaoPassProjScaleIndex,
 }SSAOBufferIndices;
 
 typedef enum{

@@ -2505,7 +2505,7 @@ public final class SSAOParams: ObservableObject, @unchecked Sendable {
     public static let shared = SSAOParams()
 
     @Published public var radius: Float = 0.5 // 0.1 to 2.0 how far to sample
-    @Published public var bias: Float = 0.025 // 0.01-0.1 avoid self occusion
+    @Published public var bias: Float = 0.025 // 0.01-0.1 angular (dot-product) slop that guards against G-buffer precision noise between coplanar samples
     @Published public var intensity: Float = 0 // 0.5-2.0 Final multiplier
     @Published public var enabled: Bool = false
     @Published public var quality: SSAOQuality = .balanced {
