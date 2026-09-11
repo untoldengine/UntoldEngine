@@ -179,6 +179,47 @@ final class MemoryBudgetManagerTests: XCTestCase {
         XCTAssertTrue(candidates.contains(2))
     }
 
+    func testGetEvictionCandidatesCorrectAtScale() {
+        // Verify LRU-selection correctness holds with many entries and
+        // randomized recency, not just the small hand-ordered fixtures above.
+        // Registration order determines recency (each beginFrame() advances
+        // lastUsedFrame), so shuffling the order entities are registered in
+        // shuffles their staleness ranking independent of entityId.
+        var entityIds = (1 ... 400).map { EntityID($0) }
+        entityIds.shuffle()
+
+        var registrationRank: [EntityID: Int] = [:]
+        for (rank, id) in entityIds.enumerated() {
+            manager.beginFrame()
+            manager.registerMesh(entityId: id, meshSizeBytes: 1024)
+            registrationRank[id] = rank
+        }
+
+        // The 5 oldest entities are the first 5 registered.
+        let expectedOldest = Set(entityIds.prefix(5))
+
+        let candidates = manager.getEvictionCandidates(count: 5)
+        XCTAssertEqual(candidates.count, 5)
+        XCTAssertEqual(Set(candidates), expectedOldest)
+
+        // getEvictionCandidatesToTarget should also only ever return the
+        // stalest entries first, never something newer while something
+        // older remains unselected.
+        manager.meshBudget = entityIds.count * 1024 // full utilization at 100%
+        manager.lowWaterMark = 0.10 // force freeing ~90% of tracked memory
+
+        let toTargetCandidates = manager.getEvictionCandidatesToTarget()
+        let selectedRanks = toTargetCandidates.map { registrationRank[$0]! }
+        let unselectedRanks = Set(entityIds).subtracting(toTargetCandidates).map { registrationRank[$0]! }
+
+        if let maxSelectedRank = selectedRanks.max(), let minUnselectedRank = unselectedRanks.min() {
+            XCTAssertLessThan(
+                maxSelectedRank, minUnselectedRank,
+                "every selected entry must be older than every entry left behind"
+            )
+        }
+    }
+
     func testGetStaleEntities() {
         manager.beginFrame() // Frame 1
         manager.registerMesh(entityId: 1, meshSizeBytes: 1024)
