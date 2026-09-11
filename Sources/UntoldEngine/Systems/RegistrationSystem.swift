@@ -4856,13 +4856,50 @@ public func bakeGaussianSplatProgressiveTiers(
     lodFractions: [Float],
     cookOptions: UntoldGSCookOptions = UntoldGSCookOptions()
 ) throws -> GaussianProgressiveBakeResult {
+    let sourceAsset = try PLYReader.readGaussianAsset(from: plyURL)
+    return try bakeGaussianSplatProgressiveTiers(
+        sourceAsset: sourceAsset,
+        emptySourceDescription: "source .ply contains no splats",
+        outputBaseURL: outputBaseURL,
+        lodFractions: lodFractions,
+        cookOptions: cookOptions
+    )
+}
+
+/// Bakes progressive `.untoldgs` Gaussian tiers from a source `.spz` (legacy gzip versions 2-3
+/// only -- see `SPZReader`). Same tiering behavior as the `.ply` overload above; `SPZReader`
+/// produces the same format-neutral `GaussianSplatAsset` shape `PLYReader` does, so cooking and
+/// writing are identical from here on.
+public func bakeGaussianSplatProgressiveTiers(
+    spzURL: URL,
+    outputBaseURL: URL,
+    lodFractions: [Float],
+    cookOptions: UntoldGSCookOptions = UntoldGSCookOptions()
+) throws -> GaussianProgressiveBakeResult {
+    let sourceAsset = try SPZReader.readGaussianAsset(from: spzURL)
+    return try bakeGaussianSplatProgressiveTiers(
+        sourceAsset: sourceAsset,
+        emptySourceDescription: "source .spz contains no splats",
+        outputBaseURL: outputBaseURL,
+        lodFractions: lodFractions,
+        cookOptions: cookOptions
+    )
+}
+
+/// Shared tiering core behind both the `.ply` and `.spz` overloads above, operating on the
+/// format-neutral `GaussianSplatAsset` either reader produces.
+private func bakeGaussianSplatProgressiveTiers(
+    sourceAsset: GaussianSplatAsset,
+    emptySourceDescription: String,
+    outputBaseURL: URL,
+    lodFractions: [Float],
+    cookOptions: UntoldGSCookOptions
+) throws -> GaussianProgressiveBakeResult {
     guard !lodFractions.isEmpty else {
         throw UntoldGSError.sizeMismatch("lodFractions must contain at least one entry")
     }
-
-    let sourceAsset = try PLYReader.readGaussianAsset(from: plyURL)
     guard !sourceAsset.splats.isEmpty else {
-        throw UntoldGSError.sizeMismatch("source .ply contains no splats")
+        throw UntoldGSError.sizeMismatch(emptySourceDescription)
     }
     // Registration transform, opacity floor, crop and SH degree are applied once here so the
     // ranking, bounding box and every tier below see the cooked splats.
@@ -4923,16 +4960,36 @@ public func bakeGaussianSplatProgressiveTiers(
     levelCount: Int,
     cookOptions: UntoldGSCookOptions = UntoldGSCookOptions()
 ) throws -> GaussianProgressiveBakeResult {
-    guard levelCount > 0 else {
-        throw UntoldGSError.sizeMismatch("levelCount must be at least 1, got \(levelCount)")
-    }
-    let fractions = (0 ..< levelCount).map { Float(1.0) / Float(1 << $0) }
+    let fractions = try progressiveLODFractions(levelCount: levelCount)
     return try bakeGaussianSplatProgressiveTiers(
         plyURL: plyURL,
         outputBaseURL: outputBaseURL,
         lodFractions: fractions,
         cookOptions: cookOptions
     )
+}
+
+/// `.spz` counterpart of the `.ply` `levelCount` overload above.
+public func bakeGaussianSplatProgressiveTiers(
+    spzURL: URL,
+    outputBaseURL: URL,
+    levelCount: Int,
+    cookOptions: UntoldGSCookOptions = UntoldGSCookOptions()
+) throws -> GaussianProgressiveBakeResult {
+    let fractions = try progressiveLODFractions(levelCount: levelCount)
+    return try bakeGaussianSplatProgressiveTiers(
+        spzURL: spzURL,
+        outputBaseURL: outputBaseURL,
+        lodFractions: fractions,
+        cookOptions: cookOptions
+    )
+}
+
+private func progressiveLODFractions(levelCount: Int) throws -> [Float] {
+    guard levelCount > 0 else {
+        throw UntoldGSError.sizeMismatch("levelCount must be at least 1, got \(levelCount)")
+    }
+    return (0 ..< levelCount).map { Float(1.0) / Float(1 << $0) }
 }
 
 public struct PackedGaussianSphericalHarmonics {

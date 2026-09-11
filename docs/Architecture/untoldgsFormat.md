@@ -3,8 +3,9 @@
 ## Overview
 
 `.untoldgs` is the engine-native container for Gaussian splat assets. It is a
-regeneratable cache of a source capture (`.ply`): `untoldengine export` bakes it, and a
-version bump means "re-bake". It is **not** an interchange format.
+regeneratable cache of a source capture (`.ply` or `.spz`, legacy gzip versions 2-3 only):
+`untoldengine export` bakes it, and a version bump means "re-bake". It is **not** an
+interchange format.
 
 Versions 1 and 2 stored one flat array of GPU-encoded splats and were read whole.
 **Version 3** stores quantised splats in page-aligned chunks so the runtime can read any
