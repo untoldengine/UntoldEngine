@@ -26,7 +26,10 @@ struct ExportCommand: ParsableCommand {
         references — equivalent to running --compress-geometry followed by
         `untoldengine texbake --dir` and `untoldengine texbake --patch-refs`.
 
-        Gaussian `.ply` inputs skip Blender and export directly to `.untoldgs`.
+        Gaussian `.ply` or `.spz` inputs skip Blender and export directly to
+        `.untoldgs`. `.spz` support is limited to legacy gzip versions 2-3;
+        newer v4 (NGSP/ZSTD) files are rejected with a clear error --
+        re-export from the source tool as v2/v3, or convert through `.ply`.
         The --splat-* flags register the capture onto its mesh twin (up axis,
         scale, yaw, translation), crop away floaters and the
         captured floor, drop near-transparent splats, and pick the
@@ -51,12 +54,13 @@ struct ExportCommand: ParsableCommand {
           untoldengine export --input model.blend --output walk.untoldanim --animation
           untoldengine export --input splats.ply --output splats.untoldgs
           untoldengine export --input splats.ply --output splats.untoldgs --lod-levels 4
+          untoldengine export --input capture.spz --output capture.untoldgs
           untoldengine export --input sofa.ply --output sofa.untoldgs --splat-up-axis z \\
             --splat-scale 0.5 --splat-translate 0,0.4,0 --splat-crop=-1,0,-1,1,1.2,1 --splat-sh-degree 2
         """
     )
 
-    @Option(name: .long, help: "Source .usd, .usda, .usdc, .usdz, .blend, or Gaussian .ply asset")
+    @Option(name: .long, help: "Source .usd, .usda, .usdc, .usdz, .blend, or Gaussian .ply/.spz asset")
     var input: String
 
     @Option(name: .long, help: "Destination .untold, .untoldanim (with --animation), or .untoldgs file")
@@ -92,46 +96,46 @@ struct ExportCommand: ParsableCommand {
     @Option(name: .customLong("color-grade-lut"), help: "Path to an externally-authored standard .cube 3D LUT to stage and apply as a post-tonemap creative grade. Nothing is rendered from Blender -- the .cube is copied as-is and loaded directly by the engine")
     var colorGradeLUT: String?
 
-    @Option(name: .customLong("lod-levels"), help: "Gaussian .ply export only: number of progressive .untoldgs tiers to generate. Default 1 writes --output directly; values greater than 1 write <name>_lod0.untoldgs, <name>_lod1.untoldgs, ...")
+    @Option(name: .customLong("lod-levels"), help: "Gaussian .ply/.spz export only: number of progressive .untoldgs tiers to generate. Default 1 writes --output directly; values greater than 1 write <name>_lod0.untoldgs, <name>_lod1.untoldgs, ...")
     var lodLevels: Int = 1
 
-    @Option(name: .customLong("splat-chunk-splats"), help: "Gaussian .ply export only: splats per chunk, a power of two between 2 and 16384 (1024 for objects, 4096 for environments)")
+    @Option(name: .customLong("splat-chunk-splats"), help: "Gaussian .ply/.spz export only: splats per chunk, a power of two between 2 and 16384 (1024 for objects, 4096 for environments)")
     var splatChunkSplats: Int = 1024
 
-    @Option(name: .customLong("splat-sh-degree"), help: "Gaussian .ply export only: spherical-harmonics degree to keep, 0...3 (default: the source degree)")
+    @Option(name: .customLong("splat-sh-degree"), help: "Gaussian .ply/.spz export only: spherical-harmonics degree to keep, 0...3 (default: the source degree)")
     var splatSHDegree: Int?
 
-    @Option(name: .customLong("splat-min-opacity"), help: "Gaussian .ply export only: drop splats with a lower opacity")
+    @Option(name: .customLong("splat-min-opacity"), help: "Gaussian .ply/.spz export only: drop splats with a lower opacity")
     var splatMinOpacity: Float = 0.005
 
-    @Option(name: .customLong("splat-max-count"), help: "Gaussian .ply export only: keep at most this many splats, the most important by opacity and size (0 = no limit). The runtime loads at most \(UntoldGSCookOptions.splatBudgetMobile) per entity on Vision Pro, iPhone, iPad and Apple TV and \(UntoldGSCookOptions.splatBudgetMac) on the Mac.")
+    @Option(name: .customLong("splat-max-count"), help: "Gaussian .ply/.spz export only: keep at most this many splats, the most important by opacity and size (0 = no limit). The runtime loads at most \(UntoldGSCookOptions.splatBudgetMobile) per entity on Vision Pro, iPhone, iPad and Apple TV and \(UntoldGSCookOptions.splatBudgetMac) on the Mac.")
     var splatMaxCount: Int = 0
 
-    @Option(name: .customLong("splat-crop"), help: "Gaussian .ply export only: crop box in the output space, minX,minY,minZ,maxX,maxY,maxZ")
+    @Option(name: .customLong("splat-crop"), help: "Gaussian .ply/.spz export only: crop box in the output space, minX,minY,minZ,maxX,maxY,maxZ")
     var splatCrop: String?
 
-    @Option(name: .customLong("splat-crop-margin"), help: "Gaussian .ply export only: grow the crop box on every side, in metres")
+    @Option(name: .customLong("splat-crop-margin"), help: "Gaussian .ply/.spz export only: grow the crop box on every side, in metres")
     var splatCropMargin: Float = 0
 
-    @Option(name: .customLong("splat-scale"), help: "Gaussian .ply export only: uniform scale applied to the capture")
+    @Option(name: .customLong("splat-scale"), help: "Gaussian .ply/.spz export only: uniform scale applied to the capture")
     var splatScale: Float = 1
 
-    @Option(name: .customLong("splat-yaw-degrees"), help: "Gaussian .ply export only: rotation about +Y applied after --splat-flip-yz, in degrees")
+    @Option(name: .customLong("splat-yaw-degrees"), help: "Gaussian .ply/.spz export only: rotation about +Y applied after --splat-flip-yz, in degrees")
     var splatYawDegrees: Float = 0
 
-    @Option(name: .customLong("splat-translate"), help: "Gaussian .ply export only: translation applied after rotation and scale, x,y,z")
+    @Option(name: .customLong("splat-translate"), help: "Gaussian .ply/.spz export only: translation applied after rotation and scale, x,y,z")
     var splatTranslate: String?
 
-    @Option(name: .customLong("splat-up-axis"), help: "Gaussian .ply export only: which axis points up in the capture: y (engine convention, default), z (scanner/CAD, rotated to Y-up), or -y (3DGS training convention)")
+    @Option(name: .customLong("splat-up-axis"), help: "Gaussian .ply/.spz export only: which axis points up in the capture: y (engine convention, default), z (scanner/CAD, rotated to Y-up), or -y (3DGS training convention)")
     var splatUpAxis: String = "y"
 
-    @Flag(name: .customLong("splat-flip-yz"), help: "Gaussian .ply export only: same as --splat-up-axis=-y")
+    @Flag(name: .customLong("splat-flip-yz"), help: "Gaussian .ply/.spz export only: same as --splat-up-axis=-y")
     var splatFlipYZ = false
 
-    @Flag(name: .customLong("splat-environment"), help: "Gaussian .ply export only: cook as an environment payload")
+    @Flag(name: .customLong("splat-environment"), help: "Gaussian .ply/.spz export only: cook as an environment payload")
     var splatEnvironment = false
 
-    @Flag(name: .customLong("splat-antialiased"), help: "Gaussian .ply export only: mark the payload as cooked with the anti-aliased (3D smoothing) convention")
+    @Flag(name: .customLong("splat-antialiased"), help: "Gaussian .ply/.spz export only: mark the payload as cooked with the anti-aliased (3D smoothing) convention")
     var splatAntialiased = false
 
     func run() throws {
@@ -142,9 +146,10 @@ struct ExportCommand: ParsableCommand {
             throw ExportError.inputNotFound(inputURL.path)
         }
 
-        if inputURL.pathExtension.lowercased() == "ply" {
+        let inputExtension = inputURL.pathExtension.lowercased()
+        if inputExtension == "ply" || inputExtension == "spz" {
             guard outputURL.pathExtension.lowercased() == "untoldgs" else {
-                throw ExportError.unsupportedPLYExportOutput(outputURL.pathExtension)
+                throw ExportError.unsupportedGaussianExportOutput(outputURL.pathExtension)
             }
             guard lodLevels > 0 else {
                 throw ExportError.invalidLODLevels(lodLevels)
@@ -292,14 +297,30 @@ struct ExportCommand: ParsableCommand {
         printInfo("Exporting Gaussian splats \(inputURL.path)")
         let bakeResult: GaussianProgressiveBakeResult
         do {
-            bakeResult = try bakeGaussianSplatProgressiveTiers(
-                plyURL: inputURL,
-                outputBaseURL: outputURL,
-                levelCount: lodLevels,
-                cookOptions: cookOptions
-            )
+            switch inputURL.pathExtension.lowercased() {
+            case "spz":
+                bakeResult = try bakeGaussianSplatProgressiveTiers(
+                    spzURL: inputURL,
+                    outputBaseURL: outputURL,
+                    levelCount: lodLevels,
+                    cookOptions: cookOptions
+                )
+            default:
+                bakeResult = try bakeGaussianSplatProgressiveTiers(
+                    plyURL: inputURL,
+                    outputBaseURL: outputURL,
+                    levelCount: lodLevels,
+                    cookOptions: cookOptions
+                )
+            }
         } catch let error as UntoldGSCookError {
             throw ExportError.splatCookFailed(error.description)
+        } catch let error as SPZError {
+            // Most commonly a v4/NGSP (ZSTD) file -- a different, unsupported container, not a
+            // parse failure -- so this needs to reach the user as a clear message, not a crash.
+            throw ExportError.splatSourceReadFailed(error.description)
+        } catch let error as PLYError {
+            throw ExportError.splatSourceReadFailed(error.description)
         }
         let report = bakeResult.cookReport
         printInfo("Splats: \(report.keptSplatCount) of \(report.inputSplatCount) kept "
@@ -424,10 +445,11 @@ enum ExportError: LocalizedError {
     case exporterNotInstalled(String)
     case exportFailed(Int32)
     case optimizeFailed(Int32)
-    case unsupportedPLYExportOutput(String)
+    case unsupportedGaussianExportOutput(String)
     case invalidLODLevels(Int)
     case colorGradeLUTNotFound(String)
     case splatCookFailed(String)
+    case splatSourceReadFailed(String)
     case invalidSplatUpAxis(String)
     case invalidSplatFlag(String)
     case packManifestUnreadable(String)
@@ -443,15 +465,17 @@ enum ExportError: LocalizedError {
             return "Blender exporter failed with exit status \(status)"
         case let .optimizeFailed(status):
             return "Texture optimization (texbake) failed with exit status \(status)"
-        case let .unsupportedPLYExportOutput(pathExtension):
+        case let .unsupportedGaussianExportOutput(pathExtension):
             let suffix = pathExtension.isEmpty ? "<none>" : ".\(pathExtension)"
-            return "Gaussian .ply export supports only .untoldgs output, got \(suffix)"
+            return "Gaussian .ply/.spz export supports only .untoldgs output, got \(suffix)"
         case let .invalidLODLevels(value):
             return "--lod-levels must be a positive integer, got \(value)"
         case let .colorGradeLUTNotFound(path):
             return "--color-grade-lut path does not exist: \(path)"
         case let .splatCookFailed(reason):
             return "Gaussian splat cook failed: \(reason)"
+        case let .splatSourceReadFailed(reason):
+            return "Failed to read Gaussian source: \(reason)"
         case let .invalidSplatUpAxis(value):
             return "--splat-up-axis must be y, z or -y, got \(value)"
         case let .invalidSplatFlag(reason):

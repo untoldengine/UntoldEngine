@@ -130,7 +130,7 @@ and installs the `Pillow`/`lz4` Python packages, so `untoldengine export
 ## Exporting Assets
 
 Run the exporter from the game project or any other directory. Input can be a
-USD/USDZ asset, a `.blend` file, or a Gaussian `.ply` splat capture:
+USD/USDZ asset, a `.blend` file, or a Gaussian `.ply`/`.spz` splat capture:
 
 ```bash
 untoldengine export \
@@ -194,16 +194,21 @@ with `setEntityAnimations(entityId:filename:withExtension:name:)` instead.
 
 ### Gaussian splats → `.untoldgs`
 
-Gaussian `.ply` inputs skip Blender entirely and export straight to
+Gaussian `.ply` or `.spz` inputs skip Blender entirely and export straight to
 `.untoldgs`:
 
 ```bash
 # Single tier
 untoldengine export --input splats.ply --output splats.untoldgs
+untoldengine export --input splats.spz --output splats.untoldgs
 
 # Progressive LOD tiers (splats_lod0.untoldgs, splats_lod1.untoldgs, ...)
 untoldengine export --input splats.ply --output splats.untoldgs --lod-levels 4
 ```
+
+`.spz` support covers legacy gzip versions 2 and 3 only. Newer v4 files (the
+NGSP/ZSTD container) are rejected with a clear error rather than a crash —
+re-export from the source tool as v2/v3, or convert through `.ply` instead.
 
 ### Other export flags
 
@@ -222,16 +227,21 @@ Run `untoldengine export --help` for the full, current flag list.
 
 ### Gaussian splat captures
 
-A Gaussian splat `.ply` exports directly to `.untoldgs` (see [Gaussian Splat
+A Gaussian splat `.ply` or `.spz` exports directly to `.untoldgs` (see [Gaussian Splat
 Format](../Architecture/untoldgsFormat.md)); `--lod-levels N` writes progressive tiers.
 The `--splat-*` flags cook the capture on the way: register it onto its mesh twin, crop
 away floaters and the captured floor, drop near-transparent splats, and choose the
-spherical-harmonics degree and chunk size.
+spherical-harmonics degree and chunk size. They apply identically regardless of which
+source format was used, since both are read into the same in-memory representation before
+any cooking happens.
 
 ```bash
 untoldengine export --input sofa.ply --output Gaussians/sofa.untoldgs \
   --splat-up-axis z --splat-scale 0.5 --splat-yaw-degrees 90 --splat-translate 0,0.4,0 \
   --splat-crop=-1,0,-1,1,1.2,1 --splat-crop-margin 0.05 --splat-sh-degree 2
+
+untoldengine export --input sofa.spz --output Gaussians/sofa.untoldgs \
+  --splat-up-axis z --splat-scale 0.5 --splat-sh-degree 2
 ```
 
 `--splat-up-axis` names the capture's up axis (`y` is the engine convention and the default,
