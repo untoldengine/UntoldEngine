@@ -160,6 +160,7 @@ struct CameraData: Codable {
 struct EnvironmentData: Codable {
     var applyIBL: Bool? = nil
     var renderEnvironment: Bool? = nil
+    var renderSkyBackground: Bool? = nil
     var hdr: String? = nil
     var ambientIntensity: Float? = nil
 }
@@ -1317,10 +1318,11 @@ public func serializeScene() -> SceneData {
             }
         }
 
-        if shouldApplyIBL || renderEnvironment || validatedHDR != nil {
+        if shouldApplyIBL || renderEnvironment || renderSkyBackground || validatedHDR != nil {
             sceneData.environment = EnvironmentData(
                 applyIBL: shouldApplyIBL,
                 renderEnvironment: renderEnvironment,
+                renderSkyBackground: renderSkyBackground,
                 hdr: validatedHDR,
                 ambientIntensity: ambientIntensity
             )
@@ -1597,6 +1599,7 @@ public func deserializeScene(
     if let env = sceneData.environment {
         applyIBL = env.applyIBL ?? false
         renderEnvironment = env.renderEnvironment ?? false
+        renderSkyBackground = env.renderSkyBackground ?? false
         ambientIntensity = env.ambientIntensity ?? 0.4
 
         if let hdr = env.hdr, !hdr.isEmpty {
@@ -1609,6 +1612,7 @@ public func deserializeScene(
     } else {
         applyIBL = false
         renderEnvironment = false
+        renderSkyBackground = false
         ambientIntensity = 0.4
         hdrURL = ""
     }
