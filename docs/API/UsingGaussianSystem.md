@@ -669,7 +669,7 @@ including tiers the overdraw budget forces early.
 
 ---
 
-## Streaming Gaussian Splats in Large Scenes
+## Streaming Gaussian Splat Props Across a Tile-Streamed Scene
 
 `setEntityGaussian` loads a splat immediately and keeps it resident for the lifetime of the
 entity — fine for a small number of always-visible splats, but not what you want for props
@@ -678,7 +678,7 @@ building). Loading every one of those up front defeats the point of streaming, a
 engine has no way to unload them again on its own.
 
 For that case, register the entity with `GeometryStreamingSystem` instead, via
-`setEntityGaussianStreaming`, which loads and unloads it automatically based on camera
+`setEntityGaussianTileStreaming`, which loads and unloads it automatically based on camera
 distance — the same way it already handles the surrounding streamed tile geometry. It can
 stream either one whole Gaussian file or a progressive `.untoldgs` tier set. A splat above the
 paging threshold registers its page pool and tables with `MemoryBudgetManager`, not the file,
@@ -686,10 +686,17 @@ and the pool goes with the entity when it is unloaded; under OS memory pressure 
 takes a soft target (half its slots on a warning, a quarter on critical) for a while and
 stops reading above it (see [geometryStreamingSystem.md](../Architecture/geometryStreamingSystem.md)).
 
+This is **per-entity** streaming: each call registers one whole Gaussian asset (or tier
+set) that gets loaded and unloaded as a unit based on distance to its tile. It does not
+break a single large splat up and stream pieces of it — there is no support today for a
+splat asset too large to fit in memory whole. If you need that (a room-or-larger capture
+that must be paged in by chunk), that is a separate, not-yet-implemented capability; see
+`docs/proposals/GaussianSplatStreaming.md`.
+
 ### API overview
 
 ```swift
-setEntityGaussianStreaming(
+setEntityGaussianTileStreaming(
     entityId: EntityID,
     source: GaussianSource,
     options: GaussianStreamingOptions
@@ -724,7 +731,7 @@ GaussianStreamingOptions(
 
 This only makes sense in a scene that is already using tile-based streaming — i.e. one
 loaded with `setEntityStreamScene` (see [Using the Geometry Streaming System](UsingGeometryStreamingSystem.md)).
-`setEntityGaussianStreaming` attaches the splat to whichever tile stub's bounds contain
+`setEntityGaussianTileStreaming` attaches the splat to whichever tile stub's bounds contain
 the entity's position, so it needs those tile stubs to already exist. Call it **after**
 `setEntityStreamScene`'s completion handler has fired — tile stubs are guaranteed to be
 registered by then.
@@ -732,7 +739,7 @@ registered by then.
 ### Step 1: Create and position the entity
 
 Position and orient the entity *before* registering it for streaming — the position at the
-time you call `setEntityGaussianStreaming` is what determines which tile it gets attached
+time you call `setEntityGaussianTileStreaming` is what determines which tile it gets attached
 to.
 
 ```swift
@@ -744,7 +751,7 @@ rotateTo(entityId: streamSplat, angle: 180.0, axis: simd_float3(1.0, 0.0, 0.0))
 ### Step 2: Register it for streaming
 
 ```swift
-setEntityGaussianStreaming(
+setEntityGaussianTileStreaming(
     entityId: streamSplat,
     source: .single(filename: "chair", withExtension: "untoldgs"),
     options: GaussianStreamingOptions(
@@ -776,14 +783,14 @@ Parameters:
 - `priority`: Optional. Higher-priority entities load first when multiple candidates are
   in range at once. Defaults to `0`.
 
-> Note: If no tile is found containing the entity's position, `setEntityGaussianStreaming`
+> Note: If no tile is found containing the entity's position, `setEntityGaussianTileStreaming`
 > logs a warning and leaves the entity as a plain, non-streaming entity (no `StreamingComponent`
 > is attached) — it will not crash, but it also will not load. Double-check the position
 > against the streamed scene's tile bounds if this happens.
 
 ### Progressive Gaussian splat streaming
 
-Use `.progressive(...)` with `setEntityGaussianStreaming` when you want tile-driven
+Use `.progressive(...)` with `setEntityGaussianTileStreaming` when you want tile-driven
 load/unload behavior plus the same coarse-to-fine refinement (including the
 [overdraw-aware LOD clamp](#overdraw-aware-lod-selection) and the warmth gate of a paged
 tier) described above.
@@ -807,7 +814,7 @@ chair_lod3.untoldgs
 ```
 
 ```swift
-setEntityGaussianStreaming(
+setEntityGaussianTileStreaming(
     entityId: streamSplat,
     source: .progressive(
         baseFilename: "chair",
@@ -826,7 +833,7 @@ omitted here the same way it can for `.single(...)` with a `.untoldgs` file.
 
 ### Putting it together: stream scene + streaming splat
 
-`setEntityGaussianStreaming` needs the tile stubs `setEntityStreamScene` creates (see
+`setEntityGaussianTileStreaming` needs the tile stubs `setEntityStreamScene` creates (see
 [Prerequisites](#prerequisites) above), so the natural place to register streaming splat props
 is inside the same completion handler that loads the streamed tile scene:
 
@@ -842,7 +849,7 @@ setEntityStreamScene(entityId: sceneRoot, manifest: "dungeon", withExtension: "j
     translateTo(entityId: splat, position: simd_float3(2.0, 0.0, -4.0))
     rotateBy(entityId: splat, angle: 180.0, axis: simd_float3(1.0, 0.0, 0.0))
 
-    setEntityGaussianStreaming(
+    setEntityGaussianTileStreaming(
         entityId: splat,
         source: .progressive(
             baseFilename: "pooltable",
@@ -875,8 +882,8 @@ isn't.
 | `setEntityGaussian(entityId:filename:withExtension:)` | Resident, loads immediately (blocks) | None | A small number of splats that should always be visible (a hero object, a standalone demo scene). |
 | `setEntityGaussian(entityId:source:)` | Resident | None (`.single`) or progressive (`.progressive`) | Same as above, plus a single call site that can also take `.progressive(...)` for coarse-to-fine refinement without a tile-streamed scene. |
 | `setEntityGaussianAsync` | Resident, loads off-thread | None | Same as `setEntityGaussian`, but avoids a frame hitch on a large `.ply`. |
-| `setEntityGaussianStreaming(source:options:)` | Streamed via `GeometryStreamingSystem` | None (`.single`) or progressive (`.progressive`) | Props scattered across a tile-streamed scene that should load/unload with camera distance. |
+| `setEntityGaussianTileStreaming(source:options:)` | Streamed via `GeometryStreamingSystem` | None (`.single`) or progressive (`.progressive`) | Props scattered across a tile-streamed scene that should load/unload with camera distance. |
 
 All progressive paths (`setEntityGaussian(source: .progressive(...))` and
-`setEntityGaussianStreaming(source: .progressive(...), options:)`) share the same
+`setEntityGaussianTileStreaming(source: .progressive(...), options:)`) share the same
 [overdraw-aware LOD selection](#overdraw-aware-lod-selection) behavior automatically.
