@@ -365,7 +365,7 @@ struct ExportCommand: ParsableCommand {
 
         // boundingBoxHalfExtent is NOT baked into the files (the engine can auto-compute it for
         // non-streaming loads instead) — pass this into setEntityGaussianProgressive/
-        // setEntityGaussianStreaming's boundingBoxHalfExtent if you want it set explicitly, e.g.
+        // setEntityGaussianTileStreaming's boundingBoxHalfExtent if you want it set explicitly, e.g.
         // for the streaming path, which requires a real box before any tier is ever read.
         let halfExtent = (bakeResult.boundingBoxMax - bakeResult.boundingBoxMin) * 0.5
         printInfo("boundingBoxHalfExtent: (\(halfExtent.x), \(halfExtent.y), \(halfExtent.z))")

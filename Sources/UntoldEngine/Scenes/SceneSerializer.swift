@@ -522,7 +522,7 @@ private func restoreGaussianSceneData(
     }
 
     if data.isStreaming {
-        setEntityGaussianStreaming(
+        setEntityGaussianTileStreaming(
             entityId: entityId,
             source: source,
             options: GaussianStreamingOptions(
