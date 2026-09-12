@@ -2136,6 +2136,16 @@ public final class ColorGradingParams: ObservableObject, @unchecked Sendable {
     @Published public var temperature: Float = 0.0 // -1.0 to 1.0 (-1.0 bluish, 0.0 neutral, +1.0 warm, yellowish/orange)
     @Published public var tint: Float = 0.0 // -1.0 to 1.0 Green (-)/Magenta (+)
     @Published public var enabled: Bool = false
+
+    public func resetToDefaults() {
+        brightness = 0.0
+        contrast = 1.0
+        saturation = 1.0
+        exposure = 0.0
+        temperature = 0.0
+        tint = 0.0
+        enabled = false
+    }
 }
 
 /// Scene-wide color-grading LUT, baked from the source Blender scene's View
@@ -2335,6 +2345,12 @@ public final class TonemapParams: @unchecked Sendable {
             lock.unlock()
         }
     }
+
+    public func resetToDefaults() {
+        lock.lock()
+        _operator = .aces
+        lock.unlock()
+    }
 }
 
 final class SceneAuthoredSourceStore: @unchecked Sendable {
@@ -2377,6 +2393,12 @@ public final class BloomThresholdParams: ObservableObject, @unchecked Sendable {
     @Published public var threshold: Float = 0.5 // 0.0 to 5.0
     @Published public var intensity: Float = 0.0 // 0.0 to 2.0
     @Published public var enabled: Bool = false
+
+    public func resetToDefaults() {
+        threshold = 0.5
+        intensity = 0.0
+        enabled = false
+    }
 }
 
 public final class BloomCompositeParams: ObservableObject, @unchecked Sendable {
@@ -2394,6 +2416,14 @@ public final class VignetteParams: ObservableObject, @unchecked Sendable {
     @Published public var softness: Float = 0.45 // 0.0 to 1.0
     @Published public var center: simd_float2 = .init(0.5, 0.5) // 0-1
     @Published public var enabled: Bool = false
+
+    public func resetToDefaults() {
+        intensity = 0.7
+        radius = 0.75
+        softness = 0.45
+        center = .init(0.5, 0.5)
+        enabled = false
+    }
 }
 
 public final class ChromaticAberrationParams: ObservableObject, @unchecked Sendable {
@@ -2402,6 +2432,12 @@ public final class ChromaticAberrationParams: ObservableObject, @unchecked Senda
     @Published public var intensity: Float = 0.0 // 0.0 to 0.1
     @Published public var center: simd_float2 = .init(0.5, 0.5) // 0-1
     @Published public var enabled: Bool = false
+
+    public func resetToDefaults() {
+        intensity = 0.0
+        center = .init(0.5, 0.5)
+        enabled = false
+    }
 }
 
 public final class DepthOfFieldParams: ObservableObject, @unchecked Sendable {
@@ -2411,6 +2447,13 @@ public final class DepthOfFieldParams: ObservableObject, @unchecked Sendable {
     @Published public var focusRange: Float = 0.1 // 0.01-0.3
     @Published public var maxBlur: Float = 0 // 0.005-0.05
     @Published public var enabled: Bool = false
+
+    public func resetToDefaults() {
+        focusDistance = 1.0
+        focusRange = 0.1
+        maxBlur = 0
+        enabled = false
+    }
 }
 
 struct WireframeRenderState {
@@ -2446,12 +2489,22 @@ public final class FXAAParams: ObservableObject, @unchecked Sendable {
     @Published public var subpixelQuality: Float = 0.75 // 0.0–1.0; higher = stronger sub-pixel smoothing
     @Published public var edgeThreshold: Float = 0.125 // minimum local contrast to trigger AA
     @Published public var edgeThresholdMin: Float = 0.0625 // absolute threshold floor (skip very dark edges)
+
+    public func resetToDefaults() {
+        subpixelQuality = 0.75
+        edgeThreshold = 0.125
+        edgeThresholdMin = 0.0625
+    }
 }
 
 public final class SMAAParams: ObservableObject, @unchecked Sendable {
     public static let shared = SMAAParams()
 
     @Published public var edgeThreshold: Float = 0.1
+
+    public func resetToDefaults() {
+        edgeThreshold = 0.1
+    }
 }
 
 /// SSAO Quality Settings
@@ -2531,6 +2584,14 @@ public final class SSAOParams: ObservableObject, @unchecked Sendable {
                 print("🔧 SSAO Quality changed to: \(quality) - textures & pipelines reinitialized")
             }
         }
+    }
+
+    public func resetToDefaults() {
+        radius = 0.5
+        bias = 0.025
+        intensity = 0
+        enabled = false
+        quality = .balanced
     }
 
     // Performance telemetry
