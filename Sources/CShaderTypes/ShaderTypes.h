@@ -777,7 +777,7 @@ typedef struct{
     uint32_t hzbMipCount;
     uint32_t forceAllVisible;    // GaussianDebugOptions.disableChunkCull: every chunk is appended
     uint32_t uniformQuotas;      // GaussianDebugOptions.disableScreenWeightedQuotas: screenArea = splatCount, the uniform quota rule
-    uint32_t _pad0;
+    uint32_t paged;              // 0: every record resident; 1: a paged entity (the cull writes the demand table and lists resident ranks only, the fused pass reads the page pool); 2: demand only (a warming tier: write the demand word and return)
 }GaussianChunkCullConstants;  // 176 bytes
 
 typedef enum{
@@ -787,7 +787,12 @@ typedef enum{
     gaussianChunkCullSplatTotalIndex,      // atomic_uint: the chunk record's visibleCount (sum of appended splat counts), byte offset 0
     gaussianChunkCullChunkTotalIndex,      // atomic_uint: the chunk record's threadgroupCount (appended chunks), byte offset 4
     gaussianChunkCullBudgetStateIndex = 6, // gaussianFinalizeVisibleChunks: GaussianBudgetState whose requestedSplats the entity's total joins (the record itself sits at gaussianVisibleCountIndex, 5)
-    gaussianChunkCullDensityHistogramIndex = 7, // gaussianChunkCull: the frame's GaussianBudgetDensityHistogram tiers as atomic_uint words (2t splats, 2t + 1 scaledArea); gaussianFinalizeVisibleChunks: its visibleChunks, bound at byte offset 524
+    gaussianChunkCullDensityHistogramIndex = 7, // gaussianChunkCull: the frame's GaussianBudgetDensityHistogram tiers as atomic_uint words (8t splats, 8t + 1 scaledArea, 8t + 2 coarse1, 8t + 3 coarse2, 8t + 4 levelledSplats, 8t + 5 levelledScaledArea); gaussianFinalizeVisibleChunks: its visibleChunks, bound at byte offset 2060
+    gaussianChunkCullResidencyIndex = 8,   // GaussianChunkResidency[] of this slot (paged entities; a never-read stand-in otherwise)
+    gaussianChunkCullDemandIndex = 9,      // uint[] of this slot: the chunk's seen screen area as float bits, 0 unseen (paged entities; a never-read stand-in otherwise)
+    gaussianChunkCullCoarseTableIndex = 10, // GaussianChunkDecodeConstants[levelCount × chunkCount]: the coarse levels' rows, level-major (entities with coarse levels; a never-read stand-in otherwise)
+    gaussianChunkCullLevelStateIndex = 11, // GaussianChunkLevelState[chunkCount], persistent, written by gaussianComputeChunkQuotas (a never-read stand-in without coarse levels)
+    gaussianChunkCullLevelConstantsIndex = 12, // GaussianChunkLevelConstants (setBytes); hasCoarse = 0 keeps every path as it was
 }GaussianChunkCullBufferIndices;
 
 typedef enum{
@@ -816,7 +821,11 @@ typedef struct{
     float scale;                // targetScale, or the previous frame's scale raised by at most one step when the target is above it
     uint32_t reservedSplats;    // atomic: Σ over whole-buffer entities of their visible counts, granted before the quotas
     float densityCap;           // splats per view unit of screen area the quotas apply this frame, after the density hysteresis: +inf = every chunk whole, 0 = nothing left; the scale itself with uniform quotas
-}GaussianBudgetState;           // 32 bytes
+    uint32_t transitionSplats;  // 32, atomic: Σ over the outgoing windows of fading chunks the culls listed this frame (inside requestedSplats; the solve fits the rest)
+    uint32_t coarseChunks;      // 36, atomic: incoming entries drawn at a coarse level this frame
+    uint32_t coarseSplats;      // 40, atomic: their quota sum
+    uint32_t _pad0;             // 44
+}GaussianBudgetState;           // 48 bytes
 
 /// Inputs of gaussianComputeBudgetScale.
 typedef struct{
@@ -828,7 +837,11 @@ typedef struct{
     uint32_t resetHysteresis;   // 1: take the target as on the first frame (a frame without splat entities went by)
     uint32_t uniformQuotas;     // GaussianDebugOptions.disableScreenWeightedQuotas: the density cap is the scale, no solve
     float densityMinStepFraction; // smallest rise of the density cap per frame as a fraction of its target (0.05)
-}GaussianBudgetScaleConstants;  // 32 bytes
+    float densityFloor;         // 32: the level rule's density floor, maxSplatsPerPixel × viewport pixels (+inf when the knob is off) — the solve evaluates the rule at min(cap, floor)
+    uint32_t tierShift1;        // 36: half-octave tiers under a chunk's own density at which its level 1 is chosen, the maximum over the frame's entities with coarse levels (2 × (ratioLog2 − 1)) — the widest fine regime, so R(d) charges fine wherever any entity still draws fine
+    uint32_t tierShift2;        // 40: the same for level 2
+    uint32_t _pad0;             // 44
+}GaussianBudgetScaleConstants;  // 48 bytes
 
 /// The density histogram the weighted quotas are solved from: how many half-octave tiers of
 /// splats per view unit of screen area, from 2^gaussianBudgetDensityTierLog2Floor upward
@@ -847,10 +860,23 @@ typedef struct{
 /// One tier of GaussianBudgetDensityHistogram: the splats of the visible chunks whose density
 /// falls in the tier, and their screen area in whole-splat units of the tier's lower density,
 /// Σ ceil(area × ρ_t) — an over-estimate of the area, so the grant it bounds is one-sided.
+/// For entities with per-chunk coarse levels (GaussianChunkLevelConstants.hasCoarse) the tier
+/// also holds, over its chunks that have a coarse level available, the level counts the rule
+/// would draw in the level-1 and level-2 regimes (coarse1, coarse2), the listed splats of those
+/// same chunks (levelledSplats, each at least its level-1 count) and their scaled area
+/// (levelledScaledArea), so splats − levelledSplats and scaledArea − levelledScaledArea are the
+/// population the solve keeps fine whatever the cap. The tier is binned by the chunk's full
+/// density (splatCount / screenArea) when the entity has coarse levels, by its listed density
+/// otherwise.
 typedef struct{
-    uint32_t splats;
-    uint32_t scaledArea;
-}GaussianBudgetDensityTier;     // 8 bytes
+    uint32_t splats;            //  0
+    uint32_t scaledArea;        //  4
+    uint32_t coarse1;           //  8
+    uint32_t coarse2;           // 12
+    uint32_t levelledSplats;    // 16
+    uint32_t levelledScaledArea; // 20
+    uint32_t _pad0[2];          // 24 … 31
+}GaussianBudgetDensityTier;     // 32 bytes
 
 /// The frame's density histogram, one persistent buffer beside GaussianBudgetState and a copy
 /// per in-flight slot for the readback: gaussianResetBudgetRequest zeroes it, gaussianChunkCull
@@ -862,11 +888,11 @@ typedef struct{
 /// solved against (the room the headroom leaves, or the request when it fits).
 typedef struct{
     GaussianBudgetDensityTier tiers[gaussianBudgetDensityTierCount]; // atomics
-    float targetDensity;        // 512
-    float fullDensity;          // 516
-    uint32_t grant;             // 520
-    uint32_t visibleChunks;     // 524, atomic
-}GaussianBudgetDensityHistogram; // 528 bytes
+    float targetDensity;        // 2048
+    float fullDensity;          // 2052
+    uint32_t grant;             // 2056
+    uint32_t visibleChunks;     // 2060, atomic
+}GaussianBudgetDensityHistogram; // 2064 bytes
 
 typedef enum{
     gaussianBudgetStateIndex = 0,        // GaussianBudgetState, persistent
@@ -878,7 +904,105 @@ typedef enum{
     gaussianBudgetReservedTotalIndex,    // gaussianReserveBudgetSplats: atomic_uint, the state's reservedSplats (byte offset 24)
     gaussianBudgetDensityHistogramIndex = 7, // GaussianBudgetDensityHistogram, persistent (gaussianResetBudgetRequest, gaussianComputeBudgetScale, gaussianPublishBudgetState)
     gaussianBudgetDensityReadbackIndex = 8,  // gaussianPublishBudgetState: this frame slot's copy of the histogram
+    gaussianBudgetLevelStateIndex = 9,       // gaussianComputeChunkQuotas: GaussianChunkLevelState[chunkCount], persistent, the one writer (a never-read stand-in without coarse levels)
+    gaussianBudgetResidencyIndex = 10,       // gaussianComputeChunkQuotas: GaussianChunkResidency[] of this slot (paged entities with coarse levels; a never-read stand-in otherwise)
+    gaussianBudgetCoarseTableIndex = 11,     // gaussianComputeChunkQuotas: GaussianChunkDecodeConstants[levelCount × chunkCount], the coarse rows (a never-read stand-in otherwise)
+    gaussianBudgetLevelConstantsIndex = 12,  // gaussianComputeChunkQuotas: GaussianChunkLevelConstants (setBytes)
+    gaussianBudgetChunkTableIndex = 13,      // gaussianComputeChunkQuotas: GaussianChunkDecodeConstants[chunkCount], the fine rows (the chunk's full splat count)
+    gaussianBudgetLevelTotalsIndex = 14,     // gaussianComputeChunkQuotas: atomic_uint[3] at the state's byte offset 32: transitionSplats, coarseChunks, coarseSplats
 }GaussianBudgetBufferIndices;
+
+// MARK: - Paged .untoldgs entities (GaussianPageManager.swift)
+
+/// Per chunk, per in-flight slot, of an entity whose records live in a page pool: how many of
+/// its first (most important) ranks are resident this frame — a prefix of 256-rank tiers, so
+/// 0, R, 2R, … up to the splat count — and the fade of the last arrival: the ranks from
+/// fadeFromRank up arrived at pager tick arrivalFrame and fade in over
+/// GaussianChunkPagingConstants.fadeFrames executed frames. All zero = absent: the cull lists no
+/// such chunk. The cull bounds the listed count by residentRanks, so the budget, the density
+/// histogram and the quotas see only drawable ranks.
+typedef struct{
+    uint32_t residentRanks;   //  0: 0, R, 2R, …, splatCount
+    uint32_t fadeFromRank;    //  4: ranks ≥ this arrived at arrivalFrame and fade in
+    uint32_t arrivalFrame;    //  8: pager tick of the last arrival
+    uint32_t coarseAvailable; // 12: bit 0 = the runtime's coarse level 1 has landed for this chunk, bit 1 = level 2 (per-chunk-lod-tiers; 0 for entities without coarse levels)
+}GaussianChunkResidency;      // 16 bytes
+
+/// Per paged entity, set per frame: how the fused pass maps a rank of a chunk to a record of
+/// the page pool. Tier k of chunk c is pool slot pageTable[c × pagesPerChunk + k]; rank r of
+/// that chunk is pool record (slot << ranksPerPageLog2) | (r & (R − 1)), the same index into
+/// the core pool (uint4 per record) and the spherical-harmonics pool (shBytesPerSplat per record).
+typedef struct{
+    uint32_t pagesPerChunk;    //  0: splatsPerChunk / ranksPerPage (1 … 64)
+    uint32_t ranksPerPageLog2; //  4: log2(min(256, splatsPerChunk))
+    uint32_t frameIndex;       //  8: the pager's tick this frame
+    uint32_t fadeFrames;       // 12: frames an arriving tier fades in over; 0 = at once
+    uint32_t debugMode;        // 16: 0 none; 1 tint by resident fraction (GaussianDebugOptions.residencyDebugTint)
+    uint32_t _pad0[3];         // 20 … 31
+}GaussianChunkPagingConstants; // 32 bytes
+
+/// A page-table entry of a tier that is not resident.
+#define kGaussianPageSlotInvalid 0xFFFFFFFFu
+
+// MARK: - Per-chunk coarse levels of .untoldgs entities (per-chunk-lod-tiers)
+
+/// Per chunked entity, set per frame (setBytes) for the cull, the quota pass and the fused pass.
+/// hasCoarse = 0 (an entity whose file has no coarse section, or whose coarse buffers did not
+/// fit) makes every kernel take the paths it took before the levels existed, byte for byte.
+/// The runtime's level 1 is the file's finest resident coarse level: with hasCoarse = 2 the
+/// file's level 1 and level 2 are resident, with hasCoarse = 1 only the file's coarsest, drawn
+/// as the runtime's level 1 with tierShift1 = tierShift2 = its own shift.
+typedef struct{
+    uint32_t hasCoarse;        //  0: 0 none; 1 one resident coarse level; 2 two
+    uint32_t tierShift1;       //  4: 2 × (ratioLog2 − 1) of the runtime's level 1: half-octave tiers under the chunk's own density at which the level is chosen
+    uint32_t tierShift2;       //  8: the same for level 2 (== tierShift1 when hasCoarse == 1)
+    uint32_t frameIndex;       // 12: the pager's tick, or the entity's executed-frame counter (whole-resident)
+    uint32_t fadeFrames;       // 16: frames a level switch cross-fades over; 0 = switch at once (GaussianDebugOptions.disableLevelCrossFade)
+    uint32_t levelMode;        // 20: gaussianChunkLevelModeAuto / FineOnly / CoarseOnly (GaussianDebugOptions.gaussianLevelMode)
+    uint32_t debugTint;        // 24: 1 = tint by level: fine white, level 1 yellow, level 2 red (GaussianDebugOptions.levelDebugTint)
+    float    densityFloor;     // 28: maxSplatsPerPixel × viewport pixels, +inf when the knob is off; the level rule runs at min(cap, floor), the quota on the cap
+    uint32_t chunkCount;       // 32: the entity's chunk count (the coarse rows of level L start at (L − 1) × chunkCount)
+    uint32_t paged;            // 36: the cull's `paged`: 1 = read this slot's residency for the resident ranks and the coarse availability
+    uint32_t uniformQuotas;    // 40: the cull's `uniformQuotas`: levels are off under the uniform rule
+    uint32_t _pad0;            // 44
+}GaussianChunkLevelConstants; // 48 bytes
+
+typedef enum{
+    gaussianChunkLevelModeAuto = 0,       // the level rule
+    gaussianChunkLevelModeFineOnly = 1,   // every chunk fine: byte for byte the frame of a file without a coarse section
+    gaussianChunkLevelModeCoarseOnly = 2, // every chunk at its coarsest available level
+}GaussianChunkLevelMode;
+
+/// Per chunk of an entity with coarse levels, one persistent buffer (not per slot) written only
+/// by gaussianComputeChunkQuotas and read by the cull of the next frame and the fused pass of
+/// the same frame, in encoder order on one queue. word0: bits 0–1 the level drawn (0 fine, 1,
+/// 2); bits 2–3 the outgoing window's level + 1 (0 = none: nothing is fading out); bits 4–5 the
+/// pending level; bit 6 pendingValid (a switch detected last frame, committed this frame once
+/// the cull has listed the outgoing window); bit 7 reserved; bits 8–31 outCount, the outgoing
+/// window's splat count (24 bits, at least splatsPerChunk). switchFrame: the frame the last
+/// switch committed, the fade's clock. All zero is the initial state: fine, nothing fading,
+/// nothing pending.
+typedef struct{
+    uint32_t word0;
+    uint32_t switchFrame;
+}GaussianChunkLevelState;     // 8 bytes
+
+#define kGaussianChunkLevelStateLevelMask     0x00000003u
+#define kGaussianChunkLevelStateOutShift      2u
+#define kGaussianChunkLevelStateOutMask       0x0000000Cu
+#define kGaussianChunkLevelStatePendingShift  4u
+#define kGaussianChunkLevelStatePendingMask   0x00000030u
+#define kGaussianChunkLevelStatePendingValid  0x00000040u
+#define kGaussianChunkLevelStateCountShift    8u
+
+/// GaussianVisibleChunk.chunkIndex tag bits of an entity with coarse levels (chunk indices are
+/// asserted below 2^24 at load; every consumer masks): bits 24–25 the level this entry draws
+/// (0 fine, 1, 2), bit 26 set on the outgoing window of a fading chunk, listed as a second entry
+/// after the incoming one. Without coarse levels no bit is ever set.
+#define kGaussianVisibleChunkIndexMask   0x00FFFFFFu
+#define kGaussianVisibleChunkLevelShift  24u
+#define kGaussianVisibleChunkLevelMask   0x03000000u
+#define kGaussianVisibleChunkOutgoing    0x04000000u
 
 // MARK: - Fused decode, test, project and compact of .untoldgs entities (GaussianChunkPreprocess.metal)
 
@@ -899,6 +1023,13 @@ typedef enum{
     gaussianChunkPreprocessWorkingSetIndex,      // GaussianWorkingSetSplat[], shared per frame
     gaussianChunkPreprocessSharedKeysIndex,      // uint64_t depth keys, shared per frame
     gaussianChunkPreprocessSharedVisibleSetIndex,// GaussianVisibleSet, shared per frame
+    gaussianChunkPreprocessResidencyIndex,       // 13: GaussianChunkResidency[] of this slot (paged entities; a never-read stand-in otherwise)
+    gaussianChunkPreprocessPageTableIndex,       // 14: uint[chunkCount × pagesPerChunk] of this slot: the pool slot of each tier, kGaussianPageSlotInvalid when absent
+    gaussianChunkPreprocessPagingConstantsIndex, // 15: GaussianChunkPagingConstants (setBytes)
+    gaussianChunkPreprocessCoarseRecordsIndex,   // 16: uint4[coarseRecordCount]: the coarse levels' records as stored (entities with coarse levels; a never-read stand-in otherwise)
+    gaussianChunkPreprocessCoarseTableIndex,     // 17: GaussianChunkDecodeConstants[levelCount × chunkCount], the coarse rows, level-major
+    gaussianChunkPreprocessLevelStateIndex,      // 18: GaussianChunkLevelState[chunkCount] as gaussianComputeChunkQuotas left it this frame
+    gaussianChunkPreprocessLevelConstantsIndex,  // 19: GaussianChunkLevelConstants (setBytes)
 }GaussianChunkPreprocessBufferIndices;
 
 typedef enum{

@@ -197,12 +197,55 @@ extension BaseRenderSetup {
         return (readback.record, readback.entries)
     }
 
-    /// The visible-chunk list and record of `table` in `slot`, as the GPU left them.
-    func visibleChunkReadback(_ table: GaussianChunkTable, slot: Int) -> (chunks: Set<UInt32>, record: GaussianVisibleSet, entries: [GaussianVisibleChunk]) {
+    /// The visible-chunk list and record of `table` in `slot`, as the GPU left them. `chunks` is
+    /// the set of chunk indices with the level tag bits masked off (per-chunk-lod-tiers); an
+    /// entity without coarse levels writes no tag bits, which is asserted here so a section-free
+    /// frame is pinned to the entries of before.
+    func visibleChunkReadback(_ table: GaussianChunkTable, slot: Int, file: StaticString = #filePath, line: UInt = #line) -> (chunks: Set<UInt32>, record: GaussianVisibleSet, entries: [GaussianVisibleChunk]) {
         let record = table.visibleChunkSets[slot].contents().load(as: GaussianVisibleSet.self)
         let count = Int(record.threadgroupCount)
         let entries = Array(UnsafeBufferPointer(start: table.visibleChunks[slot].contents().bindMemory(to: GaussianVisibleChunk.self, capacity: count), count: count))
-        return (Set(entries.map(\.chunkIndex)), record, entries)
+        if !table.hasCoarse {
+            for entry in entries where entry.chunkIndex & ~kGaussianVisibleChunkIndexMask != 0 {
+                XCTFail("a section-free frame wrote tag bits into chunk index \(String(entry.chunkIndex, radix: 16))", file: file, line: line)
+                break
+            }
+        }
+        return (Set(entries.map { $0.chunkIndex & kGaussianVisibleChunkIndexMask }), record, entries)
+    }
+
+    /// One visible-chunk entry with its `chunkIndex` word decoded (per-chunk-lod-tiers): the chunk,
+    /// the level the entry draws (0 fine, 1, 2) and whether it is the outgoing window of a fade.
+    struct GaussianVisibleChunkLevelEntry {
+        let chunkIndex: UInt32
+        let level: Int
+        let outgoing: Bool
+        let entry: GaussianVisibleChunk
+
+        var quota: UInt32 {
+            entry.quota
+        }
+
+        var splatCount: UInt32 {
+            entry.splatCount
+        }
+
+        var screenArea: Float {
+            entry.screenArea
+        }
+    }
+
+    /// The visible-chunk list of `table` for the current slot with every entry's tag decoded.
+    func visibleChunkLevels(_ table: GaussianChunkTable) -> [GaussianVisibleChunkLevelEntry] {
+        visibleChunkEntries(table).entries.map { entry in
+            let tag = GaussianChunkCullMath.decodeVisibleChunkTag(entry.chunkIndex)
+            return GaussianVisibleChunkLevelEntry(chunkIndex: tag.chunkIndex, level: tag.level, outgoing: tag.outgoing, entry: entry)
+        }
+    }
+
+    /// The per-chunk level states of `coarse`, as the quota pass left them.
+    func levelStates(_ coarse: GaussianCoarseTable, chunkCount: Int) -> [GaussianChunkLevelState] {
+        Array(UnsafeBufferPointer(start: coarse.levelStateBuffer.contents().bindMemory(to: GaussianChunkLevelState.self, capacity: chunkCount), count: chunkCount))
     }
 
     /// Runs the frame's cull, preprocess and sort as the renderer does, and returns the sorted
@@ -248,14 +291,27 @@ extension BaseRenderSetup {
     }
 
     /// Encodes one chunk cull of `table` into slot 0 with `constants` — after zeroing the
-    /// persistent histogram, so it holds this cull alone — and returns the record.
-    func cullChunks(_ table: GaussianChunkTable, constants: GaussianChunkCullConstants) throws -> (chunks: Set<UInt32>, record: GaussianVisibleSet, entries: [GaussianVisibleChunk]) {
+    /// persistent histogram, so it holds this cull alone — and returns the record. An entity with
+    /// coarse levels passes its `levels` and `levelConstants` (per-chunk-lod-tiers); with
+    /// `quotas` the budget state is reset first and the scale and quota passes follow the cull on
+    /// the same encoder with `budget`, so the entries carry their quotas and level tags.
+    func cullChunks(
+        _ table: GaussianChunkTable,
+        constants: GaussianChunkCullConstants,
+        levels: GaussianChunkLevelBuffers? = nil,
+        levelConstants: GaussianChunkLevelConstants = GaussianChunkLevelConstants(),
+        quotas: Bool = false,
+        budget: Int = 1 << 24
+    ) throws -> (chunks: Set<UInt32>, record: GaussianVisibleSet, entries: [GaussianVisibleChunk]) {
         let pipelines = try XCTUnwrap(GaussianChunkCullPipelineStates.current())
         let budgetState = try budgetStateBuffer()
         let densityHistogram = try densityHistogramBuffer()
         densityHistogram.contents().storeBytes(of: GaussianBudgetDensityHistogram(), as: GaussianBudgetDensityHistogram.self)
         runSynchronously { commandBuffer in
             guard let encoder = commandBuffer.makeComputeCommandEncoder() else { return }
+            if quotas {
+                encodeGaussianBudgetReset(encoder, pipelines: pipelines, budgetState: budgetState, densityHistogram: densityHistogram)
+            }
             _ = encodeGaussianChunkCull(
                 encoder,
                 pipelines: pipelines,
@@ -265,8 +321,30 @@ extension BaseRenderSetup {
                 budgetState: budgetState,
                 densityHistogram: densityHistogram,
                 constants: constants,
-                hzbTexture: textureResources.hzbDepthPyramid ?? textureResources.depthMap
+                hzbTexture: textureResources.hzbDepthPyramid ?? textureResources.depthMap,
+                levels: levels,
+                levelConstants: levelConstants
             )
+            if quotas {
+                let scale = gaussianBudgetScaleConstants(
+                    budget: budget,
+                    resetHysteresis: true,
+                    uniformQuotas: constants.uniformQuotas != 0,
+                    densityFloor: levelConstants.densityFloor,
+                    tierShifts: (levelConstants.tierShift1, levelConstants.tierShift2)
+                )
+                encodeGaussianBudgetScale(encoder, pipelines: pipelines, budgetState: budgetState, densityHistogram: densityHistogram, constants: scale)
+                encodeGaussianChunkQuotas(
+                    encoder,
+                    pipelines: pipelines,
+                    chunkTable: table,
+                    visibleChunks: table.visibleChunks[0],
+                    chunkSet: table.visibleChunkSets[0],
+                    budgetState: budgetState,
+                    levels: levels,
+                    levelConstants: levelConstants
+                )
+            }
             encoder.endEncoding()
         }
         return visibleChunkReadback(table, slot: 0)
@@ -400,6 +478,10 @@ struct GaussianSplatIndexResolver {
 struct GaussianLegacyTwin {
     let result: GaussianLoadResult
 
+    init(result: GaussianLoadResult) {
+        self.result = result
+    }
+
     init(loaded: GaussianChunkLoadResult) throws {
         let encoded = try GaussianChunkLoader.decodeEncodedSplats(loaded)
         result = try XCTUnwrap(buildGaussianLoadResult(
@@ -467,9 +549,16 @@ enum GaussianSyntheticAsset {
     static let slabMin = simd_float3(-6, -0.3, -6)
     static let slabMax = simd_float3(6, 0.3, 6)
 
-    static func url(splatCount: Int) throws -> URL {
+    /// The slab of `splatCount` splats, section-free by default; with `coarseLevels` the same
+    /// fine chunks byte for byte plus the per-chunk coarse section those options bake
+    /// (per-chunk-lod-tiers), cached under its own name.
+    static func url(splatCount: Int, coarseLevels: UntoldGSCoarseLevelOptions? = nil) throws -> URL {
+        var name = "GaussianSyntheticAsset-\(splatCount)-v1"
+        if let coarseLevels {
+            name += "-coarse\(coarseLevels.levelCount)-" + coarseLevels.ratioLog2.prefix(coarseLevels.levelCount).map(String.init).joined(separator: "_")
+        }
         let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent("GaussianSyntheticAsset-\(splatCount)-v1")
+            .appendingPathComponent(name)
             .appendingPathExtension("untoldgs")
         if FileManager.default.fileExists(atPath: url.path) {
             return url
@@ -492,10 +581,110 @@ enum GaussianSyntheticAsset {
         }
         var options = UntoldGSWriteOptions()
         options.log2ChunkSplats = 10
+        // Section-free unless asked: the slab is the fixture of the budget and paging suites,
+        // whose frames are compared against whole-buffer twins; the per-chunk level tests take
+        // the levelled variant (the writer's automatic policy would add a section to every slab
+        // of at least 64 chunks).
+        options.coarseLevels = coarseLevels
+        options.coarseLevelsAutomatic = false
         let start = CFAbsoluteTimeGetCurrent()
         try UntoldGSFormat.write(splats: splats, options: options, to: url)
         print("[GaussianSyntheticAsset] baked \(splatCount) splats in \(String(format: "%.1f", CFAbsoluteTimeGetCurrent() - start)) s -> \(url.path)")
         return url
+    }
+
+    /// The analytic cluster fixture (per-chunk-lod-tiers): `chunkCount × 8` tight clusters of
+    /// `clusterSplats` identical isotropic splats each, on a cubic grid whose cells are the
+    /// Morton cells of the bake, so every chunk of 8 × `clusterSplats` splats holds exactly eight
+    /// whole clusters and a level of ratio log2(`clusterSplats`) merges each cluster into one
+    /// record whose moments are closed-form: centre = the cluster's mean, covariance ≈ r² I plus
+    /// the members' spread, opacity 1 − exp(−N α r² / s_M). Baked with levels [log2 N, log2 8N]
+    /// (one record per cluster, then one per chunk).
+    struct CoarseClusters {
+        let url: URL
+        /// Cluster centres in bake order (chunk-major: chunk c holds clusters 8c … 8c + 7).
+        let centres: [simd_float3]
+        let radius: Float
+        let splatRadius: Float
+        let splatOpacity: Float
+        let clusterSplats: Int
+        let colours: [simd_float3]
+        var chunkCount: Int {
+            centres.count / 8
+        }
+    }
+
+    static func coarseClusters(chunkCount: Int, clusterSplats: Int = 128, to url: URL) throws -> CoarseClusters {
+        precondition(clusterSplats > 0 && clusterSplats & (clusterSplats - 1) == 0, "a power of two per cluster")
+        // A cubic grid of 8 × chunkCount cells: side g with g³ ≥ 8 chunkCount, filled in Morton
+        // order of the cell so consecutive clusters are consecutive in the bake.
+        let clusterCount = 8 * chunkCount
+        var side = 1
+        while side * side * side < clusterCount {
+            side *= 2
+        }
+        let spacing: Float = 1
+        let radius: Float = 0.06 * spacing
+        let splatRadius: Float = 0.02 * spacing
+        let opacity: Float = 0.6
+        var generator = SplitMix64(seed: 0x5EED_C1A5)
+        /// Morton rank of every cell, sorted: the bake's order.
+        func morton(_ x: Int, _ y: Int, _ z: Int) -> Int {
+            var code = 0
+            for bit in 0 ..< 10 {
+                code |= ((x >> bit) & 1) << (3 * bit)
+                code |= ((y >> bit) & 1) << (3 * bit + 1)
+                code |= ((z >> bit) & 1) << (3 * bit + 2)
+            }
+            return code
+        }
+        var cells: [(code: Int, x: Int, y: Int, z: Int)] = []
+        for z in 0 ..< side {
+            for y in 0 ..< side {
+                for x in 0 ..< side {
+                    cells.append((morton(x, y, z), x, y, z))
+                }
+            }
+        }
+        cells.sort { $0.code < $1.code }
+        var centres: [simd_float3] = []
+        var colours: [simd_float3] = []
+        var splats: [UntoldGSSplat] = []
+        splats.reserveCapacity(clusterCount * clusterSplats)
+        for cell in cells.prefix(clusterCount) {
+            let centre = simd_float3(Float(cell.x), Float(cell.y), Float(cell.z)) * spacing
+            let colour = simd_float3(generator.value(in: 0.2 ... 0.9), generator.value(in: 0.2 ... 0.9), generator.value(in: 0.2 ... 0.9))
+            centres.append(centre)
+            colours.append(colour)
+            for _ in 0 ..< clusterSplats {
+                // Uniform in the ball of `radius` around the centre.
+                var offset: simd_float3
+                repeat {
+                    offset = simd_float3(generator.value(in: -1 ... 1), generator.value(in: -1 ... 1), generator.value(in: -1 ... 1))
+                } while simd_length_squared(offset) > 1
+                splats.append(UntoldGSSplat(
+                    position: centre + offset * radius,
+                    scale: simd_float3(repeating: splatRadius),
+                    rotation: simd_quatf(ix: 0, iy: 0, iz: 0, r: 1),
+                    color: colour,
+                    opacity: opacity,
+                    sphericalHarmonics: []
+                ))
+            }
+        }
+        var options = UntoldGSWriteOptions()
+        var log2 = 0
+        while 1 << log2 < clusterSplats {
+            log2 += 1
+        }
+        options.log2ChunkSplats = UInt8(log2 + 3)
+        var levels = UntoldGSCoarseLevelOptions()
+        levels.levelCount = 2
+        levels.ratioLog2 = [UInt8(log2), UInt8(log2 + 3)]
+        options.coarseLevels = levels
+        options.coarseLevelsAutomatic = false
+        try UntoldGSFormat.write(splats: splats, options: options, to: url)
+        return CoarseClusters(url: url, centres: centres, radius: radius, splatRadius: splatRadius, splatOpacity: opacity, clusterSplats: clusterSplats, colours: colours)
     }
 
     /// `splatCount` splats over x, y in ±1.4 and z in 0…0.5 (where GaussianChunkCullTest's three
@@ -525,5 +714,479 @@ enum GaussianSyntheticAsset {
         options.log2ChunkSplats = log2ChunkSplats
         options.shDegree = degree
         try UntoldGSFormat.write(splats: splats, options: options, to: url)
+    }
+}
+
+// MARK: - Paging
+
+/// A page source over the file's bytes in memory, for the paging tests: a read completes at
+/// once, or blocks until the test advances the source's tick past its latency
+/// (`latencyTicks`, `advance()`, `deliverAll()`); reads of `holdChunks` block until released;
+/// `failChunks` throw; `corruptChunks` serve a flipped byte; after `identityChangesAfterRead`
+/// successful reads every read throws `.fileChanged` and `reopen()` fails until
+/// `restoreIdentity()`. Every read is logged by chunk, rank and bytes.
+final class GaussianTestPageSource: GaussianPageSource, @unchecked Sendable {
+    struct ReadRecord: Equatable {
+        let chunk: Int
+        let firstRank: Int
+        let rankCount: Int
+        let bytes: Int
+        /// Whether the range is the chunk's core block (else its harmonics).
+        let core: Bool
+        /// A piece of the coarse section (per-chunk-lod-tiers): the file level whose records the
+        /// range starts in, `chunk` −1 and no ranks; 0 for a tier read.
+        var coarseLevel: Int = 0
+
+        var isCoarse: Bool {
+            coarseLevel != 0
+        }
+
+        /// A read of a chunk's core records (a fine tier).
+        var isFine: Bool {
+            core && chunk >= 0
+        }
+    }
+
+    /// Every source the factory override created, newest last.
+    static var created: [GaussianTestPageSource] {
+        registryLock.lock()
+        defer { registryLock.unlock() }
+        return _created
+    }
+
+    static func resetCreated() {
+        registryLock.lock()
+        _created.removeAll()
+        registryLock.unlock()
+    }
+
+    /// Installs the override; the sources it creates are listed in `created`.
+    static func install() {
+        GaussianPageSourceFactory.override = { url in
+            let source = try GaussianTestPageSource(url: url)
+            record(source)
+            return source
+        }
+    }
+
+    /// Lists a source a custom override created.
+    static func record(_ source: GaussianTestPageSource) {
+        registryLock.lock()
+        _created.append(source)
+        registryLock.unlock()
+    }
+
+    private static let registryLock = NSLock()
+    private nonisolated(unsafe) static var _created: [GaussianTestPageSource] = []
+
+    let url: URL
+    let index: UntoldGSIndex
+    private let data: Data
+    private let lock = NSLock()
+    private let condition = NSCondition()
+    private var _identity: GaussianFileIdentity
+    private let originalIdentity: GaussianFileIdentity
+    private var identityChanged = false
+    private var successfulReads = 0
+    private var _tick = 0
+    private var _blockedReads = 0
+    private var released = false
+    private var _closed = false
+    private var _reopenCount = 0
+    private var _log: [ReadRecord] = []
+    private var _bytesRequested = 0
+
+    var latencyTicks = 0
+    /// Chunks whose reads never complete until released. Published under the condition's lock:
+    /// a worker between its hold check and its wait holds that lock, so the change and its
+    /// broadcast cannot slip into the gap and leave a released read asleep.
+    var holdChunks: Set<Int> {
+        get { lock.lock(); defer { lock.unlock() }; return _holdChunks }
+        set {
+            condition.lock()
+            lock.lock()
+            _holdChunks = newValue
+            lock.unlock()
+            condition.broadcast()
+            condition.unlock()
+        }
+    }
+
+    private var _holdChunks: Set<Int> = []
+    var failChunks: [Int: GaussianPagingError] {
+        get { lock.lock(); defer { lock.unlock() }; return _failChunks }
+        set { lock.lock(); _failChunks = newValue; lock.unlock() }
+    }
+
+    private var _failChunks: [Int: GaussianPagingError] = [:]
+    var corruptChunks: Set<Int> {
+        get { lock.lock(); defer { lock.unlock() }; return _corruptChunks }
+        set { lock.lock(); _corruptChunks = newValue; lock.unlock() }
+    }
+
+    private var _corruptChunks: Set<Int> = []
+    /// Every read of the coarse section serves a flipped byte (per-chunk-lod-tiers): the first
+    /// level payload the piece holds fails its CRC.
+    var corruptCoarse: Bool {
+        get { lock.lock(); defer { lock.unlock() }; return _corruptCoarse }
+        set { lock.lock(); _corruptCoarse = newValue; lock.unlock() }
+    }
+
+    private var _corruptCoarse = false
+    /// Every piece of the coarse section fails its first this many reads with an I/O error
+    /// (per piece, by file offset) and succeeds after (per-chunk-lod-tiers).
+    var coarsePieceFailures: Int {
+        get { lock.lock(); defer { lock.unlock() }; return _coarsePieceFailures }
+        set { lock.lock(); _coarsePieceFailures = newValue; lock.unlock() }
+    }
+
+    private var _coarsePieceFailures = 0
+    private var _coarsePieceAttempts: [UInt64: Int] = [:]
+    var identityChangesAfterRead: Int? {
+        get { lock.lock(); defer { lock.unlock() }; return _identityChangesAfterRead }
+        set { lock.lock(); _identityChangesAfterRead = newValue; lock.unlock() }
+    }
+
+    private var _identityChangesAfterRead: Int?
+
+    init(url: URL) throws {
+        self.url = url
+        data = try Data(contentsOf: url)
+        index = try UntoldGSFormat.readIndex(from: data)
+        let identity = GaussianFileIdentity(fileSize: UInt64(data.count), inode: 1, modificationSeconds: 1, modificationNanoseconds: 0)
+        _identity = identity
+        originalIdentity = identity
+    }
+
+    var identity: GaussianFileIdentity {
+        lock.lock()
+        defer { lock.unlock() }
+        return _identity
+    }
+
+    var closed: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return _closed
+    }
+
+    var reopenCount: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return _reopenCount
+    }
+
+    var requestLog: [ReadRecord] {
+        lock.lock()
+        defer { lock.unlock() }
+        return _log
+    }
+
+    var bytesRequested: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return _bytesRequested
+    }
+
+    /// Reads currently blocked on their latency or a hold.
+    var blockedReads: Int {
+        condition.lock()
+        defer { condition.unlock() }
+        return _blockedReads
+    }
+
+    /// One tick of latency passes: reads due at or before it complete.
+    func advance() {
+        condition.lock()
+        _tick += 1
+        condition.broadcast()
+        condition.unlock()
+    }
+
+    /// Every blocked read completes (holds included).
+    func deliverAll() {
+        condition.lock()
+        released = true
+        condition.broadcast()
+        condition.unlock()
+    }
+
+    func release(chunk: Int) {
+        condition.lock()
+        lock.lock()
+        _holdChunks.remove(chunk)
+        lock.unlock()
+        condition.broadcast()
+        condition.unlock()
+    }
+
+    /// The file "changes": reads and reopens fail until `restoreIdentity()`.
+    func changeIdentity() {
+        lock.lock()
+        identityChanged = true
+        _identity = GaussianFileIdentity(fileSize: originalIdentity.fileSize, inode: 2, modificationSeconds: 2, modificationNanoseconds: 0)
+        lock.unlock()
+    }
+
+    func restoreIdentity() {
+        lock.lock()
+        identityChanged = false
+        _identityChangesAfterRead = nil
+        lock.unlock()
+    }
+
+    /// The chunk a file range belongs to, and its first rank and rank count within it.
+    func locate(offset: UInt64, count: Int) -> ReadRecord? {
+        for (chunkIndex, chunk) in index.chunks.enumerated() {
+            guard offset >= chunk.payloadOffset, offset < chunk.payloadOffset + UInt64(chunk.payloadBytes) else { continue }
+            let relative = Int(offset - chunk.payloadOffset)
+            let shBytes = index.header.shBytesPerSplat
+            if relative < Int(chunk.coreBytes) {
+                return ReadRecord(chunk: chunkIndex, firstRank: relative / UntoldGSFormat.coreRecordSize, rankCount: count / UntoldGSFormat.coreRecordSize, bytes: count, core: true)
+            }
+            guard shBytes > 0 else { return nil }
+            let shRelative = relative - Int(chunk.coreBytes)
+            return ReadRecord(chunk: chunkIndex, firstRank: shRelative / shBytes, rankCount: count / shBytes, bytes: count, core: false)
+        }
+        // A piece of the coarse section: the level whose range holds the start of the piece.
+        let header = index.header
+        if header.hasCoarseLevels, offset >= header.coarsePayloadOffset, offset < header.fileSize {
+            for level in 1 ... index.coarseLevelCount {
+                guard let range = index.coarseLevelRange(level: level), range.contains(offset) else { continue }
+                return ReadRecord(chunk: -1, firstRank: 0, rankCount: 0, bytes: count, core: false, coarseLevel: level)
+            }
+            return ReadRecord(chunk: -1, firstRank: 0, rankCount: 0, bytes: count, core: false, coarseLevel: index.coarseLevelCount)
+        }
+        return nil
+    }
+
+    func read(offset: UInt64, count: Int, into destination: UnsafeMutableRawPointer) throws {
+        guard let record = locate(offset: offset, count: count) else {
+            throw GaussianPagingError.truncated
+        }
+        lock.lock()
+        _log.append(record)
+        _bytesRequested += count
+        let closedNow = _closed
+        lock.unlock()
+        if closedNow { throw GaussianPagingError.closed }
+
+        // Latency and holds.
+        condition.lock()
+        let due = _tick + latencyTicks
+        var blocked = false
+        while !released {
+            lock.lock()
+            let held = _holdChunks.contains(record.chunk)
+            lock.unlock()
+            if !held, _tick >= due { break }
+            if !blocked {
+                blocked = true
+                _blockedReads += 1
+            }
+            condition.wait()
+        }
+        if blocked { _blockedReads -= 1 }
+        condition.unlock()
+
+        lock.lock()
+        defer { lock.unlock() }
+        if _closed { throw GaussianPagingError.closed }
+        if let error = _failChunks[record.chunk], record.core {
+            throw error
+        }
+        if record.isCoarse, _coarsePieceFailures > 0 {
+            let attempt = _coarsePieceAttempts[offset, default: 0] + 1
+            _coarsePieceAttempts[offset] = attempt
+            if attempt <= _coarsePieceFailures {
+                throw GaussianPagingError.ioFailure(errno: EIO)
+            }
+        }
+        if identityChanged {
+            throw GaussianPagingError.fileChanged
+        }
+        let start = Int(offset)
+        guard start + count <= data.count else { throw GaussianPagingError.truncated }
+        data.withUnsafeBytes { bytes in
+            destination.copyMemory(from: bytes.baseAddress! + start, byteCount: count)
+        }
+        if _corruptChunks.contains(record.chunk), record.core, count > 3 {
+            destination.storeBytes(of: destination.load(fromByteOffset: 3, as: UInt8.self) ^ 0x5A, toByteOffset: 3, as: UInt8.self)
+        }
+        if _corruptCoarse, record.coarseLevel != 0, count > 3 {
+            destination.storeBytes(of: destination.load(fromByteOffset: 3, as: UInt8.self) ^ 0x5A, toByteOffset: 3, as: UInt8.self)
+        }
+        successfulReads += 1
+        if let limit = _identityChangesAfterRead, successfulReads >= limit {
+            identityChanged = true
+            _identity = GaussianFileIdentity(fileSize: originalIdentity.fileSize, inode: 2, modificationSeconds: 2, modificationNanoseconds: 0)
+        }
+    }
+
+    func reopen() throws {
+        lock.lock()
+        defer { lock.unlock() }
+        _reopenCount += 1
+        if _closed { throw GaussianPagingError.closed }
+        if identityChanged { throw GaussianPagingError.fileChanged }
+        _identity = originalIdentity
+    }
+
+    func close() {
+        lock.lock()
+        _closed = true
+        lock.unlock()
+        condition.lock()
+        released = true
+        condition.broadcast()
+        condition.unlock()
+    }
+}
+
+/// A whole-buffer twin of a partially resident paged entity: the same records expanded once,
+/// with every rank at or beyond its chunk's resident prefix at opacity 0 and the resident tail
+/// faded by the opacity band the fused pass applies to a truncated chunk (quota = resident
+/// ranks), so a frame of the paged entity and a frame of the twin draw the same splats.
+struct GaussianPartialTwin {
+    let result: GaussianLoadResult
+
+    /// `residentRanks` per chunk index (missing = whole).
+    init(loaded: GaussianChunkLoadResult, residentRanks: [Int: Int]) throws {
+        let encoded = try GaussianChunkLoader.decodeEncodedSplats(loaded)
+        let splats = encoded.contents().bindMemory(to: EncodedGaussianSplat.self, capacity: loaded.splatCount)
+        var firstSplat = 0
+        for (chunkIndex, chunk) in loaded.index.chunks.enumerated() {
+            let count = Int(chunk.splatCount)
+            if let resident = residentRanks[chunkIndex], resident < count {
+                for rank in 0 ..< count {
+                    let factor = rank < resident
+                        ? GaussianChunkCullMath.opacityBandFactor(rank: UInt32(rank), quota: UInt32(resident), splatCount: UInt32(count))
+                        : 0
+                    var splat = splats[firstSplat + rank]
+                    splat.colorAndOpacity.w = Float16(Float(splat.colorAndOpacity.w) * factor)
+                    splats[firstSplat + rank] = splat
+                }
+            }
+            firstSplat += count
+        }
+        result = try XCTUnwrap(buildGaussianLoadResult(
+            encodedSplatBuffer: encoded,
+            splatCount: UInt(loaded.splatCount),
+            sphericalHarmonicsBuffer: loaded.sphericalHarmonicsBuffer,
+            sphericalHarmonicsMetadata: loaded.sphericalHarmonicsMetadata,
+            boundingBox: loaded.boundingBox
+        ))
+    }
+
+    /// Runs `body` with `component` swapped onto the whole-buffer path over the twin's buffers.
+    func withLegacyBuffers<T>(_ component: GaussianComponent, _ body: () throws -> T) rethrows -> T {
+        try GaussianLegacyTwin(result: result).withLegacyBuffers(component, body)
+    }
+}
+
+/// A whole-resident chunked twin of an entity with per-chunk coarse levels (per-chunk-lod-tiers):
+/// every chunk drawn as one fixed level. Its chunk table's rows are the chosen level's own decode
+/// constants (the fine row, or the coarse entry's ranges — G1 of the spec: a coarse entry is a
+/// chunk entry) over one packed buffer holding the fine records followed by the coarse records
+/// as stored, so the fused pass decodes the same 16-byte records against the same ranges as the
+/// levelled entity does for that level — bit-identical records and keys when both draw the
+/// whole level with no fade. Culled by the chosen level's own box (the levelled entity culls by
+/// the fine box), so the comparison holds for chunks well inside the frustum.
+struct GaussianLevelTwin {
+    let result: GaussianLoadResult
+    let table: GaussianChunkTable
+    /// The level each chunk draws in the twin.
+    let levels: [Int]
+
+    /// `levels[chunk]` = 0 fine, 1, 2 (the file's levels); a level the chunk lacks falls back to
+    /// the finest it has.
+    init(loaded: GaussianChunkLoadResult, levels: (Int) -> Int) throws {
+        let index = loaded.index
+        let coarse = try XCTUnwrap(loaded.chunkTable.coarse, "the entity carries coarse levels")
+        let device = try XCTUnwrap(renderInfo.device)
+        let fineBytes = loaded.packedSplatBuffer.length
+        let coarseBytes = coarse.recordsBuffer.length
+        let packed = try XCTUnwrap(device.makeBuffer(length: fineBytes + coarseBytes, options: .storageModeShared))
+        packed.label = "Gaussian Level Twin Records"
+        packed.contents().copyMemory(from: loaded.packedSplatBuffer.contents(), byteCount: fineBytes)
+        packed.contents().advanced(by: fineBytes).copyMemory(from: coarse.recordsBuffer.contents(), byteCount: coarseBytes)
+        let fineRecords = fineBytes / UntoldGSFormat.coreRecordSize
+
+        var rows: [GaussianChunkDecodeConstants] = []
+        var entries: [UntoldGSChunkEntry] = []
+        var chosen: [Int] = []
+        var total: UInt32 = 0
+        var firstFine = 0
+        for (chunkIndex, fine) in index.chunks.enumerated() {
+            var level = max(0, min(2, levels(chunkIndex)))
+            var entry: UntoldGSChunkEntry?
+            while level > 0 {
+                if let runtime = coarse.fileLevels.firstIndex(of: level), let candidate = loaded.chunkTable.coarseEntry(runtimeLevel: runtime + 1, chunk: chunkIndex) {
+                    entry = candidate
+                    break
+                }
+                level -= 1
+            }
+            let row: GaussianChunkDecodeConstants
+            if let entry {
+                let firstSplat = fineRecords + Int((entry.payloadOffset - coarse.recordsRange.lowerBound) / UInt64(UntoldGSFormat.coreRecordSize))
+                row = GaussianChunkDecodeConstants(
+                    aabbMinX: entry.aabbMin.x, aabbMinY: entry.aabbMin.y, aabbMinZ: entry.aabbMin.z, logScaleMin: entry.logScaleMin,
+                    aabbMaxX: entry.aabbMax.x, aabbMaxY: entry.aabbMax.y, aabbMaxZ: entry.aabbMax.z, logScaleMax: entry.logScaleMax,
+                    firstSplat: UInt32(firstSplat), splatCount: entry.splatCount, _pad0: 0, _pad1: 0
+                )
+                entries.append(entry)
+                total += entry.splatCount
+            } else {
+                level = 0
+                row = GaussianChunkDecodeConstants(
+                    aabbMinX: fine.aabbMin.x, aabbMinY: fine.aabbMin.y, aabbMinZ: fine.aabbMin.z, logScaleMin: fine.logScaleMin,
+                    aabbMaxX: fine.aabbMax.x, aabbMaxY: fine.aabbMax.y, aabbMaxZ: fine.aabbMax.z, logScaleMax: fine.logScaleMax,
+                    firstSplat: UInt32(firstFine), splatCount: fine.splatCount, _pad0: 0, _pad1: 0
+                )
+                entries.append(fine)
+                total += fine.splatCount
+            }
+            rows.append(row)
+            chosen.append(level)
+            firstFine += Int(fine.splatCount)
+        }
+        let constants = try XCTUnwrap(device.makeBuffer(bytes: rows, length: rows.count * MemoryLayout<GaussianChunkDecodeConstants>.stride, options: .storageModeShared))
+        constants.label = "Gaussian Level Twin Table"
+        // A section-free index over the chosen entries: the twin has no coarse table of its own.
+        var header = index.header
+        header.flags &= ~UntoldGSFlags.hasCoarseLevels
+        header.coarseLevelCount = 0
+        header.coarseRatioLog2 = [0, 0]
+        header.coarseIndexOffset = 0
+        header.coarsePayloadOffset = 0
+        header.coarseRecordCount = 0
+        header.splatCount = total
+        let twinIndex = UntoldGSIndex(header: header, chunks: entries, nodes: index.nodes)
+        let table = GaussianChunkTable(constantsBuffer: constants, chunkCount: rows.count, splatsPerChunk: loaded.chunkTable.splatsPerChunk, index: twinIndex)
+        result = try XCTUnwrap(buildGaussianLoadResult(
+            packedSplatBuffer: packed,
+            splatCount: UInt(total),
+            sphericalHarmonicsBuffer: nil,
+            sphericalHarmonicsMetadata: loaded.sphericalHarmonicsMetadata,
+            boundingBox: loaded.boundingBox,
+            chunkTable: table
+        ))
+        self.table = try XCTUnwrap(result.chunkTable)
+        self.levels = chosen
+    }
+
+    /// Runs `body` with `component` on the whole-resident chunked path over the twin's buffers
+    /// (no pager, no coarse table), then puts its own buffers, table and pager back.
+    func withTwinBuffers<T>(_ component: GaussianComponent, _ body: () throws -> T) rethrows -> T {
+        let saved = (component.packedSplatData, component.sphericalHarmonicsData, component.chunkTable, component.pager)
+        component.packedSplatData = result.packedSplatBuffer
+        component.sphericalHarmonicsData = nil
+        component.chunkTable = result.chunkTable
+        component.pager = nil
+        defer {
+            (component.packedSplatData, component.sphericalHarmonicsData, component.chunkTable, component.pager) = saved
+        }
+        return try body()
     }
 }

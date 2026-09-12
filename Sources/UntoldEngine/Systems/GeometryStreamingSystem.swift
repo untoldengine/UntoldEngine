@@ -455,7 +455,10 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         // Register OS memory pressure handlers.
         // The callbacks fire on a background queue, so we only set a flag here.
         // Actual eviction happens on the next update() tick (main thread).
+        // The Gaussian page pools take a soft target (half, then a quarter of their slots) and
+        // stop reading until they are under it; the allocation itself is freed with the entity.
         MemoryBudgetManager.shared.onMemoryPressureWarning = { [weak self] in
+            GaussianPagePoolRegistry.shared.noteMemoryPressure(.warning)
             guard let self else { return }
             withStateLock {
                 self.pendingPressureRelief = true
@@ -463,6 +466,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             }
         }
         MemoryBudgetManager.shared.onMemoryPressureCritical = { [weak self] in
+            GaussianPagePoolRegistry.shared.noteMemoryPressure(.critical)
             guard let self else { return }
             NativeTextureLoader.purgeSharedCache()
             withStateLock {
@@ -2130,6 +2134,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         else { return }
 
         streaming.state = .loading
+        streaming.loadDispatchCount += 1
 
         let success = await loadMeshAsync(
             entityId: entityId,

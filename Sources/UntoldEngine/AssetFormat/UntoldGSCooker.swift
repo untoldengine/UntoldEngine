@@ -75,6 +75,10 @@ public struct UntoldGSCookOptions: Sendable {
     public var isEnvironment = false
     public var captureExposureEV: Float = 0
     public var captureWhiteBalance = SIMD3<Float>(repeating: 1)
+    /// Per-chunk coarse levels: `.automatic` bakes two levels when the tier has at least
+    /// `UntoldGSFormat.coarseLevelsAutomaticMinimumChunks` (64) chunks, `.off` never,
+    /// `.levels(options)` always. Every `_lodN` tier of a progressive bake resolves on its own.
+    public var coarseLevels: UntoldGSCoarseLevelPolicy = .automatic
 
     public init() {}
 
@@ -93,6 +97,57 @@ public struct UntoldGSCookOptions: Sendable {
         }
         transform.columns.3 = SIMD4<Float>(translation, 1)
         return transform
+    }
+}
+
+/// Whether a cook bakes the optional per-chunk coarse levels (`UntoldGSCoarsener`).
+public enum UntoldGSCoarseLevelPolicy: Sendable, Equatable {
+    /// `template` (its ratios clamped to the chunk size) for tiers of at least
+    /// `UntoldGSFormat.coarseLevelsAutomaticMinimumChunks` chunks; none below.
+    case automatic(template: UntoldGSCoarseLevelOptions)
+    /// Never a coarse section.
+    case off
+    /// These levels, whatever the tier's size.
+    case levels(UntoldGSCoarseLevelOptions)
+
+    /// Two levels at the default ratios above the threshold: the default policy.
+    public static let automatic = UntoldGSCoarseLevelPolicy.automatic(template: .default)
+
+    /// `.levels` with `count` levels at the default ratios.
+    public static func levels(count: Int) -> UntoldGSCoarseLevelPolicy {
+        var options = UntoldGSCoarseLevelOptions.default
+        options.levelCount = count
+        return .levels(options)
+    }
+}
+
+/// The coarse section a bake wrote, for the CLI's report and the editor.
+public struct UntoldGSCoarseLevelReport: Sendable, Equatable {
+    public var levelCount: Int
+    /// `ratioLog2[L − 1]` per level.
+    public var ratioLog2: [UInt8]
+    /// Merged records per level, over every chunk.
+    public var recordsPerLevel: [Int]
+    /// Bytes of the section (index, records and padding).
+    public var bytes: Int
+    /// Chunks below `minimumChunkSplats`, which got no level.
+    public var chunksWithoutLevels: Int
+
+    public init(levelCount: Int, ratioLog2: [UInt8], recordsPerLevel: [Int], bytes: Int, chunksWithoutLevels: Int) {
+        self.levelCount = levelCount
+        self.ratioLog2 = ratioLog2
+        self.recordsPerLevel = recordsPerLevel
+        self.bytes = bytes
+        self.chunksWithoutLevels = chunksWithoutLevels
+    }
+
+    public var recordCount: Int {
+        recordsPerLevel.reduce(0, +)
+    }
+
+    /// Merged records per level of a full chunk of `splatsPerChunk`, e.g. `[128, 16]` at 1024.
+    public func recordsPerFullChunk(splatsPerChunk: Int) -> [Int] {
+        ratioLog2.map { max(1, splatsPerChunk >> Int($0)) }
     }
 }
 
@@ -127,11 +182,15 @@ public enum UntoldGSCookError: Error, Equatable, CustomStringConvertible {
     case transformIsNotASimilarity
     case requestedSHDegreeExceedsSource(requested: UInt8, source: UInt8)
     case noSplatsLeftAfterPruning(UntoldGSCookReport)
+    /// The caller's `UntoldGSCookControl` (or the task) cancelled the cook; nothing was written.
+    case cancelled
 
     public var description: String {
         switch self {
         case .transformIsNotASimilarity:
             "the splat transform must be a rotation, a uniform scale and a translation"
+        case .cancelled:
+            "the cook was cancelled"
         case let .requestedSHDegreeExceedsSource(requested, source):
             "requested spherical-harmonics degree \(requested) but the source has degree \(source)"
         case let .noSplatsLeftAfterPruning(report):
@@ -144,51 +203,16 @@ public enum UntoldGSCookError: Error, Equatable, CustomStringConvertible {
 public enum UntoldGSCooker {
     /// Applies the options to an imported asset and returns the asset to bake plus a report.
     public static func cook(asset: GaussianSplatAsset, options: UntoldGSCookOptions = .init()) throws -> (asset: GaussianSplatAsset, report: UntoldGSCookReport) {
-        let similarity = try Similarity(options.transform)
-        let sourceDegree = UInt8(clamping: asset.sphericalHarmonics?.degree ?? 0)
-        let targetDegree = min(options.shDegree ?? sourceDegree, UntoldGSFormat.maxSHDegree)
-        guard targetDegree <= sourceDegree else {
-            throw UntoldGSCookError.requestedSHDegreeExceedsSource(requested: targetDegree, source: sourceDegree)
-        }
-
-        let crop: (min: SIMD3<Float>, max: SIMD3<Float>)? = {
-            guard let cropMin = options.cropMin, let cropMax = options.cropMax else { return nil }
-            let margin = SIMD3<Float>(repeating: options.cropMargin)
-            return (cropMin - margin, cropMax + margin)
-        }()
+        let kernel = try Kernel(options: options, sourceDegree: asset.sphericalHarmonics?.degree ?? 0)
 
         var kept: [GaussianSplat] = []
         kept.reserveCapacity(asset.splats.count)
         var keptIndices: [Int] = []
         keptIndices.reserveCapacity(asset.splats.count)
-        var prunedByOpacity = 0
-        var prunedByDegenerate = 0
-        var prunedByCrop = 0
+        var counts = PruneCounts()
 
         for (index, splat) in asset.splats.enumerated() {
-            guard splat.opacity >= options.minimumOpacity else {
-                prunedByOpacity += 1
-                continue
-            }
-            let scale = SIMD3<Float>(splat.scale.x, splat.scale.y, splat.scale.z)
-            let center = SIMD3<Float>(splat.center.x, splat.center.y, splat.center.z)
-            guard isFinite(center), isFinite(scale), scale.min() > 0,
-                  splat.quat.x.isFinite, splat.quat.y.isFinite, splat.quat.z.isFinite, splat.quat.w.isFinite,
-                  simd_length_squared(splat.quat) > 0
-            else {
-                prunedByDegenerate += 1
-                continue
-            }
-            let transformed = similarity.apply(to: splat)
-            if let crop {
-                let p = SIMD3<Float>(transformed.center.x, transformed.center.y, transformed.center.z)
-                guard p.x >= crop.min.x, p.y >= crop.min.y, p.z >= crop.min.z,
-                      p.x <= crop.max.x, p.y <= crop.max.y, p.z <= crop.max.z
-                else {
-                    prunedByCrop += 1
-                    continue
-                }
-            }
+            guard let transformed = kernel.process(splat, counts: &counts) else { continue }
             kept.append(transformed)
             keptIndices.append(index)
         }
@@ -204,17 +228,17 @@ public enum UntoldGSCooker {
         let report = UntoldGSCookReport(
             inputSplatCount: asset.splats.count,
             keptSplatCount: kept.count,
-            prunedByOpacity: prunedByOpacity,
-            prunedByDegenerateGeometry: prunedByDegenerate,
-            prunedByCrop: prunedByCrop,
-            shDegree: targetDegree,
+            prunedByOpacity: counts.opacity,
+            prunedByDegenerateGeometry: counts.degenerate,
+            prunedByCrop: counts.crop,
+            shDegree: kernel.targetDegree,
             prunedByBudget: prunedByBudget
         )
         guard !kept.isEmpty else {
             throw UntoldGSCookError.noSplatsLeftAfterPruning(report)
         }
 
-        let harmonics = reduceSphericalHarmonics(asset.sphericalHarmonics, keeping: keptIndices, toDegree: targetDegree)
+        let harmonics = reduceSphericalHarmonics(asset.sphericalHarmonics, keeping: keptIndices, toDegree: kernel.targetDegree)
         return (GaussianSplatAsset(splats: kept, sphericalHarmonics: harmonics), report)
     }
 
@@ -230,7 +254,12 @@ public enum UntoldGSCooker {
     /// Ties at the cut-off keep the earlier splats.
     static func selectMostImportant(_ splats: [GaussianSplat], count: Int) -> [Int] {
         guard count < splats.count else { return Array(splats.indices) }
-        let importance = splats.map(importance(of:))
+        return selectMostImportant(importance: splats.map(importance(of:)), count: count)
+    }
+
+    /// `selectMostImportant` over precomputed importances.
+    static func selectMostImportant(importance: [Float], count: Int) -> [Int] {
+        guard count < importance.count else { return Array(importance.indices) }
         let threshold = importance.sorted(by: >)[count - 1]
         var selected: [Int] = []
         selected.reserveCapacity(count)
@@ -246,7 +275,74 @@ public enum UntoldGSCooker {
         return selected
     }
 
-    /// Write options that carry the cook's chunk size, flags, transform and capture lighting.
+    // MARK: - Per-splat kernel
+
+    /// Splats dropped per reason.
+    struct PruneCounts {
+        var opacity = 0
+        var degenerate = 0
+        var crop = 0
+    }
+
+    /// The per-splat cook — opacity floor, degenerate check, similarity transform, crop — with
+    /// the options resolved once. The array `cook(asset:)` and the streamed `cookStore` run the
+    /// very same steps in the same order, so both keep the same set with the same arithmetic.
+    struct Kernel {
+        let similarity: Similarity
+        let minimumOpacity: Float
+        let crop: (min: SIMD3<Float>, max: SIMD3<Float>)?
+        let sourceDegree: UInt8
+        let targetDegree: UInt8
+
+        init(options: UntoldGSCookOptions, sourceDegree: Int) throws {
+            similarity = try Similarity(options.transform)
+            let source = UInt8(clamping: sourceDegree)
+            let target = min(options.shDegree ?? source, UntoldGSFormat.maxSHDegree)
+            guard target <= source else {
+                throw UntoldGSCookError.requestedSHDegreeExceedsSource(requested: target, source: source)
+            }
+            self.sourceDegree = source
+            targetDegree = target
+            minimumOpacity = options.minimumOpacity
+            crop = {
+                guard let cropMin = options.cropMin, let cropMax = options.cropMax else { return nil }
+                let margin = SIMD3<Float>(repeating: options.cropMargin)
+                return (cropMin - margin, cropMax + margin)
+            }()
+        }
+
+        /// The transformed splat, or nil (with the reason counted) when it is pruned.
+        @inline(__always)
+        func process(_ splat: GaussianSplat, counts: inout PruneCounts) -> GaussianSplat? {
+            guard splat.opacity >= minimumOpacity else {
+                counts.opacity += 1
+                return nil
+            }
+            let scale = SIMD3<Float>(splat.scale.x, splat.scale.y, splat.scale.z)
+            let center = SIMD3<Float>(splat.center.x, splat.center.y, splat.center.z)
+            guard UntoldGSCooker.isFinite(center), UntoldGSCooker.isFinite(scale), scale.min() > 0,
+                  splat.quat.x.isFinite, splat.quat.y.isFinite, splat.quat.z.isFinite, splat.quat.w.isFinite,
+                  simd_length_squared(splat.quat) > 0
+            else {
+                counts.degenerate += 1
+                return nil
+            }
+            let transformed = similarity.apply(to: splat)
+            if let crop {
+                let p = SIMD3<Float>(transformed.center.x, transformed.center.y, transformed.center.z)
+                guard p.x >= crop.min.x, p.y >= crop.min.y, p.z >= crop.min.z,
+                      p.x <= crop.max.x, p.y <= crop.max.y, p.z <= crop.max.z
+                else {
+                    counts.crop += 1
+                    return nil
+                }
+            }
+            return transformed
+        }
+    }
+
+    /// Write options that carry the cook's chunk size, flags, transform, capture lighting and
+    /// coarse-level policy (`.automatic` is resolved by the writer, which knows the chunk count).
     public static func writeOptions(for options: UntoldGSCookOptions) -> UntoldGSWriteOptions {
         var write = UntoldGSWriteOptions()
         write.log2ChunkSplats = options.log2ChunkSplats
@@ -255,6 +351,17 @@ public enum UntoldGSCooker {
         write.splatToMesh = options.transform
         write.captureExposureEV = options.captureExposureEV
         write.captureWhiteBalance = options.captureWhiteBalance
+        switch options.coarseLevels {
+        case let .automatic(template):
+            write.coarseLevels = template
+            write.coarseLevelsAutomatic = true
+        case .off:
+            write.coarseLevels = nil
+            write.coarseLevelsAutomatic = false
+        case let .levels(levels):
+            write.coarseLevels = levels
+            write.coarseLevelsAutomatic = false
+        }
         return write
     }
 

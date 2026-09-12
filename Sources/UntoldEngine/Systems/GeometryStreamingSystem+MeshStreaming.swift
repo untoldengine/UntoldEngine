@@ -28,6 +28,7 @@ extension GeometryStreamingSystem {
         if isNearBand { reserveNearBandLoad(entityId: entityId) }
 
         streaming.state = .loading
+        streaming.loadDispatchCount += 1
         BatchingSystem.shared.notifyEntityStreamingStarted(entityId: entityId)
 
         // [Instrumentation] Measure scheduler latency: time from first range-detection to dispatch.

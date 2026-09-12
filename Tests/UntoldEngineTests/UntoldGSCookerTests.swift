@@ -288,6 +288,127 @@ final class UntoldGSCookerTests: XCTestCase {
 
         // The runtime read path sees the cooked count too.
         XCTAssertEqual(try UntoldGSFormat.read(from: result.tiers[0].url).splatCount, 200)
+        // Two chunks: `.automatic` bakes no coarse section, and the tier reports none.
+        XCTAssertEqual(options.coarseLevels, .automatic)
+        XCTAssertFalse(file.header.hasCoarseLevels)
+        XCTAssertNil(result.tiers[0].coarseReport)
+
+        // Asked for explicitly, the levels are baked whatever the size and reported per tier.
+        options.coarseLevels = .levels(count: 1)
+        let levelled = try bakeGaussianSplatProgressiveTiers(plyURL: plyURL, outputBaseURL: temporaryURL(extension: "untoldgs"), lodFractions: [1.0, 0.5], cookOptions: options)
+        XCTAssertEqual(levelled.tiers.count, 2)
+        temporaryFiles.append(contentsOf: levelled.tiers.map(\.url))
+        for tier in levelled.tiers {
+            let tierFile = try UntoldGSFile(url: tier.url)
+            XCTAssertTrue(tierFile.header.hasCoarseLevels)
+            XCTAssertEqual(tierFile.index.coarseLevelCount, 1)
+            XCTAssertEqual(tierFile.index.coarseRatioLog2, [3])
+            let report = try XCTUnwrap(tier.coarseReport)
+            XCTAssertEqual(report.levelCount, 1)
+            XCTAssertEqual(report.recordsPerLevel.count, 1)
+            XCTAssertEqual(report.recordCount, Int(tierFile.header.coarseRecordCount))
+            XCTAssertEqual(report.recordsPerFullChunk(splatsPerChunk: 128), [16])
+            XCTAssertEqual(report.bytes, Int(tierFile.header.fileSize - tierFile.header.coarseIndexOffset))
+            XCTAssertEqual(try tierFile.decodeAll().count, Int(tierFile.header.splatCount), "the fine records are what the cook kept")
+        }
+        // 200 splats at 128 per chunk: 128 + 72 → 16 + 9 records; the half tier 100 → 12 records.
+        XCTAssertEqual(levelled.tiers[0].coarseReport?.recordsPerLevel, [16 + 9])
+        XCTAssertEqual(levelled.tiers[1].coarseReport?.recordsPerLevel, [12])
+    }
+
+    // MARK: - Coarse levels
+
+    func testCoarseLevelPolicyMapsOntoTheWriteOptions() {
+        var options = UntoldGSCookOptions()
+        XCTAssertEqual(options.coarseLevels, .automatic)
+        XCTAssertEqual(options.coarseLevels, .automatic(template: .default))
+        var write = UntoldGSCooker.writeOptions(for: options)
+        XCTAssertEqual(write.coarseLevels, .default)
+        XCTAssertTrue(write.coarseLevelsAutomatic)
+
+        var wide = UntoldGSCoarseLevelOptions.default
+        wide.ratioLog2 = [4, 7]
+        options.coarseLevels = .automatic(template: wide)
+        write = UntoldGSCooker.writeOptions(for: options)
+        XCTAssertEqual(write.coarseLevels, wide)
+        XCTAssertTrue(write.coarseLevelsAutomatic)
+
+        options.coarseLevels = .off
+        write = UntoldGSCooker.writeOptions(for: options)
+        XCTAssertNil(write.coarseLevels)
+        XCTAssertFalse(write.coarseLevelsAutomatic)
+
+        options.coarseLevels = .levels(wide)
+        write = UntoldGSCooker.writeOptions(for: options)
+        XCTAssertEqual(write.coarseLevels, wide)
+        XCTAssertFalse(write.coarseLevelsAutomatic)
+
+        XCTAssertEqual(UntoldGSCoarseLevelPolicy.levels(count: 2), .levels(.default))
+        guard case let .levels(one) = UntoldGSCoarseLevelPolicy.levels(count: 1) else { return XCTFail("levels(count:)") }
+        XCTAssertEqual(one.levelCount, 1)
+        XCTAssertEqual(one.ratioLog2, [3, 6])
+    }
+
+    /// `.automatic` resolves by chunk count inside the writer: 64 chunks bake levels, 63 do not.
+    func testAutomaticCoarseLevelsResolveByChunkCount() throws {
+        var options = UntoldGSCookOptions()
+        options.log2ChunkSplats = 2 // 4 splats per chunk
+        let write = UntoldGSCooker.writeOptions(for: options)
+        let splats = (0 ..< 256).map { index in UntoldGSSplat(makeSplat(center: [Float(index % 16) * 0.1, Float(index / 16) * 0.1, 0])) }
+        XCTAssertEqual(UntoldGSFormat.coarseLevelsAutomaticMinimumChunks, 64)
+
+        let below = try UntoldGSFormat.writeReporting(splats: Array(splats.prefix(252)), options: write)
+        XCTAssertEqual(below.report.chunkCount, 63)
+        XCTAssertNil(below.report.coarse)
+        XCTAssertFalse(try UntoldGSFormat.readIndex(from: below.data).header.hasCoarseLevels)
+
+        let at = try UntoldGSFormat.writeReporting(splats: splats, options: write)
+        XCTAssertEqual(at.report.chunkCount, 64)
+        XCTAssertNil(at.report.coarse, "64 chunks, but a 4-splat chunk is below the 16-splat floor: no section either")
+        XCTAssertFalse(try UntoldGSFormat.readIndex(from: at.data).header.hasCoarseLevels)
+
+        // A template whose floor the chunks meet: the section, its ratios clamped to the chunk.
+        var template = UntoldGSCoarseLevelOptions.default
+        template.minimumChunkSplats = 4
+        options.coarseLevels = .automatic(template: template)
+        let clamped = try UntoldGSFormat.writeReporting(splats: splats, options: UntoldGSCooker.writeOptions(for: options))
+        let report = try XCTUnwrap(clamped.report.coarse)
+        XCTAssertEqual(report.levelCount, 1, "ratios 3, 6 clamp to the 4-splat chunk and collapse to one level")
+        XCTAssertEqual(report.ratioLog2, [2])
+        XCTAssertEqual(report.recordsPerLevel, [64], "64 chunks × max(1, 4 >> 2)")
+        XCTAssertEqual(report.chunksWithoutLevels, 0)
+        let index = try UntoldGSFormat.readIndex(from: clamped.data)
+        XCTAssertTrue(index.header.hasCoarseLevels)
+        XCTAssertEqual(index.coarse.count, 64)
+        XCTAssertEqual(index.header.coarseRecordCount, 64)
+
+        template.ratioLog2 = [1, 2]
+        options.coarseLevels = .automatic(template: template)
+        let templated = try UntoldGSFormat.writeReporting(splats: splats, options: UntoldGSCooker.writeOptions(for: options))
+        XCTAssertEqual(templated.report.coarse?.ratioLog2, [1, 2], "the template's ratios, within the 4-splat chunk")
+        XCTAssertEqual(templated.report.coarse?.recordsPerLevel, [128, 64], "64 chunks × (4 >> 1) and × (4 >> 2)")
+        XCTAssertNil(try UntoldGSFormat.writeReporting(splats: Array(splats.prefix(252)), options: UntoldGSCooker.writeOptions(for: options)).report.coarse, "still none below the threshold")
+
+        options.coarseLevels = .off
+        let off = try UntoldGSFormat.writeReporting(splats: splats, options: UntoldGSCooker.writeOptions(for: options))
+        XCTAssertNil(off.report.coarse)
+        XCTAssertFalse(try UntoldGSFormat.readIndex(from: off.data).header.hasCoarseLevels)
+
+        var explicit = UntoldGSCoarseLevelOptions.default
+        explicit.levelCount = 1
+        explicit.ratioLog2 = [1]
+        explicit.minimumChunkSplats = 4
+        options.coarseLevels = .levels(explicit)
+        let always = try UntoldGSFormat.writeReporting(splats: Array(splats.prefix(40)), options: UntoldGSCooker.writeOptions(for: options))
+        XCTAssertEqual(always.report.chunkCount, 10)
+        XCTAssertEqual(always.report.coarse?.recordsPerLevel, [20], "10 chunks × (4 >> 1)")
+        XCTAssertEqual(always.report.coarse?.chunksWithoutLevels, 0)
+
+        // Ratios the chunk size cannot hold are an error when asked for explicitly.
+        options.coarseLevels = .levels(.default)
+        XCTAssertThrowsError(try UntoldGSFormat.write(splats: splats, options: UntoldGSCooker.writeOptions(for: options))) { error in
+            guard case .invalidInput? = error as? UntoldGSError else { return XCTFail("unexpected error \(error)") }
+        }
     }
 
     // MARK: - Helpers

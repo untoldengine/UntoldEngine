@@ -117,6 +117,10 @@ public class GaussianComponent: Component {
     /// the load so the frame can cull whole chunks before it looks at their splats. nil for a
     /// `.ply` or a CPU-decoded asset, which keep the per-splat cull over the whole buffer.
     var chunkTable: GaussianChunkTable?
+    /// The pager of a `.untoldgs` loaded above the paging threshold: `packedSplatData` is then
+    /// its page pool and the pager fills it from the cull's demand every frame. nil when every
+    /// record is resident. Shut down with the entity (`removeEntityGaussian`).
+    var pager: GaussianPageManager?
 
     /// Whether the entity holds splat data on the GPU, on either path.
     var hasResidentSplats: Bool {
@@ -127,6 +131,21 @@ public class GaussianComponent: Component {
     /// pass) rather than culling its encoded buffer whole.
     var isChunked: Bool {
         chunkTable != nil && packedSplatData != nil
+    }
+
+    /// Whether the records live in a page pool.
+    var isPaged: Bool {
+        pager != nil
+    }
+
+    /// The most splats the frame can ever draw of this entity: the pool's records for a paged
+    /// entity, the whole asset otherwise, plus the coarse records of its per-chunk levels (a
+    /// fading chunk draws its outgoing window beside the incoming one) — what the working set is
+    /// sized against.
+    var residentSplatCount: Int {
+        let coarse = chunkTable?.coarse?.recordCount ?? 0
+        guard let pager else { return Int(splatCount) + coarse }
+        return min(Int(splatCount), pager.slotCount * pager.ranksPerPage) + coarse
     }
 
     /// Multiplier on every splat's opacity this frame: 1 draws the asset as captured, 0 hides
@@ -640,6 +659,13 @@ public class LODComponent: Component {
 /// One pre-baked quality tier for a progressive Gaussian splat asset.
 /// LOD0 is expected to be the full-resolution tier; later indices are progressively coarser.
 public struct GaussianLODLevel {
+    /// The tier's resident buffers, or nil while it is not loaded. A whole-resident tier
+    /// (below the paging threshold) stays here after the LOD system switches away from it, so
+    /// the switch back is instant and reads nothing; a paged tier (`buffers.pager` set) does
+    /// not — `GaussianLODSystem.applyLOD` releases every paged tier the selection just left
+    /// (`GaussianLODComponent.releaseLevelResources(at:)`), since each holds a fixed pool of
+    /// tens to hundreds of MiB, and the normal request path loads it again, with a fresh pool
+    /// that warms before the next switch, when the selection returns to it.
     public var buffers: GaussianComponent?
     public var maxDistance: Float
     public var url: URL?
@@ -652,6 +678,11 @@ public struct GaussianLODLevel {
     /// i.e. this tier hasn't loaded yet — in which case `clampGaussianLODForOverdraw` falls
     /// back to distance-only LOD selection for it.
     public var meanSquaredSplatExtent: Float?
+    /// This tier's splat count, read from the file the first time the tier loads and kept —
+    /// like `meanSquaredSplatExtent` — when `GaussianLODComponent.releaseLevelResources(at:)`
+    /// lets its buffers go, so `clampGaussianLODForOverdraw` still walks past a released tier
+    /// rather than bailing out at it. `nil` only before the tier has ever loaded.
+    public var splatCount: Int?
 
     public init(maxDistance: Float, url: URL? = nil) {
         self.maxDistance = maxDistance
@@ -723,9 +754,23 @@ public class GaussianLODComponent: Component {
         for index in lodLevels.indices {
             lodLevels[index].loadTask?.cancel()
             lodLevels[index].loadTask = nil
-            lodLevels[index].buffers = nil
-            lodLevels[index].residencyState = .notResident
+            releaseLevelResources(at: index)
         }
+    }
+
+    /// Drops one tier's residency: its pager is shut down (the pool leaves
+    /// `GaussianPagePoolRegistry` at once, the reads in flight are dropped when they land) and
+    /// its buffers are let go — the Metal buffers themselves go once the in-flight frames that
+    /// reference them complete, since committed command buffers retain them. The tier reads
+    /// `.notResident`, so `GaussianLODSystem` requests it again through the normal path when
+    /// the selection wants it. Safe on a tier already released (nil buffers, a closed pager).
+    /// Does not touch a load in flight; `releaseAllLevelResources` cancels those. The tier's
+    /// bake-time stats (`splatCount`, `meanSquaredSplatExtent`) stay known for the overdraw
+    /// clamp.
+    func releaseLevelResources(at index: Int) {
+        lodLevels[index].buffers?.pager?.shutdown()
+        lodLevels[index].buffers = nil
+        lodLevels[index].residencyState = .notResident
     }
 }
 
@@ -1087,6 +1132,12 @@ public class StreamingComponent: Component {
 
     /// Frame when entity was last visible (for LRU eviction)
     public var lastVisibleFrame: Int = 0
+
+    /// How many loads the streaming system has dispatched for this entity. Counted the moment
+    /// a load is dispatched, before its outcome is known, and never reset by the outcome, so a
+    /// caller can tell "the gates let this entity load" from "it loaded" (a load that fails at
+    /// once puts `state` back to `.unloaded` asynchronously).
+    public internal(set) var loadDispatchCount: Int = 0
 
     /// Task handle for cancellation
     var loadTask: Task<Void, Never>?

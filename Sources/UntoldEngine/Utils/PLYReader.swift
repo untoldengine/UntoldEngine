@@ -101,15 +101,19 @@ func filterNegligibleOpacityGaussianSplats(
         }
     }
 
+    logNegligibleOpacityCull(culled: splats.count - keptSplats.count, of: splats.count, sourceTag: sourceTag)
+    return (keptSplats, keptCoefficients)
+}
+
+/// The one line every Gaussian source reader logs for the visibility cull.
+func logNegligibleOpacityCull(culled: Int, of total: Int, sourceTag: String) {
     Logger.log(
         message: String(
             format: "[Gaussian][%@] Culled %d/%d splats below visibility threshold (opacity < %.4f)",
-            sourceTag, splats.count - keptSplats.count, splats.count, minRetainedGaussianOpacity
+            sourceTag, culled, total, minRetainedGaussianOpacity
         ),
         category: LogCategory.gaussian.rawValue
     )
-
-    return (keptSplats, keptCoefficients)
 }
 
 public class PLYReader {
@@ -129,7 +133,7 @@ public class PLYReader {
         let handle = try FileHandle(forReadingFrom: url)
         defer { try? handle.close() }
         // parseHeader scans at most the first 100 000 bytes for `end_header`.
-        let prefix = try handle.read(upToCount: 100_000) ?? Data()
+        let prefix = try handle.read(upToCount: headerScanLimit) ?? Data()
         let (header, _) = try parseHeader(from: prefix)
         guard let vertexElement = header.elements.first(where: { $0.name == "vertex" }) else {
             throw PLYError.missingElement("vertex")
@@ -138,54 +142,69 @@ public class PLYReader {
     }
 
     /// Reads Gaussian geometry and preserves all spherical-harmonic coefficients.
+    ///
+    /// The body is streamed in bounded windows (`PLYGaussianSource`), so only the result is
+    /// resident, never a copy of the file.
     public static func readGaussianAsset(from url: URL) throws -> GaussianSplatAsset {
-        let data = try Data(contentsOf: url)
-        let (header, bodyOffset) = try parseHeader(from: data)
+        try readGaussianAsset(from: url, windowing: .production)
+    }
 
-        // Find the vertex element (Gaussian splats are typically stored as vertices)
-        guard let vertexElement = header.elements.first(where: { $0.name == "vertex" }) else {
-            throw PLYError.missingElement("vertex")
+    /// `readGaussianAsset(from:)` over windows of the given sizes — the seam through which
+    /// tests stream a small fixture in many windows.
+    static func readGaussianAsset(from url: URL, windowing: PLYGaussianSource.Windowing) throws -> GaussianSplatAsset {
+        let source = try PLYGaussianSource(url: url, windowing: windowing)
+        var splats: [GaussianSplat] = []
+        splats.reserveCapacity(source.vertexCount)
+        var coefficients: [Float] = []
+        if let schema = source.shSchema {
+            coefficients.reserveCapacity(source.vertexCount * schema.coefficientsPerSplat)
         }
-
-        let shSchema = try sphericalHarmonicSchema(for: vertexElement.properties)
-
-        // Parse the body based on format
-        let parsed: ([GaussianSplat], [Float])
-        switch header.format {
-        case .ascii:
-            parsed = try parseASCIIGaussians(data: data, bodyOffset: bodyOffset, element: vertexElement, shSchema: shSchema)
-        case .binaryLittleEndian:
-            parsed = try parseBinaryGaussians(data: data, bodyOffset: bodyOffset, element: vertexElement, bigEndian: false, shSchema: shSchema)
-        case .binaryBigEndian:
-            parsed = try parseBinaryGaussians(data: data, bodyOffset: bodyOffset, element: vertexElement, bigEndian: true, shSchema: shSchema)
+        var culled = 0
+        try source.forEachWindow { window in
+            splats.append(contentsOf: window.splats)
+            coefficients.append(contentsOf: window.shCoefficients)
+            culled += window.culledCount
         }
-
-        if let shSchema,
-           parsed.1.count != vertexElement.count * shSchema.coefficientsPerSplat
-        {
-            throw PLYError.invalidData("Spherical-harmonic coefficient data is incomplete")
+        if culled > 0 {
+            logNegligibleOpacityCull(culled: culled, of: source.vertexCount, sourceTag: "PLY")
         }
-
-        let (filteredSplats, filteredCoefficients) = filterNegligibleOpacityGaussianSplats(
-            splats: parsed.0,
-            shCoefficients: parsed.1,
-            coefficientsPerSplat: shSchema?.coefficientsPerSplat ?? 0,
-            sourceTag: "PLY"
-        )
-
-        let sphericalHarmonics = shSchema.map {
+        let sphericalHarmonics = source.shSchema.map {
             GaussianSphericalHarmonics(
                 degree: $0.degree,
                 coefficientsPerChannel: $0.coefficientsPerChannel,
-                coefficients: filteredCoefficients
+                coefficients: coefficients
             )
         }
-        return GaussianSplatAsset(splats: filteredSplats, sphericalHarmonics: sphericalHarmonics)
+        return GaussianSplatAsset(splats: splats, sphericalHarmonics: sphericalHarmonics)
+    }
+
+    /// Bounds of the splat centres a `.ply` would load — the same visibility cull as
+    /// `readGaussianSplats`, so the box is the one that asset's splats span — from one streamed
+    /// pass with nothing resident but the running box. What an editor's "recenter" needs from a
+    /// multi-gigabyte capture without a second full parse. `nil` when no splat survives the cull.
+    public static func readGaussianCenterBounds(from url: URL) throws -> (min: SIMD3<Float>, max: SIMD3<Float>)? {
+        let source = try PLYGaussianSource(url: url)
+        var minimum = SIMD3<Float>(repeating: .greatestFiniteMagnitude)
+        var maximum = SIMD3<Float>(repeating: -.greatestFiniteMagnitude)
+        var kept = 0
+        try source.forEachWindow { window in
+            for splat in window.splats {
+                let center = SIMD3<Float>(splat.center.x, splat.center.y, splat.center.z)
+                minimum = simd_min(minimum, center)
+                maximum = simd_max(maximum, center)
+            }
+            kept += window.splats.count
+        }
+        guard kept > 0 else { return nil }
+        return (minimum, maximum)
     }
 
     // MARK: - Header Parsing
 
-    private static func parseHeader(from data: Data) throws -> (PLYHeader, Int) {
+    /// `parseHeader` scans at most this many bytes for `end_header`.
+    static let headerScanLimit = 100_000
+
+    static func parseHeader(from data: Data) throws -> (PLYHeader, Int) {
         var header = PLYHeader(format: .ascii, version: "1.0", elements: [], comments: [])
 
         // Read header line by line until we find binary data
@@ -195,7 +214,7 @@ public class PLYReader {
 
         // Read the header byte by byte, line by line
         var lineStart = 0
-        for i in 0 ..< min(data.count, 100_000) {
+        for i in 0 ..< min(data.count, headerScanLimit) {
             if data[i] == 0x0A { // newline
                 let lineData = data.subdata(in: lineStart ..< i)
                 guard let line = String(data: lineData, encoding: .utf8) else {
@@ -307,110 +326,9 @@ public class PLYReader {
         throw PLYError.invalidFormat("Missing end_header")
     }
 
-    // MARK: - ASCII Parsing
+    // MARK: - Spherical-harmonic schema
 
-    private static func parseASCIIGaussians(
-        data: Data,
-        bodyOffset: Int,
-        element: PLYElement,
-        shSchema: SphericalHarmonicSchema?
-    ) throws -> ([GaussianSplat], [Float]) {
-        // Get the body string
-        let bodyData = data.suffix(from: bodyOffset)
-        guard let bodyString = String(data: bodyData, encoding: .utf8) else {
-            throw PLYError.invalidFormat("Cannot decode body as UTF-8")
-        }
-
-        let lines = bodyString.components(separatedBy: .newlines).filter { !$0.isEmpty }
-        var splats: [GaussianSplat] = []
-        splats.reserveCapacity(element.count)
-        var shCoefficients: [Float] = []
-        if let shSchema {
-            shCoefficients.reserveCapacity(element.count * shSchema.coefficientsPerSplat)
-        }
-
-        // Create property index map
-        let propertyMap = createPropertyIndexMap(properties: element.properties)
-
-        for line in lines.prefix(element.count) {
-            let values = line.trimmingCharacters(in: .whitespaces)
-                .components(separatedBy: .whitespaces)
-                .filter { !$0.isEmpty }
-
-            if values.isEmpty { continue }
-
-            let splat = try parseGaussianFromValues(
-                values: values,
-                propertyMap: propertyMap,
-                shSchema: shSchema,
-                shCoefficients: &shCoefficients
-            )
-            splats.append(splat)
-        }
-
-        guard splats.count == element.count else {
-            throw PLYError.invalidData("Expected \(element.count) Gaussian vertices, found \(splats.count)")
-        }
-        return (splats, shCoefficients)
-    }
-
-    // MARK: - Binary Parsing
-
-    private static func parseBinaryGaussians(
-        data: Data,
-        bodyOffset: Int,
-        element: PLYElement,
-        bigEndian: Bool,
-        shSchema: SphericalHarmonicSchema?
-    ) throws -> ([GaussianSplat], [Float]) {
-        var splats: [GaussianSplat] = []
-        splats.reserveCapacity(element.count)
-        var shCoefficients: [Float] = []
-        if let shSchema {
-            shCoefficients.reserveCapacity(element.count * shSchema.coefficientsPerSplat)
-        }
-
-        // Calculate stride for each vertex
-        let stride = calculateStride(properties: element.properties)
-        let propertyMap = createPropertyIndexMap(properties: element.properties)
-        let propertyOffsets = calculatePropertyOffsets(properties: element.properties)
-
-        var offset = bodyOffset
-
-        for _ in 0 ..< element.count {
-            guard offset + stride <= data.count else {
-                throw PLYError.invalidFormat("Unexpected end of file")
-            }
-
-            let vertexData = data.subdata(in: offset ..< (offset + stride))
-            let splat = try parseGaussianFromBinary(
-                data: vertexData,
-                properties: element.properties,
-                propertyMap: propertyMap,
-                propertyOffsets: propertyOffsets,
-                bigEndian: bigEndian,
-                shSchema: shSchema,
-                shCoefficients: &shCoefficients
-            )
-            splats.append(splat)
-
-            offset += stride
-        }
-
-        return (splats, shCoefficients)
-    }
-
-    // MARK: - Gaussian Parsing Helpers
-
-    private static func createPropertyIndexMap(properties: [PLYProperty]) -> [String: Int] {
-        var map: [String: Int] = [:]
-        for (index, property) in properties.enumerated() {
-            map[property.name] = index
-        }
-        return map
-    }
-
-    private struct SphericalHarmonicSchema {
+    struct SphericalHarmonicSchema {
         let degree: Int
         let coefficientsPerChannel: Int
         let restPropertyNames: [String]
@@ -418,9 +336,14 @@ public class PLYReader {
         var coefficientsPerSplat: Int {
             coefficientsPerChannel * 3
         }
+
+        /// `f_rest_*` values per channel.
+        var restPerChannel: Int {
+            coefficientsPerChannel - 1
+        }
     }
 
-    private static func sphericalHarmonicSchema(for properties: [PLYProperty]) throws -> SphericalHarmonicSchema? {
+    static func sphericalHarmonicSchema(for properties: [PLYProperty]) throws -> SphericalHarmonicSchema? {
         let names = Set(properties.map(\.name))
         let dcNames = (0 ..< 3).map { "f_dc_\($0)" }
         let dcCount = dcNames.filter(names.contains).count
@@ -457,81 +380,39 @@ public class PLYReader {
         )
     }
 
-    private static func parseGaussianFromValues(
-        values: [String],
-        propertyMap: [String: Int],
-        shSchema: SphericalHarmonicSchema?,
-        shCoefficients: inout [Float]
-    ) throws -> GaussianSplat {
-        // Extract position
-        let x = try getFloat(values: values, propertyMap: propertyMap, key: "x")
-        let y = try getFloat(values: values, propertyMap: propertyMap, key: "y")
-        let z = try getFloat(values: values, propertyMap: propertyMap, key: "z")
+    // MARK: - Per-vertex arithmetic
 
-        // Extract scale (often stored as log scale in PLY)
-        let scale0 = try getFloat(values: values, propertyMap: propertyMap, key: "scale_0", default: 0.0)
-        let scale1 = try getFloat(values: values, propertyMap: propertyMap, key: "scale_1", default: 0.0)
-        let scale2 = try getFloat(values: values, propertyMap: propertyMap, key: "scale_2", default: 0.0)
+    /// The importer's splat from its raw PLY fields: log scales through `exp`, the SH DC term to
+    /// a display colour (`0.5 + C0 × dc`), the logit opacity through a sigmoid, the quaternion
+    /// normalised in the PLY order `(w, x, y, z)`. One function for the ASCII and binary bodies,
+    /// so the two formats cannot drift.
+    @inline(__always)
+    static func makeSplat(_ v: PLYVertexFields) -> GaussianSplat {
+        let scaleX = exp(v.scale0)
+        let scaleY = exp(v.scale1)
+        let scaleZ = exp(v.scale2)
 
-        // Convert from log scale to linear scale
-        let scaleX = exp(scale0)
-        let scaleY = exp(scale1)
-        let scaleZ = exp(scale2)
-
-        // Extract color (from spherical harmonics DC component or direct RGB)
         var r: Float, g: Float, b: Float
-        if let shSchema {
-            // Color from spherical harmonics
-            let dcR = try getFloat(values: values, propertyMap: propertyMap, key: "f_dc_0")
-            let dcG = try getFloat(values: values, propertyMap: propertyMap, key: "f_dc_1")
-            let dcB = try getFloat(values: values, propertyMap: propertyMap, key: "f_dc_2")
-            r = dcR
-            g = dcG
-            b = dcB
-
+        if v.hasSphericalHarmonics {
+            r = v.color0
+            g = v.color1
+            b = v.color2
             // Convert from SH to RGB (DC component of SH corresponds to RGB / C0 where C0 = 0.28209479177387814)
             let C0: Float = 0.28209479177387814
             r = (r * C0 + 0.5)
             g = (g * C0 + 0.5)
             b = (b * C0 + 0.5)
-
-            let dc = (dcR, dcG, dcB)
-            let restPerChannel = shSchema.coefficientsPerChannel - 1
-            for channel in 0 ..< 3 {
-                shCoefficients.append(channel == 0 ? dc.0 : (channel == 1 ? dc.1 : dc.2))
-                let start = channel * restPerChannel
-                for index in start ..< start + restPerChannel {
-                    try shCoefficients.append(
-                        getFloat(
-                            values: values,
-                            propertyMap: propertyMap,
-                            key: shSchema.restPropertyNames[index]
-                        )
-                    )
-                }
-            }
         } else {
-            // Direct RGB
-            r = try getFloat(values: values, propertyMap: propertyMap, key: "red", default: 1.0) / 255.0
-            g = try getFloat(values: values, propertyMap: propertyMap, key: "green", default: 1.0) / 255.0
-            b = try getFloat(values: values, propertyMap: propertyMap, key: "blue", default: 1.0) / 255.0
+            r = v.color0 / 255.0
+            g = v.color1 / 255.0
+            b = v.color2 / 255.0
         }
 
-        // Extract opacity (often stored as logit)
-        let opacity = try getFloat(values: values, propertyMap: propertyMap, key: "opacity", default: 0.0)
-        let alpha = 1.0 / (1.0 + exp(-opacity)) // Sigmoid to convert from logit to [0,1]
-
-        // Extract rotation quaternion
-        let rot0 = try getFloat(values: values, propertyMap: propertyMap, key: "rot_0", default: 1.0)
-        let rot1 = try getFloat(values: values, propertyMap: propertyMap, key: "rot_1", default: 0.0)
-        let rot2 = try getFloat(values: values, propertyMap: propertyMap, key: "rot_2", default: 0.0)
-        let rot3 = try getFloat(values: values, propertyMap: propertyMap, key: "rot_3", default: 0.0)
-
-        // Normalize quaternion
-        let quat = simd_normalize(simd_float4(rot0, rot1, rot2, rot3))
+        let alpha = 1.0 / (1.0 + exp(-v.opacity)) // Sigmoid to convert from logit to [0,1]
+        let quat = simd_normalize(simd_float4(v.rot0, v.rot1, v.rot2, v.rot3))
 
         return GaussianSplat(
-            center: simd_float4(x, y, z, 1.0),
+            center: simd_float4(v.x, v.y, v.z, 1.0),
             scale: simd_float4(scaleX, scaleY, scaleZ, 1.0),
             color: simd_float4(r, g, b, alpha),
             quat: quat,
@@ -539,47 +420,9 @@ public class PLYReader {
         )
     }
 
-    private static func getFloat(values: [String], propertyMap: [String: Int], key: String, default defaultValue: Float? = nil) throws -> Float {
-        guard let index = propertyMap[key] else {
-            if let defaultValue {
-                return defaultValue
-            }
-            throw PLYError.missingProperty(key)
-        }
-        guard index < values.count, let value = Float(values[index]) else {
-            throw PLYError.invalidData("Cannot parse float for property '\(key)'")
-        }
-        return value
-    }
-
     // MARK: - Binary Helpers
 
-    private static func calculateStride(properties: [PLYProperty]) -> Int {
-        var stride = 0
-        for property in properties {
-            if property.isList {
-                // Lists are variable length, cannot be handled in fixed stride
-                // For Gaussian splats, we typically don't have lists
-                continue
-            }
-            stride += sizeOfType(property.type)
-        }
-        return stride
-    }
-
-    private static func calculatePropertyOffsets(properties: [PLYProperty]) -> [Int] {
-        var offsets: [Int] = []
-        var currentOffset = 0
-        for property in properties {
-            offsets.append(currentOffset)
-            if !property.isList {
-                currentOffset += sizeOfType(property.type)
-            }
-        }
-        return offsets
-    }
-
-    private static func sizeOfType(_ type: String) -> Int {
+    static func sizeOfType(_ type: String) -> Int {
         switch type {
         case "char", "uchar", "int8", "uint8":
             return 1
@@ -594,145 +437,722 @@ public class PLYReader {
         }
     }
 
-    private static func parseGaussianFromBinary(
-        data: Data,
-        properties: [PLYProperty],
-        propertyMap: [String: Int],
-        propertyOffsets: [Int],
-        bigEndian: Bool,
-        shSchema: SphericalHarmonicSchema?,
-        shCoefficients: inout [Float]
-    ) throws -> GaussianSplat {
-        func readFloat(propertyName: String, default defaultValue: Float? = nil) throws -> Float {
-            guard let index = propertyMap[propertyName] else {
-                if let defaultValue {
-                    return defaultValue
+    static func scalarKind(_ type: String) -> PLYScalarKind? {
+        switch type {
+        case "float", "float32": .float32
+        case "double", "float64": .float64
+        case "uchar", "uint8": .uint8
+        case "char", "int8": .int8
+        case "ushort", "uint16": .uint16
+        case "short", "int16": .int16
+        case "uint", "uint32": .uint32
+        case "int", "int32": .int32
+        default: nil
+        }
+    }
+}
+
+/// The raw per-vertex fields `PLYReader.makeSplat` turns into a splat.
+struct PLYVertexFields {
+    var x: Float = 0, y: Float = 0, z: Float = 0
+    var scale0: Float = 0, scale1: Float = 0, scale2: Float = 0
+    /// `f_dc_*` with `hasSphericalHarmonics`, `red`/`green`/`blue` (0…255) without.
+    var color0: Float = 0, color1: Float = 0, color2: Float = 0
+    var hasSphericalHarmonics = false
+    var opacity: Float = 0
+    var rot0: Float = 1, rot1: Float = 0, rot2: Float = 0, rot3: Float = 0
+}
+
+/// The scalar types a binary body can carry, decoded to `Float` exactly as the importer always did.
+enum PLYScalarKind {
+    case float32, float64, uint8, int8, uint16, int16, uint32, int32
+
+    var size: Int {
+        switch self {
+        case .uint8, .int8: 1
+        case .uint16, .int16: 2
+        case .float32, .uint32, .int32: 4
+        case .float64: 8
+        }
+    }
+}
+
+/// Where a needed property's value comes from: a byte offset in a binary vertex, a column of an
+/// ASCII line, a default for an optional property the file leaves out, or nothing (a required
+/// property the file lacks — reported at the first vertex, as the importer always did).
+enum PLYFieldSource {
+    case binary(offset: Int, kind: PLYScalarKind)
+    case column(Int)
+    case constant(Float)
+    case missing(name: String)
+    /// A property present in the header whose type the binary reader cannot decode.
+    case unsupportedType(String)
+}
+
+/// The vertex element's properties resolved once per file into typed sources, in the order the
+/// importer evaluates them: position, scales, colour (SH DC or RGB), the `f_rest_*` terms in
+/// schema order, opacity, rotation.
+struct PLYVertexLayout {
+    var x: PLYFieldSource, y: PLYFieldSource, z: PLYFieldSource
+    var scale0: PLYFieldSource, scale1: PLYFieldSource, scale2: PLYFieldSource
+    var color0: PLYFieldSource, color1: PLYFieldSource, color2: PLYFieldSource
+    var rest: [PLYFieldSource]
+    var opacity: PLYFieldSource
+    var rot0: PLYFieldSource, rot1: PLYFieldSource, rot2: PLYFieldSource, rot3: PLYFieldSource
+    /// Bytes per binary vertex (list and unknown-typed properties count as zero, as before).
+    var stride: Int
+    var hasSphericalHarmonics: Bool
+    var bigEndian: Bool
+
+    init(properties: [PLYProperty], format: PLYFormat, shSchema: PLYReader.SphericalHarmonicSchema?) {
+        var indexByName: [String: Int] = [:]
+        for (index, property) in properties.enumerated() {
+            indexByName[property.name] = index
+        }
+        var offsets: [Int] = []
+        var stride = 0
+        for property in properties {
+            offsets.append(stride)
+            if !property.isList {
+                stride += PLYReader.sizeOfType(property.type)
+            }
+        }
+        self.stride = stride
+        bigEndian = format == .binaryBigEndian
+        hasSphericalHarmonics = shSchema != nil
+
+        func source(_ name: String, default defaultValue: Float? = nil) -> PLYFieldSource {
+            guard let index = indexByName[name] else {
+                if let defaultValue { return .constant(defaultValue) }
+                return .missing(name: name)
+            }
+            switch format {
+            case .ascii:
+                return .column(index)
+            case .binaryLittleEndian, .binaryBigEndian:
+                guard let kind = PLYReader.scalarKind(properties[index].type) else {
+                    return .unsupportedType(properties[index].type)
                 }
-                throw PLYError.missingProperty(propertyName)
+                return .binary(offset: offsets[index], kind: kind)
             }
-
-            let offset = propertyOffsets[index]
-            let property = properties[index]
-            let size = sizeOfType(property.type)
-
-            guard offset + size <= data.count else {
-                throw PLYError.invalidData("Buffer overflow reading '\(propertyName)'")
-            }
-
-            return try convertToFloat(
-                data: data,
-                offset: offset,
-                type: property.type,
-                bigEndian: bigEndian
-            )
         }
 
-        // Extract all properties
-        let x = try readFloat(propertyName: "x")
-        let y = try readFloat(propertyName: "y")
-        let z = try readFloat(propertyName: "z")
-
-        let scale0 = try readFloat(propertyName: "scale_0", default: 0.0)
-        let scale1 = try readFloat(propertyName: "scale_1", default: 0.0)
-        let scale2 = try readFloat(propertyName: "scale_2", default: 0.0)
-
-        let scaleX = exp(scale0)
-        let scaleY = exp(scale1)
-        let scaleZ = exp(scale2)
-
-        var r: Float, g: Float, b: Float
+        x = source("x")
+        y = source("y")
+        z = source("z")
+        scale0 = source("scale_0", default: 0.0)
+        scale1 = source("scale_1", default: 0.0)
+        scale2 = source("scale_2", default: 0.0)
         if let shSchema {
-            let dcR = try readFloat(propertyName: "f_dc_0")
-            let dcG = try readFloat(propertyName: "f_dc_1")
-            let dcB = try readFloat(propertyName: "f_dc_2")
-            r = dcR
-            g = dcG
-            b = dcB
-
-            let C0: Float = 0.28209479177387814
-            r = (r * C0 + 0.5)
-            g = (g * C0 + 0.5)
-            b = (b * C0 + 0.5)
-
-            let dc = (dcR, dcG, dcB)
-            let restPerChannel = shSchema.coefficientsPerChannel - 1
-            for channel in 0 ..< 3 {
-                shCoefficients.append(channel == 0 ? dc.0 : (channel == 1 ? dc.1 : dc.2))
-                let start = channel * restPerChannel
-                for index in start ..< start + restPerChannel {
-                    try shCoefficients.append(
-                        readFloat(propertyName: shSchema.restPropertyNames[index])
-                    )
-                }
-            }
+            color0 = source("f_dc_0")
+            color1 = source("f_dc_1")
+            color2 = source("f_dc_2")
+            rest = shSchema.restPropertyNames.map { source($0) }
         } else {
-            r = try readFloat(propertyName: "red", default: 1.0) / 255.0
-            g = try readFloat(propertyName: "green", default: 1.0) / 255.0
-            b = try readFloat(propertyName: "blue", default: 1.0) / 255.0
+            color0 = source("red", default: 1.0)
+            color1 = source("green", default: 1.0)
+            color2 = source("blue", default: 1.0)
+            rest = []
         }
-
-        let opacity = try readFloat(propertyName: "opacity", default: 0.0)
-        let alpha = 1.0 / (1.0 + exp(-opacity))
-
-        let rot0 = try readFloat(propertyName: "rot_0", default: 1.0)
-        let rot1 = try readFloat(propertyName: "rot_1", default: 0.0)
-        let rot2 = try readFloat(propertyName: "rot_2", default: 0.0)
-        let rot3 = try readFloat(propertyName: "rot_3", default: 0.0)
-
-        let quat = simd_normalize(simd_float4(rot0, rot1, rot2, rot3))
-
-        return GaussianSplat(
-            center: simd_float4(x, y, z, 1.0),
-            scale: simd_float4(scaleX, scaleY, scaleZ, 1.0),
-            color: simd_float4(r, g, b, alpha),
-            quat: quat,
-            opacity: alpha
-        )
+        opacity = source("opacity", default: 0.0)
+        rot0 = source("rot_0", default: 1.0)
+        rot1 = source("rot_1", default: 0.0)
+        rot2 = source("rot_2", default: 0.0)
+        rot3 = source("rot_3", default: 0.0)
     }
 
-    private static func convertToFloat(data: Data, offset: Int, type: String, bigEndian: Bool) throws -> Float {
-        try data.withUnsafeBytes { bytes in
-            switch type {
-            case "float", "float32":
-                var bits = bytes.loadUnaligned(fromByteOffset: offset, as: UInt32.self)
-                if bigEndian { bits = UInt32(bigEndian: bits) }
-                return Float(bitPattern: bits)
+    /// The sources in evaluation order, so the first fault a vertex would hit is the one reported.
+    var evaluationOrder: [PLYFieldSource] {
+        var order = [x, y, z, scale0, scale1, scale2, color0, color1, color2]
+        order.append(contentsOf: rest)
+        order.append(contentsOf: [opacity, rot0, rot1, rot2, rot3])
+        return order
+    }
 
-            case "double", "float64":
-                var bits = bytes.loadUnaligned(fromByteOffset: offset, as: UInt64.self)
-                if bigEndian { bits = UInt64(bigEndian: bits) }
-                return Float(Double(bitPattern: bits))
-
-            case "uchar", "uint8":
-                return Float(bytes[offset])
-
-            case "char", "int8":
-                return Float(Int8(bitPattern: bytes[offset]))
-
-            case "ushort", "uint16":
-                var value = bytes.loadUnaligned(fromByteOffset: offset, as: UInt16.self)
-                if bigEndian { value = UInt16(bigEndian: value) }
-                return Float(value)
-
-            case "short", "int16":
-                var value = bytes.loadUnaligned(fromByteOffset: offset, as: Int16.self)
-                if bigEndian { value = Int16(bigEndian: value) }
-                return Float(value)
-
-            case "uint", "uint32":
-                var value = bytes.loadUnaligned(fromByteOffset: offset, as: UInt32.self)
-                if bigEndian { value = UInt32(bigEndian: value) }
-                return Float(value)
-
-            case "int", "int32":
-                var value = bytes.loadUnaligned(fromByteOffset: offset, as: Int32.self)
-                if bigEndian { value = Int32(bigEndian: value) }
-                return Float(value)
-
-            default:
-                throw PLYError.unsupportedType(type)
+    /// The error every vertex of a binary body would raise, if any — a required property the
+    /// header lacks or a type the reader cannot decode — in the importer's evaluation order.
+    var constantBinaryFault: PLYError? {
+        for source in evaluationOrder {
+            switch source {
+            case let .missing(name): return .missingProperty(name)
+            case let .unsupportedType(type): return .unsupportedType(type)
+            case .binary, .column, .constant: continue
             }
         }
+        return nil
+    }
+}
+
+/// One window of a streamed `.ply` body: the splats that survive the visibility cull, their
+/// spherical harmonics in the importer's channel-major layout (DC first) at the source degree,
+/// and how many vertices the cull dropped.
+struct PLYGaussianWindow {
+    var splats: [GaussianSplat]
+    var shCoefficients: [Float]
+    var culledCount: Int
+}
+
+/// A Gaussian `.ply` open for streamed reading: the header parsed once, the vertex properties
+/// resolved into a typed layout, and the body served as bounded windows parsed in parallel and
+/// handed over in source order. Nothing of the body is resident beyond one batch of windows.
+final class PLYGaussianSource: @unchecked Sendable {
+    let url: URL
+    let header: PLYHeader
+    let vertexElement: PLYElement
+    let shSchema: PLYReader.SphericalHarmonicSchema?
+    let layout: PLYVertexLayout
+    let bodyOffset: Int
+    let fileSize: Int
+    private let file: OpenFile
+    private var descriptor: Int32 {
+        file.descriptor
+    }
+
+    /// Vertices the header declares.
+    var vertexCount: Int {
+        vertexElement.count
+    }
+
+    /// Body bytes, for progress.
+    var bodyByteCount: Int {
+        max(0, fileSize - bodyOffset)
+    }
+
+    /// How the body is cut into windows. Production's sizes unless a test asks for smaller
+    /// ones, to run a fixture of a few hundred vertices through many windows.
+    struct Windowing {
+        /// Bytes of source a binary window covers, before rounding to whole vertices. Small
+        /// enough that a batch of windows — the raw bytes, the parsed splats and harmonics, the
+        /// cooked store — stays under about 100 MB across every core: malloc keeps what a batch
+        /// frees cached and dirty, so the batch size is footprint for the rest of the bake.
+        var targetWindowBytes = 2 << 20
+        /// Bytes of text an ASCII window covers, before cutting at a line boundary.
+        var asciiWindowBytes = 2 << 20
+        /// The fewest vertices a binary window holds, however wide the vertex.
+        var minVerticesPerWindow = 1024
+
+        static let production = Windowing()
+    }
+
+    let windowing: Windowing
+
+    /// Windows read by the last `forEachWindow`, including an ASCII body's past the declared
+    /// count. For tests, which prove a fixture went through more than one.
+    private(set) var windowsRead = 0
+
+    /// A read-only descriptor closed exactly once, whenever the source goes away — including
+    /// when `init` throws part-way.
+    private final class OpenFile: @unchecked Sendable {
+        let descriptor: Int32
+
+        init(path: String) throws {
+            let descriptor = open(path, O_RDONLY)
+            guard descriptor >= 0 else {
+                throw NSError(domain: NSCocoaErrorDomain, code: CocoaError.fileReadNoSuchFile.rawValue, userInfo: [NSFilePathErrorKey: path])
+            }
+            self.descriptor = descriptor
+        }
+
+        deinit {
+            close(descriptor)
+        }
+    }
+
+    init(url: URL, windowing: Windowing = .production) throws {
+        self.url = url
+        self.windowing = windowing
+        let file = try OpenFile(path: url.path)
+        self.file = file
+        var info = stat()
+        guard fstat(file.descriptor, &info) == 0 else {
+            throw NSError(domain: NSPOSIXErrorDomain, code: Int(errno), userInfo: [NSFilePathErrorKey: url.path])
+        }
+        fileSize = Int(info.st_size)
+
+        var prefix = [UInt8](repeating: 0, count: min(fileSize, PLYReader.headerScanLimit))
+        try Self.read(file.descriptor, into: &prefix, count: prefix.count, at: 0)
+        let (header, bodyOffset) = try PLYReader.parseHeader(from: Data(prefix))
+        self.header = header
+        self.bodyOffset = bodyOffset
+
+        guard let vertexElement = header.elements.first(where: { $0.name == "vertex" }) else {
+            throw PLYError.missingElement("vertex")
+        }
+        self.vertexElement = vertexElement
+        shSchema = try PLYReader.sphericalHarmonicSchema(for: vertexElement.properties)
+        layout = PLYVertexLayout(properties: vertexElement.properties, format: header.format, shSchema: shSchema)
+
+        // A binary body's faults are the same for every vertex; report them as the first vertex
+        // would have: a truncated first vertex first, then a missing or undecodable property,
+        // then a body shorter than its count.
+        if header.format != .ascii, vertexElement.count > 0 {
+            guard bodyOffset + layout.stride <= fileSize else {
+                throw PLYError.invalidFormat("Unexpected end of file")
+            }
+            if let fault = layout.constantBinaryFault {
+                throw fault
+            }
+            guard bodyOffset + vertexElement.count * layout.stride <= fileSize else {
+                throw PLYError.invalidFormat("Unexpected end of file")
+            }
+        }
+    }
+
+    /// `count` bytes at `offset`, or `.invalidFormat` when the file ends first.
+    private static func read(_ descriptor: Int32, into buffer: inout [UInt8], count: Int, at offset: Int) throws {
+        guard count > 0 else { return }
+        try buffer.withUnsafeMutableBytes { raw in
+            var done = 0
+            while done < count {
+                let got = pread(descriptor, raw.baseAddress! + done, count - done, off_t(offset + done))
+                if got < 0 {
+                    if errno == EINTR { continue }
+                    throw NSError(domain: NSPOSIXErrorDomain, code: Int(errno))
+                }
+                guard got > 0 else {
+                    throw PLYError.invalidFormat("Unexpected end of file")
+                }
+                done += got
+            }
+        }
+    }
+
+    // MARK: - Windows
+
+    /// A window's byte range and, for a binary body, its vertex range.
+    private struct WindowRange {
+        var byteOffset: Int
+        var byteCount: Int
+        var firstVertex: Int
+        var vertexCount: Int
+    }
+
+    /// The binary body cut into whole-vertex windows of about `windowing.targetWindowBytes`.
+    private func binaryWindows() -> [WindowRange] {
+        let count = vertexElement.count
+        guard count > 0 else { return [] }
+        let stride = layout.stride
+        let perWindow = stride > 0 ? max(windowing.minVerticesPerWindow, min(1 << 20, windowing.targetWindowBytes / stride)) : count
+        var windows: [WindowRange] = []
+        var first = 0
+        while first < count {
+            let n = min(perWindow, count - first)
+            windows.append(WindowRange(byteOffset: bodyOffset + first * stride, byteCount: n * stride, firstVertex: first, vertexCount: n))
+            first += n
+        }
+        return windows
+    }
+
+    /// The ASCII body cut at line boundaries into windows of about `windowing.asciiWindowBytes`,
+    /// found by probing for the newline after each boundary rather than scanning the body.
+    private func asciiWindows() throws -> [WindowRange] {
+        var windows: [WindowRange] = []
+        var start = bodyOffset
+        let end = fileSize
+        while start < end {
+            var cut = min(start + windowing.asciiWindowBytes, end)
+            if cut < end {
+                // Extend to just past the first newline at or after the estimate.
+                var probeOffset = cut
+                var found: Int?
+                var probe = [UInt8](repeating: 0, count: 1 << 16)
+                while found == nil, probeOffset < end {
+                    let n = min(probe.count, end - probeOffset)
+                    try Self.read(descriptor, into: &probe, count: n, at: probeOffset)
+                    if let index = probe[0 ..< n].firstIndex(of: 0x0A) {
+                        found = probeOffset + index + 1
+                    } else {
+                        probeOffset += n
+                    }
+                }
+                cut = found ?? end
+            }
+            windows.append(WindowRange(byteOffset: start, byteCount: cut - start, firstVertex: 0, vertexCount: 0))
+            start = cut
+        }
+        return windows
+    }
+
+    /// Runs `body` on every window of the file in source order. Windows are read and parsed in
+    /// parallel, `parallelism` at a time; `body` and `afterBatch` run on the calling thread, the
+    /// latter after every batch with the fraction of the body consumed so far — the place for
+    /// progress and cancellation. A parse error surfaces after the windows before it were
+    /// delivered, so a consumer never sees a window out of order.
+    func forEachWindow(
+        parallelism: Int = ProcessInfo.processInfo.activeProcessorCount,
+        afterBatch: (Double) throws -> Void = { _ in },
+        body: (PLYGaussianWindow) throws -> Void
+    ) throws {
+        try forEachWindow(parallelism: parallelism, map: { $0 }, afterBatch: afterBatch, body: body)
+    }
+
+    /// `forEachWindow` with a `map` step that runs inside the parallel work item — the place for
+    /// per-splat work that must not serialise on the delivering thread (the cook). For an ASCII
+    /// body, whose windows are cut to the vertex count only once the lines before them are
+    /// counted, `map` runs on the delivering thread instead.
+    func forEachWindow<Mapped>(
+        parallelism: Int = ProcessInfo.processInfo.activeProcessorCount,
+        map: @Sendable @escaping (PLYGaussianWindow) throws -> Mapped,
+        afterBatch: (Double) throws -> Void = { _ in },
+        body: (Mapped) throws -> Void
+    ) throws {
+        switch header.format {
+        case .ascii:
+            try forEachASCIIWindow(parallelism: parallelism, afterBatch: afterBatch) { window in
+                try body(map(window))
+            }
+        case .binaryLittleEndian, .binaryBigEndian:
+            try forEachBinaryWindow(parallelism: parallelism, map: map, afterBatch: afterBatch, body: body)
+        }
+    }
+
+    private func forEachBinaryWindow<Mapped>(
+        parallelism: Int,
+        map: @Sendable @escaping (PLYGaussianWindow) throws -> Mapped,
+        afterBatch: (Double) throws -> Void,
+        body: (Mapped) throws -> Void
+    ) throws {
+        let windows = binaryWindows()
+        let batchSize = max(1, parallelism)
+        var consumed = 0
+        var start = 0
+        windowsRead = 0
+        while start < windows.count {
+            let batch = Array(windows[start ..< min(start + batchSize, windows.count)])
+            let results = ParallelResults<Mapped>(count: batch.count)
+            DispatchQueue.concurrentPerform(iterations: batch.count) { slot in
+                do {
+                    let window = batch[slot]
+                    var buffer = [UInt8](repeating: 0, count: window.byteCount)
+                    try Self.read(descriptor, into: &buffer, count: window.byteCount, at: window.byteOffset)
+                    let mapped = try map(parseBinary(buffer, vertexCount: window.vertexCount))
+                    results.store(mapped, at: slot)
+                } catch {
+                    results.fail(error, at: slot)
+                }
+            }
+            for slot in batch.indices {
+                try body(results.take(slot))
+                consumed += batch[slot].byteCount
+                windowsRead += 1
+            }
+            start += batch.count
+            try afterBatch(bodyByteCount > 0 ? Double(consumed) / Double(bodyByteCount) : 1)
+        }
+    }
+
+    private func forEachASCIIWindow(parallelism: Int, afterBatch: (Double) throws -> Void, body: (PLYGaussianWindow) throws -> Void) throws {
+        let windows = try asciiWindows()
+        let batchSize = max(1, parallelism)
+        let limit = vertexElement.count
+        var linesBefore = 0
+        var consumed = 0
+        var splatsSoFar = 0
+        var start = 0
+        windowsRead = 0
+        while start < windows.count {
+            let batch = Array(windows[start ..< min(start + batchSize, windows.count)])
+            // Once the declared count is met the rest of the body is only checked for UTF-8, as
+            // decoding the whole body used to.
+            let parseLines = linesBefore < limit
+            let results = ParallelResults<ASCIIWindow>(count: batch.count)
+            DispatchQueue.concurrentPerform(iterations: batch.count) { slot in
+                do {
+                    let window = batch[slot]
+                    var buffer = [UInt8](repeating: 0, count: window.byteCount)
+                    try Self.read(descriptor, into: &buffer, count: window.byteCount, at: window.byteOffset)
+                    let parsed = try parseASCII(buffer, parseLines: parseLines)
+                    results.store(parsed, at: slot)
+                } catch {
+                    results.fail(error, at: slot)
+                }
+            }
+            for slot in batch.indices {
+                let parsed = try results.take(slot)
+                let allowed = limit - linesBefore
+                if allowed > 0 {
+                    if let fault = parsed.firstFault, fault.line < allowed {
+                        throw fault.error
+                    }
+                    var window = PLYGaussianWindow(splats: [], shCoefficients: [], culledCount: 0)
+                    window.splats.reserveCapacity(parsed.lineOfSplat.count)
+                    let perSplat = shSchema?.coefficientsPerSplat ?? 0
+                    for (index, line) in parsed.lineOfSplat.enumerated() where line < allowed {
+                        let splat = parsed.splats[index]
+                        splatsSoFar += 1
+                        guard splat.opacity >= minRetainedGaussianOpacity else {
+                            window.culledCount += 1
+                            continue
+                        }
+                        window.splats.append(splat)
+                        if perSplat > 0 {
+                            window.shCoefficients.append(contentsOf: parsed.shCoefficients[index * perSplat ..< (index + 1) * perSplat])
+                        }
+                    }
+                    try body(window)
+                }
+                linesBefore += parsed.lineCount
+                consumed += batch[slot].byteCount
+                windowsRead += 1
+            }
+            start += batch.count
+            try afterBatch(bodyByteCount > 0 ? Double(consumed) / Double(bodyByteCount) : 1)
+        }
+        guard splatsSoFar == limit else {
+            throw PLYError.invalidData("Expected \(limit) Gaussian vertices, found \(splatsSoFar)")
+        }
+    }
+
+    // MARK: - Binary parsing
+
+    private func parseBinary(_ buffer: [UInt8], vertexCount: Int) -> PLYGaussianWindow {
+        var window = PLYGaussianWindow(splats: [], shCoefficients: [], culledCount: 0)
+        window.splats.reserveCapacity(vertexCount)
+        let layout = layout
+        let stride = layout.stride
+        let bigEndian = layout.bigEndian
+        let restCount = layout.rest.count
+        let perChannel = shSchema?.coefficientsPerChannel ?? 0
+        let restPerChannel = shSchema?.restPerChannel ?? 0
+        if let shSchema {
+            window.shCoefficients.reserveCapacity(vertexCount * shSchema.coefficientsPerSplat)
+        }
+
+        // The layout's sources are read through pointers: the `rest` array is shared by every
+        // window in flight, and an array subscript in an unoptimised build would retain and
+        // release that shared buffer from sixteen threads at once, per field.
+        let restSources = layout.rest
+        restSources.withUnsafeBufferPointer { rest in
+            buffer.withUnsafeBytes { raw in
+                guard let base = raw.baseAddress else { return }
+                var restValues = [Float](repeating: 0, count: restCount)
+                for vertex in 0 ..< vertexCount {
+                    let p = base + vertex * stride
+                    var fields = PLYVertexFields()
+                    fields.hasSphericalHarmonics = layout.hasSphericalHarmonics
+                    fields.x = Self.load(p, layout.x, bigEndian)
+                    fields.y = Self.load(p, layout.y, bigEndian)
+                    fields.z = Self.load(p, layout.z, bigEndian)
+                    fields.scale0 = Self.load(p, layout.scale0, bigEndian)
+                    fields.scale1 = Self.load(p, layout.scale1, bigEndian)
+                    fields.scale2 = Self.load(p, layout.scale2, bigEndian)
+                    fields.color0 = Self.load(p, layout.color0, bigEndian)
+                    fields.color1 = Self.load(p, layout.color1, bigEndian)
+                    fields.color2 = Self.load(p, layout.color2, bigEndian)
+                    restValues.withUnsafeMutableBufferPointer { restValues in
+                        for index in 0 ..< restCount {
+                            restValues[index] = Self.load(p, rest[index], bigEndian)
+                        }
+                    }
+                    fields.opacity = Self.load(p, layout.opacity, bigEndian)
+                    fields.rot0 = Self.load(p, layout.rot0, bigEndian)
+                    fields.rot1 = Self.load(p, layout.rot1, bigEndian)
+                    fields.rot2 = Self.load(p, layout.rot2, bigEndian)
+                    fields.rot3 = Self.load(p, layout.rot3, bigEndian)
+
+                    let splat = PLYReader.makeSplat(fields)
+                    guard splat.opacity >= minRetainedGaussianOpacity else {
+                        window.culledCount += 1
+                        continue
+                    }
+                    window.splats.append(splat)
+                    if perChannel > 0 {
+                        Self.appendSphericalHarmonics(&window.shCoefficients, dc: (fields.color0, fields.color1, fields.color2), rest: restValues, restPerChannel: restPerChannel)
+                    }
+                }
+            }
+        }
+        return window
+    }
+
+    /// The importer's channel-major SH layout: each channel's DC term, then its `f_rest_*` terms.
+    @inline(__always)
+    static func appendSphericalHarmonics(_ coefficients: inout [Float], dc: (Float, Float, Float), rest: [Float], restPerChannel: Int) {
+        for channel in 0 ..< 3 {
+            coefficients.append(channel == 0 ? dc.0 : (channel == 1 ? dc.1 : dc.2))
+            let start = channel * restPerChannel
+            for index in start ..< start + restPerChannel {
+                coefficients.append(rest[index])
+            }
+        }
+    }
+
+    /// One binary field, decoded as `convertToFloat` always did: floats by bit pattern (doubles
+    /// through `Double`), integers through `Float(_:)`.
+    @inline(__always)
+    private static func load(_ vertex: UnsafeRawPointer, _ source: PLYFieldSource, _ bigEndian: Bool) -> Float {
+        switch source {
+        case let .binary(offset, kind):
+            let p = vertex + offset
+            switch kind {
+            case .float32:
+                var bits = p.loadUnaligned(as: UInt32.self)
+                if bigEndian { bits = UInt32(bigEndian: bits) }
+                return Float(bitPattern: bits)
+            case .float64:
+                var bits = p.loadUnaligned(as: UInt64.self)
+                if bigEndian { bits = UInt64(bigEndian: bits) }
+                return Float(Double(bitPattern: bits))
+            case .uint8:
+                return Float(p.load(as: UInt8.self))
+            case .int8:
+                return Float(Int8(bitPattern: p.load(as: UInt8.self)))
+            case .uint16:
+                var value = p.loadUnaligned(as: UInt16.self)
+                if bigEndian { value = UInt16(bigEndian: value) }
+                return Float(value)
+            case .int16:
+                var value = p.loadUnaligned(as: Int16.self)
+                if bigEndian { value = Int16(bigEndian: value) }
+                return Float(value)
+            case .uint32:
+                var value = p.loadUnaligned(as: UInt32.self)
+                if bigEndian { value = UInt32(bigEndian: value) }
+                return Float(value)
+            case .int32:
+                var value = p.loadUnaligned(as: Int32.self)
+                if bigEndian { value = Int32(bigEndian: value) }
+                return Float(value)
+            }
+        case let .constant(value):
+            return value
+        case .column, .missing, .unsupportedType:
+            // Ruled out for a binary body by `constantBinaryFault` before any window is read.
+            return 0
+        }
+    }
+
+    // MARK: - ASCII parsing
+
+    /// The lines of one ASCII window, parsed before the vertex count is applied: every splat
+    /// with the window-relative index of its line, the first line that failed (later lines are
+    /// not parsed; they are beyond it whatever the count), and the window's line count.
+    private struct ASCIIWindow {
+        var splats: [GaussianSplat] = []
+        var shCoefficients: [Float] = []
+        var lineOfSplat: [Int] = []
+        var lineCount = 0
+        var firstFault: (line: Int, error: Error)?
+    }
+
+    private func parseASCII(_ buffer: [UInt8], parseLines: Bool) throws -> ASCIIWindow {
+        guard let text = String(bytes: buffer, encoding: .utf8) else {
+            throw PLYError.invalidFormat("Cannot decode body as UTF-8")
+        }
+        var window = ASCIIWindow()
+        let lines = text.components(separatedBy: .newlines).filter { !$0.isEmpty }
+        window.lineCount = lines.count
+        guard parseLines else { return window }
+
+        let layout = layout
+        let restCount = layout.rest.count
+        let restPerChannel = shSchema?.restPerChannel ?? 0
+        var restValues = [Float](repeating: 0, count: restCount)
+        for (line, lineText) in lines.enumerated() {
+            let values = lineText.trimmingCharacters(in: .whitespaces)
+                .components(separatedBy: .whitespaces)
+                .filter { !$0.isEmpty }
+
+            if values.isEmpty { continue }
+
+            do {
+                var fields = PLYVertexFields()
+                fields.hasSphericalHarmonics = layout.hasSphericalHarmonics
+                fields.x = try Self.parse(values, layout.x, "x")
+                fields.y = try Self.parse(values, layout.y, "y")
+                fields.z = try Self.parse(values, layout.z, "z")
+                fields.scale0 = try Self.parse(values, layout.scale0, "scale_0")
+                fields.scale1 = try Self.parse(values, layout.scale1, "scale_1")
+                fields.scale2 = try Self.parse(values, layout.scale2, "scale_2")
+                if let shSchema {
+                    fields.color0 = try Self.parse(values, layout.color0, "f_dc_0")
+                    fields.color1 = try Self.parse(values, layout.color1, "f_dc_1")
+                    fields.color2 = try Self.parse(values, layout.color2, "f_dc_2")
+                    for index in 0 ..< restCount {
+                        restValues[index] = try Self.parse(values, layout.rest[index], shSchema.restPropertyNames[index])
+                    }
+                } else {
+                    fields.color0 = try Self.parse(values, layout.color0, "red")
+                    fields.color1 = try Self.parse(values, layout.color1, "green")
+                    fields.color2 = try Self.parse(values, layout.color2, "blue")
+                }
+                fields.opacity = try Self.parse(values, layout.opacity, "opacity")
+                fields.rot0 = try Self.parse(values, layout.rot0, "rot_0")
+                fields.rot1 = try Self.parse(values, layout.rot1, "rot_1")
+                fields.rot2 = try Self.parse(values, layout.rot2, "rot_2")
+                fields.rot3 = try Self.parse(values, layout.rot3, "rot_3")
+
+                window.splats.append(PLYReader.makeSplat(fields))
+                window.lineOfSplat.append(line)
+                if shSchema != nil {
+                    Self.appendSphericalHarmonics(&window.shCoefficients, dc: (fields.color0, fields.color1, fields.color2), rest: restValues, restPerChannel: restPerChannel)
+                }
+            } catch {
+                window.firstFault = (line, error)
+                break
+            }
+        }
+        return window
+    }
+
+    /// One ASCII field: `Float(_:)` on its column, the default for an optional property the
+    /// header lacks, `.missingProperty` for a required one.
+    @inline(__always)
+    private static func parse(_ values: [String], _ source: PLYFieldSource, _ key: String) throws -> Float {
+        switch source {
+        case let .column(index):
+            guard index < values.count, let value = Float(values[index]) else {
+                throw PLYError.invalidData("Cannot parse float for property '\(key)'")
+            }
+            return value
+        case let .constant(value):
+            return value
+        case let .missing(name):
+            throw PLYError.missingProperty(name)
+        case let .unsupportedType(type):
+            throw PLYError.unsupportedType(type)
+        case .binary:
+            return 0
+        }
+    }
+}
+
+/// Per-slot results of a `concurrentPerform` batch, handed back in slot order.
+final class ParallelResults<Value>: @unchecked Sendable {
+    private let lock = NSLock()
+    private var values: [Value?]
+    private var errors: [Error?]
+
+    init(count: Int) {
+        values = [Value?](repeating: nil, count: count)
+        errors = [Error?](repeating: nil, count: count)
+    }
+
+    func store(_ value: Value, at slot: Int) {
+        lock.withLock { values[slot] = value }
+    }
+
+    func fail(_ error: Error, at slot: Int) {
+        lock.withLock { errors[slot] = error }
+    }
+
+    /// The slot's value, released from the results; its error if it failed.
+    func take(_ slot: Int) throws -> Value {
+        try lock.withLock {
+            if let error = errors[slot] {
+                throw error
+            }
+            guard let value = values[slot] else {
+                throw UntoldGSError.invalidInput("parallel slot \(slot) produced no result")
+            }
+            values[slot] = nil
+            return value
+        }
+    }
+
+    /// The first failure in slot order, if any.
+    var firstError: Error? {
+        lock.withLock { errors.compactMap { $0 }.first }
     }
 }
 
