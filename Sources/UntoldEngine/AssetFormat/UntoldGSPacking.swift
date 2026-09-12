@@ -16,6 +16,7 @@
 import CShaderTypes
 import Foundation
 import simd
+import zlib
 
 /// One splat as the writer consumes it and the decoder produces it:
 /// linear scale, unit quaternion, display-referred colour in 0...1.
@@ -328,23 +329,69 @@ public enum UntoldGSPacking {
     }
 }
 
-/// CRC-32 (IEEE 802.3, reflected, polynomial 0xEDB88320) for per-chunk integrity.
-public enum UntoldGSCRC32 {
-    private static let table: [UInt32] = (0 ..< 256).map { index -> UInt32 in
-        var crc = UInt32(index)
-        for _ in 0 ..< 8 {
-            crc = (crc & 1) != 0 ? (crc >> 1) ^ 0xEDB8_8320 : crc >> 1
-        }
-        return crc
+/// The sRGB transfer curve the shaders apply to the stored display-referred colour
+/// (`gaussianSRGBToLinear` in `Gaussians.metal`), mirrored so the coarsener averages colours in
+/// linear space and maps the mean back once.
+public enum UntoldGSColor {
+    /// Display-referred (sRGB-encoded) → linear, per channel; negative input clamps to 0.
+    public static func linear(fromDisplay color: SIMD3<Float>) -> SIMD3<Float> {
+        SIMD3<Float>(linear(fromDisplay: color.x), linear(fromDisplay: color.y), linear(fromDisplay: color.z))
     }
 
+    public static func linear(fromDisplay value: Float) -> Float {
+        let c = max(value, 0)
+        return c <= 0.04045 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4)
+    }
+
+    /// Linear → display-referred (sRGB-encoded), per channel; the inverse of `linear(fromDisplay:)`.
+    public static func display(fromLinear color: SIMD3<Float>) -> SIMD3<Float> {
+        SIMD3<Float>(display(fromLinear: color.x), display(fromLinear: color.y), display(fromLinear: color.z))
+    }
+
+    public static func display(fromLinear value: Float) -> Float {
+        let l = max(value, 0)
+        return l <= 0.003_130_8 ? l * 12.92 : 1.055 * pow(l, 1 / 2.4) - 0.055
+    }
+}
+
+/// CRC-32 (IEEE 802.3, reflected, polynomial 0xEDB88320) for per-chunk integrity, through the
+/// system zlib; `update` streams the checksum over a payload that arrives in pieces (a chunk
+/// paged in tier by tier).
+public enum UntoldGSCRC32 {
+    /// The checksum of `data`, whole.
     public static func checksum(_ data: Data) -> UInt32 {
-        var crc: UInt32 = 0xFFFF_FFFF
+        var crc = initialValue
         data.withUnsafeBytes { buffer in
-            for byte in buffer {
-                crc = table[Int((crc ^ UInt32(byte)) & 0xFF)] ^ (crc >> 8)
-            }
+            update(&crc, buffer)
         }
-        return crc ^ 0xFFFF_FFFF
+        return finalize(crc)
+    }
+
+    /// The initial running value of a streamed checksum; feed `update` the payload in any
+    /// pieces, in order, then finish with `finalize`.
+    public static let initialValue: UInt32 = 0xFFFF_FFFF
+
+    /// Folds `bytes` into the running checksum `crc` (started at `initialValue`): the system
+    /// zlib's `crc32` — the same reflected polynomial 0xEDB88320, bit for bit, at the speed of
+    /// the platform's implementation whatever this module is compiled with. zlib keeps the
+    /// running value in its finalised form, so it is complemented on the way in and out.
+    public static func update(_ crc: inout UInt32, _ bytes: UnsafeRawBufferPointer) {
+        guard let base = bytes.baseAddress, bytes.count > 0 else { return }
+        var value = uLong(crc ^ 0xFFFF_FFFF)
+        var offset = 0
+        let count = bytes.count
+        // zlib takes the length as a 32-bit count: the rare larger payload goes in pieces.
+        let piece = 1 << 30
+        while offset < count {
+            let length = min(piece, count - offset)
+            value = crc32(value, base.advanced(by: offset).assumingMemoryBound(to: Bytef.self), uInt(length))
+            offset += length
+        }
+        crc = UInt32(truncatingIfNeeded: value) ^ 0xFFFF_FFFF
+    }
+
+    /// The checksum a streamed `update` sequence stands for.
+    public static func finalize(_ crc: UInt32) -> UInt32 {
+        crc ^ 0xFFFF_FFFF
     }
 }

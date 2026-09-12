@@ -7,8 +7,9 @@
 //  (GaussianWorkingSetBudget.metal) and the fused decode/test/project/compact pass
 //  (GaussianChunkPreprocess.metal) — the per-slot buffers a chunked entity carries, the
 //  per-frame constants, the encodes, and CPU mirrors of the chunk test, the screen area, the
-//  density histogram and its solve, the quota and the opacity band for tests and callers that
-//  want to predict what the GPU keeps.
+//  density histogram and its solve, the quota, the opacity band and the per-chunk level rule of
+//  the coarse levels (per-chunk-lod-tiers) for tests and callers that want to predict what the
+//  GPU keeps.
 //
 // Copyright (C) Untold Engine Studios
 //
@@ -237,15 +238,87 @@ enum GaussianChunkCullMath {
     /// screen area of each visible chunk): per tier the splats and Σ ceil(area × tier floor),
     /// `visibleChunks` the count; the header fields are left at zero.
     static func densityHistogram(chunks: [(splatCount: UInt32, screenArea: Float)]) -> GaussianBudgetDensityHistogram {
+        densityHistogram(levelledChunks: chunks.map { LevelledChunk(splatCount: $0.splatCount, screenArea: $0.screenArea) })
+    }
+
+    /// One visible chunk of an entity as the cull sees it, for the histogram and request mirrors:
+    /// its full splat count `splatCount`, its resident ranks (the whole count for a
+    /// whole-resident entity; 0 unlists a chunk without an available coarse level), its screen
+    /// area, and its coarse levels — the runtime's level 1 and 2 counts (`coarse1`, `coarse2`)
+    /// and which are available (`availableLevels` bit 0 = level 1, bit 1 = level 2; 0 = the
+    /// chunk, or the entity, has none).
+    struct LevelledChunk {
+        var splatCount: UInt32
+        var residentRanks: UInt32
+        var screenArea: Float
+        var coarse1: UInt32 = 0
+        var coarse2: UInt32 = 0
+        var availableLevels: UInt32 = 0
+
+        init(splatCount: UInt32, residentRanks: UInt32? = nil, screenArea: Float, coarse1: UInt32 = 0, coarse2: UInt32 = 0, availableLevels: UInt32 = 0) {
+            self.splatCount = splatCount
+            self.residentRanks = residentRanks ?? splatCount
+            self.screenArea = screenArea
+            self.coarse1 = coarse1
+            self.coarse2 = coarse2
+            self.availableLevels = availableLevels
+        }
+
+        /// The rule's availability mask: bit 0 fine (resident ranks), bit 1 level 1, bit 2 level 2.
+        var availability: UInt32 {
+            (residentRanks > 0 ? 1 : 0)
+                | ((availableLevels & 1) != 0 && coarse1 > 0 ? 2 : 0)
+                | ((availableLevels & 2) != 0 && coarse2 > 0 ? 4 : 0)
+        }
+
+        /// Whether the cull lists the chunk: something resident, or a coarse level available.
+        var isListed: Bool {
+            residentRanks > 0 || (availability & 6) != 0
+        }
+
+        /// The count of the finest available coarse level (0 without one).
+        var finestCoarseCount: UInt32 {
+            let availability = availability
+            if (availability & 2) != 0 { return coarse1 }
+            if (availability & 4) != 0 { return coarse2 }
+            return 0
+        }
+
+        /// What the cull lists as the chunk's splats: the resident ranks, at least the count of
+        /// the finest available coarse level (a non-resident chunk of a paged entity lists that
+        /// count alone), so the fine regime is never charged less than a coarse level draws.
+        var listedSplats: UInt32 {
+            max(min(splatCount, residentRanks), finestCoarseCount)
+        }
+    }
+
+    /// The histogram `gaussianChunkCull` accumulates for an entity with coarse levels: a chunk
+    /// with a level is binned by its full density and adds its listed splats to `splats` and
+    /// `levelledSplats`, its scaled area to `scaledArea` and `levelledScaledArea`, and the counts
+    /// the rule would draw in the two coarse regimes to `coarse1`/`coarse2` (the finest available
+    /// level's count for level 1, the coarsest's for level 2); a chunk without one bins as
+    /// before. Unlisted chunks are skipped.
+    static func densityHistogram(levelledChunks chunks: [LevelledChunk]) -> GaussianBudgetDensityHistogram {
         var tiers = [GaussianBudgetDensityTier](repeating: GaussianBudgetDensityTier(splats: 0, scaledArea: 0), count: gaussianDensityTierCount)
-        for chunk in chunks {
-            let tier = densityTier(density: Float(chunk.splatCount) / chunk.screenArea)
-            tiers[tier].splats &+= chunk.splatCount
-            tiers[tier].scaledArea &+= UInt32(ceil(chunk.screenArea * densityTierFloor(tier)))
+        var listed = 0
+        for chunk in chunks where chunk.isListed {
+            listed += 1
+            let availability = chunk.availability
+            let hasLevel = (availability & 6) != 0
+            let tier = densityTier(density: Float(hasLevel ? chunk.splatCount : chunk.listedSplats) / chunk.screenArea)
+            let scaledArea = UInt32(ceil(chunk.screenArea * densityTierFloor(tier)))
+            tiers[tier].splats &+= chunk.listedSplats
+            tiers[tier].scaledArea &+= scaledArea
+            if hasLevel {
+                tiers[tier].coarse1 &+= chunk.finestCoarseCount
+                tiers[tier].coarse2 &+= (availability & 4) != 0 ? chunk.coarse2 : chunk.coarse1
+                tiers[tier].levelledSplats &+= chunk.listedSplats
+                tiers[tier].levelledScaledArea &+= scaledArea
+            }
         }
         var histogram = GaussianBudgetDensityHistogram()
         histogram.setTiers(tiers)
-        histogram.visibleChunks = UInt32(chunks.count)
+        histogram.visibleChunks = UInt32(listed)
         return histogram
     }
 
@@ -258,6 +331,43 @@ enum GaussianChunkCullMath {
         for (tier, entry) in histogram.tierArray.enumerated() where entry.splats > 0 {
             let area = Float(entry.scaledArea) / densityTierFloor(tier)
             total += min(Float(entry.splats), density * area)
+        }
+        return total
+    }
+
+    /// The bounded request R(d) of `gaussianBoundedRequest` (GaussianWorkingSetBudget.metal):
+    /// `boundedGrant` for the tiers without levelled chunks, and for a tier's levelled chunks the
+    /// term of the regime the level rule picks at `density` — k = tier(min(density, floor))
+    /// against the tier: fine (min(levelledSplats, d × their own area), at least the level-1
+    /// counts) while k ≥ t − s1 − 1, the level-1 counts while k ≥ t − s2 − 1, the level-2 counts
+    /// below — each population with its own over-estimated area. At least the sum of the
+    /// per-chunk quotas at the levels the quota pass picks; non-decreasing in `density`. Same
+    /// operation order as the kernel.
+    static func boundedRequest(histogram: GaussianBudgetDensityHistogram, density: Float, densityFloor: Float = .infinity, tierShifts: (Int, Int)) -> Float {
+        let k = densityTier(density: min(density, densityFloor))
+        var total: Float = 0
+        for (tier, entry) in histogram.tierArray.enumerated() where entry.splats > 0 {
+            let splats = Float(entry.splats)
+            let area = Float(entry.scaledArea) / densityTierFloor(tier)
+            let levelled = min(entry.levelledSplats, entry.splats)
+            if levelled == 0 {
+                total += min(splats, density * area)
+                continue
+            }
+            let levelledSplats = Float(levelled)
+            let levelledArea = Float(min(entry.levelledScaledArea, entry.scaledArea)) / densityTierFloor(tier)
+            let fineOnly = splats - levelledSplats
+            if fineOnly > 0 {
+                total += min(fineOnly, density * (area - levelledArea))
+            }
+            let delta = k - tier
+            if delta >= -tierShifts.0 - 1 {
+                total += max(min(levelledSplats, density * levelledArea), Float(entry.coarse1))
+            } else if delta >= -tierShifts.1 - 1 {
+                total += Float(entry.coarse1)
+            } else {
+                total += Float(entry.coarse2)
+            }
         }
         return total
     }
@@ -362,6 +472,143 @@ enum GaussianChunkCullMath {
         let product = densityCap * screenArea
         guard product < Float(splatCount) else { return splatCount }
         return UInt32(max(0, floor(product)))
+    }
+
+    // MARK: Per-chunk levels (GaussianDensityTier.h, GaussianWorkingSetBudget.metal, GaussianChunkPreprocess.metal)
+
+    /// The half-octave tiers under a chunk's own density at which a coarse level of ratio
+    /// 2^ratioLog2 is chosen: 2 × (ratioLog2 − 1) — the fine quota min(n, d × A) falls below
+    /// twice the level's count there.
+    static func tierShift(ratioLog2: UInt8) -> Int {
+        2 * (max(Int(ratioLog2), 1) - 1)
+    }
+
+    /// The tier distance that stands for a zero cap (`kGaussianLevelRuleMinusInfinity`).
+    static let levelRuleMinusInfinity = -(4 * gaussianDensityTierCount)
+
+    private static func levelWanted(deltaTier: Int, tierShifts: (Int, Int), margin: Int) -> Int {
+        if deltaTier >= -tierShifts.0 + margin { return 0 }
+        if deltaTier >= -tierShifts.1 + margin { return 1 }
+        return 2
+    }
+
+    /// Mirror of `gaussianLevelRule`: the level for `deltaTier` = tier(effective cap) − tier(n / A),
+    /// the level drawn last frame and the availability mask (bit 0 fine, bit 1 level 1, bit 2
+    /// level 2): fine while deltaTier ≥ −s1, level 1 while −s2 ≤ deltaTier < −s1, level 2
+    /// below; moving finer than `previous` needs one more tier; a wanted level that is not
+    /// available steps to the next coarser available one, else to the next finer available one.
+    static func levelRule(deltaTier: Int, previous: Int, available: UInt32, tierShifts: (Int, Int)) -> Int {
+        var want = levelWanted(deltaTier: deltaTier, tierShifts: tierShifts, margin: 0)
+        if want < previous {
+            want = min(previous, levelWanted(deltaTier: deltaTier, tierShifts: tierShifts, margin: 1))
+        }
+        // The wanted level when available, else the next coarser available one, else the next
+        // finer available one (the three levels spelled out: the pager runs this per chunk).
+        let bits = available & 7
+        if bits & (1 << UInt32(want)) != 0 { return want }
+        if want < 2, bits & (1 << UInt32(want + 1)) != 0 { return want + 1 }
+        if want < 1, bits & 4 != 0 { return 2 }
+        if want > 0, bits & (1 << UInt32(want - 1)) != 0 { return want - 1 }
+        if want > 1, bits & 1 != 0 { return 0 }
+        return want
+    }
+
+    /// The cap side of the level rule, computed once per frame or pass: the tier of the
+    /// effective cap min(cap, floor), or the stand-in for a cap that is not above zero.
+    struct LevelCap: Equatable {
+        var tier = 0
+        var isZero = false
+    }
+
+    /// `LevelCap` of `densityCap` under the density floor (+inf when off).
+    @inline(__always)
+    static func levelCap(densityCap: Float, densityFloor: Float) -> LevelCap {
+        let effective = min(densityCap, densityFloor)
+        return effective > 0 ? LevelCap(tier: densityTier(density: effective), isZero: false) : LevelCap(tier: 0, isZero: true)
+    }
+
+    /// The level rule's tier distance, tier(effective cap) − tier(n / A), for a chunk of
+    /// `splatCount` splats covering `screenArea`; `levelRuleMinusInfinity` at a zero cap.
+    @inline(__always)
+    static func levelDeltaTier(cap: LevelCap, splatCount: UInt32, screenArea: Float) -> Int {
+        cap.isZero ? levelRuleMinusInfinity : cap.tier - densityTier(density: Float(splatCount) / screenArea)
+    }
+
+    /// The level at `deltaTier` under `mode`: `levelRule` under `.auto`, fine under
+    /// `.fineOnly`, the coarsest available level under `.coarseOnly`. The one rule the pager's
+    /// wants, its mirror of the level drawn and `level(densityCap:…)` run.
+    @inline(__always)
+    static func level(mode: GaussianLevelMode, deltaTier: Int, previous: Int, available: UInt32, tierShifts: (Int, Int)) -> Int {
+        switch mode {
+        case .fineOnly:
+            return 0
+        case .coarseOnly:
+            if (available & 4) != 0 { return 2 }
+            if (available & 2) != 0 { return 1 }
+            return 0
+        case .auto:
+            return levelRule(deltaTier: deltaTier, previous: previous, available: available, tierShifts: tierShifts)
+        }
+    }
+
+    /// Mirror of `gaussianChunkLevel`: the level a chunk of `splatCount` splats covering
+    /// `screenArea` takes at `densityCap` and the density floor (+inf when off), given the level
+    /// it drew last frame, its availability mask and the entity's tier shifts; the debug modes
+    /// force fine, or the coarsest available level.
+    static func level(
+        densityCap: Float,
+        densityFloor: Float = .infinity,
+        splatCount: UInt32,
+        screenArea: Float,
+        previous: Int,
+        available: UInt32,
+        tierShifts: (Int, Int),
+        levelMode: GaussianLevelMode = .auto
+    ) -> Int {
+        let deltaTier = levelDeltaTier(cap: levelCap(densityCap: densityCap, densityFloor: densityFloor), splatCount: splatCount, screenArea: screenArea)
+        return level(mode: levelMode, deltaTier: deltaTier, previous: previous, available: available, tierShifts: tierShifts)
+    }
+
+    /// The quota of a chunk drawn at `level`: fine on its resident ranks, min(resident,
+    /// floor(cap × area)) as `quota(densityCap:splatCount:screenArea:)`; a coarse level on its
+    /// count (`counts.0` level 1, `counts.1` level 2).
+    static func levelQuota(level: Int, densityCap: Float, splatCount: UInt32, residentRanks: UInt32? = nil, screenArea: Float, counts: (UInt32, UInt32)) -> UInt32 {
+        switch level {
+        case 0: return quota(densityCap: densityCap, splatCount: min(splatCount, residentRanks ?? splatCount), screenArea: screenArea)
+        case 1: return quota(densityCap: densityCap, splatCount: counts.0, screenArea: screenArea)
+        default: return quota(densityCap: densityCap, splatCount: counts.1, screenArea: screenArea)
+        }
+    }
+
+    /// The coverage-preserving cross-fade of an opacity at weight `w`: 1 − (1 − α)^w, so the
+    /// incoming window at `w` and the outgoing at `1 − w` compose to 1 − α (`gaussianCoverageWeight`).
+    static func coverageWeight(alpha: Float, weight: Float) -> Float {
+        1 - pow(1 - alpha, weight)
+    }
+
+    /// The fade weight of a chunk switched at `switchFrame`, as the fused pass counts it:
+    /// clamp((frame − switchFrame + 1) / fadeFrames, 0, 1); 1 when fades are off.
+    static func fadeWeight(frame: UInt32, switchFrame: UInt32, fadeFrames: UInt32) -> Float {
+        guard fadeFrames != 0 else { return 1 }
+        return min(max(Float(frame &- switchFrame &+ 1) / Float(fadeFrames), 0), 1)
+    }
+
+    /// The `chunkIndex` word of a visible-chunk entry of an entity with coarse levels: the chunk
+    /// index (below 2^24) with the level in bits 24–25 and the outgoing bit 26.
+    static func visibleChunkTag(chunkIndex: UInt32, level: Int, outgoing: Bool = false) -> UInt32 {
+        precondition(chunkIndex <= kGaussianVisibleChunkIndexMask, "chunk indices carry tag bits above 2^24")
+        return (chunkIndex & kGaussianVisibleChunkIndexMask)
+            | ((UInt32(level) << kGaussianVisibleChunkLevelShift) & kGaussianVisibleChunkLevelMask)
+            | (outgoing ? kGaussianVisibleChunkOutgoing : 0)
+    }
+
+    /// The chunk index, level and outgoing flag of a visible-chunk entry's `chunkIndex` word.
+    static func decodeVisibleChunkTag(_ word: UInt32) -> (chunkIndex: UInt32, level: Int, outgoing: Bool) {
+        (
+            word & kGaussianVisibleChunkIndexMask,
+            Int((word & kGaussianVisibleChunkLevelMask) >> kGaussianVisibleChunkLevelShift),
+            (word & kGaussianVisibleChunkOutgoing) != 0
+        )
     }
 
     /// Visible if the padded box passes any of `viewProjections` (the frame's eyes; one in mono).
@@ -475,6 +722,59 @@ extension GaussianBudgetDensityHistogram {
     }
 }
 
+extension GaussianBudgetDensityTier {
+    /// A tier without levelled chunks (the coarse words zero).
+    init(splats: UInt32, scaledArea: UInt32) {
+        self.init()
+        self.splats = splats
+        self.scaledArea = scaledArea
+    }
+}
+
+/// The per-chunk level state `gaussianComputeChunkQuotas` keeps (`GaussianChunkLevelState`,
+/// ShaderTypes.h) unpacked: the level drawn, the outgoing window's level (nil = none) and count,
+/// the pending level of a detected switch, and the frame of the last commit.
+extension GaussianChunkLevelState {
+    /// The initial state: fine, nothing fading, nothing pending (all zero).
+    static let initial = GaussianChunkLevelState()
+
+    init(level: Int, outLevel: Int? = nil, outCount: UInt32 = 0, pending: Int? = nil, switchFrame: UInt32 = 0) {
+        self.init()
+        word0 = (UInt32(level) & kGaussianChunkLevelStateLevelMask)
+            | ((UInt32((outLevel ?? -1) + 1) << kGaussianChunkLevelStateOutShift) & kGaussianChunkLevelStateOutMask)
+            | ((UInt32(pending ?? 0) << kGaussianChunkLevelStatePendingShift) & kGaussianChunkLevelStatePendingMask)
+            | (pending != nil ? kGaussianChunkLevelStatePendingValid : 0)
+            | (min(outCount, 0x00FF_FFFF) << kGaussianChunkLevelStateCountShift)
+        self.switchFrame = switchFrame
+    }
+
+    /// The level drawn (0 fine, 1, 2).
+    var level: Int {
+        Int(word0 & kGaussianChunkLevelStateLevelMask)
+    }
+
+    /// The outgoing window's level, nil when nothing is fading out.
+    var outLevel: Int? {
+        let out = (word0 & kGaussianChunkLevelStateOutMask) >> kGaussianChunkLevelStateOutShift
+        return out == 0 ? nil : Int(out) - 1
+    }
+
+    /// The pending level of a switch detected last frame, nil when none.
+    var pending: Int? {
+        (word0 & kGaussianChunkLevelStatePendingValid) != 0 ? Int((word0 & kGaussianChunkLevelStatePendingMask) >> kGaussianChunkLevelStatePendingShift) : nil
+    }
+
+    /// The outgoing window's splat count.
+    var outCount: UInt32 {
+        word0 >> kGaussianChunkLevelStateCountShift
+    }
+
+    /// Whether the outgoing window is still fading at `frame` (`gaussianLevelStateFading`).
+    func isFading(frame: UInt32, fadeFrames: UInt32) -> Bool {
+        outLevel != nil && fadeFrames != 0 && (frame &- switchFrame) < fadeFrames
+    }
+}
+
 /// The visible-chunk record with `visibleChunks` chunks holding `visibleSplats` splats counted as
 /// visible — a freshly loaded entity's state until its first chunk cull, with every chunk listed.
 func makeGaussianVisibleChunkSet(visibleChunks: UInt32, visibleSplats: UInt32) -> GaussianVisibleSet {
@@ -491,14 +791,19 @@ func makeGaussianVisibleChunkSet(visibleChunks: UInt32, visibleSplats: UInt32) -
 }
 
 /// Allocates the per-in-flight-slot visible-chunk list and record of a chunk table, each slot
-/// seeded with every chunk visible. Returns nil when a buffer cannot be made.
-func allocateGaussianVisibleChunkBuffers(for table: GaussianChunkTable) -> GaussianChunkTable? {
+/// seeded with every chunk visible. An entity with coarse levels lists up to two entries per
+/// chunk (the incoming window and, while a switch fades, the outgoing one): `entriesPerChunk`
+/// 2 sizes the lists for it. Returns nil when a buffer cannot be made.
+func allocateGaussianVisibleChunkBuffers(for table: GaussianChunkTable, entriesPerChunk: Int? = nil) -> GaussianChunkTable? {
     guard let device = renderInfo.device else { return nil }
     let entries: [GaussianVisibleChunk] = table.index.chunks.enumerated().map { index, chunk in
         GaussianVisibleChunk(chunkIndex: UInt32(index), splatCount: chunk.splatCount, quota: chunk.splatCount, screenArea: Float(chunk.splatCount))
     }
     let splatTotal = entries.reduce(UInt32(0)) { $0 &+ $1.splatCount }
-    let listLength = max(1, entries.count) * MemoryLayout<GaussianVisibleChunk>.stride
+    // Two entries per chunk for an entity with coarse levels (the incoming window and, while a
+    // switch fades, the outgoing one), one otherwise.
+    let perChunk = entriesPerChunk ?? (table.hasCoarse ? 2 : 1)
+    let listLength = max(1, entries.count * max(1, perChunk)) * MemoryLayout<GaussianVisibleChunk>.stride
 
     var result = table
     result.visibleChunks = []
@@ -606,13 +911,16 @@ func gaussianChunkCullViewProjections(
 /// The constants of one entity's chunk cull this frame. `uniformQuotas` is the frame's
 /// `GaussianDebugOptions.disableScreenWeightedQuotas`, read once per frame by the caller so the
 /// cull and the scale kernel agree (the fused pass's rebuilt constants carry it and ignore it).
+/// `paged` is 0 for a whole-resident entity, 1 for one whose records live in a page pool
+/// (`GaussianPageManager`), 2 for a demand-only cull of a warming tier.
 func gaussianChunkCullConstants(
     chunkTable: GaussianChunkTable,
     modelMatrix: simd_float4x4,
     viewMatrix: simd_float4x4,
     hzbValid: Bool,
     forceAllVisible: Bool = GaussianDebugOptions.shared.disableChunkCull,
-    uniformQuotas: Bool
+    uniformQuotas: Bool,
+    paged: UInt32 = 0
 ) -> GaussianChunkCullConstants {
     let views = gaussianChunkCullViewProjections(modelMatrix: modelMatrix, viewMatrix: viewMatrix)
     var constants = GaussianChunkCullConstants()
@@ -628,18 +936,117 @@ func gaussianChunkCullConstants(
     constants.hzbMipCount = UInt32(max(0, renderInfo.hzbMipCount))
     constants.forceAllVisible = forceAllVisible ? 1 : 0
     constants.uniformQuotas = uniformQuotas ? 1 : 0
+    constants.paged = paged
     return constants
 }
 
 /// Byte offset of the histogram's visible-chunk counter, the word `gaussianFinalizeVisibleChunks`
 /// binds at `gaussianChunkCullDensityHistogramIndex`.
-let gaussianDensityHistogramVisibleChunksOffset = MemoryLayout<GaussianBudgetDensityHistogram>.offset(of: \.visibleChunks) ?? 524
+let gaussianDensityHistogramVisibleChunksOffset = MemoryLayout<GaussianBudgetDensityHistogram>.offset(of: \.visibleChunks) ?? 2060
+
+/// Byte offset of the budget state's `transitionSplats`, the first of the three level words
+/// (`transitionSplats`, `coarseChunks`, `coarseSplats`) the cull and the quota pass add to.
+let gaussianBudgetStateTransitionOffset = MemoryLayout<GaussianBudgetState>.offset(of: \.transitionSplats) ?? 32
+
+// MARK: - Per-chunk levels
+
+/// The GPU buffers of an entity's coarse levels the three per-chunk kernels bind: the coarse
+/// rows of the decode constants (`GaussianChunkDecodeConstants × levelCount × chunkCount`,
+/// level-major), the coarse records (`uint4 × coarseRecordCount`, as stored in the file) and
+/// the persistent per-chunk level state (`GaussianChunkLevelState × chunkCount`). nil binds the
+/// fine constants as a never-read stand-in and `GaussianChunkLevelConstants()` (hasCoarse 0).
+struct GaussianChunkLevelBuffers {
+    let coarseTable: MTLBuffer
+    let coarseRecords: MTLBuffer
+    let levelState: MTLBuffer
+}
+
+/// The density floor of the level rule (`GaussianChunkLevelConstants.densityFloor`): at most
+/// `maxSplatsPerPixel` splats per pixel of the viewport, in splats per view unit of screen area
+/// — `maxSplatsPerPixel × viewport.x × viewport.y`; +inf when the knob is off (0 or not finite).
+func gaussianDensityFloor(viewport: simd_float2, maxSplatsPerPixel: Float = GaussianRuntimeLimits.maxSplatsPerPixel) -> Float {
+    guard maxSplatsPerPixel > 0, maxSplatsPerPixel.isFinite else { return .infinity }
+    let pixels = max(viewport.x, 1) * max(viewport.y, 1)
+    return maxSplatsPerPixel * pixels
+}
+
+/// The level constants of one chunked entity for a frame: `levelCount` resident coarse levels
+/// (0 keeps every kernel on the paths without levels), the file's ratios (the runtime's level 1
+/// is the file's finest resident level: `ratioLog2` holds the resident levels' ratios, finest
+/// first), the frame clock (the pager's tick, or the entity's executed-frame counter), and the
+/// frame's switches. `cull` supplies the chunk count, `paged` and `uniformQuotas` the quota pass
+/// needs; `viewport` (and `maxSplatsPerPixel`) the density floor.
+func gaussianChunkLevelConstants(
+    levelCount: Int,
+    ratioLog2: [UInt8],
+    frameIndex: UInt32,
+    cull: GaussianChunkCullConstants,
+    viewport: simd_float2? = nil,
+    fadeFrames: UInt32 = GaussianDebugOptions.shared.disableLevelCrossFade ? 0 : GaussianPagingPolicy.fadeFrames,
+    levelMode: GaussianLevelMode = GaussianDebugOptions.shared.gaussianLevelMode,
+    debugTint: Bool = GaussianDebugOptions.shared.levelDebugTint,
+    maxSplatsPerPixel: Float = GaussianRuntimeLimits.maxSplatsPerPixel
+) -> GaussianChunkLevelConstants {
+    var constants = GaussianChunkLevelConstants()
+    let resident = max(0, min(levelCount, ratioLog2.count, Int(UntoldGSFormat.maxCoarseLevels)))
+    constants.hasCoarse = UInt32(resident)
+    if resident > 0 {
+        constants.tierShift1 = UInt32(GaussianChunkCullMath.tierShift(ratioLog2: ratioLog2[0]))
+        constants.tierShift2 = UInt32(GaussianChunkCullMath.tierShift(ratioLog2: ratioLog2[min(1, resident - 1)]))
+    }
+    constants.frameIndex = frameIndex
+    constants.fadeFrames = fadeFrames
+    constants.levelMode = levelMode.rawValue
+    constants.debugTint = debugTint ? 1 : 0
+    constants.densityFloor = gaussianDensityFloor(viewport: viewport ?? cull.viewport, maxSplatsPerPixel: maxSplatsPerPixel)
+    constants.chunkCount = cull.chunkCount
+    constants.paged = cull.paged
+    constants.uniformQuotas = cull.uniformQuotas
+    return constants
+}
+
+/// The level constants of an entity whose chunk table carries a coarse table: the resident levels
+/// and their ratios from it, the frame clock from the caller (the pager's tick, or
+/// `GaussianChunkTable.executedFrames`), the switches from the frame.
+func gaussianChunkLevelConstants(
+    coarse: GaussianCoarseTable,
+    frameIndex: UInt32,
+    cull: GaussianChunkCullConstants,
+    viewport: simd_float2? = nil,
+    fadeFrames: UInt32 = GaussianDebugOptions.shared.disableLevelCrossFade ? 0 : GaussianPagingPolicy.fadeFrames,
+    levelMode: GaussianLevelMode = GaussianDebugOptions.shared.gaussianLevelMode,
+    debugTint: Bool = GaussianDebugOptions.shared.levelDebugTint,
+    maxSplatsPerPixel: Float = GaussianRuntimeLimits.maxSplatsPerPixel
+) -> GaussianChunkLevelConstants {
+    gaussianChunkLevelConstants(
+        levelCount: coarse.levelCount,
+        ratioLog2: coarse.ratioLog2,
+        frameIndex: frameIndex,
+        cull: cull,
+        viewport: viewport,
+        fadeFrames: fadeFrames,
+        levelMode: levelMode,
+        debugTint: debugTint,
+        maxSplatsPerPixel: maxSplatsPerPixel
+    )
+}
+
+/// The coarse levels a component draws this frame: its chunk table's coarse table, unless the
+/// pager faulted them (a CRC mismatch on a piece: the entity then draws fine only for good).
+func gaussianActiveCoarseTable(_ component: GaussianComponent) -> GaussianCoarseTable? {
+    guard let coarse = component.chunkTable?.coarse else { return nil }
+    if component.pager?.coarseFaulted == true { return nil }
+    return coarse
+}
 
 /// Encodes one entity's chunk cull for one in-flight slot on an open compute encoder: reset the
 /// record, one thread per chunk (binning every visible chunk into `densityHistogram`), finalize
 /// into indirect arguments and add the entity's visible splat total to `budgetState`'s request
 /// and its chunk count to the histogram. Serial on the encoder, so the quota and fused
-/// dispatches that follow see the final list. Returns the dispatch count.
+/// dispatches that follow see the final list. A paged entity (`constants.paged == 1`) binds
+/// this slot's residency and demand tables; an unpaged one binds the chunk table as a
+/// never-read stand-in at both indices. An entity with coarse levels binds them (`levels`,
+/// `levelConstants`); without, the stand-ins and `hasCoarse == 0`. Returns the dispatch count.
 func encodeGaussianChunkCull(
     _ encoder: MTLComputeCommandEncoder,
     pipelines: GaussianChunkCullPipelineStates,
@@ -649,14 +1056,59 @@ func encodeGaussianChunkCull(
     budgetState: MTLBuffer,
     densityHistogram: MTLBuffer,
     constants: GaussianChunkCullConstants,
-    hzbTexture: MTLTexture?
+    hzbTexture: MTLTexture?,
+    residency: MTLBuffer? = nil,
+    demand: MTLBuffer? = nil,
+    levels: GaussianChunkLevelBuffers? = nil,
+    levelConstants: GaussianChunkLevelConstants = GaussianChunkLevelConstants()
 ) -> Int {
-    var constants = constants
-
     encoder.setComputePipelineState(pipelines.reset)
     encoder.setBuffer(chunkSet, offset: 0, index: Int(gaussianVisibleCountIndex.rawValue))
     encoder.dispatchThreadgroups(MTLSizeMake(1, 1, 1), threadsPerThreadgroup: MTLSizeMake(1, 1, 1))
 
+    encodeGaussianChunkCullDispatch(
+        encoder,
+        pipelines: pipelines,
+        chunkTable: chunkTable,
+        visibleChunks: visibleChunks,
+        chunkSet: chunkSet,
+        budgetState: budgetState,
+        densityHistogram: densityHistogram,
+        constants: constants,
+        hzbTexture: hzbTexture,
+        residency: residency,
+        demand: demand,
+        levels: levels,
+        levelConstants: levelConstants
+    )
+
+    encodeGaussianFinalizeVisibleChunks(encoder, pipelines: pipelines, chunkSet: chunkSet, budgetState: budgetState, densityHistogram: densityHistogram)
+
+    return 3
+}
+
+/// The cull dispatch alone: one thread per chunk of `chunkTable`. `budgetState` nil (a
+/// demand-only cull) binds a stand-in for the transition counter the kernel then never adds to.
+private func encodeGaussianChunkCullDispatch(
+    _ encoder: MTLComputeCommandEncoder,
+    pipelines: GaussianChunkCullPipelineStates,
+    chunkTable: GaussianChunkTable,
+    visibleChunks: MTLBuffer,
+    chunkSet: MTLBuffer,
+    budgetState: MTLBuffer?,
+    densityHistogram: MTLBuffer,
+    constants: GaussianChunkCullConstants,
+    hzbTexture: MTLTexture?,
+    residency: MTLBuffer?,
+    demand: MTLBuffer?,
+    levels: GaussianChunkLevelBuffers?,
+    levelConstants: GaussianChunkLevelConstants
+) {
+    var constants = constants
+    var levelConstants = levelConstants
+    if levels == nil {
+        levelConstants.hasCoarse = 0
+    }
     encoder.setComputePipelineState(pipelines.cull)
     encoder.setBuffer(chunkTable.constantsBuffer, offset: 0, index: Int(gaussianChunkCullChunkTableIndex.rawValue))
     encoder.setBytes(&constants, length: MemoryLayout<GaussianChunkCullConstants>.stride, index: Int(gaussianChunkCullConstantsIndex.rawValue))
@@ -665,8 +1117,21 @@ func encodeGaussianChunkCull(
     // (visible chunks) at offset 4 — see GaussianVisibleSet.
     encoder.setBuffer(chunkSet, offset: 0, index: Int(gaussianChunkCullSplatTotalIndex.rawValue))
     encoder.setBuffer(chunkSet, offset: MemoryLayout<UInt32>.stride, index: Int(gaussianChunkCullChunkTotalIndex.rawValue))
-    // The histogram's tiers as atomic words: 2t the splats, 2t + 1 the scaled area.
+    // The state's transitionSplats, the outgoing windows of fading chunks (entities with levels).
+    if let budgetState {
+        encoder.setBuffer(budgetState, offset: gaussianBudgetStateTransitionOffset, index: Int(gaussianChunkCullBudgetStateIndex.rawValue))
+    } else {
+        encoder.setBuffer(chunkTable.constantsBuffer, offset: 0, index: Int(gaussianChunkCullBudgetStateIndex.rawValue))
+    }
+    // The histogram's tiers as atomic words: 8t the splats, 8t + 1 the scaled area, 8t + 2 … 8t + 4 the level words.
     encoder.setBuffer(densityHistogram, offset: 0, index: Int(gaussianChunkCullDensityHistogramIndex.rawValue))
+    // Paged entities only; the kernel never reads these with paged == 0.
+    encoder.setBuffer(residency ?? chunkTable.constantsBuffer, offset: 0, index: Int(gaussianChunkCullResidencyIndex.rawValue))
+    encoder.setBuffer(demand ?? chunkTable.constantsBuffer, offset: 0, index: Int(gaussianChunkCullDemandIndex.rawValue))
+    // Entities with coarse levels only; the kernel never reads these with hasCoarse == 0.
+    encoder.setBuffer(levels?.coarseTable ?? chunkTable.constantsBuffer, offset: 0, index: Int(gaussianChunkCullCoarseTableIndex.rawValue))
+    encoder.setBuffer(levels?.levelState ?? chunkTable.constantsBuffer, offset: 0, index: Int(gaussianChunkCullLevelStateIndex.rawValue))
+    encoder.setBytes(&levelConstants, length: MemoryLayout<GaussianChunkLevelConstants>.stride, index: Int(gaussianChunkCullLevelConstantsIndex.rawValue))
     encoder.setTexture(hzbTexture, index: Int(gaussianChunkCullHZBDepthPyramidTextureIndex.rawValue))
     let tew = pipelines.cull.threadExecutionWidth
     let block = max(min(256, pipelines.cull.maxTotalThreadsPerThreadgroup) / tew * tew, tew)
@@ -674,10 +1139,42 @@ func encodeGaussianChunkCull(
         MTLSizeMake((chunkTable.chunkCount + block - 1) / block, 1, 1),
         threadsPerThreadgroup: MTLSizeMake(block, 1, 1)
     )
+}
 
-    encodeGaussianFinalizeVisibleChunks(encoder, pipelines: pipelines, chunkSet: chunkSet, budgetState: budgetState, densityHistogram: densityHistogram)
-
-    return 3
+/// Encodes a demand-only cull of a paged tier that is warming before the LOD system switches to
+/// it: one thread per chunk writes the chunk's seen screen area into `demand` and returns —
+/// no list, no record, nothing added to the frame's request or histogram. `constants.paged`
+/// must be 2 (the list and counters bound here are the tier's own slot buffers, which the
+/// kernel then never touches). Returns the dispatch count.
+func encodeGaussianChunkDemand(
+    _ encoder: MTLComputeCommandEncoder,
+    pipelines: GaussianChunkCullPipelineStates,
+    chunkTable: GaussianChunkTable,
+    visibleChunks: MTLBuffer,
+    chunkSet: MTLBuffer,
+    densityHistogram: MTLBuffer,
+    demand: MTLBuffer,
+    constants: GaussianChunkCullConstants,
+    hzbTexture: MTLTexture?
+) -> Int {
+    var constants = constants
+    constants.paged = 2
+    encodeGaussianChunkCullDispatch(
+        encoder,
+        pipelines: pipelines,
+        chunkTable: chunkTable,
+        visibleChunks: visibleChunks,
+        chunkSet: chunkSet,
+        budgetState: nil,
+        densityHistogram: densityHistogram,
+        constants: constants,
+        hzbTexture: hzbTexture,
+        residency: nil,
+        demand: demand,
+        levels: nil,
+        levelConstants: GaussianChunkLevelConstants()
+    )
+    return 1
 }
 
 /// The finalize of one entity's chunk record: indirect arguments, the request into `budgetState`
@@ -718,11 +1215,19 @@ func encodeGaussianEmptyChunkSet(
 /// The scale kernel's inputs for a frame whose shared set holds `budget` records.
 /// `resetHysteresis` makes the frame take its target as a first frame would; `uniformQuotas`
 /// is the frame's `disableScreenWeightedQuotas`, the value the chunk culls were given.
+/// `densityFloor` and `tierShifts` are the level rule's inputs the solve folds in for the
+/// frame's entities with coarse levels — the floor of the frame's viewport, the maximum shifts
+/// over those entities: a larger shift keeps a chunk fine further under its own density, so the
+/// maximum is the most fine-leaning rule, and `R(d)` charges the fine term wherever any entity
+/// still draws fine (an entity with smaller shifts draws a coarse count there, at most the fine
+/// term's floor) — one-sided; unused when no tier holds a levelled chunk.
 func gaussianBudgetScaleConstants(
     budget: Int,
     forceUnitScale: Bool = GaussianDebugOptions.shared.disableWorkingSetBudget,
     resetHysteresis: Bool = false,
-    uniformQuotas: Bool
+    uniformQuotas: Bool,
+    densityFloor: Float = .infinity,
+    tierShifts: (UInt32, UInt32) = (0, 0)
 ) -> GaussianBudgetScaleConstants {
     var constants = GaussianBudgetScaleConstants()
     constants.budget = UInt32(max(0, min(budget, Int(UInt32.max))))
@@ -733,6 +1238,9 @@ func gaussianBudgetScaleConstants(
     constants.resetHysteresis = resetHysteresis ? 1 : 0
     constants.uniformQuotas = uniformQuotas ? 1 : 0
     constants.densityMinStepFraction = gaussianBudgetDensityMinStepFraction
+    constants.densityFloor = densityFloor
+    constants.tierShift1 = tierShifts.0
+    constants.tierShift2 = tierShifts.1
     return constants
 }
 
@@ -770,21 +1278,38 @@ func encodeGaussianBudgetScale(_ encoder: MTLComputeCommandEncoder, pipelines: G
 }
 
 /// Grants one entity's visible chunks their quotas at the frame's density cap, after the scale
-/// dispatch: one threadgroup striding over the visible-chunk list. One dispatch.
+/// dispatch: one threadgroup striding over the visible-chunk list. An entity with coarse levels
+/// binds them (`levels`, `levelConstants`, and this slot's `residency` when paged) and the pass
+/// chooses each chunk's level; without, the stand-ins and `hasCoarse == 0`. One dispatch.
 func encodeGaussianChunkQuotas(
     _ encoder: MTLComputeCommandEncoder,
     pipelines: GaussianChunkCullPipelineStates,
     chunkTable: GaussianChunkTable,
     visibleChunks: MTLBuffer,
     chunkSet: MTLBuffer,
-    budgetState: MTLBuffer
+    budgetState: MTLBuffer,
+    residency: MTLBuffer? = nil,
+    levels: GaussianChunkLevelBuffers? = nil,
+    levelConstants: GaussianChunkLevelConstants = GaussianChunkLevelConstants()
 ) {
+    var levelConstants = levelConstants
+    if levels == nil {
+        levelConstants.hasCoarse = 0
+    }
     encoder.setComputePipelineState(pipelines.chunkQuotas)
     encoder.setBuffer(chunkSet, offset: 0, index: Int(gaussianBudgetChunkSetIndex.rawValue))
     encoder.setBuffer(visibleChunks, offset: 0, index: Int(gaussianBudgetVisibleChunksIndex.rawValue))
     encoder.setBuffer(budgetState, offset: 0, index: Int(gaussianBudgetStateIndex.rawValue))
     // quotaSplats is the state's second word — see GaussianBudgetState.
     encoder.setBuffer(budgetState, offset: MemoryLayout<UInt32>.stride, index: Int(gaussianBudgetQuotaTotalIndex.rawValue))
+    // Entities with coarse levels only; the kernel never reads these with hasCoarse == 0.
+    encoder.setBuffer(levels?.levelState ?? chunkTable.constantsBuffer, offset: 0, index: Int(gaussianBudgetLevelStateIndex.rawValue))
+    encoder.setBuffer(residency ?? chunkTable.constantsBuffer, offset: 0, index: Int(gaussianBudgetResidencyIndex.rawValue))
+    encoder.setBuffer(levels?.coarseTable ?? chunkTable.constantsBuffer, offset: 0, index: Int(gaussianBudgetCoarseTableIndex.rawValue))
+    encoder.setBytes(&levelConstants, length: MemoryLayout<GaussianChunkLevelConstants>.stride, index: Int(gaussianBudgetLevelConstantsIndex.rawValue))
+    encoder.setBuffer(chunkTable.constantsBuffer, offset: 0, index: Int(gaussianBudgetChunkTableIndex.rawValue))
+    // The state's transitionSplats, coarseChunks and coarseSplats — see GaussianBudgetState.
+    encoder.setBuffer(budgetState, offset: gaussianBudgetStateTransitionOffset, index: Int(gaussianBudgetLevelTotalsIndex.rawValue))
     let tew = pipelines.chunkQuotas.threadExecutionWidth
     let threads = max(min(chunkTable.chunkCount, pipelines.chunkQuotas.maxTotalThreadsPerThreadgroup) / tew * tew, tew)
     encoder.dispatchThreadgroups(MTLSizeMake(1, 1, 1), threadsPerThreadgroup: MTLSizeMake(threads, 1, 1))
@@ -810,7 +1335,11 @@ func encodeGaussianBudgetPublish(
 
 // MARK: - Fused decode and preprocess
 
-/// The per-entity inputs of `gaussianChunkDecodePreprocess` beyond the shared working set.
+/// The per-entity inputs of `gaussianChunkDecodePreprocess` beyond the shared working set. A
+/// paged entity (`cullConstants.paged == 1`) also binds this slot's residency and page tables
+/// and its paging constants; an unpaged one leaves them nil and the kernel never reads them. An
+/// entity with coarse levels binds them (`levels`, `levelConstants`); without, the stand-ins
+/// and `hasCoarse == 0`.
 struct GaussianChunkPreprocessInputs {
     var packedSplats: MTLBuffer
     var chunkTable: GaussianChunkTable
@@ -823,6 +1352,11 @@ struct GaussianChunkPreprocessInputs {
     var localCameraPosition: simd_float3
     var entityConstants: GaussianPreprocessEntityConstants
     var hzbTexture: MTLTexture?
+    var residency: MTLBuffer?
+    var pageTable: MTLBuffer?
+    var pagingConstants = GaussianChunkPagingConstants()
+    var levels: GaussianChunkLevelBuffers?
+    var levelConstants = GaussianChunkLevelConstants()
 }
 
 /// Threads per threadgroup of the fused pass: one threadgroup covers one chunk, striding when
@@ -861,6 +1395,18 @@ func encodeGaussianChunkDecodePreprocess(
     encoder.setBuffer(sharedRecords, offset: 0, index: Int(gaussianChunkPreprocessWorkingSetIndex.rawValue))
     encoder.setBuffer(sharedKeys, offset: 0, index: Int(gaussianChunkPreprocessSharedKeysIndex.rawValue))
     encoder.setBuffer(sharedVisibleSet, offset: 0, index: Int(gaussianChunkPreprocessSharedVisibleSetIndex.rawValue))
+    // Paged entities only; with paged == 0 the kernel reads none of these.
+    encoder.setBuffer(inputs.residency ?? inputs.chunkTable.constantsBuffer, offset: 0, index: Int(gaussianChunkPreprocessResidencyIndex.rawValue))
+    encoder.setBuffer(inputs.pageTable ?? inputs.chunkTable.constantsBuffer, offset: 0, index: Int(gaussianChunkPreprocessPageTableIndex.rawValue))
+    encoder.setBytes(&inputs.pagingConstants, length: MemoryLayout<GaussianChunkPagingConstants>.stride, index: Int(gaussianChunkPreprocessPagingConstantsIndex.rawValue))
+    // Entities with coarse levels only; with hasCoarse == 0 the kernel reads none of these.
+    if inputs.levels == nil {
+        inputs.levelConstants.hasCoarse = 0
+    }
+    encoder.setBuffer(inputs.levels?.coarseRecords ?? inputs.chunkTable.constantsBuffer, offset: 0, index: Int(gaussianChunkPreprocessCoarseRecordsIndex.rawValue))
+    encoder.setBuffer(inputs.levels?.coarseTable ?? inputs.chunkTable.constantsBuffer, offset: 0, index: Int(gaussianChunkPreprocessCoarseTableIndex.rawValue))
+    encoder.setBuffer(inputs.levels?.levelState ?? inputs.chunkTable.constantsBuffer, offset: 0, index: Int(gaussianChunkPreprocessLevelStateIndex.rawValue))
+    encoder.setBytes(&inputs.levelConstants, length: MemoryLayout<GaussianChunkLevelConstants>.stride, index: Int(gaussianChunkPreprocessLevelConstantsIndex.rawValue))
     encoder.setTexture(inputs.hzbTexture, index: Int(gaussianChunkPreprocessHZBDepthPyramidTextureIndex.rawValue))
 
     let threads = threadsPerThreadgroup ?? gaussianChunkPreprocessThreadsPerThreadgroup(chunkTable: inputs.chunkTable, pipelineState: pipelineState)

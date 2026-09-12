@@ -178,9 +178,29 @@ public class GaussianLODSystem: @unchecked Sendable {
               let source = lodComponent.lodLevels[newLOD].buffers
         else { return }
 
+        // Only the current tier and the one being switched to hold a pool: a paged tier the
+        // selection targeted earlier and left before it warmed in (the hysteresis picked the
+        // current one again, the overdraw clamp held it back, the camera stopped) is released
+        // here, the moment it stops being the target — its pager shuts down and its buffers go,
+        // as at a switch (below). Left alone it would neither draw nor warm (no frame culls
+        // its demand or ticks its pager) and its pool, a fixed tens to hundreds of MiB, would
+        // stay alive until some later switch commits, one per tier abandoned this way. The
+        // normal request path loads it again, into a fresh pool, if the selection returns.
+        let currentLOD = lodComponent.currentLOD
+        releasePagedTiers(entityId: entityId, lodComponent: lodComponent) { $0 != newLOD && $0 != currentLOD }
+
         if newLOD == lodComponent.currentLOD, scene.get(component: GaussianComponent.self, for: entityId) != nil {
             return
         }
+
+        // A paged tier switches in only once its pool holds most of what the frame wants:
+        // until then it warms — the frame culls its demand beside the current tier's and the
+        // pager fills it — while the current tier keeps drawing. Re-evaluated every update.
+        if let pager = source.pager, !pager.isWarm {
+            pager.warming = true
+            return
+        }
+        source.pager?.warming = false
 
         withWorldMutationGate {
             // Reuse the entity's existing GaussianComponent if it already has one — scene.assign
@@ -195,6 +215,37 @@ public class GaussianLODSystem: @unchecked Sendable {
             copyGaussianComponentBuffers(from: source, to: destination)
             lodComponent.currentLOD = newLOD
             SystemIntegrationMonitor.shared.recordLODSwitch()
+
+            // The paged tier the selection just left goes with the switch: it holds a fixed
+            // pool (tens to hundreds of MiB) that nothing else would release before the
+            // entity's teardown, and a dolly across a threshold or two would leave one pool per
+            // tier visited alive. The pager shuts down (its pool leaves the registry at once,
+            // the reads in flight are dropped when they land — the generation guard) and the
+            // buffers are let go; the in-flight frames' command buffers retain the pool until
+            // they complete. The live component now references the new tier alone. A
+            // whole-resident tier stays cached for the instant switch back — see
+            // `GaussianLODLevel.buffers`. The tier reads `.notResident` after this, so
+            // updateEntityLOD requests it again, and the warmth gate above fills its fresh pool
+            // before the switch, when the selection returns to it.
+            releasePagedTiers(entityId: entityId, lodComponent: lodComponent) { $0 != newLOD }
+        }
+    }
+
+    /// Releases every paged tier of `lodComponent` whose index `isSuperseded` accepts
+    /// (`GaussianLODComponent.releaseLevelResources(at:)`) and, when any went, rewrites the
+    /// entity's ledger entry from the tiers still resident — under the world mutation gate,
+    /// taken only when there is something to release. A whole-resident tier is never released
+    /// here — it holds no pool and stays cached for the instant switch back.
+    private func releasePagedTiers(entityId: EntityID, lodComponent: GaussianLODComponent, where isSuperseded: (Int) -> Bool) {
+        let superseded = lodComponent.lodLevels.indices.filter {
+            isSuperseded($0) && lodComponent.lodLevels[$0].buffers?.pager != nil
+        }
+        guard !superseded.isEmpty else { return }
+        withWorldMutationGate {
+            for index in superseded {
+                lodComponent.releaseLevelResources(at: index)
+            }
+            GeometryStreamingSystem.shared.registerGaussianLODLevelBytes(entityId: entityId, lod: lodComponent)
         }
     }
 }
@@ -231,11 +282,12 @@ func estimatedGaussianOverdraw(
 /// Walks from `desiredLOD` (the distance/hysteresis-based choice from `selectDesiredLOD`)
 /// toward coarser tiers (higher index, never finer) while `estimatedGaussianOverdraw` for the
 /// candidate exceeds `budget`, using each candidate's bake-time `meanSquaredSplatExtent` and
-/// its currently-known resident `splatCount`. Bails out and returns `desiredLOD` unchanged the
-/// moment a candidate is missing either value — an un-baked `meanSquaredSplatExtent` or a
-/// not-yet-resident tier (unknown splat count) — so entities without bake-time stats, or a
-/// tier this walk reaches before it has ever loaded, fall back to pure distance-based
-/// selection exactly as before this feature existed.
+/// `splatCount` — both kept on the `GaussianLODLevel` from the tier's first load on, so a
+/// paged tier `applyLOD` has since released still takes part in the walk. Bails out and
+/// returns `desiredLOD` unchanged the moment a candidate is missing either value — an
+/// un-baked `meanSquaredSplatExtent` or a tier that has never loaded (unknown splat count) —
+/// so entities without bake-time stats, or a tier this walk reaches before it has ever
+/// loaded, fall back to pure distance-based selection exactly as before this feature existed.
 func clampGaussianLODForOverdraw(
     desiredLOD: Int,
     lodComponent: GaussianLODComponent,
@@ -251,13 +303,13 @@ func clampGaussianLODForOverdraw(
     while candidate < lodComponent.lodLevels.count {
         let level = lodComponent.lodLevels[candidate]
         guard let meanSquaredSplatExtent = level.meanSquaredSplatExtent,
-              let splatCount = level.buffers?.splatCount
+              let splatCount = level.splatCount
         else {
             return desiredLOD
         }
 
         let overdraw = estimatedGaussianOverdraw(
-            splatCount: Int(splatCount),
+            splatCount: splatCount,
             meanSquaredSplatExtent: meanSquaredSplatExtent,
             distance: distance,
             fovY: fovY,
@@ -278,6 +330,7 @@ func copyGaussianComponentBuffers(from source: GaussianComponent, to destination
     destination.gaussianVisibleIndices = source.gaussianVisibleIndices
     destination.gaussianVisibleCount = source.gaussianVisibleCount
     destination.chunkTable = source.chunkTable
+    destination.pager = source.pager
     destination.encodedSplatData = source.encodedSplatData
     destination.packedSplatData = source.packedSplatData
     destination.sphericalHarmonicsData = source.sphericalHarmonicsData

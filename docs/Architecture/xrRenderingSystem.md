@@ -135,7 +135,7 @@ executeRadixSort(commandBuffer)
 
 These are the **same compute passes** as the macOS path: frustum cull, Gaussian splat cull, Gaussian preprocess (which compacts every entity's visible splats and their depth keys into the shared working set) and the radix sort. The key difference from macOS is these run **once per frame**, not once per eye. The culled visibility list and sorted splat indices produced here are reused by both the left and right eye render passes.
 
-> **Why only once?** Running culling and sorting twice — once per eye — at 90 FPS would double the compute budget for work that produces nearly identical results (the two eyes are only ~65mm apart). One cull pass with a slightly conservative frustum covers both views.
+> **Why only once?** Running culling and sorting twice — once per eye — at 90 FPS would double the compute budget for work that produces nearly identical results (the two eyes are only ~65mm apart). One cull pass with a slightly conservative frustum covers both views. The same holds for the per-chunk coarse levels of a `.untoldgs` entity: one cull, one list, one screen area (the larger eye's) and one level per chunk serve both eyes, so no chunk draws a different level in each eye.
 
 ### 3b. Per-Eye Render Loop
 

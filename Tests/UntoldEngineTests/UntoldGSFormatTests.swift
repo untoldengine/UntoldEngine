@@ -31,6 +31,26 @@ final class UntoldGSFormatTests: XCTestCase {
 
     // MARK: - Record sizes
 
+    func testChunkWriteFailureIsThrownAsTheSinkThrewIt() throws {
+        // A chunk's write failing in the parallel loop — a full disk — must reach the caller as
+        // the sink's own POSIX error, not re-labelled as invalid input.
+        var rng = SplitMix64(seed: 7)
+        let splats = (0 ..< 40).map { _ in rng.nextSplat(boundsMin: [-1, -1, -1], boundsMax: [1, 1, 1], shCount: 0) }
+        var options = UntoldGSWriteOptions()
+        options.log2ChunkSplats = 3
+        options.coarseLevelsAutomatic = false
+        let store = try UntoldGSFormat.makeStore(splats, options: options)
+        let sink = FailingSink(failAtOrAfter: 4096)
+        XCTAssertThrowsError(
+            try UntoldGSFormat.writeStore(UntoldGSStoreView(store: store), options: options, sink: sink, serialChunks: false, progress: nil)
+        ) { error in
+            XCTAssertNil(error as? UntoldGSError, "not re-typed by the chunk loop")
+            let posix = error as NSError
+            XCTAssertEqual(posix.domain, NSPOSIXErrorDomain)
+            XCTAssertEqual(posix.code, Int(ENOSPC))
+        }
+    }
+
     func testHeaderEncodesTwoHundredFiftySixBytes() throws {
         let header = makeHeader()
         let writer = UntoldBinaryWriter()
@@ -143,6 +163,62 @@ final class UntoldGSFormatTests: XCTestCase {
     func testCRC32KnownVector() {
         XCTAssertEqual(UntoldGSCRC32.checksum(Data("123456789".utf8)), 0xCBF4_3926)
         XCTAssertEqual(UntoldGSCRC32.checksum(Data()), 0)
+    }
+
+    /// The reference the slicing loop is checked against: the byte-wise table loop the format
+    /// shipped with.
+    private func byteWiseCRC32(_ bytes: [UInt8]) -> UInt32 {
+        let table: [UInt32] = (0 ..< 256).map { index -> UInt32 in
+            var crc = UInt32(index)
+            for _ in 0 ..< 8 {
+                crc = (crc & 1) != 0 ? (crc >> 1) ^ 0xEDB8_8320 : crc >> 1
+            }
+            return crc
+        }
+        var crc: UInt32 = 0xFFFF_FFFF
+        for byte in bytes {
+            crc = table[Int((crc ^ UInt32(byte)) & 0xFF)] ^ (crc >> 8)
+        }
+        return crc ^ 0xFFFF_FFFF
+    }
+
+    /// Slicing by eight equals the byte-wise loop for every length and alignment, and a
+    /// streamed `update` over random pieces equals the whole checksum.
+    func testCRC32SlicingMatchesTheByteWiseLoop() {
+        var generator = SystemRandomNumberGenerator()
+        var lengthsSeen = Set<Int>()
+        for iteration in 0 ..< 1000 {
+            let length = iteration < 32 ? iteration : Int.random(in: 0 ... 70000, using: &generator)
+            let offset = Int.random(in: 0 ... 7, using: &generator)
+            lengthsSeen.insert(length)
+            var storage = [UInt8](repeating: 0, count: offset + length)
+            for index in storage.indices {
+                storage[index] = UInt8.random(in: 0 ... 255, using: &generator)
+            }
+            let bytes = Array(storage[offset...])
+            let expected = byteWiseCRC32(bytes)
+            // Whole, at the chosen alignment.
+            let whole = storage.withUnsafeBytes { buffer -> UInt32 in
+                var crc = UntoldGSCRC32.initialValue
+                UntoldGSCRC32.update(&crc, UnsafeRawBufferPointer(rebasing: buffer[offset...]))
+                return UntoldGSCRC32.finalize(crc)
+            }
+            XCTAssertEqual(whole, expected, "length \(length) at offset \(offset)")
+            XCTAssertEqual(UntoldGSCRC32.checksum(Data(bytes)), expected)
+            // Streamed in random pieces.
+            var crc = UntoldGSCRC32.initialValue
+            var start = 0
+            storage.withUnsafeBytes { buffer in
+                while start < length {
+                    let piece = min(length - start, Int.random(in: 1 ... max(1, length / 3 + 1), using: &generator))
+                    UntoldGSCRC32.update(&crc, UnsafeRawBufferPointer(rebasing: buffer[(offset + start) ..< (offset + start + piece)]))
+                    start += piece
+                }
+            }
+            XCTAssertEqual(UntoldGSCRC32.finalize(crc), expected, "streamed, length \(length) at offset \(offset)")
+        }
+        XCTAssertGreaterThan(lengthsSeen.count, 500)
+        XCTAssertEqual(UntoldGSCRC32.finalize(UntoldGSCRC32.initialValue), 0, "no bytes: the empty checksum")
     }
 
     func testImporterConversionAndEncodedLayout() {
@@ -545,6 +621,426 @@ final class UntoldGSFormatTests: XCTestCase {
         }
     }
 
+    // MARK: - Coarse levels
+
+    /// Two levels at ratios [2, 4] on 16-splat chunks: 64 splats → 4 chunks, 4 + 1 records each.
+    private func coarseOptions() -> UntoldGSCoarseLevelOptions {
+        var levels = UntoldGSCoarseLevelOptions()
+        levels.levelCount = 2
+        levels.ratioLog2 = [2, 4]
+        levels.minimumChunkSplats = 16
+        return levels
+    }
+
+    private func levelledSplats(count: Int = 64, seed: UInt64 = 20) -> [UntoldGSSplat] {
+        var rng = SplitMix64(seed: seed)
+        return (0 ..< count).map { _ in rng.nextSplat(boundsMin: [0, 0, 0], boundsMax: [1, 1, 1], shCount: 0) }
+    }
+
+    private func levelledWriteOptions(levels: UntoldGSCoarseLevelOptions? = nil) -> UntoldGSWriteOptions {
+        var options = UntoldGSWriteOptions()
+        options.log2ChunkSplats = 4
+        options.coarseLevels = levels ?? coarseOptions()
+        options.coarseLevelsAutomatic = false // four chunks: asked for, not automatic
+        return options
+    }
+
+    private func patch(_ data: inout Data, at offset: Int, _ value: some FixedWidthInteger) {
+        var little = value.littleEndian
+        withUnsafeBytes(of: &little) { bytes in
+            for (index, byte) in bytes.enumerated() {
+                data[offset + index] = byte
+            }
+        }
+    }
+
+    func testCoarseHeaderFieldOffsetsArePinned() throws {
+        XCTAssertEqual(UntoldGSHeaderV3.reserved1Size, 28)
+        XCTAssertEqual(UntoldGSFlags.hasCoarseLevels, 1 << 4)
+        XCTAssertEqual(UntoldGSFormat.maxCoarseLevels, 2)
+        XCTAssertEqual(UntoldGSFormat.coarseIndexEntrySize, 64)
+        var header = makeHeader()
+        header.flags |= UntoldGSFlags.hasCoarseLevels
+        header.coarseIndexOffset = 0x0000_0001_0002_0000
+        header.coarsePayloadOffset = 0x0000_0001_0002_4000
+        header.coarseRecordCount = 0x0A0B_0C0D
+        header.coarseLevelCount = 2
+        header.coarseRatioLog2 = [3, 6]
+        header.coarseFlags = 0
+        let writer = UntoldBinaryWriter()
+        header.encode(to: writer)
+        let bytes = [UInt8](writer.data)
+        XCTAssertEqual(bytes.count, 256)
+        XCTAssertEqual(Array(bytes[204 ..< 212]), [0x00, 0x00, 0x02, 0x00, 0x01, 0x00, 0x00, 0x00])
+        XCTAssertEqual(Array(bytes[212 ..< 220]), [0x00, 0x40, 0x02, 0x00, 0x01, 0x00, 0x00, 0x00])
+        XCTAssertEqual(Array(bytes[220 ..< 224]), [0x0D, 0x0C, 0x0B, 0x0A])
+        XCTAssertEqual(bytes[224], 2)
+        XCTAssertEqual(Array(bytes[225 ..< 227]), [3, 6])
+        XCTAssertEqual(bytes[227], 0)
+        XCTAssertEqual(Array(bytes[228 ..< 256]), [UInt8](repeating: 0, count: 28))
+        XCTAssertEqual(bytes[8] & 0x10, 0x10, "flag bit 4")
+        let decoded = try UntoldGSHeaderV3.decode(from: UntoldBinaryReader(data: writer.data))
+        XCTAssertEqual(decoded, header)
+        XCTAssertTrue(decoded.hasCoarseLevels)
+    }
+
+    func testCoarseIndexIsLevelMajorChunkEntries() throws {
+        let splats = levelledSplats()
+        let (fileData, report) = try UntoldGSFormat.writeReporting(splats: splats, options: levelledWriteOptions())
+        let index = try UntoldGSFormat.readIndex(from: fileData)
+        let header = index.header
+        XCTAssertTrue(header.hasCoarseLevels)
+        XCTAssertEqual(index.chunks.count, 4)
+        XCTAssertEqual(header.coarseLevelCount, 2)
+        XCTAssertEqual(header.coarseRatioLog2, [2, 4])
+        XCTAssertEqual(index.coarseRatioLog2, [2, 4])
+        XCTAssertEqual(index.coarse.count, 8)
+        XCTAssertEqual(header.splatCount, 64, "the fine count is untouched by the section")
+        let page = UInt64(UntoldGSFormat.pageAlignment)
+        XCTAssertEqual(header.coarseIndexOffset % page, 0)
+        XCTAssertEqual(header.coarsePayloadOffset % page, 0)
+        XCTAssertEqual(header.fileSize % page, 0)
+        XCTAssertEqual(header.fileSize, UInt64(fileData.count))
+        let lastFineEnd = try XCTUnwrap(index.chunks.map { $0.payloadOffset + UInt64($0.payloadBytes) }.max())
+        XCTAssertEqual(header.coarseIndexOffset, lastFineEnd)
+        XCTAssertEqual(header.coarsePayloadOffset, header.coarseIndexOffset + page)
+        XCTAssertEqual(header.lodLevels, 1, "whole-file tiers are a different notion; the byte stays 1")
+
+        var total: UInt32 = 0
+        for level in 1 ... 2 {
+            for chunk in 0 ..< 4 {
+                let entry = index.coarse[(level - 1) * 4 + chunk]
+                XCTAssertEqual(Int(entry.lodLevel), level)
+                XCTAssertEqual(Int(entry.reserved0), chunk)
+                XCTAssertEqual(entry.nodeId, index.chunks[chunk].nodeId)
+                XCTAssertEqual(entry.splatCount, level == 1 ? 4 : 1)
+                XCTAssertEqual(entry.coreBytes, entry.splatCount * 16)
+                XCTAssertEqual(entry.payloadBytes, entry.coreBytes, "unpadded")
+                XCTAssertEqual(entry.payloadOffset % 16, 0)
+                XCTAssertGreaterThanOrEqual(entry.payloadOffset, header.coarsePayloadOffset)
+                XCTAssertLessThanOrEqual(entry.payloadOffset + UInt64(entry.payloadBytes), header.fileSize)
+                XCTAssertEqual(index.coarseEntry(level: level, chunk: chunk), entry)
+                total += entry.splatCount
+            }
+        }
+        XCTAssertEqual(header.coarseRecordCount, total)
+        XCTAssertEqual(total, 20)
+        // Coarsest level first, each level one contiguous range in chunk order.
+        let l2 = try XCTUnwrap(index.coarseLevelRange(level: 2))
+        let l1 = try XCTUnwrap(index.coarseLevelRange(level: 1))
+        XCTAssertEqual(l2.lowerBound, header.coarsePayloadOffset)
+        XCTAssertEqual(l2.upperBound - l2.lowerBound, 4 * 16)
+        XCTAssertEqual(l1.lowerBound, l2.upperBound)
+        XCTAssertEqual(l1.upperBound - l1.lowerBound, 16 * 16)
+        XCTAssertNil(index.coarseLevelRange(level: 3))
+        XCTAssertEqual(index.coarseRecordIndex(level: 2, chunk: 3), 3)
+        XCTAssertEqual(index.coarseRecordIndex(level: 1, chunk: 0), 4)
+        XCTAssertEqual(index.coarseRecordIndex(level: 1, chunk: 2), 12)
+        for chunk in 0 ..< 3 {
+            let a = try XCTUnwrap(index.coarseEntry(level: 1, chunk: chunk))
+            let b = index.coarseEntry(level: 1, chunk: chunk + 1)!
+            XCTAssertEqual(a.payloadOffset + UInt64(a.payloadBytes), b.payloadOffset)
+        }
+
+        let coarse = try XCTUnwrap(report.coarse)
+        XCTAssertEqual(coarse.levelCount, 2)
+        XCTAssertEqual(coarse.ratioLog2, [2, 4])
+        XCTAssertEqual(coarse.recordsPerLevel, [16, 4])
+        XCTAssertEqual(coarse.recordCount, 20)
+        XCTAssertEqual(coarse.chunksWithoutLevels, 0)
+        XCTAssertEqual(coarse.bytes, Int(header.fileSize - header.coarseIndexOffset))
+        XCTAssertEqual(report.chunkCount, 4)
+    }
+
+    func testCoarseSectionRoundTrip() throws {
+        let splats = levelledSplats(count: 200, seed: 21)
+        var options = levelledWriteOptions()
+        options.log2ChunkSplats = 5 // 32 per chunk → 7 chunks, the last of 8 (below the minimum)
+        let fileData = try UntoldGSFormat.write(splats: splats, options: options)
+        let file = try UntoldGSFile(url: writeTemporaryFile(fileData))
+        XCTAssertEqual(file.index.chunks.count, 7)
+        XCTAssertNil(file.index.coarseEntry(level: 1, chunk: 6), "an 8-splat chunk has no level")
+        XCTAssertEqual(try file.decodeCoarseLevel(level: 1, chunk: 6), [])
+        XCTAssertEqual(try file.coarsePayload(level: 2, chunk: 6).count, 0)
+
+        // The writer's chunks in Morton order, coarsened again, are what the file decodes to.
+        let bounds = UntoldGSFormat.bounds(of: splats)
+        let order = UntoldGSFormat.mortonOrder(splats, boundsMin: bounds.min, boundsMax: bounds.max)
+        for chunk in 0 ..< 7 {
+            let members = Array(order[chunk * 32 ..< min(chunk * 32 + 32, order.count)]).map { splats[$0] }
+            let expected = try UntoldGSCoarsener.coarsen(members, options: coarseOptions())
+            for level in 1 ... 2 {
+                let want = expected.level(level)
+                let got = try file.decodeCoarseLevel(level: level, chunk: chunk)
+                XCTAssertEqual(got.count, want.count)
+                XCTAssertEqual(got.count, chunk == 6 ? 0 : (level == 1 ? 8 : 2))
+                guard let entry = file.index.coarseEntry(level: level, chunk: chunk) else { continue }
+                let extent = entry.aabbMax - entry.aabbMin
+                for (a, b) in zip(want, got) {
+                    XCTAssertLessThanOrEqual(abs(a.position.x - b.position.x), extent.x / 2048 + 1e-6)
+                    XCTAssertLessThanOrEqual(abs(a.position.y - b.position.y), extent.y / 1024 + 1e-6)
+                    XCTAssertLessThanOrEqual(abs(a.position.z - b.position.z), extent.z / 2048 + 1e-6)
+                    for axis in 0 ..< 3 {
+                        let step = (entry.logScaleMax - entry.logScaleMin) / (axis == 1 ? 1023 : 2047)
+                        XCTAssertLessThanOrEqual(abs(log(a.scale[axis]) - log(b.scale[axis])), step * 0.5 + 1e-4)
+                    }
+                    XCTAssertEqual(a.opacity, b.opacity, accuracy: 0.5 / 255 + 1e-5)
+                    for channel in 0 ..< 3 {
+                        XCTAssertEqual(a.color[channel], b.color[channel], accuracy: 0.5 / 255 + 1e-5)
+                    }
+                    XCTAssertLessThan(2 * acos(min(1, abs((a.rotation.inverse * b.rotation).real))), 0.01)
+                }
+            }
+        }
+    }
+
+    /// The reader that predates the section, emulated at the byte level: without the flag and the
+    /// coarse header words the file is a plain version-3 file whose payload range happens to hold
+    /// unclaimed bytes, and it parses and decodes fine-only.
+    func testOldReaderSeesFineOnly() throws {
+        let splats = levelledSplats()
+        let flagged = try UntoldGSFormat.write(splats: splats, options: levelledWriteOptions())
+        var plainOptions = levelledWriteOptions()
+        plainOptions.coarseLevels = nil
+        plainOptions.coarseLevelsAutomatic = false
+        let plain = try UntoldGSFormat.write(splats: splats, options: plainOptions)
+        XCTAssertGreaterThan(flagged.count, plain.count)
+
+        var emulated = flagged
+        emulated[8] &= ~UInt8(0x10)
+        for offset in 204 ..< 228 {
+            emulated[offset] = 0
+        }
+        let index = try UntoldGSFormat.readIndex(from: emulated)
+        XCTAssertFalse(index.header.hasCoarseLevels)
+        XCTAssertEqual(index.coarse, [])
+        XCTAssertEqual(index.coarseLevelCount, 0)
+        XCTAssertEqual(index.header.fileSize, UInt64(flagged.count), "the size still covers the section")
+        let plainIndex = try UntoldGSFormat.readIndex(from: plain)
+        XCTAssertEqual(index.chunks, plainIndex.chunks, "the fine entries are the section-free bake's")
+        XCTAssertEqual(index.nodes, plainIndex.nodes)
+        for chunk in index.chunks {
+            let range = Int(chunk.payloadOffset) ..< Int(chunk.payloadOffset) + Int(chunk.payloadBytes)
+            XCTAssertEqual(emulated.subdata(in: range), plain.subdata(in: range), "byte-identical fine payloads")
+        }
+        let file = try UntoldGSFile(url: writeTemporaryFile(emulated))
+        XCTAssertEqual(try file.decodeAll(), try UntoldGSFile(url: writeTemporaryFile(plain)).decodeAll())
+        let emulatedAsset = try UntoldGSFormat.read(from: file.url)
+        let plainAsset = try UntoldGSFormat.read(from: writeTemporaryFile(plain))
+        XCTAssertEqual(emulatedAsset.splatCount, plainAsset.splatCount)
+        for (a, b) in zip(emulatedAsset.encodedSplats, plainAsset.encodedSplats) {
+            XCTAssertEqual(a.position, b.position)
+            XCTAssertEqual(a.colorAndOpacity, b.colorAndOpacity)
+        }
+        XCTAssertEqual(file.thrownCoarse(), .sizeMismatch("coarse level 1 of 0"))
+    }
+
+    func testNewReaderOnOldFile() throws {
+        var options = levelledWriteOptions()
+        options.coarseLevels = nil
+        options.coarseLevelsAutomatic = false
+        let fileData = try UntoldGSFormat.write(splats: levelledSplats(), options: options)
+        let index = try UntoldGSFormat.readIndex(from: fileData)
+        XCTAssertFalse(index.header.hasCoarseLevels)
+        XCTAssertEqual(index.header.coarseLevelCount, 0)
+        XCTAssertEqual(index.header.coarseIndexOffset, 0)
+        XCTAssertEqual(index.header.coarsePayloadOffset, 0)
+        XCTAssertEqual(index.header.coarseRecordCount, 0)
+        XCTAssertEqual(index.header.coarseRatioLog2, [0, 0])
+        XCTAssertEqual(index.coarse, [])
+        XCTAssertNil(index.coarseEntry(level: 1, chunk: 0))
+        XCTAssertNil(index.coarseLevelRange(level: 1))
+        XCTAssertNil(UntoldGSIndex.coarseIndexRange(header: index.header))
+    }
+
+    func testCoarseIndexIsReadFromDiskAndRequiresItsBytesFromData() throws {
+        let fileData = try UntoldGSFormat.write(splats: levelledSplats(), options: levelledWriteOptions())
+        let header = try UntoldGSFormat.readHeaderV3(from: fileData)
+        let prefix = fileData.prefix(UntoldGSIndex.prefixSize(header: header))
+        XCTAssertEqual(try thrownError(UntoldGSFormat.readIndex(from: prefix)), .truncated, "a prefix cannot hold the coarse index")
+        let toIndexEnd = try fileData.prefix(Int(XCTUnwrap(UntoldGSIndex.coarseIndexRange(header: header)?.upperBound)))
+        XCTAssertEqual(try UntoldGSFormat.readIndex(from: toIndexEnd), try UntoldGSFormat.readIndex(from: fileData))
+        let url = try writeTemporaryFile(fileData)
+        XCTAssertEqual(try UntoldGSFormat.readIndex(from: url), try UntoldGSFormat.readIndex(from: fileData))
+        XCTAssertEqual(try UntoldGSFile(url: url).index, try UntoldGSFormat.readIndex(from: fileData))
+    }
+
+    /// The paged loader's byte source validates a flagged file exactly as `UntoldGSFile` does
+    /// (header, size, prefix, coarse index) and serves the coarse ranges by `pread`.
+    func testPageSourceReadsTheCoarseIndex() throws {
+        let fileData = try UntoldGSFormat.write(splats: levelledSplats(), options: levelledWriteOptions())
+        let expected = try UntoldGSFormat.readIndex(from: fileData)
+        let source = try UntoldGSFilePageSource(url: writeTemporaryFile(fileData))
+        defer { source.close() }
+        XCTAssertEqual(source.index, expected)
+        XCTAssertEqual(source.index.coarse.count, 8)
+        let entry = try XCTUnwrap(source.index.coarseEntry(level: 1, chunk: 2))
+        var bytes = [UInt8](repeating: 0, count: Int(entry.payloadBytes))
+        try bytes.withUnsafeMutableBytes { buffer in
+            try source.read(offset: entry.payloadOffset, count: buffer.count, into: buffer.baseAddress!)
+        }
+        XCTAssertEqual(Data(bytes), fileData.subdata(in: Int(entry.payloadOffset) ..< Int(entry.payloadOffset) + Int(entry.payloadBytes)))
+        XCTAssertEqual(UntoldGSCRC32.checksum(Data(bytes)), entry.crc32)
+        XCTAssertNoThrow(try source.reopen(), "a reopen re-reads both ranges and finds the same index")
+    }
+
+    func testCoarseSectionRejections() throws {
+        let fileData = try UntoldGSFormat.write(splats: levelledSplats(), options: levelledWriteOptions())
+        let index = try UntoldGSFormat.readIndex(from: fileData)
+        let header = index.header
+        let coarseIndex = Int(header.coarseIndexOffset)
+        func entry(level: Int, chunk: Int) -> Int {
+            coarseIndex + ((level - 1) * 4 + chunk) * 64
+        }
+        func expectCorrupt(_ data: Data, _ message: String, file: StaticString = #filePath, line: UInt = #line) {
+            guard case .corrupt? = try thrownError(UntoldGSFormat.readIndex(from: data)) else {
+                return XCTFail("expected .corrupt: \(message)", file: file, line: line)
+            }
+        }
+        func expectSizeMismatch(_ data: Data, _ message: String, file: StaticString = #filePath, line: UInt = #line) {
+            guard case .sizeMismatch? = try thrownError(UntoldGSFormat.readIndex(from: data)) else {
+                return XCTFail("expected .sizeMismatch: \(message)", file: file, line: line)
+            }
+        }
+
+        var data = fileData
+        data[8] &= ~UInt8(0x10)
+        expectCorrupt(data, "coarse fields without the flag")
+
+        data = fileData
+        patch(&data, at: 204, header.payloadOffset)
+        expectSizeMismatch(data, "coarse index below the last fine payload")
+
+        data = fileData
+        patch(&data, at: 204, header.nodeTreeOffset)
+        expectSizeMismatch(data, "coarse index over the tree")
+
+        data = fileData
+        patch(&data, at: 212, header.coarseIndexOffset)
+        expectSizeMismatch(data, "coarse payload over the coarse index")
+
+        data = fileData
+        patch(&data, at: 204, header.coarseIndexOffset + 16)
+        expectSizeMismatch(data, "misaligned coarse index")
+
+        data = fileData
+        data[225] = 4
+        data[226] = 4
+        expectCorrupt(data, "non-increasing ratios")
+
+        data = fileData
+        data[225] = 0
+        expectCorrupt(data, "zero ratio")
+
+        data = fileData
+        data[226] = 5
+        expectCorrupt(data, "ratio above log2ChunkSplats")
+
+        data = fileData
+        data[224] = 3
+        expectCorrupt(data, "three levels")
+
+        data = fileData
+        data[227] = 1
+        guard case .unsupported? = try thrownError(UntoldGSFormat.readIndex(from: data)) else {
+            return XCTFail("coarse flags bit 0 is a reserved feature")
+        }
+
+        data = fileData
+        patch(&data, at: entry(level: 1, chunk: 2) + 20, UInt16(2))
+        expectCorrupt(data, "lodLevel != L")
+
+        data = fileData
+        patch(&data, at: entry(level: 2, chunk: 1) + 56, UInt32(0))
+        expectCorrupt(data, "reserved0 != c")
+
+        data = fileData
+        patch(&data, at: entry(level: 1, chunk: 0) + 22, UInt16(index.chunks[0].nodeId &+ 1))
+        expectCorrupt(data, "nodeId differs from the chunk's")
+
+        data = fileData
+        patch(&data, at: entry(level: 1, chunk: 3) + 16, UInt32(5))
+        expectSizeMismatch(data, "splatCount above n >> ratio")
+
+        data = fileData
+        patch(&data, at: entry(level: 1, chunk: 0) + 16, UInt32(0))
+        patch(&data, at: entry(level: 1, chunk: 0) + 12, UInt32(0))
+        patch(&data, at: entry(level: 1, chunk: 0) + 8, UInt32(0))
+        expectCorrupt(data, "level 2 without level 1")
+
+        data = fileData
+        patch(&data, at: entry(level: 1, chunk: 1) + 12, UInt32(48))
+        expectSizeMismatch(data, "wrong coreBytes")
+
+        data = fileData
+        patch(&data, at: entry(level: 1, chunk: 1) + 8, UInt32(80))
+        expectSizeMismatch(data, "payloadBytes != coreBytes")
+
+        data = fileData
+        patch(&data, at: entry(level: 2, chunk: 0), index.coarse[4].payloadOffset + 8)
+        expectSizeMismatch(data, "misaligned payloadOffset")
+
+        data = fileData
+        patch(&data, at: entry(level: 1, chunk: 3), header.fileSize)
+        expectSizeMismatch(data, "payload past fileSize")
+
+        data = fileData
+        patch(&data, at: entry(level: 1, chunk: 1), index.coarse[0].payloadOffset)
+        expectSizeMismatch(data, "payloads overlapping")
+
+        data = fileData
+        patch(&data, at: entry(level: 1, chunk: 1) + 48, Float(10).bitPattern)
+        expectCorrupt(data, "logScaleMin above logScaleMax")
+
+        data = fileData
+        patch(&data, at: 220, header.coarseRecordCount + 1)
+        expectSizeMismatch(data, "Σ splatCount ≠ coarseRecordCount")
+
+        data = fileData
+        data[Int(index.coarse[1].payloadOffset) + 3] ^= 0xFF // level 1 of chunk 1
+        let file = try UntoldGSFile(url: writeTemporaryFile(data))
+        XCTAssertNoThrow(try file.coarsePayload(level: 1, chunk: 0))
+        guard case .corrupt? = try thrownError(file.coarsePayload(level: 1, chunk: 1)) else {
+            return XCTFail("a corrupt coarse CRC")
+        }
+        XCTAssertNoThrow(try file.coarsePayload(level: 1, chunk: 1, verify: false))
+        XCTAssertNoThrow(try file.decodeAll(), "the fine chunks are untouched")
+    }
+
+    /// The pre-change bytes of two fixtures, recorded at 6bfa4cc6 (before the section existed):
+    /// a 13-chunk bake and a 69-chunk bake with the levels off both reproduce them exactly, and
+    /// `.automatic` below 64 chunks does too.
+    func testWriteWithoutLevelsIsByteIdenticalToBefore() throws {
+        var options = UntoldGSWriteOptions()
+        options.log2ChunkSplats = 4
+        XCTAssertTrue(options.coarseLevelsAutomatic)
+        XCTAssertNil(options.coarseLevels)
+
+        var rng = SplitMix64(seed: 0x600D_CAFE)
+        let small = (0 ..< 200).map { _ in rng.nextGoldenSplat() }
+        let smallData = try UntoldGSFormat.write(splats: small, options: options)
+        XCTAssertEqual(smallData.count, 262_144)
+        XCTAssertEqual(UntoldGSCRC32.checksum(smallData), 0xF81A_698B, "13 chunks under .automatic: no section")
+        XCTAssertFalse(try UntoldGSFormat.readIndex(from: smallData).header.hasCoarseLevels)
+
+        var rng2 = SplitMix64(seed: 0x600D_F00D)
+        let large = (0 ..< 1100).map { _ in rng2.nextGoldenSplat() }
+        let automatic = try UntoldGSFormat.write(splats: large, options: options)
+        XCTAssertTrue(try UntoldGSFormat.readIndex(from: automatic).header.hasCoarseLevels, "69 chunks under .automatic: a section")
+        XCTAssertEqual(try UntoldGSFormat.readIndex(from: automatic).coarseRatioLog2, [3, 4], "the default ratios clamped to log2ChunkSplats = 4")
+        options.coarseLevelsAutomatic = false
+        let largeData = try UntoldGSFormat.write(splats: large, options: options)
+        XCTAssertEqual(largeData.count, 1_179_648)
+        XCTAssertEqual(UntoldGSCRC32.checksum(largeData), 0x1C58_358A)
+        // The section-free file is the flagged file's prefix with the header's coarse words clear.
+        var emulated = automatic.prefix(largeData.count)
+        emulated[8] &= ~UInt8(0x10)
+        for offset in 196 ..< 228 {
+            emulated[offset] = largeData[offset]
+        }
+        XCTAssertEqual(Data(emulated), largeData, "fine sections and payloads are byte-identical either way")
+    }
+
     // MARK: - Helpers
 
     private func thrownError(_ body: @autoclosure () throws -> some Any) -> UntoldGSError? {
@@ -591,6 +1087,18 @@ final class UntoldGSFormatTests: XCTestCase {
     }
 }
 
+private extension UntoldGSFile {
+    /// The error `coarsePayload` throws for level 1 of chunk 0, or nil.
+    func thrownCoarse() -> UntoldGSError? {
+        do {
+            _ = try coarsePayload(level: 1, chunk: 0)
+            return nil
+        } catch {
+            return error as? UntoldGSError
+        }
+    }
+}
+
 /// Deterministic generator so failures reproduce.
 private struct SplitMix64: RandomNumberGenerator {
     private var state: UInt64
@@ -620,6 +1128,21 @@ private struct SplitMix64: RandomNumberGenerator {
         return simd_quatf(vector: simd_normalize(v))
     }
 
+    /// The fixture of `testWriteWithoutLevelsIsByteIdenticalToBefore`: its bytes are pinned, so
+    /// this generator must never change.
+    mutating func nextGoldenSplat() -> UntoldGSSplat {
+        let t = SIMD3<Float>(nextUnitFloat(), nextUnitFloat(), nextUnitFloat())
+        let scale = SIMD3<Float>(exp(nextFloat(in: -7 ... -2)), exp(nextFloat(in: -7 ... -2)), exp(nextFloat(in: -7 ... -2)))
+        let v = SIMD4<Float>(nextFloat(in: -1 ... 1), nextFloat(in: -1 ... 1), nextFloat(in: -1 ... 1), nextFloat(in: -1 ... 1))
+        return UntoldGSSplat(
+            position: SIMD3<Float>(-1, 0, -1) + t * SIMD3<Float>(2, 1, 2),
+            scale: scale,
+            rotation: simd_quatf(vector: simd_normalize(v)),
+            color: SIMD3<Float>(nextUnitFloat(), nextUnitFloat(), nextUnitFloat()),
+            opacity: nextFloat(in: 0.2 ... 1)
+        )
+    }
+
     mutating func nextSplat(boundsMin: SIMD3<Float>, boundsMax: SIMD3<Float>, shCount: Int) -> UntoldGSSplat {
         let t = SIMD3<Float>(nextUnitFloat(), nextUnitFloat(), nextUnitFloat())
         let scale = SIMD3<Float>(exp(nextFloat(in: -7 ... -2)), exp(nextFloat(in: -7 ... -2)), exp(nextFloat(in: -7 ... -2)))
@@ -632,4 +1155,22 @@ private struct SplitMix64: RandomNumberGenerator {
             sphericalHarmonics: (0 ..< shCount).map { _ in nextFloat(in: -1 ... 1) }
         )
     }
+}
+
+/// A sink whose writes at or past `failAtOrAfter` — the payload pages, not the header — fail
+/// with `ENOSPC`, as `pwrite` on a full volume does.
+private final class FailingSink: UntoldGSWriteSink, @unchecked Sendable {
+    let failAtOrAfter: Int
+
+    init(failAtOrAfter: Int) {
+        self.failAtOrAfter = failAtOrAfter
+    }
+
+    func write(_: UnsafeRawBufferPointer, at offset: Int) throws {
+        if offset >= failAtOrAfter {
+            throw NSError(domain: NSPOSIXErrorDomain, code: Int(ENOSPC), userInfo: [NSFilePathErrorKey: "/full/volume/out.untoldgs"])
+        }
+    }
+
+    func finish(fileSize _: Int) throws {}
 }

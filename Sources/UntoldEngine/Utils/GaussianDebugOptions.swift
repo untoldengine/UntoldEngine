@@ -26,6 +26,13 @@ public final class GaussianDebugOptions: @unchecked Sendable {
     private var _disableChunkCull = false
     private var _disableWorkingSetBudget = false
     private var _disableScreenWeightedQuotas = false
+    private var _disablePaging = false
+    private var _freezePaging = false
+    private var _disablePageFade = false
+    private var _residencyDebugTint = false
+    private var _gaussianLevelMode = GaussianLevelMode.auto
+    private var _disableLevelCrossFade = false
+    private var _levelDebugTint = false
 
     /// Skips the per-splat test against the previous frame's HZB depth pyramid in
     /// `gaussianFrustumCull`. The frustum test still runs.
@@ -89,6 +96,60 @@ public final class GaussianDebugOptions: @unchecked Sendable {
         set { lock.lock(); _disableScreenWeightedQuotas = newValue; lock.unlock() }
     }
 
+    /// Loads every `.untoldgs` whole-resident whatever its size, so no entity pages (takes
+    /// effect at the next load): the pre-paging behaviour, for an A/B of what the pool costs and
+    /// what its fill-in shows.
+    public var disablePaging: Bool {
+        get { lock.lock(); defer { lock.unlock() }; return _disablePaging }
+        set { lock.lock(); _disablePaging = newValue; lock.unlock() }
+    }
+
+    /// Holds every paged entity's resident set as it is: no read is issued, nothing is evicted
+    /// (reads already in flight still land). With the fade complete the image is then a
+    /// function of the camera alone — the determinism and bisecting switch.
+    public var freezePaging: Bool {
+        get { lock.lock(); defer { lock.unlock() }; return _freezePaging }
+        set { lock.lock(); _freezePaging = newValue; lock.unlock() }
+    }
+
+    /// Shows an arriving tier at once instead of fading it in over
+    /// `GaussianPagingPolicy.fadeFrames` frames (tests, the twin comparison).
+    public var disablePageFade: Bool {
+        get { lock.lock(); defer { lock.unlock() }; return _disablePageFade }
+        set { lock.lock(); _disablePageFade = newValue; lock.unlock() }
+    }
+
+    /// Tints every splat of a paged entity by its chunk's resident fraction — green whole,
+    /// yellow deep, red head-only — for the editor.
+    public var residencyDebugTint: Bool {
+        get { lock.lock(); defer { lock.unlock() }; return _residencyDebugTint }
+        set { lock.lock(); _residencyDebugTint = newValue; lock.unlock() }
+    }
+
+    /// How a `.untoldgs` entity with per-chunk coarse levels chooses each chunk's level: `.auto`
+    /// runs the level rule (a far or non-resident chunk draws a merged coarse level), `.fineOnly`
+    /// draws the fine records only — byte for byte the frame of a file without a coarse section,
+    /// the A/B of what the levels change — `.coarseOnly` draws every chunk at its coarsest
+    /// available level (the twin comparison).
+    public var gaussianLevelMode: GaussianLevelMode {
+        get { lock.lock(); defer { lock.unlock() }; return _gaussianLevelMode }
+        set { lock.lock(); _gaussianLevelMode = newValue; lock.unlock() }
+    }
+
+    /// Switches a chunk's level at once instead of cross-fading the two levels over
+    /// `GaussianPagingPolicy.fadeFrames` frames (tests, the twin comparison).
+    public var disableLevelCrossFade: Bool {
+        get { lock.lock(); defer { lock.unlock() }; return _disableLevelCrossFade }
+        set { lock.lock(); _disableLevelCrossFade = newValue; lock.unlock() }
+    }
+
+    /// Tints every splat of an entity with coarse levels by the level its chunk draws — white
+    /// fine, yellow level 1, red level 2 — for the editor (over the residency tint when both are on).
+    public var levelDebugTint: Bool {
+        get { lock.lock(); defer { lock.unlock() }; return _levelDebugTint }
+        set { lock.lock(); _levelDebugTint = newValue; lock.unlock() }
+    }
+
     /// The per-draw constants the splat fragment shader reads (see `GaussianTBDRDrawDebug`).
     var drawConstants: GaussianTBDRDrawDebug {
         var constants = GaussianTBDRDrawDebug()
@@ -100,3 +161,14 @@ public final class GaussianDebugOptions: @unchecked Sendable {
 
 /// Mirrors `kGaussianMaxBlendedSplatsPerPixel` in Gaussians.metal — the normal per-pixel cap.
 let kGaussianMaxBlendedSplatsPerPixelDefault = 64
+
+/// The level modes of `GaussianDebugOptions.gaussianLevelMode`
+/// (`GaussianChunkLevelConstants.levelMode`, `GaussianChunkLevelMode` in ShaderTypes.h).
+public enum GaussianLevelMode: UInt32, Sendable, CaseIterable {
+    /// The level rule.
+    case auto = 0
+    /// Every chunk fine: the frame of a file without a coarse section.
+    case fineOnly = 1
+    /// Every chunk at its coarsest available level.
+    case coarseOnly = 2
+}

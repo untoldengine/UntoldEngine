@@ -35,8 +35,47 @@ struct GaussianProfileTotals {
     /// entity of a frame (GaussianSharedWorkingSet), counted once per profile line.
     var sharedWorkingSetBytes: Int = 0
 
+    /// Paged `.untoldgs` entities (GaussianPageManager): their pools (already in `packedBytes`
+    /// and `sphericalHarmonicsBytes`, the pool being the packed buffer), their per-slot tables
+    /// (already in `chunkTableBytes`), and what the pagers hold and do.
+    var pagedEntityCount: Int = 0
+    var pagePoolBytes: Int = 0
+    var pageTableBytes: Int = 0
+    var residentPages: Int = 0
+    var poolPages: Int = 0
+    var pendingPageReads: Int = 0
+    var pageBytesInFlight: Int = 0
+    var issuedPageReads: Int = 0
+    var committedPages: Int = 0
+    var evictedPages: Int = 0
+    var saturatedCandidates: Int = 0
+    var faultedChunks: Int = 0
+
+    /// Entities with per-chunk coarse levels (per-chunk-lod-tiers): their coarse buffers (already
+    /// in `chunkTableBytes` through `GaussianChunkTable.gpuBytes`: the coarse rows, the records
+    /// outside the pool, the level state), the coarse bytes and chunk-levels a pager has landed,
+    /// the pieces it issued, and the entities whose levels faulted.
+    var coarseEntityCount: Int = 0
+    var coarseBytes: Int = 0
+    var coarseBytesLanded: Int = 0
+    var coarseChunkLevelsAvailable: Int = 0
+    var coarseReadsIssued: Int = 0
+    var coarseFaultedEntities: Int = 0
+
     var totalResidentBytes: Int {
         encodedBytes + packedBytes + sortedIndexBytes + visibleIndexBytes + visibleCountBytes + chunkTableBytes + sphericalHarmonicsBytes + uniformBytes + scratchBytes + sharedWorkingSetBytes
+    }
+
+    /// The paging fields of a profile line's `extra`, empty when no entity pages.
+    var pagingSummary: String {
+        guard pagedEntityCount > 0 else { return "" }
+        return " paged=\(pagedEntityCount) pool=\(gaussianFormatBytes(pagePoolBytes)) pages=\(residentPages)/\(poolPages) pending=\(pendingPageReads) inFlight=\(gaussianFormatBytes(pageBytesInFlight)) issued=\(issuedPageReads) committed=\(committedPages) evicted=\(evictedPages) saturated=\(saturatedCandidates) faults=\(faultedChunks)"
+    }
+
+    /// The coarse-level fields of a profile line's `extra`, empty when no entity has levels.
+    var coarseSummary: String {
+        guard coarseEntityCount > 0 else { return "" }
+        return " coarseEntities=\(coarseEntityCount) coarseBytes=\(gaussianFormatBytes(coarseBytes)) coarseLanded=\(gaussianFormatBytes(coarseBytesLanded)) coarseLevelsAvailable=\(coarseChunkLevelsAvailable) coarseReads=\(coarseReadsIssued) coarseFaulted=\(coarseFaultedEntities)"
     }
 
     mutating func include(component: GaussianComponent) {
@@ -47,6 +86,37 @@ struct GaussianProfileTotals {
         visibleIndexBytes += component.gaussianVisibleIndices.reduce(0) { $0 + ($1?.length ?? 0) }
         visibleCountBytes += component.gaussianVisibleCount.reduce(0) { $0 + ($1?.length ?? 0) }
         chunkTableBytes += component.chunkTable?.gpuBytes ?? 0
+        if let pager = component.pager {
+            let stats = pager.stats
+            pagedEntityCount += 1
+            pagePoolBytes += stats.poolBytes
+            if let table = component.chunkTable {
+                pageTableBytes += table.residencyTables.reduce(0) { $0 + $1.length }
+                    + table.pageTables.reduce(0) { $0 + $1.length }
+                    + table.demandTables.reduce(0) { $0 + $1.length }
+            }
+            residentPages += stats.residentSlots
+            poolPages += stats.slotCount
+            pendingPageReads += stats.pendingReads
+            pageBytesInFlight += stats.bytesInFlight
+            issuedPageReads += stats.issuedThisTick
+            committedPages += stats.committedThisTick
+            evictedPages += stats.evictedThisTick
+            saturatedCandidates += stats.saturatedCandidates
+            faultedChunks += stats.faultedChunks
+            coarseBytesLanded += stats.coarseBytesLanded
+            coarseChunkLevelsAvailable += stats.coarseChunkLevelsAvailable
+            coarseReadsIssued += stats.coarseReadsIssued
+            if stats.coarseFaulted { coarseFaultedEntities += 1 }
+        }
+        if let coarse = component.chunkTable?.coarse {
+            coarseEntityCount += 1
+            coarseBytes += coarse.gpuBytes
+            if component.pager == nil {
+                // A whole-resident entity holds every level from the load.
+                coarseBytesLanded += coarse.recordBytes
+            }
+        }
         if let shBuffer = component.sphericalHarmonicsData {
             sphericalHarmonicsBytes += shBuffer.length
         }

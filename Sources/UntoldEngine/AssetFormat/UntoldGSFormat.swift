@@ -17,6 +17,15 @@
 //    [payloadOffset]      chunk payloads, each padded to a 16 KB multiple:
 //                           core block  16 bytes × splatCount
 //                           SH block    higher-order SH bytes × splatCount (optional)
+//    [coarseIndexOffset]  UntoldGSChunkEntry[]   optional (`hasCoarseLevels`): one entry per
+//                                                coarse level per chunk, level-major, padded
+//    [coarsePayloadOffset] coarse records, coarsest level first, 16 bytes × splatCount per
+//                                                entry, 16-byte aligned; padded to 16 KB
+//
+//  The coarse section holds one or two importance-sorted merged levels of every chunk
+//  (`UntoldGSCoarsener`), lies after the last fine payload and is advertised by a flag
+//  bit and header words carved from the reserved tail, so a reader that predates it
+//  parses the file unchanged and draws the fine records only.
 //
 //  Integrity is per chunk (`UntoldGSChunkEntry.crc32`): a streamed payload is never
 //  fully resident, so there is no whole-file hash. Scene-side facts (mesh twin,
@@ -125,6 +134,14 @@ public enum UntoldGSFormat {
     public static let maxSHDegree: UInt8 = 3
     public static let invalidNode: UInt32 = 0xFFFF_FFFF
 
+    /// Coarse levels a file may carry per chunk (`UntoldGSHeaderV3.coarseLevelCount`).
+    public static let maxCoarseLevels: Int = 2
+    /// A coarse index entry is a `UntoldGSChunkEntry`.
+    public static let coarseIndexEntrySize: Int = chunkEntrySize
+    /// `UntoldGSWriteOptions.coarseLevelsAutomatic` bakes levels for a tier of at least this
+    /// many chunks; smaller assets (every chunk in view is cheap to draw whole) bake as before.
+    public static let coarseLevelsAutomaticMinimumChunks: Int = 64
+
     /// Higher-order SH bytes stored per splat for a degree (DC excluded, three channels):
     /// 0, 9, 24, 45. Same contract as `GaussianSHMetadata.higherOrderCoefficientsPerSplat`.
     public static func shCoefficientCount(degree: UInt8) -> Int {
@@ -147,6 +164,9 @@ public enum UntoldGSFlags {
     public static let antialiased: UInt32 = 1 << 2
     /// Payload was produced for an environment (large chunks, LOD tree, visibility table).
     public static let environment: UInt32 = 1 << 3
+    /// The file carries the optional per-chunk coarse-level section (header bytes 204–227).
+    /// A reader that predates the section ignores the bit and draws the fine records only.
+    public static let hasCoarseLevels: UInt32 = 1 << 4
 }
 
 /// Coordinate-system convention of the stored positions and rotations.
@@ -208,10 +228,26 @@ public struct UntoldGSHeaderV3: Sendable, Equatable {
     public var payloadOffset: UInt64
     /// Byte size of the whole file, so a reader can bounds-check ranges before opening the payload.
     public var fileSize: UInt64
+    /// Absolute offset of the coarse index (`UntoldGSChunkEntry[coarseLevelCount × chunkCount]`,
+    /// level-major), a page multiple at or after the last fine payload. 0 when absent.
+    public var coarseIndexOffset: UInt64
+    /// Absolute offset of the coarse records, a page multiple after the coarse index; the region
+    /// runs to `fileSize`. 0 when absent.
+    public var coarsePayloadOffset: UInt64
+    /// Records over every coarse entry (the fine `splatCount` is unchanged by the section).
+    public var coarseRecordCount: UInt32
+    /// Coarse levels per chunk, 0…`UntoldGSFormat.maxCoarseLevels`.
+    public var coarseLevelCount: UInt8
+    /// Level L holds `max(1, n >> coarseRatioLog2[L − 1])` records of a chunk of `n` fine splats;
+    /// strictly increasing over the level count, unused slots zero. Two bytes.
+    public var coarseRatioLog2: [UInt8]
+    /// Zero. Bit 0 is reserved for coarse records that carry a spherical-harmonics block.
+    public var coarseFlags: UInt8
     /// Reserved tail bringing the header to 256 bytes. Write as zero.
     public var reserved1: [UInt8]
 
-    public static let reserved1Size = 256 - 204
+    public static let reserved1Size = 256 - 228
+    public static let coarseRatioLog2Size = 2
 
     public init(
         flags: UInt32 = 0,
@@ -235,7 +271,13 @@ public struct UntoldGSHeaderV3: Sendable, Equatable {
         nodeTreeOffset: UInt64,
         paletteOffset: UInt64 = 0,
         payloadOffset: UInt64,
-        fileSize: UInt64
+        fileSize: UInt64,
+        coarseIndexOffset: UInt64 = 0,
+        coarsePayloadOffset: UInt64 = 0,
+        coarseRecordCount: UInt32 = 0,
+        coarseLevelCount: UInt8 = 0,
+        coarseRatioLog2: [UInt8] = [0, 0],
+        coarseFlags: UInt8 = 0
     ) {
         magic = UntoldGSFormat.magicBytes
         version = UntoldGSFormat.version
@@ -262,6 +304,16 @@ public struct UntoldGSHeaderV3: Sendable, Equatable {
         self.paletteOffset = paletteOffset
         self.payloadOffset = payloadOffset
         self.fileSize = fileSize
+        self.coarseIndexOffset = coarseIndexOffset
+        self.coarsePayloadOffset = coarsePayloadOffset
+        self.coarseRecordCount = coarseRecordCount
+        self.coarseLevelCount = coarseLevelCount
+        var ratios = Array(coarseRatioLog2.prefix(UntoldGSHeaderV3.coarseRatioLog2Size))
+        while ratios.count < UntoldGSHeaderV3.coarseRatioLog2Size {
+            ratios.append(0)
+        }
+        self.coarseRatioLog2 = ratios
+        self.coarseFlags = coarseFlags
         reserved1 = Array(repeating: 0, count: UntoldGSHeaderV3.reserved1Size)
     }
 
@@ -271,6 +323,11 @@ public struct UntoldGSHeaderV3: Sendable, Equatable {
 
     public var hasSphericalHarmonics: Bool {
         flags & UntoldGSFlags.hasSphericalHarmonics != 0
+    }
+
+    /// The file carries the per-chunk coarse-level section.
+    public var hasCoarseLevels: Bool {
+        flags & UntoldGSFlags.hasCoarseLevels != 0
     }
 
     /// Higher-order SH bytes stored per splat; zero without an SH block.
@@ -293,16 +350,21 @@ public struct UntoldGSHeaderV3: Sendable, Equatable {
 
 // MARK: - Chunk index entry
 
-/// 64-byte entry: everything needed to serve and decode one chunk by byte range.
+/// 64-byte entry: everything needed to serve and decode one chunk by byte range. The coarse
+/// index reuses it for a merged level of a chunk: `lodLevel` is the level (1 or 2), `reserved0`
+/// the fine chunk index, `payloadOffset` 16-byte aligned inside the coarse payload region,
+/// `payloadBytes == coreBytes` (no padding, no SH), and `splatCount == 0` means the chunk has
+/// no such level; the ranges and CRC are the level's own.
 public struct UntoldGSChunkEntry: Sendable, Equatable {
-    /// Absolute file offset of the chunk payload. Multiple of `pageAlignment`.
+    /// Absolute file offset of the chunk payload. Multiple of `pageAlignment` for a fine chunk,
+    /// of `coreRecordSize` for a coarse level.
     public var payloadOffset: UInt64
-    /// Padded payload size (core + SH, rounded up to the page).
+    /// Padded payload size (core + SH, rounded up to the page); unpadded for a coarse level.
     public var payloadBytes: UInt32
     /// Unpadded core block size: `coreRecordSize × splatCount`.
     public var coreBytes: UInt32
     public var splatCount: UInt32
-    /// 0 is the coarsest (root) level.
+    /// 0 for a fine chunk; the coarse level (1 or 2) for a coarse index entry.
     public var lodLevel: UInt16
     /// Owning tree node.
     public var nodeId: UInt16
@@ -312,7 +374,7 @@ public struct UntoldGSChunkEntry: Sendable, Equatable {
     /// Decode constants for the 11/10/11 packed log-scales.
     public var logScaleMin: Float
     public var logScaleMax: Float
-    /// Write as zero.
+    /// Zero for a fine chunk; the fine chunk index for a coarse index entry.
     public var reserved0: UInt32
     /// CRC-32 (IEEE) over the unpadded payload: core block followed by SH block.
     public var crc32: UInt32
@@ -417,7 +479,13 @@ extension UntoldGSHeaderV3: UntoldBinaryEncodable, UntoldBinaryDecodable {
         writer.writeUInt64LE(paletteOffset) // 180 – 187
         writer.writeUInt64LE(payloadOffset) // 188 – 195
         writer.writeUInt64LE(fileSize) // 196 – 203
-        writer.writeBytes(reserved1) // 204 – 255
+        writer.writeUInt64LE(coarseIndexOffset) // 204 – 211
+        writer.writeUInt64LE(coarsePayloadOffset) // 212 – 219
+        writer.writeUInt32LE(coarseRecordCount) // 220 – 223
+        writer.writeUInt8(coarseLevelCount) // 224
+        writer.writeBytes(coarseRatioLog2.prefix(UntoldGSHeaderV3.coarseRatioLog2Size)) // 225 – 226
+        writer.writeUInt8(coarseFlags) // 227
+        writer.writeBytes(reserved1) // 228 – 255
     }
 
     public static func decode(from reader: UntoldBinaryReader) throws -> UntoldGSHeaderV3 {
@@ -446,6 +514,12 @@ extension UntoldGSHeaderV3: UntoldBinaryEncodable, UntoldBinaryDecodable {
         let paletteOffset = try reader.readUInt64LE()
         let payloadOffset = try reader.readUInt64LE()
         let fileSize = try reader.readUInt64LE()
+        let coarseIndexOffset = try reader.readUInt64LE()
+        let coarsePayloadOffset = try reader.readUInt64LE()
+        let coarseRecordCount = try reader.readUInt32LE()
+        let coarseLevelCount = try reader.readUInt8()
+        let coarseRatioLog2 = try Array(reader.readBytes(count: UntoldGSHeaderV3.coarseRatioLog2Size))
+        let coarseFlags = try reader.readUInt8()
         let reserved1 = try Array(reader.readBytes(count: UntoldGSHeaderV3.reserved1Size))
 
         var header = UntoldGSHeaderV3(
@@ -468,7 +542,13 @@ extension UntoldGSHeaderV3: UntoldBinaryEncodable, UntoldBinaryDecodable {
             nodeTreeOffset: nodeTreeOffset,
             paletteOffset: paletteOffset,
             payloadOffset: payloadOffset,
-            fileSize: fileSize
+            fileSize: fileSize,
+            coarseIndexOffset: coarseIndexOffset,
+            coarsePayloadOffset: coarsePayloadOffset,
+            coarseRecordCount: coarseRecordCount,
+            coarseLevelCount: coarseLevelCount,
+            coarseRatioLog2: coarseRatioLog2,
+            coarseFlags: coarseFlags
         )
         header.magic = magic
         header.version = version

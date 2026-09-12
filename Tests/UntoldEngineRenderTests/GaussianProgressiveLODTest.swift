@@ -407,13 +407,11 @@ final class GaussianProgressiveLODTest: BaseRenderSetup {
         let lodComponent = GaussianLODComponent()
         var level0 = GaussianLODLevel(maxDistance: 20)
         level0.meanSquaredSplatExtent = 1.0
-        level0.buffers = GaussianComponent()
-        level0.buffers?.splatCount = 1_000_000 // deliberately huge -> massive overdraw at any sane distance
+        level0.splatCount = 1_000_000 // deliberately huge -> massive overdraw at any sane distance
 
         var level1 = GaussianLODLevel(maxDistance: 50)
         level1.meanSquaredSplatExtent = 0.0001
-        level1.buffers = GaussianComponent()
-        level1.buffers?.splatCount = 10 // tiny -> comfortably under budget
+        level1.splatCount = 10 // tiny -> comfortably under budget
 
         lodComponent.lodLevels = [level0, level1]
 
@@ -432,8 +430,7 @@ final class GaussianProgressiveLODTest: BaseRenderSetup {
     func testClampGaussianLODForOverdrawIsNoOpWithoutBakedStats() {
         let lodComponent = GaussianLODComponent()
         var level0 = GaussianLODLevel(maxDistance: 20)
-        level0.buffers = GaussianComponent()
-        level0.buffers?.splatCount = 1_000_000 // huge, but no meanSquaredSplatExtent supplied
+        level0.splatCount = 1_000_000 // huge, but no meanSquaredSplatExtent supplied
 
         lodComponent.lodLevels = [level0]
 
@@ -453,13 +450,11 @@ final class GaussianProgressiveLODTest: BaseRenderSetup {
         let lodComponent = GaussianLODComponent()
         var level0 = GaussianLODLevel(maxDistance: 20)
         level0.meanSquaredSplatExtent = 1.0
-        level0.buffers = GaussianComponent()
-        level0.buffers?.splatCount = 1_000_000
+        level0.splatCount = 1_000_000
 
         var level1 = GaussianLODLevel(maxDistance: 50)
         level1.meanSquaredSplatExtent = 1.0
-        level1.buffers = GaussianComponent()
-        level1.buffers?.splatCount = 1_000_000 // still huge -> still over budget
+        level1.splatCount = 1_000_000 // still huge -> still over budget
 
         lodComponent.lodLevels = [level0, level1]
 
@@ -473,6 +468,122 @@ final class GaussianProgressiveLODTest: BaseRenderSetup {
             budget: 12.0
         )
         XCTAssertEqual(clamped, 1, "Should clamp to the coarsest available tier even if it's still over budget")
+    }
+
+    func testClampGaussianLODForOverdrawWalksPastAReleasedTier() {
+        // A paged tier the LOD system released (GaussianLODComponent.releaseLevelResources) has
+        // no buffers, but its splat count stays known: the walk steps through it instead of
+        // bailing out at it and handing back the over-budget tier.
+        let lodComponent = GaussianLODComponent()
+        var level0 = GaussianLODLevel(maxDistance: 20)
+        level0.meanSquaredSplatExtent = 1.0
+        level0.splatCount = 1_000_000 // over budget
+        level0.buffers = GaussianComponent()
+
+        var level1 = GaussianLODLevel(maxDistance: 50)
+        level1.meanSquaredSplatExtent = 0.0001
+        level1.splatCount = 10 // under budget
+        level1.buffers = GaussianComponent()
+
+        var level2 = GaussianLODLevel(maxDistance: .greatestFiniteMagnitude)
+        level2.meanSquaredSplatExtent = 0.0001
+        level2.splatCount = 1
+        level2.buffers = GaussianComponent()
+
+        lodComponent.lodLevels = [level0, level1, level2]
+        lodComponent.releaseLevelResources(at: 1)
+        XCTAssertNil(lodComponent.lodLevels[1].buffers)
+        XCTAssertEqual(lodComponent.lodLevels[1].residencyState, .notResident)
+        XCTAssertEqual(lodComponent.lodLevels[1].splatCount, 10, "the count outlives the buffers")
+
+        let clamped = clampGaussianLODForOverdraw(
+            desiredLOD: 0,
+            lodComponent: lodComponent,
+            distance: 10,
+            fovY: .pi / 2,
+            viewportHeight: 1000,
+            boundingRadius: 2,
+            budget: 12.0
+        )
+        XCTAssertEqual(clamped, 1, "the walk passes the released tier and lands on it")
+
+        // A tier that has never loaded is still unknown, and the walk still bails there.
+        lodComponent.lodLevels[1].splatCount = nil
+        let unclamped = clampGaussianLODForOverdraw(
+            desiredLOD: 0,
+            lodComponent: lodComponent,
+            distance: 10,
+            fovY: .pi / 2,
+            viewportHeight: 1000,
+            boundingRadius: 2,
+            budget: 12.0
+        )
+        XCTAssertEqual(unclamped, 0)
+    }
+
+    func testAReleasedTierKeepsItsSplatCountForTheOverdrawClamp() async throws {
+        let base = try bakeProgressiveBase(levelCount: 3)
+        let entity = createEntity()
+        translateTo(entityId: entity, position: simd_float3(0, 0, 5))
+        setEntityGaussianProgressive(entityId: entity, baseFilename: base, levelCount: 3, maxDistances: [20, 50, .greatestFiniteMagnitude])
+        let lod = try XCTUnwrap(scene.get(component: GaussianLODComponent.self, for: entity))
+        XCTAssertNil(lod.lodLevels[2].splatCount, "unknown before the tier has loaded")
+        for _ in 0 ..< 20 where lod.currentLOD != 2 {
+            try await Task.sleep(nanoseconds: 10_000_000)
+        }
+        XCTAssertEqual(lod.currentLOD, 2)
+        for index in 0 ..< 2 {
+            GeometryStreamingSystem.shared.requestGaussianLODLevelLoad(entityId: entity, lodIndex: index)
+            await lod.lodLevels[index].loadTask?.value
+        }
+        for index in 0 ..< 3 {
+            let buffers = try XCTUnwrap(lod.lodLevels[index].buffers, "tier \(index) loaded")
+            XCTAssertEqual(lod.lodLevels[index].splatCount, Int(buffers.splatCount), "the count is read with the tier")
+        }
+
+        // The estimate is distance-independent (N * mse / (pi R^2)), so a budget between tier
+        // 0's and tier 1's figures holds the entity off tier 0 from anywhere.
+        let box = try XCTUnwrap(scene.get(component: LocalTransformComponent.self, for: entity)?.boundingBox)
+        let boundingRadius = simd_length((box.max - box.min) * 0.5)
+        let overdraw: [Float] = try (0 ..< 3).map { index in
+            let splatCount = try XCTUnwrap(lod.lodLevels[index].splatCount)
+            let meanSquaredSplatExtent = try XCTUnwrap(lod.lodLevels[index].meanSquaredSplatExtent)
+            return estimatedGaussianOverdraw(
+                splatCount: splatCount,
+                meanSquaredSplatExtent: meanSquaredSplatExtent,
+                distance: 5,
+                fovY: .pi / 2,
+                viewportHeight: 1000,
+                boundingRadius: boundingRadius
+            )
+        }
+        XCTAssertGreaterThan(overdraw[0], overdraw[1], "the finer tier costs more per pixel")
+        LODConfig.shared.gaussianOverdrawBudget = (overdraw[0] + overdraw[1]) / 2
+
+        // Tier 1 released, the way applyLOD releases a paged tier the selection left: no
+        // buffers, not resident, the stats kept.
+        lod.releaseLevelResources(at: 1)
+        XCTAssertNil(lod.lodLevels[1].buffers)
+        XCTAssertEqual(lod.lodLevels[1].residencyState, .notResident)
+        XCTAssertNotNil(lod.lodLevels[1].splatCount)
+        XCTAssertNotNil(lod.lodLevels[1].meanSquaredSplatExtent)
+
+        let camera = createEntity()
+        scene.assign(to: camera, component: CameraComponent.self)?.localPosition = .zero
+        _ = scene.assign(to: camera, component: LocalTransformComponent.self)
+        CameraSystem.shared.activeCamera = camera
+
+        // The selection wants tier 0: the clamp walks past the released tier 1 and settles on
+        // it, so it is requested again rather than tier 0 switching in over budget.
+        lod.forcedLOD = 0
+        GaussianLODSystem.shared.update(deltaTime: 0.1)
+        XCTAssertEqual(lod.desiredLOD, 1, "clamped to the released tier, not handed the over-budget one")
+        XCTAssertEqual(lod.lodLevels[1].residencyState, .loading, "requested through the normal path")
+        XCTAssertEqual(lod.currentLOD, 2, "the fallback draws meanwhile")
+        await lod.lodLevels[1].loadTask?.value
+        GaussianLODSystem.shared.update(deltaTime: 0.1)
+        XCTAssertEqual(lod.currentLOD, 1)
+        XCTAssertEqual(scene.get(component: GaussianComponent.self, for: entity)?.splatCount, lod.lodLevels[1].buffers?.splatCount)
     }
 
     func testDraggingEntityForcesLODRefreshEvenWhenCameraIsStationary() async throws {
@@ -612,13 +723,13 @@ final class GaussianProgressiveLODTest: BaseRenderSetup {
         let lod = try XCTUnwrap(scene.assign(to: entity, component: GaussianLODComponent.self))
         var level0 = GaussianLODLevel(maxDistance: 10)
         level0.meanSquaredSplatExtent = 1.0
+        level0.splatCount = 100
         level0.buffers = GaussianComponent()
-        level0.buffers?.splatCount = 100
 
         var level1 = GaussianLODLevel(maxDistance: 50)
         level1.meanSquaredSplatExtent = 0.0001
+        level1.splatCount = 1
         level1.buffers = GaussianComponent()
-        level1.buffers?.splatCount = 1
 
         lod.lodLevels = [level0, level1]
         // Stale anchor simulating "last frame we were logically at LOD 1" -- pure distance (1

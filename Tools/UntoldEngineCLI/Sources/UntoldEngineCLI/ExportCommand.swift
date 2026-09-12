@@ -102,6 +102,12 @@ struct ExportCommand: ParsableCommand {
     @Option(name: .customLong("splat-chunk-splats"), help: "Gaussian .ply/.spz export only: splats per chunk, a power of two between 2 and 16384 (1024 for objects, 4096 for environments)")
     var splatChunkSplats: Int = 1024
 
+    @Option(name: .customLong("splat-coarse-levels"), help: "Gaussian .ply/.spz export only: per-chunk coarse levels baked into the file: auto (the --splat-coarse-ratio-log2 levels for tiers of at least \(UntoldGSFormat.coarseLevelsAutomaticMinimumChunks) chunks, none below), 0 (never), 1 or 2 (always)")
+    var splatCoarseLevels: String = "auto"
+
+    @Option(name: .customLong("splat-coarse-ratio-log2"), help: "Gaussian .ply/.spz export only: log2 of the merge ratio per coarse level, comma-separated and strictly increasing, each 1...log2(--splat-chunk-splats); level L holds one merged splat per 2^ratio fine splats of a chunk")
+    var splatCoarseRatioLog2: String = "3,6"
+
     @Option(name: .customLong("splat-sh-degree"), help: "Gaussian .ply/.spz export only: spherical-harmonics degree to keep, 0...3 (default: the source degree)")
     var splatSHDegree: Int?
 
@@ -295,6 +301,18 @@ struct ExportCommand: ParsableCommand {
 
     private func runGaussianSplatExport(inputURL: URL, outputURL: URL, cookOptions: UntoldGSCookOptions) throws {
         printInfo("Exporting Gaussian splats \(inputURL.path)")
+        // Progress on stderr — one updating line on a terminal, a line per phase otherwise — and
+        // Ctrl-C mapped to the cook's cancellation, so an interrupted export leaves no file.
+        let progress = GaussianExportProgressPrinter()
+        GaussianExportCancellation.install()
+        defer {
+            GaussianExportCancellation.uninstall()
+            progress.finish()
+        }
+        let control = UntoldGSCookControl(
+            progress: { progress.report($0) },
+            isCancelled: { GaussianExportCancellation.isRequested }
+        )
         let bakeResult: GaussianProgressiveBakeResult
         do {
             switch inputURL.pathExtension.lowercased() {
@@ -303,18 +321,29 @@ struct ExportCommand: ParsableCommand {
                     spzURL: inputURL,
                     outputBaseURL: outputURL,
                     levelCount: lodLevels,
-                    cookOptions: cookOptions
+                    cookOptions: cookOptions,
+                    control: control
                 )
             default:
                 bakeResult = try bakeGaussianSplatProgressiveTiers(
                     plyURL: inputURL,
                     outputBaseURL: outputURL,
                     levelCount: lodLevels,
-                    cookOptions: cookOptions
+                    cookOptions: cookOptions,
+                    control: control
                 )
             }
+        } catch UntoldGSCookError.cancelled {
+            progress.finish()
+            throw ExportError.splatCookCancelled
         } catch let error as UntoldGSCookError {
             throw ExportError.splatCookFailed(error.description)
+        } catch let error as UntoldGSError {
+            throw ExportError.splatCookFailed(error.description)
+        } catch let error as NSError where error.domain == NSPOSIXErrorDomain || error.domain == NSCocoaErrorDomain {
+            // The writer's file: a full disk, a directory that cannot be created, a rename
+            // refused — the system's own words, with the path it names.
+            throw ExportError.outputWriteFailure(error)
         } catch let error as SPZError {
             // Most commonly a v4/NGSP (ZSTD) file -- a different, unsupported container, not a
             // parse failure -- so this needs to reach the user as a clear message, not a crash.
@@ -331,6 +360,7 @@ struct ExportCommand: ParsableCommand {
         // across source captures), not something to copy anywhere.
         for tier in bakeResult.tiers {
             printSuccess("Exported: \(tier.url.path) (meanSquaredSplatExtent: \(tier.meanSquaredSplatExtent))")
+            printInfo("  " + coarseLevelSummary(tier.coarseReport))
         }
 
         // boundingBoxHalfExtent is NOT baked into the files (the engine can auto-compute it for
@@ -339,6 +369,23 @@ struct ExportCommand: ParsableCommand {
         // for the streaming path, which requires a real box before any tier is ever read.
         let halfExtent = (bakeResult.boundingBoxMax - bakeResult.boundingBoxMin) * 0.5
         printInfo("boundingBoxHalfExtent: (\(halfExtent.x), \(halfExtent.y), \(halfExtent.z))")
+    }
+
+    /// `coarse levels: 2 (128 + 16 per 1024-chunk), 2,812,608 records, 45.0 MB`, or `none`.
+    private func coarseLevelSummary(_ report: UntoldGSCoarseLevelReport?) -> String {
+        guard let report else { return "coarse levels: none" }
+        let perChunk = report.recordsPerFullChunk(splatsPerChunk: splatChunkSplats).map(String.init).joined(separator: " + ")
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        let records = formatter.string(from: NSNumber(value: report.recordCount)) ?? "\(report.recordCount)"
+        let size = report.bytes >= 1_000_000
+            ? String(format: "%.1f MB", Double(report.bytes) / 1_000_000)
+            : String(format: "%.1f KB", Double(report.bytes) / 1000)
+        var summary = "coarse levels: \(report.levelCount) (\(perChunk) per \(splatChunkSplats)-chunk), \(records) records, \(size)"
+        if report.chunksWithoutLevels > 0 {
+            summary += ", \(report.chunksWithoutLevels) chunks too small for a level"
+        }
+        return summary
     }
 
     // MARK: - Gaussian cooking flags
@@ -367,6 +414,7 @@ struct ExportCommand: ParsableCommand {
         options.cropMargin = splatCropMargin
         options.isEnvironment = splatEnvironment
         options.antialiased = splatAntialiased
+        options.coarseLevels = try parseCoarseLevels(log2ChunkSplats: options.log2ChunkSplats)
         if let splatCrop {
             let values = try parseFloats(splatCrop, count: 6, option: "--splat-crop")
             options.cropMin = SIMD3<Float>(values[0], values[1], values[2])
@@ -388,6 +436,49 @@ struct ExportCommand: ParsableCommand {
             translation: translation
         )
         return options
+    }
+
+    /// `--splat-coarse-levels auto|0|1|2` with `--splat-coarse-ratio-log2 a,b`: the ratios are
+    /// checked here (strictly increasing, 1…log2 of the chunk size, one per level) so a bad flag
+    /// fails before the PLY is read.
+    private func parseCoarseLevels(log2ChunkSplats: UInt8) throws -> UntoldGSCoarseLevelPolicy {
+        let ratioText = splatCoarseRatioLog2.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+        let ratios = ratioText.map { Int($0) }
+        guard !ratios.isEmpty, ratios.count <= UntoldGSFormat.maxCoarseLevels, !ratios.contains(nil) else {
+            throw ExportError.invalidSplatFlag("--splat-coarse-ratio-log2 expects one or two comma-separated integers")
+        }
+        let ratioValues = ratios.compactMap(\.self)
+        let levels = splatCoarseLevels.trimmingCharacters(in: .whitespaces).lowercased()
+        // Under `auto` the writer clamps the ratios to the chunk size (a 16-splat chunk cannot
+        // hold a 1 : 64 level); asked for explicitly they must fit.
+        let maximumRatio = levels == "auto" ? Int(UntoldGSFormat.maxLog2ChunkSplats) : Int(log2ChunkSplats)
+        var previous = 0
+        for ratio in ratioValues {
+            guard ratio > previous, ratio <= maximumRatio else {
+                throw ExportError.invalidSplatFlag("--splat-coarse-ratio-log2 must increase strictly within 1...\(maximumRatio) (log2 of --splat-chunk-splats)")
+            }
+            previous = ratio
+        }
+
+        func levelOptions(count: Int) throws -> UntoldGSCoarseLevelOptions {
+            guard ratioValues.count >= count else {
+                throw ExportError.invalidSplatFlag("--splat-coarse-ratio-log2 needs \(count) values for \(count) coarse levels")
+            }
+            var options = UntoldGSCoarseLevelOptions.default
+            options.levelCount = count
+            options.ratioLog2 = ratioValues.prefix(count).map { UInt8($0) }
+            return options
+        }
+        switch levels {
+        case "auto":
+            return try .automatic(template: levelOptions(count: min(ratioValues.count, UntoldGSFormat.maxCoarseLevels)))
+        case "0":
+            return .off
+        case "1", "2":
+            return try .levels(levelOptions(count: Int(levels) ?? 1))
+        default:
+            throw ExportError.invalidSplatFlag("--splat-coarse-levels must be auto, 0, 1 or 2")
+        }
     }
 
     private func parseFloats(_ text: String, count: Int, option: String) throws -> [Float] {
@@ -449,7 +540,9 @@ enum ExportError: LocalizedError {
     case invalidLODLevels(Int)
     case colorGradeLUTNotFound(String)
     case splatCookFailed(String)
+    case splatCookCancelled
     case splatSourceReadFailed(String)
+    case splatOutputWriteFailed(path: String?, reason: String)
     case invalidSplatUpAxis(String)
     case invalidSplatFlag(String)
     case packManifestUnreadable(String)
@@ -474,8 +567,12 @@ enum ExportError: LocalizedError {
             return "--color-grade-lut path does not exist: \(path)"
         case let .splatCookFailed(reason):
             return "Gaussian splat cook failed: \(reason)"
+        case .splatCookCancelled:
+            return "Gaussian splat cook cancelled; no file was written"
         case let .splatSourceReadFailed(reason):
             return "Failed to read Gaussian source: \(reason)"
+        case let .splatOutputWriteFailed(path, reason):
+            return "Failed to write Gaussian splat output\(path.map { " \($0)" } ?? ""): \(reason)"
         case let .invalidSplatUpAxis(value):
             return "--splat-up-axis must be y, z or -y, got \(value)"
         case let .invalidSplatFlag(reason):
@@ -486,5 +583,85 @@ enum ExportError: LocalizedError {
             let suffix = pathExtension.isEmpty ? "<none>" : ".\(pathExtension)"
             return "--animation export supports only .untoldanim output, got \(suffix)"
         }
+    }
+
+    /// The write failure for a POSIX or Cocoa file error: the path it names and, for a POSIX
+    /// code, `strerror`'s words (`No space left on device`) rather than the NSError's dump.
+    static func outputWriteFailure(_ error: NSError) -> ExportError {
+        let path = error.userInfo[NSFilePathErrorKey] as? String
+        let reason = error.domain == NSPOSIXErrorDomain
+            ? String(cString: strerror(Int32(error.code)))
+            : error.localizedDescription
+        return .splatOutputWriteFailed(path: path, reason: reason)
+    }
+}
+
+// MARK: - Gaussian cook progress
+
+/// Prints `UntoldGSCookProgress` on stderr: on a terminal one line rewritten in place
+/// (`read      42 %  overall  15 %  12.3 s`), otherwise a line when a phase or tier starts
+/// with the seconds elapsed since the export began, so a log stays readable and shows where
+/// the time went.
+final class GaussianExportProgressPrinter {
+    private let interactive = isatty(STDERR_FILENO) != 0
+    private let start = DispatchTime.now()
+    private var lastPhase: UntoldGSCookPhase?
+    private var lastTier = -1
+    private var lastPercent = -1
+    private var lineOpen = false
+
+    private var elapsed: String {
+        String(format: "%.1f s", Double(DispatchTime.now().uptimeNanoseconds - start.uptimeNanoseconds) / 1e9)
+    }
+
+    func report(_ progress: UntoldGSCookProgress) {
+        let percent = Int((progress.fraction * 100).rounded(.down))
+        let phaseChanged = progress.phase != lastPhase || progress.tierIndex != lastTier
+        guard phaseChanged || percent != lastPercent else { return }
+        lastPhase = progress.phase
+        lastTier = progress.tierIndex
+        lastPercent = percent
+        let tier = progress.tierCount > 1 ? "  tier \(progress.tierIndex + 1)/\(progress.tierCount)" : ""
+        let overall = Int((progress.overall * 100).rounded(.down))
+        if interactive {
+            let line = String(format: "\r%-8@ %3d %%  overall %3d %%%@  %@", progress.phase.rawValue as NSString, percent, overall, tier as NSString, elapsed as NSString)
+            write(line.padding(toLength: max(line.count, 56), withPad: " ", startingAt: 0))
+            lineOpen = true
+        } else if phaseChanged {
+            write("\(progress.phase.rawValue)\(tier)  overall \(overall) %  \(elapsed)\n")
+        }
+    }
+
+    /// Ends the in-place line, if one is open.
+    func finish() {
+        guard lineOpen else { return }
+        write("\n")
+        lineOpen = false
+    }
+
+    private func write(_ text: String) {
+        FileHandle.standardError.write(Data(text.utf8))
+    }
+}
+
+/// SIGINT → the cook's cancellation flag, for the duration of an export.
+enum GaussianExportCancellation {
+    private nonisolated(unsafe) static var requested: sig_atomic_t = 0
+    private nonisolated(unsafe) static var previousHandler: sig_t?
+
+    static var isRequested: Bool {
+        requested != 0
+    }
+
+    static func install() {
+        requested = 0
+        previousHandler = signal(SIGINT) { _ in
+            GaussianExportCancellation.requested = 1
+        }
+    }
+
+    static func uninstall() {
+        signal(SIGINT, previousHandler ?? SIG_DFL)
+        previousHandler = nil
     }
 }

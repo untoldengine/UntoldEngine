@@ -149,13 +149,45 @@ kernel void gaussianResetVisibleChunkSet(
 // keeps the budget's bound one-sided. With uniformQuotas the entry carries splatCount as its
 // area (density 1 for every chunk, the uniform rule) while the histogram still holds the real
 // areas for the readback.
+//
+// A paged entity (params.paged != 0, GaussianPageManager.swift) has its records in a page pool
+// and not every chunk resident. For every chunk the cull then writes the frame's demand word —
+// the chunk's seen screen area as float bits, 0 when no view keeps it (forceAllVisible does not
+// count; the real area even under uniformQuotas) — which the pager reads back three frames
+// later to decide what to load; with paged == 2 (a warming tier the LOD system is about to
+// switch to) that is all it does. A resident chunk is listed with drawable = min(splatCount,
+// residentRanks), so the request, the histogram and the quotas see only ranks the fused pass can
+// read; a chunk with no resident rank is not listed at all — it contributes nothing this frame.
+//
+// An entity with per-chunk coarse levels (lvl.hasCoarse != 0, per-chunk-lod-tiers; off under
+// uniformQuotas and in the fine-only debug mode) lists every visible chunk once for the level
+// state left by last frame's quota pass — a non-resident paged chunk included, for its finest
+// landed coarse level, with that level's count as its listed splats; a partially resident one
+// with at least that count, so the request the solve charges in the fine regime is never below
+// what the chunk draws at its level — bins it by its full density (splatCount / area, the same
+// tier whatever its residency) and adds to the tier the counts the level rule would draw in
+// each coarse regime (coarse1, coarse2), the listed splats of the chunks that have a level
+// (levelledSplats) and their scaled area (levelledScaledArea). A chunk whose previous level is still
+// fading out — a switch detected last frame (pendingValid), a fade in progress, or a fine head
+// that arrived within the fade window over a drawn coarse level — is listed a second time for
+// its outgoing window: the entry tagged kGaussianVisibleChunkOutgoing with the window's level,
+// its count reserved in the frame's transitionSplats (inside the request, so the solve fits
+// only the incoming entries) and granted by the quota pass at the complementary fade weight.
+// With hasCoarse == 0 nothing of this runs and the frame is byte for byte the frame before the
+// levels existed.
 kernel void gaussianChunkCull(
     const device GaussianChunkDecodeConstants *chunks [[buffer(gaussianChunkCullChunkTableIndex)]],
     constant GaussianChunkCullConstants &params [[buffer(gaussianChunkCullConstantsIndex)]],
     device GaussianVisibleChunk *visibleChunks [[buffer(gaussianChunkCullVisibleChunksIndex)]],
     device atomic_uint *visibleSplatTotal [[buffer(gaussianChunkCullSplatTotalIndex)]],
     device atomic_uint *visibleChunkTotal [[buffer(gaussianChunkCullChunkTotalIndex)]],
+    device atomic_uint *transitionSplats [[buffer(gaussianChunkCullBudgetStateIndex)]],
     device atomic_uint *densityHistogram [[buffer(gaussianChunkCullDensityHistogramIndex)]],
+    const device GaussianChunkResidency *residency [[buffer(gaussianChunkCullResidencyIndex)]],
+    device uint *demand [[buffer(gaussianChunkCullDemandIndex)]],
+    const device GaussianChunkDecodeConstants *coarseTable [[buffer(gaussianChunkCullCoarseTableIndex)]],
+    const device GaussianChunkLevelState *levelState [[buffer(gaussianChunkCullLevelStateIndex)]],
+    constant GaussianChunkLevelConstants &lvl [[buffer(gaussianChunkCullLevelConstantsIndex)]],
     texture2d<float, access::sample> hzbDepthPyramid [[texture(gaussianChunkCullHZBDepthPyramidTextureIndex)]],
     uint chunkIndex [[thread_position_in_grid]])
 {
@@ -173,21 +205,94 @@ kernel void gaussianChunkCull(
     const bool keep1 = params.viewCount > 1u
         ? gaussianChunkVisibleInView(boxMin, boxMax, params.viewProjection1, params, params.hzbValid, hzbDepthPyramid, area1)
         : false;
-    const bool visible = keep0 || keep1 || params.forceAllVisible != 0u;
-    if (!visible) return;
+    const bool seen = keep0 || keep1;
     const float area = clamp(max(keep0 ? area0 : 0.0f, keep1 ? area1 : 0.0f), kGaussianScreenAreaMin, limit * limit);
+    const bool levels = lvl.hasCoarse != 0u && params.uniformQuotas == 0u && lvl.levelMode != (uint)gaussianChunkLevelModeFineOnly;
+    uint drawable = chunk.splatCount;
+    GaussianChunkResidency res = { chunk.splatCount, chunk.splatCount, 0u, 0u };
+    if (params.paged != 0u) {
+        demand[chunkIndex] = seen ? as_type<uint>(area) : 0u;
+        if (params.paged == 2u) return;
+        res = residency[chunkIndex];
+        drawable = min(drawable, res.residentRanks);
+        if (drawable == 0u && !levels) return;
+    }
+    const bool visible = seen || params.forceAllVisible != 0u;
+
+    // The coarse levels of this chunk: the counts of the runtime's level 1 and 2 rows and which
+    // of them are available (a paged entity: landed for this chunk; whole-resident: every level
+    // the entity has). A non-resident paged chunk is listed for its finest available level.
+    uint m1 = 0u;
+    uint m2 = 0u;
+    uint available = 0u;
+    GaussianChunkLevelState state = { 0u, 0u };
+    if (levels) {
+        m1 = coarseTable[chunkIndex].splatCount;
+        m2 = lvl.hasCoarse >= 2u ? coarseTable[params.chunkCount + chunkIndex].splatCount : m1;
+        const uint coarseBits = params.paged != 0u ? res.coarseAvailable : 3u;
+        available = gaussianLevelAvailability(drawable != 0u, coarseBits, m1, m2, lvl.hasCoarse);
+        state = levelState[chunkIndex];
+        if (drawable == 0u) {
+            if ((available & 6u) == 0u || !seen) return;
+        }
+    }
+    if (!visible) return;
+    const uint finestCoarse = ((available & 2u) != 0u) ? m1 : (((available & 4u) != 0u) ? m2 : 0u);
+    const uint listed = max(drawable, finestCoarse);
 
     const uint slot = atomic_fetch_add_explicit(visibleChunkTotal, 1u, memory_order_relaxed);
-    atomic_fetch_add_explicit(visibleSplatTotal, chunk.splatCount, memory_order_relaxed);
-    const uint tier = gaussianDensityTier((float)chunk.splatCount / area);
-    atomic_fetch_add_explicit(&densityHistogram[2u * tier], chunk.splatCount, memory_order_relaxed);
-    atomic_fetch_add_explicit(&densityHistogram[2u * tier + 1u], (uint)ceil(area * gaussianDensityTierFloor(tier)), memory_order_relaxed);
+    atomic_fetch_add_explicit(visibleSplatTotal, listed, memory_order_relaxed);
+    const uint tier = gaussianDensityTier((levels ? (float)chunk.splatCount : (float)drawable) / area);
+    const uint scaledArea = (uint)ceil(area * gaussianDensityTierFloor(tier));
+    atomic_fetch_add_explicit(&densityHistogram[8u * tier], listed, memory_order_relaxed);
+    atomic_fetch_add_explicit(&densityHistogram[8u * tier + 1u], scaledArea, memory_order_relaxed);
+    if (levels && (available & 6u) != 0u) {
+        atomic_fetch_add_explicit(&densityHistogram[8u * tier + 2u], finestCoarse, memory_order_relaxed);
+        atomic_fetch_add_explicit(&densityHistogram[8u * tier + 3u], ((available & 4u) != 0u) ? m2 : m1, memory_order_relaxed);
+        atomic_fetch_add_explicit(&densityHistogram[8u * tier + 4u], listed, memory_order_relaxed);
+        atomic_fetch_add_explicit(&densityHistogram[8u * tier + 5u], scaledArea, memory_order_relaxed);
+    }
     GaussianVisibleChunk entry;
-    entry.chunkIndex = chunkIndex;
-    entry.splatCount = chunk.splatCount;
-    entry.quota = chunk.splatCount;   // gaussianComputeChunkQuotas lowers it when the frame is over budget
-    entry.screenArea = params.uniformQuotas != 0u ? (float)chunk.splatCount : area;
+    entry.chunkIndex = levels ? (chunkIndex | (gaussianLevelStateLevel(state.word0) << kGaussianVisibleChunkLevelShift)) : chunkIndex;
+    entry.splatCount = listed;
+    entry.quota = listed;   // gaussianComputeChunkQuotas lowers it when the frame is over budget
+    entry.screenArea = params.uniformQuotas != 0u ? (float)listed : area;
     visibleChunks[slot] = entry;
+    if (!levels) return;
+
+    // The outgoing window, listed and reserved one frame before the quota pass commits the
+    // switch and on every frame of the fade; the quota pass grants it (or zeroes it when the
+    // switch does not commit) from the same state. With the cross-fade off (fadeFrames 0) a
+    // switch draws the new level alone from its commit frame: no outgoing window is listed.
+    uint out = 0u;
+    uint outLevel = 0u;
+    const uint level = gaussianLevelStateLevel(state.word0);
+    if (lvl.fadeFrames == 0u) {
+        return;
+    }
+    if (gaussianLevelStatePendingValid(state.word0)) {
+        out = gaussianLevelStateOutCount(state.word0);
+        outLevel = level;
+    } else if (gaussianLevelStateFading(state, lvl.frameIndex, lvl.fadeFrames)) {
+        out = gaussianLevelStateOutCount(state.word0);
+        outLevel = gaussianLevelStateOut(state.word0) - 1u;
+    } else if (params.paged != 0u && drawable != 0u && level != 0u && lvl.fadeFrames != 0u
+               && res.fadeFromRank == 0u && (lvl.frameIndex - res.arrivalFrame) < lvl.fadeFrames
+               && (available & (1u << level)) != 0u) {
+        // The fine head landed on a chunk drawn coarse: the coarse level is the outgoing window.
+        out = level == 1u ? m1 : m2;
+        outLevel = level;
+    }
+    if (out == 0u) return;
+    atomic_fetch_add_explicit(transitionSplats, out, memory_order_relaxed);
+    atomic_fetch_add_explicit(visibleSplatTotal, out, memory_order_relaxed);
+    const uint outSlot = atomic_fetch_add_explicit(visibleChunkTotal, 1u, memory_order_relaxed);
+    GaussianVisibleChunk outgoing;
+    outgoing.chunkIndex = chunkIndex | (outLevel << kGaussianVisibleChunkLevelShift) | kGaussianVisibleChunkOutgoing;
+    outgoing.splatCount = out;
+    outgoing.quota = out;
+    outgoing.screenArea = area;
+    visibleChunks[outSlot] = outgoing;
 }
 
 // Runs once per entity after gaussianChunkCull, same serial encoder: turns the appended chunk

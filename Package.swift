@@ -106,6 +106,8 @@ let package = Package(
                 // Common
                 .linkedFramework("Metal"),
                 .linkedFramework("QuartzCore", .when(platforms: [.macOS, .iOS /* , .visionOS */ ])),
+                // The .untoldgs CRC-32 (UntoldGSCRC32) runs on the system zlib.
+                .linkedLibrary("z"),
 
                 // macOS UI stack
                 .linkedFramework("AppKit", .when(platforms: [.macOS])),

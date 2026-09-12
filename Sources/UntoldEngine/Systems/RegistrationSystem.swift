@@ -3737,8 +3737,12 @@ struct GaussianLoadResult {
     /// The `.untoldgs` chunk table kept from the load (see `GaussianChunkTable`); nil for a
     /// `.ply` or a CPU-decoded asset.
     let chunkTable: GaussianChunkTable?
-    /// Sum of all GPU buffer bytes above, for `MemoryBudgetManager` registration. The frame's
-    /// shared working set is budgeted and has its own ledger entry, so no share of it is here.
+    /// The pager of a `.untoldgs` loaded above the paging threshold (`packedSplatBuffer` is its
+    /// page pool); nil when every record is resident.
+    var pager: GaussianPageManager?
+    /// Sum of all GPU buffer bytes above, for `MemoryBudgetManager` registration — a paged
+    /// entity's pool and tables, not its file. The frame's shared working set is budgeted and
+    /// has its own ledger entry, so no share of it is here.
     let estimatedGPUBytes: Int
     /// Local-space bounding box computed from the actual loaded splat positions, for
     /// `LocalTransformComponent.boundingBox` — see `computeGaussianSplatBoundingBox`.
@@ -3876,14 +3880,17 @@ func buildGaussianLoadResult(
 /// records and chunk table (`GaussianChunkLoader.load`): the per-slot visible-chunk list and
 /// record, so the frame can cull whole chunks and decode only the survivors' quotas
 /// (see GaussianChunkCull.swift). No encoded buffer and no per-slot index buffers exist on
-/// this path — per splat, only the 16-byte record and its harmonics stay resident.
+/// this path — per splat, only the 16-byte record and its harmonics stay resident; for a paged
+/// load (`pager`) the packed buffer is the page pool, so the estimate carries the pool and the
+/// per-slot tables, not the file.
 func buildGaussianLoadResult(
     packedSplatBuffer: MTLBuffer,
     splatCount: UInt,
     sphericalHarmonicsBuffer: MTLBuffer?,
     sphericalHarmonicsMetadata: GaussianSHMetadata?,
     boundingBox: (min: simd_float3, max: simd_float3),
-    chunkTable: GaussianChunkTable
+    chunkTable: GaussianChunkTable,
+    pager: GaussianPageManager? = nil
 ) -> GaussianLoadResult? {
     guard let allocated = allocateGaussianVisibleChunkBuffers(for: chunkTable) else {
         handleError(.bufferAllocationFailed, "Gaussian visible-chunk buffers are nil")
@@ -3903,6 +3910,7 @@ func buildGaussianLoadResult(
         sphericalHarmonicsBuffer: sphericalHarmonicsBuffer,
         sphericalHarmonicsMetadata: sphericalHarmonicsMetadata,
         chunkTable: allocated,
+        pager: pager,
         estimatedGPUBytes: estimatedGPUBytes,
         boundingBox: boundingBox
     )
@@ -3992,17 +4000,23 @@ func buildGaussianLoadResultFromPLY(url: URL, sourceDescription: String) throws 
 func buildGaussianLoadResultFromUntoldGS(url: URL) -> GaussianLoadResult? {
     if GaussianChunkLoader.isAvailable {
         do {
-            let loaded = try GaussianChunkLoader.load(url: url)
+            // Paging needs the per-chunk kernels: only a chunked entity can read a page pool.
+            let chunkKernels = GaussianChunkCullPipelineStates.current() != nil
+            let loaded = try GaussianChunkLoader.load(url: url, allowPaging: chunkKernels)
             var result: GaussianLoadResult?
-            if GaussianChunkCullPipelineStates.current() != nil {
+            if chunkKernels {
                 result = buildGaussianLoadResult(
                     packedSplatBuffer: loaded.packedSplatBuffer,
                     splatCount: UInt(loaded.splatCount),
                     sphericalHarmonicsBuffer: loaded.sphericalHarmonicsBuffer,
                     sphericalHarmonicsMetadata: loaded.sphericalHarmonicsMetadata,
                     boundingBox: loaded.boundingBox,
-                    chunkTable: loaded.chunkTable
+                    chunkTable: loaded.chunkTable,
+                    pager: loaded.pager
                 )
+                if result == nil {
+                    loaded.pager?.shutdown()
+                }
             } else {
                 // Expanded to 48-byte records plus index buffers: the whole-buffer path's cap.
                 guard loaded.splatCount <= GaussianRuntimeLimits.maxWholeBufferSplatsPerEntity else {
@@ -4251,6 +4265,7 @@ func copyGaussianLoadResult(_ result: GaussianLoadResult, to gaussianComponent: 
     gaussianComponent.gaussianVisibleIndices = result.gaussianVisibleIndices.map { $0 as MTLBuffer? }
     gaussianComponent.gaussianVisibleCount = result.gaussianVisibleCount.map { $0 as MTLBuffer? }
     gaussianComponent.chunkTable = result.chunkTable
+    gaussianComponent.pager = result.pager
     gaussianComponent.encodedSplatData = result.encodedSplatBuffer
     gaussianComponent.packedSplatData = result.packedSplatBuffer
     gaussianComponent.sphericalHarmonicsData = result.sphericalHarmonicsBuffer
@@ -4683,22 +4698,67 @@ private struct GaussianSpatialBucketKey: Hashable {
     let z: Int
 }
 
-private func spatiallyInterleavedGaussianRanking(_ splats: [GaussianSplat]) -> [Int] {
-    guard splats.count > 1 else { return Array(splats.indices) }
+func spatiallyInterleavedGaussianRanking(_ splats: [GaussianSplat]) throws -> [Int] {
+    try spatiallyInterleavedGaussianRanking(
+        count: splats.count,
+        center: { simd_float3(splats[$0].center.x, splats[$0].center.y, splats[$0].center.z) },
+        importance: { gaussianImportanceScore(splats[$0]) }
+    )
+}
+
+/// The progressive ranking over `count` splats given by their centre and importance
+/// (`gaussianImportanceScore`: opacity × major axis²): spatial buckets, each sorted by
+/// importance, visited round-robin from the most important bucket outward.
+///
+/// `poll` is called with the ranking's own progress (0…1) between its passes — every so many
+/// splats of the fills and the drain, between the bucket sorts — and may throw to stop it. It
+/// never changes a comparison or a result: the ranking of 10 M splats runs for seconds, and a
+/// bake has to be able to report and cancel across it.
+func spatiallyInterleavedGaussianRanking(
+    count: Int,
+    center: (Int) -> simd_float3,
+    importance: (Int) -> Float,
+    poll: (Double) throws -> Void = { _ in }
+) throws -> [Int] {
+    guard count > 1 else { return Array(0 ..< count) }
+    let splats = 0 ..< count
+    // Between polls of a pass over every splat: 64 polls of a large ranking, none within a
+    // pass over a small one.
+    let pollStride = max(1 << 16, count / 64)
+    /// Polls at `from` plus the pass's share of `done` out of `count`.
+    func pollPass(_ done: Int, from: Double, to: Double) throws {
+        try poll(from + (to - from) * Double(done) / Double(count))
+    }
+
+    var importanceScores = [Float](repeating: 0, count: count)
+    for index in splats {
+        importanceScores[index] = importance(index)
+        if (index + 1) % pollStride == 0 {
+            try pollPass(index + 1, from: 0, to: 0.1)
+        }
+    }
+    try poll(0.1)
+    func gaussianImportanceScore(_ index: Int) -> Float {
+        importanceScores[index]
+    }
 
     var minBounds = simd_float3(Float.greatestFiniteMagnitude, Float.greatestFiniteMagnitude, Float.greatestFiniteMagnitude)
     var maxBounds = simd_float3(-Float.greatestFiniteMagnitude, -Float.greatestFiniteMagnitude, -Float.greatestFiniteMagnitude)
-    for splat in splats {
-        let center = simd_float3(splat.center.x, splat.center.y, splat.center.z)
+    for index in splats {
+        let center = center(index)
         minBounds = simd_min(minBounds, center)
         maxBounds = simd_max(maxBounds, center)
+        if (index + 1) % pollStride == 0 {
+            try pollPass(index + 1, from: 0.1, to: 0.2)
+        }
     }
+    try poll(0.2)
 
     let extent = maxBounds - minBounds
     let occupiedAxisCount = [extent.x, extent.y, extent.z].filter { $0 > 0.0001 }.count
     guard occupiedAxisCount > 0 else {
-        return splats.indices.sorted {
-            gaussianImportanceScore(splats[$0]) > gaussianImportanceScore(splats[$1])
+        return splats.sorted {
+            gaussianImportanceScore($0) > gaussianImportanceScore($1)
         }
     }
 
@@ -4711,8 +4771,8 @@ private func spatiallyInterleavedGaussianRanking(_ splats: [GaussianSplat]) -> [
     )
 
     var buckets: [GaussianSpatialBucketKey: [Int]] = [:]
-    for index in splats.indices {
-        let center = simd_float3(splats[index].center.x, splats[index].center.y, splats[index].center.z)
+    for index in splats {
+        let center = center(index)
         let normalized = (center - minBounds) / safeExtent
         let maxCellIndex = cellsPerAxis - 1
         let cellX = min(maxCellIndex, max(0, Int(normalized.x * Float(cellsPerAxis))))
@@ -4720,29 +4780,45 @@ private func spatiallyInterleavedGaussianRanking(_ splats: [GaussianSplat]) -> [
         let cellZ = min(maxCellIndex, max(0, Int(normalized.z * Float(cellsPerAxis))))
         let key = GaussianSpatialBucketKey(x: cellX, y: cellY, z: cellZ)
         buckets[key, default: []].append(index)
-    }
-
-    let sortedBuckets = buckets.mapValues { indices in
-        indices.sorted {
-            gaussianImportanceScore(splats[$0]) > gaussianImportanceScore(splats[$1])
+        if (index + 1) % pollStride == 0 {
+            try pollPass(index + 1, from: 0.2, to: 0.5)
         }
     }
+    try poll(0.5)
+
+    // `mapValues` keeps the dictionary's layout, so the keys come out in the order they always
+    // did; the poll between two buckets' sorts changes nothing about either sort.
+    var sortedBucketCount = 0
+    let sortedBuckets = try buckets.mapValues { indices in
+        try poll(0.5 + 0.15 * Double(sortedBucketCount) / Double(buckets.count))
+        sortedBucketCount += 1
+        return indices.sorted {
+            gaussianImportanceScore($0) > gaussianImportanceScore($1)
+        }
+    }
+    try poll(0.65)
 
     let bucketCenters = sortedBuckets.mapValues { indices in
-        var center = simd_float3.zero
+        var sum = simd_float3.zero
         for index in indices {
-            center += simd_float3(splats[index].center.x, splats[index].center.y, splats[index].center.z)
+            sum += center(index)
         }
-        return center / Float(max(1, indices.count))
+        return sum / Float(max(1, indices.count))
     }
 
-    var remainingBuckets = Array(sortedBuckets.keys)
+    // The bucket order breaks ties — equal importances, equal distances — by the position of
+    // the buckets in this array, and a dictionary's iteration order is seeded from the address
+    // of its storage: without the sort, two rankings of the same splats disagree on their ties,
+    // and a capture whose splats share one importance bakes a different _lod1 every run.
+    var remainingBuckets = Array(sortedBuckets.keys).sorted { lhs, rhs in
+        (lhs.x, lhs.y, lhs.z) < (rhs.x, rhs.y, rhs.z)
+    }
     var bucketOrder: [GaussianSpatialBucketKey] = []
     if let first = remainingBuckets.max(by: { lhs, rhs in
         guard let lhsIndex = sortedBuckets[lhs]?.first,
               let rhsIndex = sortedBuckets[rhs]?.first
         else { return false }
-        return gaussianImportanceScore(splats[lhsIndex]) < gaussianImportanceScore(splats[rhsIndex])
+        return gaussianImportanceScore(lhsIndex) < gaussianImportanceScore(rhsIndex)
     }) {
         bucketOrder.append(first)
         remainingBuckets.removeAll { $0 == first }
@@ -4755,18 +4831,23 @@ private func spatiallyInterleavedGaussianRanking(_ splats: [GaussianSplat]) -> [
             if lhsDistance == rhsDistance {
                 let lhsIndex = sortedBuckets[lhs]?.first ?? 0
                 let rhsIndex = sortedBuckets[rhs]?.first ?? 0
-                return gaussianImportanceScore(splats[lhsIndex]) < gaussianImportanceScore(splats[rhsIndex])
+                return gaussianImportanceScore(lhsIndex) < gaussianImportanceScore(rhsIndex)
             }
             return lhsDistance < rhsDistance
         }!
         bucketOrder.append(next)
         remainingBuckets.removeAll { $0 == next }
+        if bucketOrder.count % 32 == 0 {
+            try poll(0.65 + 0.05 * Double(bucketOrder.count) / Double(sortedBuckets.count))
+        }
     }
+    try poll(0.7)
 
     var ranking: [Int] = []
-    ranking.reserveCapacity(splats.count)
+    ranking.reserveCapacity(count)
     var depth = 0
-    while ranking.count < splats.count {
+    var nextPoll = pollStride
+    while ranking.count < count {
         var appendedThisRound = false
         for key in bucketOrder {
             guard let indices = sortedBuckets[key], depth < indices.count else { continue }
@@ -4775,7 +4856,12 @@ private func spatiallyInterleavedGaussianRanking(_ splats: [GaussianSplat]) -> [
         }
         guard appendedThisRound else { break }
         depth += 1
+        if ranking.count >= nextPoll {
+            try pollPass(ranking.count, from: 0.7, to: 1)
+            nextPoll += pollStride
+        }
     }
+    try poll(1)
 
     return ranking
 }
@@ -4795,15 +4881,17 @@ private func nearestSelectedBucketDistanceSquared(
 }
 
 /// Write options shared by every tier of one bake: the source SH degree, the asset-level
-/// bounding box (so it stays stable across LOD switches) and this tier's overdraw statistic.
-private func gaussianTierWriteOptions(
-    asset: GaussianSplatAsset,
+/// bounding box (so it stays stable across LOD switches), this tier's overdraw statistic and the
+/// coarse-level policy (resolved per tier by the writer, so each `_lodN` file decides on its own
+/// chunk count).
+func gaussianTierWriteOptions(
+    shDegree: UInt8,
     boundingBox: (min: simd_float3, max: simd_float3),
     meanSquaredSplatExtent: Float,
     cookOptions: UntoldGSCookOptions
 ) -> UntoldGSWriteOptions {
     var options = UntoldGSCooker.writeOptions(for: cookOptions)
-    options.shDegree = UInt8(clamping: asset.sphericalHarmonics?.degree ?? 0)
+    options.shDegree = shDegree
     options.boundingBoxMin = boundingBox.min
     options.boundingBoxMax = boundingBox.max
     options.meanSquaredSplatExtent = meanSquaredSplatExtent
@@ -4816,21 +4904,48 @@ private func gaussianTierWriteOptions(
 }
 
 /// One baked `.untoldgs` tier plus the bake-time statistic needed for overdraw estimation —
-/// see `estimatedGaussianOverdraw`.
-public struct GaussianLODTier {
+/// see `estimatedGaussianOverdraw` — and the per-chunk coarse section it carries, if any.
+public struct GaussianLODTier: Sendable {
     public let url: URL
     public let meanSquaredSplatExtent: Float
+    public let coarseReport: UntoldGSCoarseLevelReport?
+
+    public init(url: URL, meanSquaredSplatExtent: Float, coarseReport: UntoldGSCoarseLevelReport? = nil) {
+        self.url = url
+        self.meanSquaredSplatExtent = meanSquaredSplatExtent
+        self.coarseReport = coarseReport
+    }
 }
 
 /// Result of `bakeGaussianSplatProgressiveTiers`: the baked tiers plus a single asset-level
 /// bounding box (from the full, unsubsetted source splats) shared by all tiers so it stays
 /// stable across LOD switches.
-public struct GaussianProgressiveBakeResult {
+public struct GaussianProgressiveBakeResult: Sendable {
     public let tiers: [GaussianLODTier]
     public let boundingBoxMin: simd_float3
     public let boundingBoxMax: simd_float3
     /// What the cook step (`UntoldGSCooker`) kept and pruned before ranking and tiering.
     public let cookReport: UntoldGSCookReport
+    /// Bounds of the cooked splat centres (every tier's finest, in the output space): what a
+    /// "recenter" needs, from the bake's own pass rather than a second parse of the source.
+    public let centerBoundsMin: simd_float3
+    public let centerBoundsMax: simd_float3
+
+    public init(
+        tiers: [GaussianLODTier],
+        boundingBoxMin: simd_float3,
+        boundingBoxMax: simd_float3,
+        cookReport: UntoldGSCookReport,
+        centerBoundsMin: simd_float3 = .zero,
+        centerBoundsMax: simd_float3 = .zero
+    ) {
+        self.tiers = tiers
+        self.boundingBoxMin = boundingBoxMin
+        self.boundingBoxMax = boundingBoxMax
+        self.cookReport = cookReport
+        self.centerBoundsMin = centerBoundsMin
+        self.centerBoundsMax = centerBoundsMax
+    }
 }
 
 func meanSquaredSplatExtent(_ splats: [GaussianSplat], keeping indices: [Int]) -> Float {
@@ -4856,14 +4971,43 @@ public func bakeGaussianSplatProgressiveTiers(
     lodFractions: [Float],
     cookOptions: UntoldGSCookOptions = UntoldGSCookOptions()
 ) throws -> GaussianProgressiveBakeResult {
-    let sourceAsset = try PLYReader.readGaussianAsset(from: plyURL)
-    return try bakeGaussianSplatProgressiveTiers(
-        sourceAsset: sourceAsset,
-        emptySourceDescription: "source .ply contains no splats",
-        outputBaseURL: outputBaseURL,
-        lodFractions: lodFractions,
-        cookOptions: cookOptions
+    try bakeGaussianSplatProgressiveTiers(plyURL: plyURL, outputBaseURL: outputBaseURL, lodFractions: lodFractions, cookOptions: cookOptions, control: nil)
+}
+
+/// `bakeGaussianSplatProgressiveTiers(plyURL:outputBaseURL:lodFractions:cookOptions:)` with
+/// progress and cancellation (`UntoldGSCookControl`): the source is streamed in windows and
+/// every tier is written to a temporary file, the set renamed into place only once the last
+/// tier is complete, so a cancelled or failed bake leaves no file of its own behind and the
+/// tiers of a previous bake exactly as they were.
+public func bakeGaussianSplatProgressiveTiers(
+    plyURL: URL,
+    outputBaseURL: URL,
+    lodFractions: [Float],
+    cookOptions: UntoldGSCookOptions = UntoldGSCookOptions(),
+    control: UntoldGSCookControl?
+) throws -> GaussianProgressiveBakeResult {
+    try bakeGaussianSplatProgressiveTiers(
+        source: PLYGaussianSource(url: plyURL), outputBaseURL: outputBaseURL, lodFractions: lodFractions, cookOptions: cookOptions, control: control
     )
+}
+
+/// The `.ply` bake over a source already open — the seam through which tests stream a small
+/// fixture in windows far below production's.
+func bakeGaussianSplatProgressiveTiers(
+    source: PLYGaussianSource,
+    outputBaseURL: URL,
+    lodFractions: [Float],
+    cookOptions: UntoldGSCookOptions,
+    control: UntoldGSCookControl?
+) throws -> GaussianProgressiveBakeResult {
+    let progress = UntoldGSCookProgressSink(control: control, tierCount: lodFractions.count)
+    guard !lodFractions.isEmpty else {
+        throw UntoldGSError.sizeMismatch("lodFractions must contain at least one entry")
+    }
+    let cooked = try UntoldGSCooker.cookStore(
+        from: source, options: cookOptions, emptySourceDescription: "source .ply contains no splats", progress: progress
+    )
+    return try bakeGaussianSplatProgressiveTiers(cooked: cooked, outputBaseURL: outputBaseURL, lodFractions: lodFractions, cookOptions: cookOptions, progress: progress)
 }
 
 /// Bakes progressive `.untoldgs` Gaussian tiers from a source `.spz` (legacy gzip versions 2-3
@@ -4876,82 +5020,132 @@ public func bakeGaussianSplatProgressiveTiers(
     lodFractions: [Float],
     cookOptions: UntoldGSCookOptions = UntoldGSCookOptions()
 ) throws -> GaussianProgressiveBakeResult {
-    let sourceAsset = try SPZReader.readGaussianAsset(from: spzURL)
-    return try bakeGaussianSplatProgressiveTiers(
-        sourceAsset: sourceAsset,
-        emptySourceDescription: "source .spz contains no splats",
-        outputBaseURL: outputBaseURL,
-        lodFractions: lodFractions,
-        cookOptions: cookOptions
-    )
+    try bakeGaussianSplatProgressiveTiers(spzURL: spzURL, outputBaseURL: outputBaseURL, lodFractions: lodFractions, cookOptions: cookOptions, control: nil)
 }
 
-/// Shared tiering core behind both the `.ply` and `.spz` overloads above, operating on the
-/// format-neutral `GaussianSplatAsset` either reader produces.
-private func bakeGaussianSplatProgressiveTiers(
-    sourceAsset: GaussianSplatAsset,
-    emptySourceDescription: String,
+/// The `.spz` overload with progress and cancellation. The `.spz` is decoded whole (its reader
+/// is not streamed), so `read` reports once; the cook and every tier report as for a `.ply`.
+public func bakeGaussianSplatProgressiveTiers(
+    spzURL: URL,
     outputBaseURL: URL,
     lodFractions: [Float],
-    cookOptions: UntoldGSCookOptions
+    cookOptions: UntoldGSCookOptions = UntoldGSCookOptions(),
+    control: UntoldGSCookControl?
 ) throws -> GaussianProgressiveBakeResult {
+    let progress = UntoldGSCookProgressSink(control: control, tierCount: lodFractions.count)
+    let sourceAsset = try SPZReader.readGaussianAsset(from: spzURL)
     guard !lodFractions.isEmpty else {
         throw UntoldGSError.sizeMismatch("lodFractions must contain at least one entry")
     }
-    guard !sourceAsset.splats.isEmpty else {
-        throw UntoldGSError.sizeMismatch(emptySourceDescription)
-    }
-    // Registration transform, opacity floor, crop and SH degree are applied once here so the
-    // ranking, bounding box and every tier below see the cooked splats.
-    let cooked = try UntoldGSCooker.cook(asset: sourceAsset, options: cookOptions)
-    let asset = cooked.asset
-    let assetBoundingBox = computeGaussianSplatBoundingBox(asset.splats)
+    let cooked = try UntoldGSCooker.cookStore(
+        from: sourceAsset, options: cookOptions, emptySourceDescription: "source .spz contains no splats", progress: progress
+    )
+    return try bakeGaussianSplatProgressiveTiers(cooked: cooked, outputBaseURL: outputBaseURL, lodFractions: lodFractions, cookOptions: cookOptions, progress: progress)
+}
 
-    if lodFractions == [1.0] {
-        let resultURL = outputBaseURL
-        let allIndices = Array(asset.splats.indices)
-        let tierExtent = meanSquaredSplatExtent(asset.splats, keeping: allIndices)
-        try UntoldGSFormat.write(
-            splats: makeUntoldGSSplats(asset: asset, keeping: allIndices),
-            options: gaussianTierWriteOptions(asset: asset, boundingBox: assetBoundingBox, meanSquaredSplatExtent: tierExtent, cookOptions: cookOptions),
-            to: resultURL
-        )
-        return GaussianProgressiveBakeResult(
-            tiers: [GaussianLODTier(url: resultURL, meanSquaredSplatExtent: tierExtent)],
+/// Shared tiering core behind the `.ply` and `.spz` overloads above, over the cooked store: the
+/// finest tier is the store in cooked order; the `_lodN` tiers are prefixes of the progressive
+/// ranking. Each tier is written to a temporary file beside its destination and the whole set
+/// is renamed into place only after the last tier is complete: a bake that fails or is cancelled
+/// in its third tier discards three temporaries and leaves the `_lod0`/`_lod1` of the previous
+/// bake untouched, where renaming each tier as it finished would have replaced them and then
+/// had to remove them, breaking an asset that loaded before the cook began.
+private func bakeGaussianSplatProgressiveTiers(
+    cooked: UntoldGSCookedStore,
+    outputBaseURL: URL,
+    lodFractions: [Float],
+    cookOptions: UntoldGSCookOptions,
+    progress: UntoldGSCookProgressSink
+) throws -> GaussianProgressiveBakeResult {
+    let store = cooked.store
+    let assetBoundingBox = cooked.boundingBox
+    let nonFinite = Set(cooked.nonFiniteIndices)
+
+    /// The writer's refusal of a non-finite splat, naming it by its index in the tier.
+    func refuseNonFinite(tierIndices: some Sequence<Int>) throws {
+        guard !nonFinite.isEmpty else { return }
+        for (position, index) in tierIndices.enumerated() where nonFinite.contains(index) {
+            throw UntoldGSError.invalidInput("splat \(position) has non-finite data or a non-positive scale")
+        }
+    }
+
+    func result(_ tiers: [GaussianLODTier]) -> GaussianProgressiveBakeResult {
+        GaussianProgressiveBakeResult(
+            tiers: tiers,
             boundingBoxMin: assetBoundingBox.min,
             boundingBoxMax: assetBoundingBox.max,
-            cookReport: cooked.report
+            cookReport: cooked.report,
+            centerBoundsMin: cooked.centerBounds.min,
+            centerBoundsMax: cooked.centerBounds.max
         )
     }
 
-    let rankedIndices = spatiallyInterleavedGaussianRanking(asset.splats)
+    if lodFractions == [1.0] {
+        try progress.report(.cook, fraction: 1)
+        progress.beginTier(0)
+        try refuseNonFinite(tierIndices: 0 ..< store.count)
+        try progress.checkCancelled()
+        let tierExtent = store.meanSquaredSplatExtent(over: 0 ..< store.count, count: store.count)
+        let written = try UntoldGSFormat.writeStore(
+            UntoldGSStoreView(store: store),
+            options: gaussianTierWriteOptions(shDegree: store.shDegree, boundingBox: assetBoundingBox, meanSquaredSplatExtent: tierExtent, cookOptions: cookOptions),
+            to: outputBaseURL,
+            progress: progress
+        )
+        return result([GaussianLODTier(url: outputBaseURL, meanSquaredSplatExtent: tierExtent, coarseReport: written.coarse)])
+    }
+
+    // The ranking is the second half of the cook phase, reported and cancellable as it runs.
+    let rankedIndices = try spatiallyInterleavedGaussianRanking(
+        count: store.count,
+        center: { store.position($0) },
+        importance: { index in
+            let majorAxis = store.majorAxis(index)
+            return store.opacity(index) * majorAxis * majorAxis
+        },
+        poll: { fraction in try progress.report(.cook, fraction: 0.5 + 0.5 * fraction) }
+    )
+    try progress.report(.cook, fraction: 1)
 
     let baseWithoutExtension = outputBaseURL.deletingPathExtension()
     let baseName = baseWithoutExtension.lastPathComponent
     let baseDirectory = baseWithoutExtension.deletingLastPathComponent()
 
+    var staged: [UntoldGSStagedTier] = []
     var tiers: [GaussianLODTier] = []
-    for (tierIndex, fraction) in lodFractions.enumerated() {
-        let clampedFraction = min(max(fraction, 0), 1)
-        let keepCount = max(1, Int((Float(asset.splats.count) * clampedFraction).rounded(.up)))
-        let keptIndices = Array(rankedIndices.prefix(keepCount))
-        let tierURL = baseDirectory
-            .appendingPathComponent("\(baseName)_lod\(tierIndex)")
-            .appendingPathExtension("untoldgs")
-        let tierExtent = meanSquaredSplatExtent(asset.splats, keeping: keptIndices)
-        try UntoldGSFormat.write(
-            splats: makeUntoldGSSplats(asset: asset, keeping: keptIndices),
-            options: gaussianTierWriteOptions(asset: asset, boundingBox: assetBoundingBox, meanSquaredSplatExtent: tierExtent, cookOptions: cookOptions),
-            to: tierURL
-        )
-        tiers.append(GaussianLODTier(url: tierURL, meanSquaredSplatExtent: tierExtent))
+    do {
+        for (tierIndex, fraction) in lodFractions.enumerated() {
+            progress.beginTier(tierIndex)
+            let clampedFraction = min(max(fraction, 0), 1)
+            let keepCount = max(1, Int((Float(store.count) * clampedFraction).rounded(.up)))
+            let keptIndices = Array(rankedIndices.prefix(keepCount))
+            try refuseNonFinite(tierIndices: keptIndices)
+            try progress.checkCancelled()
+            let tierURL = baseDirectory
+                .appendingPathComponent("\(baseName)_lod\(tierIndex)")
+                .appendingPathExtension("untoldgs")
+            let tierExtent = store.meanSquaredSplatExtent(over: keptIndices, count: keptIndices.count)
+            let written = try UntoldGSFormat.stageStore(
+                UntoldGSStoreView(store: store, indices: keptIndices),
+                options: gaussianTierWriteOptions(shDegree: store.shDegree, boundingBox: assetBoundingBox, meanSquaredSplatExtent: tierExtent, cookOptions: cookOptions),
+                to: tierURL,
+                progress: progress
+            )
+            staged.append(written)
+            tiers.append(GaussianLODTier(url: tierURL, meanSquaredSplatExtent: tierExtent, coarseReport: written.report.coarse))
+        }
+        // Every tier is complete: the set goes into place finest first, in one tight loop.
+        for tier in staged {
+            try tier.publish()
+        }
+    } catch {
+        // The temporaries of the tiers not yet published; a published tier's is already gone.
+        for tier in staged {
+            tier.discard()
+        }
+        throw error
     }
-    return GaussianProgressiveBakeResult(
-        tiers: tiers,
-        boundingBoxMin: assetBoundingBox.min,
-        boundingBoxMax: assetBoundingBox.max,
-        cookReport: cooked.report
-    )
+    return result(tiers)
 }
 
 public func bakeGaussianSplatProgressiveTiers(
@@ -4960,12 +5154,24 @@ public func bakeGaussianSplatProgressiveTiers(
     levelCount: Int,
     cookOptions: UntoldGSCookOptions = UntoldGSCookOptions()
 ) throws -> GaussianProgressiveBakeResult {
+    try bakeGaussianSplatProgressiveTiers(plyURL: plyURL, outputBaseURL: outputBaseURL, levelCount: levelCount, cookOptions: cookOptions, control: nil)
+}
+
+/// The `levelCount` overload with progress and cancellation — what an editor's cook job calls.
+public func bakeGaussianSplatProgressiveTiers(
+    plyURL: URL,
+    outputBaseURL: URL,
+    levelCount: Int,
+    cookOptions: UntoldGSCookOptions = UntoldGSCookOptions(),
+    control: UntoldGSCookControl?
+) throws -> GaussianProgressiveBakeResult {
     let fractions = try progressiveLODFractions(levelCount: levelCount)
     return try bakeGaussianSplatProgressiveTiers(
         plyURL: plyURL,
         outputBaseURL: outputBaseURL,
         lodFractions: fractions,
-        cookOptions: cookOptions
+        cookOptions: cookOptions,
+        control: control
     )
 }
 
@@ -4976,12 +5182,24 @@ public func bakeGaussianSplatProgressiveTiers(
     levelCount: Int,
     cookOptions: UntoldGSCookOptions = UntoldGSCookOptions()
 ) throws -> GaussianProgressiveBakeResult {
+    try bakeGaussianSplatProgressiveTiers(spzURL: spzURL, outputBaseURL: outputBaseURL, levelCount: levelCount, cookOptions: cookOptions, control: nil)
+}
+
+/// The `.spz` `levelCount` overload with progress and cancellation.
+public func bakeGaussianSplatProgressiveTiers(
+    spzURL: URL,
+    outputBaseURL: URL,
+    levelCount: Int,
+    cookOptions: UntoldGSCookOptions = UntoldGSCookOptions(),
+    control: UntoldGSCookControl?
+) throws -> GaussianProgressiveBakeResult {
     let fractions = try progressiveLODFractions(levelCount: levelCount)
     return try bakeGaussianSplatProgressiveTiers(
         spzURL: spzURL,
         outputBaseURL: outputBaseURL,
         lodFractions: fractions,
-        cookOptions: cookOptions
+        cookOptions: cookOptions,
+        control: control
     )
 }
 
@@ -5215,6 +5433,11 @@ func removeEntityGaussianLOD(entityId: EntityID) {
 public func removeEntityGaussian(entityId: EntityID) {
     removeEntityGaussianLOD(entityId: entityId)
     if let gaussianComponent = scene.get(component: GaussianComponent.self, for: entityId) {
+        // Stop the pager first: no read is issued after this, the ones in flight are dropped
+        // when they land, and the pools stay alive through the in-flight frames' command
+        // buffers and the requests themselves.
+        gaussianComponent.pager?.shutdown()
+        gaussianComponent.pager = nil
         // Release Metal buffers
         gaussianComponent.encodedSplatData = nil
         gaussianComponent.packedSplatData = nil
@@ -5237,6 +5460,13 @@ public func removeEntityGaussian(entityId: EntityID) {
         // for entities destroyed directly (e.g. a non-streamed setEntityGaussian caller).
         MemoryBudgetManager.shared.unregisterMesh(entityId: entityId)
     }
+}
+
+/// The paging state of a splat entity loaded above the paging threshold — the pool, what is
+/// resident, what is in flight, what was evicted and faulted — for the editor's inspector and
+/// the profile; nil for an entity whose records are all resident.
+public func gaussianPagingStats(entityId: EntityID) -> GaussianPagingStats? {
+    scene.get(component: GaussianComponent.self, for: entityId)?.pager?.stats
 }
 
 func removeEntityCamera(entityId: EntityID) {
