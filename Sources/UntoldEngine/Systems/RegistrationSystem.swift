@@ -4279,7 +4279,7 @@ func copyGaussianLoadResult(_ result: GaussianLoadResult, to gaussianComponent: 
 public enum GaussianSource {
     case single(filename: String, withExtension: String)
     /// No `boundingBoxHalfExtent` here: both `setEntityGaussian(source:)` and
-    /// `setEntityGaussianStreaming(source:options:)` can read a real box baked into the
+    /// `setEntityGaussianTileStreaming(source:options:)` can read a real box baked into the
     /// `.untoldgs` header itself (see `UntoldGSFormat.readHeader`) — an explicit override, when
     /// one is genuinely needed, is a parameter on the underlying registration path instead
     /// (`GaussianStreamingOptions.boundingBoxHalfExtent` for streaming). Overdraw-aware LOD
@@ -4385,9 +4385,11 @@ public struct GaussianStreamingOptions {
     }
 }
 
-/// Registers a distance-streamed Gaussian splat entity, either as one whole asset or as a
-/// progressive multi-tier asset. Prefer this API for new call sites.
-public func setEntityGaussianStreaming(
+/// Registers a Gaussian splat entity to load/unload with the entity's containing tile, either
+/// as one whole asset or as a progressive multi-tier asset. Each call streams one whole asset
+/// (or tier set) as a unit — there is no support for paging pieces of a single splat that is
+/// itself too large to hold in memory. Prefer this API for new call sites.
+public func setEntityGaussianTileStreaming(
     entityId: EntityID,
     source: GaussianSource,
     options: GaussianStreamingOptions
@@ -4492,7 +4494,7 @@ func setEntityGaussianProgressive(
 /// re-streaming unreliable once the camera moves away and back.
 ///
 /// Not part of the public API — reached only through
-/// `setEntityGaussianStreaming(entityId:source:options:)`'s `.single` case, which forwards
+/// `setEntityGaussianTileStreaming(entityId:source:options:)`'s `.single` case, which forwards
 /// `GaussianStreamingOptions.boundingBoxHalfExtent` here; that's the entry point callers should
 /// use.
 func setEntityGaussianStreamable(
@@ -4544,7 +4546,7 @@ func setEntityGaussianStreamable(
 /// `GaussianLODSystem` based on camera distance.
 ///
 /// Not part of the public API — reached only through
-/// `setEntityGaussianStreaming(entityId:source:options:)`'s `.progressive` case, which forwards
+/// `setEntityGaussianTileStreaming(entityId:source:options:)`'s `.progressive` case, which forwards
 /// `GaussianStreamingOptions.boundingBoxHalfExtent` here; that's the entry point callers should
 /// use.
 func setEntityGaussianProgressiveStreamable(

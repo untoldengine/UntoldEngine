@@ -155,7 +155,7 @@ final class GaussianProgressiveLODTest: BaseRenderSetup {
 
         let entity = createEntity()
         translateTo(entityId: entity, position: .zero)
-        setEntityGaussianStreaming(
+        setEntityGaussianTileStreaming(
             entityId: entity,
             source: .progressive(
                 baseFilename: base,

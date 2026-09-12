@@ -148,10 +148,10 @@ final class GaussianStreamingTest: BaseRenderSetup {
         XCTAssertEqual(component.assetKind, .mesh, "❌ Default assetKind should be .mesh so existing mesh streaming call sites are unaffected")
     }
 
-    // MARK: - setEntityGaussianStreaming / findTileEntity
+    // MARK: - setEntityGaussianTileStreaming / findTileEntity
 
     /// End-to-end check of the consolidated API: given a positioned entity and a tile
-    /// whose bounds contain that position, `setEntityGaussianStreaming` should parent it
+    /// whose bounds contain that position, `setEntityGaussianTileStreaming` should parent it
     /// under that tile, register it with the octree, and configure it as a real gaussian
     /// streaming candidate — equivalent to `makeUnloadedGaussianEntity`'s manual assembly,
     /// but via the one public call callers are meant to use.
@@ -168,7 +168,7 @@ final class GaussianStreamingTest: BaseRenderSetup {
         let entity = createEntity()
         translateTo(entityId: entity, position: .zero)
 
-        setEntityGaussianStreaming(
+        setEntityGaussianTileStreaming(
             entityId: entity,
             source: .single(filename: "test_gaussians", withExtension: "ply"),
             options: GaussianStreamingOptions(
@@ -202,11 +202,11 @@ final class GaussianStreamingTest: BaseRenderSetup {
 
     /// If no tile contains the entity's position, the entity should be left as a plain,
     /// non-streaming entity rather than crashing or silently half-configuring it.
-    func testSetEntityGaussianStreaming_noContainingTileLeavesEntityNonStreaming() {
+    func testSetEntityGaussianTileStreaming_noContainingTileLeavesEntityNonStreaming() {
         let entity = createEntity()
         translateTo(entityId: entity, position: simd_float3(1000, 1000, 1000)) // no tile out here
 
-        setEntityGaussianStreaming(
+        setEntityGaussianTileStreaming(
             entityId: entity,
             source: .single(filename: "test_gaussians", withExtension: "ply"),
             options: GaussianStreamingOptions(
