@@ -197,7 +197,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
             BatchingSystem.shared.applyRuntimeBatchingTuning(.macOSBalanced)
         #endif
 
-        Logger.log(message: "Untold Engine Starting. Version 0.18.1")
+        Logger.log(message: "Untold Engine Starting. Version 0.19.0")
     }
 
     public func initSizeableResources() {
