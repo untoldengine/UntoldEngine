@@ -124,6 +124,21 @@ Engine as a package dependency.
 
 ---
 
+## Try the Untold Editor
+
+The Untold Editor is a companion app for building scenes visually — placing
+entities, setting up lighting and cameras, and authoring `.untoldscene` files
+that load straight into your app with `loadUntoldScene(named:)`. It's
+optional — nothing in Untold Engine requires it — but it's the fastest way to
+get a scene on screen without hand-writing setup code.
+
+The Editor is now stable enough for regular use. Grab the latest build from
+the [Releases page](https://github.com/untoldengine/UntoldEditor/releases).
+
+![untold-editor](docs/images/editor-main-highlight.png)
+
+---
+
 ## Getting Started
 
 To create your own XR, 3D, or spatial visualization app using Untold Engine,
@@ -139,6 +154,9 @@ start with the documentation path that matches where you are:
 - **Create your own project from scratch:** see
   [Getting Started](https://untoldengine.github.io/UntoldEngine/API/GettingStarted/)
   and [Create A New Xcode Project](https://untoldengine.github.io/UntoldEngine/Tutorials/CreateXcodeProjectTutorial/).
+- **Build scenes visually:** download the
+  [Untold Editor](https://github.com/untoldengine/UntoldEditor/releases) to
+  arrange entities, lighting, and cameras without writing scene-setup code.
 
 If your team is evaluating Untold Engine and needs an engine capability that is
 not currently available, see [Commercial Use, Sponsored Features, and Support](COMMERCIAL.md).

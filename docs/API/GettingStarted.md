@@ -6,6 +6,14 @@ project. By the end of this short tutorial, you will be able to render this Arch
 Click the image below for a video.
 [![untoldengine-image](../images/engine-highlight-5.png)](https://vimeo.com/1176995991?fl=ip&fe=ec) 
 
+> **Prefer a visual workflow?** The
+> [Untold Editor](https://github.com/untoldengine/UntoldEditor/releases) lets
+> you build and arrange scenes without writing setup code, then load the
+> result with `loadUntoldScene(named:)`. It's optional — this guide also
+> covers authoring scenes entirely in code — but it's the quickest way to get
+> something on screen. Jump to
+> [Loading a `.untoldscene`](#loading-a-untoldscene) below.
+
 ---
 
 ## Clone the Untold Engine
@@ -240,6 +248,14 @@ architecture.
 > available for backwards compatibility. They create an internal root entity automatically.
 
 ## Loading a `.untoldscene`
+
+The [Untold Editor](https://github.com/untoldengine/UntoldEditor/releases) is
+a companion app for building scenes visually — placing entities, lighting,
+and cameras — without hand-writing setup code. It's now stable enough for
+day-to-day use; download the latest build from the
+[Releases page](https://github.com/untoldengine/UntoldEditor/releases).
+
+![untold-editor](../images/editor-main-highlight.png)
 
 To load a scene authored with the Untold Editor, use `loadUntoldScene(named:)`:
 
