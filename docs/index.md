@@ -11,20 +11,6 @@
   <a href="https://github.com/untoldengine/UntoldEngine/issues/new?assignees=&labels=enhancement&template=02_FEATURE_REQUEST.md&title=feat%3A+">Request a Feature</a>
   ·
   <a href="https://github.com/untoldengine/UntoldEngine/issues/new?assignees=&labels=question&template=04_SUPPORT_QUESTION.md&title=support%3A+">Ask a Question</a>
-  ·
-  <a href="https://discord.gg/pSckCPFxj">Join Our Discord</a>
-</div>
-
-<div align="center">
-<br />
-
-![Build Status](https://github.com/untoldengine/UntoldEngine/actions/workflows/ci-build-test.yml/badge.svg?style=flat-square)
-[![Project license](https://img.shields.io/github/license/untoldengine/UntoldEngine.svg?style=flat-square)](https://github.com/untoldengine/UntoldEngine/blob/main/LICENSE)
-[![Pull Requests welcome](https://img.shields.io/badge/PRs-welcome-ff69b4.svg?style=flat-square)](https://github.com/untoldengine/UntoldEngine/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22)
-![Version](https://img.shields.io/github/v/release/untoldengine/UntoldEngine?style=flat-square&label=version)
-![Commits](https://img.shields.io/github/commit-activity/t/untoldengine/UntoldEngine?style=flat-square&label=commits)
-![Last Commit](https://img.shields.io/github/last-commit/untoldengine/UntoldEngine?style=flat-square&label=last+commit)
-
 </div>
 
 ---
@@ -44,7 +30,7 @@ Untold Engine is built for developers and teams who:
 - Want an open engine they can inspect, modify, extend, and embed
 
 Creator & Lead Developer:  
-https://www.haroldserrano.com
+[Harold Serrano](http://www.haroldserrano.com)
 
 ![archviz-demo](images/gifs/archviz-demo.gif)
 
@@ -76,13 +62,6 @@ workflow, product experience, and customer-specific behavior.
 | [City Streaming](https://untoldengine.github.io/UntoldEngine/LearningPaths/CityStreamingOnVisionPro/) | City-scale scene streamed in tile by tile with LOD/HLOD |
 
 Full source for every demo above lives in the [UntoldArcade](https://github.com/untoldengine/UntoldArcade) repo.
-
-## Requirements
-
-- macOS 26 or newer
-- Swift 6 / Xcode 26 or newer
-- Apple Silicon Mac
-- Supported platforms: macOS, iOS, and visionOS
 
 ![coolsaber-demo](images/gifs/coolsaber-demo.gif)
 
@@ -140,25 +119,8 @@ the [Releases page](https://github.com/untoldengine/UntoldEditor/releases).
 
 ## Getting Started
 
-To create your own XR, 3D, or spatial visualization app using Untold Engine,
-start with the documentation path that matches where you are:
-
-- **Build a complete Vision Pro app:** follow the
-  [Archviz To Vision Pro learning path](https://untoldengine.github.io/UntoldEngine/LearningPaths/ArchvizToVisionPro/)
-  to take a Blender archviz model into a standalone visionOS project.
-- **Learn the engine API through focused demos:** use the
-  [Tutorials](https://untoldengine.github.io/UntoldEngine/Tutorials/)
-  to understand Starter Demo, lighting, rendering quality, exporter workflows,
-  scene channels, light portals, XR input, and performance diagnostics.
-- **Create your own project from scratch:** see
-  [Getting Started](https://untoldengine.github.io/UntoldEngine/API/GettingStarted/)
-  and [Create A New Xcode Project](https://untoldengine.github.io/UntoldEngine/Tutorials/CreateXcodeProjectTutorial/).
-- **Build scenes visually:** download the
-  [Untold Editor](https://github.com/untoldengine/UntoldEditor/releases) to
-  arrange entities, lighting, and cameras without writing scene-setup code.
-
-If your team is evaluating Untold Engine and needs an engine capability that is
-not currently available, see [Commercial Use, Sponsored Features, and Support](https://github.com/untoldengine/UntoldEngine/blob/main/COMMERCIAL.md).
+To create your own XR, 3D, or spatial visualization app using Untold Engine, see
+[Getting Started](API/GettingStarted.md).
 
 ## Core Direction
 
@@ -197,6 +159,27 @@ Untold Engine is well-suited for:
 - **Gameplay Systems** — Physics, animation, camera waypoint, and input systems (keyboard, mouse, touch, and gamepad)
 - **Gaussian Splat Rendering** — Native Metal support for rendering and compositing 3D Gaussian content
 - **Tooling Integration** — Optional Untold Editor workflow and Swift Package Manager integration
+
+---
+
+# Commercial Use, Sponsored Features, and Support
+
+Untold Engine is open source under MPL-2.0 and can be used in commercial apps.
+Paid commercial options are available for teams that need private engine
+modifications, sponsored engine features, priority support, or custom terms.
+
+- **Sponsored open-source features** — fund roadmap-aligned engine work that is
+  released into the public MPL engine.
+- **Commercial license** — keep private modifications to engine internals closed
+  under commercial terms.
+- **Priority support / retainers** — get focused help with engine integration,
+  rendering issues, performance, and production use.
+
+If your team needs an engine feature that is not currently available, contact
+[Harold Serrano](https://www.haroldserrano.com/contact) to discuss sponsored feature development, private engine
+work, commercial licensing, or ongoing support.
+
+See [COMMERCIAL.md](https://github.com/untoldengine/UntoldEngine/blob/main/COMMERCIAL.md) for commercial licensing details.
 
 ---
 
@@ -313,26 +296,6 @@ This allows developers to build commercial applications while ensuring improveme
 Full license: https://www.mozilla.org/MPL/2.0/
 
 **Need private engine modifications, sponsored feature work, or priority support?** See [COMMERCIAL.md](https://github.com/untoldengine/UntoldEngine/blob/main/COMMERCIAL.md) for details.
-
----
-
-# Commercial Use, Sponsored Features, and Support
-
-Untold Engine is open source under MPL-2.0 and can be used in commercial apps.
-Paid commercial options are available for teams that need private engine
-modifications, sponsored engine features, priority support, or custom terms.
-
-- **Sponsored open-source features** — fund roadmap-aligned engine work that is
-  released into the public MPL engine.
-- **Commercial license** — keep private modifications to engine internals closed
-  under commercial terms.
-- **Priority support / retainers** — get focused help with engine integration,
-  rendering issues, performance, and production use.
-
-If your team needs an engine feature that is not currently available, contact
-[Harold Serrano](https://www.haroldserrano.com/contact) to discuss sponsored feature development, private engine work, commercial licensing, or ongoing support.
-
-See [COMMERCIAL.md](https://github.com/untoldengine/UntoldEngine/blob/main/COMMERCIAL.md) for commercial licensing details.
 
 ---
 
