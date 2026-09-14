@@ -152,9 +152,10 @@ float3 evaluateGaussianSphericalHarmonics(
     return max(result, float3(0.0f));
 }
 
-// Standard 3DGS coefficients are fitted to normalized image-code values.
-// Decode those display-referred values before writing to Untold's linear HDR
-// Gaussian target. The final output transform will encode them exactly once.
+// Standard 3DGS coefficients are fitted to normalized image-code values, and the trainer
+// blends splats in that display-referred space. The splat passes therefore keep the colour
+// as it is and blend there; the pre-composite decodes the finished layer to linear once
+// (preCompShader.metal). This decode remains for the diagnostic kernel below.
 float3 gaussianSRGBToLinear(float3 color)
 {
     color = max(color, float3(0.0f));
@@ -539,9 +540,12 @@ kernel void gaussianPreprocess(
         return;
     }
 
+    // The colour stays in the capture's own space (display-referred sRGB): the trainer
+    // blended the splats in that space, so the layer is blended there too and decoded to
+    // linear once, in the pre-composite (preCompShader.metal).
     float3 color = entity.debugColorEnabled != 0u
         ? entity.debugColor.xyz
-        : gaussianSRGBToLinear(evaluateGaussianSphericalHarmonics(
+        : (evaluateGaussianSphericalHarmonics(
             float3(splat.colorAndOpacity.xyz),
             shCoefficients,
             shMetadata,

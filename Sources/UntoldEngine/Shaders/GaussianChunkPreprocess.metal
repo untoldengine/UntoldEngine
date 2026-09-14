@@ -251,9 +251,11 @@ kernel void gaussianChunkDecodePreprocess(
             color = entity.debugColor.xyz;
         } else if (level != 0u) {
             // A coarse record carries the DC colour only.
-            color = gaussianSRGBToLinear(float3(colorAndOpacity.xyz));
+            color = float3(colorAndOpacity.xyz);
         } else {
-            color = gaussianSRGBToLinear(evaluateGaussianSphericalHarmonics(
+            // Kept in the capture's own space, as Gaussians.metal does: decoded once in the
+            // pre-composite.
+            color = (evaluateGaussianSphericalHarmonics(
                 float3(colorAndOpacity.xyz),
                 shCoefficients,
                 shMetadata,

@@ -22,6 +22,16 @@ vertex VertexCompositeOutput vertexPreCompositeShader(VertexCompositeIn in [[sta
     return vertexOut;
 }
 
+// The splat layer is blended in the capture's own display-referred (sRGB) space, the space
+// its trainer blended in; it enters the linear scene here.
+inline float3 preCompSRGBToLinear(float3 color)
+{
+    color = max(color, float3(0.0f));
+    float3 low = color / 12.92f;
+    float3 high = pow((color + 0.055f) / 1.055f, float3(2.4f));
+    return select(high, low, color <= 0.04045f);
+}
+
 fragment float4 fragmentPreCompositeShader(VertexCompositeOutput vertexOut [[stage_in]],
                                         texture2d<float> finalTexture[[texture(prePassFinalTextureIndex)]],
                                         texture2d<float> envTexture[[texture(prePassEnvTextureIndex)]],
@@ -39,6 +49,12 @@ fragment float4 fragmentPreCompositeShader(VertexCompositeOutput vertexOut [[sta
     float4 envColor = envTexture.sample(s, vertexOut.uvCoords);
     float4 modelColor = finalTexture.sample(s, vertexOut.uvCoords);
     float4 gaussianColor = gaussianTexture.sample(s, vertexOut.uvCoords);
+    // Un-premultiply, decode, premultiply again: a pixel the splats cover whole shows the
+    // trained colour; a partial cover blends with the scene in linear.
+    if (gaussianColor.a > 1e-4f) {
+        float3 straight = gaussianColor.rgb / gaussianColor.a;
+        gaussianColor.rgb = preCompSRGBToLinear(straight) * gaussianColor.a;
+    }
 
     if (ssaoEnabled) {
         float ao = ssaoTexture.sample(s, vertexOut.uvCoords).r;
