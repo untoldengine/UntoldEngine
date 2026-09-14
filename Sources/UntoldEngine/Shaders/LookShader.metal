@@ -97,11 +97,22 @@ fragment float4 fragmentLookShader(
   constant bool &colorGradeLUTEnabled [[buffer(colorGradeLUTEnabledIndex)]],
   constant float3 &colorGradeLUTDomainMin [[buffer(colorGradeLUTDomainMinIndex)]],
   constant float3 &colorGradeLUTDomainMax [[buffer(colorGradeLUTDomainMaxIndex)]],
-  constant int &tonemapOperator [[buffer(tonemapOperatorSelectIndex)]]
+  constant int &tonemapOperator [[buffer(tonemapOperatorSelectIndex)]],
+  texture2d<float> splatCoverage [[texture(lookPassSplatCoverageTextureIndex)]],
+  constant int &splatMask [[buffer(lookPassSplatMaskIndex)]]
 ) {
   constexpr sampler s(min_filter::linear, mag_filter::linear, address::clamp_to_edge);
   float4 sceneSample = sceneTexture.sample(s, in.uvCoords);
   float3 color = sceneSample.rgb;
+  // A Gaussian splat pixel is a finished photograph: blended in the capture's own
+  // display-referred space and decoded to linear once in the pre-composite, it must reach the
+  // output transform as it is — no grade, no tone map — or every capture is lifted and
+  // flattened. The splat pass's coverage (splatCoverage.a, bound when splatMask is set) says
+  // how much of the pixel that is.
+  const float splat = splatMask ? saturate(splatCoverage.sample(s, in.uvCoords).a) : 0.0;
+  if (splat >= 0.999) {
+      return float4(sceneSample.rgb, sceneSample.a);
+  }
 
   if (enabled) {
       color *= exposure;
@@ -130,6 +141,6 @@ fragment float4 fragmentLookShader(
       color = sampleColorGradeLUT(color, colorGradeLUTTexture, colorGradeLUTDomainMin, colorGradeLUTDomainMax);
   }
 
-  return float4(color, sceneSample.a);
+  return float4(mix(color, sceneSample.rgb, splat), sceneSample.a);
 }
 

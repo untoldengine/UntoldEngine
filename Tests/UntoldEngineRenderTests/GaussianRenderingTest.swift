@@ -116,7 +116,7 @@ final class GaussianRenderingTest: BaseRenderSetup {
 
             let coveredPixels = masked.coverage.filter { $0 > 0.05 }.count
             XCTAssertGreaterThan(coveredPixels, 500, "\(name): the fixture's splats cover pixels (max coverage \(masked.coverage.max() ?? 0))")
-            var worstExcess: Float = 0, worstUncovered: Float = 0, worstWhole: Float = 0, bestReduction: Float = 0, largestUnmasked: Float = 0
+            var worstExcess: Float = 0, worstUncovered: Float = 0, worstWhole: Float = 0, bestHoldBack: Float = 0, filteredCovered = 0
             for index in masked.coverage.indices {
                 let coverage = masked.coverage[index]
                 let maskedMove = simd_reduce_max(simd_abs(masked.output[index] - masked.source[index]))
@@ -128,19 +128,72 @@ final class GaussianRenderingTest: BaseRenderSetup {
                     // The filter moves the pixel by (1 − coverage) of its unmasked move, up to
                     // half-float rounding of the two samples.
                     worstExcess = max(worstExcess, maskedMove - (1 - coverage) * unmaskedMove)
-                    bestReduction = max(bestReduction, unmaskedMove - maskedMove)
-                    largestUnmasked = max(largestUnmasked, unmaskedMove)
+                    // The mix holds back coverage × the unmasked move of a pixel the filter
+                    // changed; the best pixel's share of that says the mask is bound at all.
+                    if unmaskedMove > 1e-3 {
+                        filteredCovered += 1
+                        bestHoldBack = max(bestHoldBack, (unmaskedMove - maskedMove) / (coverage * unmaskedMove))
+                    }
                 }
             }
-            // The filter moves some covered pixel (SMAA barely, on this fixture's soft blobs), and
-            // the mask holds at least half of the largest such move back: a mask that is not
-            // bound, or a metallib without it, holds nothing back.
-            XCTAssertGreaterThan(largestUnmasked, 1e-4, "\(name): the unmasked filter changes a covered pixel")
-            XCTAssertGreaterThanOrEqual(bestReduction, 0.5 * largestUnmasked, "\(name): the mask holds a covered pixel back from the filter (a mask that is not bound moves nothing)")
+            // The filter changes some covered pixel (SMAA few, on this fixture's soft blobs), and
+            // on the best of them the mask holds back close to its whole share, coverage × the
+            // move: a mask that is not bound, or a metallib without it, holds back nothing.
+            XCTAssertGreaterThan(filteredCovered, 0, "\(name): the unmasked filter changes a covered pixel")
+            XCTAssertGreaterThanOrEqual(bestHoldBack, 0.75, "\(name): the mask holds a covered pixel back from the filter by its coverage (a mask that is not bound holds back nothing)")
             XCTAssertLessThanOrEqual(worstExcess, 4e-3, "\(name): a covered pixel moves by at most (1 − coverage) of the unmasked move")
             XCTAssertLessThanOrEqual(worstWhole, 1e-6, "\(name): a fully covered pixel leaves the pass as it entered")
             XCTAssertLessThanOrEqual(worstUncovered, 4e-3, "\(name): an uncovered pixel is filtered the same either way")
         }
+    }
+
+    /// The look pass (grade, tone map) leaves a splat pixel as the pre-composite made it, in
+    /// proportion to the coverage: rendered with the coverage mask (the default) and with
+    /// `toneMapSplatPixels`, the old behaviour, the masked pass moves a covered pixel from its
+    /// input by at most (1 − coverage) of the unmasked move, holds the best covered pixel back
+    /// by close to its whole share, and moves an uncovered pixel the same either way.
+    func testToneMapLeavesSplatPixelsUntouched() throws {
+        let savedSwitch = GaussianDebugOptions.shared.toneMapSplatPixels
+        defer { GaussianDebugOptions.shared.toneMapSplatPixels = savedSwitch }
+
+        func frame() throws -> (input: [SIMD4<Float>], output: [SIMD4<Float>], coverage: [Float]) {
+            for _ in 0 ..< 3 {
+                renderer.draw(in: renderer.metalView)
+                renderInfo.lastCommandBuffer?.waitUntilCompleted()
+            }
+            let input = try XCTUnwrap(textureResources.sceneCompositeTexture, "the look pass's input")
+            let output = try XCTUnwrap(textureResources.lookTexture, "the look pass's output")
+            let map = try XCTUnwrap(textureResources.gaussianColorMap)
+            return try (XCTUnwrap(Self.pixels(of: input)), XCTUnwrap(Self.pixels(of: output)), XCTUnwrap(Self.pixels(of: map)).map(\.w))
+        }
+        GaussianDebugOptions.shared.toneMapSplatPixels = false
+        let masked = try frame()
+        GaussianDebugOptions.shared.toneMapSplatPixels = true
+        let unmasked = try frame()
+        XCTAssertEqual(masked.coverage.count, unmasked.coverage.count)
+
+        func move(_ f: (input: [SIMD4<Float>], output: [SIMD4<Float>], coverage: [Float]), _ index: Int) -> Float {
+            let a = f.input[index], b = f.output[index]
+            return simd_reduce_max(simd_abs(SIMD3(a.x, a.y, a.z) - SIMD3(b.x, b.y, b.z)))
+        }
+        var worstExcess: Float = 0, worstUncovered: Float = 0, bestHoldBack: Float = 0, mappedCovered = 0
+        for index in masked.coverage.indices {
+            let coverage = masked.coverage[index]
+            let maskedMove = move(masked, index), unmaskedMove = move(unmasked, index)
+            if coverage <= 0 {
+                worstUncovered = max(worstUncovered, abs(maskedMove - unmaskedMove))
+            } else {
+                worstExcess = max(worstExcess, maskedMove - (1 - coverage) * unmaskedMove)
+                if unmaskedMove > 1e-3 {
+                    mappedCovered += 1
+                    bestHoldBack = max(bestHoldBack, (unmaskedMove - maskedMove) / (coverage * unmaskedMove))
+                }
+            }
+        }
+        XCTAssertGreaterThan(mappedCovered, 100, "the tone map changes covered pixels when let through")
+        XCTAssertLessThanOrEqual(worstExcess, 4e-3, "a covered pixel moves by at most (1 − coverage) of the unmasked move")
+        XCTAssertGreaterThanOrEqual(bestHoldBack, 0.75, "the mask holds a covered pixel back from the tone map by its coverage")
+        XCTAssertLessThanOrEqual(worstUncovered, 4e-3, "an uncovered pixel is tone-mapped the same either way")
     }
 
     /// The per-pixel blend cap reaches the shader: a cap of one splat per pixel drops every

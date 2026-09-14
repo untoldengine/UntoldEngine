@@ -275,6 +275,17 @@ typedef enum {
     tonemapOperatorAgX = 1,
 } TonemapOperatorID;
 
+// The Gaussian pass's coverage on the look pass: a splat pixel is display-referred already
+// (blended in the capture's own space, decoded once in the pre-composite) and keeps its colour
+// through the grade and the tone map in proportion to the coverage.
+typedef enum {
+    lookPassSplatCoverageTextureIndex = 3,   // texture(0..2) above
+} LookPassSplatTextureIndices;
+
+typedef enum {
+    lookPassSplatMaskIndex = 15,   // starts after TonemapSelectBufferIndices (14)
+} LookPassSplatBufferIndices;
+
 typedef enum{
     colorCorrectionPassColorTextureIndex,
     colorCorrectionPassTemperatureIndex,

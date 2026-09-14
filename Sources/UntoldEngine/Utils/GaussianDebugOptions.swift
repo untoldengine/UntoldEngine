@@ -23,6 +23,7 @@ public final class GaussianDebugOptions: @unchecked Sendable {
     private var _disableOpaqueDepthTest = false
     private var _disableBlendCap = false
     private var _antiAliasSplatPixels = false
+    private var _toneMapSplatPixels = false
     private var _disableOccluderShell = false
     private var _disableChunkCull = false
     private var _disableWorkingSetBudget = false
@@ -54,6 +55,14 @@ public final class GaussianDebugOptions: @unchecked Sendable {
     public var antiAliasSplatPixels: Bool {
         get { lock.lock(); defer { lock.unlock() }; return _antiAliasSplatPixels }
         set { lock.lock(); _antiAliasSplatPixels = newValue; lock.unlock() }
+    }
+
+    /// Lets the look pass grade and tone-map splat pixels like everything else — the behaviour
+    /// before it read the Gaussian coverage — for an A/B of what the tone map takes from a
+    /// capture (a lifted, flattened image: a capture is display-referred already).
+    public var toneMapSplatPixels: Bool {
+        get { lock.lock(); defer { lock.unlock() }; return _toneMapSplatPixels }
+        set { lock.lock(); _toneMapSplatPixels = newValue; lock.unlock() }
     }
 
     /// Lifts the per-pixel cap on blended splats (`GaussianRuntimeLimits.maxBlendedSplatsPerPixel`) to the
