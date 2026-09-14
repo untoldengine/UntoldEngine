@@ -442,7 +442,7 @@ final class UntoldGSCookerEquivalenceTests: XCTestCase {
         XCTAssertEqual(file.header.shDegree, 3)
         XCTAssertTrue(file.header.hasCoarseLevels, "69-odd chunks of 16: the automatic section")
         XCTAssertEqual(file.index.coarseRatioLog2, [3, 4])
-        XCTAssertEqual(try sha256(transformed.tiers[0].streamed), "e3dc509c394c4428389a6b43dc435489f861d6cb1fc9bbe5948ff21d097776c4")
+        XCTAssertEqual(try sha256(transformed.tiers[0].streamed), "c2371f6b1001c207ee6139c78a44a16e52b28aa40702a50c309d2de851f3f0a5")
         try bakeBothWays(ply: ply, name: "capture-tiers", lodFractions: [1.0, 0.5], options: transformedOptions)
 
         let budgeted = try bakeBothWays(ply: ply, name: "budget", lodFractions: [1.0], options: budgetedOptions)
@@ -494,7 +494,7 @@ final class UntoldGSCookerEquivalenceTests: XCTestCase {
         XCTAssertEqual(try PLYReader.readGaussianSplatCount(from: ply), 1100)
         let output = temporaryDirectory.appendingPathComponent("capture-be.untoldgs")
         _ = try bakeGaussianSplatProgressiveTiers(plyURL: ply, outputBaseURL: output, lodFractions: [1.0], cookOptions: transformedOptions)
-        XCTAssertEqual(try sha256(output), "e3dc509c394c4428389a6b43dc435489f861d6cb1fc9bbe5948ff21d097776c4")
+        XCTAssertEqual(try sha256(output), "c2371f6b1001c207ee6139c78a44a16e52b28aa40702a50c309d2de851f3f0a5")
     }
 
     // MARK: - Many windows
@@ -513,7 +513,7 @@ final class UntoldGSCookerEquivalenceTests: XCTestCase {
             XCTAssertEqual(try PLYGaussianSource(url: ply, windowing: windowing).layout.stride, captureStride)
 
             let transformed = try bakeBothWays(ply: ply, name: "\(name)-w64", lodFractions: [1.0], options: transformedOptions, windowing: windowing, windows: 18)
-            XCTAssertEqual(try sha256(transformed.tiers[0].streamed), "e3dc509c394c4428389a6b43dc435489f861d6cb1fc9bbe5948ff21d097776c4", "the same file as through one window")
+            XCTAssertEqual(try sha256(transformed.tiers[0].streamed), "c2371f6b1001c207ee6139c78a44a16e52b28aa40702a50c309d2de851f3f0a5", "the same file as through one window")
             try bakeBothWays(ply: ply, name: "\(name)-w64-tiers", lodFractions: [1.0, 0.5], options: transformedOptions, windowing: windowing, windows: 18)
 
             let budgeted = try bakeBothWays(ply: ply, name: "\(name)-w64-budget", lodFractions: [1.0], options: budgetedOptions, windowing: windowing, windows: 18)

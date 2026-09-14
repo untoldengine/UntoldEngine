@@ -553,7 +553,8 @@ enum GaussianSyntheticAsset {
     /// fine chunks byte for byte plus the per-chunk coarse section those options bake
     /// (per-chunk-lod-tiers), cached under its own name.
     static func url(splatCount: Int, coarseLevels: UntoldGSCoarseLevelOptions? = nil) throws -> URL {
-        var name = "GaussianSyntheticAsset-\(splatCount)-v1"
+        // v2: the coarsener averages colours in the blend space (2026-09).
+        var name = "GaussianSyntheticAsset-\(splatCount)-v2"
         if let coarseLevels {
             name += "-coarse\(coarseLevels.levelCount)-" + coarseLevels.ratioLog2.prefix(coarseLevels.levelCount).map(String.init).joined(separator: "_")
         }
