@@ -1076,12 +1076,14 @@ typedef enum{
     fxaaPassEnabledIndex,
     fxaaPassSubpixelIndex,
     fxaaPassEdgeThresholdIndex,
-    fxaaPassEdgeThresholdMinIndex
+    fxaaPassEdgeThresholdMinIndex,
+    fxaaPassSplatMaskIndex          // non-zero: texture(1) is the Gaussian pass's coverage, kept un-filtered
 }FXAABufferIndices;
 
 typedef enum{
     smaaPassTexelSizeIndex,
-    smaaPassEdgeThresholdIndex
+    smaaPassEdgeThresholdIndex,
+    smaaPassSplatMaskIndex          // non-zero: the neighbourhood pass's texture(2) is the Gaussian coverage
 }SMAABufferIndices;
 
 // Transparency

@@ -469,7 +469,9 @@ fragment float4 fragmentSMAANeighborhoodShader(
     VertexCompositeOutput in             [[stage_in]],
     texture2d<float>      colorTexture   [[texture(0)]],
     texture2d<float>      blendTexture   [[texture(1)]],
-    constant float2      &texelSize      [[buffer(smaaPassTexelSizeIndex)]]
+    constant float2      &texelSize      [[buffer(smaaPassTexelSizeIndex)]],
+    texture2d<float>      splatCoverage  [[texture(2)]],
+    constant int         &splatMask      [[buffer(smaaPassSplatMaskIndex)]]
 ) {
     constexpr sampler s(min_filter::linear, mag_filter::linear, address::clamp_to_edge);
 
@@ -482,7 +484,10 @@ fragment float4 fragmentSMAANeighborhoodShader(
     a.w = blendTexture.sample(s, texcoord).r; // Bottom
 
     float4 center = colorTexture.sample(s, texcoord);
-    if (dot(a, float4(1.0)) < 1e-5) {
+    // Splat pixels keep their blended colour (see fragmentFXAAShader): the splat pass's
+    // coverage, bound as splatCoverage when splatMask is set, weights the blend away.
+    const float splat = splatMask ? saturate(splatCoverage.sample(s, texcoord).a) : 0.0;
+    if (dot(a, float4(1.0)) < 1e-5 || splat >= 0.999) {
         return center;
     }
 
@@ -498,6 +503,7 @@ fragment float4 fragmentSMAANeighborhoodShader(
     float4 blendingCoord = texcoord.xyxy + blendingOffset * texelSize.xyxy * float4(1.0, -1.0, 1.0, -1.0);
     float4 mixedColor = blendingWeight.x * colorTexture.sample(s, blendingCoord.xy);
     mixedColor += blendingWeight.y * colorTexture.sample(s, blendingCoord.zw);
+    mixedColor = mix(mixedColor, center, splat);
     mixedColor.a = center.a;
     return mixedColor;
 }

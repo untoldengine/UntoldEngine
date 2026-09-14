@@ -1226,6 +1226,13 @@ func fxaaCustomization(encoder: MTLRenderCommandEncoder) {
     var edgeThresholdMin = FXAAParams.shared.edgeThresholdMin
     encoder.setFragmentBytes(&edgeThresholdMin, length: MemoryLayout<Float>.stride,
                              index: Int(fxaaPassEdgeThresholdMinIndex.rawValue))
+
+    // The Gaussian pass's coverage (the alpha of its colour map, cleared and drawn every
+    // frame) keeps splat pixels un-filtered: their fine structure is not aliasing.
+    var splatMask = Int32(textureResources.gaussianColorMap != nil && !GaussianDebugOptions.shared.antiAliasSplatPixels ? 1 : 0)
+    encoder.setFragmentTexture(textureResources.gaussianColorMap, index: 1)
+    encoder.setFragmentBytes(&splatMask, length: MemoryLayout<Int32>.stride,
+                             index: Int(fxaaPassSplatMaskIndex.rawValue))
 }
 
 func smaaEdgesCustomization(encoder: MTLRenderCommandEncoder) {
@@ -1278,6 +1285,12 @@ func smaaNeighborhoodCustomization(
     )
 
     encoder.setFragmentTexture(blendTexture, index: 1)
+
+    // As in fxaaCustomization: splat pixels keep their blended colour.
+    var splatMask = Int32(textureResources.gaussianColorMap != nil && !GaussianDebugOptions.shared.antiAliasSplatPixels ? 1 : 0)
+    encoder.setFragmentTexture(textureResources.gaussianColorMap, index: 2)
+    encoder.setFragmentBytes(&splatMask, length: MemoryLayout<Int32>.stride,
+                             index: Int(smaaPassSplatMaskIndex.rawValue))
 }
 
 func outputTransformCustomization(encoder: MTLRenderCommandEncoder) {
