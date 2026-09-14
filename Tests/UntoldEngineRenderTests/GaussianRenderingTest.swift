@@ -77,20 +77,20 @@ final class GaussianRenderingTest: BaseRenderSetup {
 
     // MARK: - Anti-aliasing leaves splat pixels alone
 
-    /// FXAA keeps a splat pixel as the splat pass blended it: the pass reads the Gaussian
-    /// coverage and mixes the filtered colour back towards the source by it. Rendered twice —
-    /// with the coverage mask (the default) and with `antiAliasSplatPixels`, the filter's old
-    /// behaviour — the masked output moves a covered pixel away from its source by at most
-    /// (1 − coverage) of what the unmasked filter moved it, a fully covered pixel not at all,
-    /// and an uncovered pixel the same either way.
-    func testFXAALeavesSplatPixelsUntouched() throws {
+    /// FXAA and SMAA keep a splat pixel as the splat pass blended it: the passes read the
+    /// Gaussian coverage and mix the filtered colour back towards the source by it. Rendered
+    /// twice per mode — with the coverage mask (the default) and with `antiAliasSplatPixels`,
+    /// the filters' old behaviour — the masked output moves a covered pixel away from its
+    /// source by at most (1 − coverage) of what the unmasked filter moved it, a fully covered
+    /// pixel not at all, an uncovered pixel the same either way, and the mask holds back a
+    /// measurable amount somewhere (a mask that is silently not bound cannot pass).
+    func testAntiAliasingLeavesSplatPixelsUntouched() throws {
         let savedMode = antiAliasingMode
         let savedSwitch = GaussianDebugOptions.shared.antiAliasSplatPixels
         defer {
             antiAliasingMode = savedMode
             GaussianDebugOptions.shared.antiAliasSplatPixels = savedSwitch
         }
-        antiAliasingMode = .fxaa
 
         func frame() throws -> (source: [SIMD4<Float>], output: [SIMD4<Float>], coverage: [Float]) {
             for _ in 0 ..< 3 {
@@ -102,35 +102,73 @@ final class GaussianRenderingTest: BaseRenderSetup {
             let map = try XCTUnwrap(textureResources.gaussianColorMap, "the Gaussian pass's colour map")
             XCTAssertEqual(look.width, antiAliased.width)
             XCTAssertEqual(look.width, map.width)
-            return (try XCTUnwrap(Self.pixels(of: look)), try XCTUnwrap(Self.pixels(of: antiAliased)), try XCTUnwrap(Self.pixels(of: map)).map(\.w))
+            return try (XCTUnwrap(Self.pixels(of: look)), XCTUnwrap(Self.pixels(of: antiAliased)), XCTUnwrap(Self.pixels(of: map)).map(\.w))
         }
-        GaussianDebugOptions.shared.antiAliasSplatPixels = false
-        let masked = try frame()
-        GaussianDebugOptions.shared.antiAliasSplatPixels = true
-        let unmasked = try frame()
-        XCTAssertEqual(masked.coverage.count, unmasked.coverage.count)
 
-        let coveredPixels = masked.coverage.filter { $0 > 0.05 }.count
-        XCTAssertGreaterThan(coveredPixels, 500, "the fixture's splats cover pixels (max coverage \(masked.coverage.max() ?? 0))")
-        var filteredCovered = 0, worstExcess: Float = 0, worstUncovered: Float = 0, worstWhole: Float = 0
-        for index in masked.coverage.indices {
-            let coverage = masked.coverage[index]
-            let maskedMove = simd_reduce_max(simd_abs(masked.output[index] - masked.source[index]))
-            let unmaskedMove = simd_reduce_max(simd_abs(unmasked.output[index] - unmasked.source[index]))
-            if coverage <= 0 {
-                worstUncovered = max(worstUncovered, abs(maskedMove - unmaskedMove))
-            } else {
-                if unmaskedMove > 1e-4 { filteredCovered += 1 }
-                if coverage >= 0.999 { worstWhole = max(worstWhole, maskedMove) }
-                // The filter moves the pixel by (1 − coverage) of its unmasked move, up to
-                // half-float rounding of the two samples.
-                worstExcess = max(worstExcess, maskedMove - (1 - coverage) * unmaskedMove)
+        for mode in [AntiAliasingMode.fxaa, .smaa] {
+            let name = "\(mode)"
+            antiAliasingMode = mode
+            GaussianDebugOptions.shared.antiAliasSplatPixels = false
+            let masked = try frame()
+            GaussianDebugOptions.shared.antiAliasSplatPixels = true
+            let unmasked = try frame()
+            XCTAssertEqual(masked.coverage.count, unmasked.coverage.count)
+
+            let coveredPixels = masked.coverage.filter { $0 > 0.05 }.count
+            XCTAssertGreaterThan(coveredPixels, 500, "\(name): the fixture's splats cover pixels (max coverage \(masked.coverage.max() ?? 0))")
+            var worstExcess: Float = 0, worstUncovered: Float = 0, worstWhole: Float = 0, bestReduction: Float = 0, largestUnmasked: Float = 0
+            for index in masked.coverage.indices {
+                let coverage = masked.coverage[index]
+                let maskedMove = simd_reduce_max(simd_abs(masked.output[index] - masked.source[index]))
+                let unmaskedMove = simd_reduce_max(simd_abs(unmasked.output[index] - unmasked.source[index]))
+                if coverage <= 0 {
+                    worstUncovered = max(worstUncovered, abs(maskedMove - unmaskedMove))
+                } else {
+                    if coverage >= 0.999 { worstWhole = max(worstWhole, maskedMove) }
+                    // The filter moves the pixel by (1 − coverage) of its unmasked move, up to
+                    // half-float rounding of the two samples.
+                    worstExcess = max(worstExcess, maskedMove - (1 - coverage) * unmaskedMove)
+                    bestReduction = max(bestReduction, unmaskedMove - maskedMove)
+                    largestUnmasked = max(largestUnmasked, unmaskedMove)
+                }
             }
+            // The filter moves some covered pixel (SMAA barely, on this fixture's soft blobs), and
+            // the mask holds at least half of the largest such move back: a mask that is not
+            // bound, or a metallib without it, holds nothing back.
+            XCTAssertGreaterThan(largestUnmasked, 1e-4, "\(name): the unmasked filter changes a covered pixel")
+            XCTAssertGreaterThanOrEqual(bestReduction, 0.5 * largestUnmasked, "\(name): the mask holds a covered pixel back from the filter (a mask that is not bound moves nothing)")
+            XCTAssertLessThanOrEqual(worstExcess, 4e-3, "\(name): a covered pixel moves by at most (1 − coverage) of the unmasked move")
+            XCTAssertLessThanOrEqual(worstWhole, 1e-6, "\(name): a fully covered pixel leaves the pass as it entered")
+            XCTAssertLessThanOrEqual(worstUncovered, 4e-3, "\(name): an uncovered pixel is filtered the same either way")
         }
-        XCTAssertGreaterThan(filteredCovered, 0, "the filter would have changed covered pixels; the mask has something to keep")
-        XCTAssertLessThanOrEqual(worstExcess, 4e-3, "a covered pixel moves by at most (1 − coverage) of the unmasked move")
-        XCTAssertLessThanOrEqual(worstWhole, 1e-6, "a fully covered pixel leaves the pass as it entered")
-        XCTAssertLessThanOrEqual(worstUncovered, 4e-3, "an uncovered pixel is filtered the same either way")
+    }
+
+    /// The per-pixel blend cap reaches the shader: a cap of one splat per pixel drops every
+    /// overlap on the fixture, while the Mac figure and no cap draw it the same, the fixture
+    /// never stacking that many splats on a pixel.
+    func testBlendCapReachesTheShader() throws {
+        let saved = GaussianRuntimeLimits.maxBlendedSplatsPerPixelOverride
+        defer { GaussianRuntimeLimits.maxBlendedSplatsPerPixelOverride = saved }
+
+        func layer() throws -> [SIMD4<Float>] {
+            for _ in 0 ..< 2 {
+                renderer.draw(in: renderer.metalView)
+                renderInfo.lastCommandBuffer?.waitUntilCompleted()
+            }
+            return try XCTUnwrap(Self.pixels(of: XCTUnwrap(textureResources.gaussianColorMap)))
+        }
+        func differing(_ a: [SIMD4<Float>], _ b: [SIMD4<Float>]) -> Int {
+            zip(a, b).reduce(0) { $0 + (simd_reduce_max(simd_abs($1.0 - $1.1)) > 1.0 / 255 ? 1 : 0) }
+        }
+        GaussianRuntimeLimits.maxBlendedSplatsPerPixelOverride = 255
+        let unlimited = try layer()
+        XCTAssertGreaterThan(unlimited.filter { $0.w > 0.05 }.count, 500, "the fixture covers pixels")
+        GaussianRuntimeLimits.maxBlendedSplatsPerPixelOverride = GaussianRuntimeLimits.maxBlendedSplatsPerPixelMac
+        let mac = try layer()
+        XCTAssertEqual(differing(mac, unlimited), 0, "the Mac cap and no cap draw the fixture the same")
+        GaussianRuntimeLimits.maxBlendedSplatsPerPixelOverride = 1
+        let one = try layer()
+        XCTAssertGreaterThan(differing(one, unlimited), 100, "a cap of one splat per pixel drops every overlap: the cap reaches the shader")
     }
 
     /// A CPU copy of a viewport texture as float RGBA, blitted through a shared texture.

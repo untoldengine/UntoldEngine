@@ -30,11 +30,11 @@ final class GaussianRuntimeLimitsTests: XCTestCase {
     func test_blendCapIsThePlatformFigureUntilOverridden() {
         #if os(macOS)
             XCTAssertEqual(GaussianRuntimeLimits.maxBlendedSplatsPerPixel, GaussianRuntimeLimits.maxBlendedSplatsPerPixelMac)
-            XCTAssertEqual(GaussianRuntimeLimits.maxBlendedSplatsPerPixelMac, 128)
         #else
             XCTAssertEqual(GaussianRuntimeLimits.maxBlendedSplatsPerPixel, GaussianRuntimeLimits.maxBlendedSplatsPerPixelMobile)
         #endif
         XCTAssertEqual(GaussianRuntimeLimits.maxBlendedSplatsPerPixelMobile, 64)
+        XCTAssertEqual(GaussianRuntimeLimits.maxBlendedSplatsPerPixelMac, 128)
         XCTAssertLessThanOrEqual(GaussianRuntimeLimits.maxBlendedSplatsPerPixelMac, 255, "the shader counts in a byte")
 
         GaussianRuntimeLimits.maxBlendedSplatsPerPixelOverride = 96

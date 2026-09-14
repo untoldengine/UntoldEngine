@@ -1227,9 +1227,10 @@ func fxaaCustomization(encoder: MTLRenderCommandEncoder) {
     encoder.setFragmentBytes(&edgeThresholdMin, length: MemoryLayout<Float>.stride,
                              index: Int(fxaaPassEdgeThresholdMinIndex.rawValue))
 
-    // The Gaussian pass's coverage (the alpha of its colour map, cleared and drawn every
-    // frame) keeps splat pixels un-filtered: their fine structure is not aliasing.
-    var splatMask = Int32(textureResources.gaussianColorMap != nil && !GaussianDebugOptions.shared.antiAliasSplatPixels ? 1 : 0)
+    // The Gaussian pass's coverage (the alpha of its colour map, cleared and drawn by the
+    // pass) keeps splat pixels un-filtered: their fine structure is not aliasing. A frame the
+    // pass skipped (the simulator, no camera) leaves the map alone and the mask off.
+    var splatMask = Int32(renderInfo.gaussianCoverageWritten && textureResources.gaussianColorMap != nil && !GaussianDebugOptions.shared.antiAliasSplatPixels ? 1 : 0)
     encoder.setFragmentTexture(textureResources.gaussianColorMap, index: 1)
     encoder.setFragmentBytes(&splatMask, length: MemoryLayout<Int32>.stride,
                              index: Int(fxaaPassSplatMaskIndex.rawValue))
@@ -1287,7 +1288,7 @@ func smaaNeighborhoodCustomization(
     encoder.setFragmentTexture(blendTexture, index: 1)
 
     // As in fxaaCustomization: splat pixels keep their blended colour.
-    var splatMask = Int32(textureResources.gaussianColorMap != nil && !GaussianDebugOptions.shared.antiAliasSplatPixels ? 1 : 0)
+    var splatMask = Int32(renderInfo.gaussianCoverageWritten && textureResources.gaussianColorMap != nil && !GaussianDebugOptions.shared.antiAliasSplatPixels ? 1 : 0)
     encoder.setFragmentTexture(textureResources.gaussianColorMap, index: 2)
     encoder.setFragmentBytes(&splatMask, length: MemoryLayout<Int32>.stride,
                              index: Int(smaaPassSplatMaskIndex.rawValue))
