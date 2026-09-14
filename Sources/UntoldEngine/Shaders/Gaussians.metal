@@ -70,6 +70,10 @@ constant float kGaussianAlphaDiscardThreshold = 1.0f / 255.0f;
 // but in low-per-splat-opacity regions that can take a while to converge (e.g. opacity ~0.3
 // needs ~20 splats to reach 0.999). This caps the worst case directly: trades a small amount
 // of accuracy in pathologically dense overlap regions for a hard bound on the serial chain.
+// The frame's cap arrives in GaussianTBDRDrawDebug.maxBlendedSplatsPerPixel
+// (GaussianRuntimeLimits.maxBlendedSplatsPerPixel: 64 on mobile, 128 on a Mac, where a capture
+// whose splats are mostly faint needs more than 64 to saturate a pixel); this is the mobile
+// figure, kept for the derivations above.
 constant uchar kGaussianMaxBlendedSplatsPerPixel = 64;
 
 inline uint unpackIndex(uint64_t packed)  { return (uint)(packed & 0xffffffffu); }

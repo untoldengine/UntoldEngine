@@ -77,6 +77,29 @@ public enum GaussianRuntimeLimits {
         set { storage.override = newValue }
     }
 
+    /// The most splats the TBDR fragment shader blends into one pixel per frame
+    /// (`GaussianTBDRDrawDebug.maxBlendedSplatsPerPixel`): a hard bound on the serial blend
+    /// chain behind a pixel. A capture whose splats are mostly faint needs many of them to
+    /// saturate a pixel — about 65 at a median opacity of 0.1 — so the mobile bound clips such
+    /// captures; the Mac doubles it. Never above 255, the shader counter's range.
+    public static let maxBlendedSplatsPerPixelMobile = 64
+    public static let maxBlendedSplatsPerPixelMac = 128
+
+    public static var maxBlendedSplatsPerPixel: Int {
+        if let override = storage.maxBlendedSplatsPerPixelOverride { return override }
+        #if os(macOS)
+            return maxBlendedSplatsPerPixelMac
+        #else
+            return maxBlendedSplatsPerPixelMobile
+        #endif
+    }
+
+    /// Replaces the default per-pixel blend cap, clamped to 1 ... 255; nil restores it.
+    public static var maxBlendedSplatsPerPixelOverride: Int? {
+        get { storage.maxBlendedSplatsPerPixelOverride }
+        set { storage.maxBlendedSplatsPerPixelOverride = newValue.map { min(255, max(1, $0)) } }
+    }
+
     /// The density floor of the per-chunk level rule (per-chunk-lod-tiers): a chunk of a
     /// `.untoldgs` entity with coarse levels that would draw more than this many fine splats per
     /// pixel of the viewport draws a coarse level instead even when the frame fits the working
@@ -100,6 +123,12 @@ public enum GaussianRuntimeLimits {
         private let lock = NSLock()
         private var _override: Int?
         private var _maxSplatsPerPixelOverride: Float?
+        private var _maxBlendedSplatsPerPixelOverride: Int?
+        var maxBlendedSplatsPerPixelOverride: Int? {
+            get { lock.lock(); defer { lock.unlock() }; return _maxBlendedSplatsPerPixelOverride }
+            set { lock.lock(); _maxBlendedSplatsPerPixelOverride = newValue; lock.unlock() }
+        }
+
         var override: Int? {
             get { lock.lock(); defer { lock.unlock() }; return _override }
             set { lock.lock(); _override = newValue.map { max(1, $0) }; lock.unlock() }

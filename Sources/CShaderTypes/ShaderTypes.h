@@ -700,7 +700,7 @@ typedef enum{
 
 /// Per-draw switches for the splat fragment shader, set from GaussianDebugOptions each frame.
 typedef struct{
-    uint32_t maxBlendedSplatsPerPixel;  // normally kGaussianMaxBlendedSplatsPerPixel (64); 255 lifts the cap
+    uint32_t maxBlendedSplatsPerPixel;  // GaussianRuntimeLimits.maxBlendedSplatsPerPixel (64 mobile, 128 Mac); 255 lifts the cap
     uint32_t skipOpaqueDepthTest;       // non-zero: never occlude splats by the opaque depth snapshot
 }GaussianTBDRDrawDebug;
 
