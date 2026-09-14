@@ -327,9 +327,12 @@ float3 computeCov2D(float4      splatCenter,
     // cov2D = Tᵀ Σ3D T
     float3x3 cov = transpose(T) * cov3D * T;
 
-    // Low-pass filter to ensure at least ~1 pixel extent
-    cov[0][0] += 0.1f;
-    cov[1][1] += 0.1f;
+    // Low-pass filter: the 0.3-pixel dilation of the reference rasterizer. A capture is
+    // trained against it, so a sub-pixel splat covers about a pixel here as it did there;
+    // a smaller dilation (0.1 until 2026-09) draws every splat thinner than it was fitted,
+    // which reads as streaks and gaps on a surface.
+    cov[0][0] += 0.3f;
+    cov[1][1] += 0.3f;
 
     // Pack symmetric 2×2 into (a, b, c)
     return float3(cov[0][0], cov[0][1], cov[1][1]);
