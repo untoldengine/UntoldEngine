@@ -48,7 +48,14 @@ public final class GaussianDebugOptions: @unchecked Sendable {
         set { lock.lock(); _disableOpaqueDepthTest = newValue; lock.unlock() }
     }
 
-    /// Lifts the per-pixel cap on blended splats (`kGaussianMaxBlendedSplatsPerPixel`) to the
+    /// Lets FXAA and SMAA filter splat pixels like everything else — the behaviour before the
+    /// passes read the Gaussian coverage — for an A/B of what the filters take from a capture.
+    public var antiAliasSplatPixels: Bool {
+        get { lock.lock(); defer { lock.unlock() }; return _antiAliasSplatPixels }
+        set { lock.lock(); _antiAliasSplatPixels = newValue; lock.unlock() }
+    }
+
+    /// Lifts the per-pixel cap on blended splats (`GaussianRuntimeLimits.maxBlendedSplatsPerPixel`) to the
     /// counter's maximum, so every sorted splat that reaches a pixel is blended.
     public var disableBlendCap: Bool {
         get { lock.lock(); defer { lock.unlock() }; return _disableBlendCap }
@@ -153,14 +160,11 @@ public final class GaussianDebugOptions: @unchecked Sendable {
     /// The per-draw constants the splat fragment shader reads (see `GaussianTBDRDrawDebug`).
     var drawConstants: GaussianTBDRDrawDebug {
         var constants = GaussianTBDRDrawDebug()
-        constants.maxBlendedSplatsPerPixel = disableBlendCap ? 255 : UInt32(kGaussianMaxBlendedSplatsPerPixelDefault)
+        constants.maxBlendedSplatsPerPixel = disableBlendCap ? 255 : UInt32(GaussianRuntimeLimits.maxBlendedSplatsPerPixel)
         constants.skipOpaqueDepthTest = disableOpaqueDepthTest ? 1 : 0
         return constants
     }
 }
-
-/// Mirrors `kGaussianMaxBlendedSplatsPerPixel` in Gaussians.metal — the normal per-pixel cap.
-let kGaussianMaxBlendedSplatsPerPixelDefault = 64
 
 /// The level modes of `GaussianDebugOptions.gaussianLevelMode`
 /// (`GaussianChunkLevelConstants.levelMode`, `GaussianChunkLevelMode` in ShaderTypes.h).
