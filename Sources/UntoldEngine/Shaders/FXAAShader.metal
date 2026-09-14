@@ -40,14 +40,20 @@ fragment float4 fragmentFXAAShader(
     constant int         &enabled         [[buffer(fxaaPassEnabledIndex)]],
     constant float       &subpixelQuality [[buffer(fxaaPassSubpixelIndex)]],
     constant float       &edgeThreshold   [[buffer(fxaaPassEdgeThresholdIndex)]],
-    constant float       &edgeThresholdMin[[buffer(fxaaPassEdgeThresholdMinIndex)]]
+    constant float       &edgeThresholdMin[[buffer(fxaaPassEdgeThresholdMinIndex)]],
+    texture2d<float>      splatCoverage   [[texture(1)]],
+    constant int         &splatMask       [[buffer(fxaaPassSplatMaskIndex)]]
 ) {
     constexpr sampler s(min_filter::linear, mag_filter::linear, address::clamp_to_edge);
 
     float2 uv    = in.uvCoords;
     float4 center = colorTexture.sample(s, uv);  // preserve alpha throughout
 
-    if (!enabled) return center;
+    // A Gaussian splat image has no geometric edge to smooth, only fine structure the filter
+    // would blur, so a pixel keeps its blended colour in proportion to the splat pass's
+    // coverage (the alpha of its colour map, bound as splatCoverage when splatMask is set).
+    const float splat = splatMask ? saturate(splatCoverage.sample(s, uv).a) : 0.0;
+    if (!enabled || splat >= 0.999) return center;
 
     // --- Cardinal neighbors (sampled as float4 to check alpha) ---
     const float kAlpha = 0.1;
@@ -171,7 +177,7 @@ fragment float4 fragmentFXAAShader(
     if (isH) finalUV.y += finalBlend * stepLen;
     else      finalUV.x += finalBlend * stepLen;
 
-    return colorTexture.sample(s, finalUV);
+    return mix(colorTexture.sample(s, finalUV), center, splat);
 }
 
 fragment float4 fragmentFXAAEdgeDebugShader(

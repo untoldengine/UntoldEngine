@@ -75,6 +75,103 @@ final class GaussianRenderingTest: BaseRenderSetup {
         wait(for: [expectation], timeout: TimeInterval(timeoutFactor))
     }
 
+    // MARK: - Anti-aliasing leaves splat pixels alone
+
+    /// FXAA keeps a splat pixel as the splat pass blended it: the pass reads the Gaussian
+    /// coverage and mixes the filtered colour back towards the source by it. Rendered twice —
+    /// with the coverage mask (the default) and with `antiAliasSplatPixels`, the filter's old
+    /// behaviour — the masked output moves a covered pixel away from its source by at most
+    /// (1 − coverage) of what the unmasked filter moved it, a fully covered pixel not at all,
+    /// and an uncovered pixel the same either way.
+    func testFXAALeavesSplatPixelsUntouched() throws {
+        let savedMode = antiAliasingMode
+        let savedSwitch = GaussianDebugOptions.shared.antiAliasSplatPixels
+        defer {
+            antiAliasingMode = savedMode
+            GaussianDebugOptions.shared.antiAliasSplatPixels = savedSwitch
+        }
+        antiAliasingMode = .fxaa
+
+        func frame() throws -> (source: [SIMD4<Float>], output: [SIMD4<Float>], coverage: [Float]) {
+            for _ in 0 ..< 3 {
+                renderer.draw(in: renderer.metalView)
+                renderInfo.lastCommandBuffer?.waitUntilCompleted()
+            }
+            let look = try XCTUnwrap(textureResources.lookTexture, "the look texture the pass reads")
+            let antiAliased = try XCTUnwrap(textureResources.antiAliasingTexture, "the pass's output")
+            let map = try XCTUnwrap(textureResources.gaussianColorMap, "the Gaussian pass's colour map")
+            XCTAssertEqual(look.width, antiAliased.width)
+            XCTAssertEqual(look.width, map.width)
+            return (try XCTUnwrap(Self.pixels(of: look)), try XCTUnwrap(Self.pixels(of: antiAliased)), try XCTUnwrap(Self.pixels(of: map)).map(\.w))
+        }
+        GaussianDebugOptions.shared.antiAliasSplatPixels = false
+        let masked = try frame()
+        GaussianDebugOptions.shared.antiAliasSplatPixels = true
+        let unmasked = try frame()
+        XCTAssertEqual(masked.coverage.count, unmasked.coverage.count)
+
+        let coveredPixels = masked.coverage.filter { $0 > 0.05 }.count
+        XCTAssertGreaterThan(coveredPixels, 500, "the fixture's splats cover pixels (max coverage \(masked.coverage.max() ?? 0))")
+        var filteredCovered = 0, worstExcess: Float = 0, worstUncovered: Float = 0, worstWhole: Float = 0
+        for index in masked.coverage.indices {
+            let coverage = masked.coverage[index]
+            let maskedMove = simd_reduce_max(simd_abs(masked.output[index] - masked.source[index]))
+            let unmaskedMove = simd_reduce_max(simd_abs(unmasked.output[index] - unmasked.source[index]))
+            if coverage <= 0 {
+                worstUncovered = max(worstUncovered, abs(maskedMove - unmaskedMove))
+            } else {
+                if unmaskedMove > 1e-4 { filteredCovered += 1 }
+                if coverage >= 0.999 { worstWhole = max(worstWhole, maskedMove) }
+                // The filter moves the pixel by (1 − coverage) of its unmasked move, up to
+                // half-float rounding of the two samples.
+                worstExcess = max(worstExcess, maskedMove - (1 - coverage) * unmaskedMove)
+            }
+        }
+        XCTAssertGreaterThan(filteredCovered, 0, "the filter would have changed covered pixels; the mask has something to keep")
+        XCTAssertLessThanOrEqual(worstExcess, 4e-3, "a covered pixel moves by at most (1 − coverage) of the unmasked move")
+        XCTAssertLessThanOrEqual(worstWhole, 1e-6, "a fully covered pixel leaves the pass as it entered")
+        XCTAssertLessThanOrEqual(worstUncovered, 4e-3, "an uncovered pixel is filtered the same either way")
+    }
+
+    /// A CPU copy of a viewport texture as float RGBA, blitted through a shared texture.
+    private static func pixels(of texture: MTLTexture) -> [SIMD4<Float>]? {
+        let descriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: texture.pixelFormat, width: texture.width, height: texture.height, mipmapped: false)
+        descriptor.storageMode = .shared
+        descriptor.usage = [.shaderRead]
+        guard let copy = texture.device.makeTexture(descriptor: descriptor),
+              let queue = texture.device.makeCommandQueue(),
+              let commandBuffer = queue.makeCommandBuffer(),
+              let blit = commandBuffer.makeBlitCommandEncoder()
+        else { return nil }
+        blit.copy(from: texture, to: copy)
+        blit.endEncoding()
+        commandBuffer.commit()
+        commandBuffer.waitUntilCompleted()
+        let count = texture.width * texture.height
+        let region = MTLRegionMake2D(0, 0, texture.width, texture.height)
+        switch texture.pixelFormat {
+        case .rgba16Float:
+            var raw = [Float16](repeating: 0, count: count * 4)
+            copy.getBytes(&raw, bytesPerRow: texture.width * 8, from: region, mipmapLevel: 0)
+            return (0 ..< count).map { SIMD4<Float>(Float(raw[$0 * 4]), Float(raw[$0 * 4 + 1]), Float(raw[$0 * 4 + 2]), Float(raw[$0 * 4 + 3])) }
+        case .rgba32Float:
+            var raw = [Float](repeating: 0, count: count * 4)
+            copy.getBytes(&raw, bytesPerRow: texture.width * 16, from: region, mipmapLevel: 0)
+            return (0 ..< count).map { SIMD4<Float>(raw[$0 * 4], raw[$0 * 4 + 1], raw[$0 * 4 + 2], raw[$0 * 4 + 3]) }
+        case .bgra8Unorm, .bgra8Unorm_srgb, .rgba8Unorm, .rgba8Unorm_srgb:
+            var raw = [UInt8](repeating: 0, count: count * 4)
+            copy.getBytes(&raw, bytesPerRow: texture.width * 4, from: region, mipmapLevel: 0)
+            let swapped = texture.pixelFormat == .bgra8Unorm || texture.pixelFormat == .bgra8Unorm_srgb
+            return (0 ..< count).map {
+                let r = Float(raw[$0 * 4 + (swapped ? 2 : 0)]) / 255, g = Float(raw[$0 * 4 + 1]) / 255
+                let b = Float(raw[$0 * 4 + (swapped ? 0 : 2)]) / 255, a = Float(raw[$0 * 4 + 3]) / 255
+                return SIMD4<Float>(r, g, b, a)
+            }
+        default:
+            return nil
+        }
+    }
+
     // MARK: - buildGaussianGraph Tests
 
     func testBuildGaussianGraph_CreatesGaussianPass() {

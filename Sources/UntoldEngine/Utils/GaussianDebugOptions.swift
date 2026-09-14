@@ -22,6 +22,7 @@ public final class GaussianDebugOptions: @unchecked Sendable {
     private var _disableHZBOcclusionCull = false
     private var _disableOpaqueDepthTest = false
     private var _disableBlendCap = false
+    private var _antiAliasSplatPixels = false
     private var _disableOccluderShell = false
     private var _disableChunkCull = false
     private var _disableWorkingSetBudget = false
