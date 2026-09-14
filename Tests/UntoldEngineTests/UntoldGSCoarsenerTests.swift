@@ -71,7 +71,7 @@ final class UntoldGSCoarsenerTests: XCTestCase {
 
     /// k tight clusters of N identical isotropic splats whose merged Gaussian is closed-form: the
     /// mean is the cluster mean, the covariance `r² I + S` (S the members' centre covariance), the
-    /// opacity `1 − exp(−N α r² / s_M)`, and the colour the linear-space mean of a two-colour cluster.
+    /// opacity `1 − exp(−N α r² / s_M)`, and the colour the blend-space mean of a two-colour cluster.
     func testClustersRecoverAnalyticMoments() throws {
         let k = 8
         let n = 128
@@ -99,7 +99,8 @@ final class UntoldGSCoarsenerTests: XCTestCase {
         XCTAssertEqual(levels.l1.count, 8)
         XCTAssertEqual(levels.l2.count, 1)
 
-        let expectedColour = UntoldGSColor.display(fromLinear: (UntoldGSColor.linear(fromDisplay: red) + UntoldGSColor.linear(fromDisplay: white)) / 2)
+        // The mean in the blend space (the capture's own display-referred space), as the splats blend.
+        let expectedColour = (red + white) / 2
         for cluster in 0 ..< k {
             let centre = SIMD3<Float>(Float(cluster) * 1.0, 0.3 * Float(cluster % 2), 0)
             var mean = SIMD3<Float>(repeating: 0)
@@ -123,7 +124,7 @@ final class UntoldGSCoarsenerTests: XCTestCase {
             let expectedOpacity = 1 - exp(-Float(n) * alpha * r * r / mergedArea)
             XCTAssertEqual(merged.opacity, expectedOpacity, accuracy: 0.02 * expectedOpacity)
             for channel in 0 ..< 3 {
-                XCTAssertEqual(merged.color[channel], expectedColour[channel], accuracy: 2e-3, "linear-space mean of the two colours")
+                XCTAssertEqual(merged.color[channel], expectedColour[channel], accuracy: 2e-3, "blend-space mean of the two colours")
             }
             XCTAssertGreaterThanOrEqual(merged.rotation.real, 0)
             XCTAssertEqual(simd_length(merged.rotation.vector), 1, accuracy: 1e-5)

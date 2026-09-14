@@ -421,12 +421,17 @@ public enum UntoldGSCoarsener {
 
     /// The moment-matched Gaussian of `members` with `weights`: weighted mean, the mixture's
     /// second moment (within plus between) as covariance, opacity from the members' summed
-    /// coverage against the merged area, colour averaged in linear space weighted by
+    /// coverage against the merged area, colour averaged in the blend space (display-referred) weighted by
     /// `weight × opacity`. Rotation and scale come from `jacobiEigen3`; σ is clamped to the
     /// chunk's `[minimumScale, maximumScale]`.
     static func merge(_ members: [UntoldGSSplat], weights: [Float], linearColours: [SIMD3<Float>]? = nil, stats: ChunkStatistics) -> UntoldGSSplat {
         precondition(!members.isEmpty && members.count == weights.count)
-        let linear = linearColours ?? members.map { UntoldGSColor.linear(fromDisplay: $0.color) }
+        // Colours average in the space the splats blend in — the capture's own display-referred
+        // space (the trainer blended there; so does the renderer since 2026-09) — so a merged
+        // record covers its members with the tone their blend would have had. `linearColours`
+        // is accepted for callers that still pass it and ignored.
+        _ = linearColours
+        let linear = members.map { SIMD3<Float>($0.color) }
 
         var totalWeight: Double = 0
         var weightedPosition = SIMD3<Double>(repeating: 0)
@@ -487,7 +492,7 @@ public enum UntoldGSCoarsener {
             position: SIMD3<Float>(mean),
             scale: scale,
             rotation: rotation,
-            color: simd_clamp(UntoldGSColor.display(fromLinear: colour), SIMD3<Float>(repeating: 0), SIMD3<Float>(repeating: 1)),
+            color: simd_clamp(colour, SIMD3<Float>(repeating: 0), SIMD3<Float>(repeating: 1)),
             opacity: opacity
         )
     }
