@@ -4656,6 +4656,7 @@ public enum RenderPasses {
     }
 
     public static let gaussianExecution: RenderPassExecution = { commandBuffer in
+        renderInfo.gaussianCoverageWritten = false
         #if targetEnvironment(simulator)
             // Gaussian splatting needs tile shaders, which the simulator doesn't
             // support — the pipelines were never created, so skip quietly.
@@ -4741,6 +4742,7 @@ public enum RenderPasses {
             }
 
             renderEncoder.label = "Gaussian Pass"
+            renderInfo.gaussianCoverageWritten = true
 
             renderEncoder.pushDebugGroup("Gaussian Pass")
 

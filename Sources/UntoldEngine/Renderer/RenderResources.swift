@@ -55,6 +55,10 @@ public struct RenderInfo {
     public var colorPipeline: ColorPipelineConfig = .standard(presentFormat: .bgra8Unorm_srgb)
     public var hzbMipCount: Int = 0
     public var hzbIsValid: Bool = false
+    /// Whether the Gaussian pass encoded this frame, so `gaussianColorMap` holds this frame's
+    /// coverage: false on the simulator and on a frame the pass skipped, when the anti-aliasing
+    /// passes must not read the map.
+    public var gaussianCoverageWritten: Bool = false
     public var hzbDebugMipLevel: Int = 0
     public var gBufferDebugStorageEnabled: Bool = false
     public var opaqueSampleCount: Int = 1

@@ -329,7 +329,7 @@ After the look pass, the graph inserts an anti-aliasing pass whose topology depe
 
 Both FXAA and SMAA write their result into `antiAliasingTexture`. The `outputTransform` pass reads from this texture when AA is active, or directly from `lookTexture` when `antiAliasingMode == .none`.
 
-Gaussian splat pixels are left as the splat pass blended them. A splat image has no geometric edge to smooth, only fine structure the filters would blur, so FXAA and the SMAA neighbourhood blend read the Gaussian pass's coverage (the alpha of `gaussianColorMap`, cleared and drawn every frame) and keep a pixel's colour in proportion to it: a fully covered pixel returns the source unchanged, a partly covered one blends between the filtered and the source colour. Meshes, gizmos and the environment behind and around the splats are filtered as before.
+Gaussian splat pixels are left as the splat pass blended them. A splat image has no geometric edge to smooth, only fine structure the filters would blur, so FXAA and the SMAA neighbourhood blend read the Gaussian pass's coverage (the alpha of `gaussianColorMap`, cleared and drawn every frame) and keep a pixel's colour in proportion to it: a fully covered pixel returns the source unchanged, a partly covered one blends between the filtered and the source colour. Meshes, gizmos and the environment behind and around the splats are filtered as before. `GaussianDebugOptions.shared.antiAliasSplatPixels` lets the filters treat splat pixels as before, for an A/B; a frame the Gaussian pass skipped (the simulator, no camera) leaves the mask off.
 
 > **Debug views that expose AA internals:**
 > - `renderDebugViewMode = .fxaaEdgeDebug` — shows the luma-gradient edge map computed by FXAA

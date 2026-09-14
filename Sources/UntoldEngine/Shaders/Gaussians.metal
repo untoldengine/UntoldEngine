@@ -725,11 +725,11 @@ fragment GaussianTBDRFragmentStore fragmentGaussianTBDRShader(
         return out;
     }
 
-    // Hard bound on the raster_order_group's serial chain length for this pixel — see
-    // kGaussianMaxBlendedSplatsPerPixel. Only counts splats that actually reach the blend
-    // below (occluded/negligible-alpha splats above never increment this).
-    // The cap normally is kGaussianMaxBlendedSplatsPerPixel; GaussianDebugOptions can lift it
-    // to the counter's maximum for bisecting.
+    // Hard bound on the raster_order_group's serial chain length for this pixel:
+    // GaussianRuntimeLimits.maxBlendedSplatsPerPixel (64 on mobile, 128 on a Mac), carried
+    // in GaussianTBDRDrawDebug; GaussianDebugOptions.disableBlendCap lifts it to the counter's
+    // maximum for bisecting. Only counts splats that actually reach the blend below
+    // (occluded/negligible-alpha splats above never increment this).
     uchar maxBlended = (uchar)min(debug.maxBlendedSplatsPerPixel, 255u);
     if (previousValues.contributingSplatCount >= maxBlended) {
         out.values = previousValues;

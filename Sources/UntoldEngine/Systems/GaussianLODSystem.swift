@@ -256,7 +256,7 @@ public class GaussianLODSystem: @unchecked Sendable {
 /// (`focalY = viewport.y * projectionMatrix[1][1] * 0.5`), reused here CPU-side to turn a
 /// tier's bake-time `meanSquaredSplatExtent` (see `GaussianLODTier`) into an estimate of how
 /// many splats overlap per pixel — the actual GPU cost driver behind the engine's serial
-/// per-pixel TBDR blend (`kGaussianMaxBlendedSplatsPerPixel`), which pure distance-based LOD
+/// per-pixel TBDR blend (`GaussianRuntimeLimits.maxBlendedSplatsPerPixel`), which pure distance-based LOD
 /// selection has no visibility into.
 func estimatedGaussianOverdraw(
     splatCount: Int,
