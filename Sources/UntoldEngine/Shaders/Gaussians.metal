@@ -658,9 +658,12 @@ vertex GaussianOutData vertexGaussianTBDRShader(
     out.conic = record.conicAndOpacity.xyz;
 
     // Tight, rotated quad along the ellipse's true principal axes (see
-    // computeInverseCovarianceConic) instead of an axis-aligned bounding box.
+    // computeInverseCovarianceConic) instead of an axis-aligned bounding box. The axes live
+    // in the pixel frame of the conic (y down, as coordxy and the fragment's position), while
+    // NDC y points up: the y offset flips sign on the way, or a tilted splat's quad is the
+    // mirror image of its ellipse and the fragment falloff gets clipped to their overlap.
     float2 pixelOffset = quad.x * record.axes.xy + quad.y * record.axes.zw;
-    float2 ndcOffset = pixelOffset * 2.0f / viewport;
+    float2 ndcOffset = pixelOffset * float2(2.0f, -2.0f) / viewport;
     out.position = centerClip;
     out.position.xy += ndcOffset * centerClip.w;
     out.color = record.color.xyz;
