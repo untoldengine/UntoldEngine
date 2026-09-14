@@ -865,6 +865,12 @@ func colorGradingCustomization(encoder: MTLRenderCommandEncoder) {
         length: MemoryLayout<Int32>.stride,
         index: Int(tonemapOperatorSelectIndex.rawValue)
     )
+
+    // The Gaussian pass's coverage keeps splat pixels out of the grade and the tone map: they
+    // are display-referred already (see LookShader.metal). A frame the pass skipped leaves it off.
+    var splatMask = Int32(renderInfo.gaussianCoverageWritten && textureResources.gaussianColorMap != nil && !GaussianDebugOptions.shared.toneMapSplatPixels ? 1 : 0)
+    encoder.setFragmentTexture(textureResources.gaussianColorMap, index: Int(lookPassSplatCoverageTextureIndex.rawValue))
+    encoder.setFragmentBytes(&splatMask, length: MemoryLayout<Int32>.stride, index: Int(lookPassSplatMaskIndex.rawValue))
 }
 
 func makeBlurCustomization(direction: simd_float2, radius: Float) -> (MTLRenderCommandEncoder) -> Void {
