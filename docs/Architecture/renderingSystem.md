@@ -289,6 +289,8 @@ RenderPass(id: "precomp", dependencies: [postProcessID, gaussianPass.id])
 
 This is the **convergence point** of the two parallel tracks. The post-processed scene color and the Gaussian splat render both arrive here and are composited into a single texture. This pass also applies the blurred depth-only SSAO texture to the lit scene color when SSAO is enabled. Neither track can be finalized without the other.
 
+The Gaussian pass blends its splats in the capture's own display-referred (sRGB) space, as the trainer did; this pass decodes the layer to linear once (un-premultiplied for the decode) before laying it over the scene.
+
 ### Look Pass (Color Grading / G-Buffer Debug)
 
 ```swift
@@ -296,6 +298,8 @@ RenderPass(id: "look", dependencies: ["precomp"])
 ```
 
 In normal rendering (`renderDebugViewMode == .lit`), applies exposure, lift/gamma/gain color correction, and optional color grading to the composited image.
+
+Splat-covered pixels are left alone: a capture is a finished photograph, so the grade and the tone map (ACES / AgX / a baked LUT) apply only to the scene behind and around the splats. The pass reads the Gaussian pass's layer (`gaussianColorMap`, bound while `renderInfo.gaussianCoverageWritten` says the pass ran this frame), decodes it as the pre-composite did, recovers the scene behind a partly covered pixel from the composite, grades and tone-maps that, and lays the splat layer back over it; a pixel the editor's gizmo overrode in the pre-composite is graded whole. `GaussianDebugOptions.shared.toneMapSplatPixels` restores the old behaviour for an A/B.
 
 When `renderDebugViewMode` is set to a G-Buffer visualization mode, the renderer stores the requested debug target and the look pass reads from that texture instead of the color-graded composite:
 
@@ -329,7 +333,7 @@ After the look pass, the graph inserts an anti-aliasing pass whose topology depe
 
 Both FXAA and SMAA write their result into `antiAliasingTexture`. The `outputTransform` pass reads from this texture when AA is active, or directly from `lookTexture` when `antiAliasingMode == .none`.
 
-The Gaussian pass blends its splats in the capture's own display-referred (sRGB) space, as the trainer did, and the pre-composite decodes the layer to linear once (un-premultiplied for the decode) before laying it over the scene. The look pass then leaves splat pixels alone: a capture is a finished photograph, so the grade and the tone map (ACES / AgX / a baked LUT) apply to the scene around the splats and to a pixel only in proportion to what the splats do not cover (`gaussianColorMap`'s alpha again); the output transform encodes the layer exactly once. Gaussian splat pixels are left as the splat pass blended them. A splat image has no geometric edge to smooth, only fine structure the filters would blur, so FXAA and the SMAA neighbourhood blend read the Gaussian pass's coverage (the alpha of `gaussianColorMap`, cleared and drawn every frame) and keep a pixel's colour in proportion to it: a fully covered pixel returns the source unchanged, a partly covered one blends between the filtered and the source colour. Meshes, gizmos and the environment behind and around the splats are filtered as before. `GaussianDebugOptions.shared.antiAliasSplatPixels` lets the filters treat splat pixels as before, for an A/B; a frame the Gaussian pass skipped (the simulator, no camera) leaves the mask off.
+Gaussian splat pixels are left as the splat pass blended them. A splat image has no geometric edge to smooth, only fine structure the filters would blur, so FXAA and the SMAA neighbourhood blend read the Gaussian pass's coverage (the alpha of `gaussianColorMap`, valid for the frames the pass ran — `renderInfo.gaussianCoverageWritten`) and keep a pixel's colour in proportion to it: a fully covered pixel returns the source unchanged, a partly covered one blends between the filtered and the source colour. Meshes, gizmos and the environment behind and around the splats are filtered as before. `GaussianDebugOptions.shared.antiAliasSplatPixels` lets the filters treat splat pixels as before, for an A/B; a frame the Gaussian pass skipped (the simulator, no camera) leaves the mask off.
 
 > **Debug views that expose AA internals:**
 > - `renderDebugViewMode = .fxaaEdgeDebug` — shows the luma-gradient edge map computed by FXAA

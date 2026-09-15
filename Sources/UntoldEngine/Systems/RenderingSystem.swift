@@ -866,11 +866,17 @@ func colorGradingCustomization(encoder: MTLRenderCommandEncoder) {
         index: Int(tonemapOperatorSelectIndex.rawValue)
     )
 
-    // The Gaussian pass's coverage keeps splat pixels out of the grade and the tone map: they
-    // are display-referred already (see LookShader.metal). A frame the pass skipped leaves it off.
+    // The Gaussian pass's layer keeps splat pixels out of the grade and the tone map: they are
+    // display-referred already, and a partly covered pixel has only the scene behind the splats
+    // graded (see LookShader.metal). A frame the pass skipped leaves it off. The gizmo layer the
+    // pre-composite lets override pixels in the editor goes along, so those pixels are graded
+    // whole.
     var splatMask = Int32(renderInfo.gaussianCoverageWritten && textureResources.gaussianColorMap != nil && !GaussianDebugOptions.shared.toneMapSplatPixels ? 1 : 0)
     encoder.setFragmentTexture(textureResources.gaussianColorMap, index: Int(lookPassSplatCoverageTextureIndex.rawValue))
     encoder.setFragmentBytes(&splatMask, length: MemoryLayout<Int32>.stride, index: Int(lookPassSplatMaskIndex.rawValue))
+    var gizmoOverrides = !gameMode
+    encoder.setFragmentTexture(renderInfo.gizmoRenderPassDescriptor?.colorAttachments[0].texture, index: Int(lookPassGizmoTextureIndex.rawValue))
+    encoder.setFragmentBytes(&gizmoOverrides, length: MemoryLayout<Bool>.stride, index: Int(lookPassGizmoOverrideIndex.rawValue))
 }
 
 func makeBlurCustomization(direction: simd_float2, radius: Float) -> (MTLRenderCommandEncoder) -> Void {
