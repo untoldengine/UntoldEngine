@@ -22,6 +22,9 @@ public final class GaussianDebugOptions: @unchecked Sendable {
     private var _disableHZBOcclusionCull = false
     private var _disableOpaqueDepthTest = false
     private var _disableBlendCap = false
+    private var _antiAliasSplatPixels = false
+    private var _toneMapSplatPixels = false
+    private var _crispSplatKernel = false
     private var _disableOccluderShell = false
     private var _disableChunkCull = false
     private var _disableWorkingSetBudget = false
@@ -48,7 +51,31 @@ public final class GaussianDebugOptions: @unchecked Sendable {
         set { lock.lock(); _disableOpaqueDepthTest = newValue; lock.unlock() }
     }
 
-    /// Lifts the per-pixel cap on blended splats (`kGaussianMaxBlendedSplatsPerPixel`) to the
+    /// Lets FXAA and SMAA filter splat pixels like everything else — the behaviour before the
+    /// passes read the Gaussian coverage — for an A/B of what the filters take from a capture.
+    public var antiAliasSplatPixels: Bool {
+        get { lock.lock(); defer { lock.unlock() }; return _antiAliasSplatPixels }
+        set { lock.lock(); _antiAliasSplatPixels = newValue; lock.unlock() }
+    }
+
+    /// Lets the look pass grade and tone-map splat pixels like everything else — the behaviour
+    /// before it read the Gaussian coverage — for an A/B of what the tone map takes from a
+    /// capture (a lifted, flattened image: a capture is display-referred already).
+    public var toneMapSplatPixels: Bool {
+        get { lock.lock(); defer { lock.unlock() }; return _toneMapSplatPixels }
+        set { lock.lock(); _toneMapSplatPixels = newValue; lock.unlock() }
+    }
+
+    /// Draws every splat with the crisp kernel some viewers use: cut at 2√2 σ with the falloff
+    /// renormalised to reach zero there, about a fifth tighter than the Gaussian the capture was
+    /// trained with. Fine texture reads crisper; the tails the reference rasterizer blends are
+    /// gone. For an A/B against such a viewer; off by default.
+    public var crispSplatKernel: Bool {
+        get { lock.lock(); defer { lock.unlock() }; return _crispSplatKernel }
+        set { lock.lock(); _crispSplatKernel = newValue; lock.unlock() }
+    }
+
+    /// Lifts the per-pixel cap on blended splats (`GaussianRuntimeLimits.maxBlendedSplatsPerPixel`) to the
     /// counter's maximum, so every sorted splat that reaches a pixel is blended.
     public var disableBlendCap: Bool {
         get { lock.lock(); defer { lock.unlock() }; return _disableBlendCap }
@@ -153,14 +180,12 @@ public final class GaussianDebugOptions: @unchecked Sendable {
     /// The per-draw constants the splat fragment shader reads (see `GaussianTBDRDrawDebug`).
     var drawConstants: GaussianTBDRDrawDebug {
         var constants = GaussianTBDRDrawDebug()
-        constants.maxBlendedSplatsPerPixel = disableBlendCap ? 255 : UInt32(kGaussianMaxBlendedSplatsPerPixelDefault)
+        constants.maxBlendedSplatsPerPixel = disableBlendCap ? 255 : UInt32(GaussianRuntimeLimits.maxBlendedSplatsPerPixel)
         constants.skipOpaqueDepthTest = disableOpaqueDepthTest ? 1 : 0
+        constants.crispKernel = crispSplatKernel ? 1 : 0
         return constants
     }
 }
-
-/// Mirrors `kGaussianMaxBlendedSplatsPerPixel` in Gaussians.metal — the normal per-pixel cap.
-let kGaussianMaxBlendedSplatsPerPixelDefault = 64
 
 /// The level modes of `GaussianDebugOptions.gaussianLevelMode`
 /// (`GaussianChunkLevelConstants.levelMode`, `GaussianChunkLevelMode` in ShaderTypes.h).

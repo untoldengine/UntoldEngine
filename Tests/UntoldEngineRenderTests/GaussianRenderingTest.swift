@@ -75,6 +75,261 @@ final class GaussianRenderingTest: BaseRenderSetup {
         wait(for: [expectation], timeout: TimeInterval(timeoutFactor))
     }
 
+    // MARK: - Anti-aliasing leaves splat pixels alone
+
+    /// FXAA and SMAA keep a splat pixel as the splat pass blended it: the passes read the
+    /// Gaussian coverage and mix the filtered colour back towards the source by it. Rendered
+    /// twice per mode — with the coverage mask (the default) and with `antiAliasSplatPixels`,
+    /// the filters' old behaviour — the masked output moves a covered pixel away from its
+    /// source by at most (1 − coverage) of what the unmasked filter moved it, a fully covered
+    /// pixel not at all, an uncovered pixel the same either way, and the mask holds back a
+    /// measurable amount somewhere (a mask that is silently not bound cannot pass).
+    func testAntiAliasingLeavesSplatPixelsUntouched() throws {
+        let savedMode = antiAliasingMode
+        let savedSwitch = GaussianDebugOptions.shared.antiAliasSplatPixels
+        defer {
+            antiAliasingMode = savedMode
+            GaussianDebugOptions.shared.antiAliasSplatPixels = savedSwitch
+        }
+
+        func frame() throws -> (source: [SIMD4<Float>], output: [SIMD4<Float>], coverage: [Float]) {
+            for _ in 0 ..< 3 {
+                renderer.draw(in: renderer.metalView)
+                renderInfo.lastCommandBuffer?.waitUntilCompleted()
+            }
+            let look = try XCTUnwrap(textureResources.lookTexture, "the look texture the pass reads")
+            let antiAliased = try XCTUnwrap(textureResources.antiAliasingTexture, "the pass's output")
+            let map = try XCTUnwrap(textureResources.gaussianColorMap, "the Gaussian pass's colour map")
+            XCTAssertEqual(look.width, antiAliased.width)
+            XCTAssertEqual(look.width, map.width)
+            return try (XCTUnwrap(Self.pixels(of: look)), XCTUnwrap(Self.pixels(of: antiAliased)), XCTUnwrap(Self.pixels(of: map)).map(\.w))
+        }
+
+        for mode in [AntiAliasingMode.fxaa, .smaa] {
+            let name = "\(mode)"
+            antiAliasingMode = mode
+            GaussianDebugOptions.shared.antiAliasSplatPixels = false
+            let masked = try frame()
+            GaussianDebugOptions.shared.antiAliasSplatPixels = true
+            let unmasked = try frame()
+            XCTAssertEqual(masked.coverage.count, unmasked.coverage.count)
+
+            let coveredPixels = masked.coverage.filter { $0 > 0.05 }.count
+            XCTAssertGreaterThan(coveredPixels, 500, "\(name): the fixture's splats cover pixels (max coverage \(masked.coverage.max() ?? 0))")
+            var worstExcess: Float = 0, worstUncovered: Float = 0, worstWhole: Float = 0, bestHoldBack: Float = 0, filteredCovered = 0
+            for index in masked.coverage.indices {
+                let coverage = masked.coverage[index]
+                let maskedMove = simd_reduce_max(simd_abs(masked.output[index] - masked.source[index]))
+                let unmaskedMove = simd_reduce_max(simd_abs(unmasked.output[index] - unmasked.source[index]))
+                if coverage <= 0 {
+                    worstUncovered = max(worstUncovered, abs(maskedMove - unmaskedMove))
+                } else {
+                    if coverage >= 0.999 { worstWhole = max(worstWhole, maskedMove) }
+                    // The filter moves the pixel by (1 − coverage) of its unmasked move, up to
+                    // half-float rounding of the two samples.
+                    worstExcess = max(worstExcess, maskedMove - (1 - coverage) * unmaskedMove)
+                    // The mix holds back coverage × the unmasked move of a pixel the filter
+                    // changed; the best pixel's share of that says the mask is bound at all.
+                    if unmaskedMove > 1e-3 {
+                        filteredCovered += 1
+                        bestHoldBack = max(bestHoldBack, (unmaskedMove - maskedMove) / (coverage * unmaskedMove))
+                    }
+                }
+            }
+            // The filter changes some covered pixel (SMAA few, on this fixture's soft blobs), and
+            // on the best of them the mask holds back close to its whole share, coverage × the
+            // move: a mask that is not bound, or a metallib without it, holds back nothing.
+            XCTAssertGreaterThan(filteredCovered, 0, "\(name): the unmasked filter changes a covered pixel")
+            XCTAssertGreaterThanOrEqual(bestHoldBack, 0.75, "\(name): the mask holds a covered pixel back from the filter by its coverage (a mask that is not bound holds back nothing)")
+            XCTAssertLessThanOrEqual(worstExcess, 4e-3, "\(name): a covered pixel moves by at most (1 − coverage) of the unmasked move")
+            XCTAssertLessThanOrEqual(worstWhole, 1e-6, "\(name): a fully covered pixel leaves the pass as it entered")
+            XCTAssertLessThanOrEqual(worstUncovered, 4e-3, "\(name): an uncovered pixel is filtered the same either way")
+        }
+    }
+
+    /// The look pass (grade, tone map) leaves the splats of a pixel as the pre-composite made
+    /// them and grades only the scene behind. Rendered with the mask (the default), with
+    /// `toneMapSplatPixels` (the old behaviour) and with the splats hidden (`opacityScale` 0,
+    /// which yields the graded scene behind them): a fully covered pixel leaves the pass as it
+    /// entered, a partly covered pixel equals the decoded splat layer plus (1 − coverage) of the
+    /// graded scene behind it, an uncovered pixel is graded the same either way, and the best
+    /// covered pixel is held back from the tone map by close to its whole share.
+    func testToneMapLeavesSplatPixelsUntouched() throws {
+        let savedSwitch = GaussianDebugOptions.shared.toneMapSplatPixels
+        defer { GaussianDebugOptions.shared.toneMapSplatPixels = savedSwitch }
+        let transformId = getComponentId(for: WorldTransformComponent.self)
+        let gaussianId = getComponentId(for: GaussianComponent.self)
+        let entity = try XCTUnwrap(queryEntitiesWithComponentIds([transformId, gaussianId], in: scene).first)
+        let component = try XCTUnwrap(scene.get(component: GaussianComponent.self, for: entity))
+        let savedOpacity = component.opacityScale
+        defer { component.opacityScale = savedOpacity }
+
+        struct Frame {
+            var input: [SIMD4<Float>]
+            var output: [SIMD4<Float>]
+            var layer: [SIMD4<Float>]
+        }
+        func frame() throws -> Frame {
+            for _ in 0 ..< 3 {
+                renderer.draw(in: renderer.metalView)
+                renderInfo.lastCommandBuffer?.waitUntilCompleted()
+            }
+            let input = try XCTUnwrap(textureResources.sceneCompositeTexture, "the look pass's input")
+            let output = try XCTUnwrap(textureResources.lookTexture, "the look pass's output")
+            let map = try XCTUnwrap(textureResources.gaussianColorMap)
+            return try Frame(input: XCTUnwrap(Self.pixels(of: input)), output: XCTUnwrap(Self.pixels(of: output)), layer: XCTUnwrap(Self.pixels(of: map)))
+        }
+        GaussianDebugOptions.shared.toneMapSplatPixels = false
+        let masked = try frame()
+        GaussianDebugOptions.shared.toneMapSplatPixels = true
+        let unmasked = try frame()
+        GaussianDebugOptions.shared.toneMapSplatPixels = false
+        component.opacityScale = 0
+        let hidden = try frame()
+        component.opacityScale = savedOpacity
+        XCTAssertEqual(masked.layer.count, unmasked.layer.count)
+        XCTAssertEqual(masked.layer.count, hidden.layer.count)
+        XCTAssertEqual(hidden.layer.map(\.w).max() ?? 0, 0, "hidden splats leave the layer empty")
+
+        func rgb(_ v: SIMD4<Float>) -> SIMD3<Float> {
+            SIMD3(v.x, v.y, v.z)
+        }
+        func move(_ f: Frame, _ index: Int) -> Float {
+            simd_reduce_max(simd_abs(rgb(f.input[index]) - rgb(f.output[index])))
+        }
+        var worstUncovered: Float = 0, worstFull: Float = 0, worstPartial: Float = 0, bestHoldBack: Float = 0
+        var mappedCovered = 0, partial = 0
+        for index in masked.layer.indices {
+            let coverage = min(masked.layer[index].w, 1)
+            let maskedMove = move(masked, index), unmaskedMove = move(unmasked, index)
+            if coverage <= 0 {
+                worstUncovered = max(worstUncovered, abs(maskedMove - unmaskedMove))
+                continue
+            }
+            if unmaskedMove > 1e-3 {
+                mappedCovered += 1
+                bestHoldBack = max(bestHoldBack, (unmaskedMove - maskedMove) / (coverage * unmaskedMove))
+            }
+            if coverage >= 0.999 {
+                worstFull = max(worstFull, maskedMove)
+            } else {
+                // The layer is premultiplied in the capture's space: decode the straight colour as
+                // the pre-composite does; the graded scene behind fills the rest of the pixel.
+                partial += 1
+                let straight = rgb(masked.layer[index]) / coverage
+                let splat = UntoldGSColor.linear(fromDisplay: straight) * coverage
+                let expected = splat + rgb(hidden.output[index]) * (1 - coverage)
+                worstPartial = max(worstPartial, simd_reduce_max(simd_abs(rgb(masked.output[index]) - expected)))
+            }
+        }
+        XCTAssertGreaterThan(mappedCovered, 100, "the tone map changes covered pixels when let through")
+        XCTAssertGreaterThan(partial, 100, "the fixture has partly covered pixels")
+        XCTAssertLessThanOrEqual(worstFull, 2e-3, "a fully covered pixel leaves the look pass as it entered")
+        XCTAssertLessThanOrEqual(worstPartial, 2e-2, "a partly covered pixel is the splat layer over the graded scene behind it (worst \(worstPartial))")
+        XCTAssertGreaterThanOrEqual(bestHoldBack, 0.75, "the mask holds a covered pixel back from the tone map by its coverage")
+        XCTAssertLessThanOrEqual(worstUncovered, 4e-3, "an uncovered pixel is tone-mapped the same either way")
+    }
+
+    /// The crisp kernel cuts every splat at 2√2 σ and renormalises the falloff to zero there, so
+    /// it never adds alpha to a pixel and takes the tails away: the layer's total alpha drops
+    /// and no pixel gains.
+    func testCrispKernelTightensEverySplat() throws {
+        let saved = GaussianDebugOptions.shared.crispSplatKernel
+        defer { GaussianDebugOptions.shared.crispSplatKernel = saved }
+        func layer() throws -> [SIMD4<Float>] {
+            for _ in 0 ..< 2 {
+                renderer.draw(in: renderer.metalView)
+                renderInfo.lastCommandBuffer?.waitUntilCompleted()
+            }
+            return try XCTUnwrap(Self.pixels(of: XCTUnwrap(textureResources.gaussianColorMap)))
+        }
+        GaussianDebugOptions.shared.crispSplatKernel = false
+        let gaussian = try layer()
+        GaussianDebugOptions.shared.crispSplatKernel = true
+        let crisp = try layer()
+        XCTAssertEqual(gaussian.count, crisp.count)
+        let total = gaussian.reduce(0) { $0 + Double($1.w) }
+        let crispTotal = crisp.reduce(0) { $0 + Double($1.w) }
+        XCTAssertGreaterThan(total, 100, "the fixture covers pixels")
+        XCTAssertLessThan(crispTotal, total * 0.995, "the crisp kernel takes the tails away (\(crispTotal) vs \(total))")
+        var gained: Float = 0
+        var thinned = 0
+        for (a, b) in zip(gaussian, crisp) {
+            gained = max(gained, b.w - a.w)
+            if a.w - b.w > 1.0 / 255 { thinned += 1 }
+        }
+        XCTAssertLessThanOrEqual(gained, 2e-3, "no pixel gains alpha under the crisp kernel")
+        XCTAssertGreaterThan(thinned, 100, "the tails of many pixels are cut")
+        XCTAssertEqual(GaussianDebugOptions.shared.drawConstants.crispKernel, 1, "the switch reaches the draw constants")
+    }
+
+    /// The per-pixel blend cap reaches the shader: a cap of one splat per pixel drops every
+    /// overlap on the fixture, while the Mac figure and no cap draw it the same, the fixture
+    /// never stacking that many splats on a pixel.
+    func testBlendCapReachesTheShader() throws {
+        let saved = GaussianRuntimeLimits.maxBlendedSplatsPerPixelOverride
+        defer { GaussianRuntimeLimits.maxBlendedSplatsPerPixelOverride = saved }
+
+        func layer() throws -> [SIMD4<Float>] {
+            for _ in 0 ..< 2 {
+                renderer.draw(in: renderer.metalView)
+                renderInfo.lastCommandBuffer?.waitUntilCompleted()
+            }
+            return try XCTUnwrap(Self.pixels(of: XCTUnwrap(textureResources.gaussianColorMap)))
+        }
+        func differing(_ a: [SIMD4<Float>], _ b: [SIMD4<Float>]) -> Int {
+            zip(a, b).reduce(0) { $0 + (simd_reduce_max(simd_abs($1.0 - $1.1)) > 1.0 / 255 ? 1 : 0) }
+        }
+        GaussianRuntimeLimits.maxBlendedSplatsPerPixelOverride = 255
+        let unlimited = try layer()
+        XCTAssertGreaterThan(unlimited.filter { $0.w > 0.05 }.count, 500, "the fixture covers pixels")
+        GaussianRuntimeLimits.maxBlendedSplatsPerPixelOverride = GaussianRuntimeLimits.maxBlendedSplatsPerPixelMac
+        let mac = try layer()
+        XCTAssertEqual(differing(mac, unlimited), 0, "the Mac cap and no cap draw the fixture the same")
+        GaussianRuntimeLimits.maxBlendedSplatsPerPixelOverride = 1
+        let one = try layer()
+        XCTAssertGreaterThan(differing(one, unlimited), 100, "a cap of one splat per pixel drops every overlap: the cap reaches the shader")
+    }
+
+    /// A CPU copy of a viewport texture as float RGBA, blitted through a shared texture.
+    private static func pixels(of texture: MTLTexture) -> [SIMD4<Float>]? {
+        let descriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: texture.pixelFormat, width: texture.width, height: texture.height, mipmapped: false)
+        descriptor.storageMode = .shared
+        descriptor.usage = [.shaderRead]
+        guard let copy = texture.device.makeTexture(descriptor: descriptor),
+              let queue = texture.device.makeCommandQueue(),
+              let commandBuffer = queue.makeCommandBuffer(),
+              let blit = commandBuffer.makeBlitCommandEncoder()
+        else { return nil }
+        blit.copy(from: texture, to: copy)
+        blit.endEncoding()
+        commandBuffer.commit()
+        commandBuffer.waitUntilCompleted()
+        let count = texture.width * texture.height
+        let region = MTLRegionMake2D(0, 0, texture.width, texture.height)
+        switch texture.pixelFormat {
+        case .rgba16Float:
+            var raw = [Float16](repeating: 0, count: count * 4)
+            copy.getBytes(&raw, bytesPerRow: texture.width * 8, from: region, mipmapLevel: 0)
+            return (0 ..< count).map { SIMD4<Float>(Float(raw[$0 * 4]), Float(raw[$0 * 4 + 1]), Float(raw[$0 * 4 + 2]), Float(raw[$0 * 4 + 3])) }
+        case .rgba32Float:
+            var raw = [Float](repeating: 0, count: count * 4)
+            copy.getBytes(&raw, bytesPerRow: texture.width * 16, from: region, mipmapLevel: 0)
+            return (0 ..< count).map { SIMD4<Float>(raw[$0 * 4], raw[$0 * 4 + 1], raw[$0 * 4 + 2], raw[$0 * 4 + 3]) }
+        case .bgra8Unorm, .bgra8Unorm_srgb, .rgba8Unorm, .rgba8Unorm_srgb:
+            var raw = [UInt8](repeating: 0, count: count * 4)
+            copy.getBytes(&raw, bytesPerRow: texture.width * 4, from: region, mipmapLevel: 0)
+            let swapped = texture.pixelFormat == .bgra8Unorm || texture.pixelFormat == .bgra8Unorm_srgb
+            return (0 ..< count).map {
+                let r = Float(raw[$0 * 4 + (swapped ? 2 : 0)]) / 255, g = Float(raw[$0 * 4 + 1]) / 255
+                let b = Float(raw[$0 * 4 + (swapped ? 0 : 2)]) / 255, a = Float(raw[$0 * 4 + 3]) / 255
+                return SIMD4<Float>(r, g, b, a)
+            }
+        default:
+            return nil
+        }
+    }
+
     // MARK: - buildGaussianGraph Tests
 
     func testBuildGaussianGraph_CreatesGaussianPass() {

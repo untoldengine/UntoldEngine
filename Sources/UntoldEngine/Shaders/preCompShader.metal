@@ -11,6 +11,7 @@
 #include <metal_stdlib>
 #include "../../CShaderTypes/ShaderTypes.h"
 #include "ShaderStructs.h"
+#include "ShadersUtils.h"
 using namespace metal;
 
 vertex VertexCompositeOutput vertexPreCompositeShader(VertexCompositeIn in [[stage_in]]){
@@ -39,6 +40,12 @@ fragment float4 fragmentPreCompositeShader(VertexCompositeOutput vertexOut [[sta
     float4 envColor = envTexture.sample(s, vertexOut.uvCoords);
     float4 modelColor = finalTexture.sample(s, vertexOut.uvCoords);
     float4 gaussianColor = gaussianTexture.sample(s, vertexOut.uvCoords);
+    // Un-premultiply, decode, premultiply again: a pixel the splats cover whole shows the
+    // trained colour; a partial cover blends with the scene in linear.
+    if (gaussianColor.a > 1e-4f) {
+        float3 straight = gaussianColor.rgb / gaussianColor.a;
+        gaussianColor.rgb = splatSRGBToLinear(straight) * gaussianColor.a;
+    }
 
     if (ssaoEnabled) {
         float ao = ssaoTexture.sample(s, vertexOut.uvCoords).r;

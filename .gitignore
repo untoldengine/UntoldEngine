@@ -94,3 +94,6 @@ scripts/untold-blender-addon/build/
 *.pyc
 
 scripts/tests/__pycache__/
+
+# Local SwiftPM scratch directories other than .build (e.g. .build-strict for the strict-concurrency build).
+.build*/

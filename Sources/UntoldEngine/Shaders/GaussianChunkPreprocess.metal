@@ -228,11 +228,18 @@ kernel void gaussianChunkDecodePreprocess(
                 : gaussianCoverageWeight(fullOpacity, min(weight, fade));
         }
         float sigma = gaussianAdaptiveSigma(opacity);
+        if (entity.crispKernel != 0u) {
+            sigma = min(sigma, kGaussianCrispQuadSigma);
+        }
 
         float2 axis1 = float2(0.0f);
         float2 axis2 = float2(0.0f);
         bool valid = true;
-        float3 conic = computeInverseCovarianceConic(cov2D, sigma, axis1, axis2, valid);
+        // A non-positive ceiling (constants built without one) means the viewport cap, never a
+        // collapsed quad.
+        const float viewportCap = min(viewport.x, viewport.y);
+        const float maxScreenRadius = entity.maxScreenRadius > 0.0f ? min(entity.maxScreenRadius, viewportCap) : viewportCap;
+        float3 conic = computeInverseCovarianceConic(cov2D, sigma, maxScreenRadius, axis1, axis2, valid);
         if (!valid || (axis1.x == 0.0f && axis1.y == 0.0f) || (axis2.x == 0.0f && axis2.y == 0.0f)) {
             continue;
         }
@@ -251,9 +258,11 @@ kernel void gaussianChunkDecodePreprocess(
             color = entity.debugColor.xyz;
         } else if (level != 0u) {
             // A coarse record carries the DC colour only.
-            color = gaussianSRGBToLinear(float3(colorAndOpacity.xyz));
+            color = float3(colorAndOpacity.xyz);
         } else {
-            color = gaussianSRGBToLinear(evaluateGaussianSphericalHarmonics(
+            // Kept in the capture's own space, as Gaussians.metal does: decoded once in the
+            // pre-composite.
+            color = (evaluateGaussianSphericalHarmonics(
                 float3(colorAndOpacity.xyz),
                 shCoefficients,
                 shMetadata,
@@ -273,7 +282,7 @@ kernel void gaussianChunkDecodePreprocess(
         GaussianWorkingSetSplat out;
         out.positionAndEntity = float4(centerLocal, as_type<float>(entity.entityIndex));
         out.conicAndOpacity = float4(conic, opacity);
-        out.color = float4(color * entity.colorGain.xyz, 0.0f);
+        out.color = float4(gaussianApplyLinearGain(color, entity.colorGain.xyz), 0.0f);
         out.axes = float4(axis1, axis2);
         workingSet[slot] = out;
 

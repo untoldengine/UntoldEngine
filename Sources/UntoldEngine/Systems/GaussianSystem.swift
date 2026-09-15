@@ -837,6 +837,8 @@ public func executeGaussianPreprocess(_ commandBuffer: MTLCommandBuffer) {
         }
         entityConstants.colorGain = simd_float4(gain.x, gain.y, gain.z, 1)
         entityConstants.opacityScale = max(0, gaussianComponent.opacityScale)
+        entityConstants.maxScreenRadius = Float(GaussianRuntimeLimits.maxScreenRadius)
+        entityConstants.crispKernel = GaussianDebugOptions.shared.crispSplatKernel ? 1 : 0
         if colorByLOD, let gaussianLOD = scene.get(component: GaussianLODComponent.self, for: entityId) {
             let color = RenderPasses.lodDebugColor(for: gaussianLOD.currentLOD)
             entityConstants.debugColorEnabled = 1

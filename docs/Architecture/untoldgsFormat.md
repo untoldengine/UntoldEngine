@@ -127,7 +127,9 @@ exact rotations and scales: a weighted Lloyd clustering over the chunk's Morton 
 `opacity × (σxσy + σyσz + σzσx)`, a colour term in linear space so clusters do not straddle a
 colour edge), then one moment-matched Gaussian per cluster — the mixture's mean and second
 moment (within plus between) as the covariance, eigendecomposed by a deterministic Jacobi sweep
-back to a rotation and a scale, the colour averaged in linear space, and the opacity
+back to a rotation and a scale, the colour averaged in the display-referred blend space the
+splats are rendered in (weighted by weight × opacity; a coarse section baked before 2026-09 holds
+linear-space means — re-cook to refresh it, the file is a regenerable cache), and the opacity
 `1 − exp(−Σ αᵢ sᵢ / s_M)` (the members' coverage composited over the merged footprint, so an
 opaque wall saturates and a sparse cluster stays linear). Level 2 is built the same way over
 level 1. The arithmetic runs in a fixed order per chunk, so a bake is bit-reproducible whatever

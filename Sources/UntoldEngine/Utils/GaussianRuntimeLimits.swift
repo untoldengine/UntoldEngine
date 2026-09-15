@@ -77,6 +77,54 @@ public enum GaussianRuntimeLimits {
         set { storage.override = newValue }
     }
 
+    /// The most splats the TBDR fragment shader blends into one pixel per frame
+    /// (`GaussianTBDRDrawDebug.maxBlendedSplatsPerPixel`): a hard bound on the serial blend
+    /// chain behind a pixel. A capture whose splats are mostly faint needs many of them to
+    /// saturate a pixel — about 65 at a median opacity of 0.1 — so the mobile bound clips such
+    /// captures; the Mac doubles it. Never above 255, the shader counter's range.
+    public static let maxBlendedSplatsPerPixelMobile = 64
+    public static let maxBlendedSplatsPerPixelMac = 128
+
+    public static var maxBlendedSplatsPerPixel: Int {
+        if let override = storage.maxBlendedSplatsPerPixelOverride { return override }
+        #if os(macOS)
+            return maxBlendedSplatsPerPixelMac
+        #else
+            return maxBlendedSplatsPerPixelMobile
+        #endif
+    }
+
+    /// Replaces the default per-pixel blend cap, clamped to 1 ... 255; nil restores it.
+    public static var maxBlendedSplatsPerPixelOverride: Int? {
+        get { storage.maxBlendedSplatsPerPixelOverride }
+        set { storage.maxBlendedSplatsPerPixelOverride = newValue.map { min(255, max(1, $0)) } }
+    }
+
+    /// Ceiling on a splat's screen-space half-extent, in pixels
+    /// (`GaussianPreprocessEntityConstants.maxScreenRadius`): a splat the camera stands next to
+    /// would otherwise balloon over the whole screen and pay for every pixel. The preprocess
+    /// scales such a splat's footprint down to the ceiling, so too low a ceiling shrinks the
+    /// splats of a nearby surface and opens holes between them — 128 px did so a metre from a
+    /// car body. The preprocess also caps the ceiling at the viewport's shorter side, as the
+    /// reference viewers do.
+    public static let maxScreenRadiusMobile = 512
+    public static let maxScreenRadiusMac = 1024
+
+    public static var maxScreenRadius: Int {
+        if let override = storage.maxScreenRadiusOverride { return override }
+        #if os(macOS)
+            return maxScreenRadiusMac
+        #else
+            return maxScreenRadiusMobile
+        #endif
+    }
+
+    /// Replaces the default screen-radius ceiling, clamped to at least 8 px; nil restores it.
+    public static var maxScreenRadiusOverride: Int? {
+        get { storage.maxScreenRadiusOverride }
+        set { storage.maxScreenRadiusOverride = newValue.map { max(8, $0) } }
+    }
+
     /// The density floor of the per-chunk level rule (per-chunk-lod-tiers): a chunk of a
     /// `.untoldgs` entity with coarse levels that would draw more than this many fine splats per
     /// pixel of the viewport draws a coarse level instead even when the frame fits the working
@@ -100,6 +148,18 @@ public enum GaussianRuntimeLimits {
         private let lock = NSLock()
         private var _override: Int?
         private var _maxSplatsPerPixelOverride: Float?
+        private var _maxBlendedSplatsPerPixelOverride: Int?
+        var maxBlendedSplatsPerPixelOverride: Int? {
+            get { lock.lock(); defer { lock.unlock() }; return _maxBlendedSplatsPerPixelOverride }
+            set { lock.lock(); _maxBlendedSplatsPerPixelOverride = newValue; lock.unlock() }
+        }
+
+        private var _maxScreenRadiusOverride: Int?
+        var maxScreenRadiusOverride: Int? {
+            get { lock.lock(); defer { lock.unlock() }; return _maxScreenRadiusOverride }
+            set { lock.lock(); _maxScreenRadiusOverride = newValue; lock.unlock() }
+        }
+
         var override: Int? {
             get { lock.lock(); defer { lock.unlock() }; return _override }
             set { lock.lock(); _override = newValue.map { max(1, $0) }; lock.unlock() }

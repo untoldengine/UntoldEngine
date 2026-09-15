@@ -275,6 +275,21 @@ typedef enum {
     tonemapOperatorAgX = 1,
 } TonemapOperatorID;
 
+// The Gaussian pass's layer on the look pass: a splat pixel is display-referred already
+// (blended in the capture's own space, decoded once in the pre-composite) and keeps its colour
+// through the grade and the tone map; a partly covered pixel has only the scene behind the
+// splats graded. The gizmo layer says which pixels the pre-composite let the editor's gizmo
+// override, so those are graded whole.
+typedef enum {
+    lookPassSplatCoverageTextureIndex = 3,   // texture(0..2) above: the splat layer, premultiplied
+    lookPassGizmoTextureIndex = 4,
+} LookPassSplatTextureIndices;
+
+typedef enum {
+    lookPassSplatMaskIndex = 15,   // starts after TonemapSelectBufferIndices (14)
+    lookPassGizmoOverrideIndex = 16,   // bool: the gizmo layer overrides pixels (the editor, not game mode)
+} LookPassSplatBufferIndices;
+
 typedef enum{
     colorCorrectionPassColorTextureIndex,
     colorCorrectionPassTemperatureIndex,
@@ -618,7 +633,9 @@ typedef struct{
     simd_float4 debugColor;
     simd_float4 colorGain;     // xyz: linear multiplier on the splat colour (capture exposure, editor offset, XR tint); w unused
     float opacityScale;        // multiplier on every splat's opacity: 1 normal, 0 hidden (nothing is appended), between for a cross-fade
-    float _pad1[3];
+    float maxScreenRadius;     // GaussianRuntimeLimits.maxScreenRadius: ceiling on a splat's screen-space half-extent, in pixels; the preprocess also caps it at the viewport's shorter side
+    uint32_t crispKernel;      // non-zero: GaussianDebugOptions.crispSplatKernel — the quad stops at 2√2 σ, where the crisp falloff reaches zero
+    float _pad1;
 }GaussianPreprocessEntityConstants;
 
 typedef struct{
@@ -700,8 +717,9 @@ typedef enum{
 
 /// Per-draw switches for the splat fragment shader, set from GaussianDebugOptions each frame.
 typedef struct{
-    uint32_t maxBlendedSplatsPerPixel;  // normally kGaussianMaxBlendedSplatsPerPixel (64); 255 lifts the cap
+    uint32_t maxBlendedSplatsPerPixel;  // GaussianRuntimeLimits.maxBlendedSplatsPerPixel (64 mobile, 128 Mac); 255 lifts the cap
     uint32_t skipOpaqueDepthTest;       // non-zero: never occlude splats by the opaque depth snapshot
+    uint32_t crispKernel;               // non-zero: GaussianDebugOptions.crispSplatKernel — cut every splat at 2√2 σ with the falloff renormalised to reach zero there
 }GaussianTBDRDrawDebug;
 
 typedef enum{
@@ -1076,12 +1094,14 @@ typedef enum{
     fxaaPassEnabledIndex,
     fxaaPassSubpixelIndex,
     fxaaPassEdgeThresholdIndex,
-    fxaaPassEdgeThresholdMinIndex
+    fxaaPassEdgeThresholdMinIndex,
+    fxaaPassSplatMaskIndex          // non-zero: texture(1) is the Gaussian pass's coverage, kept un-filtered
 }FXAABufferIndices;
 
 typedef enum{
     smaaPassTexelSizeIndex,
-    smaaPassEdgeThresholdIndex
+    smaaPassEdgeThresholdIndex,
+    smaaPassSplatMaskIndex          // non-zero: the neighbourhood pass's texture(2) is the Gaussian coverage
 }SMAABufferIndices;
 
 // Transparency

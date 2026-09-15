@@ -226,6 +226,7 @@ final class GaussianChunkCullTest: BaseRenderSetup {
         entityConstants.workingSetCapacity = UInt32(GaussianSharedWorkingSet.shared.capacity)
         entityConstants.colorGain = simd_float4(1, 1, 1, 1)
         entityConstants.opacityScale = 1
+        entityConstants.maxScreenRadius = Float(GaussianRuntimeLimits.maxScreenRadius)
         let pipelines = try XCTUnwrap(GaussianChunkCullPipelineStates.current())
         let workingSet = GaussianSharedWorkingSet.shared
         let sharedSlot = min(renderInfo.currentInFlightFrameSlot, maxInFlightCommandBuffers - 1)
@@ -448,6 +449,7 @@ final class GaussianChunkCullTest: BaseRenderSetup {
         entityConstants.workingSetCapacity = UInt32(GaussianSharedWorkingSet.shared.capacity)
         entityConstants.colorGain = simd_float4(1, 1, 1, 1)
         entityConstants.opacityScale = 1
+        entityConstants.maxScreenRadius = Float(GaussianRuntimeLimits.maxScreenRadius)
         let packedSplats = try XCTUnwrap(component.packedSplatData)
         let inputs = GaussianChunkPreprocessInputs(
             packedSplats: packedSplats,

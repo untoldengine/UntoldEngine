@@ -33,13 +33,15 @@ constant float GAUSSIAN_SH_C3[7] = {
    -0.5900435899266435f
 };
 
-// Hard ceiling on a splat's screen-space half-extent, in pixels. Without this, radius
-// grows roughly as 1/distance as the camera approaches a splat (see the Jacobian in
-// computeCov2D), so a single splat can balloon to cover a huge fraction of the screen at
-// close range — every one of those extra pixels pays full fragment-shading cost. Trades a
-// little softness/tail accuracy at extreme close range for a bounded worst-case overdraw
-// cost per splat.
-constant float kGaussianMaxScreenRadius = 128.0f;
+// The ceiling on a splat's screen-space half-extent, in pixels, arrives per entity in
+// GaussianPreprocessEntityConstants.maxScreenRadius (GaussianRuntimeLimits.maxScreenRadius: 512
+// on mobile, 1024 on a Mac; the preprocess also caps it at the viewport's shorter side, as the
+// reference viewers do). Without a ceiling the radius grows roughly as 1/distance as the camera
+// approaches a splat (see the Jacobian in computeCov2D), so a single splat can balloon to cover
+// a huge fraction of the screen at close range — every one of those extra pixels pays full
+// fragment-shading cost. The ceiling trades a little softness/tail accuracy at extreme close
+// range for a bounded worst-case overdraw cost per splat; too low a ceiling (128 until 2026-09)
+// shrinks the splats of a surface the camera stands next to and opens holes between them.
 
 // How many standard deviations out the rendered quad extends along each principal axis, for
 // a fully-opaque (opacity == 1) splat. fragmentGaussianTBDRShader discards any fragment whose
@@ -56,6 +58,16 @@ constant float kGaussianMaxScreenRadius = 128.0f;
 // reaches this constant (as a hard ceiling) exactly at opacity == 1.
 constant float kGaussianQuadSigma = 3.5f;
 
+// The crisp kernel (GaussianDebugOptions.crispSplatKernel), for an A/B against viewers that
+// draw it: every splat is cut at 2√2 σ and its falloff renormalised so it reaches zero there,
+// (exp(−r²/2σ²) − e⁻⁴) / (1 − e⁻⁴). Each splat is about a fifth tighter than the Gaussian a
+// capture was trained with, which reads crisper on fine texture (asphalt, foliage) at the cost
+// of the tails the reference rasterizer blends; off by default.
+constant float kGaussianCrispQuadSigma = 2.8284271f;
+constant float kGaussianCrispCutPower = -4.0f;
+constant float kGaussianCrispFloor = 0.018315639f;
+constant float kGaussianCrispScale = 1.0186537f;
+
 // Fragments this dim round to nothing in 8-bit output; fragmentGaussianTBDRShader's
 // per-fragment discard keys off this bar directly. The quad-sizing math (gaussianAdaptiveSigma)
 // intentionally targets a lower alpha than this — see kGaussianQuadSigma's comment — so a
@@ -70,6 +82,10 @@ constant float kGaussianAlphaDiscardThreshold = 1.0f / 255.0f;
 // but in low-per-splat-opacity regions that can take a while to converge (e.g. opacity ~0.3
 // needs ~20 splats to reach 0.999). This caps the worst case directly: trades a small amount
 // of accuracy in pathologically dense overlap regions for a hard bound on the serial chain.
+// The frame's cap arrives in GaussianTBDRDrawDebug.maxBlendedSplatsPerPixel
+// (GaussianRuntimeLimits.maxBlendedSplatsPerPixel: 64 on mobile, 128 on a Mac, where a capture
+// whose splats are mostly faint needs more than 64 to saturate a pixel); this is the mobile
+// figure, kept for the derivations above.
 constant uchar kGaussianMaxBlendedSplatsPerPixel = 64;
 
 inline uint unpackIndex(uint64_t packed)  { return (uint)(packed & 0xffffffffu); }
@@ -77,6 +93,8 @@ inline uint unpackDepthKey(uint64_t packed) { return (uint)(packed >> 32); }
 
 // Dequantizes a byte packed by quantizeGaussianSHCoefficient (Swift) back
 // into the fixed [-1, 1] range.
+// The byte contract shared by the .untoldgs SH block, the .spz reader and
+// UntoldGSPacking.unpackSHCoefficient: (byte − 128) / 128.
 inline float dequantizeGaussianSHCoefficient(uchar packed)
 {
     return (float(packed) - 128.0f) / 128.0f;
@@ -148,15 +166,37 @@ float3 evaluateGaussianSphericalHarmonics(
     return max(result, float3(0.0f));
 }
 
-// Standard 3DGS coefficients are fitted to normalized image-code values.
-// Decode those display-referred values before writing to Untold's linear HDR
-// Gaussian target. The final output transform will encode them exactly once.
+// Standard 3DGS coefficients are fitted to normalized image-code values, and the trainer
+// blends splats in that display-referred space. The splat passes therefore keep the colour
+// as it is and blend there; the pre-composite decodes the finished layer to linear once
+// (preCompShader.metal). This decode remains for the diagnostic kernel below.
 float3 gaussianSRGBToLinear(float3 color)
 {
     color = max(color, float3(0.0f));
     float3 low = color / 12.92f;
     float3 high = pow((color + 0.055f) / 1.055f, float3(2.4f));
     return select(high, low, color <= 0.04045f);
+}
+
+// Linear → display-referred (sRGB-encoded): the inverse of gaussianSRGBToLinear.
+float3 gaussianLinearToSRGB(float3 color)
+{
+    color = max(color, float3(0.0f));
+    float3 low = color * 12.92f;
+    float3 high = 1.055f * pow(color, float3(1.0f / 2.4f)) - 0.055f;
+    return select(high, low, color <= 0.0031308f);
+}
+
+// GaussianComponent.colorGain is a gain in linear light (the capture white balance times 2^EV,
+// the XR tint on top), while a record's colour stays display-referred until the pre-composite
+// decodes the blended layer. The gain is therefore applied in linear and the result re-encoded;
+// the neutral gain skips the two transfer curves.
+inline float3 gaussianApplyLinearGain(float3 encoded, float3 gain)
+{
+    if (all(gain == float3(1.0f))) {
+        return encoded;
+    }
+    return gaussianLinearToSRGB(gaussianSRGBToLinear(encoded) * gain);
 }
 
 // Diagnostic entry point for validating the packed GPU SH contract against
@@ -327,9 +367,12 @@ float3 computeCov2D(float4      splatCenter,
     // cov2D = Tᵀ Σ3D T
     float3x3 cov = transpose(T) * cov3D * T;
 
-    // Low-pass filter to ensure at least ~1 pixel extent
-    cov[0][0] += 0.1f;
-    cov[1][1] += 0.1f;
+    // Low-pass filter: the 0.3-pixel dilation of the reference rasterizer. A capture is
+    // trained against it, so a sub-pixel splat covers about a pixel here as it did there;
+    // a smaller dilation (0.1 until 2026-09) draws every splat thinner than it was fitted,
+    // which reads as streaks and gaps on a surface.
+    cov[0][0] += 0.3f;
+    cov[1][1] += 0.3f;
 
     // Pack symmetric 2×2 into (a, b, c)
     return float3(cov[0][0], cov[0][1], cov[1][1]);
@@ -371,6 +414,7 @@ inline float gaussianAdaptiveSigma(float opacity)
 // per-splat extent from gaussianAdaptiveSigma, not always kGaussianQuadSigma — see there.
 float3 computeInverseCovarianceConic(float3 cov2D,
                                      float sigma,
+                                     float maxScreenRadius,
                                      thread float2 &axis1,
                                      thread float2 &axis2,
                                      thread bool  &valid)
@@ -415,7 +459,7 @@ float3 computeInverseCovarianceConic(float3 cov2D,
     float radius2 = sigma * sqrt(lambda2);
 
     // A splat whose true sigma extent along either principal axis exceeds
-    // kGaussianMaxScreenRadius (very close to the camera — radius grows ~1/distance) needs
+    // maxScreenRadius (very close to the camera — radius grows ~1/distance) needs
     // its rendered quad clamped down for overdraw reasons, but the falloff must be clamped
     // along with it, or the (smaller) quad sits within the Gaussian's near-flat peak and
     // never reaches the part of the curve that actually decays — visually a hard-edged,
@@ -428,8 +472,8 @@ float3 computeInverseCovarianceConic(float3 cov2D,
     // unchanged eigenvector directions — M = R·diag(λ1,λ2)·Rᵀ — so conic, radius, and the
     // falloff all agree on the same (possibly non-uniformly-shrunk) ellipse. det(M) = λ1·λ2
     // regardless of rotation, since R is orthogonal (det(R)·det(Rᵀ) = 1).
-    float clampedRadius1 = min(radius1, kGaussianMaxScreenRadius);
-    float clampedRadius2 = min(radius2, kGaussianMaxScreenRadius);
+    float clampedRadius1 = min(radius1, maxScreenRadius);
+    float clampedRadius2 = min(radius2, maxScreenRadius);
     if (clampedRadius1 < radius1 || clampedRadius2 < radius2) {
         float scale1 = clampedRadius1 / radius1;
         float scale2 = clampedRadius2 / radius2;
@@ -515,11 +559,18 @@ kernel void gaussianPreprocess(
     // radius consistent with an entity fading via opacityScale (e.g. cross-fade LOD transitions).
     float effectiveOpacity = float(splat.colorAndOpacity.w) * entity.opacityScale;
     float sigma = gaussianAdaptiveSigma(effectiveOpacity);
+    if (entity.crispKernel != 0u) {
+        sigma = min(sigma, kGaussianCrispQuadSigma);
+    }
 
     float2 axis1 = float2(0.0f);
     float2 axis2 = float2(0.0f);
     bool valid = true;
-    float3 conic = computeInverseCovarianceConic(cov2D, sigma, axis1, axis2, valid);
+    // A non-positive ceiling (constants built without one) means the viewport cap, never a
+    // collapsed quad.
+    const float viewportCap = min(viewport.x, viewport.y);
+    const float maxScreenRadius = entity.maxScreenRadius > 0.0f ? min(entity.maxScreenRadius, viewportCap) : viewportCap;
+    float3 conic = computeInverseCovarianceConic(cov2D, sigma, maxScreenRadius, axis1, axis2, valid);
 
     if (!valid || (axis1.x == 0.0f && axis1.y == 0.0f) || (axis2.x == 0.0f && axis2.y == 0.0f)) {
         return;
@@ -532,9 +583,12 @@ kernel void gaussianPreprocess(
         return;
     }
 
+    // The colour stays in the capture's own space (display-referred sRGB): the trainer
+    // blended the splats in that space, so the layer is blended there too and decoded to
+    // linear once, in the pre-composite (preCompShader.metal).
     float3 color = entity.debugColorEnabled != 0u
         ? entity.debugColor.xyz
-        : gaussianSRGBToLinear(evaluateGaussianSphericalHarmonics(
+        : (evaluateGaussianSphericalHarmonics(
             float3(splat.colorAndOpacity.xyz),
             shCoefficients,
             shMetadata,
@@ -544,7 +598,7 @@ kernel void gaussianPreprocess(
     GaussianWorkingSetSplat record;
     record.positionAndEntity = float4(centerLocal, as_type<float>(entity.entityIndex));
     record.conicAndOpacity = float4(conic, float(splat.colorAndOpacity.w) * entity.opacityScale);
-    record.color = float4(color * entity.colorGain.xyz, 0.0f);
+    record.color = float4(gaussianApplyLinearGain(color, entity.colorGain.xyz), 0.0f);
     record.axes = float4(axis1, axis2);
     workingSet[slot] = record;
 
@@ -647,9 +701,12 @@ vertex GaussianOutData vertexGaussianTBDRShader(
     out.conic = record.conicAndOpacity.xyz;
 
     // Tight, rotated quad along the ellipse's true principal axes (see
-    // computeInverseCovarianceConic) instead of an axis-aligned bounding box.
+    // computeInverseCovarianceConic) instead of an axis-aligned bounding box. The axes live
+    // in the pixel frame of the conic (y down, as coordxy and the fragment's position), while
+    // NDC y points up: the y offset flips sign on the way, or a tilted splat's quad is the
+    // mirror image of its ellipse and the fragment falloff gets clipped to their overlap.
     float2 pixelOffset = quad.x * record.axes.xy + quad.y * record.axes.zw;
-    float2 ndcOffset = pixelOffset * 2.0f / viewport;
+    float2 ndcOffset = pixelOffset * float2(2.0f, -2.0f) / viewport;
     out.position = centerClip;
     out.position.xy += ndcOffset * centerClip.w;
     out.color = record.color.xyz;
@@ -692,7 +749,16 @@ fragment GaussianTBDRFragmentStore fragmentGaussianTBDRShader(
     float2 d = calcScreenSpaceDelta(in.position.xy, in.coordxy, projYSign);
     float power = calcPowerFromConic(in.conic, d);
 
-    half alpha = half(saturate(in.alpha * exp(power)));
+    float falloff = exp(power);
+    if (debug.crispKernel != 0u) {
+        // The crisp kernel: nothing beyond 2√2 σ, and the falloff reaches zero exactly there.
+        if (power < kGaussianCrispCutPower) {
+            out.values = previousValues;
+            return out;
+        }
+        falloff = (falloff - kGaussianCrispFloor) * kGaussianCrispScale;
+    }
+    half alpha = half(saturate(in.alpha * falloff));
     if (alpha < half(kGaussianAlphaDiscardThreshold)) {
         // Contribution rounds to nothing — skip the opaque-depth read and blend math below.
         out.values = previousValues;
@@ -718,11 +784,11 @@ fragment GaussianTBDRFragmentStore fragmentGaussianTBDRShader(
         return out;
     }
 
-    // Hard bound on the raster_order_group's serial chain length for this pixel — see
-    // kGaussianMaxBlendedSplatsPerPixel. Only counts splats that actually reach the blend
-    // below (occluded/negligible-alpha splats above never increment this).
-    // The cap normally is kGaussianMaxBlendedSplatsPerPixel; GaussianDebugOptions can lift it
-    // to the counter's maximum for bisecting.
+    // Hard bound on the raster_order_group's serial chain length for this pixel:
+    // GaussianRuntimeLimits.maxBlendedSplatsPerPixel (64 on mobile, 128 on a Mac), carried
+    // in GaussianTBDRDrawDebug; GaussianDebugOptions.disableBlendCap lifts it to the counter's
+    // maximum for bisecting. Only counts splats that actually reach the blend below
+    // (occluded/negligible-alpha splats above never increment this).
     uchar maxBlended = (uchar)min(debug.maxBlendedSplatsPerPixel, 255u);
     if (previousValues.contributingSplatCount >= maxBlended) {
         out.values = previousValues;
