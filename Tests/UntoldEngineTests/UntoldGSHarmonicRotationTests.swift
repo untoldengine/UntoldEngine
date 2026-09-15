@@ -83,6 +83,23 @@ final class UntoldGSHarmonicRotationTests: XCTestCase {
         }
     }
 
+    /// The basis the rotation is fitted from is the renderer's: it agrees with the CPU evaluator
+    /// pinned to Gaussians.metal, channel by channel, so a transcription error in either shows.
+    func test_basisMatchesTheRendererCPUEvaluator() {
+        var random = SplitMix64(state: 0x5EED_0B45)
+        for trial in 0 ..< 16 {
+            let base = simd_float3(random.value(in: 0 ... 1), random.value(in: 0 ... 1), random.value(in: 0 ... 1))
+            let channels = (0 ..< 3).map { _ in (0 ..< 15).map { _ in random.value(in: -0.5 ... 0.5) } }
+            let direction = random.direction() * random.value(in: 0.5 ... 3)
+            let expected = evaluateGaussianSphericalHarmonics(baseColor: base, higherOrderCoefficients: channels.flatMap { $0 }, degree: 3, direction: direction)
+            let unit = simd_normalize(direction)
+            for channel in 0 ..< 3 {
+                let ours = UntoldGSHarmonicRotation.evaluate(dc: base[channel], higherOrders: channels[channel], direction: unit)
+                XCTAssertEqual(ours, expected[channel], accuracy: 1e-5, "trial \(trial), channel \(channel)")
+            }
+        }
+    }
+
     func test_halfTurnAboutXFlipsTheOddBasisFunctions() throws {
         // (x, y, z) → (x, −y, −z), the −Y-up fix: every basis function odd in y and z together flips.
         let rotation = try XCTUnwrap(UntoldGSHarmonicRotation(rotation: simd_quatf(angle: .pi, axis: SIMD3<Float>(1, 0, 0))))

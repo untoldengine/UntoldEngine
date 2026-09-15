@@ -235,7 +235,10 @@ kernel void gaussianChunkDecodePreprocess(
         float2 axis1 = float2(0.0f);
         float2 axis2 = float2(0.0f);
         bool valid = true;
-        const float maxScreenRadius = min(entity.maxScreenRadius, min(viewport.x, viewport.y));
+        // A non-positive ceiling (constants built without one) means the viewport cap, never a
+        // collapsed quad.
+        const float viewportCap = min(viewport.x, viewport.y);
+        const float maxScreenRadius = entity.maxScreenRadius > 0.0f ? min(entity.maxScreenRadius, viewportCap) : viewportCap;
         float3 conic = computeInverseCovarianceConic(cov2D, sigma, maxScreenRadius, axis1, axis2, valid);
         if (!valid || (axis1.x == 0.0f && axis1.y == 0.0f) || (axis2.x == 0.0f && axis2.y == 0.0f)) {
             continue;
