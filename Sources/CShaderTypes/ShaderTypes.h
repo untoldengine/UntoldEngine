@@ -633,7 +633,8 @@ typedef struct{
     simd_float4 debugColor;
     simd_float4 colorGain;     // xyz: linear multiplier on the splat colour (capture exposure, editor offset, XR tint); w unused
     float opacityScale;        // multiplier on every splat's opacity: 1 normal, 0 hidden (nothing is appended), between for a cross-fade
-    float _pad1[3];
+    float maxScreenRadius;     // GaussianRuntimeLimits.maxScreenRadius: ceiling on a splat's screen-space half-extent, in pixels; the preprocess also caps it at the viewport's shorter side
+    float _pad1[2];
 }GaussianPreprocessEntityConstants;
 
 typedef struct{

@@ -11,18 +11,22 @@ import XCTest
 
 final class GaussianRuntimeLimitsTests: XCTestCase {
     private var savedOverride: Int?
+    private var savedRadiusOverride: Int?
     private var savedDisableBlendCap = false
 
     override func setUp() {
         super.setUp()
         savedOverride = GaussianRuntimeLimits.maxBlendedSplatsPerPixelOverride
+        savedRadiusOverride = GaussianRuntimeLimits.maxScreenRadiusOverride
         savedDisableBlendCap = GaussianDebugOptions.shared.disableBlendCap
         GaussianRuntimeLimits.maxBlendedSplatsPerPixelOverride = nil
+        GaussianRuntimeLimits.maxScreenRadiusOverride = nil
         GaussianDebugOptions.shared.disableBlendCap = false
     }
 
     override func tearDown() {
         GaussianRuntimeLimits.maxBlendedSplatsPerPixelOverride = savedOverride
+        GaussianRuntimeLimits.maxScreenRadiusOverride = savedRadiusOverride
         GaussianDebugOptions.shared.disableBlendCap = savedDisableBlendCap
         super.tearDown()
     }
@@ -46,6 +50,24 @@ final class GaussianRuntimeLimitsTests: XCTestCase {
         GaussianRuntimeLimits.maxBlendedSplatsPerPixelOverride = nil
         #if os(macOS)
             XCTAssertEqual(GaussianRuntimeLimits.maxBlendedSplatsPerPixel, 128)
+        #endif
+    }
+
+    func test_screenRadiusIsThePlatformFigureUntilOverridden() {
+        #if os(macOS)
+            XCTAssertEqual(GaussianRuntimeLimits.maxScreenRadius, GaussianRuntimeLimits.maxScreenRadiusMac)
+        #else
+            XCTAssertEqual(GaussianRuntimeLimits.maxScreenRadius, GaussianRuntimeLimits.maxScreenRadiusMobile)
+        #endif
+        XCTAssertEqual(GaussianRuntimeLimits.maxScreenRadiusMobile, 512)
+        XCTAssertEqual(GaussianRuntimeLimits.maxScreenRadiusMac, 1024)
+        GaussianRuntimeLimits.maxScreenRadiusOverride = 128
+        XCTAssertEqual(GaussianRuntimeLimits.maxScreenRadius, 128)
+        GaussianRuntimeLimits.maxScreenRadiusOverride = 0
+        XCTAssertEqual(GaussianRuntimeLimits.maxScreenRadius, 8, "never a vanishing quad")
+        GaussianRuntimeLimits.maxScreenRadiusOverride = nil
+        #if os(macOS)
+            XCTAssertEqual(GaussianRuntimeLimits.maxScreenRadius, 1024)
         #endif
     }
 

@@ -33,13 +33,15 @@ constant float GAUSSIAN_SH_C3[7] = {
    -0.5900435899266435f
 };
 
-// Hard ceiling on a splat's screen-space half-extent, in pixels. Without this, radius
-// grows roughly as 1/distance as the camera approaches a splat (see the Jacobian in
-// computeCov2D), so a single splat can balloon to cover a huge fraction of the screen at
-// close range — every one of those extra pixels pays full fragment-shading cost. Trades a
-// little softness/tail accuracy at extreme close range for a bounded worst-case overdraw
-// cost per splat.
-constant float kGaussianMaxScreenRadius = 128.0f;
+// The ceiling on a splat's screen-space half-extent, in pixels, arrives per entity in
+// GaussianPreprocessEntityConstants.maxScreenRadius (GaussianRuntimeLimits.maxScreenRadius: 512
+// on mobile, 1024 on a Mac; the preprocess also caps it at the viewport's shorter side, as the
+// reference viewers do). Without a ceiling the radius grows roughly as 1/distance as the camera
+// approaches a splat (see the Jacobian in computeCov2D), so a single splat can balloon to cover
+// a huge fraction of the screen at close range — every one of those extra pixels pays full
+// fragment-shading cost. The ceiling trades a little softness/tail accuracy at extreme close
+// range for a bounded worst-case overdraw cost per splat; too low a ceiling (128 until 2026-09)
+// shrinks the splats of a surface the camera stands next to and opens holes between them.
 
 // How many standard deviations out the rendered quad extends along each principal axis, for
 // a fully-opaque (opacity == 1) splat. fragmentGaussianTBDRShader discards any fragment whose
@@ -400,6 +402,7 @@ inline float gaussianAdaptiveSigma(float opacity)
 // per-splat extent from gaussianAdaptiveSigma, not always kGaussianQuadSigma — see there.
 float3 computeInverseCovarianceConic(float3 cov2D,
                                      float sigma,
+                                     float maxScreenRadius,
                                      thread float2 &axis1,
                                      thread float2 &axis2,
                                      thread bool  &valid)
@@ -444,7 +447,7 @@ float3 computeInverseCovarianceConic(float3 cov2D,
     float radius2 = sigma * sqrt(lambda2);
 
     // A splat whose true sigma extent along either principal axis exceeds
-    // kGaussianMaxScreenRadius (very close to the camera — radius grows ~1/distance) needs
+    // maxScreenRadius (very close to the camera — radius grows ~1/distance) needs
     // its rendered quad clamped down for overdraw reasons, but the falloff must be clamped
     // along with it, or the (smaller) quad sits within the Gaussian's near-flat peak and
     // never reaches the part of the curve that actually decays — visually a hard-edged,
@@ -457,8 +460,8 @@ float3 computeInverseCovarianceConic(float3 cov2D,
     // unchanged eigenvector directions — M = R·diag(λ1,λ2)·Rᵀ — so conic, radius, and the
     // falloff all agree on the same (possibly non-uniformly-shrunk) ellipse. det(M) = λ1·λ2
     // regardless of rotation, since R is orthogonal (det(R)·det(Rᵀ) = 1).
-    float clampedRadius1 = min(radius1, kGaussianMaxScreenRadius);
-    float clampedRadius2 = min(radius2, kGaussianMaxScreenRadius);
+    float clampedRadius1 = min(radius1, maxScreenRadius);
+    float clampedRadius2 = min(radius2, maxScreenRadius);
     if (clampedRadius1 < radius1 || clampedRadius2 < radius2) {
         float scale1 = clampedRadius1 / radius1;
         float scale2 = clampedRadius2 / radius2;
@@ -548,7 +551,8 @@ kernel void gaussianPreprocess(
     float2 axis1 = float2(0.0f);
     float2 axis2 = float2(0.0f);
     bool valid = true;
-    float3 conic = computeInverseCovarianceConic(cov2D, sigma, axis1, axis2, valid);
+    const float maxScreenRadius = min(entity.maxScreenRadius, min(viewport.x, viewport.y));
+    float3 conic = computeInverseCovarianceConic(cov2D, sigma, maxScreenRadius, axis1, axis2, valid);
 
     if (!valid || (axis1.x == 0.0f && axis1.y == 0.0f) || (axis2.x == 0.0f && axis2.y == 0.0f)) {
         return;
