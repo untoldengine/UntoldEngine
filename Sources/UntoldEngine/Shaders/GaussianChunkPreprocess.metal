@@ -275,7 +275,7 @@ kernel void gaussianChunkDecodePreprocess(
         GaussianWorkingSetSplat out;
         out.positionAndEntity = float4(centerLocal, as_type<float>(entity.entityIndex));
         out.conicAndOpacity = float4(conic, opacity);
-        out.color = float4(color * entity.colorGain.xyz, 0.0f);
+        out.color = float4(gaussianApplyLinearGain(color, entity.colorGain.xyz), 0.0f);
         out.axes = float4(axis1, axis2);
         workingSet[slot] = out;
 

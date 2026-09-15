@@ -537,10 +537,13 @@ entity's link already stores) and `--clear-alignment`; `--list` prints it.
 
 ### Calibrating the capture
 
-Splats are unlit emissive surfaces composited in linear light before the look and output
-transforms, so a splat is tone-mapped once, like an emissive mesh next to it. The preprocess
-applies one linear gain per entity, `GaussianComponent.colorGain`: the capture white balance
-from the `.untoldgs` header, times `2^(exposureOffsetEV − captureExposureEV)`. A capture
+Splats are unlit emissive surfaces. The splat layer is blended in the capture's own
+display-referred (sRGB) space and decoded to linear once in the pre-composite, and the look
+pass's grade and tone map leave splat-covered pixels alone (see the rendering notes above), so a
+capture keeps the tones it was trained to. The preprocess applies one gain in linear light per
+entity, `GaussianComponent.colorGain`: the capture white balance from the `.untoldgs` header,
+times `2^(exposureOffsetEV − captureExposureEV)`, decoding each splat's stored colour, scaling
+it and re-encoding it. A capture
 recorded at +1 EV therefore comes back to the scene's neutral exposure by itself, and the
 per-asset offset (the editor slider, `exposureOffsetEV` in the scene record) pushes it either
 way. With `useRealWorldTint` the colour is also multiplied by the XR lighting estimate's tint
