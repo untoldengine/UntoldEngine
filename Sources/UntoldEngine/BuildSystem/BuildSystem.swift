@@ -180,6 +180,26 @@ import Foundation
         public static let shared = BuildSystem()
         private init() {}
 
+        /// Common Homebrew/MacPorts install locations for the XcodeGen CLI, which project
+        /// generation shells out to. Shared by `configureProject` and `isXcodeGenAvailable` so
+        /// callers can check for it upfront instead of only discovering it's missing partway
+        /// through a build.
+        private static let xcodeGenSearchPaths = [
+            "/opt/homebrew/bin/xcodegen",
+            "/usr/local/bin/xcodegen",
+            "/opt/local/bin/xcodegen",
+        ]
+
+        /// Path to the installed `xcodegen` executable, if found in a known location.
+        public static func xcodeGenPath() -> String? {
+            xcodeGenSearchPaths.first { FileManager.default.fileExists(atPath: $0) }
+        }
+
+        /// Whether `xcodegen` -- required to generate an Xcode project -- is installed.
+        public static var isXcodeGenAvailable: Bool {
+            xcodeGenPath() != nil
+        }
+
         /// Check if a project already exists at the output path
         public func projectExists(settings: BuildSettings) -> Bool {
             let projectDir = settings.outputPath.appendingPathComponent(settings.projectName)
@@ -426,22 +446,7 @@ import Foundation
             let task = Process()
             task.currentDirectoryURL = projectDir
 
-            // Try to find xcodegen in common locations
-            let possiblePaths = [
-                "/opt/homebrew/bin/xcodegen",
-                "/usr/local/bin/xcodegen",
-                "/opt/local/bin/xcodegen",
-            ]
-
-            var xcodegenPath: String?
-            for path in possiblePaths {
-                if FileManager.default.fileExists(atPath: path) {
-                    xcodegenPath = path
-                    break
-                }
-            }
-
-            guard let xcodegenPath else {
+            guard let xcodegenPath = Self.xcodeGenPath() else {
                 throw BuildError.projectGenerationFailed("xcodegen not found. Install with: brew install xcodegen")
             }
 
