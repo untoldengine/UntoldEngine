@@ -5,7 +5,7 @@
 //  Builds the merged coarse levels of one `.untoldgs` chunk: a weighted Lloyd
 //  clustering over the chunk's Morton order with a linear-colour term, a
 //  moment-matched Gaussian per cluster (mixture mean and covariance, coverage
-//  opacity, linear-space colour), a deterministic Jacobi eigensolve back to a
+//  opacity, colour averaged in the blend space), a deterministic Jacobi eigensolve back to a
 //  rotation and a scale, and a second level built hierarchically over the first.
 //  Pure functions in a fixed evaluation order, so a bake is bit-reproducible run
 //  to run and independent of how the writer schedules chunks across threads.
@@ -189,7 +189,7 @@ public enum UntoldGSCoarsener {
         var level: [UntoldGSSplat] = []
         level.reserveCapacity(k)
         for cluster in clusters {
-            let merged = merge(cluster.map { members[$0] }, weights: cluster.map { weights[$0] }, linearColours: cluster.map { linear[$0] }, stats: stats)
+            let merged = merge(cluster.map { members[$0] }, weights: cluster.map { weights[$0] }, stats: stats)
             guard merged.isFinite else {
                 throw UntoldGSError.invalidInput("coarsening produced a non-finite splat")
             }
@@ -424,14 +424,12 @@ public enum UntoldGSCoarsener {
     /// coverage against the merged area, colour averaged in the blend space (display-referred) weighted by
     /// `weight × opacity`. Rotation and scale come from `jacobiEigen3`; σ is clamped to the
     /// chunk's `[minimumScale, maximumScale]`.
-    static func merge(_ members: [UntoldGSSplat], weights: [Float], linearColours: [SIMD3<Float>]? = nil, stats: ChunkStatistics) -> UntoldGSSplat {
+    static func merge(_ members: [UntoldGSSplat], weights: [Float], stats: ChunkStatistics) -> UntoldGSSplat {
         precondition(!members.isEmpty && members.count == weights.count)
         // Colours average in the space the splats blend in — the capture's own display-referred
         // space (the trainer blended there; so does the renderer since 2026-09) — so a merged
-        // record covers its members with the tone their blend would have had. `linearColours`
-        // is accepted for callers that still pass it and ignored.
-        _ = linearColours
-        let linear = members.map { SIMD3<Float>($0.color) }
+        // record covers its members with the tone their blend would have had.
+        let colours = members.map { SIMD3<Float>($0.color) }
 
         var totalWeight: Double = 0
         var weightedPosition = SIMD3<Double>(repeating: 0)
@@ -459,9 +457,9 @@ public enum UntoldGSCoarsener {
             let between = simd_double3x3(columns: (d * d.x, d * d.y, d * d.z))
             covariance += w * (within + between)
             let cw = (uniform ? 1 : Double(weights[index])) * Double(splat.opacity)
-            colourSum += cw * SIMD3<Double>(linear[index])
+            colourSum += cw * SIMD3<Double>(colours[index])
             colourWeight += cw
-            plainColour += SIMD3<Double>(linear[index])
+            plainColour += SIMD3<Double>(colours[index])
             coverage += Double(splat.opacity) * Double(projectedArea(splat.scale))
         }
         let symmetric = simd_float3x3(columns: (

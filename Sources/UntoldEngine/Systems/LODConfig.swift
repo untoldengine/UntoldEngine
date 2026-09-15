@@ -76,8 +76,8 @@ public struct LODConfig {
     /// Ceiling on `estimatedGaussianOverdraw` (mean blended fragments per pixel across a
     /// Gaussian entity's screen footprint) before `GaussianLODSystem` forces a coarser tier
     /// than pure distance-based selection would pick. This is a starting guess, not a derived
-    /// constant — the engine's serial TBDR blend caps at `kGaussianMaxBlendedSplatsPerPixel`
-    /// (64) per pixel, but sustained GPU frame-time overrun (the actual failure mode this
+    /// constant — the engine's serial TBDR blend caps at
+    /// `GaussianRuntimeLimits.maxBlendedSplatsPerPixel` (64 on mobile, 128 on a Mac) per pixel, but sustained GPU frame-time overrun (the actual failure mode this
     /// guards against) was observed well below that cap. Tune on-device by watching GPU frame
     /// time while varying this value; only takes effect for LOD levels with a non-nil
     /// `GaussianLODLevel.meanSquaredSplatExtent` supplied.

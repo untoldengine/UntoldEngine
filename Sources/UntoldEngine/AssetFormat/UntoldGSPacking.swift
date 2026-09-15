@@ -329,9 +329,9 @@ public enum UntoldGSPacking {
     }
 }
 
-/// The sRGB transfer curve the shaders apply to the stored display-referred colour
-/// (`gaussianSRGBToLinear` in `Gaussians.metal`), mirrored so the coarsener averages colours in
-/// linear space and maps the mean back once.
+/// The sRGB transfer curve of the stored display-referred colour (`gaussianSRGBToLinear` in
+/// `Gaussians.metal`; the pre-composite applies it once to the blended layer), mirrored on the
+/// CPU for the coarsener's clustering distance and for tests that reason in linear light.
 public enum UntoldGSColor {
     /// Display-referred (sRGB-encoded) → linear, per channel; negative input clamps to 0.
     public static func linear(fromDisplay color: SIMD3<Float>) -> SIMD3<Float> {
