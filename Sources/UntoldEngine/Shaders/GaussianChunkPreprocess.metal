@@ -232,7 +232,8 @@ kernel void gaussianChunkDecodePreprocess(
         float2 axis1 = float2(0.0f);
         float2 axis2 = float2(0.0f);
         bool valid = true;
-        float3 conic = computeInverseCovarianceConic(cov2D, sigma, axis1, axis2, valid);
+        const float maxScreenRadius = min(entity.maxScreenRadius, min(viewport.x, viewport.y));
+        float3 conic = computeInverseCovarianceConic(cov2D, sigma, maxScreenRadius, axis1, axis2, valid);
         if (!valid || (axis1.x == 0.0f && axis1.y == 0.0f) || (axis2.x == 0.0f && axis2.y == 0.0f)) {
             continue;
         }
