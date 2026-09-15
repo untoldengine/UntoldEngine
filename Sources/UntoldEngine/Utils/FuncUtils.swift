@@ -163,7 +163,18 @@ public func loadImage(_ textureName: String, from directory: URL? = nil) throws 
         }
     }
 
-    guard let url = Bundle.module.url(forResource: textureName, withExtension: nil) else {
+    // Bundle.main is checked first so a macOS .app that flattens UntoldEngine's resources into
+    // Contents/Resources (required for codesigning/notarization) can find them. The filesystem
+    // check is a fallback for cases where Bundle.main's resource index misses a file that is
+    // actually present. Bundle.untoldEngineModuleResourceURL covers the unflattened case
+    // (swift run/swift test/CLI tools, and the nested layout on iOS/tvOS/visionOS) without the
+    // crash risk of the SwiftPM-generated Bundle.module accessor -- see
+    // Bundle+ResourceFallback.swift.
+    guard
+        let url = Bundle.main.url(forResource: textureName, withExtension: nil)
+        ?? Bundle.mainResourceURLByPath(forResource: textureName)
+        ?? Bundle.untoldEngineModuleResourceURL(forResource: textureName, withExtension: nil)
+    else {
         throw LoadError.urlCreationFailed(textureName)
     }
 
