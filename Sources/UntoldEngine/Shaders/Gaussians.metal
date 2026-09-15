@@ -83,6 +83,8 @@ inline uint unpackDepthKey(uint64_t packed) { return (uint)(packed >> 32); }
 
 // Dequantizes a byte packed by quantizeGaussianSHCoefficient (Swift) back
 // into the fixed [-1, 1] range.
+// The byte contract shared by the .untoldgs SH block, the .spz reader and
+// UntoldGSPacking.unpackSHCoefficient: (byte − 128) / 128.
 inline float dequantizeGaussianSHCoefficient(uchar packed)
 {
     return (float(packed) - 128.0f) / 128.0f;
