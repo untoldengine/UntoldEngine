@@ -28,7 +28,16 @@ extension MTLDevice {
             let resourceName = "UntoldEngineKernels-xrossim"
         #endif
 
-        let libraryURL = Bundle.module.url(forResource: resourceName, withExtension: "metallib")
+        // Bundle.main is checked first: it's where a signed/notarized macOS .app that flattens
+        // UntoldEngine's resources into Contents/Resources will have them. The filesystem check
+        // is a fallback for cases where Bundle.main's resource index misses a file that is
+        // actually present. Bundle.untoldEngineModuleResourceURL covers the unflattened case
+        // (swift run/swift test/CLI tools, and the nested layout on iOS/tvOS/visionOS) without
+        // the crash risk of the SwiftPM-generated Bundle.module accessor -- see
+        // Bundle+ResourceFallback.swift.
+        let libraryURL = Bundle.main.url(forResource: resourceName, withExtension: "metallib")
+            ?? Bundle.mainResourceURLByPath(forResource: resourceName, withExtension: "metallib")
+            ?? Bundle.untoldEngineModuleResourceURL(forResource: resourceName, withExtension: "metallib")
 
         if let libURL = libraryURL {
             Logger.log(message: "Loading Metal Library from Bundle: \(libURL)")

@@ -9,6 +9,9 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import Foundation
+import UntoldEngine
+
+private final class AssetManifestBundleLocator {}
 
 struct AssetPack: Codable {
     let id: String
@@ -26,7 +29,18 @@ struct AssetManifest: Codable {
     /// Load from the bundled manifest.json shipped with the CLI binary.
     /// Swap this out for fetch(from:) once asset packs are hosted remotely.
     static func load() throws -> AssetManifest {
-        guard let url = Bundle.module.url(forResource: "manifest", withExtension: "json") else {
+        // Bundle.main first covers a flattened, signed distribution of the CLI binary; the
+        // nested-bundle fallback covers `swift run`/`swift test`/a plain built binary. Goes
+        // through Bundle.safeModuleResourceBundle rather than this target's own generated
+        // Bundle.module -- that accessor calls Swift.fatalError() on a miss, which is fatal to
+        // the whole CLI invocation for what should be a recoverable missing-resource error.
+        guard
+            let url = Bundle.main.url(forResource: "manifest", withExtension: "json")
+            ?? Bundle.mainResourceURLByPath(forResource: "manifest", withExtension: "json")
+            ?? Bundle.safeModuleResourceBundle(
+                named: "UntoldEngineCLI_UntoldEngineCLI.bundle", anchor: AssetManifestBundleLocator.self
+            )?.url(forResource: "manifest", withExtension: "json")
+        else {
             throw AssetError.manifestNotFound
         }
         let data = try Data(contentsOf: url)
