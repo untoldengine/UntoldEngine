@@ -85,6 +85,7 @@ final class UntoldGSHarmonicRotationTests: XCTestCase {
 
     /// The basis the rotation is fitted from is the renderer's: it agrees with the CPU evaluator
     /// pinned to Gaussians.metal, channel by channel, so a transcription error in either shows.
+    /// The evaluator clamps a negative colour at zero, as the shader's caller does.
     func test_basisMatchesTheRendererCPUEvaluator() {
         var random = SplitMix64(state: 0x5EED_0B45)
         for trial in 0 ..< 16 {
@@ -95,7 +96,7 @@ final class UntoldGSHarmonicRotationTests: XCTestCase {
             let unit = simd_normalize(direction)
             for channel in 0 ..< 3 {
                 let ours = UntoldGSHarmonicRotation.evaluate(dc: base[channel], higherOrders: channels[channel], direction: unit)
-                XCTAssertEqual(ours, expected[channel], accuracy: 1e-5, "trial \(trial), channel \(channel)")
+                XCTAssertEqual(max(ours, 0), expected[channel], accuracy: 1e-5, "trial \(trial), channel \(channel)")
             }
         }
     }
