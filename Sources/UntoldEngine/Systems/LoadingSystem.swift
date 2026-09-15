@@ -147,8 +147,13 @@ public func getResourceURL(resourceName: String, ext: String, subName: String?) 
         }
     }
 
-    // 4) Module bundle (UNCHANGED: top-level only, for engine-internal content)
-    return Bundle.module.url(forResource: resourceName, withExtension: ext)
+    // 4) Module bundle (top-level only, for engine-internal content). Goes through
+    // Bundle.untoldEngineModuleResourceURL rather than Bundle.module directly -- the
+    // SwiftPM-generated Bundle.module accessor calls Swift.fatalError() when it can't locate its
+    // resource bundle (e.g. a signed/notarized macOS .app that flattened resources away, where
+    // step 2 above already would have found them), which would crash the whole app for what
+    // should just be "resource not found" here. See Bundle+ResourceFallback.swift.
+    return Bundle.untoldEngineModuleResourceURL(forResource: resourceName, withExtension: ext)
 }
 
 private func effectiveAssetBaseURL(_ basePath: URL) -> URL {
