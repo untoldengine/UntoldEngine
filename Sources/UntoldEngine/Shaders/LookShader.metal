@@ -98,8 +98,10 @@ fragment float4 fragmentLookShader(
   constant float3 &colorGradeLUTDomainMin [[buffer(colorGradeLUTDomainMinIndex)]],
   constant float3 &colorGradeLUTDomainMax [[buffer(colorGradeLUTDomainMaxIndex)]],
   constant int &tonemapOperator [[buffer(tonemapOperatorSelectIndex)]],
-  texture2d<float> splatCoverage [[texture(lookPassSplatCoverageTextureIndex)]],
-  constant int &splatMask [[buffer(lookPassSplatMaskIndex)]]
+  texture2d<float> splatLayer [[texture(lookPassSplatCoverageTextureIndex)]],
+  constant int &splatMask [[buffer(lookPassSplatMaskIndex)]],
+  texture2d<float> gizmoTexture [[texture(lookPassGizmoTextureIndex)]],
+  constant bool &gizmoOverrides [[buffer(lookPassGizmoOverrideIndex)]]
 ) {
   constexpr sampler s(min_filter::linear, mag_filter::linear, address::clamp_to_edge);
   float4 sceneSample = sceneTexture.sample(s, in.uvCoords);
@@ -107,11 +109,30 @@ fragment float4 fragmentLookShader(
   // A Gaussian splat pixel is a finished photograph: blended in the capture's own
   // display-referred space and decoded to linear once in the pre-composite, it must reach the
   // output transform as it is — no grade, no tone map — or every capture is lifted and
-  // flattened. The splat pass's coverage (splatCoverage.a, bound when splatMask is set) says
-  // how much of the pixel that is.
-  const float splat = splatMask ? saturate(splatCoverage.sample(s, in.uvCoords).a) : 0.0;
+  // flattened. The splat pass's layer (premultiplied, in the capture's space; bound when
+  // splatMask is set) says how much of the pixel that is and what the splats put there. A
+  // pixel the editor's gizmo overrode in the pre-composite holds no splats any more.
+  float4 layer = float4(0.0);
+  if (splatMask) {
+      layer = splatLayer.sample(s, in.uvCoords);
+      layer.a = saturate(layer.a);
+      if (gizmoOverrides && getLuminance(gizmoTexture.sample(s, in.uvCoords).rgb) > 0.1) {
+          layer = float4(0.0);
+      }
+  }
+  const float splat = layer.a;
   if (splat >= 0.999) {
       return float4(sceneSample.rgb, sceneSample.a);
+  }
+  // Take the splats back out of a partly covered pixel: the composite is layer + (1 − a) ·
+  // scene, so the scene behind the splats is what the grade and the tone map apply to, and the
+  // layer goes back on top untouched. (Not a lerp between the graded and the raw composite:
+  // that passes a · (1 − a) of the scene through un-tone-mapped, a bright fringe along every
+  // splat silhouette over an HDR background.)
+  float3 splatLinear = float3(0.0);
+  if (splat > 0.0) {
+      splatLinear = splatSRGBToLinear(layer.rgb / splat) * splat;
+      color = max((sceneSample.rgb - splatLinear) / (1.0 - splat), 0.0);
   }
 
   if (enabled) {
@@ -141,6 +162,6 @@ fragment float4 fragmentLookShader(
       color = sampleColorGradeLUT(color, colorGradeLUTTexture, colorGradeLUTDomainMin, colorGradeLUTDomainMax);
   }
 
-  return float4(mix(color, sceneSample.rgb, splat), sceneSample.a);
+  return float4(splatLinear + color * (1.0 - splat), sceneSample.a);
 }
 

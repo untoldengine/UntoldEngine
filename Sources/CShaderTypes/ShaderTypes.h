@@ -275,15 +275,19 @@ typedef enum {
     tonemapOperatorAgX = 1,
 } TonemapOperatorID;
 
-// The Gaussian pass's coverage on the look pass: a splat pixel is display-referred already
+// The Gaussian pass's layer on the look pass: a splat pixel is display-referred already
 // (blended in the capture's own space, decoded once in the pre-composite) and keeps its colour
-// through the grade and the tone map in proportion to the coverage.
+// through the grade and the tone map; a partly covered pixel has only the scene behind the
+// splats graded. The gizmo layer says which pixels the pre-composite let the editor's gizmo
+// override, so those are graded whole.
 typedef enum {
-    lookPassSplatCoverageTextureIndex = 3,   // texture(0..2) above
+    lookPassSplatCoverageTextureIndex = 3,   // texture(0..2) above: the splat layer, premultiplied
+    lookPassGizmoTextureIndex = 4,
 } LookPassSplatTextureIndices;
 
 typedef enum {
     lookPassSplatMaskIndex = 15,   // starts after TonemapSelectBufferIndices (14)
+    lookPassGizmoOverrideIndex = 16,   // bool: the gizmo layer overrides pixels (the editor, not game mode)
 } LookPassSplatBufferIndices;
 
 typedef enum{

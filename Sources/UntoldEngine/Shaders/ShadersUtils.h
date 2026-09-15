@@ -12,6 +12,18 @@
 #define ShadersUtils_h
 using namespace metal;
 
+// The splat layer is blended in the capture's own display-referred (sRGB) space, the space its
+// trainer blended in. The pre-composite decodes the finished layer to linear once, and the look
+// pass decodes the same layer to take the splats back out of a partly covered pixel before it
+// grades the scene behind them.
+inline float3 splatSRGBToLinear(float3 color)
+{
+    color = max(color, float3(0.0f));
+    float3 low = color / 12.92f;
+    float3 high = pow((color + 0.055f) / 1.055f, float3(2.4f));
+    return select(high, low, color <= 0.04045f);
+}
+
 // Centered Poisson disk used for shadow PCF.
 constant float2 poissonDisk[16]={float2( -0.434858, -0.952086 ),
     float2( 0.585314, 0.891476 ),
