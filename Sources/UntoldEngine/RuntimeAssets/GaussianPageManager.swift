@@ -617,6 +617,14 @@ public final class GaussianPageManager: @unchecked Sendable {
     private var _runningReads = 0
     private var _pendingRequests: [GaussianPagerRead] = []
     private var _pendingHead = 0
+    /// Chains each dispatched read to the one issued just before it: its block's first act is to
+    /// wait on this (the previous read's own start signal), then immediately signal its own
+    /// before doing any real work. That pins the order reads *start* in to the order they were
+    /// selected in — handing every read straight to the concurrent queue left that order up to
+    /// whichever thread the scheduler ran first, so a read could reach the source arbitrarily out
+    /// of turn. The wait is brief (the predecessor signals right after starting, before it blocks
+    /// on anything of its own), so this doesn't reduce how many reads run at once.
+    private var _lastReadStarted: DispatchSemaphore?
 
     /// Takes the pools and the nine per-slot tables the loader allocated, initialises the tables
     /// (nothing resident, every tier absent, no demand) and registers the pool bytes, converting
@@ -1428,13 +1436,14 @@ public final class GaussianPageManager: @unchecked Sendable {
 
     /// The worker: the piece into the records buffer, then the CRC of every level payload wholly
     /// inside it against its entry.
-    private func performCoarse(_ request: GaussianCoarseReadRequest) -> Result<Void, GaussianPagingError> {
+    private func performCoarse(_ request: GaussianCoarseReadRequest, onStarted: () -> Void = {}) -> Result<Void, GaussianPagingError> {
         lock.lock()
         let closed = _state == .closed || request.generation != _generation
         lock.unlock()
         if closed { return .failure(.closed) }
         guard let coarse else { return .failure(.closed) }
         let base = coarse.recordsBuffer.contents()
+        onStarted()
         do {
             try source.read(offset: request.piece.fileOffset, count: request.piece.byteCount, into: base + request.piece.bufferOffset)
         } catch let error as GaussianPagingError {
@@ -2220,9 +2229,11 @@ public final class GaussianPageManager: @unchecked Sendable {
     /// Dispatches waiting requests while running slots are free.
     private func startPendingReads() {
         lock.lock()
-        var starting: [GaussianPagerRead] = []
+        var starting: [(request: GaussianPagerRead, waitFor: DispatchSemaphore?, started: DispatchSemaphore)] = []
         while _runningReads < maxRunningReads, _pendingHead < _pendingRequests.count {
-            starting.append(_pendingRequests[_pendingHead])
+            let started = DispatchSemaphore(value: 0)
+            starting.append((_pendingRequests[_pendingHead], _lastReadStarted, started))
+            _lastReadStarted = started
             _pendingHead += 1
             _runningReads += 1
         }
@@ -2234,17 +2245,30 @@ public final class GaussianPageManager: @unchecked Sendable {
             _pendingHead = 0
         }
         lock.unlock()
-        for request in starting {
+        for (request, waitFor, started) in starting {
             GaussianPageManager.queue.async {
+                waitFor?.wait()
+                // perform/performCoarse signal as soon as their own closed-check clears, right
+                // before touching the source; the defer is the fallback for the early-return
+                // (already closed) path, so the next read in the chain is never left waiting on
+                // a signal this one skipped.
+                var signaled = false
+                let onStarted = {
+                    if !signaled {
+                        signaled = true
+                        started.signal()
+                    }
+                }
+                defer { onStarted() }
                 let manager: GaussianPageManager
                 switch request {
                 case let .tier(tierRequest):
                     manager = tierRequest.manager
-                    let result = manager.perform(tierRequest)
+                    let result = manager.perform(tierRequest, onStarted: onStarted)
                     manager.complete(tierRequest, result: result)
                 case let .coarse(coarseRequest):
                     manager = coarseRequest.manager
-                    let result = manager.performCoarse(coarseRequest)
+                    let result = manager.performCoarse(coarseRequest, onStarted: onStarted)
                     manager.completeCoarse(coarseRequest, result: result)
                 }
                 manager.lock.lock()
@@ -2257,11 +2281,12 @@ public final class GaussianPageManager: @unchecked Sendable {
 
     /// The worker: the request's ranges into the pools, then the chunk's CRC when the request
     /// completes it.
-    private func perform(_ request: GaussianPageReadRequest) -> Result<Void, GaussianPagingError> {
+    private func perform(_ request: GaussianPageReadRequest, onStarted: () -> Void = {}) -> Result<Void, GaussianPagingError> {
         lock.lock()
         let closed = _state == .closed || request.generation != _generation
         lock.unlock()
         if closed { return .failure(.closed) }
+        onStarted()
         do {
             let coreBase = corePool.contents()
             for range in request.core {
