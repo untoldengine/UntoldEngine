@@ -165,12 +165,14 @@ public class GaussianComponent: Component {
     /// the room it is shown in. Off by default.
     public var useRealWorldTint = false
 
-    /// The linear gain the preprocess applies to this asset's colour: the capture white balance
-    /// and 2^(offset − capture exposure), which brings a capture recorded at +1 EV back to the
-    /// scene's neutral exposure and lets the per-asset offset push it either way. The real-world
-    /// tint is applied on top by the preprocess when `useRealWorldTint` is set. Splats are unlit
-    /// emissive surfaces composited before the look and output transforms, so this is the only
-    /// place the capture is calibrated to the scene (proposal §4.5, Lighting).
+    /// The gain in linear light the preprocess applies to this asset's colour: the capture white
+    /// balance and 2^(offset − capture exposure), which brings a capture recorded at +1 EV back to
+    /// the scene's neutral exposure and lets the per-asset offset push it either way. The
+    /// real-world tint is applied on top by the preprocess when `useRealWorldTint` is set. A
+    /// record's colour stays in the capture's display-referred space (the splats blend there), so
+    /// the preprocess decodes it, applies the gain and re-encodes it per splat. Splats are unlit
+    /// emissive surfaces the look pass's grade and tone map leave alone, so this is the only place
+    /// the capture is calibrated to the scene (proposal §4.5, Lighting).
     public var colorGain: SIMD3<Float> {
         captureWhiteBalance * pow(2, exposureOffsetEV - captureExposureEV)
     }

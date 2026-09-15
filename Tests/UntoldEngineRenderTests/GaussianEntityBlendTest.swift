@@ -88,6 +88,24 @@ final class GaussianEntityBlendTest: BaseRenderSetup {
         records.map { (($0.color[channel] / scale) * 1000).rounded() / 1000 }.sorted()
     }
 
+    /// The gained records' `channel` against the neutral records' channel decoded to linear,
+    /// scaled by `gain` and re-encoded: the gain is a gain in linear light on a colour the
+    /// record keeps display-referred. Both sides are sorted; the transform is monotone, so ranks
+    /// pair the same splats. The GPU and CPU transfer curves agree to well under 1/1000.
+    private func assertChannel(_ gained: [GaussianWorkingSetSplat], _ channel: Int, matches neutral: [GaussianWorkingSetSplat], gain: Float, _ message: String, file: StaticString = #filePath, line: UInt = #line) {
+        let expected = neutral.map { UntoldGSColor.display(fromLinear: UntoldGSColor.linear(fromDisplay: $0.color[channel]) * gain) }.sorted()
+        let actual = gained.map { $0.color[channel] }.sorted()
+        XCTAssertEqual(expected.count, actual.count, message, file: file, line: line)
+        let worst = zip(expected, actual).map { abs($0 - $1) }.max() ?? 0
+        XCTAssertLessThan(worst, 2e-3, "\(message): largest channel difference \(worst)", file: file, line: line)
+        if gain != 1 {
+            // A gain applied to the encoded colour would give neutral × gain instead.
+            let encodedDomain = neutral.map { $0.color[channel] * gain }.sorted()
+            let encodedWorst = zip(encodedDomain, actual).map { abs($0 - $1) }.max() ?? 0
+            XCTAssertGreaterThan(encodedWorst, 1e-2, "\(message): the gain is not applied to the encoded colour", file: file, line: line)
+        }
+    }
+
     func testColorGainMultipliesTheRecordColour() throws {
         lookAtAsset()
         guard let component = gaussianComponent() else { return }
@@ -98,16 +116,18 @@ final class GaussianEntityBlendTest: BaseRenderSetup {
         let neutral = try compactedRecords()
         XCTAssertGreaterThan(neutral.count, 0)
 
-        // +1 EV over a capture at 0 EV doubles; the capture white balance scales per channel.
+        // +1 EV over a capture at 0 EV doubles; the capture white balance scales per channel. The
+        // gain is a gain in linear light: a record's colour stays display-referred (the splats
+        // blend in the capture's own space), so the preprocess decodes, scales and re-encodes it.
         component.exposureOffsetEV = 1
         component.captureWhiteBalance = SIMD3<Float>(1, 0.5, 0.25)
         XCTAssertEqual(component.colorGain, SIMD3<Float>(2, 1, 0.5))
         let gained = try compactedRecords()
         XCTAssertEqual(gained.count, neutral.count)
 
-        XCTAssertEqual(sortedChannel(neutral, 0, scale: 1), sortedChannel(gained, 0, scale: 2), "red doubled")
-        XCTAssertEqual(sortedChannel(neutral, 1, scale: 1), sortedChannel(gained, 1, scale: 1), "green unchanged")
-        XCTAssertEqual(sortedChannel(neutral, 2, scale: 1), sortedChannel(gained, 2, scale: 0.5), "blue halved")
+        assertChannel(gained, 0, matches: neutral, gain: 2, "red doubled in linear light")
+        assertChannel(gained, 1, matches: neutral, gain: 1, "green unchanged")
+        assertChannel(gained, 2, matches: neutral, gain: 0.5, "blue halved in linear light")
 
         // A capture recorded at +1 EV is brought back to neutral: the same offset now cancels.
         component.captureExposureEV = 1
@@ -140,8 +160,8 @@ final class GaussianEntityBlendTest: BaseRenderSetup {
         component.useRealWorldTint = true
         let tinted = try compactedRecords()
         XCTAssertEqual(sortedChannel(neutral, 0, scale: 1), sortedChannel(tinted, 0, scale: 1), "red unchanged")
-        XCTAssertEqual(sortedChannel(neutral, 1, scale: 1), sortedChannel(tinted, 1, scale: 0.5), "green halved by the estimate")
-        XCTAssertEqual(sortedChannel(neutral, 2, scale: 1), sortedChannel(tinted, 2, scale: 0.25), "blue quartered by the estimate")
+        assertChannel(tinted, 1, matches: neutral, gain: 0.5, "green halved by the estimate, in linear light")
+        assertChannel(tinted, 2, matches: neutral, gain: 0.25, "blue quartered by the estimate, in linear light")
 
         store.setMode(.staticIBL)
         XCTAssertNil(gaussianRealWorldTint(), "Static IBL: no estimate to apply")

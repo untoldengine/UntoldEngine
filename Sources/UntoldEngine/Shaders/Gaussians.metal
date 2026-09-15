@@ -164,6 +164,27 @@ float3 gaussianSRGBToLinear(float3 color)
     return select(high, low, color <= 0.04045f);
 }
 
+// Linear → display-referred (sRGB-encoded): the inverse of gaussianSRGBToLinear.
+float3 gaussianLinearToSRGB(float3 color)
+{
+    color = max(color, float3(0.0f));
+    float3 low = color * 12.92f;
+    float3 high = 1.055f * pow(color, float3(1.0f / 2.4f)) - 0.055f;
+    return select(high, low, color <= 0.0031308f);
+}
+
+// GaussianComponent.colorGain is a gain in linear light (the capture white balance times 2^EV,
+// the XR tint on top), while a record's colour stays display-referred until the pre-composite
+// decodes the blended layer. The gain is therefore applied in linear and the result re-encoded;
+// the neutral gain skips the two transfer curves.
+inline float3 gaussianApplyLinearGain(float3 encoded, float3 gain)
+{
+    if (all(gain == float3(1.0f))) {
+        return encoded;
+    }
+    return gaussianLinearToSRGB(gaussianSRGBToLinear(encoded) * gain);
+}
+
 // Diagnostic entry point for validating the packed GPU SH contract against
 // the exact evaluator used by the Gaussian vertex shader.
 kernel void gaussianSphericalHarmonicsDiagnostic(
@@ -555,7 +576,7 @@ kernel void gaussianPreprocess(
     GaussianWorkingSetSplat record;
     record.positionAndEntity = float4(centerLocal, as_type<float>(entity.entityIndex));
     record.conicAndOpacity = float4(conic, float(splat.colorAndOpacity.w) * entity.opacityScale);
-    record.color = float4(color * entity.colorGain.xyz, 0.0f);
+    record.color = float4(gaussianApplyLinearGain(color, entity.colorGain.xyz), 0.0f);
     record.axes = float4(axis1, axis2);
     workingSet[slot] = record;
 
