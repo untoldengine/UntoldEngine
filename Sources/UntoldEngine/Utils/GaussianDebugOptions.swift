@@ -24,6 +24,7 @@ public final class GaussianDebugOptions: @unchecked Sendable {
     private var _disableBlendCap = false
     private var _antiAliasSplatPixels = false
     private var _toneMapSplatPixels = false
+    private var _crispSplatKernel = false
     private var _disableOccluderShell = false
     private var _disableChunkCull = false
     private var _disableWorkingSetBudget = false
@@ -63,6 +64,15 @@ public final class GaussianDebugOptions: @unchecked Sendable {
     public var toneMapSplatPixels: Bool {
         get { lock.lock(); defer { lock.unlock() }; return _toneMapSplatPixels }
         set { lock.lock(); _toneMapSplatPixels = newValue; lock.unlock() }
+    }
+
+    /// Draws every splat with the crisp kernel some viewers use: cut at 2√2 σ with the falloff
+    /// renormalised to reach zero there, about a fifth tighter than the Gaussian the capture was
+    /// trained with. Fine texture reads crisper; the tails the reference rasterizer blends are
+    /// gone. For an A/B against such a viewer; off by default.
+    public var crispSplatKernel: Bool {
+        get { lock.lock(); defer { lock.unlock() }; return _crispSplatKernel }
+        set { lock.lock(); _crispSplatKernel = newValue; lock.unlock() }
     }
 
     /// Lifts the per-pixel cap on blended splats (`GaussianRuntimeLimits.maxBlendedSplatsPerPixel`) to the
@@ -172,6 +182,7 @@ public final class GaussianDebugOptions: @unchecked Sendable {
         var constants = GaussianTBDRDrawDebug()
         constants.maxBlendedSplatsPerPixel = disableBlendCap ? 255 : UInt32(GaussianRuntimeLimits.maxBlendedSplatsPerPixel)
         constants.skipOpaqueDepthTest = disableOpaqueDepthTest ? 1 : 0
+        constants.crispKernel = crispSplatKernel ? 1 : 0
         return constants
     }
 }

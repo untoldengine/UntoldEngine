@@ -228,6 +228,9 @@ kernel void gaussianChunkDecodePreprocess(
                 : gaussianCoverageWeight(fullOpacity, min(weight, fade));
         }
         float sigma = gaussianAdaptiveSigma(opacity);
+        if (entity.crispKernel != 0u) {
+            sigma = min(sigma, kGaussianCrispQuadSigma);
+        }
 
         float2 axis1 = float2(0.0f);
         float2 axis2 = float2(0.0f);

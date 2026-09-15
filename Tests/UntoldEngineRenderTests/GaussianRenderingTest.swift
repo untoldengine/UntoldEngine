@@ -230,6 +230,39 @@ final class GaussianRenderingTest: BaseRenderSetup {
         XCTAssertLessThanOrEqual(worstUncovered, 4e-3, "an uncovered pixel is tone-mapped the same either way")
     }
 
+    /// The crisp kernel cuts every splat at 2√2 σ and renormalises the falloff to zero there, so
+    /// it never adds alpha to a pixel and takes the tails away: the layer's total alpha drops
+    /// and no pixel gains.
+    func testCrispKernelTightensEverySplat() throws {
+        let saved = GaussianDebugOptions.shared.crispSplatKernel
+        defer { GaussianDebugOptions.shared.crispSplatKernel = saved }
+        func layer() throws -> [SIMD4<Float>] {
+            for _ in 0 ..< 2 {
+                renderer.draw(in: renderer.metalView)
+                renderInfo.lastCommandBuffer?.waitUntilCompleted()
+            }
+            return try XCTUnwrap(Self.pixels(of: XCTUnwrap(textureResources.gaussianColorMap)))
+        }
+        GaussianDebugOptions.shared.crispSplatKernel = false
+        let gaussian = try layer()
+        GaussianDebugOptions.shared.crispSplatKernel = true
+        let crisp = try layer()
+        XCTAssertEqual(gaussian.count, crisp.count)
+        let total = gaussian.reduce(0) { $0 + Double($1.w) }
+        let crispTotal = crisp.reduce(0) { $0 + Double($1.w) }
+        XCTAssertGreaterThan(total, 100, "the fixture covers pixels")
+        XCTAssertLessThan(crispTotal, total * 0.995, "the crisp kernel takes the tails away (\(crispTotal) vs \(total))")
+        var gained: Float = 0
+        var thinned = 0
+        for (a, b) in zip(gaussian, crisp) {
+            gained = max(gained, b.w - a.w)
+            if a.w - b.w > 1.0 / 255 { thinned += 1 }
+        }
+        XCTAssertLessThanOrEqual(gained, 2e-3, "no pixel gains alpha under the crisp kernel")
+        XCTAssertGreaterThan(thinned, 100, "the tails of many pixels are cut")
+        XCTAssertEqual(GaussianDebugOptions.shared.drawConstants.crispKernel, 1, "the switch reaches the draw constants")
+    }
+
     /// The per-pixel blend cap reaches the shader: a cap of one splat per pixel drops every
     /// overlap on the fixture, while the Mac figure and no cap draw it the same, the fixture
     /// never stacking that many splats on a pixel.

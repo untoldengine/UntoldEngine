@@ -58,6 +58,16 @@ constant float GAUSSIAN_SH_C3[7] = {
 // reaches this constant (as a hard ceiling) exactly at opacity == 1.
 constant float kGaussianQuadSigma = 3.5f;
 
+// The crisp kernel (GaussianDebugOptions.crispSplatKernel), for an A/B against viewers that
+// draw it: every splat is cut at 2√2 σ and its falloff renormalised so it reaches zero there,
+// (exp(−r²/2σ²) − e⁻⁴) / (1 − e⁻⁴). Each splat is about a fifth tighter than the Gaussian a
+// capture was trained with, which reads crisper on fine texture (asphalt, foliage) at the cost
+// of the tails the reference rasterizer blends; off by default.
+constant float kGaussianCrispQuadSigma = 2.8284271f;
+constant float kGaussianCrispCutPower = -4.0f;
+constant float kGaussianCrispFloor = 0.018315639f;
+constant float kGaussianCrispScale = 1.0186537f;
+
 // Fragments this dim round to nothing in 8-bit output; fragmentGaussianTBDRShader's
 // per-fragment discard keys off this bar directly. The quad-sizing math (gaussianAdaptiveSigma)
 // intentionally targets a lower alpha than this — see kGaussianQuadSigma's comment — so a
@@ -549,6 +559,9 @@ kernel void gaussianPreprocess(
     // radius consistent with an entity fading via opacityScale (e.g. cross-fade LOD transitions).
     float effectiveOpacity = float(splat.colorAndOpacity.w) * entity.opacityScale;
     float sigma = gaussianAdaptiveSigma(effectiveOpacity);
+    if (entity.crispKernel != 0u) {
+        sigma = min(sigma, kGaussianCrispQuadSigma);
+    }
 
     float2 axis1 = float2(0.0f);
     float2 axis2 = float2(0.0f);
@@ -733,7 +746,16 @@ fragment GaussianTBDRFragmentStore fragmentGaussianTBDRShader(
     float2 d = calcScreenSpaceDelta(in.position.xy, in.coordxy, projYSign);
     float power = calcPowerFromConic(in.conic, d);
 
-    half alpha = half(saturate(in.alpha * exp(power)));
+    float falloff = exp(power);
+    if (debug.crispKernel != 0u) {
+        // The crisp kernel: nothing beyond 2√2 σ, and the falloff reaches zero exactly there.
+        if (power < kGaussianCrispCutPower) {
+            out.values = previousValues;
+            return out;
+        }
+        falloff = (falloff - kGaussianCrispFloor) * kGaussianCrispScale;
+    }
+    half alpha = half(saturate(in.alpha * falloff));
     if (alpha < half(kGaussianAlphaDiscardThreshold)) {
         // Contribution rounds to nothing — skip the opaque-depth read and blend math below.
         out.values = previousValues;

@@ -634,7 +634,8 @@ typedef struct{
     simd_float4 colorGain;     // xyz: linear multiplier on the splat colour (capture exposure, editor offset, XR tint); w unused
     float opacityScale;        // multiplier on every splat's opacity: 1 normal, 0 hidden (nothing is appended), between for a cross-fade
     float maxScreenRadius;     // GaussianRuntimeLimits.maxScreenRadius: ceiling on a splat's screen-space half-extent, in pixels; the preprocess also caps it at the viewport's shorter side
-    float _pad1[2];
+    uint32_t crispKernel;      // non-zero: GaussianDebugOptions.crispSplatKernel — the quad stops at 2√2 σ, where the crisp falloff reaches zero
+    float _pad1;
 }GaussianPreprocessEntityConstants;
 
 typedef struct{
@@ -718,6 +719,7 @@ typedef enum{
 typedef struct{
     uint32_t maxBlendedSplatsPerPixel;  // GaussianRuntimeLimits.maxBlendedSplatsPerPixel (64 mobile, 128 Mac); 255 lifts the cap
     uint32_t skipOpaqueDepthTest;       // non-zero: never occlude splats by the opaque depth snapshot
+    uint32_t crispKernel;               // non-zero: GaussianDebugOptions.crispSplatKernel — cut every splat at 2√2 σ with the falloff renormalised to reach zero there
 }GaussianTBDRDrawDebug;
 
 typedef enum{
