@@ -238,7 +238,7 @@ public enum UntoldGSCooker {
             throw UntoldGSCookError.noSplatsLeftAfterPruning(report)
         }
 
-        let harmonics = reduceSphericalHarmonics(asset.sphericalHarmonics, keeping: keptIndices, toDegree: kernel.targetDegree)
+        let harmonics = reduceSphericalHarmonics(asset.sphericalHarmonics, keeping: keptIndices, toDegree: kernel.targetDegree, rotation: kernel.harmonicRotation)
         return (GaussianSplatAsset(splats: kept, sphericalHarmonics: harmonics), report)
     }
 
@@ -293,6 +293,9 @@ public enum UntoldGSCooker {
         let crop: (min: SIMD3<Float>, max: SIMD3<Float>)?
         let sourceDegree: UInt8
         let targetDegree: UInt8
+        /// The transform's rotation for the higher-order harmonics; nil when there is nothing
+        /// to rotate (identity transform or DC only).
+        let harmonicRotation: UntoldGSHarmonicRotation?
 
         init(options: UntoldGSCookOptions, sourceDegree: Int) throws {
             similarity = try Similarity(options.transform)
@@ -303,6 +306,7 @@ public enum UntoldGSCooker {
             }
             self.sourceDegree = source
             targetDegree = target
+            harmonicRotation = target > 0 ? UntoldGSHarmonicRotation(rotation: similarity.rotation) : nil
             minimumOpacity = options.minimumOpacity
             crop = {
                 guard let cropMin = options.cropMin, let cropMax = options.cropMax else { return nil }
@@ -369,18 +373,30 @@ public enum UntoldGSCooker {
 
     /// Keeps the DC term and the low orders of each channel for `degree`, in the importer's
     /// channel-major layout; `nil` for degree 0.
-    static func reduceSphericalHarmonics(_ harmonics: GaussianSphericalHarmonics?, keeping indices: [Int], toDegree degree: UInt8) -> GaussianSphericalHarmonics? {
+    /// The kept splats' harmonics cut to `degree`, the higher orders turned by `rotation` (the
+    /// cook's rotation, so the view-dependent colour follows the splat into the cooked frame).
+    static func reduceSphericalHarmonics(_ harmonics: GaussianSphericalHarmonics?, keeping indices: [Int], toDegree degree: UInt8, rotation: UntoldGSHarmonicRotation? = nil) -> GaussianSphericalHarmonics? {
         guard let harmonics, degree > 0 else { return nil }
         let targetPerChannel = Int(degree + 1) * Int(degree + 1)
         let sourcePerChannel = harmonics.coefficientsPerChannel
         let sourcePerSplat = sourcePerChannel * 3
         var reduced: [Float] = []
         reduced.reserveCapacity(indices.count * targetPerChannel * 3)
+        var higherOrders = [Float](repeating: 0, count: targetPerChannel - 1)
         for index in indices {
             let base = index * sourcePerSplat
             for channel in 0 ..< 3 {
                 let start = base + channel * sourcePerChannel
-                reduced.append(contentsOf: harmonics.coefficients[start ..< start + targetPerChannel])
+                reduced.append(harmonics.coefficients[start])
+                if let rotation {
+                    for k in 0 ..< higherOrders.count {
+                        higherOrders[k] = harmonics.coefficients[start + 1 + k]
+                    }
+                    rotation.rotate(&higherOrders)
+                    reduced.append(contentsOf: higherOrders)
+                } else {
+                    reduced.append(contentsOf: harmonics.coefficients[start + 1 ..< start + targetPerChannel])
+                }
             }
         }
         return GaussianSphericalHarmonics(degree: Int(degree), coefficientsPerChannel: targetPerChannel, coefficients: reduced)

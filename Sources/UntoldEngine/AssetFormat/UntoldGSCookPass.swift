@@ -117,6 +117,7 @@ extension UntoldGSCooker {
         let higherOrder = kernel.targetDegree > 0 ? targetPerChannel - 1 : 0
         let sourcePerSplat = sourcePerChannel * 3
         var shBytes = [UInt8](repeating: 0, count: higherOrder * 3)
+        var channelValues = [Float](repeating: 0, count: higherOrder)
 
         window.shCoefficients.withUnsafeBufferPointer { coefficients in
             for (index, splat) in window.splats.enumerated() {
@@ -128,10 +129,16 @@ extension UntoldGSCooker {
                     var slot = 0
                     for channel in 0 ..< 3 {
                         let start = base + channel * sourcePerChannel + 1
-                        for offset in start ..< start + higherOrder {
-                            let coefficient = coefficients[offset]
+                        for k in 0 ..< higherOrder {
+                            let coefficient = coefficients[start + k]
                             finite = finite && coefficient.isFinite
-                            shBytes[slot] = quantizeGaussianSHCoefficient(coefficient)
+                            channelValues[k] = coefficient
+                        }
+                        // The cook's rotation turns the higher orders with the splat, so the
+                        // renderer reads the view-dependent colour off the right direction.
+                        kernel.harmonicRotation?.rotate(&channelValues)
+                        for k in 0 ..< higherOrder {
+                            shBytes[slot] = quantizeGaussianSHCoefficient(channelValues[k])
                             slot += 1
                         }
                     }

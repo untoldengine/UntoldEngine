@@ -505,8 +505,9 @@ false` and remove the fade. Reverse the steps when the camera leaves.
 
 A capture never shares its mesh's frame: the scanner picks the origin, the up axis and the
 scale. Registering the two used to mean baking a transform at cook time
-(`UntoldGSCookOptions.transform`, recorded in the `.untoldgs` header's `splatToMesh`), and that
-is still possible — but an alignment can also be edited after the cook and saved with the
+(`UntoldGSCookOptions.transform`, recorded in the `.untoldgs` header's `splatToMesh`; the cook
+turns the higher-order spherical harmonics with the splats, so a −Y-up fix or a yaw keeps the
+view-dependent colour on the right side of a surface), and that is still possible — but an alignment can also be edited after the cook and saved with the
 link:
 
 - **`GaussianComponent.splatToEntity`** (`simd_float4x4`, identity by default) is where the
