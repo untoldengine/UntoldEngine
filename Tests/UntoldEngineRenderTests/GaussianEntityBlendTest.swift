@@ -159,7 +159,9 @@ final class GaussianEntityBlendTest: BaseRenderSetup {
 
         component.useRealWorldTint = true
         let tinted = try compactedRecords()
-        XCTAssertEqual(sortedChannel(neutral, 0, scale: 1), sortedChannel(tinted, 0, scale: 1), "red unchanged")
+        // Red keeps a gain of 1 but still passes through the decode and re-encode with the other
+        // channels, so it is compared with the same tolerance rather than exactly.
+        assertChannel(tinted, 0, matches: neutral, gain: 1, "red unchanged")
         assertChannel(tinted, 1, matches: neutral, gain: 0.5, "green halved by the estimate, in linear light")
         assertChannel(tinted, 2, matches: neutral, gain: 0.25, "blue quartered by the estimate, in linear light")
 
