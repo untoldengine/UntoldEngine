@@ -16,6 +16,10 @@ using namespace metal;
 // trainer blended in. The pre-composite decodes the finished layer to linear once, and the look
 // pass decodes the same layer to take the splats back out of a partly covered pixel before it
 // grades the scene behind them.
+// The lowest layer alpha either pass divides by to un-premultiply the splat colour: below it
+// the layer holds nothing worth decoding and the divide would only amplify noise.
+constant float kSplatLayerAlphaFloor = 1e-4f;
+
 inline float3 splatSRGBToLinear(float3 color)
 {
     color = max(color, float3(0.0f));

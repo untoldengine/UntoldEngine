@@ -470,7 +470,7 @@ fragment float4 fragmentSMAANeighborhoodShader(
     texture2d<float>      colorTexture   [[texture(0)]],
     texture2d<float>      blendTexture   [[texture(1)]],
     constant float2      &texelSize      [[buffer(smaaPassTexelSizeIndex)]],
-    texture2d<float>      splatCoverage  [[texture(2)]],
+    texture2d<float>      splatCoverage  [[texture(smaaNeighborhoodSplatCoverageTextureIndex)]],
     constant int         &splatMask      [[buffer(smaaPassSplatMaskIndex)]]
 ) {
     constexpr sampler s(min_filter::linear, mag_filter::linear, address::clamp_to_edge);

@@ -42,7 +42,7 @@ fragment float4 fragmentPreCompositeShader(VertexCompositeOutput vertexOut [[sta
     float4 gaussianColor = gaussianTexture.sample(s, vertexOut.uvCoords);
     // Un-premultiply, decode, premultiply again: a pixel the splats cover whole shows the
     // trained colour; a partial cover blends with the scene in linear.
-    if (gaussianColor.a > 1e-4f) {
+    if (gaussianColor.a > kSplatLayerAlphaFloor) {
         float3 straight = gaussianColor.rgb / gaussianColor.a;
         gaussianColor.rgb = splatSRGBToLinear(straight) * gaussianColor.a;
     }
