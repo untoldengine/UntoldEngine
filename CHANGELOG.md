@@ -1,4 +1,10 @@
 # Changelog
+## v0.19.1 - 2026-09-16
+### 🐞 Fixes
+- [Patch] Fix bundle resource loading crash on macOS without breaking swift test/swift run (91e53f1…)
+- [Patch] Expose XcodeGen availability check from BuildSystem (e1fd066…)
+### 📚 Docs
+- [Docs] Updated docs (fed2691…)
 ## v0.19.0 - 2026-09-13
 ### 🐞 Fixes
 - [Patch] Apply root motion once per anchor on modular assets (4f0bc18…)
