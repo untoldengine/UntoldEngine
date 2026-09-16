@@ -130,7 +130,7 @@ fragment float4 fragmentLookShader(
   // that passes a · (1 − a) of the scene through un-tone-mapped, a bright fringe along every
   // splat silhouette over an HDR background.)
   float3 splatLinear = float3(0.0);
-  if (splat > 0.0) {
+  if (splat > kSplatLayerAlphaFloor) {
       splatLinear = splatSRGBToLinear(layer.rgb / splat) * splat;
       color = max((sceneSample.rgb - splatLinear) / (1.0 - splat), 0.0);
   }

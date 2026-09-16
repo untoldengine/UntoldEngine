@@ -41,7 +41,7 @@ fragment float4 fragmentFXAAShader(
     constant float       &subpixelQuality [[buffer(fxaaPassSubpixelIndex)]],
     constant float       &edgeThreshold   [[buffer(fxaaPassEdgeThresholdIndex)]],
     constant float       &edgeThresholdMin[[buffer(fxaaPassEdgeThresholdMinIndex)]],
-    texture2d<float>      splatCoverage   [[texture(1)]],
+    texture2d<float>      splatCoverage   [[texture(fxaaPassSplatCoverageTextureIndex)]],
     constant int         &splatMask       [[buffer(fxaaPassSplatMaskIndex)]]
 ) {
     constexpr sampler s(min_filter::linear, mag_filter::linear, address::clamp_to_edge);
