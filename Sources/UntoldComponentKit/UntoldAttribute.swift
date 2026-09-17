@@ -24,7 +24,7 @@ public protocol AnyUntoldAttribute: AnyObject {
     @discardableResult func setAttributeValue(_ value: UntoldAttributeValue) -> Bool
 }
 
-/// Marks a stored property of a `CodeComponent` as visible to the editor and saved with the
+/// Marks a stored property of a `ComponentPlugin` or an `EntityPlugin` as visible to the editor and saved with the
 /// scene.
 ///
 ///     @UntoldAttribute("Speed", range: 0...20) var speed: Float = 5

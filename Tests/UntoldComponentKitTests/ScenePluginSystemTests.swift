@@ -1,5 +1,5 @@
 //
-//  CodeComponentSystemTests.swift
+//  ScenePluginSystemTests.swift
 //  UntoldComponentKitTests
 //
 // Copyright (C) Untold Engine Studios
@@ -14,100 +14,100 @@ import simd
 import XCTest
 
 @MainActor
-final class CodeComponentSystemTests: XCTestCase {
+final class ScenePluginSystemTests: XCTestCase {
     override func setUp() async throws {
         resetKitTestState()
     }
 
     override func tearDown() async throws {
-        CodeComponentSystem.shared.stopPlayMode()
+        ScenePluginSystem.shared.stopPlayMode()
         gameMode = false
     }
 
     func testInstallRegistersTheExtensionOnce() {
-        CodeComponentSystem.install()
-        CodeComponentSystem.install()
-        let ids = EngineExtensionRegistry.shared.registeredIDs().filter { $0 == CodeComponentSystem.extensionID }
+        ScenePluginSystem.install()
+        ScenePluginSystem.install()
+        let ids = EngineExtensionRegistry.shared.registeredIDs().filter { $0 == ScenePluginSystem.extensionID }
         XCTAssertEqual(ids.count, 1)
     }
 
     func testAddBindsAttachesAndIsIdempotentPerType() throws {
         let entity = createEntity()
-        let spinner = try XCTUnwrap(CodeComponentSystem.shared.add(SpinnerComponent.self, to: entity))
+        let spinner = try XCTUnwrap(ScenePluginSystem.shared.add(SpinnerComponent.self, to: entity))
 
         XCTAssertEqual(spinner.entity, entity)
         XCTAssertTrue(spinner.isAttached)
         XCTAssertEqual(spinner.events, ["attach"])
-        XCTAssertTrue(hasComponent(entityId: entity, componentType: CodeComponentsComponent.self))
+        XCTAssertTrue(hasComponent(entityId: entity, componentType: ScenePluginsComponent.self))
 
-        let again = CodeComponentSystem.shared.add(SpinnerComponent.self, to: entity)
+        let again = ScenePluginSystem.shared.add(SpinnerComponent.self, to: entity)
         XCTAssertTrue(again === spinner)
-        XCTAssertEqual(CodeComponentSystem.shared.components(on: entity).count, 1)
+        XCTAssertEqual(ScenePluginSystem.shared.components(on: entity).count, 1)
     }
 
     func testAddToAMissingEntityDoesNothing() {
-        XCTAssertNil(CodeComponentSystem.shared.add(SpinnerComponent.self, to: .invalid))
+        XCTAssertNil(ScenePluginSystem.shared.add(SpinnerComponent.self, to: .invalid))
     }
 
     func testASlotForAnUnknownTypeBindsWhenTheTypeArrives() throws {
         let entity = createEntity()
-        XCTAssertNil(CodeComponentSystem.shared.add("SpinnerComponent", to: entity))
-        XCTAssertEqual(CodeComponentSystem.shared.slots(on: entity).map(\.isBound), [false])
+        XCTAssertNil(ScenePluginSystem.shared.add("SpinnerComponent", to: entity))
+        XCTAssertEqual(ScenePluginSystem.shared.slots(on: entity).map(\.isBound), [false])
 
-        CodeComponentRegistry.shared.register(SpinnerComponent.self)
-        CodeComponentSystem.shared.update(deltaTime: 0.016, context: makeKitTestContext())
+        ComponentPluginRegistry.shared.register(SpinnerComponent.self)
+        ScenePluginSystem.shared.update(deltaTime: 0.016, context: makeKitTestContext())
 
-        let spinner = try XCTUnwrap(CodeComponentRegistry.component(SpinnerComponent.self, on: entity))
+        let spinner = try XCTUnwrap(ComponentPluginRegistry.component(SpinnerComponent.self, on: entity))
         XCTAssertEqual(spinner.events, ["attach"])
-        XCTAssertEqual(CodeComponentRegistry.entities(with: SpinnerComponent.self), [entity])
+        XCTAssertEqual(ComponentPluginRegistry.entities(with: SpinnerComponent.self), [entity])
     }
 
     func testUpdateRunsOnlyWhilePlayingInGameMode() throws {
         let entity = createEntity()
-        let spinner = try XCTUnwrap(CodeComponentSystem.shared.add(SpinnerComponent.self, to: entity))
+        let spinner = try XCTUnwrap(ScenePluginSystem.shared.add(SpinnerComponent.self, to: entity))
         let context = makeKitTestContext()
 
-        CodeComponentSystem.shared.update(deltaTime: 0.5, context: context)
+        ScenePluginSystem.shared.update(deltaTime: 0.5, context: context)
         XCTAssertEqual(spinner.events, ["attach"], "edit mode must not tick components")
 
         gameMode = true
-        CodeComponentSystem.shared.startPlayMode()
-        CodeComponentSystem.shared.update(deltaTime: 0.5, context: context)
-        CodeComponentSystem.shared.fixedUpdate(deltaTime: 0.25, context: context)
+        ScenePluginSystem.shared.startPlayMode()
+        ScenePluginSystem.shared.update(deltaTime: 0.5, context: context)
+        ScenePluginSystem.shared.fixedUpdate(deltaTime: 0.25, context: context)
         XCTAssertEqual(spinner.events, ["attach", "start", "update:0.5", "fixed:0.25"])
 
         gameMode = false
-        CodeComponentSystem.shared.update(deltaTime: 0.5, context: context)
+        ScenePluginSystem.shared.update(deltaTime: 0.5, context: context)
         XCTAssertEqual(spinner.events.count, 4, "leaving game mode pauses updates")
 
-        CodeComponentSystem.shared.stopPlayMode()
+        ScenePluginSystem.shared.stopPlayMode()
         XCTAssertEqual(spinner.events.last, "stop")
-        XCTAssertFalse(CodeComponentSystem.shared.isPlaying)
+        XCTAssertFalse(ScenePluginSystem.shared.isPlaying)
     }
 
     func testAComponentAddedDuringPlayStartsImmediately() throws {
         gameMode = true
-        CodeComponentSystem.shared.startPlayMode()
-        let spinner = try XCTUnwrap(CodeComponentSystem.shared.add(SpinnerComponent.self, to: createEntity()))
+        ScenePluginSystem.shared.startPlayMode()
+        let spinner = try XCTUnwrap(ScenePluginSystem.shared.add(SpinnerComponent.self, to: createEntity()))
         XCTAssertEqual(spinner.events, ["attach", "start"])
     }
 
     func testRemoveStopsDetachesAndDropsTheStorageWhenEmpty() throws {
         gameMode = true
-        CodeComponentSystem.shared.startPlayMode()
+        ScenePluginSystem.shared.startPlayMode()
         let entity = createEntity()
-        let spinner = try XCTUnwrap(CodeComponentSystem.shared.add(SpinnerComponent.self, to: entity))
+        let spinner = try XCTUnwrap(ScenePluginSystem.shared.add(SpinnerComponent.self, to: entity))
 
-        XCTAssertTrue(CodeComponentSystem.shared.remove(SpinnerComponent.self, from: entity))
+        XCTAssertTrue(ScenePluginSystem.shared.remove(SpinnerComponent.self, from: entity))
         XCTAssertEqual(spinner.events, ["attach", "start", "stop", "detach"])
         XCTAssertFalse(spinner.isAttached)
-        XCTAssertFalse(hasComponent(entityId: entity, componentType: CodeComponentsComponent.self))
-        XCTAssertFalse(CodeComponentSystem.shared.remove(SpinnerComponent.self, from: entity))
+        XCTAssertFalse(hasComponent(entityId: entity, componentType: ScenePluginsComponent.self))
+        XCTAssertFalse(ScenePluginSystem.shared.remove(SpinnerComponent.self, from: entity))
     }
 
     func testDestroyingTheEntityDetachesItsComponents() throws {
         let entity = createEntity()
-        let spinner = try XCTUnwrap(CodeComponentSystem.shared.add(SpinnerComponent.self, to: entity))
+        let spinner = try XCTUnwrap(ScenePluginSystem.shared.add(SpinnerComponent.self, to: entity))
 
         destroyEntity(entityId: entity)
         finalizePendingDestroys()
@@ -118,8 +118,8 @@ final class CodeComponentSystemTests: XCTestCase {
 
     func testEditorWritesNotifyTheComponentOutsidePlayOnly() throws {
         let entity = createEntity()
-        let spinner = try XCTUnwrap(CodeComponentSystem.shared.add(SpinnerComponent.self, to: entity))
-        let system = CodeComponentSystem.shared
+        let spinner = try XCTUnwrap(ScenePluginSystem.shared.add(SpinnerComponent.self, to: entity))
+        let system = ScenePluginSystem.shared
 
         XCTAssertTrue(system.setAttribute("speed", of: "SpinnerComponent", on: entity, to: .number(7)))
         XCTAssertEqual(spinner.speed, 7)
@@ -136,10 +136,10 @@ final class CodeComponentSystemTests: XCTestCase {
 
     func testActionsRunFromTheEditorAndFromUSC() throws {
         let entity = createEntity()
-        let spinner = try XCTUnwrap(CodeComponentSystem.shared.add(SpinnerComponent.self, to: entity))
+        let spinner = try XCTUnwrap(ScenePluginSystem.shared.add(SpinnerComponent.self, to: entity))
 
-        XCTAssertTrue(CodeComponentSystem.shared.performAction("Jump", of: "SpinnerComponent", on: entity))
-        XCTAssertFalse(CodeComponentSystem.shared.performAction("Fly", of: "SpinnerComponent", on: entity))
+        XCTAssertTrue(ScenePluginSystem.shared.performAction("Jump", of: "SpinnerComponent", on: entity))
+        XCTAssertFalse(ScenePluginSystem.shared.performAction("Fly", of: "SpinnerComponent", on: entity))
 
         let uscAction = try XCTUnwrap(USCActionRegistry.shared.resolve(name: "SpinnerComponent.Jump"))
         _ = uscAction(USCContext(entityId: entity, script: nil), [:])
@@ -148,13 +148,13 @@ final class CodeComponentSystemTests: XCTestCase {
         _ = uscAction(USCContext(entityId: createEntity(), script: nil), [:])
         XCTAssertEqual(spinner.events.filter { $0 == "jump" }.count, 2, "an entity without the component is a no-op")
 
-        CodeComponentRegistry.shared.unregister(name: "SpinnerComponent")
+        ComponentPluginRegistry.shared.unregister(name: "SpinnerComponent")
         XCTAssertNil(USCActionRegistry.shared.resolve(name: "SpinnerComponent.Jump"))
     }
 
     func testReloadCarriesValuesAcrossToTheNewTypeByPropertyName() throws {
-        let registry = CodeComponentRegistry.shared
-        let system = CodeComponentSystem.shared
+        let registry = ComponentPluginRegistry.shared
+        let system = ScenePluginSystem.shared
         XCTAssertEqual(registry.register(RevisionA.Reloadable.self, revision: 1, policy: .replace), .registered)
 
         let entity = createEntity()
@@ -177,14 +177,14 @@ final class CodeComponentSystemTests: XCTestCase {
     }
 
     func testATypeThatDisappearsKeepsItsValuesUnbound() throws {
-        let system = CodeComponentSystem.shared
-        CodeComponentRegistry.shared.register(RevisionA.Reloadable.self, policy: .replace)
+        let system = ScenePluginSystem.shared
+        ComponentPluginRegistry.shared.register(RevisionA.Reloadable.self, policy: .replace)
         let entity = createEntity()
         let old = try XCTUnwrap(system.add("Reloadable", to: entity) as? RevisionA.Reloadable)
         old.speed = 9
 
         system.prepareForReload()
-        CodeComponentRegistry.shared.unregister(name: "Reloadable")
+        ComponentPluginRegistry.shared.unregister(name: "Reloadable")
         system.finishReload()
 
         let slot = try XCTUnwrap(system.slots(on: entity).first)
@@ -194,7 +194,7 @@ final class CodeComponentSystemTests: XCTestCase {
     }
 
     func testADifferentTypeUnderAnExistingNameIsRefusedUnlessReplacing() {
-        let registry = CodeComponentRegistry.shared
+        let registry = ComponentPluginRegistry.shared
         XCTAssertEqual(registry.register(RevisionA.Reloadable.self), .registered)
         XCTAssertEqual(registry.register(RevisionA.Reloadable.self), .unchanged)
         XCTAssertEqual(registry.register(RevisionB.Reloadable.self), .rejectedDuplicate)

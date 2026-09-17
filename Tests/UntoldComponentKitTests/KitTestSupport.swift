@@ -25,10 +25,10 @@ import XCTest
     EngineExtensionRegistry.shared.removeAll()
     EntityLifecycleEvents.shared.reset()
     OctreeSystem.shared.clear()
-    CodeComponentRegistry.shared.removeAll()
-    EditorExtensionRegistry.shared.removeAll()
-    EntityTemplateRegistry.shared.removeAll()
-    CodeComponentSystem.install()
+    ComponentPluginRegistry.shared.removeAll()
+    EditorMenuPluginRegistry.shared.removeAll()
+    EntityPluginRegistry.shared.removeAll()
+    ScenePluginSystem.install()
 }
 
 func makeKitTestContext(frameIndex: UInt64 = 1) -> EngineExtensionUpdateContext {
@@ -43,7 +43,7 @@ func makeKitTestContext(frameIndex: UInt64 = 1) -> EngineExtensionUpdateContext 
 
 // MARK: - Component doubles
 
-final class SpinnerComponent: CodeComponent {
+final class SpinnerComponent: ComponentPlugin {
     enum Stance: String, CaseIterable { case idle, walk, run }
 
     @UntoldAttribute("Speed", range: 0 ... 20, step: 0.5) var speed: Float = 5
@@ -60,8 +60,8 @@ final class SpinnerComponent: CodeComponent {
     var runtimeOnly = 42
     var events: [String] = []
 
-    override class var actions: [ComponentAction] {
-        [ComponentAction("Jump") { ($0 as? SpinnerComponent)?.events.append("jump") }]
+    override class var actions: [PluginAction] {
+        [PluginAction("Jump") { ($0 as? SpinnerComponent)?.events.append("jump") }]
     }
 
     override func onAttach() {
@@ -93,7 +93,7 @@ final class SpinnerComponent: CodeComponent {
     }
 }
 
-class BaseMover: CodeComponent {
+class BaseMover: ComponentPlugin {
     @UntoldAttribute var baseSpeed: Float = 1
 }
 
@@ -103,7 +103,7 @@ final class DerivedMover: BaseMover {
 
 /// Two different types that share one type name, the way two revisions of a library do.
 enum RevisionA {
-    final class Reloadable: CodeComponent {
+    final class Reloadable: ComponentPlugin {
         @UntoldAttribute var speed: Float = 1
         @UntoldAttribute var legacy: Int = 7
         var detached = false
@@ -114,7 +114,7 @@ enum RevisionA {
 }
 
 enum RevisionB {
-    final class Reloadable: CodeComponent {
+    final class Reloadable: ComponentPlugin {
         @UntoldAttribute var speed: Float = 1
         @UntoldAttribute var fresh = true
     }
@@ -122,7 +122,7 @@ enum RevisionB {
 
 // MARK: - Extension doubles
 
-final class SampleExtension: EditorExtension {
+final class SampleExtension: EditorMenuPlugin {
     enum BlendCap: String, CaseIterable, UntoldMenuTitled {
         case c64 = "64"
         case c128 = "128"
@@ -136,60 +136,60 @@ final class SampleExtension: EditorExtension {
     @UntoldMenu(.view, "Preview Twins", tooltip: "Swap meshes for their splat twins") var preview = true
     @UntoldMenu(.debug, " Splat Twin / Blend Cap ") var blendCap: BlendCap = .c64
     @UntoldMenu(.debug, "Splat Twin/Reset", key: "r")
-    var reset = UntoldMenuAction { (owner: EditorExtension) in (owner as? SampleExtension)?.resetCount += 1 }
+    var reset = UntoldMenuAction { (owner: EditorMenuPlugin) in (owner as? SampleExtension)?.resetCount += 1 }
     @UntoldMenu(.tools, "Bake", persist: false, enabled: { false }) var bake = false
 
     var resetCount = 0
 }
 
-final class BrokenExtension: EditorExtension {
+final class BrokenExtension: EditorMenuPlugin {
     @UntoldMenu(.debug, " / ") var untitled = false
     @UntoldMenu(.debug, "Splat Twin/Same") var first = false
     @UntoldMenu(.debug, "Splat Twin / Same") var second = false
 }
 
-// MARK: - Entity template doubles
+// MARK: - Entity plugin doubles
 
-/// Editor-only representation: an icon in the viewport, nothing in a game.
-final class MarkerComponent: CodeComponent {
+/// An entity that is only an editor marker. The team is the entity's own property.
+final class MarkerEntity: EntityPlugin {
     @UntoldAttribute var team: Int = 1
+
+    var attachCount = 0
+    var createCount = 0
+    var events: [String] = []
+
+    override class var systemImage: String {
+        "flag"
+    }
+
+    override func onAttach() {
+        attachCount += 1
+        events.append("attach")
+    }
+
+    /// A new marker starts with a spinner on it; a loaded one brings back what was saved.
+    override func onCreate() {
+        createCount += 1
+        events.append("create")
+        add(SpinnerComponent.self)?.speed = 7
+    }
+
+    override func onDetach() {
+        events.append("detach")
+    }
 
     override var editorRepresentation: EditorRepresentation {
         .icon(systemImage: "flag.fill", tint: team == 1 ? SIMD3<Float>(0.2, 0.8, 0.4) : SIMD3<Float>(0.9, 0.3, 0.3))
     }
 }
 
-final class MarkerEntityTemplate: EntityTemplate {
-    override class var systemImage: String {
-        "flag"
-    }
+/// An entity with nothing to show: properties, an action and behaviour. On the lights shelf
+/// to exercise shelf filtering.
+final class RulesEntityPlugin: EntityPlugin {
+    @UntoldAttribute("Score To Win") var limit: Int = 3
 
-    override func build(_ entity: EntityID) {
-        add(MarkerComponent.self, to: entity)?.team = 7
-    }
-}
+    var events: [String] = []
 
-/// Part of a kind of entity: the editor must not offer it for any other.
-final class RingShapeComponent: CodeComponent {
-    @UntoldAttribute var radius: Float = 1
-
-    override class var attachment: ComponentAttachment {
-        .entityKindOnly
-    }
-}
-
-final class RingEntity: EntityTemplate {
-    override class var shelf: UntoldEntityShelf {
-        .primitives
-    }
-
-    override func build(_ entity: EntityID) {
-        add(RingShapeComponent.self, to: entity)?.radius = 2
-    }
-}
-
-/// No representation at all, on the lights shelf to exercise shelf filtering.
-final class RulesTemplate: EntityTemplate {
     override class var displayName: String {
         "Game Rules"
     }
@@ -198,7 +198,40 @@ final class RulesTemplate: EntityTemplate {
         .lights
     }
 
-    override func build(_ entity: EntityID) {
-        add(SpinnerComponent.self, to: entity)
+    override class var actions: [PluginAction] {
+        [PluginAction("Reset") { ($0 as? RulesEntityPlugin)?.limit = 3 }]
+    }
+
+    override func onStart() {
+        events.append("start")
+    }
+
+    override func onUpdate(deltaTime: Float) {
+        events.append("update:\(deltaTime)")
+    }
+
+    override func onStop() {
+        events.append("stop")
+    }
+
+    override func onEditorChanged(property: String) {
+        events.append("edited:\(property)")
+    }
+}
+
+/// An entity whose editor representation is more than an icon and follows its properties.
+final class PathEntity: EntityPlugin {
+    @UntoldAttribute var start: SIMD3<Float> = .zero
+    @UntoldAttribute var end: SIMD3<Float> = [1, 0, 0]
+
+    override class var shelf: UntoldEntityShelf {
+        .primitives
+    }
+
+    override var editorRepresentation: EditorRepresentation {
+        EditorRepresentation([
+            .polyline([start, end], closed: false),
+            .points([start, end], tint: SIMD3<Float>(1, 1, 0)),
+        ])
     }
 }

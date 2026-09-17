@@ -21,15 +21,15 @@ final class SceneRoundTripTests: XCTestCase {
 
     func testStorageComponentEncodesLiveValuesAndKeepsUnloadedPayloads() throws {
         let entity = createEntity()
-        let spinner = try XCTUnwrap(CodeComponentSystem.shared.add(SpinnerComponent.self, to: entity))
+        let spinner = try XCTUnwrap(ScenePluginSystem.shared.add(SpinnerComponent.self, to: entity))
         spinner.speed = 12.5
         spinner.stance = .walk
-        _ = CodeComponentSystem.shared.add("NotLoadedYet", to: entity)
-        let storage = try XCTUnwrap(scene.get(component: CodeComponentsComponent.self, for: entity))
+        _ = ScenePluginSystem.shared.add("NotLoadedYet", to: entity)
+        let storage = try XCTUnwrap(scene.get(component: ScenePluginsComponent.self, for: entity))
         storage.slots[1].payload = ["power": .number(3), "label": .string("kept")]
 
         let data = try JSONEncoder().encode(storage)
-        let decoded = try JSONDecoder().decode(CodeComponentsComponent.self, from: data)
+        let decoded = try JSONDecoder().decode(ScenePluginsComponent.self, from: data)
 
         XCTAssertEqual(decoded.slots.map(\.typeName), ["SpinnerComponent", "NotLoadedYet"])
         XCTAssertEqual(decoded.slots[0].payload["speed"], .number(12.5))
@@ -46,27 +46,27 @@ final class SceneRoundTripTests: XCTestCase {
     func testValuesSurviveSavingAndLoadingAScene() throws {
         let hero = createEntity()
         setEntityName(entityId: hero, name: "Hero")
-        let spinner = try XCTUnwrap(CodeComponentSystem.shared.add(SpinnerComponent.self, to: hero))
+        let spinner = try XCTUnwrap(ScenePluginSystem.shared.add(SpinnerComponent.self, to: hero))
         spinner.speed = 12.5
         spinner.lives = 9
         spinner.spawnOffset = [1, 2, 3]
         spinner.target = EntityRef("Enemy01")
         spinner.stance = .run
-        _ = CodeComponentSystem.shared.add("NotLoadedYet", to: hero)
-        let storage = try XCTUnwrap(scene.get(component: CodeComponentsComponent.self, for: hero))
+        _ = ScenePluginSystem.shared.add("NotLoadedYet", to: hero)
+        let storage = try XCTUnwrap(scene.get(component: ScenePluginsComponent.self, for: hero))
         storage.slots[1].payload = ["power": .number(3)]
 
         let json = try JSONEncoder().encode(serializeScene())
 
         // A fresh engine, as after relaunching the editor or starting the game.
         resetKitTestState()
-        CodeComponentRegistry.shared.register(SpinnerComponent.self)
+        ComponentPluginRegistry.shared.register(SpinnerComponent.self)
         let sceneData = try JSONDecoder().decode(SceneData.self, from: json)
         deserializeScene(sceneData: sceneData)
-        CodeComponentSystem.shared.update(deltaTime: 0.016, context: makeKitTestContext())
+        ScenePluginSystem.shared.update(deltaTime: 0.016, context: makeKitTestContext())
 
         let restoredHero = try XCTUnwrap(findEntity(name: "Hero"))
-        let restored = try XCTUnwrap(CodeComponentRegistry.component(SpinnerComponent.self, on: restoredHero))
+        let restored = try XCTUnwrap(ComponentPluginRegistry.component(SpinnerComponent.self, on: restoredHero))
         XCTAssertFalse(restored === spinner)
         XCTAssertEqual(restored.speed, 12.5)
         XCTAssertEqual(restored.lives, 9)
@@ -76,7 +76,7 @@ final class SceneRoundTripTests: XCTestCase {
         XCTAssertEqual(restored.entity, restoredHero)
         XCTAssertEqual(restored.events, ["attach"])
 
-        let slots = CodeComponentSystem.shared.slots(on: restoredHero)
+        let slots = ScenePluginSystem.shared.slots(on: restoredHero)
         XCTAssertEqual(slots.map(\.typeName), ["SpinnerComponent", "NotLoadedYet"])
         XCTAssertEqual(slots[1].isBound, false)
         XCTAssertEqual(slots[1].payload, ["power": .number(3)])
@@ -89,7 +89,7 @@ final class SceneRoundTripTests: XCTestCase {
         resetKitTestState()
         deserializeScene(sceneData: second)
         let thirdHero = try XCTUnwrap(findEntity(name: "Hero"))
-        let thirdSlots = CodeComponentSystem.shared.slots(on: thirdHero)
+        let thirdSlots = ScenePluginSystem.shared.slots(on: thirdHero)
         XCTAssertEqual(thirdSlots.map(\.typeName), ["SpinnerComponent", "NotLoadedYet"])
         XCTAssertEqual(thirdSlots[0].payload["speed"], .number(12.5), "with no type registered at all, values still round-trip")
         XCTAssertEqual(thirdSlots[1].payload, ["power": .number(3)])

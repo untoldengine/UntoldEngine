@@ -1,5 +1,5 @@
 //
-//  EditorExtensionRegistry.swift
+//  EditorMenuPluginRegistry.swift
 //  UntoldComponentKit
 //
 // Copyright (C) Untold Engine Studios
@@ -11,14 +11,14 @@
 import Foundation
 import UntoldEngine
 
-/// The editor extension types known to the process, keyed by unqualified type name.
+/// The menu plugin types known to the process, keyed by unqualified type name.
 /// Only the editor instantiates them; a game never does.
-public final class EditorExtensionRegistry: @unchecked Sendable {
-    public static let shared = EditorExtensionRegistry()
+public final class EditorMenuPluginRegistry: @unchecked Sendable {
+    public static let shared = EditorMenuPluginRegistry()
 
     public struct Entry {
         public let name: String
-        public let type: EditorExtension.Type
+        public let type: EditorMenuPlugin.Type
         public let revision: Int
     }
 
@@ -30,13 +30,13 @@ public final class EditorExtensionRegistry: @unchecked Sendable {
     /// Registers `type`. With `replaceExisting`, a different type under the same name takes
     /// over, which is what loading a new library revision wants; otherwise it is refused.
     @discardableResult
-    public func register(_ type: EditorExtension.Type, revision: Int = 0, replaceExisting: Bool = false) -> Bool {
+    public func register(_ type: EditorMenuPlugin.Type, revision: Int = 0, replaceExisting: Bool = false) -> Bool {
         let name = type.typeName
         lock.lock()
         defer { lock.unlock() }
         if let existing = entriesByName[name], existing.type != type, replaceExisting == false {
             Logger.logError(
-                message: "[ComponentKit] A different editor extension named '\(name)' is already registered; the new one was ignored.",
+                message: "[ComponentKit] A different menu plugin named '\(name)' is already registered; the new one was ignored.",
                 category: LogCategory.general.rawValue
             )
             return false
@@ -57,7 +57,7 @@ public final class EditorExtensionRegistry: @unchecked Sendable {
         lock.unlock()
     }
 
-    public func type(named name: String) -> EditorExtension.Type? {
+    public func type(named name: String) -> EditorMenuPlugin.Type? {
         lock.lock()
         defer { lock.unlock() }
         return entriesByName[name]?.type
@@ -70,12 +70,12 @@ public final class EditorExtensionRegistry: @unchecked Sendable {
         return entriesByName.values.sorted { $0.name < $1.name }
     }
 
-    /// Registers every `EditorExtension` subclass defined in the image at `imagePath` and
+    /// Registers every `EditorMenuPlugin` subclass defined in the image at `imagePath` and
     /// returns the names it registered.
     @discardableResult
     public func discover(imagePath: String, revision: Int = 0, replaceExisting: Bool = false) -> [String] {
-        let classes = ImageDiscovery.classes(inImageAt: imagePath, inheritingFrom: EditorExtension.self)
-        let types = classes.compactMap { $0 as? EditorExtension.Type }.sorted { $0.typeName < $1.typeName }
+        let classes = ImageDiscovery.classes(inImageAt: imagePath, inheritingFrom: EditorMenuPlugin.self)
+        let types = classes.compactMap { $0 as? EditorMenuPlugin.Type }.sorted { $0.typeName < $1.typeName }
         return types.filter { register($0, revision: revision, replaceExisting: replaceExisting) }.map(\.typeName)
     }
 }

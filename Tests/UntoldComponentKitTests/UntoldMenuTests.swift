@@ -89,16 +89,16 @@ final class UntoldMenuTests: XCTestCase {
     }
 
     func testValidationFlagsEmptyPathsAndDuplicates() {
-        let issues = EditorExtension.validate(BrokenExtension().untoldMenuItems())
+        let issues = EditorMenuPlugin.validate(BrokenExtension().untoldMenuItems())
         XCTAssertEqual(issues, [
             .emptyPath(property: "untitled"),
             .duplicate(identifier: "debug/Splat Twin/Same"),
         ])
-        XCTAssertTrue(EditorExtension.validate(SampleExtension().untoldMenuItems()).isEmpty)
+        XCTAssertTrue(EditorMenuPlugin.validate(SampleExtension().untoldMenuItems()).isEmpty)
     }
 
     func testValidationCatchesClashesAcrossExtensions() {
         let combined = SampleExtension().untoldMenuItems() + SampleExtension().untoldMenuItems()
-        XCTAssertEqual(EditorExtension.validate(combined).count, 4)
+        XCTAssertEqual(EditorMenuPlugin.validate(combined).count, 4)
     }
 }

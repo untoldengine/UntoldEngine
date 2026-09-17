@@ -1,5 +1,5 @@
 //
-//  CodeComponentRegistry.swift
+//  ComponentPluginRegistry.swift
 //  UntoldComponentKit
 //
 // Copyright (C) Untold Engine Studios
@@ -11,16 +11,16 @@
 import Foundation
 import UntoldEngine
 
-/// The component types known to the process, keyed by unqualified type name.
+/// The component plugin types known to the process, keyed by unqualified type name.
 ///
 /// The name, not the Swift type, is the identity: a reloaded library registers new types
 /// under the same names and takes over the saved data of the old ones.
-public final class CodeComponentRegistry: @unchecked Sendable {
-    public static let shared = CodeComponentRegistry()
+public final class ComponentPluginRegistry: @unchecked Sendable {
+    public static let shared = ComponentPluginRegistry()
 
     public struct Entry {
         public let name: String
-        public let type: CodeComponent.Type
+        public let type: ComponentPlugin.Type
         /// The library revision that provided the type; 0 for statically linked types.
         public let revision: Int
     }
@@ -58,7 +58,7 @@ public final class CodeComponentRegistry: @unchecked Sendable {
 
     @discardableResult
     public func register(
-        _ type: CodeComponent.Type,
+        _ type: ComponentPlugin.Type,
         revision: Int = 0,
         policy: RegistrationPolicy = .rejectDuplicates
     ) -> RegistrationResult {
@@ -85,7 +85,7 @@ public final class CodeComponentRegistry: @unchecked Sendable {
             USCBridge.unregisterActions(for: existing.type)
         }
         USCBridge.registerActions(for: type)
-        CodeComponentSystem.shared.setNeedsBind()
+        ScenePluginSystem.shared.setNeedsBind()
         return existing == nil ? .registered : .replaced
     }
 
@@ -110,7 +110,7 @@ public final class CodeComponentRegistry: @unchecked Sendable {
 
     // MARK: Lookup
 
-    public func type(named name: String) -> CodeComponent.Type? {
+    public func type(named name: String) -> ComponentPlugin.Type? {
         lock.lock()
         defer { lock.unlock() }
         return entriesByName[name]?.type
@@ -123,15 +123,9 @@ public final class CodeComponentRegistry: @unchecked Sendable {
         return entriesByName.values.sorted { $0.name < $1.name }
     }
 
-    /// The types an editor may offer for any entity: every registered type except the ones
-    /// that are part of a kind of entity (`ComponentAttachment.entityKindOnly`).
-    public var attachableEntries: [Entry] {
-        entries.filter { $0.type.attachment == .anyEntity }
-    }
-
     // MARK: Discovery
 
-    /// Registers every `CodeComponent` subclass defined in the image at `imagePath`.
+    /// Registers every `ComponentPlugin` subclass defined in the image at `imagePath`.
     @discardableResult
     public func discover(
         imagePath: String,
@@ -139,8 +133,8 @@ public final class CodeComponentRegistry: @unchecked Sendable {
         policy: RegistrationPolicy = .rejectDuplicates
     ) -> DiscoveryReport {
         var report = DiscoveryReport()
-        let classes = ImageDiscovery.classes(inImageAt: imagePath, inheritingFrom: CodeComponent.self)
-        let types = classes.compactMap { $0 as? CodeComponent.Type }.sorted { $0.typeName < $1.typeName }
+        let classes = ImageDiscovery.classes(inImageAt: imagePath, inheritingFrom: ComponentPlugin.self)
+        let types = classes.compactMap { $0 as? ComponentPlugin.Type }.sorted { $0.typeName < $1.typeName }
         for type in types {
             switch register(type, revision: revision, policy: policy) {
             case .registered: report.registered.append(type.typeName)
@@ -148,38 +142,6 @@ public final class CodeComponentRegistry: @unchecked Sendable {
             case .rejectedDuplicate: report.rejected.append(type.typeName)
             case .unchanged: break
             }
-        }
-        return report
-    }
-
-    /// Registers the component types, and the entity templates, that are part of the app: those in its main executable,
-    /// in the debug dylib Xcode splits an app's code into, and in frameworks embedded in its
-    /// bundle. Call once at startup, before loading scenes.
-    @discardableResult
-    public func discoverInApp() -> DiscoveryReport {
-        var report = DiscoveryReport()
-        for path in ImageDiscovery.appImagePaths() {
-            let found = discover(imagePath: path)
-            report.registered += found.registered
-            report.replaced += found.replaced
-            report.rejected += found.rejected
-        }
-        var templates: [String] = []
-        for path in ImageDiscovery.appImagePaths() {
-            templates += EntityTemplateRegistry.shared.discover(imagePath: path)
-        }
-        let names = report.registered + report.replaced
-        Logger.log(
-            message: names.isEmpty
-                ? "[ComponentKit] No code component types found in the app."
-                : "[ComponentKit] Code component types in the app: \(names.joined(separator: ", "))",
-            category: LogCategory.ecs.rawValue
-        )
-        if templates.isEmpty == false {
-            Logger.log(
-                message: "[ComponentKit] Entity templates in the app: \(templates.joined(separator: ", "))",
-                category: LogCategory.ecs.rawValue
-            )
         }
         return report
     }
@@ -198,12 +160,12 @@ public final class CodeComponentRegistry: @unchecked Sendable {
     // MARK: Queries
 
     /// Entities that currently carry a live `type`, sorted by entity ID.
-    public static func entities<T: CodeComponent>(with _: T.Type) -> [EntityID] {
-        CodeComponentSystem.shared.entities(withComponentNamed: T.typeName)
+    public static func entities<T: ComponentPlugin>(with _: T.Type) -> [EntityID] {
+        ScenePluginSystem.shared.entities(withComponentNamed: T.typeName)
     }
 
     /// The live `type` on `entityId`, if any.
-    public static func component<T: CodeComponent>(_: T.Type, on entityId: EntityID) -> T? {
-        CodeComponentSystem.shared.component(named: T.typeName, on: entityId) as? T
+    public static func component<T: ComponentPlugin>(_: T.Type, on entityId: EntityID) -> T? {
+        ScenePluginSystem.shared.component(named: T.typeName, on: entityId) as? T
     }
 }

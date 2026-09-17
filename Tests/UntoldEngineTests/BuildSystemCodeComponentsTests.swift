@@ -168,16 +168,16 @@ import XCTest
                 XCTAssertTrue(with.contains("import UntoldEngine\nimport UntoldComponentKit\n"))
                 XCTAssertTrue(with.contains("""
                         gameMode = true
-                        // Code components: register the types linked into this app, then start them.
-                        // Scenes loaded afterwards bind their saved components to these types.
-                        CodeComponentRegistry.shared.discoverInApp()
-                        CodeComponentSystem.install()
-                        CodeComponentSystem.shared.startPlayMode()
+                        // Plugins written in code: register the component and entity plugins linked into
+                        // this app, then start them. Scenes loaded afterwards bind what they saved to these types.
+                        ScenePluginSystem.discoverInApp()
+                        ScenePluginSystem.install()
+                        ScenePluginSystem.shared.startPlayMode()
                 """), "indented like the line it replaces")
 
                 let without = BuildTemplates.expandingCodeComponentPlaceholders(in: template, settings: settings(target))
                 XCTAssertFalse(without.contains("UntoldComponentKit"))
-                XCTAssertFalse(without.contains("CodeComponent"))
+                XCTAssertFalse(without.contains("ScenePlugin"))
                 XCTAssertTrue(without.contains("        gameMode = true\n        AnimationSystem.shared.isEnabled = true"), "the placeholder line is gone, not left blank")
 
                 XCTAssertFalse(with.contains("{{CODE_COMPONENTS_"))
@@ -186,7 +186,7 @@ import XCTest
 
             let arTemplate = try XCTUnwrap(BuildTemplates.getTemplateFilesForIOSAR()["Sources/{{PROJECT_NAME}}/GameScene.swift"])
             let ar = BuildTemplates.expandingCodeComponentPlaceholders(in: arTemplate, settings: settings(.iOS(deployment: .v17), codeComponents: true))
-            XCTAssertTrue(ar.contains("CodeComponentSystem.install()"))
+            XCTAssertTrue(ar.contains("ScenePluginSystem.install()"))
         }
 
         func testPackageSwiftFollowsTheEngineReferenceAndGainsAComponentsTarget() throws {
@@ -206,7 +206,7 @@ import XCTest
 
         func testStarterComponentIsPartOfAProjectThatAsksForCodeComponents() {
             XCTAssertEqual(BuildTemplates.starterComponentPath, "Sources/{{PROJECT_NAME}}Components/Spinner.swift")
-            XCTAssertTrue(BuildTemplates.starterComponentSwift.contains("final class Spinner: CodeComponent"))
+            XCTAssertTrue(BuildTemplates.starterComponentSwift.contains("final class Spinner: ComponentPlugin"))
             XCTAssertTrue(BuildTemplates.starterComponentSwift.contains("@UntoldAttribute"))
             XCTAssertEqual(BuildSystem.starterCodeComponentSource, BuildTemplates.starterComponentSwift)
         }
