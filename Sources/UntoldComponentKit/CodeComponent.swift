@@ -37,6 +37,21 @@ public struct UntoldAttributeApplyReport: Equatable, Sendable {
     public init() {}
 }
 
+/// How a component gets onto an entity in the editor.
+///
+/// This is about what the editor offers people, not about what code may do:
+/// `CodeComponentSystem.add` works for every type, which is how a template adds its parts and
+/// how a saved scene gets them back.
+public enum ComponentAttachment: Sendable {
+    /// Any entity can have it. The Inspector's Add Component menu lists it, and it can be
+    /// removed there.
+    case anyEntity
+    /// It is part of a kind of entity and means nothing anywhere else: the shape of a torus,
+    /// say. The `EntityTemplate` that makes the entity adds it. The editor never offers it for
+    /// another entity, and the entity keeps it until the entity itself is deleted.
+    case entityKindOnly
+}
+
 /// Base class for components written in code.
 ///
 /// Subclass it (`final` recommended), mark what the editor should see with `@UntoldAttribute`,
@@ -54,6 +69,9 @@ open class CodeComponent {
     public internal(set) final var entity: EntityID = .invalid
     /// `true` between `onAttach()` and `onDetach()`.
     public internal(set) final var isAttached: Bool = false
+    /// `true` once this component has given the entity a mesh with `setGeneratedMesh`. The
+    /// mesh is then the component's doing, so the editor does not let it be removed on its own.
+    public internal(set) final var ownsGeneratedMesh: Bool = false
     final var hasStarted: Bool = false
 
     public required init() {}
@@ -72,6 +90,12 @@ open class CodeComponent {
     /// Functions exposed as editor buttons and USC actions.
     open class var actions: [ComponentAction] {
         []
+    }
+
+    /// Whether the editor offers this component for any entity, or keeps it to the kind of
+    /// entity it is part of. See `ComponentAttachment`.
+    open class var attachment: ComponentAttachment {
+        .anyEntity
     }
 
     /// What the editor draws for the entity when it has no shape of its own. Declared on the

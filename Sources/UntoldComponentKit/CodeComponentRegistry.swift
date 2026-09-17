@@ -123,6 +123,12 @@ public final class CodeComponentRegistry: @unchecked Sendable {
         return entriesByName.values.sorted { $0.name < $1.name }
     }
 
+    /// The types an editor may offer for any entity: every registered type except the ones
+    /// that are part of a kind of entity (`ComponentAttachment.entityKindOnly`).
+    public var attachableEntries: [Entry] {
+        entries.filter { $0.type.attachment == .anyEntity }
+    }
+
     // MARK: Discovery
 
     /// Registers every `CodeComponent` subclass defined in the image at `imagePath`.

@@ -13,7 +13,10 @@ import UntoldEngine
 //   TorusGeometry  builds the vertices and hands them to ModelIO.
 //   TorusShape     is the component. It owns the numbers that define the ring, and turns them
 //                  into the entity's mesh whenever it is attached or one of them changes.
-//   TorusEntity    is the template: the "Torus" row on the editor's Primitives shelf.
+//                  It is part of a torus and means nothing on a cube, so it says so: the
+//                  editor never lists it under Add Component, and a torus cannot lose it.
+//   TorusEntity    is the template: the "Torus" row on the editor's Primitives shelf, and the
+//                  only way a TorusShape gets onto an entity in the editor.
 //
 // The scene file stores TorusShape's attributes, not the geometry. When the scene is loaded,
 // in the editor or in the game, the component is attached again and rebuilds the ring.
@@ -39,6 +42,12 @@ public final class TorusShape: CodeComponent {
     @UntoldAttribute("Tube Radius", range: 0.02 ... 2, step: 0.01) public var tubeRadius: Float = 0.18
     @UntoldAttribute("Ring Segments", range: 3 ... 128) public var ringSegments: Int = 48
     @UntoldAttribute("Tube Segments", range: 3 ... 64) public var tubeSegments: Int = 20
+
+    /// Internal to the Torus kind. Compare SpawnPoint in the sample project, which keeps the
+    /// default: a spawn point is a fair thing to add to any entity.
+    override public class var attachment: ComponentAttachment {
+        .entityKindOnly
+    }
 
     override public func onAttach() {
         rebuild()
