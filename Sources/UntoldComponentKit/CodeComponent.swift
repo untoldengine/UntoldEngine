@@ -74,10 +74,11 @@ open class CodeComponent {
         []
     }
 
-    /// What the editor draws for an entity carrying this component when it has no shape of its
-    /// own. Declared here, not on the template that created the entity, because the component
-    /// is what is still there after the scene is saved, loaded, or the library reloaded.
-    open class var editorRepresentation: EditorRepresentation {
+    /// What the editor draws for the entity when it has no shape of its own. Declared on the
+    /// component, not on the template that created the entity, because the component is what
+    /// is still there after the scene is saved, loaded, or the library reloaded. Read every
+    /// frame while editing, so it can follow the component's values: a team's color, say.
+    open var editorRepresentation: EditorRepresentation {
         .none
     }
 

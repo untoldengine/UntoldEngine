@@ -154,8 +154,8 @@ final class BrokenExtension: EditorExtension {
 final class MarkerComponent: CodeComponent {
     @UntoldAttribute var team: Int = 1
 
-    override class var editorRepresentation: EditorRepresentation {
-        .icon(systemImage: "flag.fill", tint: SIMD3<Float>(0.2, 0.8, 0.4))
+    override var editorRepresentation: EditorRepresentation {
+        .icon(systemImage: "flag.fill", tint: team == 1 ? SIMD3<Float>(0.2, 0.8, 0.4) : SIMD3<Float>(0.9, 0.3, 0.3))
     }
 }
 
