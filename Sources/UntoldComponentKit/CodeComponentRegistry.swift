@@ -150,7 +150,15 @@ public final class CodeComponentRegistry: @unchecked Sendable {
     @discardableResult
     public func discoverInMainExecutable() -> DiscoveryReport {
         guard let path = ImageDiscovery.mainExecutablePath() else { return DiscoveryReport() }
-        return discover(imagePath: path)
+        let report = discover(imagePath: path)
+        let names = report.registered + report.replaced
+        Logger.log(
+            message: names.isEmpty
+                ? "[ComponentKit] No code component types found in the app."
+                : "[ComponentKit] Code component types in the app: \(names.joined(separator: ", "))",
+            category: LogCategory.ecs.rawValue
+        )
+        return report
     }
 
     /// Registers the component types defined in the same image as `cls`.
