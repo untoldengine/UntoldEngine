@@ -155,6 +155,84 @@ saved back untouched, and the component comes alive as soon as its type is regis
 saved values are applied, a property the scene does not mention keeps its default, and a
 saved value no property claims is dropped with a log line.
 
+## Adding kinds of entity
+
+Loaded code can add its own kinds of entity to the editor's creation shelves, next to Cube and
+the lights. An `EntityTemplate` is the recipe: it runs once, when the entity is created.
+
+```swift
+final class SpawnPointEntity: EntityTemplate {
+    override class var systemImage: String { "flag" }          // the row's icon (SF Symbol)
+
+    override func build(_ entity: EntityID) {                  // named, has a transform, otherwise empty
+        add(SpawnPoint.self, to: entity)?.team = .red
+    }
+}
+```
+
+`shelf` says where the row goes. The set is closed, like the menu roots: `.primitives`, `.lights`
+and `.entities` (the default; the editor shows that shelf only while it holds something). Rows
+are dragged into the viewport or onto the hierarchy, or double-clicked, like the built-in ones.
+`displayName` defaults to the type name spelled out, without a trailing `Entity` or `Template`.
+
+What the entity *is* after creation lives in its components, because those are what the scene
+saves; the template is gone. That gives three sorts of entity:
+
+| Sort | In the editor | In the game | How |
+| --- | --- | --- | --- |
+| Nothing to show | found by name in the hierarchy | data and behaviour | `build` adds components and nothing else |
+| Editor-only representation | an icon in the viewport, like the lights' | nothing is drawn | a component overrides `editorRepresentation` |
+| A shape of its own | the mesh | the same mesh | a component builds it with `setGeneratedMesh` |
+
+**Editor-only representation.** The editor asks the component while editing, so the marker can
+follow its values. It is never saved, and it is not drawn in play mode or in a game. An entity
+that already shows itself (it has a mesh, or it is a light) gets none.
+
+```swift
+final class SpawnPoint: CodeComponent {
+    @UntoldAttribute var team: Team = .neutral
+
+    override var editorRepresentation: EditorRepresentation {
+        .icon(systemImage: "flag.fill", tint: team.tint)
+    }
+}
+```
+
+**A shape of its own.** The engine's primitives cover cubes, spheres, planes, cylinders and
+cones. For anything else, build an `MDLMesh` and convert it with
+`BasicPrimitives.createMesh(from:)`; positions, normals and texture coordinates under their
+standard ModelIO names are enough. Allocate its buffers with
+`MTKMeshBufferAllocator(device: renderInfo.device)`.
+
+```swift
+public final class TorusShape: CodeComponent {
+    @UntoldAttribute("Ring Radius", range: 0.1 ... 5) public var ringRadius: Float = 0.5
+
+    override public func onAttach() { rebuild() }
+    override public func onEditorChanged(property _: String) { rebuild() }
+
+    public func rebuild() {
+        let mesh = TorusGeometry.makeMesh(ringRadius: ringRadius, /* ... */)
+        setGeneratedMesh(BasicPrimitives.createMesh(from: mesh), name: "Torus")
+    }
+}
+```
+
+The scene does not store generated geometry. It stores the component's attributes, and the
+component rebuilds the mesh in `onAttach`, which runs when the scene is loaded, in the editor
+and in the game. `setGeneratedMesh` keeps the material of the mesh it replaces, so material
+edits made in the editor survive a rebuild and a reload.
+
+A game can use templates too. `discoverInApp()` registers them along with the components:
+
+```swift
+EntityTemplateRegistry.shared.instantiate("TorusEntity", at: SIMD3<Float>(0, 1, 0))
+```
+
+A plugin whose entity must exist in the game (the torus) defines the component in its runtime
+sources, which then depend on the engine. A template that only matters to the editor can live
+in the plugin's editor sources instead.
+
 ## Extending the editor
 
 An `EditorExtension` describes what loaded code adds to the editor itself. The editor
