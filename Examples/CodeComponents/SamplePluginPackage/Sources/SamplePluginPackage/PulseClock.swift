@@ -1,7 +1,7 @@
 import Foundation
 
 /// A clock shared by everything that pulses, so it all moves in step. It stands in for a
-/// plugin's runtime: state that both game code and the plugin's editor side reach.
+/// package's runtime: state that both game code and the package's editor side reach.
 public final class PulseClock {
     public static let shared = PulseClock()
 

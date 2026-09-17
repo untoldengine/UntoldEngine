@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import SamplePlugin
+import SamplePluginPackage
 import simd
 import UntoldComponentKit
 import UntoldEngine
@@ -28,7 +28,7 @@ class GameScene {
     }
 
     /// A cube that spins and bobs: both behaviours are component plugins from
-    /// Sources/SampleProjectComponents, attached here exactly as the editor's Inspector does.
+    /// Sources/SampleProjectPlugins, attached here exactly as the editor's Inspector does.
     private func createSampleScene() {
         let cube = createEntity()
         setEntityName(entityId: cube, name: "Sample Cube")
@@ -44,13 +44,13 @@ class GameScene {
         setSceneReady(true)
     }
 
-    /// The kinds of entity this project and its plugin add to the editor's creation shelves,
+    /// The kinds of entity this project and its plugin package add to the editor's creation shelves,
     /// made here the way the shelves make them. Each is an EntityPlugin: the entity's own
     /// properties, and whichever of geometry and editor representation it has.
     private func createSampleEntityKinds() {
         let kinds = EntityPluginRegistry.shared
 
-        // Geometry only, from the plugin. The ring's numbers are the entity's own properties.
+        // Geometry only, from the plugin package. The ring's numbers are the entity's own properties.
         if let ring = kinds.instantiate(TorusEntity.self, entityName: "Ring") {
             ring.ringRadius = 1.4
             ring.tubeRadius = 0.08

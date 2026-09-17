@@ -15,7 +15,7 @@ public struct GeneratedVertex {
     }
 }
 
-/// Shared by the plugin's shapes: packs vertices and indices into an `MDLMesh` that
+/// Shared by the package's shapes: packs vertices and indices into an `MDLMesh` that
 /// `BasicPrimitives.createMesh(from:)` turns into engine meshes.
 public enum GeneratedGeometry {
     public static func makeMesh(

@@ -5,8 +5,8 @@ name: SampleProject
 packages:
   UntoldEngine:
     path: ../../..
-  SamplePlugin:
-    path: ../SamplePlugin
+  SamplePluginPackage:
+    path: ../SamplePluginPackage
 
 targets:
   SampleProject:
@@ -14,7 +14,7 @@ targets:
     platform: macOS
     deploymentTarget: 15.0
     sources:
-      # Everything under Sources is compiled into the app, the components folder included.
+      # Everything under Sources is compiled into the app, the plugins folder included.
       - path: Sources
         excludes:
           - "SampleProject/GameData"
@@ -28,8 +28,8 @@ targets:
         product: UntoldEngineShaderSupport
       - package: UntoldEngine
         product: UntoldComponentKit
-      - package: SamplePlugin
-        product: SamplePlugin
+      - package: SamplePluginPackage
+        product: SamplePluginPackage
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.untoldengine.samples.codecomponents

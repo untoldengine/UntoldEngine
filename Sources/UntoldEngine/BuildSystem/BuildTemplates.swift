@@ -1833,7 +1833,7 @@ import Foundation
 
         // MARK: - Code Components
 
-        static let starterComponentPath = "Sources/{{PROJECT_NAME}}Components/Spinner.swift"
+        static let starterComponentPath = "Sources/{{PROJECT_NAME}}Plugins/Spinner.swift"
 
         static let starterComponentSwift = """
         import simd
@@ -1874,11 +1874,11 @@ import Foundation
             ],
             "{{CODE_COMPONENTS_PACKAGE_DEPENDENCIES}}": [
                 ".product(name: \"UntoldComponentKit\", package: \"UntoldEngine\"),",
-                "\"{{PROJECT_NAME}}Components\",",
+                "\"{{PROJECT_NAME}}Plugins\",",
             ],
             "{{CODE_COMPONENTS_PACKAGE_TARGET}}": [
                 ".target(",
-                "    name: \"{{PROJECT_NAME}}Components\",",
+                "    name: \"{{PROJECT_NAME}}Plugins\",",
                 "    dependencies: [",
                 "        .product(name: \"UntoldEngine\", package: \"UntoldEngine\"),",
                 "        .product(name: \"UntoldComponentKit\", package: \"UntoldEngine\"),",
