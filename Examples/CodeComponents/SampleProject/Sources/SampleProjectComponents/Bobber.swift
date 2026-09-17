@@ -8,15 +8,15 @@ import UntoldEngine
 ///
 /// It imports a plugin module. In the game that is an ordinary package dependency; in the editor
 /// the plugin is compiled and loaded first, and this file is compiled against it.
-final class Bobber: CodeComponent {
+final class Bobber: ComponentPlugin {
     @UntoldAttribute("Height", range: 0 ... 3, step: 0.05) var height: Float = 0.5
     @UntoldAttribute var startsFromCurrentPosition = true
     @UntoldAttribute var anchor: SIMD3<Float> = .zero
 
     private var time: Float = 0
 
-    override class var actions: [ComponentAction] {
-        [ComponentAction("Anchor Here") { ($0 as? Bobber)?.anchorAtCurrentPosition() }]
+    override class var actions: [PluginAction] {
+        [PluginAction("Anchor Here") { ($0 as? Bobber)?.anchorAtCurrentPosition() }]
     }
 
     override func onStart() {

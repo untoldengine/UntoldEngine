@@ -1,11 +1,11 @@
 # Code Components Example
 
-A project the Untold Editor can open, with components written in Swift, new kinds of entity
-for the editor's creation shelves, a project-level editor extension, and a small plugin that
-brings its own menu items and its own primitive. It exercises every way the editor loads code,
-and its game builds with the same sources.
+A project the Untold Editor can open, with the three things code can add: components
+(`ComponentPlugin`), kinds of entity (`EntityPlugin`) and editor menu items
+(`EditorMenuPlugin`), some from the project and some from a small plugin package. It exercises
+every way the editor loads code, and its game builds with the same sources.
 
-See [Using Code Components](../../docs/API/UsingCodeComponents.md) for the API.
+See [Writing Plugins in Swift](../../docs/API/UsingCodeComponents.md) for the API.
 
 ## What is here
 
@@ -17,36 +17,38 @@ CodeComponents/
 │   └── Sources/
 │       ├── SampleProject/                 the game: app delegate, GameScene, GameData
 │       └── SampleProjectComponents/       what the editor compiles and loads
-│           ├── Spinner.swift              a component with two attributes
-│           ├── Bobber.swift               a component with an action, importing the plugin
-│           ├── SpawnPoint.swift           an entity kind the editor shows as an icon; the game shows nothing
-│           ├── GameRules.swift            an entity kind with nothing to show anywhere
-│           └── SampleTools.swift          an EditorExtension, editor-only (#if UNTOLD_EDITOR)
+│           ├── Spinner.swift              ComponentPlugin with two attributes
+│           ├── Bobber.swift               ComponentPlugin with an action, importing the plugin
+│           ├── SpawnPoint.swift           EntityPlugin: an editor representation and no geometry
+│           ├── GameRules.swift            EntityPlugin: properties and behaviour, nothing to show
+│           └── SampleTools.swift          EditorMenuPlugin, editor-only (#if UNTOLD_EDITOR)
 └── SamplePlugin/
     ├── Package.swift                      what games depend on
     ├── untold-plugin.json                 what the editor reads
     └── Sources/
         ├── SamplePlugin/                  the plugin's runtime
         │   ├── PulseClock.swift           plain Swift shared with the project's Bobber
-        │   └── Torus.swift                an entity kind with a shape of its own: a primitive the engine lacks
-        └── SamplePluginEditor/            its editor side; no game target compiles this
+        │   ├── Torus.swift                EntityPlugin: geometry, a primitive the engine lacks
+        │   ├── SplinePath.swift           EntityPlugin: geometry and an editor representation; plus PathFollower, a ComponentPlugin
+        │   └── GeneratedGeometry.swift    packs vertices into the mesh the engine converts
+        └── SamplePluginEditor/            its editor side (an EditorMenuPlugin); no game target compiles this
 ```
 
-### Three kinds of entity
+### Four kinds of entity
 
-| Kind | Shelf | In the editor | In the game |
-| --- | --- | --- | --- |
-| **Torus** (plugin) | Primitives | a ring mesh, reshaped live from the Inspector; its `TorusShape` is locked to the kind | the same mesh, rebuilt from the saved attributes |
-| **Spawn Point** (project) | Entities | a flag icon in the team's color | only a position: `SpawnPoint.all(for:)` |
-| **Game Rules** (project) | Entities | a row in the hierarchy | data and a round timer |
+An `EntityPlugin` is the entity: its own properties, and whichever of geometry and editor
+representation it has.
 
-Each is an `EntityTemplate` (the shelf row) plus a `CodeComponent` (what the entity is once it
-exists, and what the scene saves).
+| Kind | Shelf | Own properties | In the editor | In the game |
+| --- | --- | --- | --- | --- |
+| **Torus** (plugin) | Primitives | ring and tube radius, segments | the ring mesh | the same mesh |
+| **Spline Path** (plugin) | Entities | four control points, thickness, segments | a tube, plus its control points and control polygon | the tube; `position(at:)` for whatever travels along it |
+| **Spawn Point** (project) | Entities | team, radius | a flag in the team's color and a circle for the radius | only a position: `SpawnPointEntity.all(for:)` |
+| **Game Rules** (project) | Entities | round length, score to win | a row in the hierarchy | the round timer |
 
-`TorusShape` is internal to the Torus kind: it declares `attachment` as `.entityKindOnly`, so
-the editor never offers it for another entity (a ring's shape means nothing on a cube) and a
-torus cannot lose it. `SpawnPoint` and `GameRules` keep the default, because adding a spawn
-point to any entity is reasonable.
+There is no "torus shape" component. A ring's shape could only ever belong to a torus, so it is
+the Torus entity's own properties. Components are for what any entity could have: `Spinner`,
+`Bobber`, and the plugin's `PathFollower`, which moves any entity along a Spline Path.
 
 ## In the editor
 
@@ -65,20 +67,23 @@ The **Components** tab at the bottom shows what happened: three libraries were b
 Things to try:
 
 1. Add an entity, select it, and open **Add Component** in the Inspector. The components from
-   code are in the same menu as the engine's, under **From Code**: Bobber, Game Rules, Spawn
-   Point and Spinner. Torus Shape is loaded too (the **Components** tab lists it) but is not
-   there, because it is part of the Torus kind. Attach `Spinner` and `Bobber`; their
-   `@UntoldAttribute` properties are the fields you see. Press Play.
+   code are in the same menu as the engine's, under **From Code**: Bobber, Path Follower and
+   Spinner. The kinds of entity are not there; they are not components. Attach `Spinner` and
+   `Bobber`; their `@UntoldAttribute` properties are the fields you see. Press Play.
 2. In the **Assets** tab, open **Primitives**: **Torus** is listed under Cube, Sphere and Plane,
-   and it comes from the plugin. Drag it into the viewport, then change Ring Radius or Tube
-   Segments in the Inspector and watch the ring rebuild. Its Torus Shape block shows a lock where
-   other components show a remove button; the ring can still take Spinner or Bobber. Open **Entities**, which exists only
-   because this project adds kinds to it: double-click **Spawn Point** and switch its team to see
-   the flag change color; double-click **Game Rules**, which appears in the hierarchy and nowhere
-   else. Save the scene and reopen it: the ring comes back as a ring, not as the engine's
-   fallback cube, because `TorusShape` rebuilds it from its saved attributes.
+   and it comes from the plugin. Drag it into the viewport. The Inspector shows a **Torus** block
+   above the components: those are the entity's own properties. Change Ring Radius or Tube
+   Segments and watch the ring rebuild. Open **Entities**, which exists only because this
+   project adds kinds to it. Double-click **Spline Path**: a tube with four dots and a white
+   control polygon around it; move Start Handle in the Inspector and both the dots and the tube
+   follow. Double-click **Spawn Point** and change its team and radius to see the flag change
+   color and the circle resize. Double-click **Game Rules**, which appears in the hierarchy and
+   nowhere else. To see a component use a kind of entity, add a sphere, give it **Path Follower**,
+   type the path entity's name into Path, and press Play. Save the scene and reopen it: every
+   kind comes back as itself with its values, the ring as a ring and not as the engine's fallback
+   cube, because each entity rebuilds its geometry from its saved properties.
 3. **Debug ▸ Sample Plugin ▸ Fast Pulse** speeds every Bobber up. The item comes from the
-   plugin. **Debug ▸ Sample Project** comes from `SampleTools.swift`. Both menus exist only while
+   plugin. **Debug ▸ Sample Project** comes from `SampleTools.swift`, an `EditorMenuPlugin`. Both menus exist only while
    this project is open; loaded code can add items under the editor's fixed root menus but can
    never create a root menu of its own.
 4. Turn on **Rebuild on save**, open the project in Xcode, change `speed`'s default or add an
@@ -102,16 +107,17 @@ no separate target, and `SamplePlugin` is an ordinary package dependency. `GameS
 the components at startup and the console says which ones it found:
 
 ```text
-[ComponentKit] Code component types in the app: Bobber, GameRules, SpawnPoint, Spinner, TorusShape
-[ComponentKit] Entity templates in the app: GameRulesEntity, SpawnPointEntity, TorusEntity
+[ComponentKit] Component plugins in the app: Bobber, PathFollower, Spinner
+[ComponentKit] Entity plugins in the app: GameRulesEntity, SpawnPointEntity, SplinePathEntity, TorusEntity
 [Sample] Red team spawns at [SIMD3<Float>(-2.0, 0.0, 1.0)]
 ```
 
 This sample has no saved scene, so `GameScene.createSampleScene()` builds a cube in code and
-attaches the components with `CodeComponentSystem.shared.add(_:to:)`, the same call the
-Inspector makes. It then creates one of each entity kind through
-`EntityTemplateRegistry.shared.instantiate(_:at:)`, the same call the shelves make: a ring
-around the cube, a red spawn point that draws nothing, and the rules.
+attaches the components with `ScenePluginSystem.shared.add(_:to:)`, the same call the
+Inspector makes. It then creates one of each kind of entity through
+`EntityPluginRegistry.shared.instantiate(_:at:entityName:)`, the same call the shelves make: a
+ring around the cube, a spline with a ball travelling along it (the tube is there, the control
+points are not), a red spawn point that draws nothing, and the rules.
 
 ## Notes
 
@@ -122,8 +128,9 @@ around the cube, a red spawn point that draws nothing, and the rules.
   must not use types from the game target, because the editor compiles the folder on its own.
 - A plugin's editor sources are compiled only by the editor. Keep them out of the plugin's
   `Package.swift`, as here.
-- The plugin's runtime defines a component, so its `Package.swift` depends on the engine: by
-  path here, by the same URL as the game's pin in a real plugin. A plugin with no engine types
-  in its runtime needs no such dependency.
-- Selecting an icon entity is done in the hierarchy, as with lights: viewport picking works on
-  meshes.
+- The plugin's runtime defines entity and component plugins, so its `Package.swift` depends on
+  the engine: by path here, by the same URL as the game's pin in a real plugin. A plugin with
+  no engine types in its runtime needs no such dependency.
+- An entity that is only an editor representation is selected in the hierarchy, as lights are:
+  viewport picking works on meshes. Control points are shown, not yet draggable; they are
+  edited in the Inspector.
