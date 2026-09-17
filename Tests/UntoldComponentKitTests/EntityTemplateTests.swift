@@ -48,7 +48,7 @@ final class EntityTemplateTests: XCTestCase {
         let imagePath = try XCTUnwrap(ImageDiscovery.imagePath(containing: MarkerEntityTemplate.self))
         let names = EntityTemplateRegistry.shared.discover(imagePath: imagePath, revision: 2)
 
-        XCTAssertEqual(names, ["MarkerEntityTemplate", "RulesTemplate"])
+        XCTAssertEqual(names, ["MarkerEntityTemplate", "RingEntity", "RulesTemplate"])
         XCTAssertEqual(EntityTemplateRegistry.shared.entries.first { $0.name == "RulesTemplate" }?.revision, 2)
         XCTAssertTrue(EntityTemplateRegistry.shared.discover(imagePath: "/nonexistent/image.dylib").isEmpty)
     }
@@ -76,6 +76,34 @@ final class EntityTemplateTests: XCTestCase {
         marker.team = 2
         XCTAssertEqual(marker.editorRepresentation, .icon(systemImage: "flag.fill", tint: SIMD3<Float>(0.9, 0.3, 0.3)), "it follows the component's values")
         XCTAssertEqual(EditorRepresentation.icon(systemImage: "flag"), .icon(systemImage: "flag", tint: SIMD3<Float>(1, 1, 1)))
+    }
+
+    func testAComponentCanBelongToItsKindOfEntityOnly() throws {
+        XCTAssertEqual(SpinnerComponent.attachment, .anyEntity, "the default: any entity can have it")
+        XCTAssertEqual(RingShapeComponent.attachment, .entityKindOnly)
+
+        CodeComponentRegistry.shared.register(SpinnerComponent.self)
+        CodeComponentRegistry.shared.register(RingShapeComponent.self)
+        XCTAssertEqual(CodeComponentRegistry.shared.entries.map(\.name), ["RingShapeComponent", "SpinnerComponent"])
+        XCTAssertEqual(
+            CodeComponentRegistry.shared.attachableEntries.map(\.name), ["SpinnerComponent"],
+            "what an editor may offer for any entity leaves the kind's own parts out"
+        )
+
+        // Code is not restricted: that is how the template adds it, and how a scene gets it back.
+        EntityTemplateRegistry.shared.register(RingEntity.self)
+        let ring = try XCTUnwrap(EntityTemplateRegistry.shared.instantiate("RingEntity", entityName: "Ring"))
+        let shape = try XCTUnwrap(CodeComponentRegistry.component(RingShapeComponent.self, on: ring))
+        XCTAssertEqual(shape.radius, 2)
+        XCTAssertFalse(shape.ownsGeneratedMesh, "only setGeneratedMesh claims the entity's mesh")
+
+        let saved = serializeScene()
+        resetKitTestState()
+        CodeComponentRegistry.shared.register(RingShapeComponent.self)
+        deserializeScene(sceneData: saved)
+        CodeComponentSystem.shared.bindPending()
+        let restored = try XCTUnwrap(findEntity(name: "Ring"))
+        XCTAssertEqual(CodeComponentRegistry.component(RingShapeComponent.self, on: restored)?.radius, 2)
     }
 
     func testAnEntityMadeFromATemplateSurvivesASceneRoundTrip() throws {

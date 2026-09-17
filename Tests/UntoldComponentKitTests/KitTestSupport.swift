@@ -169,6 +169,25 @@ final class MarkerEntityTemplate: EntityTemplate {
     }
 }
 
+/// Part of a kind of entity: the editor must not offer it for any other.
+final class RingShapeComponent: CodeComponent {
+    @UntoldAttribute var radius: Float = 1
+
+    override class var attachment: ComponentAttachment {
+        .entityKindOnly
+    }
+}
+
+final class RingEntity: EntityTemplate {
+    override class var shelf: UntoldEntityShelf {
+        .primitives
+    }
+
+    override func build(_ entity: EntityID) {
+        add(RingShapeComponent.self, to: entity)?.radius = 2
+    }
+}
+
 /// No representation at all, on the lights shelf to exercise shelf filtering.
 final class RulesTemplate: EntityTemplate {
     override class var displayName: String {

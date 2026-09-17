@@ -43,5 +43,6 @@ public extension CodeComponent {
             }
         }
         setEntityMeshDirect(entityId: entity, meshes: meshes, assetName: name)
+        ownsGeneratedMesh = true
     }
 }

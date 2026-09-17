@@ -45,12 +45,16 @@ final class LibraryLoadingIntegrationTests: XCTestCase {
         XCTAssertNotNil(dlopen(first.path, RTLD_NOW | RTLD_LOCAL), "dlopen failed: \(Self.lastLoaderError())")
 
         let discovered = CodeComponentRegistry.shared.discover(imagePath: first.path, revision: 1, policy: .replace)
-        XCTAssertEqual(discovered.registered, ["LoadedSpinner"])
+        XCTAssertEqual(discovered.registered, ["LoadedShape", "LoadedSpinner"])
+        XCTAssertEqual(
+            CodeComponentRegistry.shared.attachableEntries.map(\.name), ["LoadedSpinner"],
+            "a loaded type's attachment override is read across the image boundary"
+        )
         XCTAssertEqual(EditorExtensionRegistry.shared.discover(imagePath: first.path, revision: 1, replaceExisting: true), ["LoadedExtension"])
         XCTAssertEqual(EntityTemplateRegistry.shared.discover(imagePath: first.path, revision: 1, replaceExisting: true), ["LoadedMarkerEntity"])
         XCTAssertEqual(EntityTemplateRegistry.shared.entries(on: .primitives).map(\.type.displayName), ["Loaded Marker"])
         let fromTemplate = try XCTUnwrap(EntityTemplateRegistry.shared.instantiate("LoadedMarkerEntity"))
-        XCTAssertEqual(CodeComponentSystem.shared.slots(on: fromTemplate).map(\.typeName), ["LoadedSpinner"], "a loaded template builds with loaded components")
+        XCTAssertEqual(CodeComponentSystem.shared.slots(on: fromTemplate).map(\.typeName), ["LoadedShape"], "a loaded template builds with loaded components")
         destroyEntity(entityId: fromTemplate)
         finalizePendingDestroys()
 
@@ -122,11 +126,15 @@ final class LibraryLoadingIntegrationTests: XCTestCase {
         @UntoldMenu(.debug, "Loaded/Toggle") var toggle = true
     }
 
+    final class LoadedShape: CodeComponent {
+        override class var attachment: ComponentAttachment { .entityKindOnly }
+    }
+
     final class LoadedMarkerEntity: EntityTemplate {
         override class var shelf: UntoldEntityShelf { .primitives }
 
         override func build(_ entity: EntityID) {
-            add(LoadedSpinner.self, to: entity)
+            add(LoadedShape.self, to: entity)
         }
     }
     """
