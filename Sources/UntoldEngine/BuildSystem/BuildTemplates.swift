@@ -43,13 +43,14 @@ import Foundation
             ],
             dependencies: [
                 // UntoldEngine from GitHub
-                .package(url: "https://github.com/untoldengine/UntoldEngine.git", branch: "develop")
+                {{ENGINE_PACKAGE_DEPENDENCY}}
             ],
             targets: [
                 .executableTarget(
                     name: "{{PROJECT_NAME}}",
                     dependencies: [
                         .product(name: "UntoldEngine", package: "UntoldEngine"),
+                        {{CODE_COMPONENTS_PACKAGE_DEPENDENCIES}}
                         .product(name: "UntoldEngineShaderSupport", package: "UntoldEngine")
                     ],
                     resources: [
@@ -59,6 +60,7 @@ import Foundation
                         .swiftLanguageMode(.v5)
                     ]
                 ),
+                {{CODE_COMPONENTS_PACKAGE_TARGET}}
             ]
         )
         """
@@ -107,6 +109,7 @@ import Foundation
         import Foundation
         import simd
         import UntoldEngine
+        {{CODE_COMPONENTS_IMPORT}}
 
         // GameScene: Initialize your game and write game-specific logic
         class GameScene {
@@ -132,6 +135,7 @@ import Foundation
             /// Configure game Systems for play mode
             private func configureEngineSystems() {
                 gameMode = true
+                {{CODE_COMPONENTS_SETUP}}
                 AnimationSystem.shared.isEnabled = true
                 InputSystem.shared.registerKeyboardEvents()
                 InputSystem.shared.registerMouseEvents()
@@ -585,6 +589,7 @@ import Foundation
         import Foundation
         import simd
         import UntoldEngine
+        {{CODE_COMPONENTS_IMPORT}}
 
         // GameScene: Initialize your game and write game-specific logic
         class GameScene {
@@ -607,6 +612,7 @@ import Foundation
             /// Configure game Systems for play mode
             private func configureEngineSystems() {
                 gameMode = true
+                {{CODE_COMPONENTS_SETUP}}
                 AnimationSystem.shared.isEnabled = true
             }
 
@@ -724,6 +730,7 @@ import Foundation
         import Foundation
         import simd
         import UntoldEngine
+        {{CODE_COMPONENTS_IMPORT}}
 
         // GameScene: Initialize your game and write game-specific logic
         class GameScene {
@@ -747,6 +754,7 @@ import Foundation
             /// Configure game Systems for play mode
             private func configureEngineSystems() {
                 gameMode = true
+                {{CODE_COMPONENTS_SETUP}}
                 AnimationSystem.shared.isEnabled = true
             }
 
@@ -1045,6 +1053,7 @@ import Foundation
         import Foundation
         import simd
         import UntoldEngine
+        {{CODE_COMPONENTS_IMPORT}}
 
         // GameScene: Initialize your game and write game-specific logic
         class GameScene {
@@ -1071,6 +1080,7 @@ import Foundation
             /// Configure game Systems for play mode
             private func configureEngineSystems() {
                 gameMode = true
+                {{CODE_COMPONENTS_SETUP}}
                 AnimationSystem.shared.isEnabled = true
                 InputSystem.shared.registerXREvents()
                 InputSystem.shared.setXRSpatialPickingBackendPreference(.octreeGPUPreferred)
@@ -1819,6 +1829,86 @@ import Foundation
                 // Multi-platform projects use the dedicated multi-platform templates
                 return getTemplateFilesForMultiPlatform()
             }
+        }
+
+        // MARK: - Code Components
+
+        static let starterComponentPath = "Sources/{{PROJECT_NAME}}Components/Spinner.swift"
+
+        static let starterComponentSwift = """
+        import simd
+        import UntoldComponentKit
+        import UntoldEngine
+
+        /// Spins its entity while the scene is playing.
+        ///
+        /// Add it to an entity from the editor's Inspector and press Play. Change `speed` here
+        /// and save: with "Rebuild on save" on, the editor picks the change up without restarting.
+        final class Spinner: CodeComponent {
+            @UntoldAttribute("Degrees per second", range: -360 ... 360) var speed: Float = 90
+            @UntoldAttribute var axis: SIMD3<Float> = [0, 1, 0]
+
+            override func onUpdate(deltaTime: Float) {
+                guard simd_length(axis) > 0 else { return }
+                rotateBy(entityId: entity, angle: speed * deltaTime, axis: simd_normalize(axis))
+            }
+        }
+
+        """
+
+        /// What each whole-line placeholder becomes when a project includes code components.
+        /// Without them the line is removed, so a project that does not ask for the kit is
+        /// generated exactly as before.
+        private static let codeComponentBlocks: [String: [String]] = [
+            "{{CODE_COMPONENTS_IMPORT}}": [
+                "import UntoldComponentKit",
+            ],
+            "{{CODE_COMPONENTS_SETUP}}": [
+                "// Code components: register the types linked into this app, then start them.",
+                "// Scenes loaded afterwards bind their saved components to these types.",
+                "CodeComponentRegistry.shared.discoverInMainExecutable()",
+                "CodeComponentSystem.install()",
+                "CodeComponentSystem.shared.startPlayMode()",
+            ],
+            "{{CODE_COMPONENTS_PACKAGE_DEPENDENCIES}}": [
+                ".product(name: \"UntoldComponentKit\", package: \"UntoldEngine\"),",
+                "\"{{PROJECT_NAME}}Components\",",
+            ],
+            "{{CODE_COMPONENTS_PACKAGE_TARGET}}": [
+                ".target(",
+                "    name: \"{{PROJECT_NAME}}Components\",",
+                "    dependencies: [",
+                "        .product(name: \"UntoldEngine\", package: \"UntoldEngine\"),",
+                "        .product(name: \"UntoldComponentKit\", package: \"UntoldEngine\"),",
+                "    ],",
+                "    swiftSettings: [",
+                "        .swiftLanguageMode(.v5)",
+                "    ]",
+                "),",
+            ],
+        ]
+
+        /// Expands the engine package reference everywhere, and the code component placeholders
+        /// line by line, keeping each placeholder's indentation. Runs before the generic
+        /// `{{PROJECT_NAME}}` pass, so the blocks may use it.
+        static func expandingCodeComponentPlaceholders(in content: String, settings: BuildSettings) -> String {
+            let withEngine = content.replacingOccurrences(
+                of: "{{ENGINE_PACKAGE_DEPENDENCY}}",
+                with: settings.resolvedEnginePackage.swiftPackageDependency
+            )
+            guard withEngine.contains("{{CODE_COMPONENTS_") else { return withEngine }
+
+            var output: [String] = []
+            for line in withEngine.components(separatedBy: "\n") {
+                guard let block = codeComponentBlocks[line.trimmingCharacters(in: .whitespaces)] else {
+                    output.append(line)
+                    continue
+                }
+                guard settings.includesCodeComponents else { continue }
+                let indent = String(line.prefix(while: { $0 == " " || $0 == "\t" }))
+                output.append(contentsOf: block.map { indent + $0 })
+            }
+            return output.joined(separator: "\n")
         }
 
         /// Get template files for iOS AR specifically

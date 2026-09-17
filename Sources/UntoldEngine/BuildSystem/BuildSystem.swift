@@ -90,6 +90,51 @@ import Foundation
         case size = "-Osize"
     }
 
+    // MARK: - Engine Package Reference
+
+    /// Which UntoldEngine package a generated project depends on. The default is what projects
+    /// have always used. An editor that compiles a project's code components against its own
+    /// engine passes that engine here, so Xcode and the editor build the same sources against
+    /// the same API.
+    public struct EnginePackageReference: Codable, Equatable, Sendable {
+        public enum Requirement: Codable, Equatable, Sendable {
+            case branch(String)
+            case revision(String)
+            case exactVersion(String)
+        }
+
+        public var url: String
+        public var requirement: Requirement
+
+        public init(url: String, requirement: Requirement) {
+            self.url = url
+            self.requirement = requirement
+        }
+
+        public static let upstreamDevelop = EnginePackageReference(
+            url: "https://github.com/untoldengine/UntoldEngine.git",
+            requirement: .branch("develop")
+        )
+
+        /// The `key: value` line of an XcodeGen `packages:` entry.
+        var xcodeGenRequirement: String {
+            switch requirement {
+            case let .branch(name): return "branch: \(name)"
+            case let .revision(hash): return "revision: \(hash)"
+            case let .exactVersion(version): return "exactVersion: \(version)"
+            }
+        }
+
+        /// The arguments of a SwiftPM `.package(url:…)` call.
+        var swiftPackageDependency: String {
+            switch requirement {
+            case let .branch(name): return ".package(url: \"\(url)\", branch: \"\(name)\")"
+            case let .revision(hash): return ".package(url: \"\(url)\", revision: \"\(hash)\")"
+            case let .exactVersion(version): return ".package(url: \"\(url)\", exact: \"\(version)\")"
+            }
+        }
+    }
+
     // MARK: - Build Settings
 
     public struct BuildSettings: Codable {
@@ -102,6 +147,16 @@ import Foundation
         public var optimizationLevel: OptimizationLevel
         public var teamID: String? // For code signing
         public var isIOSAR: Bool // Use AR templates for iOS
+        /// The engine package the project depends on; `nil` keeps the long-standing default.
+        public var enginePackage: EnginePackageReference?
+        /// Link `UntoldComponentKit`, register code components at startup, and create
+        /// `Sources/<Project>Components` with a starter component. Needs an engine that ships
+        /// the kit, so it is off unless the caller asks.
+        public var includesCodeComponents: Bool
+
+        public var resolvedEnginePackage: EnginePackageReference {
+            enginePackage ?? .upstreamDevelop
+        }
 
         public init(
             projectName: String,
@@ -112,7 +167,9 @@ import Foundation
             includeDebugInfo: Bool = true,
             optimizationLevel: OptimizationLevel = .none,
             teamID: String? = nil,
-            isIOSAR: Bool = false
+            isIOSAR: Bool = false,
+            enginePackage: EnginePackageReference? = nil,
+            includesCodeComponents: Bool = false
         ) {
             self.projectName = projectName
             self.bundleIdentifier = bundleIdentifier
@@ -123,6 +180,8 @@ import Foundation
             self.optimizationLevel = optimizationLevel
             self.teamID = teamID
             self.isIOSAR = isIOSAR
+            self.enginePackage = enginePackage
+            self.includesCodeComponents = includesCodeComponents
         }
     }
 
@@ -357,7 +416,12 @@ import Foundation
                 templateFiles = BuildTemplates.getTemplateFiles(for: settings.target)
             }
 
-            for (relativePath, content) in templateFiles {
+            var filesToWrite = templateFiles
+            if settings.includesCodeComponents {
+                filesToWrite[BuildTemplates.starterComponentPath] = BuildTemplates.starterComponentSwift
+            }
+
+            for (relativePath, content) in filesToWrite {
                 // Replace {{PROJECT_NAME}} in paths
                 let processedPath = relativePath.replacingOccurrences(of: "{{PROJECT_NAME}}", with: settings.projectName)
                 let fileURL = projectDir.appendingPathComponent(processedPath)
@@ -379,7 +443,7 @@ import Foundation
 
             try createGameDataDirectories(at: gameDataDir)
 
-            Logger.log(message: "📄 Created \(templateFiles.count) files from embedded templates")
+            Logger.log(message: "📄 Created \(filesToWrite.count) files from embedded templates")
 
             // Validate iOS project output
             if case .iOS = settings.target {
@@ -442,14 +506,19 @@ import Foundation
             try yamlContent.write(to: yamlPath, atomically: true, encoding: .utf8)
             Logger.log(message: "📝 Generated project.yml")
 
-            // Call xcodegen command to generate .xcodeproj
-            let task = Process()
-            task.currentDirectoryURL = projectDir
+            try runXcodeGen(in: projectDir)
 
+            Logger.log(message: "⚙️ Project configured for \(settings.target.platformName)")
+        }
+
+        /// Runs `xcodegen generate` in `projectDir`, which holds a `project.yml`.
+        private func runXcodeGen(in projectDir: URL) throws {
             guard let xcodegenPath = Self.xcodeGenPath() else {
                 throw BuildError.projectGenerationFailed("xcodegen not found. Install with: brew install xcodegen")
             }
 
+            let task = Process()
+            task.currentDirectoryURL = projectDir
             task.executableURL = URL(fileURLWithPath: xcodegenPath)
             task.arguments = ["generate"]
 
@@ -473,8 +542,87 @@ import Foundation
             } catch {
                 throw BuildError.projectGenerationFailed("Failed to run xcodegen: \(error.localizedDescription)")
             }
+        }
 
-            Logger.log(message: "⚙️ Project configured for \(settings.target.platformName)")
+        // MARK: - Code Components
+
+        /// What `addCodeComponents(toProjectAt:projectName:)` did.
+        public struct CodeComponentsSetupResult {
+            public let componentsDirectory: URL
+            public let createdStarterComponent: Bool
+            public let updatedProjectSpec: Bool
+            public let regeneratedXcodeProject: Bool
+            /// What is left for the developer to do, in plain words.
+            public let notes: [String]
+        }
+
+        /// The starter component new components folders begin with.
+        public static var starterCodeComponentSource: String {
+            BuildTemplates.starterComponentSwift
+        }
+
+        /// Gives an existing project a components folder: creates `Sources/<Project>Components`
+        /// with a starter component when it holds no Swift file yet, adds the
+        /// `UntoldComponentKit` product (and, where needed, the folder) to `project.yml`, and
+        /// regenerates the Xcode project. Safe to call again.
+        ///
+        /// It does not edit the project's own sources: the registration calls the game needs
+        /// come back as a note, and so does a warning when the project pins an engine that may
+        /// not ship the kit.
+        @discardableResult
+        public func addCodeComponents(
+            toProjectAt projectRoot: URL,
+            projectName: String,
+            regenerateXcodeProject: Bool = true
+        ) throws -> CodeComponentsSetupResult {
+            let fileManager = FileManager.default
+            let componentsDirectory = projectRoot.appendingPathComponent("Sources/\(projectName)Components", isDirectory: true)
+            try fileManager.createDirectory(at: componentsDirectory, withIntermediateDirectories: true)
+
+            let existingSources = (try? fileManager.contentsOfDirectory(atPath: componentsDirectory.path))?
+                .filter { $0.hasSuffix(".swift") } ?? []
+            var createdStarter = false
+            if existingSources.isEmpty {
+                let starter = componentsDirectory.appendingPathComponent("Spinner.swift")
+                try BuildTemplates.starterComponentSwift.write(to: starter, atomically: true, encoding: .utf8)
+                createdStarter = true
+            }
+
+            var notes = [
+                "In GameScene, before loading scenes, call CodeComponentRegistry.shared.discoverInMainExecutable(), CodeComponentSystem.install() and CodeComponentSystem.shared.startPlayMode(), and import UntoldComponentKit.",
+            ]
+
+            var updatedSpec = false
+            var regenerated = false
+            let specURL = projectRoot.appendingPathComponent("project.yml")
+            if let yaml = try? String(contentsOf: specURL, encoding: .utf8) {
+                let updated = XcodeGenProjectSpec.addingCodeComponents(toYAML: yaml, projectName: projectName)
+                if updated != yaml {
+                    try updated.write(to: specURL, atomically: true, encoding: .utf8)
+                    updatedSpec = true
+                }
+                if yaml.contains("github.com/untoldengine/UntoldEngine") {
+                    notes.append("project.yml pins the upstream engine. UntoldComponentKit must exist in the engine the project pins; point the UntoldEngine package at an engine that ships it if the build cannot find the product.")
+                }
+                if regenerateXcodeProject, updatedSpec || createdStarter {
+                    if Self.xcodeGenPath() != nil {
+                        try runXcodeGen(in: projectRoot)
+                        regenerated = true
+                    } else {
+                        notes.append("xcodegen was not found, so the Xcode project was not regenerated. Install it with: brew install xcodegen, then run xcodegen generate in the project folder.")
+                    }
+                }
+            } else {
+                notes.append("No project.yml was found. Add the UntoldComponentKit product of the UntoldEngine package to the app target, and the components folder to its sources.")
+            }
+
+            return CodeComponentsSetupResult(
+                componentsDirectory: componentsDirectory,
+                createdStarterComponent: createdStarter,
+                updatedProjectSpec: updatedSpec,
+                regeneratedXcodeProject: regenerated,
+                notes: notes
+            )
         }
 
         // MARK: - Template Processing
@@ -534,6 +682,11 @@ import Foundation
                 }
 
                 var modified = false
+                let expanded = BuildTemplates.expandingCodeComponentPlaceholders(in: content, settings: settings)
+                if expanded != content {
+                    content = expanded
+                    modified = true
+                }
                 for (placeholder, value) in replacements {
                     if content.contains(placeholder) {
                         content = content.replacingOccurrences(of: placeholder, with: value)

@@ -16,6 +16,77 @@ import Foundation
 
     /// Generates XcodeGen project specification for game builds
     enum XcodeGenProjectSpec {
+        /// Adds code component support to an existing `project.yml`: the `UntoldComponentKit`
+        /// product on every target that already depends on the engine, and, where a target
+        /// lists `Sources/<Project>` explicitly, the components folder next to it. Targets that
+        /// compile all of `Sources` need no source entry. Idempotent; the engine package
+        /// reference is never touched, because which engine a project pins is its owner's call.
+        static func addingCodeComponents(toYAML yaml: String, projectName: String) -> String {
+            var output: [String] = []
+            let lines = yaml.components(separatedBy: "\n")
+            let projectSources = "- path: Sources/\(projectName)"
+            let componentSources = "- path: Sources/\(projectName)Components"
+
+            func indentation(of line: String) -> String {
+                String(line.prefix(while: { $0 == " " || $0 == "\t" }))
+            }
+
+            var blockIndent: Int?
+            var entryIndent = ""
+            var blockUsesEngine = false
+            var blockHasKit = false
+
+            func closeDependenciesBlock() {
+                if blockIndent != nil, blockUsesEngine, blockHasKit == false {
+                    // Insert after the block's last content line, before any blank lines.
+                    var insertAt = output.count
+                    while insertAt > 0, output[insertAt - 1].trimmingCharacters(in: .whitespaces).isEmpty {
+                        insertAt -= 1
+                    }
+                    output.insert(contentsOf: [
+                        "\(entryIndent)- package: UntoldEngine",
+                        "\(entryIndent)  product: UntoldComponentKit",
+                    ], at: insertAt)
+                }
+                blockIndent = nil
+                blockUsesEngine = false
+                blockHasKit = false
+            }
+
+            for (index, line) in lines.enumerated() {
+                let trimmed = line.trimmingCharacters(in: .whitespaces)
+                let indent = indentation(of: line).count
+
+                if let current = blockIndent, trimmed.isEmpty == false, indent <= current {
+                    closeDependenciesBlock()
+                }
+
+                if blockIndent != nil {
+                    if trimmed == "- package: UntoldEngine" {
+                        blockUsesEngine = true
+                        entryIndent = indentation(of: line)
+                    } else if trimmed == "product: UntoldComponentKit" {
+                        blockHasKit = true
+                    }
+                } else if trimmed == "dependencies:" {
+                    blockIndent = indent
+                }
+
+                output.append(line)
+
+                if trimmed == projectSources {
+                    let next = index + 1 < lines.count ? lines[index + 1].trimmingCharacters(in: .whitespaces) : ""
+                    if next != componentSources {
+                        let lead = indentation(of: line)
+                        output.append("\(lead)\(componentSources)")
+                        output.append("\(lead)  optional: true")
+                    }
+                }
+            }
+            closeDependenciesBlock()
+            return output.joined(separator: "\n")
+        }
+
         /// Generate project.yml YAML content from build settings
         static func generateYAML(settings: BuildSettings) throws -> String {
             let isMultiPlatform = settings.target.platforms.count > 1
@@ -97,29 +168,13 @@ import Foundation
             """
 
             // Packages section
-            let packagesSection: String
-            if case .visionOS = settings.target {
-                packagesSection = """
-                packages:
-                  UntoldEngine:
-                    url: https://github.com/untoldengine/UntoldEngine.git
-                    branch: develop
-                """
-            } else if settings.isIOSAR, case .iOS = settings.target {
-                packagesSection = """
-                packages:
-                  UntoldEngine:
-                    url: https://github.com/untoldengine/UntoldEngine.git
-                    branch: develop
-                """
-            } else {
-                packagesSection = """
-                packages:
-                  UntoldEngine:
-                    url: https://github.com/untoldengine/UntoldEngine.git
-                    branch: develop
-                """
-            }
+            let enginePackage = settings.resolvedEnginePackage
+            let packagesSection = """
+            packages:
+              UntoldEngine:
+                url: \(enginePackage.url)
+                \(enginePackage.xcodeGenRequirement)
+            """
 
             // Dependencies section
             let dependenciesSection: String
@@ -147,6 +202,24 @@ import Foundation
                 """
             }
 
+            // Code components: the kit is one more product of the same engine package.
+            let componentKitDependency = """
+
+                  - package: UntoldEngine
+                    product: UntoldComponentKit
+            """
+            let kitDependencyIfEnabled = settings.includesCodeComponents ? componentKitDependency : ""
+            let dependenciesWithKit = dependenciesSection + kitDependencyIfEnabled
+
+            // Single-platform projects compile everything under Sources, the components folder
+            // included. Multi-platform targets list their folders, so they need it spelled out;
+            // `optional` keeps generation working before the folder exists.
+            let componentSourcesIfEnabled = settings.includesCodeComponents ? """
+
+                  - path: Sources/\(settings.projectName)Components
+                    optional: true
+            """ : ""
+
             // Assemble final YAML based on multi-platform or single-platform
             let yaml: String
 
@@ -170,8 +243,8 @@ import Foundation
 
                 packages:
                   UntoldEngine:
-                    url: https://github.com/untoldengine/UntoldEngine.git
-                    branch: develop
+                    url: \(enginePackage.url)
+                    \(enginePackage.xcodeGenRequirement)
 
                 targets:
                   \(settings.projectName) macOS:
@@ -180,11 +253,11 @@ import Foundation
                     deploymentTarget: \(macOSVersion.rawValue)
                     sources:
                       - path: \(settings.projectName) macOS
-                      - path: Sources/\(settings.projectName)
+                      - path: Sources/\(settings.projectName)\(componentSourcesIfEnabled)
                       - path: Sources/\(settings.projectName)/GameData
                         type: folder
                         buildPhase: resources
-                \(dependenciesSection)
+                \(dependenciesWithKit)
                     settings:
                       base:
                         PRODUCT_BUNDLE_IDENTIFIER: \(settings.bundleIdentifier)
@@ -209,7 +282,7 @@ import Foundation
                     deploymentTarget: \(iOSVersion.rawValue)
                     sources:
                       - path: \(settings.projectName) iOS
-                      - path: Sources/\(settings.projectName)
+                      - path: Sources/\(settings.projectName)\(componentSourcesIfEnabled)
                       - path: Sources/\(settings.projectName)/GameData
                         type: folder
                         buildPhase: resources
@@ -217,7 +290,7 @@ import Foundation
                       - package: UntoldEngine
                         product: UntoldEngine
                       - package: UntoldEngine
-                        product: UntoldEngineShaderSupport
+                        product: UntoldEngineShaderSupport\(kitDependencyIfEnabled)
                     settings:
                       base:
                         PRODUCT_BUNDLE_IDENTIFIER: \(settings.bundleIdentifier)
@@ -243,13 +316,13 @@ import Foundation
                     deploymentTarget: \(iOSVersion.rawValue)
                     sources:
                       - path: \(settings.projectName) iOS AR
-                      - path: Sources/\(settings.projectName)
+                      - path: Sources/\(settings.projectName)\(componentSourcesIfEnabled)
                       - path: Sources/\(settings.projectName)/GameData
                         type: folder
                         buildPhase: resources
                     dependencies:
                       - package: UntoldEngine
-                        product: UntoldEngineAR
+                        product: UntoldEngineAR\(kitDependencyIfEnabled)
                     settings:
                       base:
                         PRODUCT_BUNDLE_IDENTIFIER: \(settings.bundleIdentifier).ar
@@ -273,7 +346,7 @@ import Foundation
                     deploymentTarget: \(visionOSVersion.rawValue)
                     sources:
                       - path: \(settings.projectName) visionOS
-                      - path: Sources/\(settings.projectName)
+                      - path: Sources/\(settings.projectName)\(componentSourcesIfEnabled)
                       - path: Sources/\(settings.projectName)/GameData
                         type: folder
                         buildPhase: resources
@@ -281,7 +354,7 @@ import Foundation
                       - package: UntoldEngine
                         product: UntoldEngineXR
                       - package: UntoldEngine
-                        product: UntoldEngineAR
+                        product: UntoldEngineAR\(kitDependencyIfEnabled)
                     settings:
                       base:
                         PRODUCT_BUNDLE_IDENTIFIER: \(settings.bundleIdentifier)
@@ -312,7 +385,7 @@ import Foundation
                     platform: \(platformName)
                     deploymentTarget: \(deploymentTarget)
                 \(sourcesSection)
-                \(dependenciesSection)
+                \(dependenciesWithKit)
                     settings:
                       base:
                 \(indent(baseSettings, by: 16))
