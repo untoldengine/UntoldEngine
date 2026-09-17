@@ -74,6 +74,13 @@ open class CodeComponent {
         []
     }
 
+    /// What the editor draws for an entity carrying this component when it has no shape of its
+    /// own. Declared here, not on the template that created the entity, because the component
+    /// is what is still there after the scene is saved, loaded, or the library reloaded.
+    open class var editorRepresentation: EditorRepresentation {
+        .none
+    }
+
     // MARK: Lifecycle
 
     /// The instance was bound to `entity`, in edit mode or in play.

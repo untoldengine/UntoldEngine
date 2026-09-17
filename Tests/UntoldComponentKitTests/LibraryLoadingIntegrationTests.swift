@@ -47,6 +47,12 @@ final class LibraryLoadingIntegrationTests: XCTestCase {
         let discovered = CodeComponentRegistry.shared.discover(imagePath: first.path, revision: 1, policy: .replace)
         XCTAssertEqual(discovered.registered, ["LoadedSpinner"])
         XCTAssertEqual(EditorExtensionRegistry.shared.discover(imagePath: first.path, revision: 1, replaceExisting: true), ["LoadedExtension"])
+        XCTAssertEqual(EntityTemplateRegistry.shared.discover(imagePath: first.path, revision: 1, replaceExisting: true), ["LoadedMarkerEntity"])
+        XCTAssertEqual(EntityTemplateRegistry.shared.entries(on: .primitives).map(\.type.displayName), ["Loaded Marker"])
+        let fromTemplate = try XCTUnwrap(EntityTemplateRegistry.shared.instantiate("LoadedMarkerEntity"))
+        XCTAssertEqual(CodeComponentSystem.shared.slots(on: fromTemplate).map(\.typeName), ["LoadedSpinner"], "a loaded template builds with loaded components")
+        destroyEntity(entityId: fromTemplate)
+        finalizePendingDestroys()
 
         let entity = createEntity()
         let spinner = try XCTUnwrap(CodeComponentSystem.shared.add("LoadedSpinner", to: entity))
@@ -114,6 +120,14 @@ final class LibraryLoadingIntegrationTests: XCTestCase {
 
     final class LoadedExtension: EditorExtension {
         @UntoldMenu(.debug, "Loaded/Toggle") var toggle = true
+    }
+
+    final class LoadedMarkerEntity: EntityTemplate {
+        override class var shelf: UntoldEntityShelf { .primitives }
+
+        override func build(_ entity: EntityID) {
+            add(LoadedSpinner.self, to: entity)
+        }
     }
     """
 

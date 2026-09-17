@@ -146,7 +146,7 @@ public final class CodeComponentRegistry: @unchecked Sendable {
         return report
     }
 
-    /// Registers the component types that are part of the app: those in its main executable,
+    /// Registers the component types, and the entity templates, that are part of the app: those in its main executable,
     /// in the debug dylib Xcode splits an app's code into, and in frameworks embedded in its
     /// bundle. Call once at startup, before loading scenes.
     @discardableResult
@@ -158,6 +158,10 @@ public final class CodeComponentRegistry: @unchecked Sendable {
             report.replaced += found.replaced
             report.rejected += found.rejected
         }
+        var templates: [String] = []
+        for path in ImageDiscovery.appImagePaths() {
+            templates += EntityTemplateRegistry.shared.discover(imagePath: path)
+        }
         let names = report.registered + report.replaced
         Logger.log(
             message: names.isEmpty
@@ -165,6 +169,12 @@ public final class CodeComponentRegistry: @unchecked Sendable {
                 : "[ComponentKit] Code component types in the app: \(names.joined(separator: ", "))",
             category: LogCategory.ecs.rawValue
         )
+        if templates.isEmpty == false {
+            Logger.log(
+                message: "[ComponentKit] Entity templates in the app: \(templates.joined(separator: ", "))",
+                category: LogCategory.ecs.rawValue
+            )
+        }
         return report
     }
 

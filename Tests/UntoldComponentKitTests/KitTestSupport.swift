@@ -27,6 +27,7 @@ import XCTest
     OctreeSystem.shared.clear()
     CodeComponentRegistry.shared.removeAll()
     EditorExtensionRegistry.shared.removeAll()
+    EntityTemplateRegistry.shared.removeAll()
     CodeComponentSystem.install()
 }
 
@@ -145,4 +146,40 @@ final class BrokenExtension: EditorExtension {
     @UntoldMenu(.debug, " / ") var untitled = false
     @UntoldMenu(.debug, "Splat Twin/Same") var first = false
     @UntoldMenu(.debug, "Splat Twin / Same") var second = false
+}
+
+// MARK: - Entity template doubles
+
+/// Editor-only representation: an icon in the viewport, nothing in a game.
+final class MarkerComponent: CodeComponent {
+    @UntoldAttribute var team: Int = 1
+
+    override class var editorRepresentation: EditorRepresentation {
+        .icon(systemImage: "flag.fill", tint: SIMD3<Float>(0.2, 0.8, 0.4))
+    }
+}
+
+final class MarkerEntityTemplate: EntityTemplate {
+    override class var systemImage: String {
+        "flag"
+    }
+
+    override func build(_ entity: EntityID) {
+        add(MarkerComponent.self, to: entity)?.team = 7
+    }
+}
+
+/// No representation at all, on the lights shelf to exercise shelf filtering.
+final class RulesTemplate: EntityTemplate {
+    override class var displayName: String {
+        "Game Rules"
+    }
+
+    override class var shelf: UntoldEntityShelf {
+        .lights
+    }
+
+    override func build(_ entity: EntityID) {
+        add(SpinnerComponent.self, to: entity)
+    }
 }
