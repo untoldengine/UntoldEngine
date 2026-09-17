@@ -1866,7 +1866,7 @@ import Foundation
             "{{CODE_COMPONENTS_SETUP}}": [
                 "// Code components: register the types linked into this app, then start them.",
                 "// Scenes loaded afterwards bind their saved components to these types.",
-                "CodeComponentRegistry.shared.discoverInMainExecutable()",
+                "CodeComponentRegistry.shared.discoverInApp()",
                 "CodeComponentSystem.install()",
                 "CodeComponentSystem.shared.startPlayMode()",
             ],

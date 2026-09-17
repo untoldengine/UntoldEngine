@@ -59,3 +59,17 @@ final class DiscoveryTests: XCTestCase {
         XCTAssertEqual(EditorExtensionRegistry.shared.entries.first { $0.name == "SampleExtension" }?.revision, 2)
     }
 }
+
+extension DiscoveryTests {
+    func testAppImagesAlwaysIncludeTheMainExecutable() throws {
+        let executable = try XCTUnwrap(ImageDiscovery.mainExecutablePath())
+        XCTAssertTrue(ImageDiscovery.appImagePaths().contains(executable))
+    }
+
+    func testDiscoverInAppDoesNotPickUpImagesOutsideTheApp() {
+        // Under XCTest the "app" is the test runner, and these doubles live in the test bundle
+        // elsewhere on disk, so they must not be registered by the app-wide scan.
+        let report = CodeComponentRegistry.shared.discoverInApp()
+        XCTAssertFalse(report.registered.contains("SpinnerComponent"))
+    }
+}

@@ -146,11 +146,18 @@ public final class CodeComponentRegistry: @unchecked Sendable {
         return report
     }
 
-    /// Registers the component types linked into the app itself. Call once at startup.
+    /// Registers the component types that are part of the app: those in its main executable,
+    /// in the debug dylib Xcode splits an app's code into, and in frameworks embedded in its
+    /// bundle. Call once at startup, before loading scenes.
     @discardableResult
-    public func discoverInMainExecutable() -> DiscoveryReport {
-        guard let path = ImageDiscovery.mainExecutablePath() else { return DiscoveryReport() }
-        let report = discover(imagePath: path)
+    public func discoverInApp() -> DiscoveryReport {
+        var report = DiscoveryReport()
+        for path in ImageDiscovery.appImagePaths() {
+            let found = discover(imagePath: path)
+            report.registered += found.registered
+            report.replaced += found.replaced
+            report.rejected += found.rejected
+        }
         let names = report.registered + report.replaced
         Logger.log(
             message: names.isEmpty

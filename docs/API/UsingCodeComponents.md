@@ -101,16 +101,23 @@ script.callAction("PlayerController.Jump")
 Install the system and register the component types once at startup, before loading scenes.
 
 ```swift
-CodeComponentRegistry.shared.discoverInMainExecutable()
+CodeComponentRegistry.shared.discoverInApp()
 CodeComponentSystem.install()
 CodeComponentSystem.shared.startPlayMode()
 ```
 
-`discoverInMainExecutable()` asks the Objective-C runtime which `CodeComponent` subclasses
-the app binary defines, so there is no list to maintain. It keeps working for classes nothing
-references in an optimized, dead-stripped build. If your components live in a framework, use
-`discover(imageContaining: SomeComponent.self)`, or register types one by one with
-`register(_:)`.
+`discoverInApp()` asks the Objective-C runtime which `CodeComponent` subclasses the app
+defines, so there is no list to maintain. It covers the main executable, the debug dylib Xcode
+splits an app's code into, and frameworks embedded in the app bundle, and it keeps working for
+classes nothing references in an optimized, dead-stripped build. The console reports the types
+it found. For an image outside the bundle use `discover(imageContaining: SomeComponent.self)`,
+or register types one by one with `register(_:)`.
+
+Projects created from the editor already contain these calls, a `Sources/<Project>Components`
+folder with a starter component, and the `UntoldComponentKit` dependency. For an existing
+project, the editor's **Create component package** button (or
+`BuildSystem.shared.addCodeComponents(toProjectAt:projectName:)`) adds the folder and the
+dependency and regenerates the Xcode project; the three calls above are left for you to add.
 
 From code:
 
