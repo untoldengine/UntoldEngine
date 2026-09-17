@@ -9,9 +9,10 @@ import UntoldEngine
 //
 // A spline path is a cubic Bézier curve. In the game it is a thin tube, and things can travel
 // along it. In the editor it is the same tube plus what you need to shape it: the four control
-// points and the lines between them. Those are drawn only while editing, are never saved, and
-// do not exist in the game. Both come from the same four properties, so moving a control
-// point in the Inspector moves the dot and reshapes the tube together.
+// points, draggable with the move gizmo, and the lines between them. Those are drawn only
+// while editing, are never saved, and do not exist in the game. Both come from the same four
+// properties, so moving a control point, with the gizmo or in the Inspector, moves the dot
+// and reshapes the tube together.
 //
 // PathFollower, below, is the other half of the picture: a component. It has nothing to do
 // with splines in particular (any entity can follow a path), so it is attachable to any
@@ -54,13 +55,15 @@ public final class SplinePathEntity: EntityPlugin {
 
     // MARK: Editor representation: in the editor only
 
-    /// The control polygon, the two ends in one color and the two handles in another. The
-    /// editor asks every frame while editing, so it always matches the properties above.
+    /// The control polygon, and the four control points as handles: click one in the editor
+    /// and the move gizmo sits on it; drag an axis and the property changes, so the tube and
+    /// the polygon follow. The ends are one color, the two handles another. The editor asks
+    /// every frame while editing, so it always matches the properties above.
     override public var editorRepresentation: EditorRepresentation {
         EditorRepresentation([
             .polyline([start, startHandle, endHandle, end], closed: false),
-            .points([start, end], tint: SIMD3<Float>(1.0, 0.75, 0.2)),
-            .points([startHandle, endHandle], tint: SIMD3<Float>(0.35, 0.8, 1.0)),
+            .handles(properties: ["start", "end"], tint: SIMD3<Float>(1.0, 0.75, 0.2)),
+            .handles(properties: ["startHandle", "endHandle"], tint: SIMD3<Float>(0.35, 0.8, 1.0)),
         ])
     }
 

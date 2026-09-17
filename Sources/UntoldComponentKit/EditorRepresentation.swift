@@ -25,6 +25,11 @@ public struct EditorRepresentation: Equatable, Sendable {
         case points([SIMD3<Float>], tint: SIMD3<Float>)
         /// A line through the positions, drawn over everything. `closed` joins the last to the first.
         case polyline([SIMD3<Float>], closed: Bool)
+        /// Draggable points: one for each `SIMD3<Float>` property named, drawn like `.points`.
+        /// Clicking one in the editor puts the move gizmo on it, and dragging the gizmo writes
+        /// the property, the way an Inspector edit does, so `onEditorChanged` follows and the
+        /// change can be undone. A name that is not a `SIMD3<Float>` property is skipped.
+        case handles(properties: [String], tint: SIMD3<Float>)
     }
 
     public var items: [Item]
