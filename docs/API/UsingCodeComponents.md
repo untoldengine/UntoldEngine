@@ -223,6 +223,30 @@ component rebuilds the mesh in `onAttach`, which runs when the scene is loaded, 
 and in the game. `setGeneratedMesh` keeps the material of the mesh it replaces, so material
 edits made in the editor survive a rebuild and a reload.
 
+**Components that belong to their kind.** A torus's shape means nothing on a cube, so it
+should not be on offer for one. A component says it is part of a kind of entity, and not a
+thing to attach anywhere:
+
+```swift
+public final class TorusShape: CodeComponent {
+    override public class var attachment: ComponentAttachment { .entityKindOnly }
+    // ...
+}
+```
+
+| `attachment` | Add Component menu | Remove button | How it gets onto an entity |
+| --- | --- | --- | --- |
+| `.anyEntity` (default) | listed | yes | the menu, a template, or code |
+| `.entityKindOnly` | never listed | no: a lock, and it goes when the entity is deleted | the kind's template, or code |
+
+The block is about what the editor offers people. Code is not restricted:
+`CodeComponentSystem.shared.add` works for every type, which is how the template adds the
+component and how a saved scene gets it back. `CodeComponentRegistry.shared.attachableEntries`
+is the list an editor may offer. A component that built its entity's mesh with
+`setGeneratedMesh` also owns it (`ownsGeneratedMesh`), and the editor does not remove that
+mesh on its own. Keep the default for anything that makes sense elsewhere: a spawn point is a
+fair thing to add to any entity.
+
 A game can use templates too. `discoverInApp()` registers them along with the components:
 
 ```swift
