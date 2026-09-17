@@ -70,8 +70,11 @@ final class EntityTemplateTests: XCTestCase {
     }
 
     func testTheEditorRepresentationBelongsToTheComponent() {
-        XCTAssertEqual(SpinnerComponent.editorRepresentation, .none)
-        XCTAssertEqual(MarkerComponent.editorRepresentation, .icon(systemImage: "flag.fill", tint: SIMD3<Float>(0.2, 0.8, 0.4)))
+        XCTAssertEqual(SpinnerComponent().editorRepresentation, .none)
+        let marker = MarkerComponent()
+        XCTAssertEqual(marker.editorRepresentation, .icon(systemImage: "flag.fill", tint: SIMD3<Float>(0.2, 0.8, 0.4)))
+        marker.team = 2
+        XCTAssertEqual(marker.editorRepresentation, .icon(systemImage: "flag.fill", tint: SIMD3<Float>(0.9, 0.3, 0.3)), "it follows the component's values")
         XCTAssertEqual(EditorRepresentation.icon(systemImage: "flag"), .icon(systemImage: "flag", tint: SIMD3<Float>(1, 1, 1)))
     }
 
@@ -90,6 +93,6 @@ final class EntityTemplateTests: XCTestCase {
         let restored = try XCTUnwrap(findEntity(name: "Spawn A"))
         let restoredMarker = try XCTUnwrap(CodeComponentSystem.shared.component(named: "MarkerComponent", on: restored) as? MarkerComponent)
         XCTAssertEqual(restoredMarker.team, 3, "the template is gone after creation; the component carries the entity")
-        XCTAssertEqual(type(of: restoredMarker).editorRepresentation, MarkerComponent.editorRepresentation)
+        XCTAssertEqual(restoredMarker.editorRepresentation, .icon(systemImage: "flag.fill", tint: SIMD3<Float>(0.9, 0.3, 0.3)))
     }
 }
