@@ -1,0 +1,48 @@
+name: SampleProject
+
+# Both packages are referenced by path, so the sample always builds against the engine checkout
+# it sits in. A real project pins the engine by URL; the editor writes that for new projects.
+packages:
+  UntoldEngine:
+    path: ../../..
+  SamplePlugin:
+    path: ../SamplePlugin
+
+targets:
+  SampleProject:
+    type: application
+    platform: macOS
+    deploymentTarget: 15.0
+    sources:
+      # Everything under Sources is compiled into the app, the components folder included.
+      - path: Sources
+        excludes:
+          - "SampleProject/GameData"
+      - path: Sources/SampleProject/GameData
+        type: folder
+        buildPhase: resources
+    dependencies:
+      - package: UntoldEngine
+        product: UntoldEngine
+      - package: UntoldEngine
+        product: UntoldEngineShaderSupport
+      - package: UntoldEngine
+        product: UntoldComponentKit
+      - package: SamplePlugin
+        product: SamplePlugin
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.untoldengine.samples.codecomponents
+        SWIFT_VERSION: 5.0
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        INFOPLIST_FILE: Sources/SampleProject/Info.plist
+        MTL_HEADER_SEARCH_PATHS: "$(inherited) $(SRCROOT)/../../../Sources/UntoldEngineShaderSupport/include"
+      configs:
+        Debug:
+          SWIFT_OPTIMIZATION_LEVEL: -Onone
+          DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
+        Release:
+          SWIFT_COMPILATION_MODE: wholemodule
+          SWIFT_OPTIMIZATION_LEVEL: -O
+          DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
