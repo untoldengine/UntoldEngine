@@ -61,18 +61,18 @@ public protocol UntoldMenuTitled {
 ///     @UntoldMenu(.debug, "Splat Twin/Reset Link Adoption")
 ///     var resetAdoption = UntoldMenuAction { GaussianTwinSystem.shared.resetSceneLinkAdoption() }
 public struct UntoldMenuAction {
-    private let body: (EditorExtension) -> Void
+    private let body: (EditorMenuPlugin) -> Void
 
     public init(_ body: @escaping () -> Void) {
         self.body = { _ in body() }
     }
 
     /// For commands that need the extension that declared them.
-    public init(_ body: @escaping (EditorExtension) -> Void) {
+    public init(_ body: @escaping (EditorMenuPlugin) -> Void) {
         self.body = body
     }
 
-    public func perform(owner: EditorExtension) {
+    public func perform(owner: EditorMenuPlugin) {
         body(owner)
     }
 }
@@ -93,7 +93,7 @@ public protocol AnyUntoldMenu: AnyObject {
     /// Evaluated when the menu opens.
     var isEnabled: Bool { get }
     /// Runs an action item; a no-op for toggles and choices.
-    func perform(owner: EditorExtension)
+    func perform(owner: EditorMenuPlugin)
 }
 
 public extension AnyUntoldMenu {
@@ -118,7 +118,7 @@ public extension AnyUntoldMenu {
     }
 }
 
-/// Declares an editor menu item on an `EditorExtension`.
+/// Declares an editor menu item on an `EditorMenuPlugin`.
 ///
 /// The first argument is the root menu, from a closed set. The second is the item title,
 /// optionally preceded by submenu names separated by `/`. It never names a root.
@@ -143,7 +143,7 @@ public final class UntoldMenu<Value>: AnyUntoldMenu {
     private let enabled: (() -> Bool)?
     private let read: (Value) -> UntoldMenuValue?
     private let write: (UntoldMenuValue) -> Value?
-    private let run: (Value, EditorExtension) -> Void
+    private let run: (Value, EditorMenuPlugin) -> Void
 
     private init(
         value: Value,
@@ -156,7 +156,7 @@ public final class UntoldMenu<Value>: AnyUntoldMenu {
         kind: UntoldMenuKind,
         read: @escaping (Value) -> UntoldMenuValue?,
         write: @escaping (UntoldMenuValue) -> Value?,
-        run: @escaping (Value, EditorExtension) -> Void
+        run: @escaping (Value, EditorMenuPlugin) -> Void
     ) {
         wrappedValue = value
         self.domain = domain
@@ -186,7 +186,7 @@ public final class UntoldMenu<Value>: AnyUntoldMenu {
         enabled?() ?? true
     }
 
-    public func perform(owner: EditorExtension) {
+    public func perform(owner: EditorMenuPlugin) {
         run(wrappedValue, owner)
     }
 }

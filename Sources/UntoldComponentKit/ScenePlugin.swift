@@ -1,5 +1,5 @@
 //
-//  CodeComponent.swift
+//  ScenePlugin.swift
 //  UntoldComponentKit
 //
 // Copyright (C) Untold Engine Studios
@@ -23,7 +23,7 @@ public struct UntoldAttributeEntry {
     }
 }
 
-/// What happened when a saved payload was applied to a component.
+/// What happened when a saved payload was applied to a plugin.
 public struct UntoldAttributeApplyReport: Equatable, Sendable {
     /// Properties that took their value from the payload.
     public var applied: [String] = []
@@ -37,47 +37,31 @@ public struct UntoldAttributeApplyReport: Equatable, Sendable {
     public init() {}
 }
 
-/// How a component gets onto an entity in the editor.
+/// What `ComponentPlugin` and `EntityPlugin` have in common: an object bound to an entity,
+/// whose `@UntoldAttribute` properties the editor shows and the scene saves, and which the kit
+/// drives through the lifecycle below.
 ///
-/// This is about what the editor offers people, not about what code may do:
-/// `CodeComponentSystem.add` works for every type, which is how a template adds its parts and
-/// how a saved scene gets them back.
-public enum ComponentAttachment: Sendable {
-    /// Any entity can have it. The Inspector's Add Component menu lists it, and it can be
-    /// removed there.
-    case anyEntity
-    /// It is part of a kind of entity and means nothing anywhere else: the shape of a torus,
-    /// say. The `EntityTemplate` that makes the entity adds it. The editor never offers it for
-    /// another entity, and the entity keeps it until the entity itself is deleted.
-    case entityKindOnly
-}
-
-/// Base class for components written in code.
-///
-/// Subclass it (`final` recommended), mark what the editor should see with `@UntoldAttribute`,
-/// and override the lifecycle methods you need. The kit constructs every instance with
-/// `init()` and then applies the values saved in the scene, so subclasses give every stored
-/// property a default and declare no initializer parameters.
-open class CodeComponent {
+/// Do not subclass this directly. Subclass `ComponentPlugin` for something that can be added
+/// to any entity, or `EntityPlugin` for a kind of entity. The kit constructs every instance
+/// with `init()` and then applies the values saved in the scene, so subclasses give every
+/// stored property a default and declare no initializer parameters.
+open class ScenePlugin {
     // Every member below that subclasses cannot override is `final`, and that is load-bearing.
     // A subclass compiled into another image copies this class's dispatch table, entries for
     // internal members and internal setters included, and so needs their symbols. Release
     // builds hide internal symbols, so a library loaded by the editor would fail to resolve
     // them. `final` members have no table entry. create_app_bundle.sh checks this.
 
-    /// The entity this instance is attached to; `.invalid` until `onAttach()`.
+    /// The entity this instance is bound to; `.invalid` until `onAttach()`.
     public internal(set) final var entity: EntityID = .invalid
     /// `true` between `onAttach()` and `onDetach()`.
     public internal(set) final var isAttached: Bool = false
-    /// `true` once this component has given the entity a mesh with `setGeneratedMesh`. The
-    /// mesh is then the component's doing, so the editor does not let it be removed on its own.
-    public internal(set) final var ownsGeneratedMesh: Bool = false
     final var hasStarted: Bool = false
 
     public required init() {}
 
     /// The unqualified Swift type name. It is the identity saved in scenes and the key types
-    /// are re-bound under after a reload, so renaming a component orphans its saved data.
+    /// are re-bound under after a reload, so renaming a plugin orphans its saved data.
     public static var typeName: String {
         String(describing: self)
     }
@@ -88,22 +72,8 @@ open class CodeComponent {
     }
 
     /// Functions exposed as editor buttons and USC actions.
-    open class var actions: [ComponentAction] {
+    open class var actions: [PluginAction] {
         []
-    }
-
-    /// Whether the editor offers this component for any entity, or keeps it to the kind of
-    /// entity it is part of. See `ComponentAttachment`.
-    open class var attachment: ComponentAttachment {
-        .anyEntity
-    }
-
-    /// What the editor draws for the entity when it has no shape of its own. Declared on the
-    /// component, not on the template that created the entity, because the component is what
-    /// is still there after the scene is saved, loaded, or the library reloaded. Read every
-    /// frame while editing, so it can follow the component's values: a team's color, say.
-    open var editorRepresentation: EditorRepresentation {
-        .none
     }
 
     // MARK: Lifecycle
@@ -120,7 +90,7 @@ open class CodeComponent {
     open func onStop() {}
     /// The instance is leaving `entity`: removed, entity destroyed, or a reload is replacing it.
     open func onDetach() {}
-    /// The editor wrote `property` while not playing.
+    /// The editor wrote `property` while not playing. Rebuild what depends on it here.
     open func onEditorChanged(property _: String) {}
 
     // MARK: Conveniences

@@ -1,5 +1,5 @@
 //
-//  CodeComponentsComponent.swift
+//  ScenePluginsComponent.swift
 //  UntoldComponentKit
 //
 // Copyright (C) Untold Engine Studios
@@ -11,20 +11,21 @@
 import Foundation
 import UntoldEngine
 
-/// The single engine component behind every code component on an entity.
+/// The single engine component behind everything the kit puts on an entity: the plugin that
+/// makes the entity what it is, if any, and the component plugins it carries.
 ///
 /// Engine component IDs are keyed by the Swift type's identity, and a reloaded library brings
 /// new types, so one engine component per user type would consume a mask slot per reload.
-/// Instead each entity carries one of these, holding a slot per code component. A slot keeps
-/// its saved payload even when its type is not loaded, so a scene opened without the library
-/// saves back unchanged.
-public final class CodeComponentsComponent: Component, Codable {
+/// Instead each entity carries one of these, holding a slot per plugin. A slot keeps its saved
+/// payload even when its type is not loaded, so a scene opened without the library saves back
+/// unchanged.
+public final class ScenePluginsComponent: Component, Codable {
     public struct Slot {
         public var typeName: String
         /// The values as last saved or snapshotted. Authoritative only while `instance` is nil.
         public var payload: [String: UntoldAttributeValue]
-        /// The live component, once its type is registered.
-        public internal(set) var instance: CodeComponent?
+        /// The live plugin, once its type is registered.
+        public internal(set) var instance: ScenePlugin?
 
         public init(typeName: String, payload: [String: UntoldAttributeValue] = [:]) {
             self.typeName = typeName
@@ -33,32 +34,48 @@ public final class CodeComponentsComponent: Component, Codable {
         }
     }
 
+    /// The `EntityPlugin` that makes this entity what it is, when it is of a kind.
+    public var entitySlot: Slot?
+    /// The `ComponentPlugin`s on the entity, in the order they were added.
     public var slots: [Slot] = []
 
     public required init() {}
 
+    var isEmpty: Bool {
+        entitySlot == nil && slots.isEmpty
+    }
+
     // MARK: Codable
 
     private enum CodingKeys: String, CodingKey {
+        case entity
         case components
     }
 
     private struct StoredSlot: Codable {
         var type: String
         var properties: [String: UntoldAttributeValue]
+
+        init(_ slot: Slot) {
+            type = slot.typeName
+            properties = slot.instance?.attributePayload() ?? slot.payload
+        }
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
+        if let stored = try container.decodeIfPresent(StoredSlot.self, forKey: .entity) {
+            entitySlot = Slot(typeName: stored.type, payload: stored.properties)
+        }
         let stored = try container.decodeIfPresent([StoredSlot].self, forKey: .components) ?? []
         slots = stored.map { Slot(typeName: $0.type, payload: $0.properties) }
     }
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        let stored = slots.map { slot in
-            StoredSlot(type: slot.typeName, properties: slot.instance?.attributePayload() ?? slot.payload)
+        if let entitySlot {
+            try container.encode(StoredSlot(entitySlot), forKey: .entity)
         }
-        try container.encode(stored, forKey: .components)
+        try container.encode(slots.map(StoredSlot.init), forKey: .components)
     }
 }

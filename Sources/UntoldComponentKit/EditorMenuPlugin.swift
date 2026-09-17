@@ -1,5 +1,5 @@
 //
-//  EditorExtension.swift
+//  EditorMenuPlugin.swift
 //  UntoldComponentKit
 //
 // Copyright (C) Untold Engine Studios
@@ -16,7 +16,7 @@ public struct UntoldMenuEntry {
     public let menu: AnyUntoldMenu
 }
 
-/// A problem with an extension's menu declarations, found before anything is built.
+/// A problem with a menu plugin's declarations, found before anything is built.
 public enum UntoldMenuIssue: Equatable, Sendable {
     /// The path has no title segment.
     case emptyPath(property: String)
@@ -24,13 +24,14 @@ public enum UntoldMenuIssue: Equatable, Sendable {
     case duplicate(identifier: String)
 }
 
-/// Base class for what a loaded library adds to the editor itself.
+/// Base class for what a loaded library adds to the editor's menus, and to the editor itself.
 ///
-/// The editor discovers subclasses the same way it discovers components, creates one instance
-/// when the library loads, and drives the callbacks below. A game never instantiates one, so
-/// an extension may sit next to components in the same folder; wrap it in
+/// Declare menu items with `@UntoldMenu` properties. The editor discovers subclasses the same
+/// way it discovers the other plugins, creates one instance when the library loads, puts the
+/// items under its own root menus, and drives the callbacks below. A game never instantiates
+/// one, so a menu plugin may sit next to components in the same folder; wrap it in
 /// `#if UNTOLD_EDITOR` to keep it out of the game binary altogether.
-open class EditorExtension {
+open class EditorMenuPlugin {
     public required init() {}
 
     public static var typeName: String {
@@ -55,7 +56,7 @@ open class EditorExtension {
 
     // MARK: Menus
 
-    /// A menu holding this extension's items is about to open. Refresh wrapped values from
+    /// A menu holding this plugin's items is about to open. Refresh wrapped values from
     /// outside state here so checkmarks stay truthful.
     open func menuWillOpen() {}
     /// The user changed a toggle or a choice, or a persisted value was restored at load.
@@ -81,7 +82,7 @@ open class EditorExtension {
         return entries
     }
 
-    /// Checks a set of entries, from one extension or several, for declarations the menu host
+    /// Checks a set of entries, from one menu plugin or several, for declarations the menu host
     /// must refuse.
     public static func validate(_ entries: [UntoldMenuEntry]) -> [UntoldMenuIssue] {
         var issues: [UntoldMenuIssue] = []

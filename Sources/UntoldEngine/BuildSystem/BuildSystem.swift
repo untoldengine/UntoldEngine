@@ -589,7 +589,7 @@ import Foundation
             }
 
             var notes = [
-                "In GameScene, before loading scenes, call CodeComponentRegistry.shared.discoverInApp(), CodeComponentSystem.install() and CodeComponentSystem.shared.startPlayMode(), and import UntoldComponentKit.",
+                "In GameScene, before loading scenes, call ScenePluginSystem.discoverInApp(), ScenePluginSystem.install() and ScenePluginSystem.shared.startPlayMode(), and import UntoldComponentKit.",
             ]
 
             var updatedSpec = false

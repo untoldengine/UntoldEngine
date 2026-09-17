@@ -44,22 +44,25 @@ final class LibraryLoadingIntegrationTests: XCTestCase {
         let first = try build(revision: 1, source: Self.revisionOneSource, toolchain: toolchain, products: products)
         XCTAssertNotNil(dlopen(first.path, RTLD_NOW | RTLD_LOCAL), "dlopen failed: \(Self.lastLoaderError())")
 
-        let discovered = CodeComponentRegistry.shared.discover(imagePath: first.path, revision: 1, policy: .replace)
-        XCTAssertEqual(discovered.registered, ["LoadedShape", "LoadedSpinner"])
+        let discovered = ComponentPluginRegistry.shared.discover(imagePath: first.path, revision: 1, policy: .replace)
+        XCTAssertEqual(discovered.registered, ["LoadedSpinner"], "the loaded entity plugin is not mistaken for a component")
+        XCTAssertEqual(EditorMenuPluginRegistry.shared.discover(imagePath: first.path, revision: 1, replaceExisting: true), ["LoadedExtension"])
+        XCTAssertEqual(EntityPluginRegistry.shared.discover(imagePath: first.path, revision: 1, replaceExisting: true), ["LoadedMarkerEntity"])
+        XCTAssertEqual(EntityPluginRegistry.shared.entries(on: .primitives).map(\.type.displayName), ["Loaded Marker"])
+        let loadedEntity = try XCTUnwrap(EntityPluginRegistry.shared.instantiate("LoadedMarkerEntity"))
+        let loadedPlugin = try XCTUnwrap(ScenePluginSystem.shared.entityPlugin(on: loadedEntity))
+        XCTAssertTrue(NSStringFromClass(type(of: loadedPlugin)).hasPrefix("GameComponents_r1."))
+        XCTAssertEqual(loadedPlugin.untoldAttributes().map(\.name), ["radius"], "the entity's own properties, read across the image boundary")
         XCTAssertEqual(
-            CodeComponentRegistry.shared.attachableEntries.map(\.name), ["LoadedSpinner"],
-            "a loaded type's attachment override is read across the image boundary"
+            loadedPlugin.editorRepresentation.items, [.points([SIMD3<Float>(2, 0, 0)], tint: SIMD3<Float>(1, 1, 1))],
+            "and its editor representation, which follows them"
         )
-        XCTAssertEqual(EditorExtensionRegistry.shared.discover(imagePath: first.path, revision: 1, replaceExisting: true), ["LoadedExtension"])
-        XCTAssertEqual(EntityTemplateRegistry.shared.discover(imagePath: first.path, revision: 1, replaceExisting: true), ["LoadedMarkerEntity"])
-        XCTAssertEqual(EntityTemplateRegistry.shared.entries(on: .primitives).map(\.type.displayName), ["Loaded Marker"])
-        let fromTemplate = try XCTUnwrap(EntityTemplateRegistry.shared.instantiate("LoadedMarkerEntity"))
-        XCTAssertEqual(CodeComponentSystem.shared.slots(on: fromTemplate).map(\.typeName), ["LoadedShape"], "a loaded template builds with loaded components")
-        destroyEntity(entityId: fromTemplate)
+        XCTAssertEqual(ScenePluginSystem.shared.slots(on: loadedEntity).map(\.typeName), ["LoadedSpinner"], "onCreate ran in the loaded library")
+        destroyEntity(entityId: loadedEntity)
         finalizePendingDestroys()
 
         let entity = createEntity()
-        let spinner = try XCTUnwrap(CodeComponentSystem.shared.add("LoadedSpinner", to: entity))
+        let spinner = try XCTUnwrap(ScenePluginSystem.shared.add("LoadedSpinner", to: entity))
         XCTAssertTrue(NSStringFromClass(type(of: spinner)).hasPrefix("GameComponents_r1."))
         XCTAssertEqual(
             getEntityName(entityId: entity), "named-by-loaded-library",
@@ -70,28 +73,28 @@ final class LibraryLoadingIntegrationTests: XCTestCase {
         XCTAssertEqual(attributes.map(\.name), ["turnSpeed", "label"])
         XCTAssertEqual(attributes[0].displayLabel, "Turn Speed")
         XCTAssertEqual(attributes[0].attribute.range, 0 ... 360)
-        XCTAssertTrue(CodeComponentSystem.shared.setAttribute("turnSpeed", of: "LoadedSpinner", on: entity, to: .number(45)))
+        XCTAssertTrue(ScenePluginSystem.shared.setAttribute("turnSpeed", of: "LoadedSpinner", on: entity, to: .number(45)))
 
         gameMode = true
-        CodeComponentSystem.shared.startPlayMode()
-        CodeComponentSystem.shared.update(deltaTime: 0.5, context: makeKitTestContext())
-        CodeComponentSystem.shared.stopPlayMode()
+        ScenePluginSystem.shared.startPlayMode()
+        ScenePluginSystem.shared.update(deltaTime: 0.5, context: makeKitTestContext())
+        ScenePluginSystem.shared.stopPlayMode()
         gameMode = false
-        XCTAssertEqual(CodeComponentSystem.shared.slots(on: entity).first?.payload["turnSpeed"], .number(45.5))
+        XCTAssertEqual(ScenePluginSystem.shared.slots(on: entity).first?.payload["turnSpeed"], .number(45.5))
 
-        let extensionType = try XCTUnwrap(EditorExtensionRegistry.shared.type(named: "LoadedExtension"))
+        let extensionType = try XCTUnwrap(EditorMenuPluginRegistry.shared.type(named: "LoadedExtension"))
         let menuItems = extensionType.init().untoldMenuItems()
         XCTAssertEqual(menuItems.map(\.menu.identifier), ["debug/Loaded/Toggle"])
 
         // Revision 2: same type name, one property renamed away, one added.
         let second = try build(revision: 2, source: Self.revisionTwoSource, toolchain: toolchain, products: products)
-        CodeComponentSystem.shared.prepareForReload()
+        ScenePluginSystem.shared.prepareForReload()
         XCTAssertNotNil(dlopen(second.path, RTLD_NOW | RTLD_LOCAL), "dlopen failed: \(Self.lastLoaderError())")
-        let rediscovered = CodeComponentRegistry.shared.discover(imagePath: second.path, revision: 2, policy: .replace)
+        let rediscovered = ComponentPluginRegistry.shared.discover(imagePath: second.path, revision: 2, policy: .replace)
         XCTAssertEqual(rediscovered.replaced, ["LoadedSpinner"])
-        CodeComponentSystem.shared.finishReload()
+        ScenePluginSystem.shared.finishReload()
 
-        let reloaded = try XCTUnwrap(CodeComponentSystem.shared.component(named: "LoadedSpinner", on: entity))
+        let reloaded = try XCTUnwrap(ScenePluginSystem.shared.component(named: "LoadedSpinner", on: entity))
         XCTAssertTrue(NSStringFromClass(type(of: reloaded)).hasPrefix("GameComponents_r2."))
         XCTAssertFalse(reloaded === spinner)
         XCTAssertFalse(spinner.isAttached)
@@ -109,7 +112,7 @@ final class LibraryLoadingIntegrationTests: XCTestCase {
     import UntoldComponentKit
     import UntoldEngine
 
-    final class LoadedSpinner: CodeComponent {
+    final class LoadedSpinner: ComponentPlugin {
         @UntoldAttribute("Turn Speed", range: 0 ... 360) var turnSpeed: Float = 90
         @UntoldAttribute var label: String = "loaded"
 
@@ -122,19 +125,21 @@ final class LibraryLoadingIntegrationTests: XCTestCase {
         }
     }
 
-    final class LoadedExtension: EditorExtension {
+    final class LoadedExtension: EditorMenuPlugin {
         @UntoldMenu(.debug, "Loaded/Toggle") var toggle = true
     }
 
-    final class LoadedShape: CodeComponent {
-        override class var attachment: ComponentAttachment { .entityKindOnly }
-    }
+    final class LoadedMarkerEntity: EntityPlugin {
+        @UntoldAttribute var radius: Float = 2
 
-    final class LoadedMarkerEntity: EntityTemplate {
         override class var shelf: UntoldEntityShelf { .primitives }
 
-        override func build(_ entity: EntityID) {
-            add(LoadedShape.self, to: entity)
+        override func onCreate() {
+            add(LoadedSpinner.self)
+        }
+
+        override var editorRepresentation: EditorRepresentation {
+            EditorRepresentation([.points([SIMD3<Float>(radius, 0, 0)], tint: SIMD3<Float>(1, 1, 1))])
         }
     }
     """
@@ -143,7 +148,7 @@ final class LibraryLoadingIntegrationTests: XCTestCase {
     import UntoldComponentKit
     import UntoldEngine
 
-    final class LoadedSpinner: CodeComponent {
+    final class LoadedSpinner: ComponentPlugin {
         @UntoldAttribute("Turn Speed", range: 0 ... 360) var turnSpeed: Float = 90
         @UntoldAttribute var boost: Int = 3
     }
