@@ -45,6 +45,11 @@ public class USCActionRegistry: @unchecked Sendable {
     public func resolve(name: String) -> USCAction? {
         actions[name]
     }
+
+    /// Removes an action, e.g. when the code that provided it is replaced by a reload.
+    public func unregister(name: String) {
+        actions.removeValue(forKey: name)
+    }
 }
 
 // MARK: - USC Interpreter
