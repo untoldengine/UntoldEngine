@@ -44,11 +44,17 @@ public struct UntoldAttributeApplyReport: Equatable, Sendable {
 /// `init()` and then applies the values saved in the scene, so subclasses give every stored
 /// property a default and declare no initializer parameters.
 open class CodeComponent {
+    // Every member below that subclasses cannot override is `final`, and that is load-bearing.
+    // A subclass compiled into another image copies this class's dispatch table, entries for
+    // internal members and internal setters included, and so needs their symbols. Release
+    // builds hide internal symbols, so a library loaded by the editor would fail to resolve
+    // them. `final` members have no table entry. create_app_bundle.sh checks this.
+
     /// The entity this instance is attached to; `.invalid` until `onAttach()`.
-    public internal(set) var entity: EntityID = .invalid
+    public internal(set) final var entity: EntityID = .invalid
     /// `true` between `onAttach()` and `onDetach()`.
-    public internal(set) var isAttached: Bool = false
-    var hasStarted: Bool = false
+    public internal(set) final var isAttached: Bool = false
+    final var hasStarted: Bool = false
 
     public required init() {}
 
@@ -88,7 +94,7 @@ open class CodeComponent {
     // MARK: Conveniences
 
     /// The entity's local transform, if it has one.
-    public var transform: LocalTransformComponent? {
+    public final var transform: LocalTransformComponent? {
         guard scene.mask(for: entity) != nil else { return nil }
         return scene.get(component: LocalTransformComponent.self, for: entity)
     }
