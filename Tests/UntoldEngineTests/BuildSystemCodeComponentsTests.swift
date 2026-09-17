@@ -170,7 +170,7 @@ import XCTest
                         gameMode = true
                         // Code components: register the types linked into this app, then start them.
                         // Scenes loaded afterwards bind their saved components to these types.
-                        CodeComponentRegistry.shared.discoverInMainExecutable()
+                        CodeComponentRegistry.shared.discoverInApp()
                         CodeComponentSystem.install()
                         CodeComponentSystem.shared.startPlayMode()
                 """), "indented like the line it replaces")
@@ -230,7 +230,7 @@ import XCTest
             XCTAssertTrue(FileManager.default.fileExists(atPath: first.componentsDirectory.appendingPathComponent("Spinner.swift").path))
             let patched = try String(contentsOf: root.appendingPathComponent("project.yml"), encoding: .utf8)
             XCTAssertTrue(patched.contains("product: UntoldComponentKit"))
-            XCTAssertTrue(first.notes.contains { $0.contains("discoverInMainExecutable") }, "the game still has to register components")
+            XCTAssertTrue(first.notes.contains { $0.contains("discoverInApp") }, "the game still has to register components")
             XCTAssertTrue(first.notes.contains { $0.contains("pins the upstream engine") })
 
             let second = try BuildSystem.shared.addCodeComponents(toProjectAt: root, projectName: "BedroomTwin", regenerateXcodeProject: false)

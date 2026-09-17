@@ -76,4 +76,24 @@ public enum ImageDiscovery {
         guard let name = _dyld_get_image_name(0) else { return nil }
         return String(cString: name)
     }
+
+    /// The loaded images that are the app itself: the main executable, plus everything loaded
+    /// from inside the app bundle.
+    ///
+    /// The main executable alone is not enough. Xcode builds an app's code into a separate
+    /// `<App>.debug.dylib` for debugging and previews and leaves the executable as a stub, and
+    /// an app may keep its components in an embedded framework.
+    public static func appImagePaths() -> [String] {
+        let executable = mainExecutablePath()
+        let bundleRoot = canonicalPath(Bundle.main.bundleURL.path) + "/"
+        var paths: [String] = []
+        for index in 0 ..< _dyld_image_count() {
+            guard let name = _dyld_get_image_name(index) else { continue }
+            let path = String(cString: name)
+            if path == executable || canonicalPath(path).hasPrefix(bundleRoot) {
+                paths.append(path)
+            }
+        }
+        return paths
+    }
 }
