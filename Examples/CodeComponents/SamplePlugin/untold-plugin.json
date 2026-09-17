@@ -1,0 +1,6 @@
+{
+  "id": "com.untoldengine.samples.plugin",
+  "module": "SamplePlugin",
+  "runtimeSources": "Sources/SamplePlugin",
+  "editorSources": "Sources/SamplePluginEditor"
+}
