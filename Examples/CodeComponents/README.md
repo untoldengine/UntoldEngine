@@ -36,12 +36,17 @@ CodeComponents/
 
 | Kind | Shelf | In the editor | In the game |
 | --- | --- | --- | --- |
-| **Torus** (plugin) | Primitives | a ring mesh, reshaped live from the Inspector | the same mesh, rebuilt from the saved attributes |
+| **Torus** (plugin) | Primitives | a ring mesh, reshaped live from the Inspector; its `TorusShape` is locked to the kind | the same mesh, rebuilt from the saved attributes |
 | **Spawn Point** (project) | Entities | a flag icon in the team's color | only a position: `SpawnPoint.all(for:)` |
 | **Game Rules** (project) | Entities | a row in the hierarchy | data and a round timer |
 
 Each is an `EntityTemplate` (the shelf row) plus a `CodeComponent` (what the entity is once it
 exists, and what the scene saves).
+
+`TorusShape` is internal to the Torus kind: it declares `attachment` as `.entityKindOnly`, so
+the editor never offers it for another entity (a ring's shape means nothing on a cube) and a
+torus cannot lose it. `SpawnPoint` and `GameRules` keep the default, because adding a spawn
+point to any entity is reasonable.
 
 ## In the editor
 
@@ -60,11 +65,14 @@ The **Components** tab at the bottom shows what happened: three libraries were b
 Things to try:
 
 1. Add an entity, select it, and open **Add Component** in the Inspector. The components from
-   code are in the same menu as the engine's, under **From Code**. Attach `Spinner` and `Bobber`;
-   their `@UntoldAttribute` properties are the fields you see. Press Play.
+   code are in the same menu as the engine's, under **From Code**: Bobber, Game Rules, Spawn
+   Point and Spinner. Torus Shape is loaded too (the **Components** tab lists it) but is not
+   there, because it is part of the Torus kind. Attach `Spinner` and `Bobber`; their
+   `@UntoldAttribute` properties are the fields you see. Press Play.
 2. In the **Assets** tab, open **Primitives**: **Torus** is listed under Cube, Sphere and Plane,
    and it comes from the plugin. Drag it into the viewport, then change Ring Radius or Tube
-   Segments in the Inspector and watch the ring rebuild. Open **Entities**, which exists only
+   Segments in the Inspector and watch the ring rebuild. Its Torus Shape block shows a lock where
+   other components show a remove button; the ring can still take Spinner or Bobber. Open **Entities**, which exists only
    because this project adds kinds to it: double-click **Spawn Point** and switch its team to see
    the flag change color; double-click **Game Rules**, which appears in the hierarchy and nowhere
    else. Save the scene and reopen it: the ring comes back as a ring, not as the engine's
