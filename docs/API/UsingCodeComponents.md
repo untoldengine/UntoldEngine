@@ -197,19 +197,29 @@ play mode or in a game. Positions are in the entity's local space.
 | `.icon(systemImage:tint:)` | a camera-facing SF Symbol at the entity's origin, hidden by geometry in front of it like the editor's light markers |
 | `.points(_:tint:)` | a dot at each position, over everything, so a handle inside a mesh stays visible |
 | `.polyline(_:closed:)` | a white line through the positions, over everything |
+| `.handles(properties:tint:)` | a draggable dot for each `SIMD3<Float>` property named; see below |
 
 ```swift
 override public var editorRepresentation: EditorRepresentation {
     EditorRepresentation([
         .polyline([start, startHandle, endHandle, end], closed: false),
-        .points([start, end], tint: [1.0, 0.75, 0.2]),
-        .points([startHandle, endHandle], tint: [0.35, 0.8, 1.0]),
+        .handles(properties: ["start", "end"], tint: [1.0, 0.75, 0.2]),
+        .handles(properties: ["startHandle", "endHandle"], tint: [0.35, 0.8, 1.0]),
     ])
 }
 ```
 
-An entity marked this way is selected in the hierarchy, as lights are: viewport picking works
-on meshes. The points are shown, not yet draggable.
+*Handles.* A handle is a property you can drag. Right-click the dot in the viewport: the entity
+is selected and the move gizmo sits on the point instead of on the entity. Drag an axis, or
+edit the field in the Inspector, and the property changes; the entity is told through
+`onEditorChanged`, so a spline rebuilds its tube as its control point moves. The whole drag is
+one undo step. Only the move gizmo works on a handle; the rotate and scale gizmos go back to
+the entity. Any `SIMD3<Float>` property in the entity's local space can be a handle; a name
+that is not one is skipped.
+
+An entity that has only an editor representation is selected in the hierarchy or by its
+handles, since viewport picking works on meshes, and it gets the move gizmo like anything
+visible.
 
 **Starting components.** `onCreate()` runs once, when the entity is first made from the kind,
 after `onAttach()`. Give a new entity the components it starts with there, with `add(_:)`. It

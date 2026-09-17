@@ -57,7 +57,7 @@ representation it has.
 | Kind | Shelf | Own properties | In the editor | In the game |
 | --- | --- | --- | --- | --- |
 | **Torus** (package) | Primitives | ring and tube radius, segments | the ring mesh | the same mesh |
-| **Spline Path** (package) | Entities | four control points, thickness, segments | a tube, plus its control points and control polygon | the tube; `position(at:)` for whatever travels along it |
+| **Spline Path** (package) | Entities | four control points, thickness, segments | a tube, plus its control polygon and its control points as draggable handles | the tube; `position(at:)` for whatever travels along it |
 | **Spawn Point** (project) | Entities | team, radius | a flag in the team's color and a circle for the radius | only a position: `SpawnPointEntity.all(for:)` |
 | **Game Rules** (project) | Entities | round length, score to win | a row in the hierarchy | the round timer |
 
@@ -90,8 +90,9 @@ Things to try:
    above the components: those are the entity's own properties. Change Ring Radius or Tube
    Segments and watch the ring rebuild. Open **Entities**, which exists only because this
    project adds kinds to it. Double-click **Spline Path**: a tube with four dots and a white
-   control polygon around it; move Start Handle in the Inspector and both the dots and the tube
-   follow. Double-click **Spawn Point** and change its team and radius to see the flag change
+   control polygon around it. Right-click a dot: the move gizmo sits on it; drag one axis and
+   the tube and the polygon follow, and one undo takes the whole drag back. Start Handle in the
+   Inspector does the same from the other side. Double-click **Spawn Point** and change its team and radius to see the flag change
    color and the circle resize. Double-click **Game Rules**, which appears in the hierarchy and
    nowhere else. To see a component use a kind of entity, add a sphere, give it **Path Follower**,
    type the path entity's name into Path, and press Play. Save the scene and reopen it: every
@@ -148,6 +149,5 @@ points are not), a red spawn point that draws nothing, and the rules.
 - The package's runtime defines entity and component plugins, so its `Package.swift` depends
   on the engine: by path here, by the same URL as the game's pin in a real package. A package
   with no engine types in its runtime needs no such dependency.
-- An entity that is only an editor representation is selected in the hierarchy, as lights are:
-  viewport picking works on meshes. Control points are shown, not yet draggable; they are
-  edited in the Inspector.
+- An entity that is only an editor representation is selected in the hierarchy, as lights are,
+  or through its handles: viewport picking works on meshes. It gets the move gizmo all the same.
