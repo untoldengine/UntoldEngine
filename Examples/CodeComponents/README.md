@@ -90,7 +90,7 @@ Things to try:
    above the components: those are the entity's own properties. Change Ring Radius or Tube
    Segments and watch the ring rebuild. Open **Entities**, which exists only because this
    project adds kinds to it. Double-click **Spline Path**: a tube with four dots and a white
-   control polygon around it. Right-click a dot: the move gizmo sits on it; drag one axis and
+   control polygon around it. Click a dot: the move gizmo sits on it; drag one axis and
    the tube and the polygon follow, and one undo takes the whole drag back. Start Handle in the
    Inspector does the same from the other side. Double-click **Spawn Point** and change its team and radius to see the flag change
    color and the circle resize. Double-click **Game Rules**, which appears in the hierarchy and
