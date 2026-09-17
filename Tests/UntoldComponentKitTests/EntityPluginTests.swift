@@ -129,6 +129,10 @@ final class EntityPluginTests: XCTestCase {
         marker.team = 2
         XCTAssertEqual(marker.editorRepresentation, .icon(systemImage: "flag.fill", tint: SIMD3<Float>(0.9, 0.3, 0.3)))
         XCTAssertEqual(EditorRepresentation.icon(systemImage: "flag").items, [.icon(systemImage: "flag", tint: SIMD3<Float>(1, 1, 1))])
+        XCTAssertEqual(
+            EditorRepresentation([.handles(properties: ["start", "end"], tint: .one)]).items,
+            [.handles(properties: ["start", "end"], tint: SIMD3<Float>(1, 1, 1))]
+        )
 
         let path = try XCTUnwrap(EntityPluginRegistry.shared.instantiate(PathEntity.self))
         path.end = SIMD3<Float>(0, 2, 0)
