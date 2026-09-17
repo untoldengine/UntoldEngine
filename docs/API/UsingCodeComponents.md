@@ -209,8 +209,8 @@ override public var editorRepresentation: EditorRepresentation {
 }
 ```
 
-*Handles.* A handle is a property you can drag. Right-click the dot in the viewport: the entity
-is selected and the move gizmo sits on the point instead of on the entity. Drag an axis, or
+*Handles.* A handle is a property you can drag. Click the dot in the viewport, with either
+button: the entity is selected and the move gizmo sits on the point instead of on the entity. Drag an axis, or
 edit the field in the Inspector, and the property changes; the entity is told through
 `onEditorChanged`, so a spline rebuilds its tube as its control point moves. The whole drag is
 one undo step. Only the move gizmo works on a handle; the rotate and scale gizmos go back to
