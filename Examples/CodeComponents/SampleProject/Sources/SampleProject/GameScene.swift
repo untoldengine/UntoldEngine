@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SamplePlugin
 import simd
 import UntoldComponentKit
 import UntoldEngine
@@ -38,7 +39,35 @@ class GameScene {
         spinner?.speed = 60
         CodeComponentSystem.shared.add(Bobber.self, to: cube)
 
+        createSampleEntityKinds()
+
         setSceneReady(true)
+    }
+
+    /// The kinds of entity this project and its plugin add to the editor's creation shelves,
+    /// made here from the same templates. One of each sort:
+    /// a shape of its own, an editor-only marker, and nothing to show at all.
+    private func createSampleEntityKinds() {
+        let templates = EntityTemplateRegistry.shared
+
+        // From the plugin. The engine has no torus; TorusShape builds the mesh, here as in the editor.
+        if let ring = templates.instantiate("TorusEntity", entityName: "Ring"),
+           let shape = CodeComponentRegistry.component(TorusShape.self, on: ring)
+        {
+            shape.ringRadius = 1.4
+            shape.tubeRadius = 0.08
+            shape.rebuild()
+        }
+
+        // In the editor this one is a flag icon. In the game it is only a position to ask for.
+        if let spawn = templates.instantiate("SpawnPointEntity", at: simd_float3(-2, 0, 1), entityName: "Red Spawn") {
+            CodeComponentRegistry.component(SpawnPoint.self, on: spawn)?.team = .red
+        }
+
+        // Rules have no shape anywhere; the round starts counting with play mode.
+        templates.instantiate("GameRulesEntity", entityName: "Rules")
+
+        Logger.log(message: "[Sample] Red team spawns at \(SpawnPoint.all(for: .red))")
     }
 
     // MARK: - Setup Methods
