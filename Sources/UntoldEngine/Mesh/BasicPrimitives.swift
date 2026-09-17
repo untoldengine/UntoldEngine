@@ -14,6 +14,21 @@ import simd
 
 /// Generates basic primitive meshes using ModelIO
 public enum BasicPrimitives {
+    /// Turns geometry built in code into engine meshes, the same way the primitives below are
+    /// made. This is how a plugin adds a shape the engine does not ship: build an `MDLMesh`
+    /// (allocate its buffers with `MTKMeshBufferAllocator(device: renderInfo.device)`), name it,
+    /// and hand it over. Positions, normals and texture coordinates under their standard ModelIO
+    /// attribute names are enough; tangents are derived and the layout is converted.
+    public static func createMesh(from mdlMesh: MDLMesh) -> [Mesh] {
+        Mesh.makeMeshes(
+            object: mdlMesh,
+            vertexDescriptor: vertexDescriptor.model,
+            textureLoader: TextureLoader(device: renderInfo.device),
+            device: renderInfo.device,
+            flip: true
+        )
+    }
+
     /// Creates a cube mesh with the specified size
     /// - Parameters:
     ///   - extent: The size of the cube in each dimension (default: 1.0)
