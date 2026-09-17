@@ -72,7 +72,7 @@ nav:
     - Usage Examples: API/UsageExamples.md
     - Engine Settings: API/UsingEngineAPI.md
     - Registration System: API/UsingRegistrationSystem.md
-    - Code Components: API/UsingCodeComponents.md
+    - Plugins in Swift: API/UsingCodeComponents.md
     - Transform System: API/UsingTransformSystem.md
     - Scene Graph: API/UsingScenegraph.md
     - Camera System: API/UsingCameraSystem.md

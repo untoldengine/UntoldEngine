@@ -22,12 +22,12 @@ class GameScene {
         // Configure game Systems
         configureEngineSystems()
 
-        // The editor saves components with the scene. This sample has no saved scene, so it
+        // The editor saves plugins with the scene. This sample has no saved scene, so it
         // builds one in code, which also shows the code-side API.
         createSampleScene()
     }
 
-    /// A cube that spins and bobs: both behaviours are code components from
+    /// A cube that spins and bobs: both behaviours are component plugins from
     /// Sources/SampleProjectComponents, attached here exactly as the editor's Inspector does.
     private func createSampleScene() {
         let cube = createEntity()
@@ -35,9 +35,9 @@ class GameScene {
         setEntityMeshDirect(entityId: cube, meshes: BasicPrimitives.createCube(extent: 1.0), assetName: "sample_cube")
         translateTo(entityId: cube, position: simd_float3(0, 0, 0))
 
-        let spinner = CodeComponentSystem.shared.add(Spinner.self, to: cube)
+        let spinner = ScenePluginSystem.shared.add(Spinner.self, to: cube)
         spinner?.speed = 60
-        CodeComponentSystem.shared.add(Bobber.self, to: cube)
+        ScenePluginSystem.shared.add(Bobber.self, to: cube)
 
         createSampleEntityKinds()
 
@@ -45,29 +45,34 @@ class GameScene {
     }
 
     /// The kinds of entity this project and its plugin add to the editor's creation shelves,
-    /// made here from the same templates. One of each sort:
-    /// a shape of its own, an editor-only marker, and nothing to show at all.
+    /// made here the way the shelves make them. Each is an EntityPlugin: the entity's own
+    /// properties, and whichever of geometry and editor representation it has.
     private func createSampleEntityKinds() {
-        let templates = EntityTemplateRegistry.shared
+        let kinds = EntityPluginRegistry.shared
 
-        // From the plugin. The engine has no torus; TorusShape builds the mesh, here as in the editor.
-        if let ring = templates.instantiate("TorusEntity", entityName: "Ring"),
-           let shape = CodeComponentRegistry.component(TorusShape.self, on: ring)
-        {
-            shape.ringRadius = 1.4
-            shape.tubeRadius = 0.08
-            shape.rebuild()
+        // Geometry only, from the plugin. The ring's numbers are the entity's own properties.
+        if let ring = kinds.instantiate(TorusEntity.self, entityName: "Ring") {
+            ring.ringRadius = 1.4
+            ring.tubeRadius = 0.08
+            ring.rebuild()
         }
 
-        // In the editor this one is a flag icon. In the game it is only a position to ask for.
-        if let spawn = templates.instantiate("SpawnPointEntity", at: simd_float3(-2, 0, 1), entityName: "Red Spawn") {
-            CodeComponentRegistry.component(SpawnPoint.self, on: spawn)?.team = .red
+        // Geometry and an editor representation. The game shows the tube; the control points
+        // are for the editor. A sphere travels along it with a component any entity could have.
+        if let path = kinds.instantiate(SplinePathEntity.self, at: simd_float3(0, 0.5, -2.5), entityName: "Path") {
+            let ball = createEntity()
+            setEntityName(entityId: ball, name: "Path Ball")
+            setEntityMeshDirect(entityId: ball, meshes: BasicPrimitives.createSphere(extent: 0.15), assetName: "path_ball")
+            ScenePluginSystem.shared.add(PathFollower.self, to: ball)?.path = EntityRef(getEntityName(entityId: path.entity))
         }
 
-        // Rules have no shape anywhere; the round starts counting with play mode.
-        templates.instantiate("GameRulesEntity", entityName: "Rules")
+        // An editor representation only: a flag in the editor, a position in the game.
+        kinds.instantiate(SpawnPointEntity.self, at: simd_float3(-2, 0, 1), entityName: "Red Spawn")?.team = .red
 
-        Logger.log(message: "[Sample] Red team spawns at \(SpawnPoint.all(for: .red))")
+        // Neither: properties and behaviour. The round starts counting with play mode.
+        kinds.instantiate(GameRulesEntity.self, entityName: "Rules")
+
+        Logger.log(message: "[Sample] Red team spawns at \(SpawnPointEntity.all(for: .red))")
     }
 
     // MARK: - Setup Methods
@@ -75,11 +80,11 @@ class GameScene {
     /// Configure game Systems for play mode
     private func configureEngineSystems() {
         gameMode = true
-        // Code components: register the types linked into this app, then start them.
-        // Scenes loaded afterwards bind their saved components to these types.
-        CodeComponentRegistry.shared.discoverInApp()
-        CodeComponentSystem.install()
-        CodeComponentSystem.shared.startPlayMode()
+        // Plugins written in code: register the component and entity plugins linked into
+        // this app, then start them. Scenes loaded afterwards bind what they saved to these types.
+        ScenePluginSystem.discoverInApp()
+        ScenePluginSystem.install()
+        ScenePluginSystem.shared.startPlayMode()
         AnimationSystem.shared.isEnabled = true
         InputSystem.shared.registerKeyboardEvents()
         InputSystem.shared.registerMouseEvents()

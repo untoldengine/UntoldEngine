@@ -6,7 +6,7 @@ import UntoldEngine
 ///
 /// Add it to an entity from the editor's Inspector and press Play. Change `speed` here
 /// and save: with "Rebuild on save" on, the editor picks the change up without restarting.
-final class Spinner: CodeComponent {
+final class Spinner: ComponentPlugin {
     @UntoldAttribute("Degrees per second", range: -360 ... 360) var speed: Float = 90
     @UntoldAttribute var axis: SIMD3<Float> = [0, 1, 0]
 
