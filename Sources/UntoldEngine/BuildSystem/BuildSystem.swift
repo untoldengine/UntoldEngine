@@ -149,9 +149,9 @@ import Foundation
         public var isIOSAR: Bool // Use AR templates for iOS
         /// The engine package the project depends on; `nil` keeps the long-standing default.
         public var enginePackage: EnginePackageReference?
-        /// Link `UntoldComponentKit`, register code components at startup, and create
-        /// `Sources/<Project>Components` with a starter component. Needs an engine that ships
-        /// the kit, so it is off unless the caller asks.
+        /// Link `UntoldComponentKit`, register the project's plugins at startup, and create the
+        /// project's plugins folder, `Sources/<Project>Plugins`, with a starter component. Needs
+        /// an engine that ships the kit, so it is off unless the caller asks.
         public var includesCodeComponents: Bool
 
         public var resolvedEnginePackage: EnginePackageReference {
@@ -546,9 +546,23 @@ import Foundation
 
         // MARK: - Code Components
 
+        /// The folder, under `Sources`, that holds a project's own plugins: its component,
+        /// entity and editor menu plugins. It is part of the app, the way an application-local
+        /// extension is; a plugin package, by contrast, is a Swift package of its own that
+        /// several projects share. The editor compiles this folder by itself.
+        public static func pluginsFolderName(forProject projectName: String) -> String {
+            "\(projectName)Plugins"
+        }
+
+        /// What the folder was called before it was renamed. Projects made then still have it,
+        /// so whoever looks for the plugins folder falls back to this name.
+        public static func legacyPluginsFolderName(forProject projectName: String) -> String {
+            "\(projectName)Components"
+        }
+
         /// What `addCodeComponents(toProjectAt:projectName:)` did.
         public struct CodeComponentsSetupResult {
-            public let componentsDirectory: URL
+            public let pluginsDirectory: URL
             public let createdStarterComponent: Bool
             public let updatedProjectSpec: Bool
             public let regeneratedXcodeProject: Bool
@@ -556,12 +570,12 @@ import Foundation
             public let notes: [String]
         }
 
-        /// The starter component new components folders begin with.
+        /// The starter component a new plugins folder begins with.
         public static var starterCodeComponentSource: String {
             BuildTemplates.starterComponentSwift
         }
 
-        /// Gives an existing project a components folder: creates `Sources/<Project>Components`
+        /// Gives an existing project a plugins folder: creates `Sources/<Project>Plugins`
         /// with a starter component when it holds no Swift file yet, adds the
         /// `UntoldComponentKit` product (and, where needed, the folder) to `project.yml`, and
         /// regenerates the Xcode project. Safe to call again.
@@ -576,14 +590,14 @@ import Foundation
             regenerateXcodeProject: Bool = true
         ) throws -> CodeComponentsSetupResult {
             let fileManager = FileManager.default
-            let componentsDirectory = projectRoot.appendingPathComponent("Sources/\(projectName)Components", isDirectory: true)
-            try fileManager.createDirectory(at: componentsDirectory, withIntermediateDirectories: true)
+            let pluginsDirectory = projectRoot.appendingPathComponent("Sources/\(Self.pluginsFolderName(forProject: projectName))", isDirectory: true)
+            try fileManager.createDirectory(at: pluginsDirectory, withIntermediateDirectories: true)
 
-            let existingSources = (try? fileManager.contentsOfDirectory(atPath: componentsDirectory.path))?
+            let existingSources = (try? fileManager.contentsOfDirectory(atPath: pluginsDirectory.path))?
                 .filter { $0.hasSuffix(".swift") } ?? []
             var createdStarter = false
             if existingSources.isEmpty {
-                let starter = componentsDirectory.appendingPathComponent("Spinner.swift")
+                let starter = pluginsDirectory.appendingPathComponent("Spinner.swift")
                 try BuildTemplates.starterComponentSwift.write(to: starter, atomically: true, encoding: .utf8)
                 createdStarter = true
             }
@@ -613,11 +627,11 @@ import Foundation
                     }
                 }
             } else {
-                notes.append("No project.yml was found. Add the UntoldComponentKit product of the UntoldEngine package to the app target, and the components folder to its sources.")
+                notes.append("No project.yml was found. Add the UntoldComponentKit product of the UntoldEngine package to the app target, and the plugins folder to its sources.")
             }
 
             return CodeComponentsSetupResult(
-                componentsDirectory: componentsDirectory,
+                pluginsDirectory: pluginsDirectory,
                 createdStarterComponent: createdStarter,
                 updatedProjectSpec: updatedSpec,
                 regeneratedXcodeProject: regenerated,

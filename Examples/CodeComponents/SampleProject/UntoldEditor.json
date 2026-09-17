@@ -1,5 +1,5 @@
 {
-  "plugins": [
-    { "path": "../SamplePlugin" }
+  "pluginPackages": [
+    { "path": "../SamplePluginPackage" }
   ]
 }

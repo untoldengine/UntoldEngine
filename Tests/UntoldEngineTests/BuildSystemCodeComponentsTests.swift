@@ -57,7 +57,7 @@ import XCTest
                 XCTAssertTrue(yaml.contains("url: https://github.com/untoldengine/UntoldEngine.git"))
                 XCTAssertTrue(yaml.contains("branch: develop"))
                 XCTAssertFalse(yaml.contains("UntoldComponentKit"), "the kit is opt-in")
-                XCTAssertFalse(yaml.contains("MyGameComponents"))
+                XCTAssertFalse(yaml.contains("MyGamePlugins"))
             }
         }
 
@@ -78,7 +78,7 @@ import XCTest
 
             XCTAssertEqual(occurrences(of: "product: UntoldComponentKit", in: yaml), 1)
             XCTAssertTrue(yaml.contains("- path: Sources\n"), "everything under Sources is compiled, the components folder included")
-            XCTAssertFalse(yaml.contains("MyGameComponents"))
+            XCTAssertFalse(yaml.contains("MyGamePlugins"))
             XCTAssertTrue(yaml.contains("""
                   - package: UntoldEngine
                     product: UntoldEngineShaderSupport
@@ -92,7 +92,7 @@ import XCTest
             let yaml = try XcodeGenProjectSpec.generateYAML(settings: settings(multi, codeComponents: true))
 
             XCTAssertEqual(occurrences(of: "product: UntoldComponentKit", in: yaml), 4)
-            XCTAssertEqual(occurrences(of: "- path: Sources/MyGameComponents\n", in: yaml), 4)
+            XCTAssertEqual(occurrences(of: "- path: Sources/MyGamePlugins\n", in: yaml), 4)
             XCTAssertEqual(occurrences(of: "optional: true", in: yaml), 4, "generation must not fail before the folder exists")
         }
 
@@ -194,18 +194,18 @@ import XCTest
 
             let plain = BuildTemplates.expandingCodeComponentPlaceholders(in: template, settings: settings())
             XCTAssertTrue(plain.contains(".package(url: \"https://github.com/untoldengine/UntoldEngine.git\", branch: \"develop\")"))
-            XCTAssertFalse(plain.contains("Components"))
+            XCTAssertFalse(plain.contains("Plugins"))
             XCTAssertFalse(plain.contains("{{ENGINE_") || plain.contains("{{CODE_COMPONENTS_"), "only {{PROJECT_NAME}}-style variables remain for the generic pass")
 
             let fork = EnginePackageReference(url: "https://github.com/miolabs/UntoldEngine.git", requirement: .revision("abc123"))
             let full = BuildTemplates.expandingCodeComponentPlaceholders(in: template, settings: settings(enginePackage: fork, codeComponents: true))
             XCTAssertTrue(full.contains(".package(url: \"https://github.com/miolabs/UntoldEngine.git\", revision: \"abc123\")"))
             XCTAssertTrue(full.contains(".product(name: \"UntoldComponentKit\", package: \"UntoldEngine\"),"))
-            XCTAssertTrue(full.contains("name: \"{{PROJECT_NAME}}Components\","), "the generic pass fills the project name in afterwards")
+            XCTAssertTrue(full.contains("name: \"{{PROJECT_NAME}}Plugins\","), "the generic pass fills the project name in afterwards")
         }
 
         func testStarterComponentIsPartOfAProjectThatAsksForCodeComponents() {
-            XCTAssertEqual(BuildTemplates.starterComponentPath, "Sources/{{PROJECT_NAME}}Components/Spinner.swift")
+            XCTAssertEqual(BuildTemplates.starterComponentPath, "Sources/{{PROJECT_NAME}}Plugins/Spinner.swift")
             XCTAssertTrue(BuildTemplates.starterComponentSwift.contains("final class Spinner: ComponentPlugin"))
             XCTAssertTrue(BuildTemplates.starterComponentSwift.contains("@UntoldAttribute"))
             XCTAssertEqual(BuildSystem.starterCodeComponentSource, BuildTemplates.starterComponentSwift)
@@ -226,8 +226,8 @@ import XCTest
             XCTAssertTrue(first.createdStarterComponent)
             XCTAssertTrue(first.updatedProjectSpec)
             XCTAssertFalse(first.regeneratedXcodeProject)
-            XCTAssertEqual(first.componentsDirectory.lastPathComponent, "BedroomTwinComponents")
-            XCTAssertTrue(FileManager.default.fileExists(atPath: first.componentsDirectory.appendingPathComponent("Spinner.swift").path))
+            XCTAssertEqual(first.pluginsDirectory.lastPathComponent, "BedroomTwinPlugins")
+            XCTAssertTrue(FileManager.default.fileExists(atPath: first.pluginsDirectory.appendingPathComponent("Spinner.swift").path))
             let patched = try String(contentsOf: root.appendingPathComponent("project.yml"), encoding: .utf8)
             XCTAssertTrue(patched.contains("product: UntoldComponentKit"))
             XCTAssertTrue(first.notes.contains { $0.contains("discoverInApp") }, "the game still has to register components")

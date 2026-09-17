@@ -1,13 +1,13 @@
-import SamplePlugin
+import SamplePluginPackage
 import simd
 import UntoldComponentKit
 import UntoldEngine
 
-/// Moves its entity up and down, in step with the sample plugin's shared clock, so every Bobber
+/// Moves its entity up and down, in step with the sample plugin package's shared clock, so every Bobber
 /// in the scene moves together.
 ///
-/// It imports a plugin module. In the game that is an ordinary package dependency; in the editor
-/// the plugin is compiled and loaded first, and this file is compiled against it.
+/// It imports a plugin package. In the game that is an ordinary package dependency; in the editor
+/// the package is compiled and loaded first, and this file is compiled against it.
 final class Bobber: ComponentPlugin {
     @UntoldAttribute("Height", range: 0 ... 3, step: 0.05) var height: Float = 0.5
     @UntoldAttribute var startsFromCurrentPosition = true

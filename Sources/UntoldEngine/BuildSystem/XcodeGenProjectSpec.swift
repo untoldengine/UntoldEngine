@@ -25,7 +25,7 @@ import Foundation
             var output: [String] = []
             let lines = yaml.components(separatedBy: "\n")
             let projectSources = "- path: Sources/\(projectName)"
-            let componentSources = "- path: Sources/\(projectName)Components"
+            let componentSources = "- path: Sources/\(BuildSystem.pluginsFolderName(forProject: projectName))"
 
             func indentation(of line: String) -> String {
                 String(line.prefix(while: { $0 == " " || $0 == "\t" }))
@@ -216,7 +216,7 @@ import Foundation
             // `optional` keeps generation working before the folder exists.
             let componentSourcesIfEnabled = settings.includesCodeComponents ? """
 
-                  - path: Sources/\(settings.projectName)Components
+                  - path: Sources/\(BuildSystem.pluginsFolderName(forProject: settings.projectName))
                     optional: true
             """ : ""
 

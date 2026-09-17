@@ -7,14 +7,14 @@ import UntoldEngine
 
 // A kind of entity whose geometry is all there is to it, in the editor and in the game.
 //
-// The engine ships no torus, so the plugin brings one. The ring's numbers are the entity's own
+// The engine ships no torus, so this plugin package brings one. The ring's numbers are the entity's own
 // properties: they show in the Inspector as the Torus block, above whatever components the
 // entity carries. There is no "torus shape" component, because a ring's shape can only ever
 // belong to a torus. What is part of an entity goes on its EntityPlugin; a ComponentPlugin is
 // for what any entity could have.
 //
 // The scene file stores these properties, not the geometry. When the scene is loaded, in the
-// editor or in the game, the plugin is bound to the entity again and rebuilds the ring.
+// editor or in the game, the entity plugin is bound to the entity again and rebuilds the ring.
 
 /// The "Torus" row on the editor's Primitives shelf, and every torus made from it.
 public final class TorusEntity: EntityPlugin {

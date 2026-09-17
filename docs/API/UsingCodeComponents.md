@@ -1,7 +1,7 @@
 # Writing Plugins in Swift
 
-`UntoldComponentKit` lets a project, or a plugin package it uses, add three things to the
-engine and the editor in Swift. Each has a base class:
+`UntoldComponentKit` lets a project add three things to the engine and the editor in Swift.
+Each has a base class:
 
 | Base class | What it adds | Where it shows up |
 | --- | --- | --- |
@@ -11,6 +11,16 @@ engine and the editor in Swift. Each has a base class:
 
 The editor compiles these sources, loads them, and reloads them when they change. The same
 sources compile into your game on macOS, iOS and visionOS.
+
+They live in one of two places, and the two are kept apart by name:
+
+| | The project's **plugins folder** | A **plugin package** |
+| --- | --- | --- |
+| What | `Sources/<Project>Plugins`, part of the app like any other source folder | a Swift package of its own, with a `Package.swift` for games and an `untold-package.json` for the editor |
+| For | what belongs to this one game | what several games share, such as `UntoldGaussianTwins` |
+| Setup | none; the editor creates the folder | listed in the project's `UntoldEditor.json` under `pluginPackages`; the game depends on it like any package |
+
+Either can hold any of the three kinds of plugin.
 
 The kit is a separate library product of the engine package, like `UntoldEngineXR`. It has no
 third-party dependencies.
@@ -226,9 +236,9 @@ console reports the types it found. For an image outside the bundle use
 `ComponentPluginRegistry.shared.discover(imageContaining:)`, or register types one by one with
 `register(_:)`.
 
-Projects created from the editor already contain these calls, a `Sources/<Project>Components`
+Projects created from the editor already contain these calls, a `Sources/<Project>Plugins`
 folder with a starter component, and the `UntoldComponentKit` dependency. For an existing
-project, the editor's **Create component package** button (or
+project, the editor's **Create plugins folder** button (or
 `BuildSystem.shared.addCodeComponents(toProjectAt:projectName:)`) adds the folder and the
 dependency and regenerates the Xcode project; the three calls above are left for you to add.
 
@@ -317,10 +327,20 @@ Callbacks: `onLoad`, `onUnload`, `onSceneReset`, `onPlayModeChanged`, `onEditorU
 
 ## Plugin packages
 
-A plugin package brings any of the three with it. What must exist in the game (a component, a
-kind of entity with geometry) goes in its runtime sources, which then depend on the engine.
-What only the editor needs (an `EditorMenuPlugin`) goes in its editor sources, which only the
-editor compiles. See `Examples/CodeComponents`.
+A plugin package brings any of the three with it, to every project that lists it. What must
+exist in the game (a component, a kind of entity with geometry) goes in its runtime sources,
+which then depend on the engine. What only the editor needs (an `EditorMenuPlugin`) goes in
+its editor sources, which only the editor compiles and which are not a target of the package.
+
+```json
+// <PackageRoot>/untold-package.json
+{ "id": "com.example.shapes", "module": "Shapes", "runtimeSources": "Sources/Shapes", "editorSources": "Sources/ShapesEditor" }
+
+// <ProjectRoot>/UntoldEditor.json
+{ "pluginPackages": [ { "path": "../Shapes" } ] }
+```
+
+`Examples/CodeComponents` has a project with a plugins folder and a plugin package side by side.
 
 ## For tool authors: reloading a library
 
