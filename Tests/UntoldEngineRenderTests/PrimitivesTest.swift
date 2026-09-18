@@ -99,6 +99,27 @@ final class PrimitivesTest: BaseRenderSetup {
         XCTAssertFalse(firstMesh.submeshes.isEmpty, "Sphere should have submeshes")
     }
 
+    func test_createSphere_extentIsTheDiameter() {
+        // Given: A sphere 1 m across
+        let extent: Float = 1.0
+
+        // When: Create the sphere
+        let meshes = BasicPrimitives.createSphere(extent: extent)
+
+        // Then: Its bounds span half the extent each way, like the cube's
+        // (ModelIO's sphereWithExtent takes radii, which the engine hides).
+        guard let mesh = meshes.first else {
+            XCTFail("Sphere should have at least one mesh")
+            return
+        }
+        XCTAssertEqual(mesh.boundingBox.max.x, extent * 0.5, accuracy: 1e-3, "Sphere should reach +extent/2")
+        XCTAssertEqual(mesh.boundingBox.min.x, -extent * 0.5, accuracy: 1e-3, "Sphere should reach -extent/2")
+        XCTAssertEqual(mesh.boundingBox.max.y - mesh.boundingBox.min.y, extent, accuracy: 1e-3, "Sphere height equals the extent")
+
+        let cube = BasicPrimitives.createCube(extent: extent).first!
+        XCTAssertEqual(mesh.boundingBox.max.x, cube.boundingBox.max.x, accuracy: 1e-3, "A sphere and a cube of the same extent are the same size")
+    }
+
     func test_createSphere_withCustomSegments() {
         // Given: Custom segments
         let segments: [UInt32] = [16, 8]
