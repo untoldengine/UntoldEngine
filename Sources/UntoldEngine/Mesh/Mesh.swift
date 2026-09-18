@@ -44,7 +44,11 @@ public struct Mesh {
     public var localSpace: simd_float4x4 = .identity
     public var worldSpace: simd_float4x4 = .identity
     var assetName: String
-    var boundingBox: (min: simd_float3, max: simd_float3)
+    /// Public so callers outside the engine that mutate GPU vertex data directly (e.g. an
+    /// `EngineExtension`-based plugin doing an in-place geometry update) can keep this in sync
+    /// without going through a full mesh rebuild. `localBounds` is the read-only equivalent for
+    /// callers that only need to read it.
+    public var boundingBox: (min: simd_float3, max: simd_float3)
     var skin: Skin?
     var featureEdgeIndexBuffer: MTLBuffer?
     var featureEdgeIndexCount: Int = 0
@@ -324,6 +328,127 @@ public struct Mesh {
             handleError(.meshCreationFailed, error.localizedDescription, primitive.name)
             return nil
         }
+    }
+
+    /// Build an engine `Mesh` directly from CPU-side vertex/index arrays.
+    ///
+    /// For runtime-generated geometry (e.g. procedural extensions) that has neither a source
+    /// file nor a packed runtime-asset payload to decode. Builds the same buffer layout as
+    /// `makeMesh(from: RuntimeMeshPrimitive, device:)`, minus the binary decode step, then
+    /// passes through the same `MDLMesh`/`MTKMesh` construction path used everywhere else so
+    /// the mesh renders through the standard model pipeline.
+    ///
+    /// `tangents` is optional — if omitted, a placeholder is written in its place. In practice
+    /// this rarely matters either way: the underlying ModelIO construction path recomputes a
+    /// proper tangent basis from the UVs/normals whenever texture coordinates are present,
+    /// overwriting whatever was passed in here.
+    public static func makeMesh(
+        positions: [SIMD3<Float>],
+        normals: [SIMD3<Float>],
+        uvs: [SIMD2<Float>],
+        tangents: [SIMD4<Float>]? = nil,
+        indices: [UInt32],
+        name: String
+    ) -> Mesh? {
+        let vertexCount = positions.count
+        guard vertexCount > 0,
+              normals.count == vertexCount,
+              uvs.count == vertexCount,
+              tangents == nil || tangents?.count == vertexCount,
+              !indices.isEmpty
+        else {
+            handleError(.meshCreationFailed, "Mismatched or empty vertex/index arrays", name)
+            return nil
+        }
+
+        guard let device = renderInfo.device else {
+            handleError(.metalDeviceNotFound, name)
+            return nil
+        }
+        let allocator = MTKMeshBufferAllocator(device: device)
+
+        let positionBuffer = allocator.newBuffer(MemoryLayout<simd_float4>.stride * vertexCount, type: .vertex)
+        let normalBuffer = allocator.newBuffer(MemoryLayout<simd_float4>.stride * vertexCount, type: .vertex)
+        let uvBuffer = allocator.newBuffer(MemoryLayout<simd_float2>.stride * vertexCount, type: .vertex)
+        let tangentBuffer = allocator.newBuffer(MemoryLayout<simd_float4>.stride * vertexCount, type: .vertex)
+        let jointIndexBuffer = allocator.newBuffer(MemoryLayout<simd_ushort4>.stride * vertexCount, type: .vertex)
+        let jointWeightBuffer = allocator.newBuffer(MemoryLayout<simd_float4>.stride * vertexCount, type: .vertex)
+
+        let positionsOut = positionBuffer.map().bytes.bindMemory(to: simd_float4.self, capacity: vertexCount)
+        let normalsOut = normalBuffer.map().bytes.bindMemory(to: simd_float4.self, capacity: vertexCount)
+        let uvsOut = uvBuffer.map().bytes.bindMemory(to: simd_float2.self, capacity: vertexCount)
+        let tangentsOut = tangentBuffer.map().bytes.bindMemory(to: simd_float4.self, capacity: vertexCount)
+        let jointIndicesOut = jointIndexBuffer.map().bytes.bindMemory(to: simd_ushort4.self, capacity: vertexCount)
+        let jointWeightsOut = jointWeightBuffer.map().bytes.bindMemory(to: simd_float4.self, capacity: vertexCount)
+
+        for index in 0 ..< vertexCount {
+            let position = positions[index]
+            positionsOut[index] = simd_float4(position.x, position.y, position.z, 1.0)
+
+            let normal = normals[index]
+            normalsOut[index] = simd_float4(normal.x, normal.y, normal.z, 0.0)
+
+            uvsOut[index] = uvs[index]
+
+            tangentsOut[index] = tangents?[index] ?? simd_float4(1, 0, 0, 1)
+
+            // Procedural geometry has no armature; keep these zeroed so the shader's
+            // hasArmature == false path remains valid (same convention as the
+            // non-skinned runtime-asset path above).
+            jointIndicesOut[index] = simd_ushort4(0, 0, 0, 0)
+            jointWeightsOut[index] = simd_float4(0, 0, 0, 0)
+        }
+
+        let indexBuffer = allocator.newBuffer(indices.count * MemoryLayout<UInt32>.stride, type: .index)
+        _ = indices.withUnsafeBytes { rawBuffer in
+            memcpy(indexBuffer.map().bytes, rawBuffer.baseAddress!, rawBuffer.count)
+        }
+
+        let mdlSubmesh = MDLSubmesh(
+            indexBuffer: indexBuffer,
+            indexCount: indices.count,
+            indexType: .uInt32,
+            geometryType: .triangles,
+            material: nil
+        )
+
+        let mdlMesh = MDLMesh(
+            vertexBuffers: [
+                positionBuffer,
+                normalBuffer,
+                uvBuffer,
+                tangentBuffer,
+                jointIndexBuffer,
+                jointWeightBuffer,
+            ],
+            vertexCount: vertexCount,
+            descriptor: vertexDescriptor.model,
+            submeshes: [mdlSubmesh]
+        )
+        mdlMesh.name = name
+
+        let textureLoader = TextureLoader(device: device)
+        guard var mesh = Mesh(
+            modelIOMesh: mdlMesh,
+            vertexDescriptor: vertexDescriptor.model,
+            textureLoader: textureLoader,
+            device: device,
+            flip: true
+        ) else {
+            return nil
+        }
+
+        mesh.assetName = name
+
+        var minBounds = simd_float3(repeating: Float.infinity)
+        var maxBounds = simd_float3(repeating: -Float.infinity)
+        for position in positions {
+            minBounds = simd_min(minBounds, position)
+            maxBounds = simd_max(maxBounds, position)
+        }
+        mesh.boundingBox = (min: minBounds, max: maxBounds)
+
+        return mesh
     }
 
     private static func decodeRuntimeVertices(from data: Data, expectedCount: Int) throws -> [UntoldPBRStaticVertexV1] {
