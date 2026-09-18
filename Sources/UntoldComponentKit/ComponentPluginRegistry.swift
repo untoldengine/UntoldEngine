@@ -15,6 +15,11 @@ import UntoldEngine
 ///
 /// The name, not the Swift type, is the identity: a reloaded library registers new types
 /// under the same names and takes over the saved data of the old ones.
+///
+/// Registration happens on the main thread: at app startup, from `discoverInApp()`, and in the
+/// editor when a library loads. The lock serves lookups from other threads, such as a render
+/// thread asking for a type; it does not make concurrent registration safe, and the script
+/// action registry the bridge writes to has no lock of its own.
 public final class ComponentPluginRegistry: @unchecked Sendable {
     public static let shared = ComponentPluginRegistry()
 

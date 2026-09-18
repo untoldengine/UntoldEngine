@@ -200,12 +200,17 @@ public final class ScenePluginSystem: EngineExtension, @unchecked Sendable {
             start(instance)
         }
 
-        var index = 0
-        // Index-based on purpose: onAttach/onStart may add or remove components on this entity.
-        while index < storage.slots.count {
-            defer { index += 1 }
-            guard storage.slots[index].instance == nil,
-                  let type = ComponentPluginRegistry.shared.type(named: storage.slots[index].typeName)
+        // Then its components, by name. `onAttach` and `onStart` may add or remove components
+        // on this entity, so the slot array can change under the pass; a name is therefore
+        // looked up again just before it is bound. A slot removed meanwhile is skipped, one a
+        // nested pass already bound (`add` during `onAttach` binds at once) is skipped, and one
+        // added meanwhile was bound by that nested pass. Names are unique per entity, so nothing
+        // is bound twice, and removing a sibling never shifts the pass past another one.
+        let pending = storage.slots.compactMap { $0.instance == nil ? $0.typeName : nil }
+        for typeName in pending {
+            guard let index = storage.slots.firstIndex(where: { $0.typeName == typeName }),
+                  storage.slots[index].instance == nil,
+                  let type = ComponentPluginRegistry.shared.type(named: typeName)
             else { continue }
 
             let slot = storage.slots[index]

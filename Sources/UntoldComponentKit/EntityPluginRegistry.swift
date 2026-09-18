@@ -12,6 +12,12 @@ import Foundation
 import UntoldEngine
 
 /// The kinds of entity known to the process, keyed by unqualified type name.
+///
+/// Registration happens on the main thread: at app startup, from `discoverInApp()`, and in the
+/// editor when a library loads. The lock serves lookups from other threads, such as a render
+/// thread asking a type for its shelf; it does not make concurrent registration safe, and the
+/// script action registry the bridge writes to has no lock of its own. `ComponentPluginRegistry`
+/// works the same way.
 public final class EntityPluginRegistry: @unchecked Sendable {
     public static let shared = EntityPluginRegistry()
 
@@ -29,11 +35,17 @@ public final class EntityPluginRegistry: @unchecked Sendable {
 
     /// Registers `type`. With `replaceExisting`, a different type under the same name takes
     /// over, which is what loading a new library revision wants; otherwise it is refused.
+    /// Registering the very same type again changes nothing and costs nothing, so
+    /// `instantiate(_:at:entityName:)` can call this every time.
     @discardableResult
     public func register(_ type: EntityPlugin.Type, revision: Int = 0, replaceExisting: Bool = false) -> Bool {
         let name = type.typeName
         lock.lock()
         let existing = entriesByName[name]
+        if let existing, existing.type == type {
+            lock.unlock()
+            return true
+        }
         if let existing, existing.type != type, replaceExisting == false {
             lock.unlock()
             Logger.logError(
@@ -45,7 +57,7 @@ public final class EntityPluginRegistry: @unchecked Sendable {
         entriesByName[name] = Entry(name: name, type: type, revision: revision)
         lock.unlock()
 
-        if let existing, existing.type != type {
+        if let existing {
             USCBridge.unregisterActions(for: existing.type)
         }
         USCBridge.registerActions(for: type)

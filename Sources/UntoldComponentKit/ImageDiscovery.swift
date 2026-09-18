@@ -9,6 +9,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import Foundation
+import UntoldEngine
 #if canImport(MachO)
     import MachO
 #endif
@@ -27,9 +28,15 @@ public enum ImageDiscovery {
     /// images under their resolved path (`/private/var/...` for a file opened as `/var/...`),
     /// so the path is matched against the loaded images first.
     public static func classes(inImageAt imagePath: String, inheritingFrom base: AnyClass) -> [AnyClass] {
-        let imageName = loadedImageName(matching: imagePath) ?? imagePath
+        guard let imageName = loadedImageName(matching: imagePath) else {
+            reportImageNotLoaded(imagePath)
+            return []
+        }
         var count: UInt32 = 0
-        guard let names = objc_copyClassNamesForImage(imageName, &count) else { return [] }
+        guard let names = objc_copyClassNamesForImage(imageName, &count) else {
+            reportImageNotLoaded(imagePath)
+            return []
+        }
         defer { free(UnsafeMutableRawPointer(mutating: names)) }
 
         var result: [AnyClass] = []
@@ -44,6 +51,23 @@ public enum ImageDiscovery {
             }
         }
         return result
+    }
+
+    private static let reportLock = NSLock()
+    private nonisolated(unsafe) static var reportedPaths: Set<String> = []
+
+    /// A library that is not loaded, or whose path matches none of the loaded images, would
+    /// otherwise look exactly like one that defines nothing. Said once per path, since every
+    /// registry asks about the same image.
+    private static func reportImageNotLoaded(_ imagePath: String) {
+        reportLock.lock()
+        let firstTime = reportedPaths.insert(imagePath).inserted
+        reportLock.unlock()
+        guard firstTime else { return }
+        Logger.logWarning(
+            message: "[ComponentKit] No loaded image matches '\(imagePath)', so nothing was discovered in it. Load it first (dlopen), and pass the path the loader knows it by; symlinks and /var vs /private/var are matched by resolved path.",
+            category: LogCategory.ecs.rawValue
+        )
     }
 
     /// The name the loader knows a loaded image by, for any path that resolves to the same file.
