@@ -112,6 +112,12 @@ struct GaussianPagerFrameInputs {
     var densityFloor: Float = .infinity
     var levelMode: GaussianLevelMode = .auto
     var levelFadeFrames: UInt32 = GaussianPagingPolicy.fadeFrames
+    /// This frame's `GaussianChunkTreeCull.visibleChunkRanges` result (nil under
+    /// `GaussianDebugOptions.disableTreeSkip`/`disableChunkCull`, or when the caller is a
+    /// warming tier rather than the live entity). Only `ingestDemand`'s seed path reads it — the
+    /// steady-state path already fast-skips unchanging demand via its own block memcmp, so the
+    /// tree only saves anything on the one path that does real per-chunk work unconditionally.
+    var treeRanges: [GaussianChunkRange]?
 }
 
 /// The coarse section a paged entity streams (per-chunk-lod-tiers): the records buffer the
@@ -1613,9 +1619,31 @@ public final class GaussianPageManager: @unchecked Sendable {
         } else {
             var constants = frame.cullConstants
             constants.uniformQuotas = 0
+            // Every chunk gets real per-chunk math here (seedArea, the same frustum test the
+            // GPU cull runs) — unlike the steady-state branch above, which already fast-skips
+            // unchanging demand via memcmp, this path has no existing shortcut. A chunk outside
+            // every span GaussianChunkTreeCull's tree walk kept is treated as unseen (bits = 0)
+            // without spending that math on it; ranges is sorted, so the scan below advances
+            // once across the whole loop rather than searching per chunk. nil (disableTreeSkip,
+            // a file without a tree, or a caller — the warming-tier cull — that never supplies
+            // one) keeps every chunk seeded, exactly as before the tree was wired in here.
+            let ranges = frame.treeRanges
+            var rangeIndex = 0
             for chunk in 0 ..< chunkCount {
-                let area = GaussianPageManager.seedArea(entry: index.chunks[chunk], constants: constants)
-                let bits = area > 0 ? area.bitPattern : 0
+                var inRange = ranges == nil
+                if let ranges {
+                    while rangeIndex < ranges.count, chunk >= Int(ranges[rangeIndex].firstChunk) + Int(ranges[rangeIndex].chunkCount) {
+                        rangeIndex += 1
+                    }
+                    inRange = rangeIndex < ranges.count && chunk >= Int(ranges[rangeIndex].firstChunk)
+                }
+                let bits: UInt32
+                if inRange {
+                    let area = GaussianPageManager.seedArea(entry: index.chunks[chunk], constants: constants)
+                    bits = area > 0 ? area.bitPattern : 0
+                } else {
+                    bits = 0
+                }
                 if bits != demandWords[chunk] {
                     noteDemand(chunk: chunk, bits: bits)
                     changed = true

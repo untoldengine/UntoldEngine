@@ -188,10 +188,36 @@ kernel void gaussianChunkCull(
     const device GaussianChunkDecodeConstants *coarseTable [[buffer(gaussianChunkCullCoarseTableIndex)]],
     const device GaussianChunkLevelState *levelState [[buffer(gaussianChunkCullLevelStateIndex)]],
     constant GaussianChunkLevelConstants &lvl [[buffer(gaussianChunkCullLevelConstantsIndex)]],
+    const device GaussianChunkCullRange *ranges [[buffer(gaussianChunkCullRangesIndex)]],
     texture2d<float, access::sample> hzbDepthPyramid [[texture(gaussianChunkCullHZBDepthPyramidTextureIndex)]],
     uint chunkIndex [[thread_position_in_grid]])
 {
     if (chunkIndex >= params.chunkCount) return;
+
+    // GaussianChunkTreeCull (Swift) found this chunk outside every span its tree walk kept —
+    // the per-chunk test below would only have rejected it too, so skip straight to what a
+    // rejection already does: a paged entity's demand cleared (the pager depends on every chunk
+    // being visited each frame to positively clear a stale one; skipping the dispatch entirely
+    // for a pruned chunk, an earlier version of this, left demand.tick stuck at whenever it was
+    // last seen — GaussianPagingTest.testStalePagesAreEvictedAfterTheHoldOff caught it), nothing
+    // listed, nothing binned. rangeCount == 0 (GaussianDebugOptions.disableTreeSkip, or a file
+    // without a tree) skips this check entirely, exactly as before the tree was wired in.
+    if (params.rangeCount != 0u) {
+        bool inRange = false;
+        for (uint r = 0u; r < params.rangeCount; ++r) {
+            const GaussianChunkCullRange range = ranges[r];
+            if (chunkIndex >= range.firstChunk && chunkIndex < range.firstChunk + range.chunkCount) {
+                inRange = true;
+                break;
+            }
+        }
+        if (!inRange) {
+            if (params.paged != 0u) {
+                demand[chunkIndex] = 0u;
+            }
+            return;
+        }
+    }
     const GaussianChunkDecodeConstants chunk = chunks[chunkIndex];
 
     const float limit = max(0.0f, 1.0f + params.clipGuardBand);

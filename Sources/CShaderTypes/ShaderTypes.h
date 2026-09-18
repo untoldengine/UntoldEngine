@@ -796,7 +796,20 @@ typedef struct{
     uint32_t forceAllVisible;    // GaussianDebugOptions.disableChunkCull: every chunk is appended
     uint32_t uniformQuotas;      // GaussianDebugOptions.disableScreenWeightedQuotas: screenArea = splatCount, the uniform quota rule
     uint32_t paged;              // 0: every record resident; 1: a paged entity (the cull writes the demand table and lists resident ranks only, the fused pass reads the page pool); 2: demand only (a warming tier: write the demand word and return)
-}GaussianChunkCullConstants;  // 176 bytes
+    uint32_t rangeCount;         // entries of ranges[] (gaussianChunkCullRangesIndex, GaussianChunkTreeCull); a thread whose chunkIndex falls in none of them skips the per-chunk test. 0 (GaussianDebugOptions.disableTreeSkip, or a file without a tree) skips the check entirely, as before the tree was wired in
+}GaussianChunkCullConstants;  // 192 bytes (176 + rangeCount, padded to the struct's 16-byte alignment)
+
+/// One span of GaussianChunkTreeCull.visibleChunkRanges (Swift): chunk indices [firstChunk,
+/// firstChunk + chunkCount) the tree walk could not rule out this frame. Every chunk still gets
+/// a thread (the dispatch grid is unchanged, one thread per chunk of chunkCount) — a thread
+/// outside every span skips the frustum/HZB test and the histogram/visible-list writes, clearing
+/// its demand word first if the entity pages, so a chunk the tree prunes still tells the pager
+/// it is not wanted. ranges[] is sorted by firstChunk; a thread finds its span (or finds none)
+/// with a short linear scan, cheap next to the per-chunk work it decides whether to do.
+typedef struct{
+    uint32_t firstChunk;
+    uint32_t chunkCount;
+}GaussianChunkCullRange;  // 8 bytes
 
 typedef enum{
     gaussianChunkCullChunkTableIndex = 0,  // GaussianChunkDecodeConstants[]
@@ -811,6 +824,7 @@ typedef enum{
     gaussianChunkCullCoarseTableIndex = 10, // GaussianChunkDecodeConstants[levelCount × chunkCount]: the coarse levels' rows, level-major (entities with coarse levels; a never-read stand-in otherwise)
     gaussianChunkCullLevelStateIndex = 11, // GaussianChunkLevelState[chunkCount], persistent, written by gaussianComputeChunkQuotas (a never-read stand-in without coarse levels)
     gaussianChunkCullLevelConstantsIndex = 12, // GaussianChunkLevelConstants (setBytes); hasCoarse = 0 keeps every path as it was
+    gaussianChunkCullRangesIndex = 13,     // GaussianChunkCullRange[rangeCount] (setBytes; a never-read stand-in when rangeCount == 0)
 }GaussianChunkCullBufferIndices;
 
 typedef enum{

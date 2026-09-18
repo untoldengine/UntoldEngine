@@ -714,6 +714,38 @@ final class GaussianPagingTest: BaseRenderSetup {
         }
     }
 
+    // MARK: - 6b: the tree walk's seed-path skip
+
+    /// The seed path (`ingestDemand`'s stale branch — the very first tick, `demandStampTick[slot]`
+    /// still nil) is the one place a chunk's demand is computed with real unconditional per-chunk
+    /// math (`seedArea`) rather than the steady-state path's memcmp fast skip. With the tree
+    /// walk kept in front of it, the chunks it seeds on that very first tick should still be
+    /// exactly the ones the frustum test itself would keep — same set `mirrorAreas` (the CPU
+    /// mirror of the GPU per-chunk test) reports, proving the tree walk's range scan neither
+    /// drops a chunk the per-chunk test would have kept nor lets through one it would have
+    /// rejected.
+    func testSeedPathSeedsExactlyTheChunksTheTreeWalkKeeps() throws {
+        let fixture = try loadFixture(poolSlots: 13)
+        placeGaussianTestCamera(eye: cornerCamera.eye, target: cornerCamera.target)
+        let areas = try mirrorAreas(fixture, constants: cullConstants(fixture))
+        frame(fixture)
+        let issued = fixture.pager.eventLog.filter { $0.kind == .issued && $0.tick == 1 }
+        XCTAssertEqual(Set(issued.map(\.chunk)), Set(areas.keys), "the very first tick seeds exactly the chunks the frustum test keeps")
+    }
+
+    /// From a camera the whole asset is behind, the tree walk's root node itself fails the
+    /// frustum test — nothing is seeded on the very first tick, so nothing is ever a read
+    /// candidate. `testStalePagesAreEvictedAfterTheHoldOff` already covers this camera dropping
+    /// demand over many steady-state frames; this covers the same "nothing here" outcome on the
+    /// seed path specifically, before `demandStampTick` is ever set.
+    func testSeedPathSeedsNothingWhenTheTreeRootIsOutOfView() throws {
+        let fixture = try loadFixture(poolSlots: 8)
+        placeGaussianTestCamera(eye: awayCamera.eye, target: awayCamera.target)
+        frame(fixture)
+        XCTAssertEqual(residentChunks(fixture), [], "nothing is visible from here on the very first tick")
+        XCTAssertTrue(fixture.pager.eventLog.filter { $0.kind == .issued }.isEmpty, "no chunk should have been issued a read on the seed tick")
+    }
+
     // MARK: - 7: slot reuse
 
     func testRetiredSlotsAreNotReusedForThreeTicks() throws {
@@ -1752,8 +1784,9 @@ final class GaussianPagingTest: BaseRenderSetup {
         XCTAssertEqual(MemoryLayout<GaussianChunkPagingConstants>.offset(of: \.frameIndex), 8)
         XCTAssertEqual(MemoryLayout<GaussianChunkPagingConstants>.offset(of: \.fadeFrames), 12)
         XCTAssertEqual(MemoryLayout<GaussianChunkPagingConstants>.offset(of: \.debugMode), 16)
-        XCTAssertEqual(MemoryLayout<GaussianChunkCullConstants>.stride, 176)
+        XCTAssertEqual(MemoryLayout<GaussianChunkCullConstants>.stride, 192)
         XCTAssertEqual(MemoryLayout<GaussianChunkCullConstants>.offset(of: \.paged), 172)
+        XCTAssertEqual(MemoryLayout<GaussianChunkCullConstants>.offset(of: \.rangeCount), 176)
         XCTAssertEqual(gaussianChunkCullResidencyIndex.rawValue, 8)
         XCTAssertEqual(gaussianChunkCullDemandIndex.rawValue, 9)
         XCTAssertEqual(gaussianChunkPreprocessResidencyIndex.rawValue, 13)

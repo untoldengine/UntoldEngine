@@ -370,6 +370,23 @@ public func executeGaussianFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
                 gaussianComponent.visibleSplatCountForRendering = 0
                 continue
             }
+            // The baked cluster tree over this entity's chunk array (GaussianChunkTreeCull), read
+            // against the same eyes chunkConstants was just built from, narrows the cull dispatch
+            // below to the spans still possibly visible — nil (disableTreeSkip, or disableChunkCull
+            // since a genuinely out-of-view chunk the tree walk pruned would never reach the
+            // per-chunk test's own forceAllVisible override) dispatches every chunk, as before the
+            // tree was wired in. Computed before the pager ticks below so its own seed path
+            // (ingestDemand) can skip the same pruned chunks too.
+            var treeRanges: [GaussianChunkRange]?
+            if !GaussianDebugOptions.shared.disableTreeSkip, !GaussianDebugOptions.shared.disableChunkCull {
+                treeRanges = GaussianChunkTreeCull.visibleChunkRanges(
+                    nodes: chunkTable.index.nodes,
+                    chunks: chunkTable.index.chunks,
+                    viewProjection0: chunkConstants.viewProjection0,
+                    viewProjection1: chunkConstants.viewCount > 1 ? chunkConstants.viewProjection1 : nil
+                )
+                profileTotals.include(treeSkip: treeRanges ?? [], ofChunks: chunkTable.chunkCount)
+            }
             // A paged entity: the pager ticks before its cull is encoded — maps what landed,
             // reads this slot's demand from the frame that last owned it (complete under the
             // semaphore), issues reads, and brings this slot's residency and page tables up to
@@ -388,7 +405,8 @@ public func executeGaussianFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
                     debugMode: pagingSwitches.debugMode,
                     densityFloor: frameDensityFloor,
                     levelMode: pagingSwitches.levelMode,
-                    levelFadeFrames: pagingSwitches.levelFadeFrames
+                    levelFadeFrames: pagingSwitches.levelFadeFrames,
+                    treeRanges: treeRanges
                 ))
             }
             // The entity's coarse levels this frame (per-chunk-lod-tiers): the level buffers and
@@ -432,7 +450,8 @@ public func executeGaussianFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
                 residency: pagerBindings?.residency,
                 demand: pagerBindings?.demand,
                 levels: levels,
-                levelConstants: levelConstants
+                levelConstants: levelConstants,
+                treeRanges: treeRanges
             )
             chunkedEntities.append(GaussianChunkedEntityFrame(
                 chunkTable: chunkTable,
@@ -660,7 +679,7 @@ public func executeGaussianFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         stage: "FrustumCull",
         startTime: profileStart,
         totals: profileTotals,
-        extra: "previousActiveSplats=\(activeSplatTotal) budget=\(budget) capacity=\(capacity) resident=\(residentSplats) wholeBuffer=\(wholeBufferSplats) chunkedEntities=\(chunkedEntities.count)\(profileTotals.pagingSummary)"
+        extra: "previousActiveSplats=\(activeSplatTotal) budget=\(budget) capacity=\(capacity) resident=\(residentSplats) wholeBuffer=\(wholeBufferSplats) chunkedEntities=\(chunkedEntities.count)\(profileTotals.pagingSummary)\(profileTotals.treeSkipSummary)"
     )
 }
 
