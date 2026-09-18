@@ -62,6 +62,13 @@ struct GaussianProfileTotals {
     var coarseReadsIssued: Int = 0
     var coarseFaultedEntities: Int = 0
 
+    /// Chunked entities whose dispatch this frame was narrowed by `GaussianChunkTreeCull`
+    /// (`GaussianDebugOptions.disableTreeSkip` off), and the chunk counts that walk weighed:
+    /// `treeTestedChunks` of `treeTotalChunks` actually reached the per-chunk cull.
+    var treeSkipEntityCount: Int = 0
+    var treeTestedChunks: Int = 0
+    var treeTotalChunks: Int = 0
+
     var totalResidentBytes: Int {
         encodedBytes + packedBytes + sortedIndexBytes + visibleIndexBytes + visibleCountBytes + chunkTableBytes + sphericalHarmonicsBytes + uniformBytes + scratchBytes + sharedWorkingSetBytes
     }
@@ -76,6 +83,22 @@ struct GaussianProfileTotals {
     var coarseSummary: String {
         guard coarseEntityCount > 0 else { return "" }
         return " coarseEntities=\(coarseEntityCount) coarseBytes=\(gaussianFormatBytes(coarseBytes)) coarseLanded=\(gaussianFormatBytes(coarseBytesLanded)) coarseLevelsAvailable=\(coarseChunkLevelsAvailable) coarseReads=\(coarseReadsIssued) coarseFaulted=\(coarseFaultedEntities)"
+    }
+
+    /// The tree-skip fields of a profile line's `extra`, empty when no entity's dispatch was
+    /// walked this frame (`GaussianDebugOptions.disableTreeSkip`, or no chunked entity yet).
+    var treeSkipSummary: String {
+        guard treeSkipEntityCount > 0 else { return "" }
+        return " treeSkip=\(treeSkipEntityCount) treeChunks=\(treeTestedChunks)/\(treeTotalChunks)"
+    }
+
+    /// One entity's `GaussianChunkTreeCull.visibleChunkRanges` result: `ranges`' chunk counts
+    /// summed against `chunkCount`, the entity's true total — so `treeSkipSummary` reads directly
+    /// as "this many chunks actually reached the per-chunk cull out of this many that exist."
+    mutating func include(treeSkip ranges: [GaussianChunkRange], ofChunks chunkCount: Int) {
+        treeSkipEntityCount += 1
+        treeTestedChunks += ranges.reduce(0) { $0 + Int($1.chunkCount) }
+        treeTotalChunks += chunkCount
     }
 
     mutating func include(component: GaussianComponent) {

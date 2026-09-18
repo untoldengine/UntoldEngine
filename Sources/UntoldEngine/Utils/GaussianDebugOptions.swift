@@ -27,6 +27,7 @@ public final class GaussianDebugOptions: @unchecked Sendable {
     private var _crispSplatKernel = false
     private var _disableOccluderShell = false
     private var _disableChunkCull = false
+    private var _disableTreeSkip = false
     private var _disableWorkingSetBudget = false
     private var _disableScreenWeightedQuotas = false
     private var _disablePaging = false
@@ -102,6 +103,17 @@ public final class GaussianDebugOptions: @unchecked Sendable {
     public var disableChunkCull: Bool {
         get { lock.lock(); defer { lock.unlock() }; return _disableChunkCull }
         set { lock.lock(); _disableChunkCull = newValue; lock.unlock() }
+    }
+
+    /// Skips the CPU walk of a chunked entity's baked cluster tree (`GaussianChunkTreeCull`,
+    /// built at cook time over the Morton-ordered chunk array) that narrows the chunk cull's
+    /// dispatch to the spans still possibly visible. With this on every chunk is dispatched
+    /// individually, as before the tree was wired in — the frame is otherwise identical, since
+    /// the tree walk only prunes subtrees the per-chunk test would have rejected anyway. For an
+    /// A/B of the walk's cost against the dispatch it saves.
+    public var disableTreeSkip: Bool {
+        get { lock.lock(); defer { lock.unlock() }; return _disableTreeSkip }
+        set { lock.lock(); _disableTreeSkip = newValue; lock.unlock() }
     }
 
     /// Sizes the frame's shared working set to the resident splat total instead of the budget

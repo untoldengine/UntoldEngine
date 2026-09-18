@@ -695,6 +695,105 @@ enum GaussianChunkCullMath {
     }
 }
 
+/// One surviving span of a `.untoldgs` asset's chunk array: `chunks[firstChunk ..< firstChunk +
+/// chunkCount]` may still be visible. Disjoint and sorted by `firstChunk` wherever
+/// `GaussianChunkTreeCull.visibleChunkRanges` returns them.
+struct GaussianChunkRange: Equatable {
+    var firstChunk: UInt32
+    var chunkCount: UInt32
+}
+
+/// A CPU-side pre-filter over a `.untoldgs` asset's baked cluster tree (`UntoldGSTreeNode`,
+/// built at cook time over the Morton-ordered chunk array — see `UntoldGSWriter.buildTree`),
+/// so a frame with much of a large asset off screen doesn't pay the per-chunk cull's cost
+/// (`gaussianChunkCull`, one thread per chunk today) for chunks nowhere near the view. Reduces
+/// the chunk index space to the handful of spans still worth testing individually; the existing
+/// per-chunk kernel remains the source of truth for which chunks, and which splats, actually
+/// draw — this only decides which chunks are worth asking.
+enum GaussianChunkTreeCull {
+    /// Walks `nodes` (preorder, root at index 0 — `UntoldGSWriter.buildTree`'s layout) against
+    /// one or two view-projections — `viewProjection1` nil in mono, set in stereo, where a
+    /// subtree survives if *either* eye keeps it, mirroring the per-chunk cull's own stereo rule
+    /// so this stage never disagrees with it — and returns the chunk-index spans that might
+    /// still be visible.
+    ///
+    /// Conservative the same way the per-chunk test is conservative: a subtree is pruned only
+    /// when every corner of its padded box lies beyond the same clip plane in every eye, so any
+    /// chunk the per-chunk cull would keep is inside a surviving span — this stage can only
+    /// remove work, never chunks a correct frame needs. `chunks` supplies the padding every node
+    /// needs to be safe: a node's stored AABB is the tight union of its chunks' *unpadded* boxes
+    /// (`UntoldGSWriter.buildTree`), but the splat one of those chunks draws can reach past it by
+    /// that chunk's own scale (`GaussianChunkCullMath.extentPadding`, the same per-chunk padding
+    /// `chunkScreenArea` applies). Padding every node by the asset's single largest scale, rather
+    /// than each node's own subtree maximum (not stored on `UntoldGSTreeNode`), keeps every node
+    /// at least as generous as the per-chunk test needs — at the cost of being less tight near a
+    /// node that happens to hold none of the asset's largest splats. Recomputed from `chunks`
+    /// each call, an O(chunkCount) pass; a caller on a per-frame path should cache it once per
+    /// load rather than call this fresh every frame.
+    ///
+    /// Returns a single span covering every chunk when `nodes` is empty — a file cooked before
+    /// the tree existed, or small enough `buildTree` was never asked to run — so a caller can use
+    /// this unconditionally without special-casing a tree-less file.
+    static func visibleChunkRanges(
+        nodes: [UntoldGSTreeNode],
+        chunks: [UntoldGSChunkEntry],
+        viewProjection0: simd_float4x4,
+        viewProjection1: simd_float4x4? = nil,
+        clipGuardBand: Float = gaussianCullClipGuardBand
+    ) -> [GaussianChunkRange] {
+        guard !nodes.isEmpty else {
+            guard !chunks.isEmpty else { return [] }
+            return [GaussianChunkRange(firstChunk: 0, chunkCount: UInt32(chunks.count))]
+        }
+
+        let maxLogScaleMax = chunks.lazy.map(\.logScaleMax).max() ?? 0
+
+        var leafRanges: [GaussianChunkRange] = []
+        var stack: [UInt32] = [0] // root, UntoldGSWriter.buildTree's preorder index 0
+        while let nodeIndex = stack.popLast() {
+            guard nodeIndex != UntoldGSFormat.invalidNode, Int(nodeIndex) < nodes.count else { continue }
+            let node = nodes[Int(nodeIndex)]
+
+            let box = GaussianChunkCullMath.paddedBox(aabbMin: node.aabbMin, aabbMax: node.aabbMax, logScaleMax: maxLogScaleMax)
+            let visibleEye0 = GaussianChunkCullMath.boxPassesClipPlanes(
+                boxMin: box.min, boxMax: box.max, viewProjection: viewProjection0, clipGuardBand: clipGuardBand
+            )
+            let visibleEye1 = viewProjection1.map {
+                GaussianChunkCullMath.boxPassesClipPlanes(boxMin: box.min, boxMax: box.max, viewProjection: $0, clipGuardBand: clipGuardBand)
+            } ?? false
+            guard visibleEye0 || visibleEye1 else { continue }
+
+            if node.isLeaf {
+                leafRanges.append(GaussianChunkRange(firstChunk: node.firstChunk, chunkCount: node.chunkCount))
+            } else {
+                stack.append(node.child0)
+                stack.append(node.child1)
+            }
+        }
+
+        leafRanges.sort { $0.firstChunk < $1.firstChunk }
+        return mergeAdjacent(leafRanges)
+    }
+
+    /// Merges spans that abut exactly (`a.firstChunk + a.chunkCount == b.firstChunk`) in `sorted`
+    /// order, so sibling leaves that both survive collapse into one span instead of two — fewer,
+    /// larger spans for a caller that dispatches per span.
+    private static func mergeAdjacent(_ sorted: [GaussianChunkRange]) -> [GaussianChunkRange] {
+        guard var current = sorted.first else { return [] }
+        var merged: [GaussianChunkRange] = []
+        for range in sorted.dropFirst() {
+            if current.firstChunk + current.chunkCount == range.firstChunk {
+                current.chunkCount += range.chunkCount
+            } else {
+                merged.append(current)
+                current = range
+            }
+        }
+        merged.append(current)
+        return merged
+    }
+}
+
 extension GaussianBudgetDensityHistogram {
     /// The tiers as an array (the C array imports as a tuple).
     var tierArray: [GaussianBudgetDensityTier] {
@@ -1060,7 +1159,8 @@ func encodeGaussianChunkCull(
     residency: MTLBuffer? = nil,
     demand: MTLBuffer? = nil,
     levels: GaussianChunkLevelBuffers? = nil,
-    levelConstants: GaussianChunkLevelConstants = GaussianChunkLevelConstants()
+    levelConstants: GaussianChunkLevelConstants = GaussianChunkLevelConstants(),
+    treeRanges: [GaussianChunkRange]? = nil
 ) -> Int {
     encoder.setComputePipelineState(pipelines.reset)
     encoder.setBuffer(chunkSet, offset: 0, index: Int(gaussianVisibleCountIndex.rawValue))
@@ -1079,7 +1179,8 @@ func encodeGaussianChunkCull(
         residency: residency,
         demand: demand,
         levels: levels,
-        levelConstants: levelConstants
+        levelConstants: levelConstants,
+        treeRanges: treeRanges
     )
 
     encodeGaussianFinalizeVisibleChunks(encoder, pipelines: pipelines, chunkSet: chunkSet, budgetState: budgetState, densityHistogram: densityHistogram)
@@ -1087,8 +1188,16 @@ func encodeGaussianChunkCull(
     return 3
 }
 
-/// The cull dispatch alone: one thread per chunk of `chunkTable`. `budgetState` nil (a
-/// demand-only cull) binds a stand-in for the transition counter the kernel then never adds to.
+/// The cull dispatch alone: one thread per chunk of `chunkTable`, unchanged by `treeRanges` —
+/// every chunk still gets a thread, so a paged entity's demand word is cleared for a chunk the
+/// tree walk prunes exactly as it would be for one the per-chunk test itself rejects (the pager
+/// depends on that happening every frame; narrowing the dispatch grid itself, an earlier version
+/// of this, left a pruned chunk's demand stuck at whenever it was last seen — see
+/// `GaussianPagingTest.testStalePagesAreEvictedAfterTheHoldOff`). `treeRanges` (nil under
+/// `GaussianDebugOptions.disableTreeSkip`) instead tells each thread whether to skip straight to
+/// that rejection, saving the frustum/HZB test and the histogram/visible-list writes for chunks
+/// outside every span. `budgetState` nil (a demand-only cull) binds a stand-in for the
+/// transition counter the kernel then never adds to.
 private func encodeGaussianChunkCullDispatch(
     _ encoder: MTLComputeCommandEncoder,
     pipelines: GaussianChunkCullPipelineStates,
@@ -1102,13 +1211,21 @@ private func encodeGaussianChunkCullDispatch(
     residency: MTLBuffer?,
     demand: MTLBuffer?,
     levels: GaussianChunkLevelBuffers?,
-    levelConstants: GaussianChunkLevelConstants
+    levelConstants: GaussianChunkLevelConstants,
+    treeRanges: [GaussianChunkRange]? = nil
 ) {
     var constants = constants
     var levelConstants = levelConstants
     if levels == nil {
         levelConstants.hasCoarse = 0
     }
+
+    var gpuRanges: [GaussianChunkCullRange] = []
+    if let treeRanges {
+        gpuRanges = treeRanges.map { GaussianChunkCullRange(firstChunk: $0.firstChunk, chunkCount: $0.chunkCount) }
+    }
+    constants.rangeCount = treeRanges != nil ? UInt32(gpuRanges.count) : 0
+
     encoder.setComputePipelineState(pipelines.cull)
     encoder.setBuffer(chunkTable.constantsBuffer, offset: 0, index: Int(gaussianChunkCullChunkTableIndex.rawValue))
     encoder.setBytes(&constants, length: MemoryLayout<GaussianChunkCullConstants>.stride, index: Int(gaussianChunkCullConstantsIndex.rawValue))
@@ -1132,6 +1249,12 @@ private func encodeGaussianChunkCullDispatch(
     encoder.setBuffer(levels?.coarseTable ?? chunkTable.constantsBuffer, offset: 0, index: Int(gaussianChunkCullCoarseTableIndex.rawValue))
     encoder.setBuffer(levels?.levelState ?? chunkTable.constantsBuffer, offset: 0, index: Int(gaussianChunkCullLevelStateIndex.rawValue))
     encoder.setBytes(&levelConstants, length: MemoryLayout<GaussianChunkLevelConstants>.stride, index: Int(gaussianChunkCullLevelConstantsIndex.rawValue))
+    // The tree-narrowed spans, only read by the kernel when rangeCount != 0.
+    if gpuRanges.isEmpty {
+        encoder.setBuffer(chunkTable.constantsBuffer, offset: 0, index: Int(gaussianChunkCullRangesIndex.rawValue))
+    } else {
+        encoder.setBytes(&gpuRanges, length: MemoryLayout<GaussianChunkCullRange>.stride * gpuRanges.count, index: Int(gaussianChunkCullRangesIndex.rawValue))
+    }
     encoder.setTexture(hzbTexture, index: Int(gaussianChunkCullHZBDepthPyramidTextureIndex.rawValue))
     let tew = pipelines.cull.threadExecutionWidth
     let block = max(min(256, pipelines.cull.maxTotalThreadsPerThreadgroup) / tew * tew, tew)
