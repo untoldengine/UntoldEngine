@@ -32,7 +32,7 @@ CodeComponents/
         │   ├── Torus.swift                EntityPlugin: geometry, a primitive the engine lacks
         │   ├── SplinePath.swift           EntityPlugin: geometry and an editor representation; plus PathFollower, a ComponentPlugin
         │   └── GeneratedGeometry.swift    packs vertices into the mesh the engine converts
-        └── SamplePluginPackageEditor/     its editor side, an EditorMenuPlugin; no game target compiles this
+        └── SampleEditorPluginPackage/     its editor side, an EditorMenuPlugin; no game target compiles this
 ```
 
 ### Plugins folder or plugin package
@@ -76,7 +76,7 @@ The **Plugins** tab at the bottom shows what happened: three libraries were buil
 | Library | From | Loaded |
 | --- | --- | --- |
 | `SamplePluginPackage_r1` | the package's runtime sources | globally, so the next two find its symbols |
-| `SamplePluginPackageEditor_r1` | the package's editor sources | locally |
+| `SampleEditorPluginPackage_r1` | the package's editor sources | locally |
 | `SampleProjectPlugins_r1` | the project's plugins folder | locally |
 
 Things to try:
