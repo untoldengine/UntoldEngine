@@ -99,7 +99,7 @@ final class PrimitivesTest: BaseRenderSetup {
         XCTAssertFalse(firstMesh.submeshes.isEmpty, "Sphere should have submeshes")
     }
 
-    func test_createSphere_extentIsTheDiameter() {
+    func test_createSphere_extentIsTheDiameter() throws {
         // Given: A sphere 1 m across
         let extent: Float = 1.0
 
@@ -116,7 +116,7 @@ final class PrimitivesTest: BaseRenderSetup {
         XCTAssertEqual(mesh.boundingBox.min.x, -extent * 0.5, accuracy: 1e-3, "Sphere should reach -extent/2")
         XCTAssertEqual(mesh.boundingBox.max.y - mesh.boundingBox.min.y, extent, accuracy: 1e-3, "Sphere height equals the extent")
 
-        let cube = BasicPrimitives.createCube(extent: extent).first!
+        let cube = try XCTUnwrap(BasicPrimitives.createCube(extent: extent).first)
         XCTAssertEqual(mesh.boundingBox.max.x, cube.boundingBox.max.x, accuracy: 1e-3, "A sphere and a cube of the same extent are the same size")
     }
 
