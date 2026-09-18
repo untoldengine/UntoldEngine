@@ -100,6 +100,19 @@ func scenePickingMarkEntityDirty(_ entityId: EntityID) {
     scenePickingDirtyEntities.insert(entityId)
 }
 
+/// Invalidates the picking system's cached acceleration data for `entityId`, so the next
+/// `pickEntity` ray test reflects its current geometry/transform.
+///
+/// Every in-tree call site that changes what an entity would be hit-tested against (moving it,
+/// swapping its mesh, etc.) already goes through the engine's own registration APIs, which call
+/// this internally. It's exposed publicly for callers outside the engine — e.g. an
+/// `EngineExtension`-based plugin that writes new vertex data directly into an existing mesh's
+/// GPU buffer instead of calling `setEntityMeshDirect` — so they can invalidate picking without
+/// paying for a full mesh re-registration.
+public func markEntityPickingDirty(_ entityId: EntityID) {
+    scenePickingMarkEntityDirty(entityId)
+}
+
 public func pickEntity(
     rayOrigin: simd_float3,
     rayDirection: simd_float3,
