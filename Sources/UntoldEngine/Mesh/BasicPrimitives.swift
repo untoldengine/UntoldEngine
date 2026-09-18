@@ -57,17 +57,22 @@ public enum BasicPrimitives {
         )
     }
 
-    /// Creates a sphere mesh with the specified radius
+    /// Creates a sphere mesh with the specified diameter
     /// - Parameters:
-    ///   - extent: The diameter of the sphere in each dimension (default: 1.0)
+    ///   - extent: The diameter of the sphere in each dimension (default: 0.25)
     ///   - segments: Horizontal and vertical segments [horizontal, vertical] (default: [32, 16])
     /// - Returns: Array of Mesh objects representing the sphere
     public static func createSphere(extent: Float = 0.25, segments: [UInt32] = [32, 16]) -> [Mesh] {
         let bufferAllocator = MTKMeshBufferAllocator(device: renderInfo.device)
         let textureLoader = TextureLoader(device: renderInfo.device)
 
+        // Unlike `boxWithExtent`, ModelIO's `sphereWithExtent` takes the
+        // sphere's radii, not its full size: the generated mesh spans
+        // -extent...+extent per axis. Halve it so `extent` is the diameter
+        // here as documented and as every other primitive treats it.
+        let radius = extent * 0.5
         let mdlMesh = MDLMesh(
-            sphereWithExtent: [extent, extent, extent],
+            sphereWithExtent: [radius, radius, radius],
             segments: [segments[0], segments[1]],
             inwardNormals: false,
             geometryType: .triangles,
