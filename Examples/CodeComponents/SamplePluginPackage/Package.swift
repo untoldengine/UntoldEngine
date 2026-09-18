@@ -5,7 +5,7 @@ import PackageDescription
 /// A plugin package: a Swift package of its own that several projects can share, as opposed to
 /// a project's plugins folder, which belongs to that one game.
 ///
-/// This manifest is what games depend on. Sources/SamplePluginPackageEditor is deliberately not
+/// This manifest is what games depend on. Sources/SampleEditorPluginPackage is deliberately not
 /// a target: only the editor compiles it, against its own engine, as untold-package.json tells it to.
 ///
 /// The runtime defines plugins that exist in the game (the torus, the spline path, the path
