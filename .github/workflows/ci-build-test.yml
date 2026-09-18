@@ -68,6 +68,12 @@ jobs:
         env:
           CI: true
 
+      # ✅ Run the component kit tests (fast; one of them compiles a library with swiftc and loads it)
+      - name: Run component kit tests
+        run: swift test -v --disable-swift-testing --filter UntoldComponentKitTests
+        env:
+          CI: true
+
       # ✅ Run renderer tests (non-async suites)
       #
       - name: Run renderer tests (non-async suites)
