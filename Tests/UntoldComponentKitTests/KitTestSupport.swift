@@ -120,6 +120,40 @@ enum RevisionB {
     }
 }
 
+/// Components that change the entity they are being attached to, which a component may.
+/// Each acts on a `Bystander`, or on the spinner, during its own `onAttach`.
+final class Bystander: ComponentPlugin {
+    var attachCount = 0
+
+    override func onAttach() {
+        attachCount += 1
+    }
+}
+
+final class RemovesEarlierSibling: ComponentPlugin {
+    override func onAttach() {
+        ScenePluginSystem.shared.remove(SpinnerComponent.self, from: entity)
+    }
+}
+
+final class RemovesLaterSibling: ComponentPlugin {
+    override func onAttach() {
+        ScenePluginSystem.shared.remove(Bystander.self, from: entity)
+    }
+}
+
+final class AddsASibling: ComponentPlugin {
+    override func onAttach() {
+        ScenePluginSystem.shared.add(Bystander.self, to: entity)
+    }
+}
+
+final class RemovesItself: ComponentPlugin {
+    override func onAttach() {
+        ScenePluginSystem.shared.remove(RemovesItself.self, from: entity)
+    }
+}
+
 // MARK: - Extension doubles
 
 final class SampleExtension: EditorMenuPlugin {

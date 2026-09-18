@@ -13,6 +13,9 @@ import UntoldEngine
 
 /// Publishes plugin actions to USC scripts as `"<TypeName>.<ActionName>"`.
 ///
+/// Called by the registries as they register and unregister types, on the main thread; the
+/// action registry it writes to is not synchronized.
+///
 /// The action runs on the plugin bound to the script's own entity, one of its components or
 /// the entity's own plugin, so
 /// `callAction("PlayerController.Jump")` needs no target argument.

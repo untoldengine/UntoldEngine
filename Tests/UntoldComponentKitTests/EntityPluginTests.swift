@@ -37,6 +37,7 @@ final class EntityPluginTests: XCTestCase {
         XCTAssertTrue(EntityPluginRegistry.shared.register(MarkerEntity.self, revision: 4))
         XCTAssertTrue(EntityPluginRegistry.shared.register(RulesEntityPlugin.self))
         XCTAssertTrue(EntityPluginRegistry.shared.register(MarkerEntity.self), "registering the same type again is fine")
+        XCTAssertEqual(EntityPluginRegistry.shared.entries.first { $0.name == "MarkerEntity" }?.revision, 4, "and changes nothing, not even the revision")
 
         XCTAssertEqual(EntityPluginRegistry.shared.entries.map(\.name), ["RulesEntityPlugin", "MarkerEntity"], "sorted by display name")
         XCTAssertEqual(EntityPluginRegistry.shared.entries(on: .entities).map(\.name), ["MarkerEntity"])

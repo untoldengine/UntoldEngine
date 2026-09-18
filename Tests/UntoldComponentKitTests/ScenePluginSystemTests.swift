@@ -62,6 +62,64 @@ final class ScenePluginSystemTests: XCTestCase {
         XCTAssertEqual(ComponentPluginRegistry.entities(with: SpinnerComponent.self), [entity])
     }
 
+    // MARK: Components that change the entity while a bind pass is running
+
+    /// Slots for types that are not registered yet, so one bind pass later binds them all.
+    private func entityWithPendingSlots(_ typeNames: [String]) -> EntityID {
+        let entity = createEntity()
+        for typeName in typeNames {
+            ScenePluginSystem.shared.add(typeName, to: entity)
+        }
+        return entity
+    }
+
+    func testRemovingAnEarlierSiblingDuringAttachDoesNotSkipTheNextOne() throws {
+        ComponentPluginRegistry.shared.register(SpinnerComponent.self)
+        let entity = entityWithPendingSlots(["SpinnerComponent", "RemovesEarlierSibling", "Bystander"])
+        XCTAssertEqual(ScenePluginSystem.shared.slots(on: entity).map(\.isBound), [true, false, false])
+
+        ComponentPluginRegistry.shared.register(RemovesEarlierSibling.self)
+        ComponentPluginRegistry.shared.register(Bystander.self)
+        ScenePluginSystem.shared.bindPending()
+
+        XCTAssertEqual(ScenePluginSystem.shared.slots(on: entity).map(\.typeName), ["RemovesEarlierSibling", "Bystander"])
+        let bystander = try XCTUnwrap(ComponentPluginRegistry.component(Bystander.self, on: entity))
+        XCTAssertEqual(bystander.attachCount, 1, "the slot that shifted into the removed one's place is still bound, once")
+    }
+
+    func testRemovingALaterSiblingDuringAttachLeavesTheRestBoundOnce() {
+        let entity = entityWithPendingSlots(["RemovesLaterSibling", "Bystander", "SpinnerComponent"])
+
+        ComponentPluginRegistry.shared.register(RemovesLaterSibling.self)
+        ComponentPluginRegistry.shared.register(Bystander.self)
+        ComponentPluginRegistry.shared.register(SpinnerComponent.self)
+        ScenePluginSystem.shared.bindPending()
+
+        XCTAssertEqual(ScenePluginSystem.shared.slots(on: entity).map(\.typeName), ["RemovesLaterSibling", "SpinnerComponent"])
+        XCTAssertNil(ComponentPluginRegistry.component(Bystander.self, on: entity), "removed before it was bound, so it never was")
+        XCTAssertEqual(ComponentPluginRegistry.component(SpinnerComponent.self, on: entity)?.events, ["attach"])
+    }
+
+    func testAddingASiblingDuringAttachBindsItOnce() {
+        let entity = entityWithPendingSlots(["AddsASibling"])
+        ComponentPluginRegistry.shared.register(Bystander.self)
+        ComponentPluginRegistry.shared.register(AddsASibling.self)
+        ScenePluginSystem.shared.bindPending()
+
+        XCTAssertEqual(ScenePluginSystem.shared.slots(on: entity).map(\.typeName), ["AddsASibling", "Bystander"])
+        XCTAssertEqual(ComponentPluginRegistry.component(Bystander.self, on: entity)?.attachCount, 1, "bound by the add itself, not again by the pass")
+    }
+
+    func testAComponentThatRemovesItselfDuringAttachDoesNotSkipTheNextOne() {
+        let entity = entityWithPendingSlots(["RemovesItself", "Bystander"])
+        ComponentPluginRegistry.shared.register(RemovesItself.self)
+        ComponentPluginRegistry.shared.register(Bystander.self)
+        ScenePluginSystem.shared.bindPending()
+
+        XCTAssertEqual(ScenePluginSystem.shared.slots(on: entity).map(\.typeName), ["Bystander"])
+        XCTAssertEqual(ComponentPluginRegistry.component(Bystander.self, on: entity)?.attachCount, 1)
+    }
+
     func testUpdateRunsOnlyWhilePlayingInGameMode() throws {
         let entity = createEntity()
         let spinner = try XCTUnwrap(ScenePluginSystem.shared.add(SpinnerComponent.self, to: entity))
