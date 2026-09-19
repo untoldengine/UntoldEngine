@@ -12,6 +12,10 @@ import Metal
 @testable import UntoldEngine
 import XCTest
 
+private enum TestPipelineCreationError: Error {
+    case failed
+}
+
 private final class TestRenderExtensionPipelineCreator: RenderExtensionPipelineCreating {
     var failRenderPipelineIDs: Set<RenderPipelineType> = []
     var failComputePipelineIDs: Set<ComputePipelineType> = []
@@ -19,17 +23,17 @@ private final class TestRenderExtensionPipelineCreator: RenderExtensionPipelineC
 
     func makeRenderPipeline(
         _ descriptor: RenderExtensionRenderPipelineDescriptor
-    ) -> RenderPipeline? {
+    ) throws -> RenderPipeline {
         renderDescriptors.append(descriptor)
-        guard !failRenderPipelineIDs.contains(descriptor.id) else { return nil }
+        guard !failRenderPipelineIDs.contains(descriptor.id) else { throw TestPipelineCreationError.failed }
         return RenderPipeline(success: true, name: descriptor.name)
     }
 
     func makeComputePipeline(
         _ descriptor: RenderExtensionComputePipelineDescriptor,
         library _: MTLLibrary
-    ) -> ComputePipeline? {
-        guard !failComputePipelineIDs.contains(descriptor.id) else { return nil }
+    ) throws -> ComputePipeline {
+        guard !failComputePipelineIDs.contains(descriptor.id) else { throw TestPipelineCreationError.failed }
         var pipeline = ComputePipeline()
         pipeline.name = descriptor.name
         pipeline.success = true
@@ -124,6 +128,22 @@ private final class TestFailedCallbackPipelineExtension: RenderExtension, @unche
 
     func registerPipelines(_ registry: RenderPipelineRegistry) {
         registry.registerRenderPipeline(pipelineID) { nil }
+    }
+
+    func buildGraph(
+        _: inout RenderGraphBuilder,
+        context _: RenderGraphBuildContext
+    ) {}
+}
+
+private final class TestUnsuccessfulCallbackPipelineExtension: RenderExtension, @unchecked Sendable {
+    let id = "com.untold.callback-unsuccessful"
+    let pipelineID: RenderPipelineType = "com.untold.callback-unsuccessful.render"
+
+    func registerPipelines(_ registry: RenderPipelineRegistry) {
+        registry.registerRenderPipeline(pipelineID) {
+            RenderPipeline(success: false, name: "unsuccessful")
+        }
     }
 
     func buildGraph(
@@ -351,11 +371,40 @@ final class RenderExtensionPipelineDescriptorTest: BaseRenderSetup {
             [
                 .creationFailed(
                     kind: .renderPipeline,
-                    pipelineID: descriptor.id.rawValue
+                    pipelineID: descriptor.id.rawValue,
+                    reason: "failed"
                 ),
             ]
         )
         XCTAssertFalse(RenderExtensionRegistry.shared.registeredIDs().contains(renderExtension.id))
+    }
+
+    func testComputePipelineCreationFailureCarriesReason() {
+        let descriptor = makeComputeDescriptor(id: "com.untold.pipeline.compute-creation-failure")
+        let creator = TestRenderExtensionPipelineCreator()
+        creator.failComputePipelineIDs = [descriptor.id]
+        let previousCreator = RenderExtensionPipelineCreator.shared.replaceForTesting(creator)
+        defer { _ = RenderExtensionPipelineCreator.shared.replaceForTesting(previousCreator) }
+        let renderExtension = TestDeclarativePipelineExtension(
+            id: "com.untold.pipeline",
+            computeDescriptors: [descriptor]
+        )
+        let expectedError = RenderExtensionPipelineError.creationFailed(
+            kind: .computePipeline,
+            pipelineID: descriptor.id.rawValue,
+            reason: "failed"
+        )
+
+        XCTAssertEqual(
+            RenderExtensionRegistry.shared.register(renderExtension).pipelineErrors,
+            [expectedError]
+        )
+        XCTAssertEqual(
+            expectedError.description,
+            "Failed to create extension \(RenderExtensionArtifactKind.computePipeline.rawValue) '\(descriptor.id.rawValue)': failed"
+        )
+        XCTAssertFalse(RenderExtensionRegistry.shared.registeredIDs().contains(renderExtension.id))
+        XCTAssertNil(ComputePipelineManager.shared.pipeline(for: descriptor.id))
     }
 
     func testFailedPipelineReplacementRestoresPreviousExtension() {
@@ -421,10 +470,27 @@ final class RenderExtensionPipelineDescriptorTest: BaseRenderSetup {
             [
                 .creationFailed(
                     kind: .renderPipeline,
-                    pipelineID: renderExtension.pipelineID.rawValue
+                    pipelineID: renderExtension.pipelineID.rawValue,
+                    reason: "the pipeline initializer returned nil"
                 ),
             ]
         )
+    }
+
+    func testLegacyCallbackUnsuccessfulPipelineReportsWhy() {
+        let renderExtension = TestUnsuccessfulCallbackPipelineExtension()
+
+        XCTAssertEqual(
+            RenderExtensionRegistry.shared.register(renderExtension).pipelineErrors,
+            [
+                .creationFailed(
+                    kind: .renderPipeline,
+                    pipelineID: renderExtension.pipelineID.rawValue,
+                    reason: "the pipeline reports success == false"
+                ),
+            ]
+        )
+        XCTAssertNil(PipelineManager.shared.renderPipelinesByType[renderExtension.pipelineID])
     }
 
     private func makeRenderDescriptor(

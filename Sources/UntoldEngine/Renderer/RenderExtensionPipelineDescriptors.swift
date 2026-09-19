@@ -109,7 +109,8 @@ public enum RenderExtensionPipelineError: Error, Equatable, Sendable, CustomStri
     case invalidDepthFormat(pipelineID: String)
     case missingArgumentLayout(pipelineID: String, layoutID: String)
     case duplicatePipelineID(kind: RenderExtensionArtifactKind, pipelineID: String)
-    case creationFailed(kind: RenderExtensionArtifactKind, pipelineID: String)
+    /// Metal (or the pipeline initializer) refused the pipeline; `reason` says why.
+    case creationFailed(kind: RenderExtensionArtifactKind, pipelineID: String, reason: String)
 
     public var description: String {
         switch self {
@@ -136,9 +137,22 @@ public enum RenderExtensionPipelineError: Error, Equatable, Sendable, CustomStri
             return "Extension render pipeline '\(pipelineID)' references missing argument layout '\(layoutID)'"
         case let .duplicatePipelineID(kind, pipelineID):
             return "Extension declares \(kind.rawValue) '\(pipelineID)' more than once"
-        case let .creationFailed(kind, pipelineID):
-            return "Failed to create extension \(kind.rawValue) '\(pipelineID)'"
+        case let .creationFailed(kind, pipelineID, reason):
+            return "Failed to create extension \(kind.rawValue) '\(pipelineID)': \(reason)"
         }
+    }
+}
+
+/// The reasons the pipeline registries attach to `RenderExtensionPipelineError.creationFailed`.
+enum RenderExtensionPipelineFailureReason {
+    static let initializerReturnedNil = "the pipeline initializer returned nil"
+    static let pipelineReportsFailure = "the pipeline reports success == false"
+
+    static func describe(_ error: any Error) -> String {
+        if let creationError = error as? PipelineCreationError {
+            return creationError.reason
+        }
+        return failureReason(for: error)
     }
 }
 
@@ -157,22 +171,24 @@ struct RenderExtensionPipelineRegistrationReport {
     let errors: [RenderExtensionPipelineError]
 }
 
+/// Creates the Metal pipelines behind extension pipeline descriptors. A failure is
+/// thrown so its reason reaches the extension's `creationFailed` diagnostic.
 protocol RenderExtensionPipelineCreating: AnyObject {
     func makeRenderPipeline(
         _ descriptor: RenderExtensionRenderPipelineDescriptor
-    ) -> RenderPipeline?
+    ) throws -> RenderPipeline
 
     func makeComputePipeline(
         _ descriptor: RenderExtensionComputePipelineDescriptor,
         library: MTLLibrary
-    ) -> ComputePipeline?
+    ) throws -> ComputePipeline
 }
 
 private final class DefaultRenderExtensionPipelineCreator: RenderExtensionPipelineCreating {
     func makeRenderPipeline(
         _ descriptor: RenderExtensionRenderPipelineDescriptor
-    ) -> RenderPipeline? {
-        CreatePipeline(
+    ) throws -> RenderPipeline {
+        try buildRenderPipeline(
             vertexShader: descriptor.vertexFunction,
             fragmentShader: descriptor.fragmentFunction,
             vertexShaderLibrary: descriptor.vertexShaderLibrary,
@@ -191,17 +207,16 @@ private final class DefaultRenderExtensionPipelineCreator: RenderExtensionPipeli
     func makeComputePipeline(
         _ descriptor: RenderExtensionComputePipelineDescriptor,
         library: MTLLibrary
-    ) -> ComputePipeline? {
-        guard let device = renderInfo.device else { return nil }
-        var pipeline = ComputePipeline()
-        CreateComputePipeline(
-            into: &pipeline,
+    ) throws -> ComputePipeline {
+        guard let device = renderInfo.device else {
+            throw PipelineCreationError.metalUnavailable
+        }
+        return try buildComputePipeline(
             device: device,
             library: library,
             functionName: descriptor.function,
             pipelineName: descriptor.name
         )
-        return pipeline.success ? pipeline : nil
     }
 }
 
@@ -215,21 +230,21 @@ final class RenderExtensionPipelineCreator: @unchecked Sendable {
 
     func makeRenderPipeline(
         _ descriptor: RenderExtensionRenderPipelineDescriptor
-    ) -> RenderPipeline? {
+    ) throws -> RenderPipeline {
         lock.lock()
         let creator = creator
         lock.unlock()
-        return creator.makeRenderPipeline(descriptor)
+        return try creator.makeRenderPipeline(descriptor)
     }
 
     func makeComputePipeline(
         _ descriptor: RenderExtensionComputePipelineDescriptor,
         library: MTLLibrary
-    ) -> ComputePipeline? {
+    ) throws -> ComputePipeline {
         lock.lock()
         let creator = creator
         lock.unlock()
-        return creator.makeComputePipeline(descriptor, library: library)
+        return try creator.makeComputePipeline(descriptor, library: library)
     }
 
     func replaceForTesting(

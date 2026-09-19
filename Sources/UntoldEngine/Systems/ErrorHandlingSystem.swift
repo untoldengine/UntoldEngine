@@ -298,6 +298,23 @@ public func handleError(_ error: ErrorHandlingSystem, _ argument: String, _ enti
     handleError(error, argument, name)
 }
 
+/// Describes a thrown error for a diagnostic message.
+///
+/// Errors thrown by Foundation or Metal are `NSError`s whose `localizedDescription`
+/// carries the useful text (for example Metal's "This library is using a deployment
+/// target ... that is not supported"), and a `LocalizedError` provides its own. A
+/// plain Swift error has neither; its `localizedDescription` is only "The operation
+/// couldn't be completed", so its Swift description is used instead.
+func failureReason(for error: any Error) -> String {
+    if let localized = error as? LocalizedError, let description = localized.errorDescription {
+        return description
+    }
+    if type(of: error) is NSError.Type {
+        return error.localizedDescription
+    }
+    return String(describing: error)
+}
+
 /// warnings
 public func handleWarning(_ error: ErrorHandlingSystem, _ name: String) {
     Logger.logWarning(message: "\(error.rawValue): \(error.description) for \(name)")

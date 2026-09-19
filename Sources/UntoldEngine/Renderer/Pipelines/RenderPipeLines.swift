@@ -31,6 +31,35 @@ public struct RenderPipeline {
     }
 }
 
+/// Why `buildRenderPipeline` or `buildComputePipeline` could not create a pipeline.
+///
+/// `CreatePipeline` and `CreateComputePipeline` report these through `handleError`
+/// and return no pipeline; the render-extension registry keeps the reason in its
+/// `RenderExtensionPipelineError.creationFailed` diagnostics instead.
+enum PipelineCreationError: Error {
+    /// No Metal device is available yet.
+    case metalUnavailable
+    /// The shader library could not be resolved; `resolveRenderShaderLibrary` has already logged why.
+    case missingShaderLibrary(usage: String)
+    /// The shader library has no function with this name.
+    case missingFunction(name: String)
+    /// Metal rejected the pipeline; `underlying` is the error it threw.
+    case pipelineStateCreationFailed(underlying: any Error)
+
+    var reason: String {
+        switch self {
+        case .metalUnavailable:
+            return "Metal device is not available"
+        case let .missingShaderLibrary(usage):
+            return "missing shader library for \(usage)"
+        case let .missingFunction(name):
+            return "shader function '\(name)' not found"
+        case let .pipelineStateCreationFailed(underlying):
+            return failureReason(for: underlying)
+        }
+    }
+}
+
 public enum PipelineBlendMode: Equatable, Sendable {
     case none
     case alphaStraight
@@ -53,38 +82,75 @@ public func CreatePipeline(
     name: String,
     reflectionHandler: ((MTLRenderPipelineReflection) -> Void)? = nil
 ) -> RenderPipeline? {
+    do {
+        return try buildRenderPipeline(
+            vertexShader: vertexShader,
+            fragmentShader: fragmentShader,
+            vertexShaderLibrary: vertexShaderLibrary,
+            fragmentShaderLibrary: fragmentShaderLibrary,
+            vertexDescriptor: vertexDescriptor,
+            colorFormats: colorFormats,
+            depthFormat: depthFormat,
+            depthCompareFunction: depthCompareFunction,
+            depthEnabled: depthEnabled,
+            reverseZCompatible: reverseZCompatible,
+            blendMode: blendMode,
+            name: name,
+            reflectionHandler: reflectionHandler
+        )
+    } catch PipelineCreationError.missingShaderLibrary {
+        return nil
+    } catch let PipelineCreationError.missingFunction(function) {
+        handleError(.shaderCreationFailed, function)
+        return nil
+    } catch {
+        handleError(.pipelineStateCreationFailed, "\(name): \(failureReason(for: error))")
+        return nil
+    }
+}
+
+/// Builds a render pipeline, throwing a `PipelineCreationError` that says why Metal
+/// could not create it. `CreatePipeline` wraps this for callers that only need a
+/// pipeline or nothing.
+func buildRenderPipeline(
+    vertexShader: String,
+    fragmentShader: String?,
+    vertexShaderLibrary: RenderShaderLibraryReference = .engine,
+    fragmentShaderLibrary: RenderShaderLibraryReference = .engine,
+    vertexDescriptor: MTLVertexDescriptor?,
+    colorFormats: [MTLPixelFormat],
+    depthFormat: MTLPixelFormat,
+    depthCompareFunction: MTLCompareFunction = .lessEqual,
+    depthEnabled: Bool = true,
+    reverseZCompatible: Bool = true,
+    blendMode: PipelineBlendMode = .none,
+    name: String,
+    reflectionHandler: ((MTLRenderPipelineReflection) -> Void)? = nil
+) throws -> RenderPipeline {
     let pipelineDescriptor = MTLRenderPipelineDescriptor()
     let depthStateDescriptor = MTLDepthStencilDescriptor()
 
-    guard let vertexLibrary = resolveRenderShaderLibrary(
-        vertexShaderLibrary,
-        usage: "vertex shader '\(vertexShader)'"
-    ) else {
-        return nil
+    let vertexUsage = "vertex shader '\(vertexShader)'"
+    guard let vertexLibrary = resolveRenderShaderLibrary(vertexShaderLibrary, usage: vertexUsage) else {
+        throw PipelineCreationError.missingShaderLibrary(usage: vertexUsage)
+    }
+    guard let vertexFunction = vertexLibrary.makeFunction(name: vertexShader) else {
+        throw PipelineCreationError.missingFunction(name: vertexShader)
+    }
+    pipelineDescriptor.vertexFunction = vertexFunction
+
+    if let fragmentShader {
+        let fragmentUsage = "fragment shader '\(fragmentShader)'"
+        guard let fragmentLibrary = resolveRenderShaderLibrary(fragmentShaderLibrary, usage: fragmentUsage) else {
+            throw PipelineCreationError.missingShaderLibrary(usage: fragmentUsage)
+        }
+        guard let fragmentFunction = fragmentLibrary.makeFunction(name: fragmentShader) else {
+            throw PipelineCreationError.missingFunction(name: fragmentShader)
+        }
+        pipelineDescriptor.fragmentFunction = fragmentFunction
     }
 
     do {
-        guard let vertexFunction = vertexLibrary.makeFunction(name: vertexShader) else {
-            handleError(.shaderCreationFailed, vertexShader)
-            return nil
-        }
-        pipelineDescriptor.vertexFunction = vertexFunction
-
-        if let fragmentShader {
-            guard let fragmentLibrary = resolveRenderShaderLibrary(
-                fragmentShaderLibrary,
-                usage: "fragment shader '\(fragmentShader)'"
-            ) else {
-                return nil
-            }
-
-            guard let fragmentFunction = fragmentLibrary.makeFunction(name: fragmentShader) else {
-                handleError(.shaderCreationFailed, fragmentShader)
-                return nil
-            }
-            pipelineDescriptor.fragmentFunction = fragmentFunction
-        }
-
         pipelineDescriptor.vertexDescriptor = vertexDescriptor
 
         for (index, format) in colorFormats.enumerated() {
@@ -157,10 +223,8 @@ public func CreatePipeline(
             success: true,
             name: name
         )
-
     } catch {
-        handleError(.pipelineStateCreationFailed, name)
-        return nil
+        throw PipelineCreationError.pipelineStateCreationFailed(underlying: error)
     }
 }
 

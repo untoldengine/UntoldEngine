@@ -21,6 +21,7 @@ private final class TestRenderShaderLibraryLoader: RenderShaderLibraryLoading {
     var library: MTLLibrary?
     var defaultLibraryShouldFail = false
     var libraryShouldFail = false
+    var libraryError: any Error = TestShaderLibraryLoaderError.failed
     private(set) var requestedResource: String?
     private(set) var requestedSubdirectory: String?
     private(set) var requestedURL: URL?
@@ -38,14 +39,14 @@ private final class TestRenderShaderLibraryLoader: RenderShaderLibraryLoading {
 
     func makeDefaultLibrary(device _: MTLDevice, bundle: Bundle) throws -> MTLLibrary {
         requestedDefaultBundle = bundle
-        if defaultLibraryShouldFail { throw TestShaderLibraryLoaderError.failed }
+        if defaultLibraryShouldFail { throw libraryError }
         guard let library else { throw TestShaderLibraryLoaderError.failed }
         return library
     }
 
     func makeLibrary(device _: MTLDevice, url: URL) throws -> MTLLibrary {
         requestedURL = url
-        if libraryShouldFail { throw TestShaderLibraryLoaderError.failed }
+        if libraryShouldFail { throw libraryError }
         guard let library else { throw TestShaderLibraryLoaderError.failed }
         return library
     }
@@ -74,6 +75,27 @@ private final class TestPackagedShaderLibraryExtension: RenderExtension, @unchec
         for library in additionalLibraries {
             registry.registerLibrary(library.id, source: library.source)
         }
+    }
+
+    func buildGraph(
+        _: inout RenderGraphBuilder,
+        context _: RenderGraphBuildContext
+    ) {}
+}
+
+private final class TestURLShaderLibraryExtension: RenderExtension, @unchecked Sendable {
+    let id: String
+    let libraryID: RenderShaderLibraryID
+    let url: URL
+
+    init(id: String, libraryID: RenderShaderLibraryID, url: URL) {
+        self.id = id
+        self.libraryID = libraryID
+        self.url = url
+    }
+
+    func registerShaderLibraries(_ registry: RenderShaderLibraryRegistry) {
+        registry.registerLibrary(libraryID, url: url)
     }
 
     func buildGraph(
@@ -235,10 +257,98 @@ final class RenderShaderLibraryPackagingTest: BaseRenderSetup {
                 .metallibCreationFailed(
                     libraryID: libraryID,
                     resource: "Invalid",
-                    subdirectory: nil
+                    subdirectory: nil,
+                    reason: "failed"
                 ),
             ]
         )
+        XCTAssertNil(RenderShaderLibraryManager.shared.library(libraryID))
+    }
+
+    func testInvalidBundledMetallibReportsMetalReason() {
+        let libraryID: RenderShaderLibraryID = "com.untold.deployment.shaders"
+        let metalMessage =
+            "This library is using a deployment target (0x001B0000) that is not supported on this visionOS."
+        let loader = TestRenderShaderLibraryLoader()
+        loader.resourceURLResult = URL(fileURLWithPath: "/virtual/Shaders/Deployment.metallib")
+        loader.libraryShouldFail = true
+        loader.libraryError = NSError(
+            domain: "MTLLibraryErrorDomain",
+            code: 1,
+            userInfo: [NSLocalizedDescriptionKey: metalMessage]
+        )
+        let previousLoader = RenderShaderLibraryManager.shared.replaceLoaderForTesting(loader)
+        defer { _ = RenderShaderLibraryManager.shared.replaceLoaderForTesting(previousLoader) }
+        let renderExtension = TestPackagedShaderLibraryExtension(
+            id: "com.untold.deployment",
+            libraryID: libraryID,
+            source: .metallib(bundle: .main, resource: "Deployment", subdirectory: "Shaders")
+        )
+        let expectedError = RenderShaderLibraryLoadingError.metallibCreationFailed(
+            libraryID: libraryID,
+            resource: "Deployment",
+            subdirectory: "Shaders",
+            reason: metalMessage
+        )
+
+        XCTAssertEqual(
+            RenderExtensionRegistry.shared.register(renderExtension).shaderLibraryErrors,
+            [expectedError]
+        )
+        XCTAssertEqual(
+            RenderExtensionRegistry.shared.shaderLibraryErrors(forExtensionID: renderExtension.id),
+            [expectedError]
+        )
+        XCTAssertTrue(
+            expectedError.description.hasSuffix("'Deployment.metallib' in 'Shaders': \(metalMessage)"),
+            expectedError.description
+        )
+        XCTAssertNil(RenderShaderLibraryManager.shared.library(libraryID))
+    }
+
+    func testInvalidDefaultLibraryReportsReason() {
+        let libraryID: RenderShaderLibraryID = "com.untold.invalid-default.shaders"
+        let loader = TestRenderShaderLibraryLoader()
+        loader.defaultLibraryShouldFail = true
+        let previousLoader = RenderShaderLibraryManager.shared.replaceLoaderForTesting(loader)
+        defer { _ = RenderShaderLibraryManager.shared.replaceLoaderForTesting(previousLoader) }
+        let renderExtension = TestPackagedShaderLibraryExtension(
+            id: "com.untold.invalid-default",
+            libraryID: libraryID,
+            source: .defaultLibrary(bundle: .main)
+        )
+
+        XCTAssertEqual(
+            RenderExtensionRegistry.shared.register(renderExtension).shaderLibraryErrors,
+            [
+                .defaultLibraryCreationFailed(
+                    libraryID: libraryID,
+                    bundlePath: Bundle.main.bundleURL.path,
+                    reason: "failed"
+                ),
+            ]
+        )
+        XCTAssertNil(RenderShaderLibraryManager.shared.library(libraryID))
+    }
+
+    func testInvalidLibraryURLReportsReason() {
+        let libraryID: RenderShaderLibraryID = "com.untold.invalid-url.shaders"
+        let url = URL(fileURLWithPath: "/virtual/Invalid.metallib")
+        let loader = TestRenderShaderLibraryLoader()
+        loader.libraryShouldFail = true
+        let previousLoader = RenderShaderLibraryManager.shared.replaceLoaderForTesting(loader)
+        defer { _ = RenderShaderLibraryManager.shared.replaceLoaderForTesting(previousLoader) }
+        let renderExtension = TestURLShaderLibraryExtension(
+            id: "com.untold.invalid-url",
+            libraryID: libraryID,
+            url: url
+        )
+
+        XCTAssertEqual(
+            RenderExtensionRegistry.shared.register(renderExtension).shaderLibraryErrors,
+            [.libraryCreationFailed(libraryID: libraryID, url: url, reason: "failed")]
+        )
+        XCTAssertEqual(loader.requestedURL, url)
         XCTAssertNil(RenderShaderLibraryManager.shared.library(libraryID))
     }
 
