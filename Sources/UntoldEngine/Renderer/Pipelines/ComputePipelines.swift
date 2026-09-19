@@ -25,24 +25,49 @@ public func CreateComputePipeline(
     functionName: String,
     pipelineName: String
 ) {
-    // Create kernel
-    guard let function = library.makeFunction(name: functionName) else {
+    do {
+        let built = try buildComputePipeline(
+            device: device,
+            library: library,
+            functionName: functionName,
+            pipelineName: pipelineName
+        )
+        pipeline.pipelineState = built.pipelineState
+        pipeline.name = built.name
+        pipeline.success = built.success
+    } catch PipelineCreationError.missingFunction {
         pipeline.name = pipelineName
         handleError(.kernelCreationFailed, pipelineName)
-        return
-    }
-
-    // Create pipeline
-    do {
-        let state = try device.makeComputePipelineState(function: function)
-
-        pipeline.pipelineState = state
-        pipeline.name = pipelineName
-        pipeline.success = true
     } catch {
         pipeline.name = pipelineName
         pipeline.success = false
-        handleError(.pipelineStateCreationFailed, pipelineName)
-        return
+        handleError(.pipelineStateCreationFailed, "\(pipelineName): \(failureReason(for: error))")
     }
+}
+
+/// Builds a compute pipeline, throwing a `PipelineCreationError` that says why Metal
+/// could not create it. `CreateComputePipeline` wraps this for callers that only
+/// need the success flag.
+func buildComputePipeline(
+    device: MTLDevice,
+    library: MTLLibrary,
+    functionName: String,
+    pipelineName: String
+) throws -> ComputePipeline {
+    guard let function = library.makeFunction(name: functionName) else {
+        throw PipelineCreationError.missingFunction(name: functionName)
+    }
+
+    let state: MTLComputePipelineState
+    do {
+        state = try device.makeComputePipelineState(function: function)
+    } catch {
+        throw PipelineCreationError.pipelineStateCreationFailed(underlying: error)
+    }
+
+    var pipeline = ComputePipeline()
+    pipeline.pipelineState = state
+    pipeline.name = pipelineName
+    pipeline.success = true
+    return pipeline
 }

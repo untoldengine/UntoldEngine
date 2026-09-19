@@ -198,6 +198,10 @@ public enum RenderShaderLibraryPlatformResource {
 }
 
 /// Describes a structured extension shader-library loading failure.
+///
+/// The creation failures carry the `reason` Metal gave (for example a metallib
+/// built for a newer OS: "This library is using a deployment target ... that is
+/// not supported"), so a plugin that renders nothing can say why.
 public enum RenderShaderLibraryLoadingError: Error, Equatable, Sendable, CustomStringConvertible {
     case metalUnavailable(libraryID: RenderShaderLibraryID)
     case resourceNotFound(
@@ -205,13 +209,18 @@ public enum RenderShaderLibraryLoadingError: Error, Equatable, Sendable, CustomS
         resource: String,
         subdirectory: String?
     )
-    case defaultLibraryCreationFailed(libraryID: RenderShaderLibraryID, bundlePath: String)
+    case defaultLibraryCreationFailed(
+        libraryID: RenderShaderLibraryID,
+        bundlePath: String,
+        reason: String
+    )
     case metallibCreationFailed(
         libraryID: RenderShaderLibraryID,
         resource: String,
-        subdirectory: String?
+        subdirectory: String?,
+        reason: String
     )
-    case libraryCreationFailed(libraryID: RenderShaderLibraryID, url: URL)
+    case libraryCreationFailed(libraryID: RenderShaderLibraryID, url: URL, reason: String)
 
     public var description: String {
         switch self {
@@ -220,13 +229,13 @@ public enum RenderShaderLibraryLoadingError: Error, Equatable, Sendable, CustomS
         case let .resourceNotFound(libraryID, resource, subdirectory):
             let location = subdirectory.map { " in '\($0)'" } ?? ""
             return "Shader library '\(libraryID.rawValue)' cannot find bundled metallib '\(resource).metallib'\(location)"
-        case let .defaultLibraryCreationFailed(libraryID, bundlePath):
-            return "Failed to create default shader library '\(libraryID.rawValue)' from bundle '\(bundlePath)'"
-        case let .metallibCreationFailed(libraryID, resource, subdirectory):
+        case let .defaultLibraryCreationFailed(libraryID, bundlePath, reason):
+            return "Failed to create default shader library '\(libraryID.rawValue)' from bundle '\(bundlePath)': \(reason)"
+        case let .metallibCreationFailed(libraryID, resource, subdirectory, reason):
             let location = subdirectory.map { " in '\($0)'" } ?? ""
-            return "Failed to create shader library '\(libraryID.rawValue)' from bundled metallib '\(resource).metallib'\(location)"
-        case let .libraryCreationFailed(libraryID, url):
-            return "Failed to create shader library '\(libraryID.rawValue)' from '\(url.path)'"
+            return "Failed to create shader library '\(libraryID.rawValue)' from bundled metallib '\(resource).metallib'\(location): \(reason)"
+        case let .libraryCreationFailed(libraryID, url, reason):
+            return "Failed to create shader library '\(libraryID.rawValue)' from '\(url.path)': \(reason)"
         }
     }
 }
@@ -383,7 +392,8 @@ public final class RenderShaderLibraryManager: @unchecked Sendable {
                 recordLoadingError(
                     .defaultLibraryCreationFailed(
                         libraryID: id,
-                        bundlePath: bundle.bundleURL.path
+                        bundlePath: bundle.bundleURL.path,
+                        reason: failureReason(for: error)
                     )
                 )
             }
@@ -413,7 +423,8 @@ public final class RenderShaderLibraryManager: @unchecked Sendable {
                     .metallibCreationFailed(
                         libraryID: id,
                         resource: resource,
-                        subdirectory: subdirectory
+                        subdirectory: subdirectory,
+                        reason: failureReason(for: error)
                     )
                 )
             }
@@ -431,7 +442,9 @@ public final class RenderShaderLibraryManager: @unchecked Sendable {
         do {
             try update(loader.makeLibrary(device: device, url: url), forID: id)
         } catch {
-            recordLoadingError(.libraryCreationFailed(libraryID: id, url: url))
+            recordLoadingError(
+                .libraryCreationFailed(libraryID: id, url: url, reason: failureReason(for: error))
+            )
         }
     }
 
@@ -510,7 +523,7 @@ public final class RenderShaderLibraryManager: @unchecked Sendable {
         if let collector {
             collector.record(error)
         } else {
-            Logger.logWarning(message: "[RenderExtension] \(error.description)")
+            Logger.logError(message: "[RenderExtension] \(error.description)")
         }
     }
 }
@@ -584,9 +597,23 @@ public struct RenderPipelineRegistry {
         _ type: RenderPipelineType,
         initBlock: RenderPipelineInitBlock
     ) {
-        guard let pipeline = initBlock(), pipeline.success else {
+        guard let pipeline = initBlock() else {
             PipelineManager.shared.recordRegistrationError(
-                .creationFailed(kind: .renderPipeline, pipelineID: type.rawValue)
+                .creationFailed(
+                    kind: .renderPipeline,
+                    pipelineID: type.rawValue,
+                    reason: RenderExtensionPipelineFailureReason.initializerReturnedNil
+                )
+            )
+            return
+        }
+        guard pipeline.success else {
+            PipelineManager.shared.recordRegistrationError(
+                .creationFailed(
+                    kind: .renderPipeline,
+                    pipelineID: type.rawValue,
+                    reason: RenderExtensionPipelineFailureReason.pipelineReportsFailure
+                )
             )
             return
         }
@@ -603,13 +630,25 @@ public struct RenderPipelineRegistry {
             }
             return
         }
-        guard let pipeline = RenderExtensionPipelineCreator.shared.makeRenderPipeline(descriptor),
-              pipeline.success
-        else {
+        let pipeline: RenderPipeline
+        do {
+            pipeline = try RenderExtensionPipelineCreator.shared.makeRenderPipeline(descriptor)
+        } catch {
             PipelineManager.shared.recordRegistrationError(
                 .creationFailed(
                     kind: .renderPipeline,
-                    pipelineID: descriptor.id.rawValue
+                    pipelineID: descriptor.id.rawValue,
+                    reason: RenderExtensionPipelineFailureReason.describe(error)
+                )
+            )
+            return
+        }
+        guard pipeline.success else {
+            PipelineManager.shared.recordRegistrationError(
+                .creationFailed(
+                    kind: .renderPipeline,
+                    pipelineID: descriptor.id.rawValue,
+                    reason: RenderExtensionPipelineFailureReason.pipelineReportsFailure
                 )
             )
             return
@@ -940,7 +979,7 @@ public final class ComputePipelineManager: @unchecked Sendable {
         if let collector {
             collector.record(error)
         } else {
-            Logger.logWarning(message: "[RenderExtension] \(error.description)")
+            Logger.logError(message: "[RenderExtension] \(error.description)")
         }
     }
 }
@@ -952,9 +991,23 @@ public struct ComputePipelineRegistry {
         _ type: ComputePipelineType,
         initBlock: ComputePipelineInitBlock
     ) {
-        guard let pipeline = initBlock(), pipeline.success else {
+        guard let pipeline = initBlock() else {
             ComputePipelineManager.shared.recordRegistrationError(
-                .creationFailed(kind: .computePipeline, pipelineID: type.rawValue)
+                .creationFailed(
+                    kind: .computePipeline,
+                    pipelineID: type.rawValue,
+                    reason: RenderExtensionPipelineFailureReason.initializerReturnedNil
+                )
+            )
+            return
+        }
+        guard pipeline.success else {
+            ComputePipelineManager.shared.recordRegistrationError(
+                .creationFailed(
+                    kind: .computePipeline,
+                    pipelineID: type.rawValue,
+                    reason: RenderExtensionPipelineFailureReason.pipelineReportsFailure
+                )
             )
             return
         }
@@ -971,14 +1024,28 @@ public struct ComputePipelineRegistry {
             }
             return
         }
-        guard let pipeline = RenderExtensionPipelineCreator.shared.makeComputePipeline(
-            descriptor,
-            library: library
-        ), pipeline.success else {
+        let pipeline: ComputePipeline
+        do {
+            pipeline = try RenderExtensionPipelineCreator.shared.makeComputePipeline(
+                descriptor,
+                library: library
+            )
+        } catch {
             ComputePipelineManager.shared.recordRegistrationError(
                 .creationFailed(
                     kind: .computePipeline,
-                    pipelineID: descriptor.id.rawValue
+                    pipelineID: descriptor.id.rawValue,
+                    reason: RenderExtensionPipelineFailureReason.describe(error)
+                )
+            )
+            return
+        }
+        guard pipeline.success else {
+            ComputePipelineManager.shared.recordRegistrationError(
+                .creationFailed(
+                    kind: .computePipeline,
+                    pipelineID: descriptor.id.rawValue,
+                    reason: RenderExtensionPipelineFailureReason.pipelineReportsFailure
                 )
             )
             return
@@ -2767,10 +2834,10 @@ public final class RenderExtensionRegistry: @unchecked Sendable {
     ) {
         logRegistrationConflicts(conflicts)
         for error in shaderLibraryErrors {
-            Logger.logWarning(message: "[RenderExtension] Extension '\(ownerID)' cannot load shaders: \(error.description)")
+            Logger.logError(message: "[RenderExtension] Extension '\(ownerID)' cannot load shaders: \(error.description)")
         }
         for error in pipelineErrors {
-            Logger.logWarning(message: "[RenderExtension] Extension '\(ownerID)' cannot create pipelines: \(error.description)")
+            Logger.logError(message: "[RenderExtension] Extension '\(ownerID)' cannot create pipelines: \(error.description)")
         }
         for error in validationErrors {
             Logger.logWarning(message: "[RenderExtension] Extension '\(ownerID)' cannot register resources: \(error.description)")
