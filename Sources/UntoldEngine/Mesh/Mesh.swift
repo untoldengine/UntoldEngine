@@ -404,12 +404,17 @@ public struct Mesh {
             memcpy(indexBuffer.map().bytes, rawBuffer.baseAddress!, rawBuffer.count)
         }
 
+        // A submesh with a nil material is skipped entirely by the renderer (see
+        // UntoldEngine.swift's `guard let material = submesh.material else { continue }`), so
+        // unlike ModelIO's own box/sphere/etc. convenience initializers (which come with a
+        // default material attached), this hand-built submesh needs one explicitly or it's
+        // invisible.
         let mdlSubmesh = MDLSubmesh(
             indexBuffer: indexBuffer,
             indexCount: indices.count,
             indexType: .uInt32,
             geometryType: .triangles,
-            material: nil
+            material: makeDefaultMDLMaterial()
         )
 
         let mdlMesh = MDLMesh(
@@ -449,6 +454,16 @@ public struct Mesh {
         mesh.boundingBox = (min: minBounds, max: maxBounds)
 
         return mesh
+    }
+
+    /// A plain gray, non-metallic, medium-roughness material — the default appearance for
+    /// procedurally generated geometry that hasn't been given a material of its own.
+    private static func makeDefaultMDLMaterial() -> MDLMaterial {
+        let material = MDLMaterial(name: "ProceduralDefault", scatteringFunction: MDLPhysicallyPlausibleScatteringFunction())
+        material.setProperty(MDLMaterialProperty(name: "baseColor", semantic: .baseColor, float4: SIMD4<Float>(0.7, 0.7, 0.7, 1.0)))
+        material.setProperty(MDLMaterialProperty(name: "roughness", semantic: .roughness, float: 0.6))
+        material.setProperty(MDLMaterialProperty(name: "metallic", semantic: .metallic, float: 0.0))
+        return material
     }
 
     private static func decodeRuntimeVertices(from data: Data, expectedCount: Int) throws -> [UntoldPBRStaticVertexV1] {
