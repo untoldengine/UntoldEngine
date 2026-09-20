@@ -36,6 +36,14 @@ Untold Engine is an **open-source Swift/Metal XR engine for
 high-performance Apple-platform spatial visualization apps**, giving
 developers full control over rendering, shaders, and the engine pipeline.
 
+**Vision:** An engine that empowers creativity and never stands in its way.
+
+**Mission:** Build a reliable engine that lets developers focus on creating,
+not troubleshooting the tools they depend on.
+
+Want to help build it? Our [Engineering Principles](ENGINEERING_PRINCIPLES.md)
+show you how we work — join us.
+
 Untold Engine is built for developers and teams who:
 
 - Need **full control over Metal rendering, shaders, and engine systems**
@@ -264,6 +272,19 @@ See open issues for planned features and known improvements.
 
 ---
 
+# Engineering Principles
+
+Untold Engine is built to a set of engineering principles that put
+reliability, testing, and developer experience ahead of feature velocity —
+the same discipline that keeps a spatial engine stable as scenes, platforms,
+and contributors grow.
+
+See [ENGINEERING_PRINCIPLES.md](ENGINEERING_PRINCIPLES.md) for the full set
+of principles that guide how the engine is developed, reviewed, and
+maintained.
+
+---
+
 # Support
 
 For help or questions, open a [GitHub Issue](https://github.com/untoldengine/UntoldEngine/issues).
@@ -273,6 +294,8 @@ For help or questions, open a [GitHub Issue](https://github.com/untoldengine/Unt
 # Contributing
 
 Contributions are welcome — whether that's fixing bugs, improving systems, writing documentation, or proposing ideas.
+
+All contributions are expected to follow our [Engineering Principles](ENGINEERING_PRINCIPLES.md).
 
 Before submitting a pull request, please review the [Contributing Guidelines](docs/Contributor/ContributionGuidelines.md).
 

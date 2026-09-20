@@ -12,15 +12,26 @@ Contributors are encouraged to expand features, fix bugs, improve documentation,
 
 The Untold Engine is guided by a clear vision: To be a stable, performant, and developer-friendly 3D engine that empowers creativity, removes friction, and makes game development feel effortless.
 
-## Guiding Principles
+## Engineering Principles
 
-To achieve this vision, we follow these principles:
+Untold Engine is developed against a formal set of
+[Engineering Principles](EngineeringPrinciples.md) covering
+reliability, testing, failure handling, API compatibility, architectural
+simplicity, tooling, performance, ownership, and continuous improvement.
+Every contribution — features, bug fixes, tests, architectural changes, and
+reviews — is expected to follow them:
 
-- The engine strives to remain stable and crash-free.
-- The codebase is backed by unit tests.
-- We profile continuously to prevent regressions (visual and performance).
-- The API must remain clear and user-friendly.
-- We always think about the developer first—removing friction so they can focus on their games.
+- **Features and architectural changes** are evaluated first against
+  reliability, simplicity, and API compatibility, not just functionality.
+  Significant changes should be discussed with a maintainer before
+  implementation.
+- **Bug fixes** should address the root cause where practical and include a
+  test that would have caught the regression.
+- **Testing** is part of the change itself, not a follow-up — see
+  [Required Contributions for New System Support](#required-contributions-for-new-system-support)
+  below.
+- **Code review** checks contributions against the Engineering Principles in
+  addition to correctness, readability, and style.
 
 As the maintainer, my primary focus is to ensure the project stays true to this vision.  
 
