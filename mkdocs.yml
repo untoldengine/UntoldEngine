@@ -135,6 +135,7 @@ nav:
     - Creating an Engine Extension Plugin: Extensions/CreatingAnEngineExtensionPlugin.md
     - Creating a Physics Backend Plugin: Extensions/CreatingAPhysicsBackendPlugin.md
   - Contributing:
+    - Engineering Principles: Contributor/EngineeringPrinciples.md
     - Guidelines: Contributor/ContributionGuidelines.md
     - Versioning: Contributor/versioning.md
     - Formatting: Contributor/Formatting.md
