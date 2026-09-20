@@ -37,10 +37,6 @@
              }
              */
 
-            let splat = createEntity()
-            setEntityGaussian(entityId: splat, filename: "/Users/haroldserrano/Downloads/UntoldXRTest/Sources/UntoldXRTest/GameData/Gaussians/gardenscene-spz", withExtension: "untoldgs")
-            setSceneReady(true)
-
             // Uncomment to render a streamed scene
         }
 
@@ -50,12 +46,6 @@
             InputSystem.shared.registerKeyboardEvents()
             InputSystem.shared.registerMouseEvents()
             bypassPostProcessing = false
-            setSpatialDebug(.lodLevels(false))
-            // GaussianDebugOptions.shared.residencyDebugTint = true
-            // GaussianRuntimeLimits.workingSetSplatsOverride = 1_000_000
-            // GaussianDebugOptions.shared.levelDebugTint = true
-            setLogger(.categories([.gaussian, .oocTiming, .integration], true))
-            Logger.enable(category: .gaussian)
         }
 
         private func setupDefaultSceneObjects() {
