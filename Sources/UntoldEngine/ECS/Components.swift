@@ -361,8 +361,12 @@ public class AnimationComponent: Component {
 
     // Compiled sampling state (see docs/Architecture/animationPoseLayer.md):
     // clips resolved against this entity's skeleton, plus the per-entity
-    // sampler cursors and local pose the frame update writes into.
-    var compiledClips: [String: CompiledAnimationClip] = [:]
+    // sampler cursors and local pose the frame update writes into. Keyed by
+    // clip identity rather than AnimationClip.name: that name comes from the
+    // asset file (e.g. the source Blender action) and independently exported
+    // clips commonly share it, which previously made two distinct clips
+    // collide on one cache slot and serve each other's compiled pose data.
+    var compiledClips: [ObjectIdentifier: CompiledAnimationClip] = [:]
     var sampler = ClipSampler()
     var localPose = PoseBuffer()
 
@@ -403,18 +407,20 @@ public class AnimationComponent: Component {
     }
 
     func removeAnimationClip(animationClip: String) {
-        animationClips.removeValue(forKey: animationClip)
-        compiledClips.removeValue(forKey: animationClip)
+        if let clip = animationClips.removeValue(forKey: animationClip) {
+            compiledClips.removeValue(forKey: ObjectIdentifier(clip))
+        }
     }
 
     /// Returns the compiled form of `clip` resolved against `skeleton`,
     /// compiling and caching it on first use.
     func compiledClip(for clip: AnimationClip, skeleton: Skeleton) -> CompiledAnimationClip {
-        if let cached = compiledClips[clip.name], cached.jointCount == skeleton.jointPaths.count {
+        let key = ObjectIdentifier(clip)
+        if let cached = compiledClips[key], cached.jointCount == skeleton.jointPaths.count {
             return cached
         }
         let compiled = CompiledAnimationClip(clip: clip, skeleton: skeleton)
-        compiledClips[clip.name] = compiled
+        compiledClips[key] = compiled
         return compiled
     }
 }
