@@ -1,4 +1,30 @@
 # Changelog
+## v0.20.0 - 2026-09-20
+### 🐞 Fixes
+- [Patch] ComponentKit: log the component types found in the app at startup (8bee04e…)
+- [Patch] Make a code component's editor representation an instance property (bc39631…)
+- [Patch] Bind components by name so a sibling removed during onAttach cannot shift the pass (2de8de5…)
+- [Patch] Give Mesh.makeMesh's submesh a default material (0af348e…)
+### 📚 Docs
+- [Docs] Using Code Components (ada5b20…)
+- [Docs] Code Components example: a project, a plugin, and both ways they load (81b6622…)
+- [Docs] Entity kinds in the code components example and guide (36984f8…)
+- [Docs] Components that belong to their kind of entity (798237a…)
+- [Docs] Example and guide for ComponentPlugin, EntityPlugin and EditorMenuPlugin (ca2f616…)
+- [Docs] Handles in the guide and the example README (b6ae200…)
+- [Docs] Handles are clicked with either button (5f9fd9f…)
+- [Docs] SampleEditorPluginPackage and SampleMenus in the example (324ae12…)
+- [Docs] Proposal: Swift plugins compiled and reloaded by the editor (c3c3fc4…)
+### 🚀 Features
+- [Feature] UntoldComponentKit: components and editor extensions authored in code (6f42dc8…)
+- [Feature] Generated projects can include code components (6634995…)
+- [Feature] Entity templates and editor-only representations in the component kit (251c817…)
+- [Feature] Components that belong to their kind of entity only (94ec84d…)
+- [Feature] ComponentPlugin, EntityPlugin and EditorMenuPlugin (6e570f9…)
+- [Feature] A project's plugins folder, and plugin packages, named apart (7942399…)
+- [Feature] Draggable handles in an editor representation (87943fa…)
+- [Feature] Tree-walk pre-filter for the Gaussian chunk cull (2e5a005…)
+- [Feature] Add public API for building meshes from raw CPU arrays (6dbd953…)
 ## v0.19.1 - 2026-09-16
 ### 🐞 Fixes
 - [Patch] Fix bundle resource loading crash on macOS without breaking swift test/swift run (91e53f1…)
