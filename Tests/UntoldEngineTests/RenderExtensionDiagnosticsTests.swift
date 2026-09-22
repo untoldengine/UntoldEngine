@@ -100,8 +100,20 @@ final class RenderExtensionDiagnosticsTests: XCTestCase {
         let creationError = PipelineCreationError.pipelineStateCreationFailed(underlying: makeMetalLibraryError())
 
         XCTAssertEqual(creationError.reason, metalDeploymentTargetMessage)
-        XCTAssertEqual(RenderExtensionPipelineFailureReason.describe(creationError), metalDeploymentTargetMessage)
-        XCTAssertEqual(RenderExtensionPipelineFailureReason.describe(PlainTestError.plain), "plain")
+        XCTAssertEqual(creationError.errorDescription, metalDeploymentTargetMessage)
+    }
+
+    /// `CreatePipeline` and `CreateComputePipeline` hand the thrown `PipelineCreationError`
+    /// to `failureReason(for:)` for their own log line, so it must unwrap to Metal's text
+    /// rather than the enum case's Swift description.
+    func testFailureReasonUnwrapsPipelineCreationError() {
+        let creationError = PipelineCreationError.pipelineStateCreationFailed(underlying: makeMetalLibraryError())
+
+        XCTAssertEqual(failureReason(for: creationError), metalDeploymentTargetMessage)
+        XCTAssertEqual(
+            failureReason(for: PipelineCreationError.missingFunction(name: "vertexMain")),
+            "shader function 'vertexMain' not found"
+        )
     }
 
     func testPipelineCreationErrorReasonsNameTheMissingPiece() {
