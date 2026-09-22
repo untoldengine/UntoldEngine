@@ -162,7 +162,6 @@ float3 diffuseIBL(float3 normal, texture2d<float> irradianceMap, float3 rotation
 float computeCSMShadow(depth2d_array<float> shadowArray,
                        constant CSMUniforms &csm,
                        float3 worldPos,
-                       float3 cameraPos,
                        float3 normal,
                        float3 lightDir);
 

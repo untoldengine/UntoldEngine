@@ -201,9 +201,13 @@ struct CSMUniforms {
     float4x4 cameraViewMatrix;
     float    cascadeSplits[CSM_CASCADE_COUNT]; // world-space camera distances (far edge of each cascade)
     int      cascadeCount;
-    float    _pad0;
-    float    _pad1;
-    float    _pad2;
+    float    cascadeWorldTexelSizes[CSM_CASCADE_COUNT];
+    float    cascadeDepthSpans[CSM_CASCADE_COUNT];
+    // Camera-depth distance at which each cascade begins cross-fading into the next.
+    // Computed once per frame on the CPU (ShadowSystem.cascadeBlendStart) — the shader
+    // reads this instead of re-deriving it from cascadeSplits, so both the CPU frustum
+    // widening and the GPU cross-fade agree on the same value by construction.
+    float    cascadeBlendStarts[CSM_CASCADE_COUNT];
     float    shadowSoftnessNear;       // Poisson PCF radius in texels near the camera
     float    shadowSoftnessFar;        // Poisson PCF radius in texels at the shadow distance
     float    shadowSoftnessDepthScale; // 0 = fixed near radius, 1 = full near-to-far ramp
