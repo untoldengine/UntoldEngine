@@ -351,19 +351,20 @@ public enum AnimationPolicy: String, CaseIterable, Sendable {
 }
 
 public class AnimationComponent: Component {
-    // didSet prunes compiledClips whenever a clip is replaced or removed:
-    // registerRuntimeAnimationClips overwrites entries in this dictionary
-    // directly (not through removeAnimationClip), and CompiledAnimationClip
-    // holds no reference back to its source AnimationClip. Without pruning,
-    // a replaced clip's stale ObjectIdentifier key would linger in
-    // compiledClips and could later be reassigned to an unrelated clip if
-    // Swift reuses the freed address, silently serving the wrong pose data.
+    /// didSet prunes compiledClips whenever a clip is replaced or removed:
+    /// registerRuntimeAnimationClips overwrites entries in this dictionary
+    /// directly (not through removeAnimationClip), and CompiledAnimationClip
+    /// holds no reference back to its source AnimationClip. Without pruning,
+    /// a replaced clip's stale ObjectIdentifier key would linger in
+    /// compiledClips and could later be reassigned to an unrelated clip if
+    /// Swift reuses the freed address, silently serving the wrong pose data.
     var animationClips: [String: AnimationClip] = [:] {
         didSet {
             let live = Set(animationClips.values.map(ObjectIdentifier.init))
             compiledClips = compiledClips.filter { live.contains($0.key) }
         }
     }
+
     var currentAnimation: AnimationClip?
     public var animationsFilenames: [URL] = []
     var pause: Bool = false
