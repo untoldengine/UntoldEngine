@@ -831,9 +831,13 @@ private func registerRuntimeAnimationClips(
     if runtimeClips.count == 1,
        let runtimeClip = runtimeClips.first,
        preferredName.isEmpty == false,
-       preferredName != runtimeClip.name
+       preferredName != runtimeClip.name,
+       let aliasedClip = animationComponent.animationClips[runtimeClip.name]
     {
-        animationComponent.animationClips[preferredName] = AnimationClip(runtimeClip: runtimeClip)
+        // Reuse the same instance registered above under runtimeClip.name:
+        // compiledClips is now keyed by clip identity, so a second
+        // AnimationClip built from the same runtimeClip would compile twice.
+        animationComponent.animationClips[preferredName] = aliasedClip
         registeredNames.append(preferredName)
     }
 

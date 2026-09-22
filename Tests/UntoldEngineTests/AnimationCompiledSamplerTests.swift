@@ -104,6 +104,22 @@ final class AnimationCompiledSamplerTests: XCTestCase {
         return AnimationClip(runtimeClip: runtimeClip)
     }
 
+    /// Minimal single-channel clip for exercising the identity-keyed
+    /// compiled cache: `name` is caller-chosen so two clips can share it,
+    /// the way independently exported assets often do.
+    private func makeClip(name: String, rootTranslationY: Float) -> AnimationClip {
+        let rootChannel = RuntimeAnimationChannel(
+            jointPath: "root",
+            translations: [.init(time: 0.0, value: simd_float3(0, rootTranslationY, 0))]
+        )
+        let runtimeClip = RuntimeAnimationClip(
+            name: name,
+            duration: 1.0,
+            channels: [rootChannel]
+        )
+        return AnimationClip(runtimeClip: runtimeClip)
+    }
+
     private func quatValue(angle: Float) -> SIMD4<Float> {
         let q = simd_quatf(angle: angle, axis: simd_normalize(simd_float3(0.2, 1, 0.1)))
         return SIMD4<Float>(q.imag.x, q.imag.y, q.imag.z, q.real)
@@ -377,6 +393,46 @@ final class AnimationCompiledSamplerTests: XCTestCase {
         let steadyBase = pose.translations.withUnsafeBufferPointer { UnsafeRawPointer($0.baseAddress!) }
         XCTAssertEqual(steadyBase, warmBase, "PoseBuffer storage was reallocated during steady-state sampling")
         XCTAssertEqual(pose.jointCount, warmedCount)
+    }
+
+    // MARK: - Identity-keyed compiled cache
+
+    /// Two distinct clips sharing a name (e.g. a default Blender action name
+    /// reused across independently exported assets) must not collide in the
+    /// compiled cache, which used to be keyed by `AnimationClip.name`.
+    func testClipsSharingNameCompileIndependently() {
+        let skeleton = makeSkeleton()
+        let clipA = makeClip(name: "shared", rootTranslationY: 1)
+        let clipB = makeClip(name: "shared", rootTranslationY: 9)
+        let component = AnimationComponent()
+
+        let compiledA = component.compiledClip(for: clipA, skeleton: skeleton)
+        let compiledB = component.compiledClip(for: clipB, skeleton: skeleton)
+
+        XCTAssertEqual(component.compiledClips.count, 2, "Same-named clips should occupy separate cache slots")
+        XCTAssertEqual(compiledA.channels[0].translationValues.first?.y, 1)
+        XCTAssertEqual(compiledB.channels[0].translationValues.first?.y, 9)
+    }
+
+    /// `registerRuntimeAnimationClips` overwrites `animationClips[name]`
+    /// directly rather than going through `removeAnimationClip`. The
+    /// replaced clip's compiled entry must still be pruned so a later
+    /// allocation can't inherit its freed identity and serve stale data.
+    func testReplacingRegisteredClipPrunesStaleCompiledEntry() {
+        let skeleton = makeSkeleton()
+        let component = AnimationComponent()
+
+        let original = makeClip(name: "shared", rootTranslationY: 1)
+        component.animationClips["shared"] = original
+        _ = component.compiledClip(for: original, skeleton: skeleton)
+        XCTAssertEqual(component.compiledClips.count, 1)
+
+        let replacement = makeClip(name: "shared", rootTranslationY: 9)
+        component.animationClips["shared"] = replacement
+        XCTAssertEqual(component.compiledClips.count, 0, "Stale compiled entry for the replaced clip was not pruned")
+
+        let compiled = component.compiledClip(for: replacement, skeleton: skeleton)
+        XCTAssertEqual(compiled.channels[0].translationValues.first?.y, 9)
     }
 
     func testSamplingPerformance() {
