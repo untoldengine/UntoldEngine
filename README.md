@@ -32,14 +32,14 @@
 
 # Untold Engine
 
-Untold Engine is an **open-source Swift/Metal XR engine for
-high-performance Apple-platform spatial visualization apps**, giving
-developers full control over rendering, shaders, and the engine pipeline.
+Untold Engine is an **open-source Swift/Metal XR engine for Apple
+platforms**. It gives you full control over rendering, shaders, physics,
+and input, so you can build your own interactive spatial and XR worlds.
 
 Creator & Lead Developer:  
 https://www.haroldserrano.com
 
-![archviz-demo](docs/images/gifs/archviz-demo.gif)
+![coolsaber-demo](docs/images/gifs/coolsaber-demo.gif)
 
 ---
 
@@ -47,20 +47,23 @@ https://www.haroldserrano.com
 
 Untold Engine is built for developers and teams who:
 
-- Need **full control over Metal rendering, shaders, and engine systems**
+- Need **full control over Metal rendering, shaders, physics, and engine systems**
 - Prefer a native **Swift + Metal** architecture on Apple platforms
-- Are building **XR, 3D, or spatial visualization applications**
+- Are building **interactive XR, 3D, or spatial worlds** — not just viewing them
 - Need to handle **large scenes, streaming data, or custom asset pipelines**
 - Want an open engine they can inspect, modify, extend, and embed
 
-Common use cases include:
+Untold Engine is well-suited for:
 
-- Vision Pro and ARKit-based spatial computing apps
-- Architectural walkthroughs and large-scale scene visualizers (interiors, archviz, cities, datasets)
-- Custom rendering pipelines and graphics research prototypes
+- Interactive XR experiences on Vision Pro — hand tracking, physics, and gameplay built on ARKit
+- Spatial worlds and digital twins — archviz walkthroughs, tap-to-inspect twins, and city-scale streamed environments
+- Custom rendering pipelines and graphics research — rendering extensions, Gaussian splats, shader-level control
 
 The engine owns the rendering and XR foundation. Your app owns the vertical
 workflow, product experience, and customer-specific behavior.
+
+
+![coolweb-demo](docs/images/gifs/coolweb-demo.gif)
 
 ---
 
@@ -71,11 +74,14 @@ workflow, product experience, and customer-specific behavior.
 | [CoolSaber](https://github.com/untoldengine/UntoldArcade/tree/main/CoolSaber) | PSVR2-driven lightsaber duels, blades clashing over SharePlay |
 | [CoolWater](https://github.com/untoldengine/UntoldArcade/tree/main/CoolWater) | Real-time animated water with reflection, refraction, and ripples |
 | [CoolCloth](https://github.com/untoldengine/UntoldArcade/tree/main/CoolCloth) | GPU cloth simulation (XPBD) you can punch a ball through |
+| [CoolWeb](https://github.com/untoldengine/UntoldArcade/tree/main/CoolWeb) | Spider-Man web-shooter — gesture-triggered webs that stick to real room geometry |
 | [Archviz Viewer](https://untoldengine.github.io/UntoldEngine/LearningPaths/ArchvizToVisionPro/) | Blender-authored architectural scene walked through in mixed reality |
 | [Bedroom Digital Twin](https://untoldengine.github.io/UntoldEngine/LearningPaths/BedroomDigitalTwin/) | Tap-to-inspect digital twin bedroom with live mock status data |
 | [City Streaming](https://untoldengine.github.io/UntoldEngine/LearningPaths/CityStreamingOnVisionPro/) | City-scale scene streamed in tile by tile with LOD/HLOD |
 
 Full source for every demo above lives in the [UntoldArcade](https://github.com/untoldengine/UntoldArcade) repo.
+
+![coolwater-demo](docs/images/gifs/coolwater-demo.gif)
 
 ## Requirements
 
@@ -83,8 +89,6 @@ Full source for every demo above lives in the [UntoldArcade](https://github.com/
 - Swift 6 / Xcode 26 or newer
 - Apple Silicon Mac
 - Supported platforms: macOS, iOS, and visionOS
-
-![coolsaber-demo](docs/images/gifs/coolsaber-demo.gif)
 
 ## Try the Engine Right Now
 
