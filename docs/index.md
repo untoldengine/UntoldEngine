@@ -21,22 +21,6 @@ Untold Engine is an **open-source Swift/Metal XR engine for
 high-performance Apple-platform spatial visualization apps**, giving
 developers full control over rendering, shaders, and the engine pipeline.
 
-**Vision:** An engine that empowers creativity and never stands in its way.
-
-**Mission:** Build a reliable engine that lets developers focus on creating,
-not troubleshooting the tools they depend on.
-
-Want to help build it? Our [Engineering Principles](https://github.com/untoldengine/UntoldEngine/blob/main/ENGINEERING_PRINCIPLES.md)
-show you how we work — join us.
-
-Untold Engine is built for developers and teams who:
-
-- Need **full control over Metal rendering, shaders, and engine systems**
-- Prefer a native **Swift + Metal** architecture on Apple platforms
-- Are building **XR, 3D, or spatial visualization applications**
-- Need to handle **large scenes, streaming data, or custom asset pipelines**
-- Want an open engine they can inspect, modify, extend, and embed
-
 Creator & Lead Developer:  
 [Harold Serrano](http://www.haroldserrano.com)
 
@@ -46,12 +30,19 @@ Creator & Lead Developer:
 
 ## Built For
 
-Untold Engine is designed for developers building custom spatial visualization
-software on Apple platforms, including:
+Untold Engine is built for developers and teams who:
 
-- Vision Pro and spatial computing apps
-- Architectural walkthroughs and large-scene visualizers
-- Custom rendering pipelines and research prototypes
+- Need **full control over Metal rendering, shaders, and engine systems**
+- Prefer a native **Swift + Metal** architecture on Apple platforms
+- Are building **XR, 3D, or spatial visualization applications**
+- Need to handle **large scenes, streaming data, or custom asset pipelines**
+- Want an open engine they can inspect, modify, extend, and embed
+
+Common use cases include:
+
+- Vision Pro and ARKit-based spatial computing apps
+- Architectural walkthroughs and large-scale scene visualizers (interiors, archviz, cities, datasets)
+- Custom rendering pipelines and graphics research prototypes
 
 The engine owns the rendering and XR foundation. Your app owns the vertical
 workflow, product experience, and customer-specific behavior.
@@ -132,6 +123,11 @@ To create your own XR, 3D, or spatial visualization app using Untold Engine, see
 
 ## Core Direction
 
+**Vision:** An engine that empowers creativity and never stands in its way.
+
+**Mission:** Build a reliable engine that lets developers focus on creating,
+not troubleshooting the tools they depend on.
+
 Untold Engine is built around three focused goals:
 
 - **Spatial Engine First** — Designed for spatial computing applications. LOD, geometry streaming, and static batching exist to support large, real-world-scale environments where presence and performance both matter.
@@ -139,16 +135,6 @@ Untold Engine is built around three focused goals:
 - **XR / visionOS Support** — Spatial input, AR workflows, and Vision Pro support are functional today and expanding with each release.
 
 - **Metal-First Architecture** — The rendering layer stays close to Metal to maintain performance, shader control, and pipeline flexibility without abstraction layers getting in the way.
-
----
-
-## Example Use Cases
-
-Untold Engine is well-suited for:
-
-- Vision Pro and ARKit-based visualization apps
-- Large-scale scene visualization: interiors, archviz, cities, datasets
-- Custom rendering pipelines and graphics experiments
 
 ---
 
