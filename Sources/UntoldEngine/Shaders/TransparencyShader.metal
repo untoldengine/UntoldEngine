@@ -107,7 +107,7 @@ fragment float4 fragmentTransparencyShader(
     totalLight.diff = brdf.diff * (half3)lights.color * (half)lights.intensity;
     totalLight.spec = brdf.spec * lights.color * lights.intensity;
 
-    float shadow = computeCSMShadow(csmShadowArray, csmUniforms, verticesInWorldSpace.xyz, cameraPosition, normal, lightDirection);
+    float shadow = computeCSMShadow(csmShadowArray, csmUniforms, verticesInWorldSpace.xyz, normal, lightDirection);
     totalLight.diff *= (half)shadow;
     totalLight.spec *= shadow;
 

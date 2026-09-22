@@ -337,6 +337,8 @@ let shadowMaxHeight: Float = 300.0
 // Raise to 3 for outdoor scenes that need a wide far cascade (> 40 m shadow range).
 let csmCascadeCount: Int = 2
 let shadowResolution: simd_int2 = .init(2048, 2048)
+/// Fraction of each cascade interval used to cross-fade into the next cascade.
+let csmCascadeBlendFraction: Float = 0.1
 
 var rayTracingPipeline: ComputePipeline {
     get {

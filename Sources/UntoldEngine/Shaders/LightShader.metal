@@ -14,25 +14,30 @@
 #include "ShadersUtils.h"
 using namespace metal;
 
-// Cascaded shadow map sampling.
-// Selects the cascade whose far-split encloses the fragment's camera view-depth,
-// then performs a 16-tap Poisson-disk PCF on that cascade's depth slice.
-float computeCSMShadow(
+// Normal-offset shadows: how many of the cascade's own world-space texels to push the
+// sampled point along the surface normal before the light-space lookup. This moves the
+// tested point off the surface instead of only fudging the depth comparison, so it stays
+// robust to acne from a normal-mapped shading normal (whose NoL — and so whose depth
+// bias — can vary within a single flat, single-depth shadow-map texel).
+constant float kNormalOffsetTexels = 1.5;
+
+float sampleCSMCascade(
     depth2d_array<float> shadowArray,
     constant CSMUniforms &csm,
+    int cascade,
     float3 worldPos,
-    float3 cameraPos,
     float3 normal,
-    float3 lightDir
+    float worldBias,
+    float worldFilterRadius
 ) {
-    // Pick cascade using the same right-handed camera depth space as the CPU split calculation.
-    float viewDepth = -(csm.cameraViewMatrix * float4(worldPos, 1.0)).z;
-    int cascade = csm.cascadeCount - 1;
-    for (int i = 0; i < csm.cascadeCount - 1; i++) {
-        if (viewDepth < csm.cascadeSplits[i]) { cascade = i; break; }
-    }
+    float cascadeWorldTexelSize = max(csm.cascadeWorldTexelSizes[cascade], 1.0e-6);
 
-    float4 shadowCoords = csm.lightSpaceMatrices[cascade] * float4(worldPos, 1.0);
+    // Guard against a degenerate (zero-length) normal — e.g. an unwritten G-buffer
+    // texel — so normalize() can't produce a NaN that corrupts the shadow-space UV.
+    float normalLengthSq = length_squared(normal);
+    float3 safeNormalDir = normalLengthSq > 1.0e-12 ? (normal * rsqrt(normalLengthSq)) : float3(0.0, 1.0, 0.0);
+    float3 offsetWorldPos = worldPos + safeNormalDir * (cascadeWorldTexelSize * kNormalOffsetTexels);
+    float4 shadowCoords = csm.lightSpaceMatrices[cascade] * float4(offsetWorldPos, 1.0);
 
     // Clip → NDC → [0,1] UV
     float3 proj = shadowCoords.xyz / shadowCoords.w;
@@ -52,10 +57,44 @@ float computeCSMShadow(
         compare_func::less_equal
     );
     float2 texelSize = 1.0 / float2(shadowArray.get_width(), shadowArray.get_height());
+    float cascadeFilterRadius = worldFilterRadius / cascadeWorldTexelSize;
+    // Orthographic depth is linear. Convert the shared physical receiver bias
+    // into this cascade's normalized depth units so blended edges stay aligned.
+    float cascadeDepthSpan = max(csm.cascadeDepthSpans[cascade], 1.0e-6);
+    float normalizedBias = worldBias / cascadeDepthSpan;
+    float shadow = 0.0;
+    for (int i = 0; i < 16; ++i) {
+        float2 offset = poissonDisk[i] * texelSize * cascadeFilterRadius;
+        shadow += shadowArray.sample_compare(
+            shadowSampler, proj.xy + offset, cascade, proj.z - normalizedBias
+        );
+    }
+    return shadow / 16.0;
+}
+
+// Cascaded shadow map sampling. The farther cascade overlaps the end of the
+// preceding cascade. Inside that overlap both slices are sampled and their
+// visibility is cross-faded; elsewhere only one slice is sampled.
+float computeCSMShadow(
+    depth2d_array<float> shadowArray,
+    constant CSMUniforms &csm,
+    float3 worldPos,
+    float3 normal,
+    float3 lightDir
+) {
+    // Pick cascade using the same right-handed camera depth space as the CPU split calculation.
+    float viewDepth = -(csm.cameraViewMatrix * float4(worldPos, 1.0)).z;
+    int cascade = csm.cascadeCount - 1;
+    for (int i = 0; i < csm.cascadeCount - 1; i++) {
+        if (viewDepth < csm.cascadeSplits[i]) { cascade = i; break; }
+    }
 
     float NoL = clamp(dot(normalize(normal), normalize(lightDir)), 0.0, 1.0);
-    float bias = max(0.0011 * (1.0 - NoL), 0.0003);
-    float currentDepth = proj.z;
+    // Preserve the established cascade-0 appearance, but express its bias as
+    // a physical light-space distance shared by every cascade sample.
+    float referenceNormalizedBias = max(0.0011 * (1.0 - NoL), 0.0003);
+    float referenceDepthSpan = max(csm.cascadeDepthSpans[0], 1.0e-6);
+    float worldBias = referenceNormalizedBias * referenceDepthSpan;
     float shadowDistance = max(csm.cascadeSplits[max(csm.cascadeCount - 1, 0)], 0.001);
     float depthFade = clamp(viewDepth / shadowDistance, 0.0, 1.0) * clamp(csm.shadowSoftnessDepthScale, 0.0, 2.0);
     float nearRadius = max(csm.shadowSoftnessNear, 0.25);
@@ -63,13 +102,32 @@ float computeCSMShadow(
     float filterRadius = csm.shadowSoftnessEnabled > 0.5
         ? mix(nearRadius, farRadius, clamp(depthFade, 0.0, 1.0))
         : 1.0;
+    // Softness settings are authored in cascade-0 texels. Convert that reference
+    // footprint to world units once here — it does not depend on which cascade is
+    // sampled, so both the primary and (during a blend) the next-cascade sample
+    // reuse this same value instead of each re-deriving it from csm.cascadeWorldTexelSizes[0].
+    float referenceWorldTexelSize = max(csm.cascadeWorldTexelSizes[0], 1.0e-6);
+    float worldFilterRadius = filterRadius * referenceWorldTexelSize;
 
-    float shadow = 0.0;
-    for (int i = 0; i < 16; ++i) {
-        float2 offset = poissonDisk[i] * texelSize * filterRadius;
-        shadow += shadowArray.sample_compare(shadowSampler, proj.xy + offset, cascade, currentDepth - bias);
+    float shadow = sampleCSMCascade(
+        shadowArray, csm, cascade, worldPos, normal, worldBias, worldFilterRadius
+    );
+
+    if (cascade < csm.cascadeCount - 1) {
+        // Blend start is computed once per frame on the CPU (ShadowSystem.cascadeBlendStart)
+        // and uploaded here rather than re-derived per-fragment, so the frustum widening
+        // that makes the next cascade's map cover this region and the shader's cross-fade
+        // agree on the same boundary by construction instead of by two hand-matched formulas.
+        float blendStart = csm.cascadeBlendStarts[cascade];
+        if (viewDepth > blendStart) {
+            float nextShadow = sampleCSMCascade(
+                shadowArray, csm, cascade + 1, worldPos, normal, worldBias, worldFilterRadius
+            );
+            float blend = smoothstep(blendStart, csm.cascadeSplits[cascade], viewDepth);
+            shadow = mix(shadow, nextShadow, blend);
+        }
     }
-    return shadow / 16.0;
+    return shadow;
 }
 
 float computeSpotShadow(
@@ -530,12 +588,12 @@ fragment float4 fragmentLightShader(VertexCompositeOutput vertexOut [[stage_in]]
     color.spec = brdf.spec*lights.color*lights.intensity;
     
     // Compute shadow using cascaded shadow maps
-    float shadow = computeCSMShadow(csmShadowArray, csmUniforms, verticesInWorldSpace.xyz, cameraPosition, surfaceNormal, lightRayDirection);
-   
+    float shadow = computeCSMShadow(csmShadowArray, csmUniforms, verticesInWorldSpace.xyz, surfaceNormal, lightRayDirection);
+
     // shadows affect directional light for now
     color.diff = color.diff*(half)shadow;
     color.spec = color.spec*shadow;
-    
+
     // compute point light contribution
 
     LightContribution pointColor;
@@ -695,7 +753,7 @@ fragment TBDRLightOutput fragmentLightShaderTBDR(
     color.diff = brdf.diff * (half3)lights.color * (half)lights.intensity;
     color.spec = brdf.spec * lights.color * lights.intensity;
 
-    float shadow = computeCSMShadow(csmShadowArray, csmUniforms, verticesInWorldSpace.xyz, cameraPosition, surfaceNormal, lightRayDirection);
+    float shadow = computeCSMShadow(csmShadowArray, csmUniforms, verticesInWorldSpace.xyz, surfaceNormal, lightRayDirection);
     color.diff *= (half)shadow;
     color.spec *= shadow;
 
