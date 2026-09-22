@@ -143,17 +143,11 @@ public enum RenderExtensionPipelineError: Error, Equatable, Sendable, CustomStri
     }
 }
 
-/// The reasons the pipeline registries attach to `RenderExtensionPipelineError.creationFailed`.
+/// The reasons the pipeline registries attach to `RenderExtensionPipelineError.creationFailed`
+/// when no error was thrown; a thrown error's reason comes from `failureReason(for:)`.
 enum RenderExtensionPipelineFailureReason {
     static let initializerReturnedNil = "the pipeline initializer returned nil"
     static let pipelineReportsFailure = "the pipeline reports success == false"
-
-    static func describe(_ error: any Error) -> String {
-        if let creationError = error as? PipelineCreationError {
-            return creationError.reason
-        }
-        return failureReason(for: error)
-    }
 }
 
 final class RenderExtensionPipelineErrorCollector {

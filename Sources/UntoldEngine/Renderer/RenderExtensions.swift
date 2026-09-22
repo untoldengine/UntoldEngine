@@ -638,7 +638,7 @@ public struct RenderPipelineRegistry {
                 .creationFailed(
                     kind: .renderPipeline,
                     pipelineID: descriptor.id.rawValue,
-                    reason: RenderExtensionPipelineFailureReason.describe(error)
+                    reason: failureReason(for: error)
                 )
             )
             return
@@ -1035,7 +1035,7 @@ public struct ComputePipelineRegistry {
                 .creationFailed(
                     kind: .computePipeline,
                     pipelineID: descriptor.id.rawValue,
-                    reason: RenderExtensionPipelineFailureReason.describe(error)
+                    reason: failureReason(for: error)
                 )
             )
             return

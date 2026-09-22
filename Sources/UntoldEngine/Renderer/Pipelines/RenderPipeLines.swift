@@ -35,8 +35,10 @@ public struct RenderPipeline {
 ///
 /// `CreatePipeline` and `CreateComputePipeline` report these through `handleError`
 /// and return no pipeline; the render-extension registry keeps the reason in its
-/// `RenderExtensionPipelineError.creationFailed` diagnostics instead.
-enum PipelineCreationError: Error {
+/// `RenderExtensionPipelineError.creationFailed` diagnostics instead. Both go
+/// through `failureReason(for:)`, which reads `errorDescription`, so the reason is
+/// the Metal message rather than the case's Swift description.
+enum PipelineCreationError: LocalizedError {
     /// No Metal device is available yet.
     case metalUnavailable
     /// The shader library could not be resolved; `resolveRenderShaderLibrary` has already logged why.
@@ -55,8 +57,13 @@ enum PipelineCreationError: Error {
         case let .missingFunction(name):
             return "shader function '\(name)' not found"
         case let .pipelineStateCreationFailed(underlying):
-            return failureReason(for: underlying)
+            // Qualified: `LocalizedError.failureReason` shadows the helper inside this type.
+            return UntoldEngine.failureReason(for: underlying)
         }
+    }
+
+    var errorDescription: String? {
+        reason
     }
 }
 
