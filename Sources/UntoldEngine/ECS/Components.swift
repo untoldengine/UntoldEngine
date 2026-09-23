@@ -362,8 +362,17 @@ public class AnimationComponent: Component {
         didSet {
             let live = Set(animationClips.values.map(ObjectIdentifier.init))
             compiledClips = compiledClips.filter { live.contains($0.key) }
+            hiddenClipAliases = hiddenClipAliases.filter { animationClips[$0] != nil }
         }
     }
+
+    /// Keys in `animationClips` that are internal aliases rather than
+    /// logical/display clip names. registerRuntimeAnimationClips adds an
+    /// alias when an asset's embedded clip name differs from the caller's
+    /// preferred name, so both names keep working as lookup keys (e.g. for
+    /// changeAnimation) while getAllAnimationClips() reports only the
+    /// preferred name — otherwise one logical animation shows up twice.
+    var hiddenClipAliases: Set<String> = []
 
     var currentAnimation: AnimationClip?
     public var animationsFilenames: [URL] = []
@@ -400,6 +409,7 @@ public class AnimationComponent: Component {
 
     func cleanUp() {
         animationClips.removeAll()
+        hiddenClipAliases.removeAll()
         currentAnimation?.cleanUp()
         currentAnimation = nil
         compiledClips.removeAll()
@@ -415,12 +425,24 @@ public class AnimationComponent: Component {
         motionMatching = MotionMatchingState()
     }
 
+    /// One display name per logical animation: hidden aliases (see
+    /// `hiddenClipAliases`) are excluded so an asset whose embedded clip
+    /// name differs from its preferred name is listed once, not twice.
     func getAllAnimationClips() -> [String] {
-        Array(animationClips.keys)
+        Array(animationClips.keys.filter { hiddenClipAliases.contains($0) == false })
     }
 
+    /// Removes the logical clip named `animationClip` along with every
+    /// other key (aliases) referencing the same `AnimationClip` instance,
+    /// so removing either the preferred name or the embedded-name alias
+    /// removes the whole animation rather than leaving the other name
+    /// dangling.
     func removeAnimationClip(animationClip: String) {
-        animationClips.removeValue(forKey: animationClip)
+        guard let clip = animationClips[animationClip] else { return }
+        let keysToRemove = animationClips.compactMap { key, value in value === clip ? key : nil }
+        for key in keysToRemove {
+            animationClips.removeValue(forKey: key)
+        }
     }
 
     /// Returns the compiled form of `clip` resolved against `skeleton`,
