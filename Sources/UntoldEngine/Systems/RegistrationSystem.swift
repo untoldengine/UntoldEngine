@@ -815,7 +815,7 @@ private func ensureAnimationComponent(entityId: EntityID, errorEntityId: EntityI
     return animationComponent
 }
 
-private func registerRuntimeAnimationClips(
+func registerRuntimeAnimationClips(
     _ runtimeClips: [RuntimeAnimationClip],
     preferredName: String,
     to animationComponent: AnimationComponent
@@ -825,6 +825,7 @@ private func registerRuntimeAnimationClips(
     for runtimeClip in runtimeClips {
         let animationClip = AnimationClip(runtimeClip: runtimeClip)
         animationComponent.animationClips[runtimeClip.name] = animationClip
+        animationComponent.hiddenClipAliases.remove(runtimeClip.name)
         registeredNames.append(runtimeClip.name)
     }
 
@@ -837,7 +838,15 @@ private func registerRuntimeAnimationClips(
         // Reuse the same instance registered above under runtimeClip.name:
         // compiledClips is now keyed by clip identity, so a second
         // AnimationClip built from the same runtimeClip would compile twice.
+        // If preferredName previously named a different clip (e.g. the
+        // asset was re-exported with a different embedded action name),
+        // drop that old clip's own alias keys so they don't linger as
+        // unreachable, un-displayed entries in animationClips.
+        if let previousClip = animationComponent.animationClips[preferredName], previousClip !== aliasedClip {
+            animationComponent.removeAnimationClip(animationClip: preferredName)
+        }
         animationComponent.animationClips[preferredName] = aliasedClip
+        animationComponent.hiddenClipAliases.insert(runtimeClip.name)
         registeredNames.append(preferredName)
     }
 
