@@ -78,7 +78,7 @@ final class AnimationClipAliasTests: XCTestCase {
         XCTAssertEqual(component.getAllAnimationClips().sorted(), ["run_anim", "walk_anim"],
                        "Each independently exported clip must be listed once under its own preferred name")
         XCTAssertFalse(component.animationClips["walk_anim"] === component.animationClips["run_anim"],
-                        "Distinct clips must not collapse into the same instance")
+                       "Distinct clips must not collapse into the same instance")
         XCTAssertEqual(component.animationClips["walk_anim"]?.getPose(at: 0, jointPath: "root")?.columns.3.y, 1)
         XCTAssertEqual(component.animationClips["run_anim"]?.getPose(at: 0, jointPath: "root")?.columns.3.y, 9)
     }
