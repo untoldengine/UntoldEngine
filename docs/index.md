@@ -24,7 +24,7 @@ and input, so you can build your own interactive spatial and XR worlds.
 Creator & Lead Developer:  
 [Harold Serrano](http://www.haroldserrano.com)
 
-![coolsaber-demo](images/gifs/coolsaber-demo.gif)
+[![CoolSaber demo](images/coolsaber-thumbnail.png)](https://youtu.be/4JWZf_NFddY)
 
 ---
 
@@ -47,8 +47,6 @@ Untold Engine is well-suited for:
 The engine owns the rendering and XR foundation. Your app owns the vertical
 workflow, product experience, and customer-specific behavior.
 
-![coolweb-demo](images/gifs/coolweb-demo.gif)
-
 ---
 
 ## Watch It in Action — Apple Vision Pro Demos
@@ -64,8 +62,6 @@ workflow, product experience, and customer-specific behavior.
 | [City Streaming](https://untoldengine.github.io/UntoldEngine/LearningPaths/CityStreamingOnVisionPro/) | City-scale scene streamed in tile by tile with LOD/HLOD |
 
 Full source for every demo above lives in the [UntoldArcade](https://github.com/untoldengine/UntoldArcade) repo.
-
-![coolwater-demo](images/gifs/coolwater-demo.gif)
 
 ## Try the Engine Right Now
 
