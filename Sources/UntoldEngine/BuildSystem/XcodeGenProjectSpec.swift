@@ -125,18 +125,15 @@ import Foundation
                 """
             }
 
-            // Build optimization level for release
-            let optLevel: String
-            switch settings.optimizationLevel {
-            case .none: optLevel = "-Onone"
-            case .speed: optLevel = "-O"
-            case .size: optLevel = "-Osize"
-            }
+            // Release always builds optimized. `settings.optimizationLevel` is not consulted
+            // here: a "Release" configuration that compiles at `-Onone` defeats its purpose, so
+            // it must never depend on a caller-supplied default (see BuildSettings.optimizationLevel).
+            let releaseOptLevel = "-O"
 
             // Build configs section
             var releaseConfig = """
             SWIFT_COMPILATION_MODE: wholemodule
-            SWIFT_OPTIMIZATION_LEVEL: \(optLevel)
+            SWIFT_OPTIMIZATION_LEVEL: \(releaseOptLevel)
             """
 
             if settings.includeDebugInfo {
@@ -273,7 +270,7 @@ import Foundation
                           DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
                         Release:
                           SWIFT_COMPILATION_MODE: wholemodule
-                          SWIFT_OPTIMIZATION_LEVEL: \(optLevel)
+                          SWIFT_OPTIMIZATION_LEVEL: \(releaseOptLevel)
                           DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
 
                   \(settings.projectName) iOS:
@@ -307,7 +304,7 @@ import Foundation
                           DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
                         Release:
                           SWIFT_COMPILATION_MODE: wholemodule
-                          SWIFT_OPTIMIZATION_LEVEL: \(optLevel)
+                          SWIFT_OPTIMIZATION_LEVEL: \(releaseOptLevel)
                           DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
 
                   \(settings.projectName) iOS AR:
@@ -337,7 +334,7 @@ import Foundation
                           DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
                         Release:
                           SWIFT_COMPILATION_MODE: wholemodule
-                          SWIFT_OPTIMIZATION_LEVEL: \(optLevel)
+                          SWIFT_OPTIMIZATION_LEVEL: \(releaseOptLevel)
                           DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
 
                   \(settings.projectName) visionOS:
@@ -369,7 +366,7 @@ import Foundation
                           DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
                         Release:
                           SWIFT_COMPILATION_MODE: wholemodule
-                          SWIFT_OPTIMIZATION_LEVEL: \(optLevel)
+                          SWIFT_OPTIMIZATION_LEVEL: \(releaseOptLevel)
                           DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
                 """
             } else {

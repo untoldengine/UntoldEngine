@@ -1377,6 +1377,46 @@ final class BuildSystemTests: XCTestCase {
                       "Should include debug information")
     }
 
+    func testReleaseConfigurationAlwaysOptimizesRegardlessOfOptimizationLevel() throws {
+        // Given: settings that pass the historical default, optimizationLevel: .none, which
+        // used to leak into the Release configuration and ship an unoptimized "Release" build.
+        let singlePlatformSettings = BuildSettings(
+            projectName: "MyGame",
+            bundleIdentifier: "com.test.game",
+            outputPath: tempDirectory,
+            target: .visionOS(deployment: .v2),
+            optimizationLevel: .none
+        )
+        let multiPlatformSettings = BuildSettings(
+            projectName: "MyGame",
+            bundleIdentifier: "com.test.game",
+            outputPath: tempDirectory,
+            target: .multi(macOS: .v14, iOS: .v17, visionOS: .v2),
+            optimizationLevel: .none
+        )
+
+        // When: Generating XcodeGen YAML specs
+        let singlePlatformYAML = try XcodeGenProjectSpec.generateYAML(settings: singlePlatformSettings)
+        let multiPlatformYAML = try XcodeGenProjectSpec.generateYAML(settings: multiPlatformSettings)
+
+        // Then: every wholemodule (Release) block must compile at -O, never -Onone, no matter
+        // how many targets the multi-platform template generates.
+        let pattern = try NSRegularExpression(
+            pattern: "SWIFT_COMPILATION_MODE: wholemodule\\s*\\n\\s*SWIFT_OPTIMIZATION_LEVEL: (\\S+)"
+        )
+        for yamlContent in [singlePlatformYAML, multiPlatformYAML] {
+            let matches = pattern.matches(
+                in: yamlContent, range: NSRange(yamlContent.startIndex..., in: yamlContent)
+            )
+            XCTAssertFalse(matches.isEmpty, "Expected at least one Release (wholemodule) block")
+            for match in matches {
+                let range = try XCTUnwrap(Range(match.range(at: 1), in: yamlContent))
+                XCTAssertEqual(yamlContent[range], "-O",
+                               "Release must build at -O even when optimizationLevel: .none was passed")
+            }
+        }
+    }
+
     func testMultiPlatformTemplateDoesNotIncludeStandardSinglePlatformFiles() {
         // Given: Multi-platform build settings
         let settings = BuildSettings(

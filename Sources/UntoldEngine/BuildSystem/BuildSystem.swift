@@ -144,6 +144,9 @@ import Foundation
         public var target: BuildTarget
         public var scenes: [String] // Scene file paths
         public var includeDebugInfo: Bool
+        /// Unused by project generation: the Release configuration always builds at `-O`
+        /// regardless of this value, so a "Release" build is never accidentally unoptimized.
+        /// Kept only for source compatibility with existing callers.
         public var optimizationLevel: OptimizationLevel
         public var teamID: String? // For code signing
         public var isIOSAR: Bool // Use AR templates for iOS
