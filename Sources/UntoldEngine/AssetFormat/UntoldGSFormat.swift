@@ -12,7 +12,7 @@
 //
 //    [0]                  UntoldGSHeaderV3       256 bytes, padded to 16 KB
 //    [chunkIndexOffset]   UntoldGSChunkEntry[]   64 bytes each, padded
-//    [nodeTreeOffset]     UntoldGSTreeNode[]     48 bytes each, padded
+//    [nodeTreeOffset]     UntoldGSTreeNode[]     52 bytes each, padded
 //    [paletteOffset]      reserved (0 when absent)
 //    [payloadOffset]      chunk payloads, each padded to a 16 KB multiple:
 //                           core block  16 bytes × splatCount
@@ -116,7 +116,10 @@ public enum UntoldGSFormat {
     /// recognised and rejected with `.unsupportedVersion` rather than `.badMagic`.
     public static let magic: UInt32 = 0x5347_5455
     public static let magicBytes: [UInt8] = [0x55, 0x54, 0x47, 0x53]
-    public static let version: UInt32 = 3
+    /// Bumped 3 -> 4 to add `UntoldGSTreeNode.maxLogScaleMax` (a version bump means "re-bake" —
+    /// see the file header comment); `UntoldGSReader` rejects any older file outright with
+    /// `.unsupportedVersion` rather than misreading it against the new 52-byte node layout.
+    public static let version: UInt32 = 4
 
     /// Section and chunk payload alignment. Matches the VM page size on current Apple
     /// devices, which `MTLDevice.makeBuffer(bytesNoCopy:)` requires and Metal fast resource
@@ -125,7 +128,7 @@ public enum UntoldGSFormat {
 
     public static let headerSize: Int = 256
     public static let chunkEntrySize: Int = 64
-    public static let treeNodeSize: Int = 48
+    public static let treeNodeSize: Int = 52
     /// Bytes per splat in the core block: packed position, rotation, scale, RGBA.
     public static let coreRecordSize: Int = 16
 
@@ -410,7 +413,7 @@ public struct UntoldGSChunkEntry: Sendable, Equatable {
 
 // MARK: - Tree node
 
-/// 48-byte node of the binary tree over the Morton-ordered chunk array.
+/// 52-byte node of the binary tree over the Morton-ordered chunk array.
 /// Chunks under a node are contiguous in the index, so a node maps to one byte range per LOD.
 public struct UntoldGSTreeNode: Sendable, Equatable {
     public var aabbMin: SIMD3<Float>
@@ -424,6 +427,14 @@ public struct UntoldGSTreeNode: Sendable, Equatable {
     public var geometricError: Float
     /// Environments only: offset into the visibility table. Zero when absent.
     public var visibilityMaskOffset: UInt32
+    /// The largest `logScaleMax` of any chunk under this node — `UntoldGSWriter.buildTree`
+    /// computes it as a direct scan of the node's own (contiguous) chunk range, the same way it
+    /// already computes `aabbMin`/`aabbMax`, so it's this node's true subtree maximum rather than
+    /// the whole asset's. `GaussianChunkTreeCull` pads this node's box by exactly this value: a
+    /// tight, node-local figure instead of one outlier splat anywhere in the asset (a background
+    /// "sky" splat is a common source in unbounded outdoor captures) inflating every node in the
+    /// tree and defeating pruning everywhere.
+    public var maxLogScaleMax: Float
 
     public init(
         aabbMin: SIMD3<Float>,
@@ -433,7 +444,8 @@ public struct UntoldGSTreeNode: Sendable, Equatable {
         firstChunk: UInt32,
         chunkCount: UInt32,
         geometricError: Float = 0,
-        visibilityMaskOffset: UInt32 = 0
+        visibilityMaskOffset: UInt32 = 0,
+        maxLogScaleMax: Float = 0
     ) {
         self.aabbMin = aabbMin
         self.aabbMax = aabbMax
@@ -443,6 +455,7 @@ public struct UntoldGSTreeNode: Sendable, Equatable {
         self.chunkCount = chunkCount
         self.geometricError = geometricError
         self.visibilityMaskOffset = visibilityMaskOffset
+        self.maxLogScaleMax = maxLogScaleMax
     }
 
     public var isLeaf: Bool {
@@ -604,6 +617,7 @@ extension UntoldGSTreeNode: UntoldBinaryEncodable, UntoldBinaryDecodable {
         writer.writeUInt32LE(chunkCount) // 36 – 39
         writer.writeFloat32LE(geometricError) // 40 – 43
         writer.writeUInt32LE(visibilityMaskOffset) // 44 – 47
+        writer.writeFloat32LE(maxLogScaleMax) // 48 – 51
     }
 
     public static func decode(from reader: UntoldBinaryReader) throws -> UntoldGSTreeNode {
@@ -615,7 +629,8 @@ extension UntoldGSTreeNode: UntoldBinaryEncodable, UntoldBinaryDecodable {
             firstChunk: reader.readUInt32LE(),
             chunkCount: reader.readUInt32LE(),
             geometricError: reader.readFloat32LE(),
-            visibilityMaskOffset: reader.readUInt32LE()
+            visibilityMaskOffset: reader.readUInt32LE(),
+            maxLogScaleMax: reader.readFloat32LE()
         )
     }
 }

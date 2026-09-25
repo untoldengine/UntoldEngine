@@ -276,7 +276,7 @@ final class UntoldGSCookerTests: XCTestCase {
         XCTAssertEqual(result.tiers.count, 1)
 
         let file = try UntoldGSFile(url: result.tiers[0].url)
-        XCTAssertEqual(file.header.version, 3)
+        XCTAssertEqual(file.header.version, 4)
         XCTAssertEqual(file.header.splatCount, 200)
         XCTAssertEqual(file.header.log2ChunkSplats, 7)
         XCTAssertEqual(file.index.chunks.count, 2)

@@ -259,7 +259,7 @@ final class UntoldGSFormatTests: XCTestCase {
         let fileData = try UntoldGSFormat.write(splats: splats, options: options)
         let file = try UntoldGSFile(url: writeTemporaryFile(fileData))
         let header = file.header
-        XCTAssertEqual(header.version, 3)
+        XCTAssertEqual(header.version, 4)
         XCTAssertEqual(header.splatCount, 5000)
         XCTAssertEqual(header.chunkCount, 20)
         XCTAssertEqual(header.lodLevels, 1)
@@ -1009,7 +1009,10 @@ final class UntoldGSFormatTests: XCTestCase {
 
     /// The pre-change bytes of two fixtures, recorded at 6bfa4cc6 (before the section existed):
     /// a 13-chunk bake and a 69-chunk bake with the levels off both reproduce them exactly, and
-    /// `.automatic` below 64 chunks does too.
+    /// `.automatic` below 64 chunks does too. Re-baselined for the format version 3 -> 4 bump
+    /// (`UntoldGSTreeNode.maxLogScaleMax`, 48 -> 52 bytes/node): file sizes are unchanged (the
+    /// tree section's existing 16 KB padding absorbed the extra 4 bytes/node), only the CRCs
+    /// moved, since the tree section's bytes themselves changed.
     func testWriteWithoutLevelsIsByteIdenticalToBefore() throws {
         var options = UntoldGSWriteOptions()
         options.log2ChunkSplats = 4
@@ -1020,7 +1023,7 @@ final class UntoldGSFormatTests: XCTestCase {
         let small = (0 ..< 200).map { _ in rng.nextGoldenSplat() }
         let smallData = try UntoldGSFormat.write(splats: small, options: options)
         XCTAssertEqual(smallData.count, 262_144)
-        XCTAssertEqual(UntoldGSCRC32.checksum(smallData), 0xF81A_698B, "13 chunks under .automatic: no section")
+        XCTAssertEqual(UntoldGSCRC32.checksum(smallData), 0xED75_0969, "13 chunks under .automatic: no section")
         XCTAssertFalse(try UntoldGSFormat.readIndex(from: smallData).header.hasCoarseLevels)
 
         var rng2 = SplitMix64(seed: 0x600D_F00D)
@@ -1031,7 +1034,7 @@ final class UntoldGSFormatTests: XCTestCase {
         options.coarseLevelsAutomatic = false
         let largeData = try UntoldGSFormat.write(splats: large, options: options)
         XCTAssertEqual(largeData.count, 1_179_648)
-        XCTAssertEqual(UntoldGSCRC32.checksum(largeData), 0x1C58_358A)
+        XCTAssertEqual(UntoldGSCRC32.checksum(largeData), 0x5D31_3800)
         // The section-free file is the flagged file's prefix with the header's coarse words clear.
         var emulated = automatic.prefix(largeData.count)
         emulated[8] &= ~UInt8(0x10)

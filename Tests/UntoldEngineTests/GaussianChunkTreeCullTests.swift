@@ -149,17 +149,14 @@ final class GaussianChunkTreeCullTests: XCTestCase {
 
     // MARK: - Padding
 
-    /// A leaf whose *unpadded* box sits just past the frustum's edge, but whose owning asset's
-    /// largest splat scale is big enough that the padded box the per-chunk test would actually
-    /// use pokes back inside — visibleChunkRanges must keep it, the same way the per-chunk
-    /// kernel would once it opened that chunk. Uses a wide-open frustum (looking straight down
-    /// +Z the box already mostly faces) so only the padding, not incidental framing, decides it.
+    /// A leaf whose *unpadded* box sits just past the frustum's edge, but whose own
+    /// `maxLogScaleMax` (its subtree's largest splat scale, baked per node by
+    /// `UntoldGSWriter.buildTree`) is big enough that the padded box the per-chunk test would
+    /// actually use pokes back inside — visibleChunkRanges must keep it, the same way the
+    /// per-chunk kernel would once it opened that chunk. Uses a wide-open frustum (looking
+    /// straight down +Z the box already mostly faces) so only the padding, not incidental
+    /// framing, decides it.
     func testPadsNodeBoxByTheAssetsLargestSplatScale() {
-        let justOutside = UntoldGSTreeNode(
-            aabbMin: simd_float3(10.5, -1, 8), aabbMax: simd_float3(11.5, 1, 10),
-            firstChunk: 0, chunkCount: 1
-        )
-        let nodes = [justOutside]
         // A tight 20° FOV pointed straight down +Z keeps the clip volume's x extent at roughly
         // ±tan(10°)·z — about ±1.4 at z = 8 — so the box (x = 10.5...11.5) is well outside it
         // unpadded, and only a substantial pad brings it back in.
@@ -168,30 +165,35 @@ final class GaussianChunkTreeCullTests: XCTestCase {
             matrix_look_at_right_hand(.zero, simd_float3(0, 0, 1), simd_float3(0, 1, 0))
         )
 
+        // Unused by this call (only the tree-less fallback reads it), but still required.
+        let placeholderChunks = [UntoldGSChunkEntry(
+            payloadOffset: 0, payloadBytes: 0, coreBytes: 0, splatCount: 1,
+            aabbMin: .zero, aabbMax: .zero, logScaleMin: 0, logScaleMax: 0, crc32: 0
+        )]
+
+        let smallScaleNode = UntoldGSTreeNode(
+            aabbMin: simd_float3(10.5, -1, 8), aabbMax: simd_float3(11.5, 1, 10),
+            firstChunk: 0, chunkCount: 1, maxLogScaleMax: 0.01
+        )
         // Confirm the premise: the *unpadded* box genuinely fails this frustum on its own.
         XCTAssertFalse(
-            GaussianChunkCullMath.boxPassesClipPlanes(boxMin: justOutside.aabbMin, boxMax: justOutside.aabbMax, viewProjection: straightAhead),
+            GaussianChunkCullMath.boxPassesClipPlanes(boxMin: smallScaleNode.aabbMin, boxMax: smallScaleNode.aabbMax, viewProjection: straightAhead),
             "test setup error: the box should be outside the frustum before padding"
         )
-
-        let smallScaleChunks = [UntoldGSChunkEntry(
-            payloadOffset: 0, payloadBytes: 0, coreBytes: 0, splatCount: 1,
-            aabbMin: .zero, aabbMax: .zero, logScaleMin: 0, logScaleMax: 0.01, crc32: 0
-        )]
         XCTAssertEqual(
-            GaussianChunkTreeCull.visibleChunkRanges(nodes: nodes, chunks: smallScaleChunks, viewProjection0: straightAhead),
+            GaussianChunkTreeCull.visibleChunkRanges(nodes: [smallScaleNode], chunks: placeholderChunks, viewProjection0: straightAhead),
             [],
-            "a small logScaleMax should not pad the box back into view"
+            "a small maxLogScaleMax should not pad the box back into view"
         )
 
-        let largeScaleChunks = [UntoldGSChunkEntry(
-            payloadOffset: 0, payloadBytes: 0, coreBytes: 0, splatCount: 1,
-            aabbMin: .zero, aabbMax: .zero, logScaleMin: 0, logScaleMax: log(6.0), crc32: 0
-        )]
+        let largeScaleNode = UntoldGSTreeNode(
+            aabbMin: simd_float3(10.5, -1, 8), aabbMax: simd_float3(11.5, 1, 10),
+            firstChunk: 0, chunkCount: 1, maxLogScaleMax: log(6.0)
+        )
         XCTAssertEqual(
-            GaussianChunkTreeCull.visibleChunkRanges(nodes: nodes, chunks: largeScaleChunks, viewProjection0: straightAhead),
+            GaussianChunkTreeCull.visibleChunkRanges(nodes: [largeScaleNode], chunks: placeholderChunks, viewProjection0: straightAhead),
             [GaussianChunkRange(firstChunk: 0, chunkCount: 1)],
-            "the asset's largest splat scale should pad the node box back into view, keeping the chunk this stage must not drop"
+            "the node's own subtree maxLogScaleMax should pad its box back into view, keeping the chunk this stage must not drop"
         )
     }
 

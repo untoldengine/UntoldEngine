@@ -424,13 +424,13 @@ final class UntoldGSCookerEquivalenceTests: XCTestCase {
         options.cropMax = [0.95, 0.95, 0.15]
         options.shDegree = 0
         let single = try bakeBothWays(ply: ply, name: "grid", lodFractions: [1.0], options: options)
-        XCTAssertEqual(try sha256(single.tiers[0].streamed), "c27c677da83a97ac272ff3d746f7a5d1e5697e2122ca7d5c53cba28153e583f8")
+        XCTAssertEqual(try sha256(single.tiers[0].streamed), "7e64e1a2c6d87b96f9f7ddce22f8d7184e496c579d2b72c28b41d41147e19380")
 
         options.coarseLevels = .levels(count: 1)
         let twoTier = try bakeBothWays(ply: ply, name: "grid-tiers", lodFractions: [1.0, 0.5], options: options)
         // Every splat of the grid has the same importance: the half tier is decided by the
         // ranking's tie order alone, which has to be the same every run.
-        XCTAssertEqual(try sha256(twoTier.tiers[1].streamed), "62485bd1a68fec31cd42c03e64b0c8b4b8eb46867bdd341b017d40e6cdf4c179")
+        XCTAssertEqual(try sha256(twoTier.tiers[1].streamed), "ebae6af7bd87c9b758aa939d14878e82b191a662c2a2ea4489a172272ac375e0")
     }
 
     func testBinarySH3FixtureBakesByteIdenticalToTheWholeArrayPath() throws {
@@ -442,7 +442,7 @@ final class UntoldGSCookerEquivalenceTests: XCTestCase {
         XCTAssertEqual(file.header.shDegree, 3)
         XCTAssertTrue(file.header.hasCoarseLevels, "69-odd chunks of 16: the automatic section")
         XCTAssertEqual(file.index.coarseRatioLog2, [3, 4])
-        XCTAssertEqual(try sha256(transformed.tiers[0].streamed), "57ab85a8ddf02f0f099ab3f7cc02de07822dd45c6072bf8f949451e9dab0c890")
+        XCTAssertEqual(try sha256(transformed.tiers[0].streamed), "91d8d292c19cf8a10094f0bb0acd6e393e3085bcf4ceb8d41f1a7a157034864b")
         try bakeBothWays(ply: ply, name: "capture-tiers", lodFractions: [1.0, 0.5], options: transformedOptions)
 
         let budgeted = try bakeBothWays(ply: ply, name: "budget", lodFractions: [1.0], options: budgetedOptions)
@@ -450,7 +450,7 @@ final class UntoldGSCookerEquivalenceTests: XCTestCase {
         XCTAssertEqual(budgetedFile.header.shDegree, 1)
         XCTAssertEqual(budgetedFile.header.splatCount, 700)
         XCTAssertFalse(budgetedFile.header.hasCoarseLevels)
-        XCTAssertEqual(try sha256(budgeted.tiers[0].streamed), "a61d665f6ca56d27897f69e974515d00e50cf1f5d364931446be68129ccdf327")
+        XCTAssertEqual(try sha256(budgeted.tiers[0].streamed), "056c66a8a94b53c7c38aaf489dea7fdd0f368e0235ce44ba1eec5cd8b7943221")
         try bakeBothWays(ply: ply, name: "budget-tiers", lodFractions: [1.0, 0.5], options: budgetedOptions)
     }
 
@@ -494,7 +494,7 @@ final class UntoldGSCookerEquivalenceTests: XCTestCase {
         XCTAssertEqual(try PLYReader.readGaussianSplatCount(from: ply), 1100)
         let output = temporaryDirectory.appendingPathComponent("capture-be.untoldgs")
         _ = try bakeGaussianSplatProgressiveTiers(plyURL: ply, outputBaseURL: output, lodFractions: [1.0], cookOptions: transformedOptions)
-        XCTAssertEqual(try sha256(output), "57ab85a8ddf02f0f099ab3f7cc02de07822dd45c6072bf8f949451e9dab0c890")
+        XCTAssertEqual(try sha256(output), "91d8d292c19cf8a10094f0bb0acd6e393e3085bcf4ceb8d41f1a7a157034864b")
     }
 
     // MARK: - Many windows
@@ -513,11 +513,11 @@ final class UntoldGSCookerEquivalenceTests: XCTestCase {
             XCTAssertEqual(try PLYGaussianSource(url: ply, windowing: windowing).layout.stride, captureStride)
 
             let transformed = try bakeBothWays(ply: ply, name: "\(name)-w64", lodFractions: [1.0], options: transformedOptions, windowing: windowing, windows: 18)
-            XCTAssertEqual(try sha256(transformed.tiers[0].streamed), "57ab85a8ddf02f0f099ab3f7cc02de07822dd45c6072bf8f949451e9dab0c890", "the same file as through one window")
+            XCTAssertEqual(try sha256(transformed.tiers[0].streamed), "91d8d292c19cf8a10094f0bb0acd6e393e3085bcf4ceb8d41f1a7a157034864b", "the same file as through one window")
             try bakeBothWays(ply: ply, name: "\(name)-w64-tiers", lodFractions: [1.0, 0.5], options: transformedOptions, windowing: windowing, windows: 18)
 
             let budgeted = try bakeBothWays(ply: ply, name: "\(name)-w64-budget", lodFractions: [1.0], options: budgetedOptions, windowing: windowing, windows: 18)
-            XCTAssertEqual(try sha256(budgeted.tiers[0].streamed), "a61d665f6ca56d27897f69e974515d00e50cf1f5d364931446be68129ccdf327")
+            XCTAssertEqual(try sha256(budgeted.tiers[0].streamed), "056c66a8a94b53c7c38aaf489dea7fdd0f368e0235ce44ba1eec5cd8b7943221")
         }
     }
 
@@ -551,11 +551,11 @@ final class UntoldGSCookerEquivalenceTests: XCTestCase {
         options.cropMax = [0.95, 0.95, 0.15]
         options.shDegree = 0
         let single = try bakeBothWays(ply: ply, name: "grid-w2k", lodFractions: [1.0], options: options, windowing: windowing, windows: cuts.count)
-        XCTAssertEqual(try sha256(single.tiers[0].streamed), "c27c677da83a97ac272ff3d746f7a5d1e5697e2122ca7d5c53cba28153e583f8", "the same file as through one window")
+        XCTAssertEqual(try sha256(single.tiers[0].streamed), "7e64e1a2c6d87b96f9f7ddce22f8d7184e496c579d2b72c28b41d41147e19380", "the same file as through one window")
 
         options.coarseLevels = .levels(count: 1)
         let twoTier = try bakeBothWays(ply: ply, name: "grid-w2k-tiers", lodFractions: [1.0, 0.5], options: options, windowing: windowing, windows: cuts.count)
-        XCTAssertEqual(try sha256(twoTier.tiers[1].streamed), "62485bd1a68fec31cd42c03e64b0c8b4b8eb46867bdd341b017d40e6cdf4c179")
+        XCTAssertEqual(try sha256(twoTier.tiers[1].streamed), "ebae6af7bd87c9b758aa939d14878e82b191a662c2a2ea4489a172272ac375e0")
     }
 
     func testASCIIBodyLongerThanItsDeclaredCountIsCutToTheCountAcrossWindows() throws {

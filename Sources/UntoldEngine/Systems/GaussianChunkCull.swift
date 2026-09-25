@@ -720,16 +720,15 @@ enum GaussianChunkTreeCull {
     /// Conservative the same way the per-chunk test is conservative: a subtree is pruned only
     /// when every corner of its padded box lies beyond the same clip plane in every eye, so any
     /// chunk the per-chunk cull would keep is inside a surviving span — this stage can only
-    /// remove work, never chunks a correct frame needs. `chunks` supplies the padding every node
-    /// needs to be safe: a node's stored AABB is the tight union of its chunks' *unpadded* boxes
-    /// (`UntoldGSWriter.buildTree`), but the splat one of those chunks draws can reach past it by
-    /// that chunk's own scale (`GaussianChunkCullMath.extentPadding`, the same per-chunk padding
-    /// `chunkScreenArea` applies). Padding every node by the asset's single largest scale, rather
-    /// than each node's own subtree maximum (not stored on `UntoldGSTreeNode`), keeps every node
-    /// at least as generous as the per-chunk test needs — at the cost of being less tight near a
-    /// node that happens to hold none of the asset's largest splats. Recomputed from `chunks`
-    /// each call, an O(chunkCount) pass; a caller on a per-frame path should cache it once per
-    /// load rather than call this fresh every frame.
+    /// remove work, never chunks a correct frame needs. Each node is padded by its own
+    /// `maxLogScaleMax` — its true subtree maximum, computed once at cook time by
+    /// `UntoldGSWriter.buildTree` from a direct scan of the node's own (contiguous) chunk range —
+    /// rather than one value shared by the whole tree, so an outlier splat in one subtree (a
+    /// background "sky" splat is a common source in unbounded outdoor captures) only loosens the
+    /// nodes that actually contain it, instead of every node in the asset. `chunks` is only
+    /// needed for the tree-less fallback below; the per-chunk padding this stage protects against
+    /// (`GaussianChunkCullMath.extentPadding`, the same math `chunkScreenArea` applies) is a
+    /// property of each chunk, read from the tree, not rescanned here.
     ///
     /// Returns a single span covering every chunk when `nodes` is empty — a file cooked before
     /// the tree existed, or small enough `buildTree` was never asked to run — so a caller can use
@@ -746,15 +745,13 @@ enum GaussianChunkTreeCull {
             return [GaussianChunkRange(firstChunk: 0, chunkCount: UInt32(chunks.count))]
         }
 
-        let maxLogScaleMax = chunks.lazy.map(\.logScaleMax).max() ?? 0
-
         var leafRanges: [GaussianChunkRange] = []
         var stack: [UInt32] = [0] // root, UntoldGSWriter.buildTree's preorder index 0
         while let nodeIndex = stack.popLast() {
             guard nodeIndex != UntoldGSFormat.invalidNode, Int(nodeIndex) < nodes.count else { continue }
             let node = nodes[Int(nodeIndex)]
 
-            let box = GaussianChunkCullMath.paddedBox(aabbMin: node.aabbMin, aabbMax: node.aabbMax, logScaleMax: maxLogScaleMax)
+            let box = GaussianChunkCullMath.paddedBox(aabbMin: node.aabbMin, aabbMax: node.aabbMax, logScaleMax: node.maxLogScaleMax)
             let visibleEye0 = GaussianChunkCullMath.boxPassesClipPlanes(
                 boxMin: box.min, boxMax: box.max, viewProjection: viewProjection0, clipGuardBand: clipGuardBand
             )

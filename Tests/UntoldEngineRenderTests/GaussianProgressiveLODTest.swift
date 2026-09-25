@@ -896,7 +896,7 @@ final class GaussianProgressiveLODTest: BaseRenderSetup {
         // contract (version + fixed offsets), not just whatever read() happens to decode.
         let data = try Data(contentsOf: tierURL)
         let versionBits = data[4 ..< 8].withUnsafeBytes { $0.loadUnaligned(fromByteOffset: 0, as: UInt32.self) }
-        XCTAssertEqual(UInt32(littleEndian: versionBits), 3)
+        XCTAssertEqual(UInt32(littleEndian: versionBits), 4)
 
         func readFloat(at offset: Int) -> Float {
             let bits = data[offset ..< offset + 4].withUnsafeBytes { $0.loadUnaligned(fromByteOffset: 0, as: UInt32.self) }

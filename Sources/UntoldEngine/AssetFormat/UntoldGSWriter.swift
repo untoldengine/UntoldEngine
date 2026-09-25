@@ -818,11 +818,17 @@ public extension UntoldGSFormat {
             let nodeIndex = UInt32(nodes.count)
             var aabbMin = SIMD3<Float>(repeating: .greatestFiniteMagnitude)
             var aabbMax = SIMD3<Float>(repeating: -.greatestFiniteMagnitude)
+            // This node's own subtree maximum, not the whole asset's — a leaf or internal node's
+            // chunk range is already contiguous, so the same scan that finds the range's AABB
+            // finds its true worst-case padding too, no different from a node whose only outlier
+            // splat lives in a sibling subtree elsewhere in the tree.
+            var maxLogScaleMax: Float = -.greatestFiniteMagnitude
             for index in first ..< first + count {
                 aabbMin = simd_min(aabbMin, entries[index].aabbMin)
                 aabbMax = simd_max(aabbMax, entries[index].aabbMax)
+                maxLogScaleMax = max(maxLogScaleMax, entries[index].logScaleMax)
             }
-            nodes.append(UntoldGSTreeNode(aabbMin: aabbMin, aabbMax: aabbMax, firstChunk: UInt32(first), chunkCount: UInt32(count)))
+            nodes.append(UntoldGSTreeNode(aabbMin: aabbMin, aabbMax: aabbMax, firstChunk: UInt32(first), chunkCount: UInt32(count), maxLogScaleMax: maxLogScaleMax))
 
             if count <= leafMaxChunks {
                 for index in first ..< first + count {
