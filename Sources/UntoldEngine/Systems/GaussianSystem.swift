@@ -393,6 +393,7 @@ public func executeGaussianFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
             // date — then the cull binds them. Nothing is encoded by the tick.
             var pagerBindings: GaussianPagerBindings?
             if let pager = gaussianComponent.pager {
+                EngineProfiler.shared.beginScope(.gaussianPagerTick)
                 pagerBindings = pager.tick(slot: frameSlot, frame: GaussianPagerFrameInputs(
                     cullConstants: chunkConstants,
                     budgetState: workingSet.lastBudgetState,
@@ -408,6 +409,7 @@ public func executeGaussianFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
                     levelFadeFrames: pagingSwitches.levelFadeFrames,
                     treeRanges: treeRanges
                 ))
+                EngineProfiler.shared.endScope(.gaussianPagerTick)
             }
             // The entity's coarse levels this frame (per-chunk-lod-tiers): the level buffers and
             // constants the cull, the quota pass and the fused pass share, on one clock — the
@@ -663,6 +665,15 @@ public func executeGaussianFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
             let count = update.visibleCount.contents().load(as: UInt32.self)
             update.component.visibleSplatCountForRendering = min(UInt(count), update.splatCount)
 
+            // Chunked only: `threadgroupCount` (byte offset 4 of the same GaussianVisibleSet
+            // record) is the number of chunks that passed gaussianChunkCull's frustum/HZB test
+            // this frame — see the struct's doc comment in ShaderTypes.h. Diagnostics only,
+            // read by GaussianProfileTotals.chunkCullSummary against treeTestedChunks.
+            if update.component.isChunked {
+                update.component.visibleChunkCountForRendering = update.visibleCount.contents()
+                    .load(fromByteOffset: 4, as: UInt32.self)
+            }
+
             // Streamed splat entities carry no RenderComponent, so they're structurally
             // excluded from the RenderComponent-keyed culling query that normally feeds
             // MemoryBudgetManager.markUsed (see CullingSystem.swift). Without this, a loaded
@@ -679,7 +690,7 @@ public func executeGaussianFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         stage: "FrustumCull",
         startTime: profileStart,
         totals: profileTotals,
-        extra: "previousActiveSplats=\(activeSplatTotal) budget=\(budget) capacity=\(capacity) resident=\(residentSplats) wholeBuffer=\(wholeBufferSplats) chunkedEntities=\(chunkedEntities.count)\(profileTotals.pagingSummary)\(profileTotals.treeSkipSummary)"
+        extra: "previousActiveSplats=\(activeSplatTotal) budget=\(budget) capacity=\(capacity) resident=\(residentSplats) wholeBuffer=\(wholeBufferSplats) chunkedEntities=\(chunkedEntities.count)\(profileTotals.pagingSummary)\(profileTotals.treeSkipSummary)\(profileTotals.chunkCullSummary)"
     )
 }
 

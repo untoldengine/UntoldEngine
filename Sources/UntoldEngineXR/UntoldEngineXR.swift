@@ -526,11 +526,17 @@
 
         /// Performs exactly one frame of rendering
         private func renderNewFrame() {
+            EngineProfiler.shared.beginScope(.xrRenderFrame)
+            defer { EngineProfiler.shared.endScope(.xrRenderFrame) }
+
             // 1. Call queryNextFrame() to fetch the next frame to use for drawing
             guard let layerRenderer else { return }
             guard isRunning() else { return }
 
-            guard let frame = layerRenderer.queryNextFrame() else { return }
+            EngineProfiler.shared.beginScope(.xrQueryNextFrame)
+            let nextFrame = layerRenderer.queryNextFrame()
+            EngineProfiler.shared.endScope(.xrQueryNextFrame)
+            guard let frame = nextFrame else { return }
 
             // 2. Call predictTiming to get the predicted render deadlines for code
             guard let timing = frame.predictTiming() else { return }
@@ -583,7 +589,9 @@
             frame.endUpdate()
 
             // 7. Call wait(until:tolerace) to puase your render loop until the optimal rendering time
+            EngineProfiler.shared.beginScope(.xrFramePacingWait)
             LayerRenderer.Clock().wait(until: timing.optimalInputTime, tolerance: .zero)
+            EngineProfiler.shared.endScope(.xrFramePacingWait)
 
             // The compositor or app state can transition while waiting. If not running anymore,
             // skip submission entirely to avoid using an invalid frame.
@@ -599,7 +607,10 @@
             }
 
             // 9. Encode any drawing commands that depend on the device position or orientation
-            guard let drawable = frame.queryDrawable() else {
+            EngineProfiler.shared.beginScope(.xrQueryDrawable)
+            let nextDrawable = frame.queryDrawable()
+            EngineProfiler.shared.endScope(.xrQueryDrawable)
+            guard let drawable = nextDrawable else {
                 #if ENGINE_STATS_ENABLED
                     renderer.finalizeXRStatsAndMonitors(frameStartTime: xrFrameStartTime)
                 #else
@@ -740,6 +751,7 @@
 
         func executeXRSystemPass(frame _: LayerRenderer.Frame, drawable: LayerRenderer.Drawable, loading: Bool) {
             // Wait for available command buffer slot to prevent unbounded memory growth
+            EngineProfiler.shared.beginScope(.xrCommandBufferWait)
             let semaphoreWaitStart = CACurrentMediaTime()
             let firstWaitResult = commandBufferSemaphore.wait(timeout: .now() + .milliseconds(100))
             if firstWaitResult == .timedOut {
@@ -750,6 +762,7 @@
                 commandBufferSemaphore.wait()
             }
             let semaphoreWaitMs = (CACurrentMediaTime() - semaphoreWaitStart) * 1000.0
+            EngineProfiler.shared.endScope(.xrCommandBufferWait)
             if semaphoreWaitMs > 16.0, shouldLogXRStallDiagnostics() {
                 printXRCommandBufferStallDiagnostics(waitMs: semaphoreWaitMs, phase: "acquired")
             }
@@ -800,7 +813,9 @@
                 executeGaussianFrustumCulling(commandBuffer)
                 EngineProfiler.shared.endScope(.gaussianCull)
 
+                EngineProfiler.shared.beginScope(.gaussianDepth)
                 executeGaussianPreprocess(commandBuffer)
+                EngineProfiler.shared.endScope(.gaussianDepth)
 
                 EngineProfiler.shared.beginScope(.gaussianSort)
                 executeRadixSort(commandBuffer)

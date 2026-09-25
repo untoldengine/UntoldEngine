@@ -113,6 +113,12 @@ public class GaussianComponent: Component {
     var gaussianVisibleCount: [MTLBuffer?] = Array(repeating: nil, count: maxInFlightCommandBuffers)
     var visibleSplatCountForRendering: UInt = 0
     var splatCount: UInt = 0
+    /// A chunked entity's most recent stale readback (two or three frames old, like
+    /// `visibleSplatCountForRendering`) of how many of its chunks passed `gaussianChunkCull`'s
+    /// frustum/HZB test this frame — `GaussianVisibleSet.threadgroupCount` off `chunkTable`'s
+    /// visible-chunk-set buffer. Diagnostics only: `GaussianProfileTotals.chunkCullSummary` reads
+    /// it against `treeTestedChunks` to report passed vs. failed chunks in the `[Gaussian]` log.
+    var visibleChunkCountForRendering: UInt32 = 0
     /// The `.untoldgs` chunk table (decode constants on the GPU, index on the CPU), kept from
     /// the load so the frame can cull whole chunks before it looks at their splats. nil for a
     /// `.ply` or a CPU-decoded asset, which keep the per-splat cull over the whole buffer.

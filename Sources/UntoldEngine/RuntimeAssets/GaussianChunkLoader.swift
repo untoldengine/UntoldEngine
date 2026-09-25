@@ -55,6 +55,16 @@ struct GaussianChunkTable {
     /// of the per-chunk passes.
     let splatsPerChunk: Int
     let index: UntoldGSIndex
+    /// The largest `logScaleMax` of any chunk in `index.chunks`, computed once here at load.
+    /// Diagnostics only (`GaussianProfileTotals.treeSkipSummary`'s `maxLogScaleMax=` field) — the
+    /// tree cull itself now pads each node by its own `UntoldGSTreeNode.maxLogScaleMax` (the
+    /// node's true subtree maximum, baked by `UntoldGSWriter.buildTree`) rather than this single
+    /// asset-wide figure, so one outlier splat's chunk no longer loosens every node in the tree.
+    /// This whole-asset number is still useful on its own: a value far above what an ordinary
+    /// splat's scale should be flags that the asset likely has an outlier (a background "sky"
+    /// splat is a common source in unbounded outdoor captures) worth knowing about even though it
+    /// no longer costs the tree pre-filter anything.
+    let maxLogScaleMax: Float
     /// Per in-flight frame slot, written by `gaussianChunkCull` and `gaussianComputeChunkQuotas`
     /// and read by the fused pass the same frame: the visible-chunk list
     /// (`GaussianVisibleChunk × chunkCount`) and its `GaussianVisibleSet`-shaped record.
@@ -80,6 +90,17 @@ struct GaussianChunkTable {
     /// the entity's constants are built, so the cull, the quota pass and the fused pass of one
     /// frame read one value.
     var executedFrames: UInt32 = 0
+
+    /// Matches the implicit memberwise initializer's four required parameters exactly, so every
+    /// existing call site keeps working unchanged; only adds computing `maxLogScaleMax` once,
+    /// here, instead of leaving it to be recomputed per frame.
+    init(constantsBuffer: MTLBuffer, chunkCount: Int, splatsPerChunk: Int, index: UntoldGSIndex) {
+        self.constantsBuffer = constantsBuffer
+        self.chunkCount = chunkCount
+        self.splatsPerChunk = splatsPerChunk
+        self.index = index
+        maxLogScaleMax = index.chunks.lazy.map(\.logScaleMax).max() ?? 0
+    }
 
     var hasCoarse: Bool {
         coarse != nil

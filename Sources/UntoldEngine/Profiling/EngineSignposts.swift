@@ -40,6 +40,35 @@ public enum ProfileScope {
     case gaussianDepth
     case gaussianSort
     case gaussianDraw
+
+    /// A paged chunked entity's `GaussianPageManager.tick` call, nested inside `gaussianCull`'s
+    /// per-entity loop — its own interval so a trace can tell pager cost (candidate scoring,
+    /// eviction, read issuance) apart from the tree pre-filter and GPU dispatch encoding that
+    /// otherwise share the same undifferentiated `gaussianCull` interval.
+    case gaussianPagerTick
+
+    /// visionOS frame loop — the two places a frame can spend time that renderPrep/encode/submit
+    /// don't cover at all, so a trace showing a gap between them has somewhere to look next.
+    /// `LayerRenderer.Clock().wait(until:tolerance:)` — the render thread voluntarily pausing
+    /// until the compositor's optimal input time. Large intervals here mean the compositor
+    /// itself is offering frames at a slow cadence (e.g. backed off because the app has been
+    /// falling behind), not that anything in this frame's own encode is slow.
+    case xrFramePacingWait
+    /// The command-buffer semaphore wait at the top of `executeXRSystemPass`, gating how many
+    /// frames' worth of GPU work can be in flight at once. Large intervals here mean the CPU is
+    /// genuinely blocked on the GPU draining a backlog, distinct from the voluntary pacing wait.
+    case xrCommandBufferWait
+    /// The whole `renderNewFrame()` body, begin-to-return on every exit path (via `defer`) — the
+    /// ground-truth wall-clock cost of one call, to compare against the sum of the scopes nested
+    /// inside it and catch time that still escapes all of them.
+    case xrRenderFrame
+    /// `LayerRenderer.queryNextFrame()` — blocks if the compositor hasn't got a new frame ready
+    /// for the app yet; large intervals here mean the compositor itself is rate-limiting how
+    /// often this app gets to render, not anything the app's own encode is doing.
+    case xrQueryNextFrame
+    /// `LayerRenderer.Frame.queryDrawable()` — blocks if the compositor hasn't produced a
+    /// drawable yet, analogous to a `nextDrawable()` stall.
+    case xrQueryDrawable
 }
 
 final class EngineSignposts {
@@ -52,6 +81,7 @@ final class EngineSignposts {
     private static let streamingLog = OSLog(subsystem: subsystem, category: "Streaming")
     private static let batchingLog = OSLog(subsystem: subsystem, category: "Batching")
     private static let gaussianLog = OSLog(subsystem: subsystem, category: "Gaussian")
+    private static let xrLog = OSLog(subsystem: subsystem, category: "XR")
 
     // One stable signpost ID per scope.
     private static let frameID = OSSignpostID(log: frameLog)
@@ -69,6 +99,12 @@ final class EngineSignposts {
     private static let gaussianDepthID = OSSignpostID(log: gaussianLog)
     private static let gaussianSortID = OSSignpostID(log: gaussianLog)
     private static let gaussianDrawID = OSSignpostID(log: gaussianLog)
+    private static let gaussianPagerTickID = OSSignpostID(log: gaussianLog)
+    private static let xrFramePacingWaitID = OSSignpostID(log: xrLog)
+    private static let xrCommandBufferWaitID = OSSignpostID(log: xrLog)
+    private static let xrRenderFrameID = OSSignpostID(log: xrLog)
+    private static let xrQueryNextFrameID = OSSignpostID(log: xrLog)
+    private static let xrQueryDrawableID = OSSignpostID(log: xrLog)
 
     func beginScope(_ scope: ProfileScope) {
         let (log, id, name) = descriptor(for: scope)
@@ -97,6 +133,12 @@ final class EngineSignposts {
         case .gaussianDepth: return (Self.gaussianLog, Self.gaussianDepthID, "GaussianDepth")
         case .gaussianSort: return (Self.gaussianLog, Self.gaussianSortID, "GaussianSort")
         case .gaussianDraw: return (Self.gaussianLog, Self.gaussianDrawID, "GaussianDraw")
+        case .gaussianPagerTick: return (Self.gaussianLog, Self.gaussianPagerTickID, "GaussianPagerTick")
+        case .xrFramePacingWait: return (Self.xrLog, Self.xrFramePacingWaitID, "XRFramePacingWait")
+        case .xrCommandBufferWait: return (Self.xrLog, Self.xrCommandBufferWaitID, "XRCommandBufferWait")
+        case .xrRenderFrame: return (Self.xrLog, Self.xrRenderFrameID, "XRRenderFrame")
+        case .xrQueryNextFrame: return (Self.xrLog, Self.xrQueryNextFrameID, "XRQueryNextFrame")
+        case .xrQueryDrawable: return (Self.xrLog, Self.xrQueryDrawableID, "XRQueryDrawable")
         }
     }
 }

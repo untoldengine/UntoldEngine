@@ -68,6 +68,21 @@ struct GaussianProfileTotals {
     var treeSkipEntityCount: Int = 0
     var treeTestedChunks: Int = 0
     var treeTotalChunks: Int = 0
+    /// The largest `GaussianChunkTable.maxLogScaleMax` across this frame's chunked entities — the
+    /// single value every one of that entity's tree nodes gets padded by (see the field's own doc
+    /// comment). A value far above what an individual chunk's own scale would need means one or a
+    /// few outlier splats (a sky/background dome is a common source in outdoor captures) are
+    /// inflating every node's box enough that the tree pre-filter can't prune anything, regardless
+    /// of camera direction — diagnose by comparing this against `treeChunks=tested/total` staying
+    /// at total/total even for an ordinary, non-edge-case view.
+    var maxLogScaleMax: Float = 0
+
+    /// Chunked entities' most recent `gaussianChunkCull` pass/fail count (a stale readback, like
+    /// `splatCount`/`visibleSplatCountForRendering` — two or three frames old). `cullPassedChunks`
+    /// against `treeTestedChunks` (the chunks that actually reached the test that frame) gives
+    /// passed vs. failed without a separate "tested" counter of its own.
+    var cullEntityCount: Int = 0
+    var cullPassedChunks: Int = 0
 
     var totalResidentBytes: Int {
         encodedBytes + packedBytes + sortedIndexBytes + visibleIndexBytes + visibleCountBytes + chunkTableBytes + sphericalHarmonicsBytes + uniformBytes + scratchBytes + sharedWorkingSetBytes
@@ -89,7 +104,17 @@ struct GaussianProfileTotals {
     /// walked this frame (`GaussianDebugOptions.disableTreeSkip`, or no chunked entity yet).
     var treeSkipSummary: String {
         guard treeSkipEntityCount > 0 else { return "" }
-        return " treeSkip=\(treeSkipEntityCount) treeChunks=\(treeTestedChunks)/\(treeTotalChunks)"
+        return " treeSkip=\(treeSkipEntityCount) treeChunks=\(treeTestedChunks)/\(treeTotalChunks) maxLogScaleMax=\(String(format: "%.3f", maxLogScaleMax))"
+    }
+
+    /// The per-chunk cull's pass/fail fields of a profile line's `extra`, empty when no chunked
+    /// entity has a readback yet. `failed` is `treeTestedChunks - cullPassedChunks` — every chunk
+    /// that reached `gaussianChunkCull` this frame's tree-filtered candidate set but didn't pass
+    /// its frustum/HZB test.
+    var chunkCullSummary: String {
+        guard cullEntityCount > 0 else { return "" }
+        let failed = max(0, treeTestedChunks - cullPassedChunks)
+        return " chunkCull=\(cullEntityCount) passed=\(cullPassedChunks) failed=\(failed) of=\(treeTestedChunks)"
     }
 
     /// One entity's `GaussianChunkTreeCull.visibleChunkRanges` result: `ranges`' chunk counts
@@ -109,6 +134,13 @@ struct GaussianProfileTotals {
         visibleIndexBytes += component.gaussianVisibleIndices.reduce(0) { $0 + ($1?.length ?? 0) }
         visibleCountBytes += component.gaussianVisibleCount.reduce(0) { $0 + ($1?.length ?? 0) }
         chunkTableBytes += component.chunkTable?.gpuBytes ?? 0
+        if component.isChunked {
+            cullEntityCount += 1
+            cullPassedChunks += Int(component.visibleChunkCountForRendering)
+            if let table = component.chunkTable {
+                maxLogScaleMax = max(maxLogScaleMax, table.maxLogScaleMax)
+            }
+        }
         if let pager = component.pager {
             let stats = pager.stats
             pagedEntityCount += 1
