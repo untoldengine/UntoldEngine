@@ -1211,9 +1211,11 @@ final class GaussianScreenWeightedQuotaTest: BaseRenderSetup {
         entries = entriesByChunk(visibleChunkEntries(slab.table).entries)
         let straddling = entries.values.filter { $0.screenArea == gaussianScreenAreaGuard }
         XCTAssertGreaterThan(straddling.count, 10, "sanity — many chunks reach behind an eye inside the slab")
-        let best = try XCTUnwrap(entries.values.map { Double($0.quota) / Double($0.splatCount) }.max())
-        XCTAssertTrue(straddling.allSatisfy { Double($0.quota) / Double($0.splatCount) == best }, "every chunk reaching behind the eye keeps the largest fraction")
-        XCTAssertEqual(Set(straddling.map(\.quota)).count, 1, "and the same quota")
+        // Every chunk reaching behind the eye shares the same guard area and cap, so the same
+        // *quota* — not the same fraction of its own count: the grid partition (gridChunkPlan)
+        // leaves chunks of different sizes, so an equal quota is a smaller fraction of a larger
+        // chunk's own count.
+        XCTAssertEqual(Set(straddling.map(\.quota)).count, 1, "the same quota")
         try assertFrameFits()
     }
 
