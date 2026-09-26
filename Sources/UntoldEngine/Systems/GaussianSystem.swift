@@ -90,6 +90,12 @@ private struct GaussianVisibleCountUpdate: @unchecked Sendable {
     let component: GaussianComponent
     let visibleCount: MTLBuffer
     let splatCount: UInt
+    /// A chunked entity's per-slot `GaussianVisibleChunk[]` list (`chunkTable.visibleChunks`);
+    /// nil for a whole-buffer entity, which has no chunks to report. Read back into
+    /// `GaussianComponent.visibleChunkIndicesForRendering` only while
+    /// `SpatialDebugVisualization.shared.showGaussianChunkBounds` is on, so the debug view's
+    /// cost is paid only while something is actually looking at it.
+    let visibleChunkList: MTLBuffer?
 }
 
 /// The whole-buffer per-splat cull's inputs (`gaussianFrustumCull`).
@@ -511,7 +517,8 @@ public func executeGaussianFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
                     entityId: entityId,
                     component: gaussianComponent,
                     visibleCount: chunkSet,
-                    splatCount: gaussianComponent.splatCount
+                    splatCount: gaussianComponent.splatCount,
+                    visibleChunkList: visibleChunks
                 )
             )
             continue
@@ -606,7 +613,8 @@ public func executeGaussianFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
                 entityId: entityId,
                 component: gaussianComponent,
                 visibleCount: visibleCount,
-                splatCount: gaussianComponent.splatCount
+                splatCount: gaussianComponent.splatCount,
+                visibleChunkList: nil
             )
         )
     }
@@ -658,6 +666,9 @@ public func executeGaussianFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
     computeEncoder.endEncoding()
 
     let updates = visibleCountUpdates
+    let chunkBoundsSettings = SpatialDebugVisualization.shared
+    let collectChunkBounds = chunkBoundsSettings.showGaussianChunkBounds
+    let collectChunkLevels = collectChunkBounds && chunkBoundsSettings.gaussianChunkColorMode == .level
     commandBuffer.addCompletedHandler { _ in
         for update in updates {
             let count = update.visibleCount.contents().load(as: UInt32.self)
@@ -671,6 +682,41 @@ public func executeGaussianFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
             // when at least one splat survived this frame's frustum test.
             if update.component.visibleSplatCountForRendering > 0 {
                 MemoryBudgetManager.shared.markUsed(entityId: update.entityId)
+            }
+
+            // Chunked only, and only while the chunk-bounds debug view is on: byte offset 4 of
+            // the same GaussianVisibleSet record is threadgroupCount, the number of chunks the
+            // cull actually appended to visibleChunkList this frame (see ShaderTypes.h) — the
+            // rest of that buffer is stale from whenever it last held that many entries. Each
+            // entry's chunkIndex word carries level/outgoing tag bits for a coarse-level entity
+            // (GaussianChunkCullMath.decodeVisibleChunkTag masks them off); the Set naturally
+            // collapses a fading chunk's separate incoming/outgoing entries into one index.
+            if collectChunkBounds, let chunkList = update.visibleChunkList {
+                let visibleChunkCount = Int(update.visibleCount.contents().load(fromByteOffset: 4, as: UInt32.self))
+                var indices = Set<UInt32>()
+                indices.reserveCapacity(visibleChunkCount)
+                let entries = chunkList.contents().assumingMemoryBound(to: UInt32.self)
+                for i in 0 ..< visibleChunkCount {
+                    let tagWord = entries[i * 4] // GaussianVisibleChunk: 4 UInt32-sized words/entry
+                    indices.insert(GaussianChunkCullMath.decodeVisibleChunkTag(tagWord).chunkIndex)
+                }
+                update.component.visibleChunkIndicesForRendering = indices
+            }
+
+            // Chunked, has coarse levels, and only while the level color mode is on: the
+            // persistent per-chunk level state (GaussianChunkLevelState, one entry per chunk in
+            // the whole entity, not just the visible subset) that gaussianComputeChunkQuotas
+            // last wrote. Unlike visibleChunkList this buffer isn't per-in-flight-slot — it's
+            // the same read pattern as visibleSplatCountForRendering above, just over the whole
+            // chunk range instead of one scalar.
+            if collectChunkLevels, let coarse = update.component.chunkTable?.coarse {
+                let chunkCount = update.component.chunkTable?.chunkCount ?? 0
+                var levels = [UInt8](repeating: 0, count: chunkCount)
+                let states = coarse.levelStateBuffer.contents().assumingMemoryBound(to: GaussianChunkLevelState.self)
+                for i in 0 ..< chunkCount {
+                    levels[i] = UInt8(states[i].level)
+                }
+                update.component.chunkLevelsForRendering = levels
             }
         }
     }

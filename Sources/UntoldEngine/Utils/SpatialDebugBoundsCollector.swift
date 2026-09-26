@@ -32,17 +32,24 @@ public struct SpatialDebugBoundsSnapshot {
     /// Per-entity AABBs for entities that passed frustum culling but were occluded
     /// by the HZB pyramid. Populated only when renderDebugViewMode == .occlusionDebug.
     public var occludedEntityBounds: [SpatialDebugBound]
+    /// Per-chunk world-space bounds of every chunked (`.untoldgs`) Gaussian entity, green if the
+    /// chunk cull kept the chunk this frame (per `GaussianComponent.visibleChunkIndicesForRendering`,
+    /// a stale readback) or red if not. Populated only when
+    /// `SpatialDebugVisualization.showGaussianChunkBounds` is on.
+    public var gaussianChunkBounds: [SpatialDebugBound]
 
     public init(
         octreeLeafBounds: [SpatialDebugBound] = [],
         staticBatchCellBounds: [SpatialDebugBound] = [],
         tileBounds: [SpatialDebugBound] = [],
-        occludedEntityBounds: [SpatialDebugBound] = []
+        occludedEntityBounds: [SpatialDebugBound] = [],
+        gaussianChunkBounds: [SpatialDebugBound] = []
     ) {
         self.octreeLeafBounds = octreeLeafBounds
         self.staticBatchCellBounds = staticBatchCellBounds
         self.tileBounds = tileBounds
         self.occludedEntityBounds = occludedEntityBounds
+        self.gaussianChunkBounds = gaussianChunkBounds
     }
 }
 
@@ -69,6 +76,14 @@ public final class SpatialDebugBoundsCollector: @unchecked Sendable {
     private let staticBatchCellLOD1Color = simd_float4(0.0, 1.0, 0.0, 1.0)
     private let staticBatchCellLOD2Color = simd_float4(0.0, 0.0, 1.0, 1.0)
     private let staticBatchCellLODMixedColor = simd_float4(1.00, 0.55, 0.15, 1.0)
+    private let gaussianChunkPassedColor = simd_float4(0.20, 0.95, 0.20, 1.0)
+    private let gaussianChunkFailedColor = simd_float4(0.95, 0.20, 0.20, 1.0)
+    // Chosen for maximum contrast against a splat scene's own colours (and against each
+    // other), not matched to the editor's white/yellow/red "Tint Splats by Level" palette —
+    // thin overlapping wireframe boxes wash out at white/yellow against a bright background.
+    private let gaussianChunkLevelFineColor = simd_float4(1.0, 0.0, 1.0, 1.0) // magenta
+    private let gaussianChunkLevel1Color = simd_float4(0.15, 0.95, 0.25, 1.0) // green
+    private let gaussianChunkLevel2Color = simd_float4(0.95, 0.15, 0.15, 1.0) // red
 
     private init() {}
 
@@ -174,7 +189,68 @@ public final class SpatialDebugBoundsCollector: @unchecked Sendable {
             }
         }
 
+        if settings.showGaussianChunkBounds {
+            snapshot.gaussianChunkBounds = collectGaussianChunkBounds(
+                maxCount: settings.maxGaussianChunkCount, colorMode: settings.gaussianChunkColorMode
+            )
+        }
+
         return snapshot
+    }
+
+    /// World-space bounds of every chunk of every chunked (`.untoldgs`) Gaussian entity. Each
+    /// chunk's local-space AABB (`chunk.aabbMin`/`aabbMax`, the same box the tree/per-chunk cull
+    /// pads and tests) is transformed by the same `worldTransform.space × splatToEntity` product
+    /// the cull itself uses (`GaussianEntityFrameMatrices.modelMatrix`), so a box drawn here
+    /// lines up with what the cull actually tested. `colorMode` picks between two stale (a
+    /// couple of frames old) GPU readbacks: `.cullPassFail` — green if the entity's
+    /// `visibleChunkIndicesForRendering` lists the chunk, red if not — or `.level` — magenta fine,
+    /// green level 1, red level 2, from `chunkLevelsForRendering` (empty, so every chunk reads
+    /// as fine, on an entity with no coarse levels baked in at all).
+    private func collectGaussianChunkBounds(
+        maxCount: Int, colorMode: SpatialDebugGaussianChunkColorMode
+    ) -> [SpatialDebugBound] {
+        let transformId = getComponentId(for: WorldTransformComponent.self)
+        let gaussianId = getComponentId(for: GaussianComponent.self)
+        let entities = queryEntitiesWithComponentIds([transformId, gaussianId], in: scene)
+
+        var bounds: [SpatialDebugBound] = []
+        for entityId in entities {
+            guard let gaussianComponent = scene.get(component: GaussianComponent.self, for: entityId),
+                  gaussianComponent.isChunked,
+                  let chunkTable = gaussianComponent.chunkTable,
+                  let worldTransform = scene.get(component: WorldTransformComponent.self, for: entityId)
+            else { continue }
+
+            let modelMatrix = simd_mul(worldTransform.space, gaussianComponent.splatToEntity)
+            let passed = gaussianComponent.visibleChunkIndicesForRendering
+            let levels = gaussianComponent.chunkLevelsForRendering
+
+            for (index, chunk) in chunkTable.index.chunks.enumerated() {
+                if maxCount > 0, bounds.count >= maxCount { return bounds }
+                let (worldMin, worldMax) = worldAABB_MinMax(
+                    localMin: chunk.aabbMin, localMax: chunk.aabbMax, worldMatrix: modelMatrix
+                )
+                let color: simd_float4
+                switch colorMode {
+                case .cullPassFail:
+                    color = passed.contains(UInt32(index)) ? gaussianChunkPassedColor : gaussianChunkFailedColor
+                case .level:
+                    let level = index < levels.count ? Int(levels[index]) : 0
+                    color = gaussianChunkLevelColor(level)
+                }
+                bounds.append(SpatialDebugBound(bounds: AABB(min: worldMin, max: worldMax), color: color))
+            }
+        }
+        return bounds
+    }
+
+    private func gaussianChunkLevelColor(_ level: Int) -> simd_float4 {
+        switch level {
+        case 1: gaussianChunkLevel1Color
+        case 2...: gaussianChunkLevel2Color
+        default: gaussianChunkLevelFineColor
+        }
     }
 
     private func residencyColor(for entityIds: [EntityID]) -> simd_float4 {

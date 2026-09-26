@@ -113,6 +113,20 @@ public class GaussianComponent: Component {
     var gaussianVisibleCount: [MTLBuffer?] = Array(repeating: nil, count: maxInFlightCommandBuffers)
     var visibleSplatCountForRendering: UInt = 0
     var splatCount: UInt = 0
+    /// A chunked entity's most recent stale readback (two or three frames old, like
+    /// `visibleSplatCountForRendering`) of which chunk indices passed `gaussianChunkCull`'s
+    /// frustum/HZB test this frame. Debug-view only: populated only while
+    /// `SpatialDebugVisualization.shared.showGaussianChunkBounds` is on, and read by
+    /// `SpatialDebugBoundsCollector` to color each chunk's drawn wireframe box green (in this
+    /// set) or red (not).
+    var visibleChunkIndicesForRendering: Set<UInt32> = []
+    /// A chunked entity with coarse levels' most recent stale readback of every chunk's drawn
+    /// level (0 fine, 1, 2 — `GaussianChunkLevelState.level`), indexed by chunk index, one entry
+    /// per chunk in the whole entity (not just the currently-visible subset). Debug-view only:
+    /// populated only while `SpatialDebugVisualization.shared.showGaussianChunkBounds` is on and
+    /// its `gaussianChunkColorMode` is `.level`. Empty for an entity with no coarse levels at all
+    /// (`chunkTable.coarse == nil`) — every chunk is trivially fine then.
+    var chunkLevelsForRendering: [UInt8] = []
     /// The `.untoldgs` chunk table (decode constants on the GPU, index on the CPU), kept from
     /// the load so the frame can cull whole chunks before it looks at their splats. nil for a
     /// `.ply` or a CPU-decoded asset, which keep the per-splat cull over the whole buffer.
