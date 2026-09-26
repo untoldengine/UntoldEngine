@@ -4405,8 +4405,10 @@ public enum RenderPasses {
         let shouldDrawStaticBatchCells = settings.showStaticBatchCellBounds
         let shouldDrawTileBounds = settings.showTileBounds
         let shouldDrawOccludedBounds = isOcclusionDebugMode
+        let shouldDrawGaussianChunkBounds = settings.showGaussianChunkBounds
         guard settings.enabled || isOcclusionDebugMode,
               shouldDrawOctreeBounds || shouldDrawStaticBatchCells || shouldDrawTileBounds || shouldDrawOccludedBounds
+                  || shouldDrawGaussianChunkBounds
         else {
             return
         }
@@ -4436,6 +4438,7 @@ public enum RenderPasses {
         let staticBatchCellBounds = shouldDrawStaticBatchCells ? snapshot.staticBatchCellBounds : []
         let tileBounds = shouldDrawTileBounds ? snapshot.tileBounds : []
         let occludedBounds = shouldDrawOccludedBounds ? snapshot.occludedEntityBounds : []
+        let gaussianChunkBounds = shouldDrawGaussianChunkBounds ? snapshot.gaussianChunkBounds : []
 
         let maxLeafNodeCount = settings.maxLeafNodeCount
         let drawLeafCount = maxLeafNodeCount > 0 ? min(maxLeafNodeCount, leafBounds.count) : leafBounds.count
@@ -4450,8 +4453,12 @@ public enum RenderPasses {
         let maxTileNodeCount = settings.maxTileNodeCount
         let drawTileCount = maxTileNodeCount > 0 ? min(maxTileNodeCount, tileBounds.count) : tileBounds.count
         let drawOccludedCount = occludedBounds.count
+        // Already capped to settings.maxGaussianChunkCount by the collector.
+        let drawGaussianChunkCount = gaussianChunkBounds.count
 
-        guard drawLeafCount > 0 || drawStaticBatchCellCount > 0 || drawTileCount > 0 || drawOccludedCount > 0 else {
+        guard drawLeafCount > 0 || drawStaticBatchCellCount > 0 || drawTileCount > 0 || drawOccludedCount > 0
+            || drawGaussianChunkCount > 0
+        else {
             return
         }
 
@@ -4489,6 +4496,20 @@ public enum RenderPasses {
             groupedBounds[key]?.bounds.append(item.bounds)
         }
 
+        // Regular depth-tested group, like octree/tile/batch-cell bounds above: a chunk box is
+        // co-located with the splats it bounds, so it should respect depth like they do, unlike
+        // the occluded-entity case below where the whole point is showing something otherwise
+        // hidden.
+        for i in 0 ..< drawGaussianChunkCount {
+            let item = gaussianChunkBounds[i]
+            let key = spatialDebugColorKey(item.color)
+            if groupedBounds[key] == nil {
+                groupedBounds[key] = (color: item.color, bounds: [])
+                groupOrder.append(key)
+            }
+            groupedBounds[key]?.bounds.append(item.bounds)
+        }
+
         // Occluded entity bounds are kept separate — they need an always-pass depth
         // state so the lines are visible even though the mesh is behind an occluder.
         var occludedGroupedBounds: [SpatialDebugColorKey: (color: simd_float4, bounds: [AABB])] = [:]
@@ -4504,7 +4525,7 @@ public enum RenderPasses {
         }
 
         var lineVertices: [SIMD4<Float>] = []
-        let drawBoundsCount = drawLeafCount + drawStaticBatchCellCount + drawTileCount + drawOccludedCount
+        let drawBoundsCount = drawLeafCount + drawStaticBatchCellCount + drawTileCount + drawOccludedCount + drawGaussianChunkCount
         lineVertices.reserveCapacity(drawBoundsCount * 24)
         var batches: [SpatialDebugLineBatch] = []
         batches.reserveCapacity(groupOrder.count)

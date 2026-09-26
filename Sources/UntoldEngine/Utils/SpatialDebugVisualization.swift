@@ -23,6 +23,14 @@ public enum SpatialDebugBatchCellColorMode: String, Sendable {
     case cell
 }
 
+public enum SpatialDebugGaussianChunkColorMode: String, Sendable {
+    /// Green passed the chunk cull this frame (drawing), red did not.
+    case cullPassFail
+    /// White fine, yellow level 1, red level 2 — the same palette as the editor's
+    /// "Tint Splats by Level" splat-color debug option, so the two agree visually.
+    case level
+}
+
 /// Runtime toggles for spatial debug visualization.
 public final class SpatialDebugVisualization: @unchecked Sendable {
     public static let shared = SpatialDebugVisualization()
@@ -224,6 +232,59 @@ public final class SpatialDebugVisualization: @unchecked Sendable {
         }
     }
 
+    /// Draw per-chunk bounds of chunked (`.untoldgs`) Gaussian entities, colored by whether the
+    /// chunk cull kept the chunk this frame: green passed (drawing), red did not (pruned by the
+    /// tree pre-filter or rejected by the per-chunk frustum/HZB test — this view doesn't
+    /// distinguish the two). Reads `GaussianComponent.visibleChunkIndicesForRendering`, a stale
+    /// GPU readback like `visibleChunkCountForRendering`, gated on this flag so the readback
+    /// itself only runs while the view is on.
+    private var _showGaussianChunkBounds: Bool = false
+    public var showGaussianChunkBounds: Bool {
+        get {
+            lock.lock()
+            let value = _showGaussianChunkBounds
+            lock.unlock()
+            return value
+        }
+        set {
+            lock.lock()
+            _showGaussianChunkBounds = newValue
+            lock.unlock()
+        }
+    }
+
+    /// Color mode for Gaussian chunk bounds.
+    private var _gaussianChunkColorMode: SpatialDebugGaussianChunkColorMode = .cullPassFail
+    public var gaussianChunkColorMode: SpatialDebugGaussianChunkColorMode {
+        get {
+            lock.lock()
+            let value = _gaussianChunkColorMode
+            lock.unlock()
+            return value
+        }
+        set {
+            lock.lock()
+            _gaussianChunkColorMode = newValue
+            lock.unlock()
+        }
+    }
+
+    /// Max number of chunk bounds rendered per frame, across every chunked entity (0 = unlimited).
+    private var _maxGaussianChunkCount: Int = 2000
+    public var maxGaussianChunkCount: Int {
+        get {
+            lock.lock()
+            let value = _maxGaussianChunkCount
+            lock.unlock()
+            return value
+        }
+        set {
+            lock.lock()
+            _maxGaussianChunkCount = newValue
+            lock.unlock()
+        }
+    }
+
     private init() {}
 
     public func configureOctreeLeafBounds(
@@ -233,7 +294,7 @@ public final class SpatialDebugVisualization: @unchecked Sendable {
         colorMode: SpatialDebugLeafColorMode = .plain
     ) {
         lock.lock()
-        _enabled = enabled || _showTileBounds || _showStaticBatchCellBounds || _colorRenderablesByLOD || _colorRenderablesByStreamingTier
+        _enabled = enabled || _showTileBounds || _showStaticBatchCellBounds || _colorRenderablesByLOD || _colorRenderablesByStreamingTier || _showGaussianChunkBounds
         _showOctreeLeafBounds = enabled
         _maxLeafNodeCount = max(0, maxLeafNodeCount)
         _octreeLeafOccupiedOnly = occupiedOnly
@@ -245,7 +306,7 @@ public final class SpatialDebugVisualization: @unchecked Sendable {
         lock.lock()
         _showTileBounds = enabled
         _maxTileNodeCount = max(0, maxTileNodeCount)
-        _enabled = _showOctreeLeafBounds || enabled || _showStaticBatchCellBounds || _colorRenderablesByLOD || _colorRenderablesByStreamingTier
+        _enabled = _showOctreeLeafBounds || enabled || _showStaticBatchCellBounds || _colorRenderablesByLOD || _colorRenderablesByStreamingTier || _showGaussianChunkBounds
         lock.unlock()
     }
 
@@ -255,7 +316,7 @@ public final class SpatialDebugVisualization: @unchecked Sendable {
         colorMode: SpatialDebugBatchCellColorMode = .plain
     ) {
         lock.lock()
-        _enabled = _showOctreeLeafBounds || _showTileBounds || enabled || _colorRenderablesByLOD || _colorRenderablesByStreamingTier
+        _enabled = _showOctreeLeafBounds || _showTileBounds || enabled || _colorRenderablesByLOD || _colorRenderablesByStreamingTier || _showGaussianChunkBounds
         _showStaticBatchCellBounds = enabled
         _maxStaticBatchCellCount = max(0, maxCellCount)
         _staticBatchCellColorMode = colorMode
@@ -265,14 +326,28 @@ public final class SpatialDebugVisualization: @unchecked Sendable {
     public func configureLODLevelColoring(enabled: Bool) {
         lock.lock()
         _colorRenderablesByLOD = enabled
-        _enabled = _showOctreeLeafBounds || _showStaticBatchCellBounds || _colorRenderablesByLOD || _colorRenderablesByStreamingTier
+        _enabled = _showOctreeLeafBounds || _showStaticBatchCellBounds || _colorRenderablesByLOD || _colorRenderablesByStreamingTier || _showGaussianChunkBounds
         lock.unlock()
     }
 
     public func configureTextureStreamingTierColoring(enabled: Bool) {
         lock.lock()
         _colorRenderablesByStreamingTier = enabled
-        _enabled = _showOctreeLeafBounds || _showStaticBatchCellBounds || _colorRenderablesByLOD || enabled
+        _enabled = _showOctreeLeafBounds || _showStaticBatchCellBounds || _colorRenderablesByLOD || enabled || _showGaussianChunkBounds
+        lock.unlock()
+    }
+
+    public func configureGaussianChunkBounds(
+        enabled: Bool,
+        maxChunkCount: Int = 2000,
+        colorMode: SpatialDebugGaussianChunkColorMode = .cullPassFail
+    ) {
+        lock.lock()
+        _showGaussianChunkBounds = enabled
+        _maxGaussianChunkCount = max(0, maxChunkCount)
+        _gaussianChunkColorMode = colorMode
+        _enabled = _showOctreeLeafBounds || _showTileBounds || _showStaticBatchCellBounds
+            || _colorRenderablesByLOD || _colorRenderablesByStreamingTier || enabled
         lock.unlock()
     }
 
@@ -282,6 +357,7 @@ public final class SpatialDebugVisualization: @unchecked Sendable {
         _showOctreeLeafBounds = false
         _showTileBounds = false
         _showStaticBatchCellBounds = false
+        _showGaussianChunkBounds = false
         _colorRenderablesByLOD = false
         _colorRenderablesByStreamingTier = false
         lock.unlock()
@@ -306,6 +382,18 @@ public func setOctreeLeafBoundsDebug(
 /// Enable/disable tile stub bounds visualization colored by streaming/HLOD state.
 public func setTileBoundsDebug(enabled: Bool, maxTileNodeCount: Int = 500) {
     SpatialDebugVisualization.shared.configureTileBounds(enabled: enabled, maxTileNodeCount: maxTileNodeCount)
+}
+
+/// Enable/disable per-chunk bounds visualization for chunked (`.untoldgs`) Gaussian entities.
+/// `colorMode` picks green/red cull pass-fail (default) or white/yellow/red fine/level-1/level-2.
+public func setGaussianChunkBoundsDebug(
+    enabled: Bool,
+    maxChunkCount: Int = 2000,
+    colorMode: SpatialDebugGaussianChunkColorMode = .cullPassFail
+) {
+    SpatialDebugVisualization.shared.configureGaussianChunkBounds(
+        enabled: enabled, maxChunkCount: maxChunkCount, colorMode: colorMode
+    )
 }
 
 /// Enable/disable static batch cell bounds visualization.
