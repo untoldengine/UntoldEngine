@@ -4408,7 +4408,7 @@ public enum RenderPasses {
         let shouldDrawGaussianChunkBounds = settings.showGaussianChunkBounds
         guard settings.enabled || isOcclusionDebugMode,
               shouldDrawOctreeBounds || shouldDrawStaticBatchCells || shouldDrawTileBounds || shouldDrawOccludedBounds
-                  || shouldDrawGaussianChunkBounds
+              || shouldDrawGaussianChunkBounds
         else {
             return
         }
