@@ -26,7 +26,6 @@
             makeDemoCamera(name: "Main Camera", eye: Constants.cameraStart, target: Constants.worldOrigin, orbitOffset: Constants.orbitTargetOffset)
             makeDemoSunLight(name: "Key Light", pitch: -45.0, color: simd_float3(1.0, 0.92, 0.82), intensity: 1.4)
             createStarterObject()
-            setSceneReady(false)
         }
 
         func update(deltaTime: Float) {
