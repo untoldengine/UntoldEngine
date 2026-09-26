@@ -48,8 +48,8 @@ final class GaussianPagingTest: BaseRenderSetup {
     private var savedLODInterval = 1
     private var savedOverdrawBudget: Float = 12
 
-    /// The 200-splat fixture's cameras (GaussianChunkCullTest): far sees 13/13 chunks, corner
-    /// 8/13, side 12/13, away none.
+    /// The 200-splat fixture's cameras (GaussianChunkCullTest): far sees 16/16 chunks, corner
+    /// 6/16, side 15/16, away none.
     private let farCamera = (eye: simd_float3(0, 3, 7), target: simd_float3.zero)
     private let cornerCamera = (eye: simd_float3(1.0, 1.0, 0.6), target: simd_float3(1.0, 1.0, 0))
     private let sideCamera = (eye: simd_float3(-1.0, 0.2, 1.0), target: simd_float3(-1.0, 0.2, 0))
@@ -394,7 +394,7 @@ final class GaussianPagingTest: BaseRenderSetup {
     // MARK: - 2: full residency
 
     func testFullyResidentPagedFrameMatchesTheLegacyTwin() throws {
-        let fixture = try loadFixture(poolSlots: 13)
+        let fixture = try loadFixture(poolSlots: 16)
         placeGaussianTestCamera(eye: farCamera.eye, target: farCamera.target)
         XCTAssertTrue(fixture.component.isPaged)
         XCTAssertGreaterThanOrEqual(fixture.pager.slotCount * fixture.pager.ranksPerPage, fixture.splatCount, "the pool holds the asset")
@@ -426,8 +426,8 @@ final class GaussianPagingTest: BaseRenderSetup {
     // MARK: - 3, 4: residency and the list
 
     func testNonResidentChunksAreNotListedAndAskNothing() throws {
-        let fixture = try loadFixture(poolSlots: 13) { source in
-            source.holdChunks = Set(0 ..< 13)
+        let fixture = try loadFixture(poolSlots: 16) { source in
+            source.holdChunks = Set(0 ..< 16)
         }
         placeGaussianTestCamera(eye: farCamera.eye, target: farCamera.target)
         for _ in 0 ..< 3 {
@@ -438,7 +438,7 @@ final class GaussianPagingTest: BaseRenderSetup {
             XCTAssertEqual(try budgetState().requestedSplats, 0)
             XCTAssertEqual(sharedVisibleSet().visibleCount, 0)
         }
-        XCTAssertEqual(fixture.pager.stats.pendingReads, 13, "every chunk was asked for at the first tick")
+        XCTAssertEqual(fixture.pager.stats.pendingReads, 16, "every chunk was asked for at the first tick")
         XCTAssertEqual(fixture.pager.stats.residentChunks, 0)
 
         let released: Set = [0, 3, 5, 8, 12]
@@ -524,7 +524,7 @@ final class GaussianPagingTest: BaseRenderSetup {
     // MARK: - 5, 19, 23: the demand words
 
     func testDemandWordsMatchTheCPUMirrorArea() throws {
-        let fixture = try loadFixture(poolSlots: 13)
+        let fixture = try loadFixture(poolSlots: 16)
         for camera in [farCamera, cornerCamera, sideCamera] {
             placeGaussianTestCamera(eye: camera.eye, target: camera.target)
             frame(fixture)
@@ -545,7 +545,7 @@ final class GaussianPagingTest: BaseRenderSetup {
     }
 
     func testStereoDemandTakesTheLargerEye() throws {
-        let fixture = try loadFixture(poolSlots: 13)
+        let fixture = try loadFixture(poolSlots: 16)
         placeGaussianTestCamera(eye: farCamera.eye, target: farCamera.target)
         let lookingAt = try viewProjection(entity: fixture.entity, eye: farCamera.eye, target: farCamera.target)
         let lookingAway = try viewProjection(entity: fixture.entity, eye: awayCamera.eye, target: awayCamera.target)
@@ -558,7 +558,7 @@ final class GaussianPagingTest: BaseRenderSetup {
         eye1Only.viewProjection0 = lookingAt
         eye1Only.viewCount = 1
         let eye1Areas = mirrorAreas(fixture, constants: eye1Only)
-        XCTAssertEqual(expected.count, 13, "eye 1 sees everything, eye 0 nothing")
+        XCTAssertEqual(expected.count, 16, "eye 1 sees everything, eye 0 nothing")
         for chunk in 0 ..< fixture.chunkCount {
             XCTAssertEqual(Float(bitPattern: words[chunk]), expected[chunk] ?? 0, accuracy: 1e-6 * (expected[chunk] ?? 1), "chunk \(chunk): the larger eye's area")
             XCTAssertEqual(expected[chunk], eye1Areas[chunk], "the larger eye is eye 1")
@@ -602,7 +602,7 @@ final class GaussianPagingTest: BaseRenderSetup {
         let before = fixture.pager.tick
         frame(fixture)
         XCTAssertEqual(fixture.pager.tick, before + 1, "one tick per stereo frame")
-        XCTAssertEqual(fixture.pager.stats.issuedThisTick, 13, "both eyes' demand in one tick")
+        XCTAssertEqual(fixture.pager.stats.issuedThisTick, 16, "both eyes' demand in one tick")
     }
 
     /// One paged cull of the fixture into slot 0 by hand; returns the demand words.
@@ -633,7 +633,7 @@ final class GaussianPagingTest: BaseRenderSetup {
     }
 
     func testDemandOnlyCullWritesDemandAndAppendsNothing() throws {
-        let fixture = try loadFixture(poolSlots: 13)
+        let fixture = try loadFixture(poolSlots: 16)
         placeGaussianTestCamera(eye: farCamera.eye, target: farCamera.target)
         let pipelines = try XCTUnwrap(GaussianChunkCullPipelineStates.current())
         let densityHistogram = try densityHistogramBuffer()
@@ -658,7 +658,7 @@ final class GaussianPagingTest: BaseRenderSetup {
         }
         let words = demandWords(fixture, slot: 0)
         let areas = mirrorAreas(fixture, constants: constants)
-        XCTAssertEqual(areas.count, 13)
+        XCTAssertEqual(areas.count, 16)
         for chunk in 0 ..< fixture.chunkCount {
             XCTAssertEqual(Float(bitPattern: words[chunk]), areas[chunk] ?? 0, accuracy: 1e-6 * (areas[chunk] ?? 1))
         }
@@ -673,7 +673,7 @@ final class GaussianPagingTest: BaseRenderSetup {
     // MARK: - 6: the order of the reads
 
     func testWantedRanksAndPriorityOrderTheReads() throws {
-        let fixture = try loadFixture(poolSlots: 13)
+        let fixture = try loadFixture(poolSlots: 16)
         placeGaussianTestCamera(eye: cornerCamera.eye, target: cornerCamera.target)
         let areas = try mirrorAreas(fixture, constants: cullConstants(fixture))
         frame(fixture)
@@ -725,7 +725,7 @@ final class GaussianPagingTest: BaseRenderSetup {
     /// drops a chunk the per-chunk test would have kept nor lets through one it would have
     /// rejected.
     func testSeedPathSeedsExactlyTheChunksTheTreeWalkKeeps() throws {
-        let fixture = try loadFixture(poolSlots: 13)
+        let fixture = try loadFixture(poolSlots: 16)
         placeGaussianTestCamera(eye: cornerCamera.eye, target: cornerCamera.target)
         let areas = try mirrorAreas(fixture, constants: cullConstants(fixture))
         frame(fixture)
@@ -881,10 +881,10 @@ final class GaussianPagingTest: BaseRenderSetup {
         GaussianPagingPolicy.holdOffTicks = 30
         GaussianPagingPolicy.minResidencyTicks = 1000
         GaussianPagingPolicy.surplusTicks = 1000
-        let fixture = try loadFixture(poolSlots: 8)
+        let fixture = try loadFixture(poolSlots: 6)
         placeGaussianTestCamera(eye: cornerCamera.eye, target: cornerCamera.target)
         let cornerSet = try Set(mirrorAreas(fixture, constants: cullConstants(fixture)).keys.map { UInt32($0) })
-        XCTAssertEqual(cornerSet.count, 8)
+        XCTAssertEqual(cornerSet.count, 6)
         frames(fixture, max: 6) { residentChunks(fixture) == cornerSet }
         XCTAssertEqual(residentChunks(fixture), cornerSet)
         // A demanded chunk's stamp is the last ingest's tick (the flag stands for it).
@@ -919,10 +919,10 @@ final class GaussianPagingTest: BaseRenderSetup {
         // The side view demands chunks the pool has no room for: the stale ones make room.
         placeGaussianTestCamera(eye: sideCamera.eye, target: sideCamera.target)
         let sideSet = try Set(mirrorAreas(fixture, constants: cullConstants(fixture)).keys.map { UInt32($0) })
-        XCTAssertEqual(sideSet.count, 12)
+        XCTAssertEqual(sideSet.count, 15)
         let stale = cornerSet.subtracting(sideSet)
         XCTAssertFalse(stale.isEmpty, "some corner chunks are out of the side view")
-        frames(fixture, max: 8) { residentChunks(fixture).isDisjoint(with: stale) && fixture.pager.stats.residentChunks == 8 }
+        frames(fixture, max: 8) { residentChunks(fixture).isDisjoint(with: stale) && fixture.pager.stats.residentChunks == 6 }
         let evicted = Set(fixture.pager.eventLog.filter { $0.kind == .evicted }.map { UInt32($0.chunk) })
         XCTAssertFalse(evicted.isEmpty)
         XCTAssertTrue(evicted.isSubset(of: stale), "only chunks the view left were evicted: \(evicted) vs stale \(stale)")
@@ -933,14 +933,14 @@ final class GaussianPagingTest: BaseRenderSetup {
 
     func testFadeInIsFrameCountedAndDeterministic() throws {
         GaussianPagingPolicy.fadeFrames = 16
-        let fixture = try loadFixture(poolSlots: 13)
+        let fixture = try loadFixture(poolSlots: 16)
         placeGaussianTestCamera(eye: farCamera.eye, target: farCamera.target)
         let cpu = try UntoldGSFormat.read(from: fixture.url)
         let resolver = GaussianSplatIndexResolver(positions: cpu.encodedSplats.map(\.position))
         frame(fixture) // tick 1: every head issued and landed
         XCTAssertEqual(fixture.pager.stats.pendingReads, 0)
         frame(fixture) // tick 2: mapped, arrival 2, drawn at 1/16
-        XCTAssertEqual(fixture.pager.stats.residentChunks, 13)
+        XCTAssertEqual(fixture.pager.stats.residentChunks, 16)
         XCTAssertEqual(fixture.pager.chunkState(0).arrivalTick, 2)
 
         func assertOpacity(fraction: Float, file: StaticString = #filePath, line: UInt = #line) {
@@ -976,10 +976,10 @@ final class GaussianPagingTest: BaseRenderSetup {
         // The switch: at once.
         GaussianDebugOptions.shared.disablePageFade = true
         removeEntityGaussian(entityId: fixture.entity)
-        let instant = try loadFixture(poolSlots: 13)
+        let instant = try loadFixture(poolSlots: 16)
         frame(instant)
         frame(instant)
-        XCTAssertEqual(instant.pager.stats.residentChunks, 13)
+        XCTAssertEqual(instant.pager.stats.residentChunks, 16)
         let records = sharedGaussianRecords()
         let origins = resolver.indices(of: records)
         for (record, origin) in zip(records, origins) {
@@ -1070,7 +1070,7 @@ final class GaussianPagingTest: BaseRenderSetup {
     // MARK: - 12, 13, 14: failures
 
     func testAReadFailureBacksOffThenFaultsTheChunk() throws {
-        let fixture = try loadFixture(poolSlots: 13) { source in
+        let fixture = try loadFixture(poolSlots: 16) { source in
             source.failChunks = [3: .ioFailure(errno: EIO)]
         }
         placeGaussianTestCamera(eye: farCamera.eye, target: farCamera.target)
@@ -1089,23 +1089,23 @@ final class GaussianPagingTest: BaseRenderSetup {
         XCTAssertTrue(fixture.pager.chunkState(3).flags.contains(.faulted))
         XCTAssertEqual(fixture.pager.residentRanks(of: 3), 0)
         XCTAssertEqual(fixture.pager.errorReports, 1, "reported once")
-        XCTAssertEqual(fixture.pager.stats.residentChunks, 12, "the other chunks are unaffected")
+        XCTAssertEqual(fixture.pager.stats.residentChunks, 15, "the other chunks are unaffected")
         XCTAssertEqual(fixture.pager.stats.state, .active)
         XCTAssertEqual(fixture.pager.freeSlotCount, 1, "the failed reads' slot went back to the free list at once")
     }
 
     func testACorruptChunkIsEvictedAndFaulted() throws {
-        let fixture = try loadFixture(poolSlots: 13) { source in
+        let fixture = try loadFixture(poolSlots: 16) { source in
             source.corruptChunks = [2]
         }
         placeGaussianTestCamera(eye: farCamera.eye, target: farCamera.target)
-        frames(fixture, max: 6) { fixture.pager.stats.residentChunks == 12 && fixture.pager.stats.pendingReads == 0 }
+        frames(fixture, max: 6) { fixture.pager.stats.residentChunks == 15 && fixture.pager.stats.pendingReads == 0 }
         XCTAssertEqual(fixture.pager.residentRanks(of: 2), 0)
         XCTAssertTrue(fixture.pager.chunkState(2).flags.contains(.faulted))
         XCTAssertEqual(fixture.pager.stats.corruptChunks, 1)
         XCTAssertEqual(fixture.pager.stats.faultedChunks, 1)
         XCTAssertEqual(fixture.pager.errorReports, 1)
-        XCTAssertEqual(fixture.pager.stats.residentChunks, 12)
+        XCTAssertEqual(fixture.pager.stats.residentChunks, 15)
         frame(fixture)
         XCTAssertEqual(fixture.pager.eventLog.filter { $0.kind == .issued && $0.chunk == 2 }.count, 1, "never requested again")
 
@@ -1121,7 +1121,7 @@ final class GaussianPagingTest: BaseRenderSetup {
 
     func testAChangedFileFaultsTheAssetAndReopenRestoresIt() throws {
         GaussianPagingPolicy.faultReopenTicks = 20
-        let fixture = try loadFixture(poolSlots: 13) { source in
+        let fixture = try loadFixture(poolSlots: 16) { source in
             source.identityChangesAfterRead = 5
         }
         placeGaussianTestCamera(eye: farCamera.eye, target: farCamera.target)
@@ -1130,7 +1130,7 @@ final class GaussianPagingTest: BaseRenderSetup {
         XCTAssertEqual(fixture.pager.errorReports, 1)
         let resident = fixture.pager.stats.residentChunks
         XCTAssertGreaterThan(resident, 0, "the reads that landed before the change stay")
-        XCTAssertLessThan(resident, 13)
+        XCTAssertLessThan(resident, 16)
         frame(fixture)
         let visible = sharedVisibleSet().visibleCount
         let requests = fixture.source.requestLog.count
@@ -1147,8 +1147,8 @@ final class GaussianPagingTest: BaseRenderSetup {
         fixture.source.restoreIdentity()
         frames(fixture, max: 25) { fixture.pager.stats.state == .active }
         XCTAssertEqual(fixture.pager.stats.state, .active, "the reopen found the file back")
-        frames(fixture, max: 10) { fixture.pager.stats.residentChunks == 13 }
-        XCTAssertEqual(fixture.pager.stats.residentChunks, 13, "reads resumed")
+        frames(fixture, max: 10) { fixture.pager.stats.residentChunks == 16 }
+        XCTAssertEqual(fixture.pager.stats.residentChunks, 16, "reads resumed")
         XCTAssertGreaterThan(fixture.source.requestLog.count, requests)
     }
 
@@ -1201,9 +1201,9 @@ final class GaussianPagingTest: BaseRenderSetup {
         XCTAssertEqual(fixture.table.residencyTables.count, maxInFlightCommandBuffers)
         XCTAssertEqual(fixture.table.pageTables.count, maxInFlightCommandBuffers)
         XCTAssertEqual(fixture.table.demandTables.count, maxInFlightCommandBuffers)
-        XCTAssertEqual(fixture.table.residencyTables[0].length, 13 * MemoryLayout<GaussianChunkResidency>.stride)
-        XCTAssertEqual(fixture.table.pageTables[0].length, 13 * MemoryLayout<UInt32>.stride, "one tier per 16-splat chunk")
-        XCTAssertEqual(fixture.table.demandTables[0].length, 13 * MemoryLayout<UInt32>.stride)
+        XCTAssertEqual(fixture.table.residencyTables[0].length, 16 * MemoryLayout<GaussianChunkResidency>.stride)
+        XCTAssertEqual(fixture.table.pageTables[0].length, 16 * MemoryLayout<UInt32>.stride, "one tier per 16-splat chunk")
+        XCTAssertEqual(fixture.table.demandTables[0].length, 16 * MemoryLayout<UInt32>.stride)
         XCTAssertEqual(GaussianPagePoolRegistry.shared.allocatedBytes, fixture.pager.poolBytes)
         XCTAssertEqual(fixture.component.residentSplatCount, 4 * fixture.pager.ranksPerPage)
 
@@ -1215,15 +1215,15 @@ final class GaussianPagingTest: BaseRenderSetup {
     }
 
     func testUnloadDuringInFlightReadsDropsTheCompletions() throws {
-        let fixture = try loadFixture(poolSlots: 13) { source in
+        let fixture = try loadFixture(poolSlots: 16) { source in
             source.latencyTicks = 5
         }
         placeGaussianTestCamera(eye: farCamera.eye, target: farCamera.target)
         fixture.pager.noteGPUIdle()
         runGaussianCullAndPreprocess()
         settle(fixture)
-        XCTAssertEqual(fixture.pager.stats.pendingReads, 13)
-        XCTAssertEqual(fixture.source.blockedReads, 13)
+        XCTAssertEqual(fixture.pager.stats.pendingReads, 16)
+        XCTAssertEqual(fixture.source.blockedReads, 16)
         fixture.pager.noteGPUIdle()
         runGaussianCullAndPreprocess()
         XCTAssertEqual(fixture.pager.stats.residentChunks, 0)
@@ -1238,7 +1238,7 @@ final class GaussianPagingTest: BaseRenderSetup {
             usleep(200)
         }
         XCTAssertEqual(fixture.pager.stats.pendingReads, 0)
-        XCTAssertEqual(fixture.pager.eventLog.filter { $0.kind == .dropped }.count, 13, "every completion was dropped")
+        XCTAssertEqual(fixture.pager.eventLog.filter { $0.kind == .dropped }.count, 16, "every completion was dropped")
         XCTAssertEqual(fixture.pager.eventLog.filter { $0.kind == .committed }.count, 0)
         XCTAssertTrue(fixture.source.closed, "closed by the last read")
         XCTAssertEqual(fixture.pager.stats.residentChunks, 0)
@@ -1248,7 +1248,7 @@ final class GaussianPagingTest: BaseRenderSetup {
         weak var weakPager: GaussianPageManager?
         let source: GaussianTestPageSource
         do {
-            let fixture = try loadFixture(poolSlots: 13) { source in
+            let fixture = try loadFixture(poolSlots: 16) { source in
                 source.latencyTicks = 5
             }
             weakPager = fixture.pager
@@ -1257,7 +1257,7 @@ final class GaussianPagingTest: BaseRenderSetup {
             fixture.pager.noteGPUIdle()
             runGaussianCullAndPreprocess()
             settle(fixture)
-            XCTAssertEqual(fixture.pager.stats.pendingReads, 13)
+            XCTAssertEqual(fixture.pager.stats.pendingReads, 16)
 
             // The reads land into the inbox, where they wait for a tick that never comes.
             fixture.source.deliverAll()
@@ -1272,7 +1272,7 @@ final class GaussianPagingTest: BaseRenderSetup {
             XCTAssertEqual(fixture.pager.state, .closed)
             XCTAssertTrue(fixture.source.closed)
             XCTAssertEqual(GaussianPagePoolRegistry.shared.allocatedBytes, 0)
-            XCTAssertEqual(fixture.pager.eventLog.filter { $0.kind == .dropped }.count, 13, "the landed completions were dropped at shutdown")
+            XCTAssertEqual(fixture.pager.eventLog.filter { $0.kind == .dropped }.count, 16, "the landed completions were dropped at shutdown")
             XCTAssertEqual(fixture.pager.stats.residentChunks, 0)
         }
         XCTAssertNil(weakPager, "no completion holds the manager: the pools and the source go with the entity")
@@ -1281,19 +1281,19 @@ final class GaussianPagingTest: BaseRenderSetup {
 
     func testWaitingReadsHoldNoThreadBeyondTheConcurrentReads() throws {
         GaussianPagingPolicy.maxConcurrentReads = 2
-        let fixture = try loadFixture(poolSlots: 13) { source in
-            source.holdChunks = Set(0 ..< 13)
+        let fixture = try loadFixture(poolSlots: 16) { source in
+            source.holdChunks = Set(0 ..< 16)
         }
         placeGaussianTestCamera(eye: farCamera.eye, target: farCamera.target)
         fixture.pager.noteGPUIdle()
         runGaussianCullAndPreprocess()
-        // Thirteen requests: two run and block in the source, eleven wait in the pager's list.
+        // Sixteen requests: two run and block in the source, fourteen wait in the pager's list.
         let deadline = Date().addingTimeInterval(5)
         while fixture.source.blockedReads < 2, Date() < deadline {
             usleep(200)
         }
         usleep(20000)
-        XCTAssertEqual(fixture.pager.stats.pendingReads, 13)
+        XCTAssertEqual(fixture.pager.stats.pendingReads, 16)
         XCTAssertEqual(fixture.source.blockedReads, 2, "only maxConcurrentReads reads reached the source; the rest hold no thread")
         XCTAssertEqual(Set(fixture.source.requestLog.map(\.chunk)).count, 2)
 
@@ -1303,7 +1303,7 @@ final class GaussianPagingTest: BaseRenderSetup {
             usleep(200)
         }
         XCTAssertEqual(fixture.pager.stats.pendingReads, 0)
-        XCTAssertEqual(Set(fixture.source.requestLog.map(\.chunk)).count, 13)
+        XCTAssertEqual(Set(fixture.source.requestLog.map(\.chunk)).count, 16)
         // The list is drained in issue order; two run at once, so a chunk reaches the source
         // at most one place away from where it was issued.
         let issued = fixture.pager.eventLog.filter { $0.kind == .issued }.map(\.chunk)
@@ -1315,7 +1315,7 @@ final class GaussianPagingTest: BaseRenderSetup {
         }
         fixture.pager.noteGPUIdle()
         runGaussianCullAndPreprocess()
-        XCTAssertEqual(fixture.pager.stats.residentChunks, 13)
+        XCTAssertEqual(fixture.pager.stats.residentChunks, 16)
     }
 
     // MARK: - 18: the warmth gate
@@ -1718,14 +1718,14 @@ final class GaussianPagingTest: BaseRenderSetup {
 
     func testDisableChunkCullListsOnlyResidentChunks() throws {
         GaussianDebugOptions.shared.disableChunkCull = true
-        let fixture = try loadFixture(poolSlots: 6)
+        let fixture = try loadFixture(poolSlots: 4)
         placeGaussianTestCamera(eye: cornerCamera.eye, target: cornerCamera.target)
         let seen = try Set(mirrorAreas(fixture, constants: cullConstants(fixture)).keys)
-        XCTAssertEqual(seen.count, 8)
-        frames(fixture, max: 8) { fixture.pager.stats.residentSlots == 6 && fixture.pager.stats.pendingReads == 0 }
+        XCTAssertEqual(seen.count, 6)
+        frames(fixture, max: 8) { fixture.pager.stats.residentSlots == 4 && fixture.pager.stats.pendingReads == 0 }
         frame(fixture)
         let resident = residentChunks(fixture)
-        XCTAssertEqual(resident.count, 6)
+        XCTAssertEqual(resident.count, 4)
         let readback = visibleChunkEntries(fixture.table)
         XCTAssertEqual(Set(readback.entries.map(\.chunkIndex)), resident, "forced visible lists only the resident chunks")
         let requested = Set(fixture.source.requestLog.map(\.chunk))
@@ -1737,26 +1737,26 @@ final class GaussianPagingTest: BaseRenderSetup {
     func testPressureWarningEvictsToTheSoftTargetAndStopsIssuing() throws {
         GaussianPagingPolicy.pressureTicks = 20
         GaussianPagingPolicy.holdOffTicks = 1000
-        let fixture = try loadFixture(poolSlots: 13)
+        let fixture = try loadFixture(poolSlots: 16)
         placeGaussianTestCamera(eye: farCamera.eye, target: farCamera.target)
-        frames(fixture, max: 5) { fixture.pager.stats.residentChunks == 13 }
-        XCTAssertEqual(fixture.pager.stats.residentSlots, 13)
+        frames(fixture, max: 5) { fixture.pager.stats.residentChunks == 16 }
+        XCTAssertEqual(fixture.pager.stats.residentSlots, 16)
 
         GaussianPagePoolRegistry.shared.noteMemoryPressure(.warning)
         frame(fixture)
-        XCTAssertLessThanOrEqual(fixture.pager.stats.residentSlots, 6, "half the slots within one tick")
+        XCTAssertLessThanOrEqual(fixture.pager.stats.residentSlots, 8, "half the slots within one tick")
         let requests = fixture.source.requestLog.count
         for _ in 0 ..< 17 {
             frame(fixture)
-            XCTAssertLessThanOrEqual(fixture.pager.stats.residentSlots, 6)
+            XCTAssertLessThanOrEqual(fixture.pager.stats.residentSlots, 8)
             XCTAssertEqual(fixture.source.requestLog.count, requests, "nothing issued under pressure")
         }
-        frames(fixture, max: 10) { fixture.pager.stats.residentChunks == 13 }
-        XCTAssertEqual(fixture.pager.stats.residentChunks, 13, "the pressure passed: refilled")
+        frames(fixture, max: 10) { fixture.pager.stats.residentChunks == 16 }
+        XCTAssertEqual(fixture.pager.stats.residentChunks, 16, "the pressure passed: refilled")
 
         GaussianPagePoolRegistry.shared.noteMemoryPressure(.critical)
         frame(fixture)
-        XCTAssertLessThanOrEqual(fixture.pager.stats.residentSlots, 3, "a quarter on critical")
+        XCTAssertLessThanOrEqual(fixture.pager.stats.residentSlots, 4, "a quarter on critical")
     }
 
     func testResidentSplatCountSizesTheWorkingSetUnderDisableWorkingSetBudget() throws {
@@ -1898,11 +1898,16 @@ final class GaussianPagingTest: BaseRenderSetup {
         let url = try GaussianSyntheticAsset.url(splatCount: splatCount, coarseLevels: coarseLevels)
         // The pool the policy gives this asset: what the budget leaves (nothing is allocated),
         // capped at the asset in whole slots and at the platform maximum.
-        let header = try UntoldGSFormat.readHeaderV3(from: url)
+        let index = try UntoldGSFormat.readIndex(from: url)
+        let header = index.header
         let slotBytes = try slotBytes(of: url)
         let assetBytes = GaussianPagingPolicy.assetBytes(splatCount: Int(header.splatCount), shBytesPerSplat: header.shBytesPerSplat)
-        let expectedSlots = GaussianPagingPolicy.poolSlotCount(assetBytes: assetBytes, slotBytes: slotBytes, residencyBudgetBytes: residencyBudgetBytes, allocatedBytes: 0)
-        let poolHoldsTheAsset = expectedSlots * slotBytes >= assetBytes
+        let ranksPerPage = GaussianPagingPolicy.ranksPerPage(splatsPerChunk: header.splatsPerChunk)
+        let assetSlotCount = index.chunks.reduce(into: 0) { count, chunk in
+            count += (Int(chunk.splatCount) + ranksPerPage - 1) / ranksPerPage
+        }
+        let expectedSlots = GaussianPagingPolicy.poolSlotCount(assetBytes: assetBytes, assetSlotCount: assetSlotCount, slotBytes: slotBytes, residencyBudgetBytes: residencyBudgetBytes, allocatedBytes: 0)
+        let poolHoldsTheAsset = expectedSlots >= assetSlotCount
         let entity = createEntity()
         fixtures.append(entity)
         setEntityGaussian(entityId: entity, filename: url.deletingPathExtension().path, withExtension: "untoldgs")

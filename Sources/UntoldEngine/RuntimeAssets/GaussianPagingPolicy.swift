@@ -261,10 +261,11 @@ public enum GaussianPagingPolicy {
 
     /// The pool's slot count: what the residency budget leaves after the pools already
     /// allocated, clamped between the minimum and the smaller of the asset and the platform cap.
-    public static func poolSlotCount(assetBytes: Int, slotBytes: Int, residencyBudgetBytes: Int, allocatedBytes: Int, poolMaxBytes: Int = pagePoolMaxBytes, minPoolSlots: Int = minPoolSlots) -> Int {
+    public static func poolSlotCount(assetBytes: Int, assetSlotCount: Int? = nil, slotBytes: Int, residencyBudgetBytes: Int, allocatedBytes: Int, poolMaxBytes: Int = pagePoolMaxBytes, minPoolSlots: Int = minPoolSlots) -> Int {
         guard slotBytes > 0 else { return minPoolSlots }
-        // The asset in whole slots: its last tier is short but takes a slot.
-        let assetSlots = (assetBytes + slotBytes - 1) / slotBytes
+        // Every chunk tier occupies its own slot. `assetBytes / slotBytes` is only exact when
+        // chunks are packed continuously; grid partitioning can leave several short chunk tails.
+        let assetSlots = assetSlotCount ?? (assetBytes + slotBytes - 1) / slotBytes
         let poolCap = min(assetSlots * slotBytes, poolMaxBytes)
         let remaining = residencyBudgetBytes - allocatedBytes
         let poolBytes = min(max(remaining, minPoolSlots * slotBytes), max(poolCap, minPoolSlots * slotBytes))

@@ -746,6 +746,9 @@ final class GaussianPagingPolicyTests: XCTestCase {
         XCTAssertEqual(GaussianPagingPolicy.poolSlotCount(assetBytes: 320 << 20, slotBytes: slotBytes, residencyBudgetBytes: 1 << 20, allocatedBytes: 0, poolMaxBytes: 256 << 20, minPoolSlots: 4), 256)
         // The asset bounds the pool.
         XCTAssertEqual(GaussianPagingPolicy.poolSlotCount(assetBytes: 40960, slotBytes: slotBytes, residencyBudgetBytes: 1 << 30, allocatedBytes: 0, poolMaxBytes: 256 << 20, minPoolSlots: 4), 10)
+        // Independently allocated short chunk tails need physical slots even when their record
+        // bytes would fit into fewer continuously packed slots.
+        XCTAssertEqual(GaussianPagingPolicy.poolSlotCount(assetBytes: 13 * slotBytes, assetSlotCount: 16, slotBytes: slotBytes, residencyBudgetBytes: 1 << 30, allocatedBytes: 0, poolMaxBytes: 256 << 20, minPoolSlots: 4), 16)
         // The platform cap bounds it.
         XCTAssertEqual(GaussianPagingPolicy.poolSlotCount(assetBytes: 1 << 30, slotBytes: slotBytes, residencyBudgetBytes: 1 << 30, allocatedBytes: 0, poolMaxBytes: 256 << 20, minPoolSlots: 4), 65536)
         // What other pools left.

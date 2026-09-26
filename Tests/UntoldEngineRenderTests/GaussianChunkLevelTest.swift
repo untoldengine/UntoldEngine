@@ -301,6 +301,24 @@ final class GaussianChunkLevelTest: BaseRenderSetup {
         return areas
     }
 
+    /// Each kept chunk's own density (its real splat count over its area) — not a fixed
+    /// splatsPerChunk, since the grid partition (gridChunkPlan) leaves many chunks short.
+    private func mirrorDensities(_ fixture: Fixture) throws -> [Int: Float] {
+        let areas = try mirrorAreas(fixture)
+        return areas.reduce(into: [:]) { densities, entry in
+            densities[entry.key] = Float(fixture.index.chunks[entry.key].splatCount) / entry.value
+        }
+    }
+
+    /// `chunkLevels`-style helpers pass a chunk's own splat count, not a fixed one, to
+    /// `GaussianChunkCullMath.level` — the grid partition leaves many chunks short of
+    /// `splatsPerChunk`, so the level rule and this mirror must agree on each chunk's real count.
+    private func levelsByChunk(_ fixture: Fixture, areas: [Int: Float], floor: Float, previous: Int, shifts: (Int, Int)) -> [Int: Int] {
+        Dictionary(uniqueKeysWithValues: areas.map { chunk, area in
+            (chunk, GaussianChunkCullMath.level(densityCap: .infinity, densityFloor: floor, splatCount: fixture.index.chunks[chunk].splatCount, screenArea: area, previous: previous, available: 7, tierShifts: shifts))
+        })
+    }
+
     /// A camera above the slab's centre on the line (0, h, 0.6 h), raised or lowered until the
     /// median visible chunk covers about `pixels` pixels of the 1920 × 1080 viewport.
     @discardableResult
@@ -593,7 +611,7 @@ final class GaussianChunkLevelTest: BaseRenderSetup {
         // floor, where the synthetic slab's tiny splats have already dropped below a pixel.
         let view = try placeCameraWithMedianChunkPixels(300, fixture)
         XCTAssertEqual(view.medianPixels, 300, accuracy: 30)
-        let medianDensity = try mirrorAreas(fixture).values.map { 1024 / $0 }.sorted()[fixture.chunkCount / 2]
+        let medianDensity = try mirrorDensities(fixture).values.sorted()[fixture.chunkCount / 2]
         let medianTier = GaussianChunkCullMath.densityTier(density: medianDensity)
         XCTAssertGreaterThanOrEqual(GaussianChunkCullMath.densityTier(density: densityFloor) - medianTier, -4, "sanity — fine at the default floor")
 
@@ -809,7 +827,7 @@ final class GaussianChunkLevelTest: BaseRenderSetup {
         XCTAssertGreaterThan(areas.count, 200)
         // The median chunk's density tier; floors that put it at Δ = −1 (fine), −(s1 + 1) (just
         // inside level 1), then one and two tiers back up.
-        let medianDensity = areas.values.map { 1024 / $0 }.sorted()[areas.count / 2]
+        let medianDensity = try mirrorDensities(fixture).values.sorted()[areas.count / 2]
         let medianTier = GaussianChunkCullMath.densityTier(density: medianDensity)
         let fineTier = medianTier - 1
         let coarseTier = medianTier - shifts.0 - 1
@@ -820,9 +838,7 @@ final class GaussianChunkLevelTest: BaseRenderSetup {
         }
         func chunkLevels(at tier: Int, previous: Int) -> [Int: Int] {
             let floor = GaussianChunkCullMath.densityTierFloor(tier) * 1.19
-            return areas.mapValues { area in
-                GaussianChunkCullMath.level(densityCap: .infinity, densityFloor: floor, splatCount: 1024, screenArea: area, previous: previous, available: 7, tierShifts: shifts)
-            }
+            return levelsByChunk(fixture, areas: areas, floor: floor, previous: previous, shifts: shifts)
         }
         // The chunks the rule keeps fine at the fine floor and sends to level 1 at the coarse floor.
         let switching = Set(chunkLevels(at: fineTier, previous: 0).filter { $0.value == 0 }.keys).intersection(chunkLevels(at: coarseTier, previous: 0).filter { $0.value == 1 }.keys)
@@ -1013,7 +1029,7 @@ final class GaussianChunkLevelTest: BaseRenderSetup {
             let fadeFrames = GaussianPagingPolicy.fadeFrames
             try placeCameraWithMedianChunkPixels(600, fixture)
             let areas = try mirrorAreas(fixture)
-            let medianDensity = areas.values.map { 1024 / $0 }.sorted()[areas.count / 2]
+            let medianDensity = try mirrorDensities(fixture).values.sorted()[areas.count / 2]
             let medianTier = GaussianChunkCullMath.densityTier(density: medianDensity)
             let fineTier = medianTier - 1
             let level1Tier = medianTier - shifts.0 - 1
@@ -1024,9 +1040,7 @@ final class GaussianChunkLevelTest: BaseRenderSetup {
             }
             func chunkLevels(at tier: Int) -> [Int: Int] {
                 let floor = GaussianChunkCullMath.densityTierFloor(tier) * 1.19
-                return areas.mapValues { area in
-                    GaussianChunkCullMath.level(densityCap: .infinity, densityFloor: floor, splatCount: 1024, screenArea: area, previous: 0, available: 7, tierShifts: shifts)
-                }
+                return levelsByChunk(fixture, areas: areas, floor: floor, previous: 0, shifts: shifts)
             }
             // The chunks fine at the fine floor, level 1 at the level-1 floor, level 2 at the level-2 floor.
             let switching = Set(chunkLevels(at: fineTier).filter { $0.value == 0 }.keys)
@@ -1321,7 +1335,7 @@ final class GaussianChunkLevelTest: BaseRenderSetup {
         GaussianRuntimeLimits.workingSetSplatsOverride = nil
         GaussianSharedWorkingSet.shared.resetBudgetHysteresis()
         placeGaussianTestCamera(eye: simd_float3(0, 8, 14), target: simd_float3(0, 0, -3))
-        let densities = try mirrorAreas(fixture).values.map { 1024 / $0 }.sorted()
+        let densities = try mirrorDensities(fixture).values.sorted()
         XCTAssertEqual(densities.count, fixture.chunkCount, "every chunk in view")
         let spread = GaussianChunkCullMath.densityTier(density: densities[densities.count - 1]) - GaussianChunkCullMath.densityTier(density: densities[0])
         XCTAssertGreaterThanOrEqual(spread, 4, "sanity — the densities spread over four tiers or more")

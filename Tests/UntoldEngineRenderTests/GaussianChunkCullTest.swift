@@ -38,15 +38,16 @@ final class GaussianChunkCullTest: BaseRenderSetup {
     private var legacyTwin: GaussianLegacyTwin?
     private var indexResolver: GaussianSplatIndexResolver?
 
-    /// The 200-splat fixture baked with 16 splats per chunk: 13 chunks.
-    private let expectedChunkCount = 13
+    /// The 200-splat fixture baked with 16 splats per chunk: 13 chunks by count alone, 16 once
+    /// the grid partition (gridChunkPlan) also cuts a chunk at each of its 8 cells' boundary.
+    private let expectedChunkCount = 16
 
     /// Visible chunks at each of `cameras`, so the frustum boundary is known to be exercised.
-    private let expectedVisibleChunkCounts = [13, 8, 12]
+    private let expectedVisibleChunkCounts = [16, 6, 15]
 
     /// Three views of the fixture (x, y in ±1.4, z in −0.05…0.55, 16-splat Morton chunks): the
-    /// whole asset from afar (13 of 13 chunks), a close view of the +x/+y corner that leaves
-    /// five chunks outside the frustum (8 of 13), a close view of the −x side (12 of 13).
+    /// whole asset from afar (16 of 16 chunks), a close view of the +x/+y corner that leaves
+    /// several chunks outside the frustum (6 of 16), a close view of the −x side (15 of 16).
     private let cameras: [(eye: simd_float3, target: simd_float3)] = [
         (simd_float3(0, 3, 7), .zero),
         (simd_float3(1.0, 1.0, 0.6), simd_float3(1.0, 1.0, 0)),

@@ -92,6 +92,38 @@ enum LegacyGaussianCookPath {
 
     // MARK: - Writer
 
+    /// Mirrors `UntoldGSWriter.gridChunkPlan` (the array path, over `mortonOrder`'s `[Int]`
+    /// instead of the store's `[UInt32]`): the same uniform-grid cut over the same Morton order,
+    /// reimplemented here rather than shared, same as every other step of this file, so the
+    /// equivalence check exercises the source's chunk formation against an independent one
+    /// rather than the source against itself.
+    private static func gridChunkRanges(
+        splats: [UntoldGSSplat], order: [Int], boundsMin: SIMD3<Float>, boundsMax: SIMD3<Float>, splatsPerChunk: Int
+    ) -> [[Int]] {
+        guard !order.isEmpty else { return [] }
+        guard splatsPerChunk > 0 else { return [order] }
+
+        let targetChunks = max(1, (order.count + splatsPerChunk - 1) / splatsPerChunk)
+        let bitsPerAxis = min(21, max(0, Int((log2(Double(targetChunks)) / 3).rounded(.down))))
+        let cellShift = UInt64(3 * (21 - bitsPerAxis))
+
+        var ranges: [[Int]] = []
+        var current: [Int] = []
+        var currentCell: UInt64 = .max
+        for index in order {
+            let cell = UntoldGSPacking.mortonKey(splats[index].position, boundsMin: boundsMin, boundsMax: boundsMax) >> cellShift
+            if !current.isEmpty, cell == currentCell, current.count < splatsPerChunk {
+                current.append(index)
+            } else {
+                if !current.isEmpty { ranges.append(current) }
+                current = [index]
+                currentCell = cell
+            }
+        }
+        if !current.isEmpty { ranges.append(current) }
+        return ranges
+    }
+
     static func writeReporting(splats: [UntoldGSSplat], options: UntoldGSWriteOptions, serialCoarsening: Bool) throws -> (data: Data, report: UntoldGSWriteReport) {
         guard !splats.isEmpty else { throw UntoldGSError.invalidInput("no splats to write") }
         guard options.shDegree <= UntoldGSFormat.maxSHDegree else {
@@ -118,9 +150,9 @@ enum LegacyGaussianCookPath {
         let bounds = UntoldGSFormat.bounds(of: splats)
         let order = UntoldGSFormat.mortonOrder(splats, boundsMin: bounds.min, boundsMax: bounds.max)
         let splatsPerChunk = 1 << Int(options.log2ChunkSplats)
-        let chunkRanges = stride(from: 0, to: order.count, by: splatsPerChunk).map { start in
-            Array(order[start ..< min(start + splatsPerChunk, order.count)])
-        }
+        let chunkRanges = LegacyGaussianCookPath.gridChunkRanges(
+            splats: splats, order: order, boundsMin: bounds.min, boundsMax: bounds.max, splatsPerChunk: splatsPerChunk
+        )
 
         // The coarse levels: automatic above the chunk-count threshold (the template's ratios
         // clamped to the chunk size), or exactly what was asked for.

@@ -326,18 +326,18 @@ final class UntoldGSCoarsenerTests: XCTestCase {
         var rng = SplitMix64(seed: 8)
         let splats = (0 ..< 3000).map { _ in rng.nextSplat() }
         var options = UntoldGSWriteOptions()
-        options.log2ChunkSplats = 5 // 94 chunks: automatic levels
+        options.log2ChunkSplats = 5 // 128 chunks once the grid partition also cuts at cell boundaries: automatic levels
         let parallel = try UntoldGSFormat.writeReporting(splats: splats, options: options, serialCoarsening: false)
         let serial = try UntoldGSFormat.writeReporting(splats: splats, options: options, serialCoarsening: true)
         let again = try UntoldGSFormat.writeReporting(splats: splats, options: options, serialCoarsening: false)
         XCTAssertEqual(parallel.report, serial.report)
         XCTAssertEqual(parallel.data, serial.data, "the thread count never changes a byte")
         XCTAssertEqual(parallel.data, again.data, "run to run")
-        XCTAssertEqual(parallel.report.chunkCount, 94)
+        XCTAssertEqual(parallel.report.chunkCount, 128)
         XCTAssertEqual(parallel.report.coarse?.levelCount, 2)
         XCTAssertEqual(parallel.report.coarse?.ratioLog2, [3, 5])
-        XCTAssertEqual(parallel.report.coarse?.recordsPerLevel, [93 * 4 + 3, 94]) // 3000 = 93 × 32 + 24; 24 >> 3 = 3, 24 >> 5 → 1
-        XCTAssertEqual(parallel.report.coarse?.chunksWithoutLevels, 0)
+        XCTAssertEqual(parallel.report.coarse?.recordsPerLevel, [319, 92])
+        XCTAssertEqual(parallel.report.coarse?.chunksWithoutLevels, 36) // the grid partition's per-cell trailing chunks are often below the level's minimum chunk size
     }
 }
 

@@ -442,7 +442,7 @@ final class UntoldGSCookerEquivalenceTests: XCTestCase {
         XCTAssertEqual(file.header.shDegree, 3)
         XCTAssertTrue(file.header.hasCoarseLevels, "69-odd chunks of 16: the automatic section")
         XCTAssertEqual(file.index.coarseRatioLog2, [3, 4])
-        XCTAssertEqual(try sha256(transformed.tiers[0].streamed), "57ab85a8ddf02f0f099ab3f7cc02de07822dd45c6072bf8f949451e9dab0c890")
+        XCTAssertEqual(try sha256(transformed.tiers[0].streamed), "2854930d401b04169f416e42aeb3067c095650de5ad92257177c83e4ae7f835c")
         try bakeBothWays(ply: ply, name: "capture-tiers", lodFractions: [1.0, 0.5], options: transformedOptions)
 
         let budgeted = try bakeBothWays(ply: ply, name: "budget", lodFractions: [1.0], options: budgetedOptions)
@@ -450,7 +450,7 @@ final class UntoldGSCookerEquivalenceTests: XCTestCase {
         XCTAssertEqual(budgetedFile.header.shDegree, 1)
         XCTAssertEqual(budgetedFile.header.splatCount, 700)
         XCTAssertFalse(budgetedFile.header.hasCoarseLevels)
-        XCTAssertEqual(try sha256(budgeted.tiers[0].streamed), "a61d665f6ca56d27897f69e974515d00e50cf1f5d364931446be68129ccdf327")
+        XCTAssertEqual(try sha256(budgeted.tiers[0].streamed), "1e61569eda41e58b9c852e94691579570c3dff62f74378e5955cb152b4cee673")
         try bakeBothWays(ply: ply, name: "budget-tiers", lodFractions: [1.0, 0.5], options: budgetedOptions)
     }
 
@@ -494,7 +494,7 @@ final class UntoldGSCookerEquivalenceTests: XCTestCase {
         XCTAssertEqual(try PLYReader.readGaussianSplatCount(from: ply), 1100)
         let output = temporaryDirectory.appendingPathComponent("capture-be.untoldgs")
         _ = try bakeGaussianSplatProgressiveTiers(plyURL: ply, outputBaseURL: output, lodFractions: [1.0], cookOptions: transformedOptions)
-        XCTAssertEqual(try sha256(output), "57ab85a8ddf02f0f099ab3f7cc02de07822dd45c6072bf8f949451e9dab0c890")
+        XCTAssertEqual(try sha256(output), "2854930d401b04169f416e42aeb3067c095650de5ad92257177c83e4ae7f835c")
     }
 
     // MARK: - Many windows
@@ -513,11 +513,11 @@ final class UntoldGSCookerEquivalenceTests: XCTestCase {
             XCTAssertEqual(try PLYGaussianSource(url: ply, windowing: windowing).layout.stride, captureStride)
 
             let transformed = try bakeBothWays(ply: ply, name: "\(name)-w64", lodFractions: [1.0], options: transformedOptions, windowing: windowing, windows: 18)
-            XCTAssertEqual(try sha256(transformed.tiers[0].streamed), "57ab85a8ddf02f0f099ab3f7cc02de07822dd45c6072bf8f949451e9dab0c890", "the same file as through one window")
+            XCTAssertEqual(try sha256(transformed.tiers[0].streamed), "2854930d401b04169f416e42aeb3067c095650de5ad92257177c83e4ae7f835c", "the same file as through one window")
             try bakeBothWays(ply: ply, name: "\(name)-w64-tiers", lodFractions: [1.0, 0.5], options: transformedOptions, windowing: windowing, windows: 18)
 
             let budgeted = try bakeBothWays(ply: ply, name: "\(name)-w64-budget", lodFractions: [1.0], options: budgetedOptions, windowing: windowing, windows: 18)
-            XCTAssertEqual(try sha256(budgeted.tiers[0].streamed), "a61d665f6ca56d27897f69e974515d00e50cf1f5d364931446be68129ccdf327")
+            XCTAssertEqual(try sha256(budgeted.tiers[0].streamed), "1e61569eda41e58b9c852e94691579570c3dff62f74378e5955cb152b4cee673")
         }
     }
 

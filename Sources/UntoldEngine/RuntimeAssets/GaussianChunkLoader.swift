@@ -522,6 +522,9 @@ enum GaussianChunkLoader {
         let pagesPerChunk = GaussianPagingPolicy.pagesPerChunk(splatsPerChunk: header.splatsPerChunk)
         let slotBytes = ranksPerPage * (UntoldGSFormat.coreRecordSize + shBytesPerSplat)
         let assetBytes = GaussianPagingPolicy.assetBytes(splatCount: splatCount, shBytesPerSplat: shBytesPerSplat)
+        let assetSlotCount = index.chunks.reduce(into: 0) { count, chunk in
+            count += (Int(chunk.splatCount) + ranksPerPage - 1) / ranksPerPage
+        }
         // Sized and claimed in one step under the registry's lock: two loads running at once
         // (tiers of one progressive entity, streamed entities) each see the other's claim, so
         // the pools together stay within the residency budget. The claim becomes the pager's
@@ -531,6 +534,7 @@ enum GaussianChunkLoader {
         let reservation = registry.reserve { allocatedBytes in
             slotCount = GaussianPagingPolicy.poolSlotCount(
                 assetBytes: assetBytes,
+                assetSlotCount: assetSlotCount,
                 slotBytes: slotBytes,
                 residencyBudgetBytes: residencyBudgetBytes,
                 allocatedBytes: allocatedBytes
