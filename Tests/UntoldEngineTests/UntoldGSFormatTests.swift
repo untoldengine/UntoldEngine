@@ -252,7 +252,9 @@ final class UntoldGSFormatTests: XCTestCase {
         let splats = (0 ..< 5000).map { _ in rng.nextSplat(boundsMin: boundsMin, boundsMax: boundsMax, shCount: 0) }
 
         var options = UntoldGSWriteOptions()
-        options.log2ChunkSplats = 8 // 256 per chunk → 20 chunks
+        // 256 per chunk → 20 chunks by count alone, 24 once the grid partition (gridChunkPlan)
+        // also cuts a chunk at each of its 8 cells' boundary.
+        options.log2ChunkSplats = 8
         options.sortByImportanceWithinChunk = false
         options.leafMaxChunks = 4
         options.meanSquaredSplatExtent = 0.0123
@@ -261,7 +263,7 @@ final class UntoldGSFormatTests: XCTestCase {
         let header = file.header
         XCTAssertEqual(header.version, 3)
         XCTAssertEqual(header.splatCount, 5000)
-        XCTAssertEqual(header.chunkCount, 20)
+        XCTAssertEqual(header.chunkCount, 24)
         XCTAssertEqual(header.lodLevels, 1)
         XCTAssertEqual(header.fileSize, UInt64(fileData.count))
         XCTAssertEqual(header.meanSquaredSplatExtent, 0.0123)
@@ -1007,9 +1009,11 @@ final class UntoldGSFormatTests: XCTestCase {
         XCTAssertNoThrow(try file.decodeAll(), "the fine chunks are untouched")
     }
 
-    /// The pre-change bytes of two fixtures, recorded at 6bfa4cc6 (before the section existed):
-    /// a 13-chunk bake and a 69-chunk bake with the levels off both reproduce them exactly, and
-    /// `.automatic` below 64 chunks does too.
+    /// Golden bytes of two fixtures, pinned to the grid-partitioned writer (`gridChunkPlan`): a
+    /// 17-chunk bake and a 103-chunk bake with the levels off both reproduce them exactly, and
+    /// `.automatic` below 64 chunks does too. Chunk counts are higher than a fixed-count slice of
+    /// the same splats would give (13 and 69, recorded before the grid partition existed) since a
+    /// chunk now also ends at a grid-cell boundary.
     func testWriteWithoutLevelsIsByteIdenticalToBefore() throws {
         var options = UntoldGSWriteOptions()
         options.log2ChunkSplats = 4
@@ -1019,19 +1023,19 @@ final class UntoldGSFormatTests: XCTestCase {
         var rng = SplitMix64(seed: 0x600D_CAFE)
         let small = (0 ..< 200).map { _ in rng.nextGoldenSplat() }
         let smallData = try UntoldGSFormat.write(splats: small, options: options)
-        XCTAssertEqual(smallData.count, 262_144)
-        XCTAssertEqual(UntoldGSCRC32.checksum(smallData), 0xF81A_698B, "13 chunks under .automatic: no section")
+        XCTAssertEqual(smallData.count, 327_680)
+        XCTAssertEqual(UntoldGSCRC32.checksum(smallData), 0xF652_3D35, "17 chunks under .automatic: no section")
         XCTAssertFalse(try UntoldGSFormat.readIndex(from: smallData).header.hasCoarseLevels)
 
         var rng2 = SplitMix64(seed: 0x600D_F00D)
         let large = (0 ..< 1100).map { _ in rng2.nextGoldenSplat() }
         let automatic = try UntoldGSFormat.write(splats: large, options: options)
-        XCTAssertTrue(try UntoldGSFormat.readIndex(from: automatic).header.hasCoarseLevels, "69 chunks under .automatic: a section")
+        XCTAssertTrue(try UntoldGSFormat.readIndex(from: automatic).header.hasCoarseLevels, "103 chunks under .automatic: a section")
         XCTAssertEqual(try UntoldGSFormat.readIndex(from: automatic).coarseRatioLog2, [3, 4], "the default ratios clamped to log2ChunkSplats = 4")
         options.coarseLevelsAutomatic = false
         let largeData = try UntoldGSFormat.write(splats: large, options: options)
-        XCTAssertEqual(largeData.count, 1_179_648)
-        XCTAssertEqual(UntoldGSCRC32.checksum(largeData), 0x1C58_358A)
+        XCTAssertEqual(largeData.count, 1_736_704)
+        XCTAssertEqual(UntoldGSCRC32.checksum(largeData), 0xE6E0_B20C)
         // The section-free file is the flagged file's prefix with the header's coarse words clear.
         var emulated = automatic.prefix(largeData.count)
         emulated[8] &= ~UInt8(0x10)
