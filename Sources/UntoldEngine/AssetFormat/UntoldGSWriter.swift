@@ -203,7 +203,23 @@ public extension UntoldGSFormat {
         }
 
         let splatsPerChunk = 1 << Int(options.log2ChunkSplats)
-        let chunkCount = (splatCount + splatsPerChunk - 1) / splatsPerChunk
+
+        // Progress: with coarse levels the `chunk` phase is the ordering and the layout and the
+        // chunk loop reports as `coarsen`; without them the loop is the rest of `chunk`, so the
+        // ordering takes the first tenth and the fraction never runs backwards.
+        try progress?.report(.chunk, fraction: 0)
+        let bounds = bounds(of: view)
+        let (order, chunkSizes) = gridChunkPlan(view, boundsMin: bounds.min, boundsMax: bounds.max, splatsPerChunk: splatsPerChunk)
+        let chunkCount = chunkSizes.count
+        let chunkStarts: [Int] = {
+            var starts = [Int](repeating: 0, count: chunkCount)
+            var cursor = 0
+            for (index, size) in chunkSizes.enumerated() {
+                starts[index] = cursor
+                cursor += size
+            }
+            return starts
+        }()
 
         // The coarse levels: automatic above the chunk-count threshold (the template's ratios
         // clamped to the chunk size), or exactly what was asked for.
@@ -222,14 +238,8 @@ public extension UntoldGSFormat {
             return requested
         }()
 
-        // Progress: with coarse levels the `chunk` phase is the ordering and the layout and the
-        // chunk loop reports as `coarsen`; without them the loop is the rest of `chunk`, so the
-        // ordering takes the first tenth and the fraction never runs backwards.
         let orderingShare = coarseOptions == nil ? 0.1 : 1.0
         progress?.setTierHasCoarseLevels(coarseOptions != nil)
-        try progress?.report(.chunk, fraction: 0)
-        let bounds = bounds(of: view)
-        let order = mortonOrder(view, boundsMin: bounds.min, boundsMax: bounds.max)
         try progress?.report(.chunk, fraction: 0.5 * orderingShare)
 
         // The layout is fixed before a chunk is encoded: the tree's node count depends on the
@@ -245,8 +255,7 @@ public extension UntoldGSFormat {
         var cursor = payloadOffset
         let payloadOffsets: [Int] = (0 ..< chunkCount).map { chunk in
             let offset = cursor
-            let count = min(splatsPerChunk, splatCount - chunk * splatsPerChunk)
-            cursor += alignedToPage(count * (coreRecordSize + shCount))
+            cursor += alignedToPage(chunkSizes[chunk] * (coreRecordSize + shCount))
             return offset
         }
         var fileSize = cursor
@@ -268,8 +277,8 @@ public extension UntoldGSFormat {
         let results = ChunkResults(count: chunkCount)
         let work: @Sendable (Int) -> Void = { chunk in
             do {
-                let start = chunk * splatsPerChunk
-                let end = min(start + splatsPerChunk, splatCount)
+                let start = chunkStarts[chunk]
+                let end = start + chunkSizes[chunk]
                 let mortonOrdered = order[start ..< end].map { Int($0) }
                 var ordered = mortonOrdered
                 if options.sortByImportanceWithinChunk {
@@ -539,6 +548,56 @@ public extension UntoldGSFormat {
             }
         }
         return sortedByKeyThenIndex(keys)
+    }
+
+    /// The tier's Morton order, cut into chunks that never cross a uniform grid cell — instead
+    /// of a chunk being "the next `splatsPerChunk` splats in scene-wide Morton order" (which can
+    /// span the whole scene when density is uneven), it's "the next `splatsPerChunk` splats in
+    /// Morton order *and* in the same grid cell". A 63-bit Morton key interleaves 21 bits per
+    /// axis with the coarsest bits on top, so a uniform grid at `2^bitsPerAxis` cells per axis is
+    /// exactly the key's top `3 * bitsPerAxis` bits — the scene-wide order is already grouped by
+    /// cell, ascending, with no separate cell sort. `bitsPerAxis` is chosen so the grid has about
+    /// as many cells as the tier would have made chunks the old way, so a uniformly dense region
+    /// still yields chunks close to `splatsPerChunk`; a sparse or empty cell just yields a
+    /// smaller trailing chunk instead of merging into whatever cell comes next in Morton order.
+    /// Returns the permutation (identical to `mortonOrder(_:boundsMin:boundsMax:)`) and each
+    /// resulting chunk's own splat count, since a cell's last chunk — or a whole sparse cell —
+    /// can be smaller than `splatsPerChunk`.
+    internal static func gridChunkPlan(
+        _ view: UntoldGSStoreView, boundsMin: SIMD3<Float>, boundsMax: SIMD3<Float>, splatsPerChunk: Int
+    ) -> (order: [UInt32], chunkSizes: [Int]) {
+        let count = view.count
+        guard count > 0 else { return ([], []) }
+        let order = mortonOrder(view, boundsMin: boundsMin, boundsMax: boundsMax)
+        guard splatsPerChunk > 0 else { return (order, [count]) }
+
+        let targetChunks = max(1, (count + splatsPerChunk - 1) / splatsPerChunk)
+        let bitsPerAxis = min(21, max(0, Int((log2(Double(targetChunks)) / 3).rounded(.down))))
+        let cellShift = UInt64(3 * (21 - bitsPerAxis))
+
+        var chunkSizes: [Int] = []
+        chunkSizes.reserveCapacity(targetChunks + targetChunks / 4)
+        view.withUnsafePointers { pointers in
+            var currentCell: UInt64 = .max
+            var currentSize = 0
+            for splatIndex in order {
+                let position = pointers.position(pointers.storeIndex(Int(splatIndex)))
+                let cell = UntoldGSPacking.mortonKey(position, boundsMin: boundsMin, boundsMax: boundsMax) >> cellShift
+                if currentSize > 0, cell == currentCell, currentSize < splatsPerChunk {
+                    currentSize += 1
+                } else {
+                    if currentSize > 0 {
+                        chunkSizes.append(currentSize)
+                    }
+                    currentCell = cell
+                    currentSize = 1
+                }
+            }
+            if currentSize > 0 {
+                chunkSizes.append(currentSize)
+            }
+        }
+        return (order, chunkSizes)
     }
 
     /// Indices `0 ..< keys.count` ordered by `(key, index)`: a least-significant-digit radix sort
