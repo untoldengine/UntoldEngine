@@ -1,6 +1,12 @@
 # Changelog
 ## v0.21.0 - 2026-09-26
 ### 🐞 Fixes
+- [Bugfix] Restore StarterDemo keyboard input (014a559…)
+- [Bugfix] Ensure generated Release builds compile with optimization enabled (dc1d8e9…)
+- [Bugfix] Show one display name per aliased animation clip and remove aliases together (5731274…)
+- [Bugfix] Fix missing CSM shadow casters, blend cascade transitions, and improve shadow bias consistency (906042b…)
+- [Bugfix] Prune stale compiled animation clips when clips are replaced (e6296a1…)
+- [Bugfix] Cache compiled animation clips by identity so same-named clips do not collide (d9df58c…)
 - [Patch] Say why a rendering extension's shader library or pipeline failed to load (8637946…)
 - [Patch] Unwrap PipelineCreationError in the engine's own pipeline log line (ccd8ece…)
 ### 📚 Docs
@@ -8,6 +14,9 @@
 - [Docs] Sync docs/index.md with README Vision, Mission, and Engineering Principles (1bde9e3…)
 - [Docs] Reposition Vision/Mission and consolidate audience sections (620445e…)
 - [Docs] Reposition README/index around interactive XR positioning, add CoolWeb (4d7285e…)
+### 🚀 Features
+- [Feature] Partition Gaussian chunks by a uniform grid for tighter spatial bounds and more effective culling (6c51e34…)
+- [Feature] Add runtime per-chunk bounding-box visualization for Gaussian culling and LOD levels (5d20de5…)
 ## v0.20.0 - 2026-09-20
 ### 🐞 Fixes
 - [Patch] ComponentKit: log the component types found in the app at startup (8bee04e…)
