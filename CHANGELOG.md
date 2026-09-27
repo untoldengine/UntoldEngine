@@ -1,4 +1,13 @@
 # Changelog
+## v0.21.0 - 2026-09-26
+### 🐞 Fixes
+- [Patch] Say why a rendering extension's shader library or pipeline failed to load (8637946…)
+- [Patch] Unwrap PipelineCreationError in the engine's own pipeline log line (ccd8ece…)
+### 📚 Docs
+- [Docs] Add Engineering Principles and wire them into contributor docs (ed7d0be…)
+- [Docs] Sync docs/index.md with README Vision, Mission, and Engineering Principles (1bde9e3…)
+- [Docs] Reposition Vision/Mission and consolidate audience sections (620445e…)
+- [Docs] Reposition README/index around interactive XR positioning, add CoolWeb (4d7285e…)
 ## v0.20.0 - 2026-09-20
 ### 🐞 Fixes
 - [Patch] ComponentKit: log the component types found in the app at startup (8bee04e…)
