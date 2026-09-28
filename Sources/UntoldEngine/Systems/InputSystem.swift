@@ -256,11 +256,11 @@ public final class InputSystem: @unchecked Sendable {
         // per-event from the wand's ARKit-derived chirality rather than the key name.
         profile.dpads["Thumbstick"]?.valueChangedHandler = { [weak self, weak controller] _, x, y in
             guard let self, let controller else { return }
-            self.updatePSVR2Thumbstick(x: x, y: y, for: controller)
+            updatePSVR2Thumbstick(x: x, y: y, for: controller)
         }
         profile.buttons["Thumbstick Button"]?.pressedChangedHandler = { [weak self, weak controller] _, _, pressed in
             guard let self, let controller else { return }
-            self.updatePSVR2ThumbstickPressed(pressed, for: controller)
+            updatePSVR2ThumbstickPressed(pressed, for: controller)
         }
     }
 
