@@ -93,6 +93,7 @@ extension InputSystem {
             psvr2AnchorMonitorTask?.cancel()
             psvr2AccessoryLoadTask = nil
             psvr2AnchorMonitorTask = nil
+            psvr2ControllerChirality.removeValue(forKey: ObjectIdentifier(controller))
             if psvr2SpatialControllers.isEmpty {
                 psvr2AccessoriesStorage = []
                 psvr2AccessoryTrackingProviderStorage = nil
@@ -150,11 +151,20 @@ extension InputSystem {
                 guard let self else { return }
                 do {
                     var accessories: [Accessory] = []
+                    var chirality: [ObjectIdentifier: XRSpatialChirality] = [:]
                     for controller in controllers {
-                        try await accessories.append(Accessory(device: controller))
+                        let accessory = try await Accessory(device: controller)
+                        accessories.append(accessory)
+                        switch accessory.inherentChirality {
+                        case .left: chirality[ObjectIdentifier(controller)] = .left
+                        case .right: chirality[ObjectIdentifier(controller)] = .right
+                        case .unspecified: break
+                        @unknown default: break
+                        }
                     }
                     guard !Task.isCancelled, psvr2AccessoryGeneration == generation else { return }
                     psvr2AccessoriesStorage = accessories
+                    psvr2ControllerChirality = chirality
                     NotificationCenter.default.post(
                         name: .psvr2AccessoryTrackingConfigurationDidChange,
                         object: self

@@ -320,6 +320,26 @@ if buttons.leftTriggerValue > 0.5 {
 
 PlayStation face-button mapping uses A = Cross, B = Circle, X = Square, and Y = Triangle.
 
+### Read thumbsticks
+
+```swift
+let buttons = getGameControllerState()
+
+if buttons.leftThumbStickActive {
+    Logger.log(message: "Left stick: \(buttons.leftThumbstickX), \(buttons.leftThumbstickY)")
+}
+
+if buttons.rightThumbStickActive {
+    Logger.log(message: "Right stick: \(buttons.rightThumbstickX), \(buttons.rightThumbstickY)")
+}
+
+if buttons.leftThumbstickPressed {
+    Logger.log(message: "Left stick clicked")
+}
+```
+
+Each PSVR2 Sense wand has one physical stick. Internally the engine reads it from a single generic `GCInputThumbstick` element on the wand's `physicalInputProfile` (rather than the `GCExtendedGamepad`-style `"Left Thumbstick"`/`"Right Thumbstick"` keys a conventional two-stick gamepad exposes), then routes the value into `leftThumbstickX/Y` or `rightThumbstickX/Y` using the wand's ARKit-reported chirality — the same left/right resolution `getPSVR2SenseState()` uses for pose tracking. `leftThumbStickActive`/`rightThumbStickActive` are `true` once the stick deflects past a small deadzone (~0.1); `leftThumbstickPressed`/`rightThumbstickPressed` report the stick click.
+
 ### Read spatial poses
 
 ```swift

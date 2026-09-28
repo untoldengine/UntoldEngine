@@ -71,6 +71,12 @@ public final class InputSystem: @unchecked Sendable {
     public var gameControllerState = GameControllerState()
     public var currentGameController: GCExtendedGamepad?
     public var psvr2SenseControllerState = PSVR2SenseControllerState()
+    /// Which hand each connected PSVR2 Sense wand belongs to. Both wands expose their
+    /// single stick under the same generic `.thumbstick`/`.thumbstickButton` physical
+    /// input keys, so the handler needs this to know which side of GameControllerState
+    /// to update. Populated from ARKit accessory chirality once it loads (see
+    /// InputSystem+PSVR2.swift); until then, thumbstick events for that wand are dropped.
+    var psvr2ControllerChirality: [ObjectIdentifier: XRSpatialChirality] = [:]
     #if os(visionOS)
         var psvr2SpatialControllers: [GCController] = []
         // Loaded Accessory objects ([Any] to avoid @available on a stored property).
@@ -154,7 +160,7 @@ public final class InputSystem: @unchecked Sendable {
             currentGameController = gameController
             configureGameControllerHandlers(gameController)
         } else if isPSVR2SpatialController(controller) {
-            configurePhysicalGameControllerHandlers(controller.physicalInputProfile)
+            configurePhysicalGameControllerHandlers(controller)
         } else {
             Logger.log(message: "Game Controller \(controller.vendorName ?? "unknown vendor") has no supported input profile")
             return
@@ -224,7 +230,9 @@ public final class InputSystem: @unchecked Sendable {
 
     /// Spatial gamepads expose their controls through the physical profile rather
     /// than GCExtendedGamepad. Each PSVR2 wand contributes only its own elements.
-    private func configurePhysicalGameControllerHandlers(_ profile: GCPhysicalInputProfile) {
+    private func configurePhysicalGameControllerHandlers(_ controller: GCController) {
+        let profile = controller.physicalInputProfile
+
         profile.buttons["Button A"]?.pressedChangedHandler = { [weak self] _, _, pressed in self?.gameControllerState.aPressed = pressed }
         profile.buttons["Button B"]?.pressedChangedHandler = { [weak self] _, _, pressed in self?.gameControllerState.bPressed = pressed }
         profile.buttons["Button X"]?.pressedChangedHandler = { [weak self] _, _, pressed in self?.gameControllerState.xPressed = pressed }
@@ -241,17 +249,41 @@ public final class InputSystem: @unchecked Sendable {
             self?.gameControllerState.rightTriggerPressed = pressed
         }
 
-        profile.dpads["Left Thumbstick"]?.valueChangedHandler = { [weak self] _, x, y in
-            self?.gameControllerState.leftThumbstickX = x
-            self?.gameControllerState.leftThumbstickY = y
-            self?.gameControllerState.leftThumbStickActive = abs(x) > 0.1 || abs(y) > 0.1
+        // Each wand has a single stick, exposed under the generic GCInputThumbstick /
+        // GCInputThumbstickButton physical input keys (added in visionOS 26) rather than
+        // the "Left Thumbstick"/"Right Thumbstick" keys GCExtendedGamepad uses for
+        // two-stick gamepads. Which GameControllerState side to update is resolved
+        // per-event from the wand's ARKit-derived chirality rather than the key name.
+        profile.dpads["Thumbstick"]?.valueChangedHandler = { [weak self, weak controller] _, x, y in
+            guard let self, let controller else { return }
+            self.updatePSVR2Thumbstick(x: x, y: y, for: controller)
         }
-        profile.dpads["Right Thumbstick"]?.valueChangedHandler = { [weak self] _, x, y in
-            self?.gameControllerState.rightThumbstickX = x
-            self?.gameControllerState.rightThumbstickY = y
-            self?.gameControllerState.rightThumbStickActive = abs(x) > 0.1 || abs(y) > 0.1
+        profile.buttons["Thumbstick Button"]?.pressedChangedHandler = { [weak self, weak controller] _, _, pressed in
+            guard let self, let controller else { return }
+            self.updatePSVR2ThumbstickPressed(pressed, for: controller)
         }
-        profile.buttons["Left Thumbstick Button"]?.pressedChangedHandler = { [weak self] _, _, pressed in self?.gameControllerState.leftThumbstickPressed = pressed }
-        profile.buttons["Right Thumbstick Button"]?.pressedChangedHandler = { [weak self] _, _, pressed in self?.gameControllerState.rightThumbstickPressed = pressed }
+    }
+
+    func updatePSVR2Thumbstick(x: Float, y: Float, for controller: GCController) {
+        switch psvr2ControllerChirality[ObjectIdentifier(controller)] {
+        case .left:
+            gameControllerState.leftThumbstickX = x
+            gameControllerState.leftThumbstickY = y
+            gameControllerState.leftThumbStickActive = abs(x) > 0.1 || abs(y) > 0.1
+        case .right:
+            gameControllerState.rightThumbstickX = x
+            gameControllerState.rightThumbstickY = y
+            gameControllerState.rightThumbStickActive = abs(x) > 0.1 || abs(y) > 0.1
+        case nil:
+            break
+        }
+    }
+
+    func updatePSVR2ThumbstickPressed(_ pressed: Bool, for controller: GCController) {
+        switch psvr2ControllerChirality[ObjectIdentifier(controller)] {
+        case .left: gameControllerState.leftThumbstickPressed = pressed
+        case .right: gameControllerState.rightThumbstickPressed = pressed
+        case nil: break
+        }
     }
 }
