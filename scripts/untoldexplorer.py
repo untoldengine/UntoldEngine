@@ -17,6 +17,7 @@ import shutil
 import struct
 import sys
 import tempfile
+from array import array
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Callable, Iterable, Optional
@@ -829,13 +830,20 @@ class UnsupportedTextureFormatError(Exception):
     """Raised when a texture is not usable by the engine pipeline (e.g. EXR/HDR format, or no pixel data)."""
 
 
+class TextureWriteError(Exception):
+    """Raised when Blender could not write a texture to disk, not even from a metadata-free copy."""
+
+
 class TextureStagingContext:
     staged_by_key: dict[str, Path]
     used_names: set[str]
+    # One line per texture that was left out of the export, for the caller to report.
+    skipped_textures: list[str]
 
-    def __init__(self) -> None:
+    def __init__(self, skipped_textures: Optional[list[str]] = None) -> None:
         self.staged_by_key = {}
         self.used_names = set()
+        self.skipped_textures = skipped_textures if skipped_textures is not None else []
 
 
 class HDRStagingContext:
@@ -2918,6 +2926,11 @@ _FORMATS_WITHOUT_8BIT = {"OPEN_EXR", "OPEN_EXR_MULTILAYER", "HDR", "CINEON", "DP
 _UNSUPPORTED_TEXTURE_SUFFIXES = {".exr", ".hdr", ".cin", ".dpx"}
 _HDR_IMAGE_SUFFIXES = {".exr", ".hdr"}
 
+# Images that Blender could only write from a metadata-free copy, with what went wrong
+# the first time. A pack stages a texture once for every model that uses it; remembering
+# the image spares each of those models the failed attempt and Blender's error output.
+_images_written_from_copy: dict[str, str] = {}
+
 
 def write_blender_image_to_path(image_name: str, destination_path: Path, *, preserve_precision: bool = False) -> None:
     blender_required()
@@ -2943,13 +2956,163 @@ def write_blender_image_to_path(image_name: str, destination_path: Path, *, pres
 
     destination_path.parent.mkdir(parents=True, exist_ok=True)
 
+    # Must read the source file's own header before filepath_raw is overwritten to the
+    # destination path in _save_blender_image — image.filepath/.filepath_raw both then
+    # point at the (not yet written) output PNG, not the original source, and the header
+    # would resolve to the wrong file or nothing at all.
+    source_info = _source_bit_depth_and_channels(image)
+
+    def save(target: object) -> Optional[str]:
+        """Write target to destination_path. Returns what went wrong, or None if nothing did."""
+        try:
+            _save_blender_image(
+                target,
+                destination_path,
+                image_name=image_name,
+                source_image=image,
+                source_info=source_info,
+                preserve_precision=preserve_precision,
+            )
+        except (RuntimeError, OSError) as exc:
+            lines = str(exc).strip().splitlines()
+            return lines[0] if lines else type(exc).__name__
+        return _written_image_problem(destination_path)
+
+    can_copy = _can_copy_without_metadata(image)
+    problem = _images_written_from_copy.get(image_name) if can_copy else None
+    failed_before = problem is not None
+    if not failed_before:
+        problem = save(image)
+        if problem is None:
+            return
+
+        # Blender writes the metadata it read from an image's source file back out on every
+        # save, and a bad entry can abort the write after the file has been started. Seen
+        # with JPEGs that Blender itself saved from a source with an embedded ICC profile:
+        # they carry a "Blender:ICCProfile:..." comment, which comes back as a text entry
+        # named ICCProfile that the PNG writer takes for the profile itself. libpng rejects
+        # it ("ICC profile too short") once the PNG header is on disk, leaving a 33-byte
+        # file. The pixels are fine, so write them again from a copy that has no metadata.
+        _remove_incomplete_file(destination_path)
+        if not can_copy:
+            raise TextureWriteError(f"'{image_name}' could not be written: {problem}. Skipping texture.")
+        print(f"  Blender could not write image '{image_name}' ({problem}). Retrying from a copy without the source file's metadata.", flush=True)
+
+    try:
+        metadata_free_copy = _metadata_free_image_copy(image)
+    except Exception as exc:
+        raise TextureWriteError(
+            f"'{image_name}' could not be written: {problem}. "
+            f"Copying its pixels for a second attempt failed too: {exc}. Skipping texture."
+        ) from exc
+    try:
+        retry_problem = save(metadata_free_copy)
+    finally:
+        bpy.data.images.remove(metadata_free_copy)
+    if retry_problem is not None:
+        _remove_incomplete_file(destination_path)
+        raise TextureWriteError(
+            f"'{image_name}' could not be written: {problem}. "
+            f"A second attempt from a copy without metadata failed too: {retry_problem}. Skipping texture."
+        )
+    if not failed_before:
+        _images_written_from_copy[image_name] = problem
+        print(f"  Wrote image '{image_name}' from the copy. Its other uses in this export are written the same way.", flush=True)
+
+
+def _png_is_complete(path: Path) -> bool:
+    """Return True when a PNG was written through to its closing IEND chunk.
+
+    libpng writes the signature and IHDR before anything else, so a write that fails
+    later leaves a header-only file that still passes a signature check.
+    """
+    iend_chunk = b"\x00\x00\x00\x00IEND\xaeB`\x82"
+    try:
+        with open(path, "rb") as f:
+            if f.read(8) != b"\x89PNG\r\n\x1a\n":
+                return False
+            f.seek(-len(iend_chunk), os.SEEK_END)
+            return f.read() == iend_chunk
+    except OSError:
+        return False
+
+
+def _written_image_problem(path: Path) -> Optional[str]:
+    """Return what is wrong with a just-written image file, or None when it is complete."""
+    if not path.is_file():
+        return "no file was written"
+    size = path.stat().st_size
+    if size == 0:
+        return "the file is empty"
+    if path.suffix.lower() == ".png" and not _png_is_complete(path):
+        return f"the PNG is incomplete ({size} bytes, no closing IEND chunk)"
+    return None
+
+
+def _remove_incomplete_file(path: Path) -> None:
+    """Delete what a failed write left behind, so a truncated file never outlives the failure."""
+    try:
+        path.unlink(missing_ok=True)
+    except OSError as exc:
+        print(f"  Warning: could not remove incomplete file '{path}': {exc}", flush=True)
+
+
+def _can_copy_without_metadata(image: object) -> bool:
+    """Return True when _metadata_free_image_copy reproduces the image exactly.
+
+    That holds for 8-bit images, which Blender keeps as RGBA bytes in the image's own
+    color space. A float buffer holds scene-linear values instead, and a generated copy
+    of those is not written back the way its source is: a 16-bit sRGB texture came out
+    darker. A texture that is reported as skipped is better than one that is subtly wrong.
+    """
+    return not getattr(image, "is_float", False) and getattr(image, "channels", 0) == 4
+
+
+def _metadata_free_image_copy(image: object) -> object:
+    """Copy an image's pixels into a new datablock that has none of its source file's metadata.
+
+    Blender has no Python API to edit or drop the metadata an image was loaded with. A
+    generated image has no source file and so no metadata, which makes it a way to get the
+    same pixels to disk without it. The caller removes the copy once it is saved.
+    """
+    width, height = int(image.size[0]), int(image.size[1])
+    # image.depth is the bits per pixel of the source: only 32 (RGBA) and 16 (gray + alpha)
+    # have an alpha channel to keep.
+    copy = bpy.data.images.new(
+        f"{image.name}.untold_export",
+        width=width,
+        height=height,
+        alpha=image.depth in (16, 32),
+    )
+    try:
+        # Before the pixels: changing the color space of a generated image clears them.
+        copy.colorspace_settings.name = image.colorspace_settings.name
+        copy.alpha_mode = image.alpha_mode
+        pixels = array("f", bytes(4 * width * height * 4))
+        image.pixels.foreach_get(pixels)
+        copy.pixels.foreach_set(pixels)
+    except Exception:
+        bpy.data.images.remove(copy)
+        raise
+    return copy
+
+
+def _save_blender_image(
+    image: object,
+    destination_path: Path,
+    *,
+    image_name: str,
+    source_image: object,
+    source_info: Optional[tuple[int, int]],
+    preserve_precision: bool,
+) -> None:
+    """Save image to destination_path, converted as the engine needs.
+
+    image is the datablock that gets written: source_image itself, or a metadata-free
+    copy of it. What to convert is always decided from source_image and source_info.
+    """
     original_filepath_raw = getattr(image, "filepath_raw", "")
     original_file_format = getattr(image, "file_format", "PNG")
-    # Must read the source file's own header before filepath_raw is overwritten to the
-    # destination path below — image.filepath/.filepath_raw both then point at the (not
-    # yet written) output PNG, not the original source, and the header would resolve to
-    # the wrong file or nothing at all.
-    source_info = _source_bit_depth_and_channels(image)
     try:
         image.filepath_raw = str(destination_path)
         if destination_path.suffix:
@@ -2994,14 +3157,14 @@ def write_blender_image_to_path(image_name: str, destination_path: Path, *, pres
         # — which silently defeats the needs_conversion check below. Read the true
         # values from the source file's own header when one is available, and only
         # fall back to Blender's metadata for formats/sources that can't be inspected
-        # directly (JPEG, packed images, generated images, etc.). Captured above, before
-        # filepath_raw was overwritten to point at the destination instead of the source.
+        # directly (JPEG, packed images, generated images, etc.). Captured by the caller,
+        # before filepath_raw was overwritten to point at the destination instead of the source.
         if source_info is not None:
             bits_per_sample, image_channels = source_info
             image_depth = bits_per_sample * image_channels
         else:
-            image_depth = getattr(image, "depth", 0)
-            image_channels = getattr(image, "channels", 4)
+            image_depth = getattr(source_image, "depth", 0)
+            image_channels = getattr(source_image, "channels", 4)
         # Convert when: 16-bit RGB/RGBA (depth > 32), OR any grayscale image
         # (channels < 3, any bit depth).  depth = bits-per-pixel:
         #   8-bit grayscale  → depth=8,  channels=1  (missed by depth>32)
@@ -3052,7 +3215,7 @@ def write_blender_image_to_path(image_name: str, destination_path: Path, *, pres
             # engine then loads those linear values as sRGB and applies sRGB→linear
             # expansion a second time, making the surface appear too dark / wrong.
             _LINEAR_COLORSPACES = {"Non-Color", "Linear", "Linear Rec.709", "Linear BT.709", "Raw"}
-            colorspace_name = getattr(getattr(image, "colorspace_settings", None), "name", "sRGB")
+            colorspace_name = getattr(getattr(source_image, "colorspace_settings", None), "name", "sRGB")
             is_linear_data = colorspace_name in _LINEAR_COLORSPACES
             target_view_transform = "Raw" if is_linear_data else "Standard"
 
@@ -3217,20 +3380,29 @@ def stage_texture_for_output(
     context: TextureStagingContext,
     *,
     preserve_precision: bool = False,
+    used_as: Optional[str] = None,
 ) -> Optional[ExportedTexture]:
     """Stage a texture for output.  Returns None if the texture format is not
-    supported by the engine pipeline (e.g. EXR, HDR) — callers should treat
-    None as "no texture" for that material slot.
+    supported by the engine pipeline (e.g. EXR, HDR) or the texture could not be
+    written — callers should treat None as "no texture" for that material slot.
 
     preserve_precision: keep 16-bit depth for a genuinely-16-bit source instead of
     the usual 8-bit downconvert (see write_blender_image_to_path). Set by the
     height/displacement and normal slots — texbake.py's height and normal paths are
     the consumers built to preserve and use that extra precision.
+
+    used_as: where the texture is used (see texture_usage), so a skipped texture is
+    reported together with the material and object that lose it.
     """
     source_path = texture.source_path
     texture_dir = output_path.parent / "Textures"
     texture_dir.mkdir(parents=True, exist_ok=True)
     staging_key = texture_staging_key(texture)
+
+    def skip(reason: str) -> None:
+        message = f"{reason} It was the {used_as}." if used_as else reason
+        print(f"  Warning: {message}", flush=True)
+        context.skipped_textures.append(message)
 
     # Early rejection: file-backed textures with unsupported suffixes (EXR, HDR, …)
     # are not part of the engine pipeline.  Skip with a warning so the export
@@ -3238,11 +3410,10 @@ def stage_texture_for_output(
     if source_path is not None:
         resolved = source_path.expanduser().resolve()
         if resolved.suffix.lower() in _UNSUPPORTED_TEXTURE_SUFFIXES:
-            print(
-                f"  Warning: texture '{texture.name}' uses unsupported format "
+            skip(
+                f"texture '{texture.name}' uses unsupported format "
                 f"'{resolved.suffix}' (EXR/HDR are not supported by the engine). "
-                f"Skipping texture.",
-                flush=True,
+                f"Skipping texture."
             )
             return None
 
@@ -3294,8 +3465,11 @@ def stage_texture_for_output(
         else:
             missing_path = str(source_path) if source_path is not None else "<none>"
             raise RuntimeError(f"Texture source does not exist and no Blender image fallback is available: {missing_path}")
-    except UnsupportedTextureFormatError as exc:
-        print(f"  Warning: {exc}", flush=True)
+    except (UnsupportedTextureFormatError, TextureWriteError) as exc:
+        # One texture that cannot be exported costs its material a texture slot, not the
+        # whole export: a multi-model pack writes its manifest last, so stopping here would
+        # throw away every model already written.
+        skip(str(exc))
         return None
 
     context.staged_by_key[staging_key] = destination_path
@@ -3484,23 +3658,57 @@ def stage_hdr_assets_for_output(output_dir: Path, asset_path: Path) -> list[Path
     return unique_staged
 
 
-def stage_material_for_output(material: ExportedMaterial, output_path: Path, context: TextureStagingContext) -> ExportedMaterial:
+def texture_usage(slot: str, material_name: str, object_name: Optional[str] = None) -> str:
+    """Describe where a texture is used, for the report of a texture that had to be skipped."""
+    usage = f"{slot} texture of material '{material_name}'"
+    return f"{usage} on object '{object_name}'" if object_name else usage
+
+
+def stage_material_for_output(
+    material: ExportedMaterial,
+    output_path: Path,
+    context: TextureStagingContext,
+    *,
+    object_name: Optional[str] = None,
+) -> ExportedMaterial:
+    def stage(texture: Optional[ExportedTexture], slot: str, preserve_precision: bool = False) -> Optional[ExportedTexture]:
+        if texture is None:
+            return None
+        return stage_texture_for_output(
+            texture,
+            output_path,
+            context,
+            preserve_precision=preserve_precision,
+            used_as=texture_usage(slot, material.name, object_name),
+        )
+
     return replace(
         material,
-        base_color_texture=stage_texture_for_output(material.base_color_texture, output_path, context) if material.base_color_texture is not None else None,
-        normal_texture=stage_texture_for_output(material.normal_texture, output_path, context, preserve_precision=True) if material.normal_texture is not None else None,
-        metallic_texture=stage_texture_for_output(material.metallic_texture, output_path, context) if material.metallic_texture is not None else None,
-        roughness_texture=stage_texture_for_output(material.roughness_texture, output_path, context) if material.roughness_texture is not None else None,
-        emissive_texture=stage_texture_for_output(material.emissive_texture, output_path, context) if material.emissive_texture is not None else None,
-        occlusion_texture=stage_texture_for_output(material.occlusion_texture, output_path, context) if material.occlusion_texture is not None else None,
-        height_texture=stage_texture_for_output(material.height_texture, output_path, context, preserve_precision=True) if material.height_texture is not None else None,
+        base_color_texture=stage(material.base_color_texture, "base color"),
+        normal_texture=stage(material.normal_texture, "normal", preserve_precision=True),
+        metallic_texture=stage(material.metallic_texture, "metallic"),
+        roughness_texture=stage(material.roughness_texture, "roughness"),
+        emissive_texture=stage(material.emissive_texture, "emissive"),
+        occlusion_texture=stage(material.occlusion_texture, "occlusion"),
+        height_texture=stage(material.height_texture, "height", preserve_precision=True),
     )
 
 
-def stage_mesh_for_output(exported_mesh: ExportedMesh, output_path: Path, context: TextureStagingContext) -> ExportedMesh:
+def stage_mesh_for_output(
+    exported_mesh: ExportedMesh,
+    output_path: Path,
+    context: TextureStagingContext,
+    *,
+    object_name: Optional[str] = None,
+) -> ExportedMesh:
     return replace(
         exported_mesh,
-        material=stage_material_for_output(exported_mesh.material, output_path, context),
+        material=stage_material_for_output(
+            exported_mesh.material,
+            output_path,
+            context,
+            object_name=object_name or exported_mesh.entity_name,
+        ),
     )
 
 
@@ -3508,8 +3716,14 @@ def stage_nodes_for_output(
     exported_nodes: list[ExportedNode],
     output_path: Path,
     progress_callback: Optional[ProgressCallback] = None,
+    skipped_textures: Optional[list[str]] = None,
 ) -> list[ExportedNode]:
-    context = TextureStagingContext()
+    """Stage every node's textures next to output_path.
+
+    skipped_textures: a list that receives one line per texture that had to be left
+    out, so the caller can report them together once the export is done.
+    """
+    context = TextureStagingContext(skipped_textures)
     staged_nodes: list[ExportedNode] = []
     total = len(exported_nodes)
     for i, exported_node in enumerate(exported_nodes, 1):
@@ -3519,12 +3733,32 @@ def stage_nodes_for_output(
             staged_nodes.append(
                 replace(
                     exported_node,
-                    mesh=stage_mesh_for_output(exported_node.mesh, output_path, context),
+                    mesh=stage_mesh_for_output(
+                        exported_node.mesh,
+                        output_path,
+                        context,
+                        # A material-split fragment is named "<object>_mat<n>"; report the
+                        # object as it is named in Blender.
+                        object_name=exported_node.material_split_root_name or exported_node.entity_name,
+                    ),
                 )
             )
         if progress_callback is not None:
             progress_callback("Stage nodes", i, total, exported_node.entity_name)
     return staged_nodes
+
+
+def print_skipped_textures(skipped_textures: list[str]) -> None:
+    """Repeat the textures that were left out at the end of an export, where they get read."""
+    if not skipped_textures:
+        return
+    print(
+        f"Warning: {len(skipped_textures)} texture(s) could not be exported. "
+        "The materials that use them were written without them:",
+        flush=True,
+    )
+    for skipped_texture in skipped_textures:
+        print(f"  - {skipped_texture}", flush=True)
 
 
 def _detect_occlusion_texture(material: object, asset_path: Path) -> Optional[ExportedTexture]:
@@ -5325,7 +5559,10 @@ def export_objects_to_untold(
             progress_callback("Stage color grade LUT", 0, 1, color_grade_lut_path.name)
         color_grade_lut = stage_color_grade_lut_for_output(color_grade_lut_path, output_path.parent)
 
-    exported_nodes = stage_nodes_for_output(exported_nodes, output_path, progress_callback=progress_callback)
+    skipped_textures: list[str] = []
+    exported_nodes = stage_nodes_for_output(
+        exported_nodes, output_path, progress_callback=progress_callback, skipped_textures=skipped_textures
+    )
     untold_bytes = build_untold_file(
         exported_nodes,
         output_path,
@@ -5365,6 +5602,7 @@ def export_objects_to_untold(
         "vertex_count": sum(exported_mesh.vertex_count for exported_mesh in exported_meshes),
         "index_count": sum(exported_mesh.index_count for exported_mesh in exported_meshes),
         "color_grade_lut_staged": color_grade_lut is not None,
+        "skipped_textures": skipped_textures,
     }
 
 
@@ -5500,7 +5738,10 @@ def write_single_untold_from_nodes(
             progress_callback("Stage color grade LUT", 0, 1, color_grade_lut_path.name)
         color_grade_lut = stage_color_grade_lut_for_output(color_grade_lut_path, output_path.parent)
 
-    exported_nodes = stage_nodes_for_output(exported_nodes, output_path, progress_callback=progress_callback)
+    skipped_textures: list[str] = []
+    exported_nodes = stage_nodes_for_output(
+        exported_nodes, output_path, progress_callback=progress_callback, skipped_textures=skipped_textures
+    )
     untold_bytes = build_untold_file(
         exported_nodes,
         output_path,
@@ -5551,6 +5792,7 @@ def write_single_untold_from_nodes(
         "color_grade_lut_staged": color_grade_lut is not None,
         "color_grade_lut_uri": color_grade_lut.uri if color_grade_lut is not None else None,
         "removed_stale_pack_path": removed_stale_pack_path,
+        "skipped_textures": skipped_textures,
     }
 
 
@@ -5583,6 +5825,7 @@ def write_untold_pack_from_groups(
     total_vertices = 0
     total_indices = 0
     total_bytes = 0
+    skipped_textures: list[str] = []
     used_model_dir_names: set[str] = set()
     for root_name, raw_group_nodes in model_groups.items():
         # The root's own placement is captured here, from the un-baked node, and
@@ -5598,7 +5841,9 @@ def write_untold_pack_from_groups(
         model_output_path = output_path.parent / model_dir_name / f"{model_dir_name}.untold"
         model_output_path.parent.mkdir(parents=True, exist_ok=True)
 
-        staged_group_nodes = stage_nodes_for_output(group_nodes, model_output_path, progress_callback=progress_callback)
+        staged_group_nodes = stage_nodes_for_output(
+            group_nodes, model_output_path, progress_callback=progress_callback, skipped_textures=skipped_textures
+        )
         model_bytes = build_untold_file(
             staged_group_nodes,
             model_output_path,
@@ -5660,6 +5905,7 @@ def write_untold_pack_from_groups(
         "bytes_written": total_bytes,
         "removed_stale_single_path": removed_stale_single_path,
         "removed_orphan_dir_names": orphaned_dir_names,
+        "skipped_textures": skipped_textures,
     }
 
 
@@ -5887,6 +6133,7 @@ def main(argv: list[str]) -> int:
             # leftover state from an earlier one.
             if result["removed_stale_pack_path"] is not None:
                 print(f"Removed stale pack manifest: {result['removed_stale_pack_path']}", flush=True)
+            print_skipped_textures(result["skipped_textures"])
             progress.advance("Complete", output_path.name)
         else:
             # Multiple independent models were found in the source scene: emit one
@@ -5928,6 +6175,7 @@ def main(argv: list[str]) -> int:
             if result["removed_orphan_dir_names"]:
                 print(f"Removed {len(result['removed_orphan_dir_names'])} orphaned pack model folder(s): {', '.join(result['removed_orphan_dir_names'])}", flush=True)
             progress.advance("Write file", result["pack_path"].name)
+            print_skipped_textures(result["skipped_textures"])
             progress.advance("Complete", result["pack_path"].name)
     return 0
 

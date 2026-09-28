@@ -101,6 +101,10 @@ Expected output:
 - `Textures/...` beside the `.untold` file if the asset uses textures
 - `floorplanA.validation.json` only when `--validate` is passed
 
+A texture that cannot be exported does not stop the export. Its material is
+written without that texture, and the end of the export log lists every texture
+that was left out, with the material and the object that use it.
+
 The older `./scripts/export-untold` repository wrapper remains available for
 engine development and compatibility. Game developers should prefer
 `untoldengine export` because it can be called directly from their project.

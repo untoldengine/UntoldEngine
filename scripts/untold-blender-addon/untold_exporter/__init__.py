@@ -232,8 +232,13 @@ class UNTOLD_OT_export_asset(bpy.types.Operator, ExportHelper):
             message += " | Textures: baked to .utex"
         elif result.get("texture_bake_status") == "no textures":
             message += " | Textures: none to bake"
-        self.report({"INFO"}, message)
+        skipped_textures = result.get("skipped_textures") or []
+        if skipped_textures:
+            message += f" | {len(skipped_textures)} texture(s) left out, see the system console"
+        self.report({"WARNING"} if skipped_textures else {"INFO"}, message)
         print(f"[Untold Exporter] {message}", flush=True)
+        for skipped_texture in skipped_textures:
+            print(f"[Untold Exporter]   - {skipped_texture}", flush=True)
         return {"FINISHED"}
 
 

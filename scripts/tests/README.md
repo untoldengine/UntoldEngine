@@ -30,3 +30,19 @@ Notes:
   mesh extraction, and USD export.
 - If future tests need Blender, keep them separate from this suite so
   `make testexporter` stays fast and CI-friendly.
+
+## Checks that need Blender
+
+`blender/` holds checks that only a real Blender can run. They are not part of
+`make testexporter` and do not run in CI. Each one makes its own images in a
+temporary folder.
+
+- `blender/texture_write_checks.py`: writing textures through
+  `write_blender_image_to_path`, including a JPEG whose metadata makes
+  Blender's PNG writer fail.
+
+Run from the repo root:
+
+```sh
+blender --background --factory-startup --python-exit-code 1 --python scripts/tests/blender/texture_write_checks.py
+```
