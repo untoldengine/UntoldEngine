@@ -149,6 +149,35 @@ final class AnimationReachChainTargetTests: XCTestCase {
         XCTAssertLessThan(simd_distance(hands().right, simd_float3(-0.3, 1.2, 0.3)), 0.01)
     }
 
+    func testAGroundTargetKeepsTheHeightOfThePose() {
+        setReachIKChainTargets(
+            entityId: entityId,
+            targets: [ReachIKChainTarget(position: simd_float3(0.3, 5, 0.1), space: .modelGround), nil],
+            halflife: 0, reach: 1
+        )
+        AnimationSystem.shared.update(deltaTime)
+
+        // Over the spot, as far down as the arm reaches: the height asked
+        // for (5) is ignored and the pose's own (0.8) is out of reach from
+        // there, so the hand ends on the line toward it.
+        let hand = hands().left
+        let toGoal = simd_normalize(simd_float3(0.3, 0.8, 0.1) - leftShoulder)
+        XCTAssertLessThan(simd_distance(hand, leftShoulder + toGoal * 0.6), 0.01)
+    }
+
+    func testAFullReachStraightensTheChain() {
+        setReachIKChainTargets(
+            entityId: entityId,
+            targets: [ReachIKChainTarget(position: simd_float3(2, 0, 0), space: .shoulder), nil],
+            halflife: 0, reach: 1
+        )
+        AnimationSystem.shared.update(deltaTime)
+
+        let hand = hands().left
+        XCTAssertFalse(hand.x.isNaN)
+        XCTAssertLessThan(simd_distance(hand, leftShoulder + simd_float3(0.6, 0, 0)), 0.01)
+    }
+
     func testAChainWithoutATargetKeepsItsPose() {
         let rest = rightShoulder + simd_float3(0, -0.6, 0)
         setReachIKChainTargets(

@@ -11,7 +11,8 @@
 import Foundation
 import simd
 
-// Reach IK: bends arm chains (shoulder → elbow → hand) toward a world
+// Reach IK: bends two-bone chains (shoulder → elbow → hand for an arm, hip
+// → knee → ankle for a leg held on a spot) toward a world
 // target with the two-bone solver foot IK uses. A target within reach is
 // touched; one beyond it is pointed at, the arm extended to a fraction of
 // its length along the direction so the elbow never locks. The influence
@@ -57,6 +58,11 @@ public struct ReachIKChainTarget: Sendable {
         /// the hand keeps its place relative to the body however the body
         /// moves this frame.
         case shoulder
+        /// A spot in the entity's model space whose height is ignored:
+        /// the chain's end goes over it at the height the pose gives it
+        /// (a foot held where it stands while the pose lifts and lowers
+        /// it).
+        case modelGround
     }
 
     public var position: simd_float3
@@ -229,6 +235,7 @@ func applyReachIK(
             case .world: goal = modelPosition(chainTarget.position)
             case .model: goal = chainTarget.position
             case .shoulder: goal = shoulder + chainTarget.position
+            case .modelGround: goal = simd_float3(chainTarget.position.x, hand.y, chainTarget.position.z)
             }
         } else if let targetModel {
             goal = targetModel

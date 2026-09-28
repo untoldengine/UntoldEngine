@@ -71,9 +71,11 @@ setReachIKChainTargets(entityId: character, targets: [
 ], halflife: 0.2, targetHalflife: 0.03)
 ```
 
-   A target is a world position, a model-space position, or an offset
-   from the chain's own shoulder along the model axes; the last keeps the
-   hand in place relative to the body however the body moves that frame.
+   A target is a world position, a model-space position, an offset from
+   the chain's own shoulder along the model axes (the hand keeps its place
+   relative to the body however the body moves that frame), or a spot on
+   the model's ground whose height is ignored: a leg chain (hip, knee,
+   ankle) holds a foot where it stands while the pose lifts and lowers it.
    A chain whose entry is nil reaches for the shared target, or keeps its
    pose when there is none. `targetHalflife` is the easing of the targets
    themselves: short for a source that is already filtered.
