@@ -3,6 +3,7 @@
 //  UntoldEngineTests
 //
 
+import GameController
 import simd
 @testable import UntoldEngine
 import XCTest
@@ -11,6 +12,8 @@ import XCTest
 final class PSVR2InputSystemTests: XCTestCase {
     override func setUp() {
         InputSystem.shared.psvr2SenseControllerState = PSVR2SenseControllerState()
+        InputSystem.shared.gameControllerState = GameControllerState()
+        InputSystem.shared.psvr2ControllerChirality = [:]
     }
 
     func testDefaultStateIsDisconnectedAndUntracked() {
@@ -74,5 +77,56 @@ final class PSVR2InputSystemTests: XCTestCase {
         XCTAssertFalse(isPSVR2SenseConnected())
         InputSystem.shared.psvr2SenseControllerState.isConnected = true
         XCTAssertTrue(isPSVR2SenseConnected())
+    }
+
+    func testThumbstickRoutesToLeftOrRightByChirality() {
+        let leftWand = GCController()
+        let rightWand = GCController()
+        InputSystem.shared.psvr2ControllerChirality[ObjectIdentifier(leftWand)] = .left
+        InputSystem.shared.psvr2ControllerChirality[ObjectIdentifier(rightWand)] = .right
+
+        InputSystem.shared.updatePSVR2Thumbstick(x: 0.5, y: -0.25, for: leftWand)
+        InputSystem.shared.updatePSVR2Thumbstick(x: -0.6, y: 0.8, for: rightWand)
+
+        let state = getGameControllerState()
+        XCTAssertEqual(state.leftThumbstickX, 0.5)
+        XCTAssertEqual(state.leftThumbstickY, -0.25)
+        XCTAssertTrue(state.leftThumbStickActive)
+        XCTAssertEqual(state.rightThumbstickX, -0.6)
+        XCTAssertEqual(state.rightThumbstickY, 0.8)
+        XCTAssertTrue(state.rightThumbStickActive)
+    }
+
+    func testThumbstickBelowDeadzoneIsNotActive() {
+        let leftWand = GCController()
+        InputSystem.shared.psvr2ControllerChirality[ObjectIdentifier(leftWand)] = .left
+
+        InputSystem.shared.updatePSVR2Thumbstick(x: 0.05, y: -0.05, for: leftWand)
+
+        XCTAssertFalse(getGameControllerState().leftThumbStickActive)
+    }
+
+    func testThumbstickPressedRoutesByChirality() {
+        let rightWand = GCController()
+        InputSystem.shared.psvr2ControllerChirality[ObjectIdentifier(rightWand)] = .right
+
+        InputSystem.shared.updatePSVR2ThumbstickPressed(true, for: rightWand)
+
+        let state = getGameControllerState()
+        XCTAssertTrue(state.rightThumbstickPressed)
+        XCTAssertFalse(state.leftThumbstickPressed)
+    }
+
+    func testThumbstickEventFromUnresolvedControllerIsIgnored() {
+        let unresolvedWand = GCController()
+
+        InputSystem.shared.updatePSVR2Thumbstick(x: 1, y: 1, for: unresolvedWand)
+        InputSystem.shared.updatePSVR2ThumbstickPressed(true, for: unresolvedWand)
+
+        let state = getGameControllerState()
+        XCTAssertEqual(state.leftThumbstickX, 0)
+        XCTAssertEqual(state.rightThumbstickX, 0)
+        XCTAssertFalse(state.leftThumbstickPressed)
+        XCTAssertFalse(state.rightThumbstickPressed)
     }
 }
