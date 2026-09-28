@@ -634,6 +634,46 @@ public func setReachIKTarget(
     }
 }
 
+/// Gives every reach chain a target of its own, index-aligned with the
+/// chains: hands driven by tracking, each going where its tracked hand
+/// is. A chain whose entry is nil (or missing) reaches for the shared
+/// target of `setReachIKTarget`, or keeps its pose when there is none.
+/// The influence eases to `weight` over `halflife`; with no target at all
+/// it eases back out. Each target is eased over `targetHalflife`, in its
+/// own space; 0 follows it exactly (a source that is already filtered).
+public func setReachIKChainTargets(
+    entityId: EntityID,
+    targets: [ReachIKChainTarget?],
+    weight: Float = 1,
+    halflife: Float = 0.25,
+    reach: Float = 0.95,
+    targetHalflife: Float = 0.08
+) {
+    let animationComponents = animationComponentsForEntityOrDescendants(entityId: entityId)
+    guard animationComponents.isEmpty == false else {
+        handleError(.noAnimationComponent, entityId)
+        return
+    }
+
+    for (_, animationComponent) in animationComponents {
+        if targets.contains(where: { $0 != nil }) {
+            animationComponent.reachIK.chainTargets = targets
+            animationComponent.reachIK.targetWeight = min(max(weight, 0), 1)
+        } else if animationComponent.reachIK.targetWorld == nil {
+            // The last targets stay while the influence fades.
+            animationComponent.reachIK.targetWeight = 0
+        } else {
+            animationComponent.reachIK.chainTargets = targets
+        }
+        animationComponent.reachIK.halflife = max(halflife, 0)
+        animationComponent.reachIK.reach = min(max(reach, 0.05), 1)
+        animationComponent.reachIK.targetHalflife = max(targetHalflife, 0)
+        if halflife <= 0 {
+            animationComponent.reachIK.weight = animationComponent.reachIK.targetWeight
+        }
+    }
+}
+
 /// Per-chain multipliers on the reach influence, index-aligned with the
 /// chains: 0 leaves that arm to the pose, 1 gives it the full influence —
 /// one hand lunging while the other holds back.

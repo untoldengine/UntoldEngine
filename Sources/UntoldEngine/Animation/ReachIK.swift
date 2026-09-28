@@ -17,7 +17,9 @@ import simd
 // its length along the direction so the elbow never locks. The influence
 // eases in and out, and the solve blends over whatever the pose (or the
 // pose layer) put the arms in, so the elbow keeps the posture's bend. Runs
-// after the pose layer and before foot IK. See docs/API/UsingPoseLayers.md.
+// after the pose layer and before foot IK. Chains share one target (a
+// character grabbing at something) or take one each (hands driven by
+// tracking). See docs/API/UsingPoseLayers.md.
 
 private let ln2: Float = 0.693_147_18
 
@@ -44,6 +46,28 @@ public struct ReachIKChainDescriptor {
     }
 }
 
+/// Where one chain reaches, when the chains do not share a target.
+public struct ReachIKChainTarget: Sendable {
+    public enum Space: Sendable {
+        /// A world position.
+        case world
+        /// A position in the entity's model space.
+        case model
+        /// An offset from the chain's own shoulder, along the model axes:
+        /// the hand keeps its place relative to the body however the body
+        /// moves this frame.
+        case shoulder
+    }
+
+    public var position: simd_float3
+    public var space: Space
+
+    public init(position: simd_float3, space: Space = .world) {
+        self.position = position
+        self.space = space
+    }
+}
+
 /// Per-entity reach IK state.
 struct ReachIKState {
     var descriptors: [ReachIKChainDescriptor] = []
@@ -65,12 +89,42 @@ struct ReachIKState {
     /// Per-chain multipliers on the influence, index-aligned with the
     /// chains (empty: 1 for all) — one hand lunging while the other holds.
     var chainWeights: [Float] = []
+    /// Per-chain targets, index-aligned with the chains; a chain without
+    /// one reaches for `targetWorld`.
+    var chainTargets: [ReachIKChainTarget?] = []
+    /// The chain targets as the solve uses them, eased like
+    /// `smoothedTarget`, each in its target's own space.
+    var smoothedChainTargets: [ReachIKChainTarget?] = []
 
     var jointPositions: [simd_float3] = []
     var jointRotations: [simd_quatf] = []
 
     mutating func invalidateResolution() {
         resolvedChains = nil
+    }
+
+    var hasChainTargets: Bool {
+        chainTargets.contains { $0 != nil }
+    }
+
+    /// The chain's own target eased toward its newest value; a target that
+    /// is new, or changed space, is taken as it is.
+    mutating func easedChainTarget(_ index: Int, ease: Float) -> ReachIKChainTarget? {
+        guard index < chainTargets.count, let target = chainTargets[index] else {
+            if index < smoothedChainTargets.count {
+                smoothedChainTargets[index] = nil
+            }
+            return nil
+        }
+        if smoothedChainTargets.count <= index {
+            smoothedChainTargets += [ReachIKChainTarget?](repeating: nil, count: index + 1 - smoothedChainTargets.count)
+        }
+        var eased = target
+        if let previous = smoothedChainTargets[index], previous.space == target.space {
+            eased.position = previous.position + (target.position - previous.position) * ease
+        }
+        smoothedChainTargets[index] = eased
+        return eased
     }
 
     mutating func refreshForwardKinematics(pose: PoseBuffer, parentIndices: [Int?]) {
@@ -112,19 +166,24 @@ func applyReachIK(
         animationComponent.reachIK.weight = animationComponent.reachIK.targetWeight
     }
     let weight = animationComponent.reachIK.weight
-    guard weight > 1e-4, let rawTarget = animationComponent.reachIK.targetWorld else {
+    let rawTarget = animationComponent.reachIK.targetWorld
+    guard weight > 1e-4, rawTarget != nil || animationComponent.reachIK.hasChainTargets else {
         if animationComponent.reachIK.targetWeight <= 0 {
             animationComponent.reachIK.targetWorld = nil
             animationComponent.reachIK.smoothedTarget = nil
+            animationComponent.reachIK.chainTargets.removeAll()
+            animationComponent.reachIK.smoothedChainTargets.removeAll()
         }
         return
     }
-    let targetWorld: simd_float3
-    if let previous = animationComponent.reachIK.smoothedTarget {
-        let ease = 1 - exp(-ln2 * deltaTime / max(animationComponent.reachIK.targetHalflife, 1e-4))
-        targetWorld = previous + (rawTarget - previous) * ease
-    } else {
-        targetWorld = rawTarget
+    let ease = 1 - exp(-ln2 * deltaTime / max(animationComponent.reachIK.targetHalflife, 1e-4))
+    var targetWorld: simd_float3?
+    if let rawTarget {
+        if let previous = animationComponent.reachIK.smoothedTarget {
+            targetWorld = previous + (rawTarget - previous) * ease
+        } else {
+            targetWorld = rawTarget
+        }
     }
     animationComponent.reachIK.smoothedTarget = targetWorld
 
@@ -138,12 +197,19 @@ func applyReachIK(
     let rotations = animationComponent.reachIK.jointRotations
 
     let worldMatrix = scene.get(component: WorldTransformComponent.self, for: entityId)?.space ?? .identity
-    let targetModel4 = worldMatrix.inverse * simd_float4(targetWorld, 1)
-    let targetModel = simd_float3(targetModel4.x, targetModel4.y, targetModel4.z)
+    let worldToModel = worldMatrix.inverse
+    func modelPosition(_ world: simd_float3) -> simd_float3 {
+        let p = worldToModel * simd_float4(world, 1)
+        return simd_float3(p.x, p.y, p.z)
+    }
+    let targetModel = targetWorld.map(modelPosition)
     let reach = animationComponent.reachIK.reach
     let chainWeights = animationComponent.reachIK.chainWeights
 
     for (index, chain) in chains.enumerated() {
+        // Eased every frame, also while the chain's weight is zero, so
+        // the target is current when the weight returns.
+        let chainTarget = animationComponent.reachIK.easedChainTarget(index, ease: ease)
         let chainWeight = weight * (index < chainWeights.count ? min(max(chainWeights[index], 0), 1) : 1)
         guard chainWeight > 1e-4 else { continue }
         guard chain.shoulder < pose.jointCount, chain.elbow < pose.jointCount, chain.hand < pose.jointCount else {
@@ -157,7 +223,18 @@ func applyReachIK(
 
         // Beyond reach the arm points at the target, a little short of
         // straight.
-        var goal = targetModel
+        var goal: simd_float3
+        if let chainTarget {
+            switch chainTarget.space {
+            case .world: goal = modelPosition(chainTarget.position)
+            case .model: goal = chainTarget.position
+            case .shoulder: goal = shoulder + chainTarget.position
+            }
+        } else if let targetModel {
+            goal = targetModel
+        } else {
+            continue
+        }
         let toTarget = goal - shoulder
         let distance = simd_length(toTarget)
         guard distance > 1e-4 else { continue }
