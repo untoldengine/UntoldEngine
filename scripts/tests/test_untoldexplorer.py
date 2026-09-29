@@ -194,15 +194,19 @@ class UntoldExplorerTests(unittest.TestCase):
 
     def test_cleanup_temporary_export_objects_removes_tagged_split_meshes(self) -> None:
         class FakeBpyCollection:
-            def __init__(self) -> None:
+            def __init__(self, items=()) -> None:
+                self.items = list(items)
                 self.removed = []
+
+            def __iter__(self):
+                return iter(self.items)
 
             def remove(self, item, do_unlink=False) -> None:
                 self.removed.append((item, do_unlink))
 
         class FakeBpy:
-            def __init__(self) -> None:
-                self.data = FakeData(objects=FakeBpyCollection(), meshes=FakeBpyCollection())
+            def __init__(self, objects=()) -> None:
+                self.data = FakeData(objects=FakeBpyCollection(objects), meshes=FakeBpyCollection())
 
         class FakeTempObject(dict):
             def __init__(self, name: str, data=None, tagged: bool = False) -> None:
@@ -1199,6 +1203,190 @@ def _build_minimal_tiff(bits_per_sample: list[int], *, big_endian: bool = False)
     header = (b"MM" if big_endian else b"II") + struct.pack(endian + "HI", 42, 8)
     ifd_body = struct.pack(endian + "H", len(entries)) + b"".join(e[1] for e in entries) + struct.pack(endian + "I", 0)
     return header + ifd_body + extra_data
+
+
+def _make_mapping_node(
+    *,
+    scale=(1.0, 1.0, 1.0),
+    location=(0.0, 0.0, 0.0),
+    rotation=(0.0, 0.0, 0.0),
+    vector_type: str = "POINT",
+    uv_source: bool = True,
+) -> FakeNode:
+    location_socket = FakeSocket("Location")
+    location_socket.default_value = location
+    rotation_socket = FakeSocket("Rotation")
+    rotation_socket.default_value = rotation
+    scale_socket = FakeSocket("Scale")
+    scale_socket.default_value = scale
+    vector = FakeSocket("Vector")
+    if uv_source:
+        vector.link_from(FakeNode("ShaderNodeTexCoord"), "UV")
+    mapping = FakeNode(
+        "ShaderNodeMapping",
+        inputs={"Location": location_socket, "Rotation": rotation_socket, "Scale": scale_socket, "Vector": vector},
+    )
+    mapping.name = "Mapping"
+    mapping.vector_type = vector_type
+    return mapping
+
+
+def _make_mapped_image_node(name: str, mapping: FakeNode | None) -> FakeNode:
+    node = _make_image_node(name)
+    vector = FakeSocket("Vector")
+    if mapping is not None:
+        vector.link_from(mapping, "Vector")
+    node.inputs = {"Vector": vector}
+    color_output = FakeSocket("Color")
+    color_output.is_linked = True
+    node.outputs = [color_output]
+    return node
+
+
+def _make_invert_node(source: FakeNode, fac: float) -> FakeNode:
+    fac_socket = FakeSocket("Fac")
+    fac_socket.default_value = fac
+    color = FakeSocket("Color")
+    color.link_from(source, "Color")
+    invert = FakeNode("ShaderNodeInvert", inputs={"Fac": fac_socket, "Color": color})
+    invert.name = "Invert Color"
+    return invert
+
+
+class BlendImportFidelityTests(unittest.TestCase):
+    def test_point_mapping_becomes_a_uv_scale_and_offset(self) -> None:
+        transform = u.mapping_node_uv_transform(_make_mapping_node(scale=(2.49, 2.49, 2.49), location=(0.25, 0.5, 0.0)))
+        self.assertEqual(transform.scale, (2.49, 2.49))
+        self.assertEqual(transform.offset, (0.25, 0.5))
+        self.assertEqual(transform.apply((1.0, 2.0)), (2.49 + 0.25, 4.98 + 0.5))
+
+    def test_texture_mapping_is_the_inverse_and_vector_mapping_ignores_location(self) -> None:
+        texture = u.mapping_node_uv_transform(
+            _make_mapping_node(scale=(2.0, 4.0, 1.0), location=(1.0, 1.0, 0.0), vector_type="TEXTURE")
+        )
+        self.assertEqual(texture.scale, (0.5, 0.25))
+        self.assertEqual(texture.offset, (-0.5, -0.25))
+        vector = u.mapping_node_uv_transform(
+            _make_mapping_node(scale=(2.0, 2.0, 1.0), location=(1.0, 1.0, 0.0), vector_type="VECTOR")
+        )
+        self.assertEqual(vector.offset, (0.0, 0.0))
+
+    def test_mappings_a_uv_scale_cannot_represent_are_refused(self) -> None:
+        self.assertIsNone(u.mapping_node_uv_transform(_make_mapping_node(rotation=(0.0, 0.0, 0.5))))
+        self.assertIsNone(u.mapping_node_uv_transform(_make_mapping_node(scale=(-1.0, 1.0, 1.0))))
+        self.assertIsNone(u.mapping_node_uv_transform(_make_mapping_node(vector_type="NORMAL")))
+        linked_scale = _make_mapping_node()
+        linked_scale.inputs["Scale"].link_from(FakeNode("ShaderNodeValue"), "Value")
+        self.assertIsNone(u.mapping_node_uv_transform(linked_scale))
+
+    def test_material_uv_transform_reads_the_mapping_in_front_of_its_textures(self) -> None:
+        mapping = _make_mapping_node(scale=(2.49, 2.49, 2.49))
+        albedo = _make_mapped_image_node("albedo", mapping)
+        roughness = _make_mapped_image_node("roughness", mapping)
+        principled, output = _make_principled_output(albedo)
+        material = _make_material("brushed", [output, principled, albedo, roughness, mapping])
+
+        transform = u.material_uv_transform(material)
+        self.assertEqual(transform.scale, (2.49, 2.49))
+        self.assertEqual(u.analyze_material(material).classification, u.MATERIAL_GRAPH_SUPPORTED)
+
+    def test_material_uv_transform_is_none_without_mapping_or_from_generated_coordinates(self) -> None:
+        plain = _make_mapped_image_node("plain", None)
+        principled, output = _make_principled_output(plain)
+        self.assertIsNone(u.material_uv_transform(_make_material("plain", [output, principled, plain])))
+
+        generated = _make_mapping_node(scale=(3.0, 3.0, 3.0), uv_source=False)
+        generated.inputs["Vector"].link_from(FakeNode("ShaderNodeTexCoord"), "Generated")
+        textured = _make_mapped_image_node("generated", generated)
+        principled, output = _make_principled_output(textured)
+        material = _make_material("generated", [output, principled, textured, generated])
+        self.assertIsNone(u.material_uv_transform(material))
+        self.assertNotEqual(u.analyze_material(material).classification, u.MATERIAL_GRAPH_SUPPORTED)
+
+    def test_textures_with_different_mappings_use_the_most_common_one_and_report_it(self) -> None:
+        tiled = _make_mapping_node(scale=(4.0, 4.0, 1.0))
+        a = _make_mapped_image_node("a", tiled)
+        b = _make_mapped_image_node("b", tiled)
+        c = _make_mapped_image_node("c", _make_mapping_node(scale=(2.0, 2.0, 1.0)))
+        principled, output = _make_principled_output(a)
+        material = _make_material("mixed", [output, principled, a, b, c])
+
+        self.assertEqual(u.material_uv_transform(material).scale, (4.0, 4.0))
+        findings = u.analyze_material(material).findings
+        self.assertTrue(any("different Mapping transforms" in finding.reason for finding in findings))
+
+    def test_full_invert_marks_the_texture_inverted_and_partial_invert_does_not(self) -> None:
+        glossiness = _make_image_node("glossiness")
+        roughness = FakeSocket("Roughness")
+        roughness.link_from(_make_invert_node(glossiness, 1.0), "Color")
+        with tempfile.TemporaryDirectory() as tmpdir:
+            texture = u.resolve_texture_from_socket(roughness, Path(tmpdir) / "asset.blend")
+        self.assertTrue(texture.invert)
+
+        partial = FakeSocket("Roughness")
+        partial.link_from(_make_invert_node(_make_image_node("gloss"), 0.5), "Color")
+        with tempfile.TemporaryDirectory() as tmpdir:
+            texture = u.resolve_texture_from_socket(partial, Path(tmpdir) / "asset.blend")
+        self.assertFalse(texture.invert)
+
+    def test_full_invert_is_supported_by_material_analysis(self) -> None:
+        glossiness = _make_image_node("glossiness")
+        invert = _make_invert_node(glossiness, 1.0)
+        principled, output = _make_principled_output(None)
+        roughness = FakeSocket("Roughness")
+        roughness.link_from(invert, "Color")
+        principled.inputs["Roughness"] = roughness
+        material = _make_material("gloss_mat", [output, principled, invert, glossiness])
+        self.assertEqual(u.analyze_material(material).classification, u.MATERIAL_GRAPH_SUPPORTED)
+
+    def test_inverted_texture_stages_apart_from_the_plain_one(self) -> None:
+        plain = u.ExportedTexture(name="gloss.png", uri="gloss.png", width=4, height=4, mip_count=1, source_image_name="gloss")
+        inverted = u.replace(plain, invert=True)
+        self.assertNotEqual(u.texture_staging_key(plain), u.texture_staging_key(inverted))
+        context = u.TextureStagingContext()
+        self.assertEqual(u.unique_texture_destination_name(inverted, context, ".png"), "gloss_inverted.png")
+        self.assertEqual(u.unique_texture_destination_name(plain, context, ".png"), "gloss.png")
+
+    def test_emission_only_surface_exports_an_emissive_material(self) -> None:
+        color = FakeSocket("Color")
+        color.default_value = (1.0, 0.5, 0.25, 1.0)
+        strength = FakeSocket("Strength")
+        strength.default_value = 4.0
+        emission = FakeNode("ShaderNodeEmission", inputs={"Color": color, "Strength": strength})
+        emission.name = "Emission"
+        surface = FakeSocket("Surface")
+        surface.link_from(emission, "Emission")
+        output = FakeNode("ShaderNodeOutputMaterial", inputs={"Surface": surface})
+        output.name = "Material Output"
+        material = _make_material("luz", [output, emission])
+        material.diffuse_color = (0.8, 0.8, 0.8, 1.0)
+        mesh_object = FakeSceneObject("Lamp", "MESH", FakeData(materials=[material]))
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            exported = u.extract_material(mesh_object, Path(tmpdir) / "asset.blend")
+
+        self.assertEqual(exported.base_color_factor, (0.0, 0.0, 0.0, 1.0))
+        self.assertEqual(exported.emissive_factor, (4.0, 2.0, 1.0))
+        self.assertEqual(u.analyze_material(material).classification, u.MATERIAL_GRAPH_SUPPORTED)
+
+    def test_skipped_ancestors_are_walked_past_not_exported(self) -> None:
+        class Obj:
+            def __init__(self, name, object_type, parent=None):
+                self.name, self.type, self.parent = name, object_type, parent
+
+            def as_pointer(self):
+                return id(self)
+
+        root = Obj("Root", "EMPTY")
+        hidden_wall = Obj("HiddenWall", "MESH", root)
+        lamp = Obj("Lamp", "MESH", hidden_wall)
+        chosen = u.choose_export_objects([root, lamp], None, {hidden_wall.as_pointer()})
+        self.assertEqual([obj.name for obj in chosen], ["Root", "Lamp"])
+
+    def test_include_hidden_flag_is_off_by_default(self) -> None:
+        base = ["blender", "--", "--input", "a.blend", "--output", "a.untold"]
+        self.assertFalse(u.parse_args(base).include_hidden)
+        self.assertTrue(u.parse_args(base + ["--include-hidden"]).include_hidden)
 
 
 class TextureBitDepthDetectionTests(unittest.TestCase):

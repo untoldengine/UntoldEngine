@@ -78,7 +78,7 @@ def scene_export_candidates(context: Any, scope: str) -> list[object]:
         for obj in context.scene.objects
         if obj.as_pointer() in view_layer_object_ids
         and not getattr(obj, "hide_get", lambda: False)()
-        and getattr(obj, "type", None) in {"MESH", "ARMATURE", "EMPTY"}
+        and getattr(obj, "type", None) in {"MESH", "ARMATURE", "EMPTY", "CURVE", "SURFACE", "FONT"}
     ]
 
 

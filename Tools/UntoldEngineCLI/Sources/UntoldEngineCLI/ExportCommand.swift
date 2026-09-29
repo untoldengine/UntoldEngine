@@ -81,6 +81,9 @@ struct ExportCommand: ParsableCommand {
     @Option(name: .long, help: "Input orientation (blender-native or engine-oriented)")
     var sourceOrientation: String = "blender-native"
 
+    @Flag(name: .customLong("include-hidden"), help: "Also export objects hidden in the viewport or disabled in renders; objects in collections excluded from the view layer are never exported")
+    var includeHidden = false
+
     @Flag(name: .long, help: "Write a companion validation JSON file")
     var validate = false
 
@@ -181,6 +184,7 @@ struct ExportCommand: ParsableCommand {
         ]
         if let meshName { exporterArguments += ["--mesh-name", meshName] }
         if convertOrientation { exporterArguments.append("--convert-orientation") }
+        if includeHidden { exporterArguments.append("--include-hidden") }
         if validate { exporterArguments.append("--validate") }
         if compressGeometry || optimize { exporterArguments.append("--compress-geometry") }
         if animation { exporterArguments.append("--animation") }
