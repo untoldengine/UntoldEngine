@@ -571,7 +571,7 @@ public struct NativeFormatLoader: NamedRuntimeAssetLoading {
         )
     }
 
-    private func resolvedURL(from string: String?, baseURL: URL) -> URL? {
+    func resolvedURL(from string: String?, baseURL: URL) -> URL? {
         guard let string, !string.isEmpty else { return nil }
         if let absolute = URL(string: string), absolute.scheme != nil {
             return absolute
@@ -587,7 +587,39 @@ public struct NativeFormatLoader: NamedRuntimeAssetLoading {
             return flattenedBundleURL
         }
 
+        // Exporters have baked URIs whose folder casing (e.g. "Textures") drifts from
+        // the actual on-disk casing (e.g. "textures") the asset was later checked in
+        // with. That's invisible in editor workflows on a case-insensitive dev volume,
+        // but bundled app resources can land on a case-sensitive layout, so an exact
+        // fileExists check above silently fails even though the file is right there.
+        // Walk the relative path component-by-component, matching each segment against
+        // the real directory listing case-insensitively.
+        if let caseInsensitiveMatch = caseInsensitiveResolvedURL(relativePath: string, baseURL: baseURL) {
+            return caseInsensitiveMatch
+        }
+
         return relativeURL
+    }
+
+    func caseInsensitiveResolvedURL(relativePath: String, baseURL: URL) -> URL? {
+        // Always resolves through the real directory listing rather than probing
+        // fileExists(atPath:) first -- on a case-insensitive volume that probe would
+        // "succeed" for the wrong-case component and short-circuit into a URL that
+        // doesn't reflect the real on-disk casing, even though it happens to still be
+        // loadable there. Matching against the listing keeps the result deterministic
+        // across both case-sensitive and case-insensitive filesystems.
+        let fm = FileManager.default
+        var current = baseURL
+        for component in relativePath.split(separator: "/") {
+            let component = String(component)
+            guard let entries = try? fm.contentsOfDirectory(atPath: current.path),
+                  let match = entries.first(where: { $0.caseInsensitiveCompare(component) == .orderedSame })
+            else {
+                return nil
+            }
+            current = current.appendingPathComponent(match)
+        }
+        return fm.fileExists(atPath: current.path) ? current : nil
     }
 
     private func slice(from data: Data, offset: Int, size: Int) throws -> Data {

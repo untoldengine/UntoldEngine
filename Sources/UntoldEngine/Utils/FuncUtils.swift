@@ -811,12 +811,24 @@ public func updateMaterialTexture(
     let withExtension = path.pathExtension
     let folderName = path.deletingLastPathComponent().lastPathComponent
 
+    // If the texture lives two levels down from a known resource category (e.g.
+    // `Models/<model>/textures/file.png`), preserve the model folder alongside the
+    // immediate parent so the loader can try that nested shape too. When the immediate
+    // parent already IS a known category (e.g. `Materials/<name>/file.png`), leave
+    // subResource as just the single folder name -- that's the existing convention.
+    let grandparentName = path.deletingLastPathComponent().deletingLastPathComponent().lastPathComponent
+    let subResource: String = if !grandparentName.isEmpty, !knownResourceDirectories.contains(grandparentName) {
+        "\(grandparentName)/\(folderName)"
+    } else {
+        folderName
+    }
+
     updateMaterialTexture(
         entityId: entityId,
         textureType: textureType,
         textureName: filename,
         withExtension: withExtension,
-        subResource: folderName,
+        subResource: subResource,
         meshIndex: meshIndex,
         submeshIndex: submeshIndex
     )

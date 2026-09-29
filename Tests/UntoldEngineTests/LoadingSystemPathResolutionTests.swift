@@ -139,6 +139,45 @@ final class LoadingSystemPathResolutionTests: XCTestCase {
         XCTAssertEqual(resolved?.standardizedFileURL, currentResource.standardizedFileURL)
     }
 
+    func testCompoundSubNameResolvesPerModelTextureSubfolder() throws {
+        // Reproduces the per-model texture subfolder bug: a scene's
+        // baseColorURL points at Models/<model>/textures/<file>, a shape the search-path
+        // list never covered -- only bare filename + immediate parent folder name
+        // ("textures") survive decomposition, so the model's own folder name must be
+        // threaded through as a compound "<model>/textures" subName to be found here.
+        let textureDirectory = tempRoot
+            .appendingPathComponent("Models/stadium/textures", isDirectory: true)
+        try FileManager.default.createDirectory(at: textureDirectory, withIntermediateDirectories: true)
+        let currentResource = textureDirectory
+            .appendingPathComponent("soccer-stadium")
+            .appendingPathExtension("png")
+        try Data().write(to: currentResource)
+        assetBasePath = tempRoot
+
+        let resolved = getResourceURL(resourceName: "soccer-stadium", ext: "png", subName: "stadium/textures")
+
+        XCTAssertEqual(resolved?.standardizedFileURL, currentResource.standardizedFileURL)
+    }
+
+    func testCompoundSubNameDoesNotBreakLegacyMaterialsLookup() throws {
+        // Guards the pre-existing Materials/<subName>/<file> convention: when the
+        // immediate parent folder IS the known "Materials" root, subResource must stay a
+        // single component, not get compounded with its own "Materials" grandparent
+        // (which would otherwise search Materials/Materials/<name>/<file>).
+        let materialTextureDirectory = tempRoot
+            .appendingPathComponent("Materials/brickWall", isDirectory: true)
+        try FileManager.default.createDirectory(at: materialTextureDirectory, withIntermediateDirectories: true)
+        let currentResource = materialTextureDirectory
+            .appendingPathComponent("diffuse")
+            .appendingPathExtension("png")
+        try Data().write(to: currentResource)
+        assetBasePath = tempRoot
+
+        let resolved = getResourceURL(resourceName: "diffuse", ext: "png", subName: "brickWall")
+
+        XCTAssertEqual(resolved?.standardizedFileURL, currentResource.standardizedFileURL)
+    }
+
     func testBareResourceNameResolvesUnderLUTDirectory() throws {
         // GameData/LUT is where standalone .cube grade LUTs live (see
         // createGameDataDirectories() and setColorGradeLUT), resolved the same
