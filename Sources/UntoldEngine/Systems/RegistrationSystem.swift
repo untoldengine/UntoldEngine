@@ -899,7 +899,12 @@ private func registerUntoldRuntimeAsset(
 
         ensureUntoldNodeComponents(entityId: entityId)
         applyLocalTransform(matchedNode.localTransform, to: entityId)
-        setEntityName(entityId: entityId, name: matchedNode.name)
+        // Only default the entity's name to the node's internal name when the caller
+        // hasn't already assigned one (e.g. a user-renamed scene entity) -- otherwise
+        // this silently clobbers it and breaks findEntity(name:) lookups. See #1262.
+        if entityNameMap[entityId]?.isEmpty ?? true {
+            setEntityName(entityId: entityId, name: matchedNode.name)
+        }
 
         guard matchedNode.primitives.isEmpty == false else {
             handleError(.assetDataMissing, "Node '\(assetName)' in '\(filename).\(withExtension)' has no renderable primitives")
