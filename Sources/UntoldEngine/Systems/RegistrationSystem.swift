@@ -899,7 +899,12 @@ private func registerUntoldRuntimeAsset(
 
         ensureUntoldNodeComponents(entityId: entityId)
         applyLocalTransform(matchedNode.localTransform, to: entityId)
-        setEntityName(entityId: entityId, name: matchedNode.name)
+        // Only default the entity's name to the node's internal name when the caller
+        // hasn't already assigned one (e.g. a user-renamed scene entity) -- otherwise
+        // this silently clobbers it and breaks findEntity(name:) lookups. See #1262.
+        if hasNoCallerAssignedName(entityId: entityId) {
+            setEntityName(entityId: entityId, name: matchedNode.name)
+        }
 
         guard matchedNode.primitives.isEmpty == false else {
             handleError(.assetDataMissing, "Node '\(assetName)' in '\(filename).\(withExtension)' has no renderable primitives")
@@ -958,7 +963,14 @@ private func registerUntoldRuntimeAsset(
 
         ensureUntoldNodeComponents(entityId: targetEntityId)
         applyLocalTransform(node.localTransform, to: targetEntityId)
-        setEntityName(entityId: targetEntityId, name: node.name)
+        // Same guard as the named-node path above (see #1262): only default the
+        // caller's own reused entity to the node's internal name when it doesn't
+        // already have a caller-assigned one. Freshly created child entities
+        // (targetEntityId != entityId) never have a prior name, so this is a no-op
+        // for them and they're always named from the node.
+        if targetEntityId != entityId || hasNoCallerAssignedName(entityId: entityId) {
+            setEntityName(entityId: targetEntityId, name: node.name)
+        }
 
         if targetEntityId != entityId {
             let parentEntityId = node.parentID.flatMap { entityByNodeID[$0] } ?? entityId
@@ -3519,6 +3531,12 @@ func deassociateMeshesToEntity(entityId: EntityID) {
 
 func getMeshesForEntity(entityId: EntityID) -> [Mesh]? {
     entityMeshMap[entityId]
+}
+
+/// True when the entity has no non-empty caller-assigned name yet, so a node/asset
+/// name is safe to use as a default without clobbering something the caller set.
+func hasNoCallerAssignedName(entityId: EntityID) -> Bool {
+    entityNameMap[entityId]?.isEmpty ?? true
 }
 
 public func setEntityName(entityId: EntityID, name: String) {

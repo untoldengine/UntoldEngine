@@ -189,6 +189,68 @@ final class NativeFormatRegistrationTests: BaseRenderSetup {
         XCTAssertEqual(renderComponent.assetName, nodeName, "RenderComponent assetName must match requested node name")
     }
 
+    func testSetEntityMesh_namedNodeLoadPreservesCallerAssignedName() async throws {
+        // Regression test for #1262: a legacy scene-load style call where the caller
+        // already named the entity (e.g. a user-renamed scene entity) before requesting
+        // a specific node by name. The node's internal name must not clobber it, so
+        // findEntity(name:) keeps resolving the caller-assigned name afterward.
+        guard let untoldURL = Bundle.module.url(forResource: "redplayer", withExtension: "untold") else {
+            XCTFail("Failed to locate redplayer.untold")
+            return
+        }
+
+        let asset = try await NativeFormatLoader().loadAsset(from: untoldURL)
+        guard let nodeName = asset.nodes.first(where: { !$0.primitives.isEmpty })?.name else {
+            XCTFail("redplayer.untold has no nodes with primitives")
+            return
+        }
+        XCTAssertNotEqual(nodeName, "UserAssignedName", "test fixture assumption: node name must differ from the caller-assigned name")
+
+        let entityId = createEntity()
+        setEntityName(entityId: entityId, name: "UserAssignedName")
+
+        let namedLoadExp = expectation(description: "named node loaded")
+        setEntityMeshAsync(entityId: entityId, filename: "redplayer", withExtension: "untold", assetName: nodeName) { _ in namedLoadExp.fulfill() }
+        await fulfillment(of: [namedLoadExp], timeout: 10)
+
+        XCTAssertEqual(getEntityName(entityId: entityId), "UserAssignedName")
+        XCTAssertEqual(findEntity(named: "UserAssignedName"), entityId)
+        XCTAssertNil(findEntity(named: nodeName))
+    }
+
+    func testSetEntityMesh_singleNodeLoadPreservesCallerAssignedName() async throws {
+        // Regression test for #1262: the hierarchy path (no `assetName` given) also
+        // reuses the caller's entity as the mesh node when the asset has exactly one
+        // node with no parent -- e.g. the "New Asset Instance" scene-loading workflow,
+        // which names entities from scene data before calling setEntityMeshAsync with
+        // assetName: nil. That reused entity must not have its caller-assigned name
+        // clobbered by the node's internal name either.
+        guard let untoldURL = Bundle.module.url(forResource: "singlecube", withExtension: "untold") else {
+            XCTFail("Failed to locate singlecube.untold")
+            return
+        }
+
+        let asset = try await NativeFormatLoader().loadAsset(from: untoldURL)
+        XCTAssertEqual(asset.nodes.count, 1, "test fixture assumption: singlecube.untold must have exactly one node")
+        guard let node = asset.nodes.first else {
+            XCTFail("singlecube.untold has no nodes")
+            return
+        }
+        XCTAssertNil(node.parentID, "test fixture assumption: the single node must have no parent")
+        XCTAssertNotEqual(node.name, "UserAssignedName", "test fixture assumption: node name must differ from the caller-assigned name")
+
+        let entityId = createEntity()
+        setEntityName(entityId: entityId, name: "UserAssignedName")
+
+        let loadExp = expectation(description: "single-node mesh loaded")
+        setEntityMeshAsync(entityId: entityId, filename: "singlecube", withExtension: "untold", assetName: nil) { _ in loadExp.fulfill() }
+        await fulfillment(of: [loadExp], timeout: 10)
+
+        XCTAssertEqual(getEntityName(entityId: entityId), "UserAssignedName")
+        XCTAssertEqual(findEntity(named: "UserAssignedName"), entityId)
+        XCTAssertNil(findEntity(named: node.name))
+    }
+
     func testSetEntityMesh_returnsFalseForUnknownNodeName() async {
         let entityId = createEntity()
         setEntityName(entityId: entityId, name: "BadNameEntity")
