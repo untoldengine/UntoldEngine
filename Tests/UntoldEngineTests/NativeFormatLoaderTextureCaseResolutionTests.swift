@@ -47,7 +47,7 @@ final class NativeFormatLoaderTextureCaseResolutionTests: XCTestCase {
         XCTAssertEqual(resolved?.standardizedFileURL, currentResource.standardizedFileURL)
     }
 
-    func testCaseInsensitiveResolvedURLReturnsNilWhenNoMatchExists() throws {
+    func testCaseInsensitiveResolvedURLReturnsNilWhenNoMatchExists() {
         let loader = NativeFormatLoader()
         let resolved = loader.caseInsensitiveResolvedURL(
             relativePath: "Textures/does-not-exist.png",
