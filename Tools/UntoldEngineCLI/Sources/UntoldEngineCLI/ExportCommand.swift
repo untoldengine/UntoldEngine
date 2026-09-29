@@ -84,6 +84,9 @@ struct ExportCommand: ParsableCommand {
     @Flag(name: .customLong("include-hidden"), help: "Also export objects hidden in the viewport or disabled in renders; objects in collections excluded from the view layer are never exported")
     var includeHidden = false
 
+    @Option(name: .customLong("assets-dir"), help: "Folder for the textures and per-model folders the result references (default: the --output folder)")
+    var assetsDir: String?
+
     @Flag(name: .long, help: "Write a companion validation JSON file")
     var validate = false
 
@@ -185,6 +188,8 @@ struct ExportCommand: ParsableCommand {
         if let meshName { exporterArguments += ["--mesh-name", meshName] }
         if convertOrientation { exporterArguments.append("--convert-orientation") }
         if includeHidden { exporterArguments.append("--include-hidden") }
+        let assetsURL = assetsDir.map { resolvePath($0).standardizedFileURL }
+        if let assetsURL { exporterArguments += ["--assets-dir", assetsURL.path] }
         if validate { exporterArguments.append("--validate") }
         if compressGeometry || optimize { exporterArguments.append("--compress-geometry") }
         if animation { exporterArguments.append("--animation") }
@@ -294,7 +299,7 @@ struct ExportCommand: ParsableCommand {
 
             printSuccess("Exported: \(outputURL.path)")
             if optimize {
-                try optimizeTextures(outputURL: outputURL)
+                try optimizeTextures(outputURL: outputURL, assetsURL: assetsURL)
             }
         }
     }
@@ -493,8 +498,8 @@ struct ExportCommand: ParsableCommand {
         return values.compactMap(\.self)
     }
 
-    private func optimizeTextures(outputURL: URL) throws {
-        let texturesDir = outputURL.deletingLastPathComponent().appendingPathComponent("Textures")
+    private func optimizeTextures(outputURL: URL, assetsURL: URL? = nil) throws {
+        let texturesDir = (assetsURL ?? outputURL.deletingLastPathComponent()).appendingPathComponent("Textures")
         guard validateDirectory(texturesDir) else {
             printInfo("No Textures directory found beside the output; skipping texture optimization.")
             return
@@ -504,7 +509,7 @@ struct ExportCommand: ParsableCommand {
         let texbakeScriptURL = try resolveTexbakeScript()
 
         printInfo("Baking textures: \(texturesDir.path)")
-        try runPython(python3URL, [texbakeScriptURL.path, "--dir", texturesDir.path])
+        try runPython(python3URL, [texbakeScriptURL.path, "--dir", texturesDir.path, "--untold", outputURL.path])
 
         printInfo("Patching texture references: \(outputURL.path)")
         try runPython(python3URL, [texbakeScriptURL.path, "--patch-refs", outputURL.path])

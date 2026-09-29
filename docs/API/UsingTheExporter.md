@@ -78,6 +78,7 @@ Common options:
 - `--mesh-name <name>`: optional, export only one mesh from a multi-mesh asset
 - `--convert-orientation`: optional, convert the export into engine space
 - `--source-orientation <blender-native|engine-oriented>`: optional, defaults to `blender-native`
+- `--assets-dir <path>`: optional, folder for the files the result references (textures, HDR environments, the color grade LUT, the per-model folders of a `.untoldpack`); defaults to the `--output` folder. The result refers to them by relative paths, so keep both folders together. A result an earlier export left inside that folder is removed.
 - `--include-hidden`: optional, also export objects hidden in the viewport or disabled in renders (see [What a `.blend` scene exports](#what-a-blend-scene-exports))
 - `--validate`: optional, also writes `<name>.validation.json`
 - `--compress-geometry`: optional, LZ4-compress vertex and index chunks (requires `pip install lz4`)

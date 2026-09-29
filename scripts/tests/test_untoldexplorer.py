@@ -1387,6 +1387,103 @@ class BlendImportFidelityTests(unittest.TestCase):
         base = ["blender", "--", "--input", "a.blend", "--output", "a.untold"]
         self.assertFalse(u.parse_args(base).include_hidden)
         self.assertTrue(u.parse_args(base + ["--include-hidden"]).include_hidden)
+class AssetsDirTests(unittest.TestCase):
+    """--assets-dir: the result file in one folder, the files it references in another."""
+
+    def test_relative_asset_uri_uses_forward_slashes_and_parent_steps(self) -> None:
+        base = Path("/project/Models")
+        self.assertEqual(u.relative_asset_uri(base / "Tower" / "Textures" / "a.png", base), "Tower/Textures/a.png")
+        self.assertEqual(u.relative_asset_uri(Path("/project/Shared/a.png"), base), "../Shared/a.png")
+
+    def test_textures_stage_into_the_assets_dir_and_are_referenced_from_the_output(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            source = root / "source" / "wall.png"
+            source.parent.mkdir()
+            source.write_bytes(b"png bytes")
+            output_path = root / "Models" / "Tower.untold"
+            assets_dir = root / "Models" / "Tower"
+            texture = u.ExportedTexture(
+                name="wall.png", uri="wall.png", width=4, height=4, mip_count=1, source_path=source
+            )
+            previous_bpy = u.bpy
+            try:
+                u.bpy = None
+                staged = u.stage_texture_for_output(texture, output_path, u.TextureStagingContext(assets_dir=assets_dir))
+            finally:
+                u.bpy = previous_bpy
+
+            self.assertEqual(staged.uri, "Tower/Textures/wall.png")
+            self.assertTrue((assets_dir / "Textures" / "wall.png").is_file())
+            self.assertFalse((output_path.parent / "Textures").exists())
+
+    def test_color_grade_lut_uri_is_relative_to_the_output(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            cube = root / "grade.cube"
+            cube.write_text("LUT_3D_SIZE 2\n" + "0 0 0\n" * 8, encoding="utf-8")
+            staged = u.stage_color_grade_lut_for_output(cube, root / "Models" / "Tower", uri_base=root / "Models")
+            self.assertTrue(staged.uri.startswith("Tower/Textures/gradelut_"))
+
+    def test_sidecar_cleanup_follows_the_assets_dir(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            output_path = root / "Models" / "Tower.untold"
+            beside_output = root / "Models" / "Textures"
+            in_assets = root / "Models" / "Tower" / "Textures"
+            beside_output.mkdir(parents=True)
+            in_assets.mkdir(parents=True)
+
+            u.clean_generated_sidecar_dirs(output_path, root / "Models" / "Tower")
+
+            self.assertTrue(beside_output.exists(), "another asset's textures beside the output must survive")
+            self.assertFalse(in_assets.exists())
+
+    def test_pack_model_dirs_are_read_relative_to_the_manifest_and_never_escape_it(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir).resolve()
+            pack_path = root / "Models" / "Tower.untoldpack"
+            pack_path.parent.mkdir()
+            pack_path.write_text(json.dumps({"models": [
+                {"path": "Tower/Door/Door.untold"},
+                {"path": "Loose.untold"},
+                {"path": "../Elsewhere/Elsewhere.untold"},
+            ]}), encoding="utf-8")
+            self.assertEqual(u.read_pack_model_dirs(pack_path), [root / "Models" / "Tower" / "Door"])
+
+    def test_earlier_results_inside_the_assets_dir_are_removed(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir).resolve()
+            assets_dir = root / "Models" / "Tower"
+            for name in ("Door", "Gone"):
+                (assets_dir / name).mkdir(parents=True)
+            (assets_dir / "Tower.blend").write_bytes(b"source")
+            (assets_dir / "Tower.untoldpack").write_text(json.dumps({"models": [
+                {"path": "Door/Door.untold"}, {"path": "Gone/Gone.untold"},
+            ]}), encoding="utf-8")
+            (assets_dir / "Tower.untold").write_bytes(b"older single-file result")
+
+            removed = u.remove_results_left_in_assets_dir(
+                root / "Models" / "Tower.untoldpack", assets_dir, keep_dirs=[assets_dir / "Door"]
+            )
+
+            self.assertEqual(sorted(path.name for path in removed), ["Tower.untold", "Tower.untoldpack"])
+            self.assertTrue((assets_dir / "Door").is_dir(), "a model folder the new pack uses stays")
+            self.assertFalse((assets_dir / "Gone").exists())
+            self.assertTrue((assets_dir / "Tower.blend").is_file())
+
+    def test_nothing_is_removed_without_a_separate_assets_dir(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_path = Path(tmpdir) / "Tower.untold"
+            output_path.write_bytes(b"result")
+            self.assertEqual(u.remove_results_left_in_assets_dir(output_path, None), [])
+            self.assertEqual(u.remove_results_left_in_assets_dir(output_path, Path(tmpdir)), [])
+            self.assertTrue(output_path.is_file())
+
+    def test_assets_dir_argument_defaults_to_none(self) -> None:
+        base = ["blender", "--", "--input", "a.blend", "--output", "a.untold"]
+        self.assertIsNone(u.parse_args(base).assets_dir)
+        self.assertEqual(u.parse_args(base + ["--assets-dir", "a"]).assets_dir, "a")
 
 
 class TextureBitDepthDetectionTests(unittest.TestCase):
