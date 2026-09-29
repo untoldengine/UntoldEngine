@@ -13,6 +13,21 @@ import Foundation
 import MetalKit
 import ModelIO
 
+/// Top-level resource category folders recognized by the asset loader.
+let knownResourceDirectories: Set<String> = [
+    "Models",
+    "StreamModels",
+    "Animations",
+    "HDR",
+    "Gaussians",
+    "Scripts",
+    "Scenes",
+    "Materials",
+    "Textures",
+    "LUT",
+    "Shaders",
+]
+
 public final class LoadingSystem: @unchecked Sendable {
     public static let shared: LoadingSystem = .init()
 
@@ -104,9 +119,7 @@ public func getResourceURL(resourceName: String, ext: String, subName: String?) 
         ["Textures", "\(resourceName).\(ext)"],
         ["LUT", "\(resourceName).\(ext)"],
     ]
-    if let subName {
-        searchPaths.append(["Materials", subName, "\(resourceName).\(ext)"])
-    }
+    searchPaths.append(contentsOf: subResourceSearchPaths(subName: subName, resourceName: resourceName, ext: ext))
 
     // 1) External base path (folder OR .bundle OR already a Resources dir)
     if let basePath = assetBasePath {
@@ -127,7 +140,7 @@ public func getResourceURL(resourceName: String, ext: String, subName: String?) 
             ["Scenes", "\(resourceName).\(ext)"],
             ["Textures", "\(resourceName).\(ext)"],
             ["LUT", "\(resourceName).\(ext)"],
-        ] + (subName.map { [["Materials", $0, "\(resourceName).\(ext)"]] } ?? [])
+        ] + subResourceSearchPaths(subName: subName, resourceName: resourceName, ext: ext)
 
         for components in searchPaths {
             let candidate = components.reduce(base) { $0.appendingPathComponent($1) }
@@ -156,6 +169,19 @@ public func getResourceURL(resourceName: String, ext: String, subName: String?) 
     return Bundle.untoldEngineModuleResourceURL(forResource: resourceName, withExtension: ext)
 }
 
+/// Builds candidate search paths for a resource nested under a subfolder, e.g. a texture
+/// living at `Materials/<name>/file.png` or `Models/<model>/textures/file.png`. `subName`
+/// may be a single folder name (legacy `Materials/<subName>` case) or a `/`-joined relative
+/// path (e.g. `"stadium/textures"`) so callers can preserve more than one level of nesting.
+private func subResourceSearchPaths(subName: String?, resourceName: String, ext: String) -> [[String]] {
+    guard let subName, !subName.isEmpty else { return [] }
+    let subComponents = subName.split(separator: "/").map(String.init)
+    guard !subComponents.isEmpty else { return [] }
+
+    let rootsToTry = ["Materials", "Models", "StreamModels"]
+    return rootsToTry.map { [$0] + subComponents + ["\(resourceName).\(ext)"] }
+}
+
 private func effectiveAssetBaseURL(_ basePath: URL) -> URL {
     if basePath.pathExtension == "bundle",
        let bundle = Bundle(url: basePath),
@@ -168,18 +194,6 @@ private func effectiveAssetBaseURL(_ basePath: URL) -> URL {
 }
 
 private func resourceSuffixComponents(from url: URL) -> [String]? {
-    let knownResourceDirectories: Set = [
-        "Models",
-        "StreamModels",
-        "Animations",
-        "HDR",
-        "Gaussians",
-        "Scripts",
-        "Scenes",
-        "Materials",
-        "Textures",
-        "Shaders",
-    ]
     let components = url.pathComponents
 
     guard let resourceDirectoryIndex = components.firstIndex(where: { knownResourceDirectories.contains($0) }) else {
