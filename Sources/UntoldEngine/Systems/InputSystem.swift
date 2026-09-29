@@ -233,20 +233,33 @@ public final class InputSystem: @unchecked Sendable {
     private func configurePhysicalGameControllerHandlers(_ controller: GCController) {
         let profile = controller.physicalInputProfile
 
-        profile.buttons["Button A"]?.pressedChangedHandler = { [weak self] _, _, pressed in self?.gameControllerState.aPressed = pressed }
-        profile.buttons["Button B"]?.pressedChangedHandler = { [weak self] _, _, pressed in self?.gameControllerState.bPressed = pressed }
-        profile.buttons["Button X"]?.pressedChangedHandler = { [weak self] _, _, pressed in self?.gameControllerState.xPressed = pressed }
-        profile.buttons["Button Y"]?.pressedChangedHandler = { [weak self] _, _, pressed in self?.gameControllerState.yPressed = pressed }
-
-        profile.buttons["Left Shoulder"]?.pressedChangedHandler = { [weak self] _, _, pressed in self?.gameControllerState.leftShoulderPressed = pressed }
-        profile.buttons["Right Shoulder"]?.pressedChangedHandler = { [weak self] _, _, pressed in self?.gameControllerState.rightShoulderPressed = pressed }
-        profile.buttons["Left Trigger"]?.valueChangedHandler = { [weak self] _, value, pressed in
-            self?.gameControllerState.leftTriggerValue = value
-            self?.gameControllerState.leftTriggerPressed = pressed
+        // Each wand physically has only two face buttons (Cross/Circle on the right
+        // wand, Square/Triangle on the left), and GCPhysicalInputProfile labels both
+        // as the generic "Button A"/"Button B" regardless of wand — there is no
+        // "Button X"/"Button Y" key and no Left/Right prefix. Which GameControllerState
+        // field to update is resolved per-event from the wand's chirality, same as the
+        // thumbstick handling below. Right wand maps onto the existing aPressed/bPressed
+        // fields (Cross/Circle); left wand maps onto xPressed/yPressed (Square/Triangle),
+        // matching the documented PlayStation face-button mapping.
+        profile.buttons["Button A"]?.pressedChangedHandler = { [weak self, weak controller] _, _, pressed in
+            guard let self, let controller else { return }
+            updatePSVR2ButtonA(pressed, for: controller)
         }
-        profile.buttons["Right Trigger"]?.valueChangedHandler = { [weak self] _, value, pressed in
-            self?.gameControllerState.rightTriggerValue = value
-            self?.gameControllerState.rightTriggerPressed = pressed
+        profile.buttons["Button B"]?.pressedChangedHandler = { [weak self, weak controller] _, _, pressed in
+            guard let self, let controller else { return }
+            updatePSVR2ButtonB(pressed, for: controller)
+        }
+
+        // Grip and Trigger are likewise single generic keys per wand (no Left/Right
+        // prefix); route to the existing left/right shoulder and trigger fields by
+        // chirality instead.
+        profile.buttons["Grip"]?.pressedChangedHandler = { [weak self, weak controller] _, _, pressed in
+            guard let self, let controller else { return }
+            updatePSVR2Grip(pressed, for: controller)
+        }
+        profile.buttons["Trigger"]?.valueChangedHandler = { [weak self, weak controller] _, value, pressed in
+            guard let self, let controller else { return }
+            updatePSVR2Trigger(value: value, pressed: pressed, for: controller)
         }
 
         // Each wand has a single stick, exposed under the generic GCInputThumbstick /
@@ -283,6 +296,44 @@ public final class InputSystem: @unchecked Sendable {
         switch psvr2ControllerChirality[ObjectIdentifier(controller)] {
         case .left: gameControllerState.leftThumbstickPressed = pressed
         case .right: gameControllerState.rightThumbstickPressed = pressed
+        case nil: break
+        }
+    }
+
+    /// Right wand's "Button A" (Cross) -> aPressed; left wand's "Button A" (Square) -> xPressed.
+    func updatePSVR2ButtonA(_ pressed: Bool, for controller: GCController) {
+        switch psvr2ControllerChirality[ObjectIdentifier(controller)] {
+        case .right: gameControllerState.aPressed = pressed
+        case .left: gameControllerState.xPressed = pressed
+        case nil: break
+        }
+    }
+
+    /// Right wand's "Button B" (Circle) -> bPressed; left wand's "Button B" (Triangle) -> yPressed.
+    func updatePSVR2ButtonB(_ pressed: Bool, for controller: GCController) {
+        switch psvr2ControllerChirality[ObjectIdentifier(controller)] {
+        case .right: gameControllerState.bPressed = pressed
+        case .left: gameControllerState.yPressed = pressed
+        case nil: break
+        }
+    }
+
+    func updatePSVR2Grip(_ pressed: Bool, for controller: GCController) {
+        switch psvr2ControllerChirality[ObjectIdentifier(controller)] {
+        case .left: gameControllerState.leftShoulderPressed = pressed
+        case .right: gameControllerState.rightShoulderPressed = pressed
+        case nil: break
+        }
+    }
+
+    func updatePSVR2Trigger(value: Float, pressed: Bool, for controller: GCController) {
+        switch psvr2ControllerChirality[ObjectIdentifier(controller)] {
+        case .left:
+            gameControllerState.leftTriggerValue = value
+            gameControllerState.leftTriggerPressed = pressed
+        case .right:
+            gameControllerState.rightTriggerValue = value
+            gameControllerState.rightTriggerPressed = pressed
         case nil: break
         }
     }

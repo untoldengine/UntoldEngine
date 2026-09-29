@@ -129,4 +129,81 @@ final class PSVR2InputSystemTests: XCTestCase {
         XCTAssertFalse(state.leftThumbstickPressed)
         XCTAssertFalse(state.rightThumbstickPressed)
     }
+
+    func testRightWandFaceButtonsRouteToAAndB() {
+        let rightWand = GCController()
+        InputSystem.shared.psvr2ControllerChirality[ObjectIdentifier(rightWand)] = .right
+
+        InputSystem.shared.updatePSVR2ButtonA(true, for: rightWand)
+        InputSystem.shared.updatePSVR2ButtonB(true, for: rightWand)
+
+        let state = getGameControllerState()
+        XCTAssertTrue(state.aPressed)
+        XCTAssertTrue(state.bPressed)
+        XCTAssertFalse(state.xPressed)
+        XCTAssertFalse(state.yPressed)
+    }
+
+    func testLeftWandFaceButtonsRouteToXAndY() {
+        let leftWand = GCController()
+        InputSystem.shared.psvr2ControllerChirality[ObjectIdentifier(leftWand)] = .left
+
+        InputSystem.shared.updatePSVR2ButtonA(true, for: leftWand)
+        InputSystem.shared.updatePSVR2ButtonB(true, for: leftWand)
+
+        let state = getGameControllerState()
+        XCTAssertTrue(state.xPressed)
+        XCTAssertTrue(state.yPressed)
+        XCTAssertFalse(state.aPressed)
+        XCTAssertFalse(state.bPressed)
+    }
+
+    func testGripRoutesToLeftOrRightShoulderByChirality() {
+        let leftWand = GCController()
+        let rightWand = GCController()
+        InputSystem.shared.psvr2ControllerChirality[ObjectIdentifier(leftWand)] = .left
+        InputSystem.shared.psvr2ControllerChirality[ObjectIdentifier(rightWand)] = .right
+
+        InputSystem.shared.updatePSVR2Grip(true, for: leftWand)
+        InputSystem.shared.updatePSVR2Grip(true, for: rightWand)
+
+        let state = getGameControllerState()
+        XCTAssertTrue(state.leftShoulderPressed)
+        XCTAssertTrue(state.rightShoulderPressed)
+    }
+
+    func testTriggerRoutesToLeftOrRightByChirality() {
+        let leftWand = GCController()
+        let rightWand = GCController()
+        InputSystem.shared.psvr2ControllerChirality[ObjectIdentifier(leftWand)] = .left
+        InputSystem.shared.psvr2ControllerChirality[ObjectIdentifier(rightWand)] = .right
+
+        InputSystem.shared.updatePSVR2Trigger(value: 0.75, pressed: true, for: leftWand)
+        InputSystem.shared.updatePSVR2Trigger(value: 0.4, pressed: false, for: rightWand)
+
+        let state = getGameControllerState()
+        XCTAssertEqual(state.leftTriggerValue, 0.75)
+        XCTAssertTrue(state.leftTriggerPressed)
+        XCTAssertEqual(state.rightTriggerValue, 0.4)
+        XCTAssertFalse(state.rightTriggerPressed)
+    }
+
+    func testFaceButtonAndTriggerEventsFromUnresolvedControllerAreIgnored() {
+        let unresolvedWand = GCController()
+
+        InputSystem.shared.updatePSVR2ButtonA(true, for: unresolvedWand)
+        InputSystem.shared.updatePSVR2ButtonB(true, for: unresolvedWand)
+        InputSystem.shared.updatePSVR2Grip(true, for: unresolvedWand)
+        InputSystem.shared.updatePSVR2Trigger(value: 1, pressed: true, for: unresolvedWand)
+
+        let state = getGameControllerState()
+        XCTAssertFalse(state.aPressed)
+        XCTAssertFalse(state.bPressed)
+        XCTAssertFalse(state.xPressed)
+        XCTAssertFalse(state.yPressed)
+        XCTAssertFalse(state.leftShoulderPressed)
+        XCTAssertFalse(state.rightShoulderPressed)
+        XCTAssertEqual(state.leftTriggerValue, 0)
+        XCTAssertEqual(state.rightTriggerValue, 0)
+    }
 }
