@@ -318,7 +318,7 @@ if buttons.leftTriggerValue > 0.5 {
 }
 ```
 
-PlayStation face-button mapping uses A = Cross, B = Circle, X = Square, and Y = Triangle.
+PlayStation face-button mapping uses A = Cross, B = Circle, X = Square, and Y = Triangle: the right wand's two face buttons report as Cross/Circle (A/B), and the left wand's two face buttons report as Square/Triangle (X/Y). Each wand's Grip button maps to `leftShoulderPressed`/`rightShoulderPressed`, and each wand's Trigger maps to `leftTriggerValue`/`leftTriggerPressed` and `rightTriggerValue`/`rightTriggerPressed`, by wand.
 
 ### Read thumbsticks
 
