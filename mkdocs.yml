@@ -83,6 +83,7 @@ nav:
     - Animation System: API/UsingAnimationSystem.md
     - Animation Transitions: API/UsingAnimationTransitions.md
     - Root Motion: API/UsingRootMotion.md
+    - Physics Pose: API/UsingPhysicsPose.md
     - Physics System: API/UsingPhysicsSystem.md
     - Steering System: API/UsingSteeringSystem.md
     - Scripting System: API/UsingScriptingSystem.md

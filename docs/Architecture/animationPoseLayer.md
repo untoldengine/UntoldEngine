@@ -220,7 +220,11 @@ Consequences for M1:
 - The machinery is built **in-engine** (as decided), but `AnimationSystem`'s
   update is structured as *evaluate controller → inertialize → apply root
   motion → compose → skin* from the start, with the existing clip player as
-  the built-in controller. No public protocol yet.
+  the built-in controller. No public protocol yet. (Since M1 the layer, reach
+  IK and foot IK stages sit between root motion and compose, and a
+  **physics pose** — a model-space pose a physics plugin hands in through
+  `setPhysicsPose`, blended per joint — is the last stage before compose;
+  see `docs/API/UsingPhysicsPose.md`.)
 - The controller interface (`PoseBuffer` + an `AnimationPoseController`
   protocol + registration) is **published only when M3 exists** — motion
   matching is the first real external consumer, and freezing a public API
