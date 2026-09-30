@@ -853,16 +853,42 @@ class TextureWriteError(Exception):
     """Raised when Blender could not write a texture to disk, not even from a metadata-free copy."""
 
 
+class TextureWriteFailures:
+    """What one export has found out about the textures Blender cannot write.
+
+    A pack or a tiled scene stages a texture once for every model or tile that uses it.
+    Remembering a write that failed spares the others the attempt that fails and Blender's
+    error output. It belongs to one export: the same image may be fine in the next one.
+    """
+
+    # Both by where the texture comes from (see texture_staging_key).
+    # Written from a metadata-free copy instead: what went wrong with the ordinary write.
+    written_from_copy: dict[str, str]
+    # Left out of the export: why.
+    left_out: dict[str, str]
+
+    def __init__(self) -> None:
+        self.written_from_copy = {}
+        self.left_out = {}
+
+
 class TextureStagingContext:
     staged_by_key: dict[str, Path]
     used_names: set[str]
     # One line per texture that was left out of the export, for the caller to report.
     skipped_textures: list[str]
+    # Shared with the other models or tiles of the same export.
+    write_failures: TextureWriteFailures
 
-    def __init__(self, skipped_textures: Optional[list[str]] = None) -> None:
+    def __init__(
+        self,
+        skipped_textures: Optional[list[str]] = None,
+        write_failures: Optional[TextureWriteFailures] = None,
+    ) -> None:
         self.staged_by_key = {}
         self.used_names = set()
         self.skipped_textures = skipped_textures if skipped_textures is not None else []
+        self.write_failures = write_failures if write_failures is not None else TextureWriteFailures()
 
 
 class HDRStagingContext:
@@ -3257,13 +3283,21 @@ _FORMATS_WITHOUT_8BIT = {"OPEN_EXR", "OPEN_EXR_MULTILAYER", "HDR", "CINEON", "DP
 _UNSUPPORTED_TEXTURE_SUFFIXES = {".exr", ".hdr", ".cin", ".dpx"}
 _HDR_IMAGE_SUFFIXES = {".exr", ".hdr"}
 
-# Images that Blender could only write from a metadata-free copy, with what went wrong
-# the first time. A pack stages a texture once for every model that uses it; remembering
-# the image spares each of those models the failed attempt and Blender's error output.
-_images_written_from_copy: dict[str, str] = {}
 
+def write_blender_image_to_path(
+    image_name: str,
+    destination_path: Path,
+    *,
+    preserve_precision: bool = False,
+    failed_write_problem: Optional[str] = None,
+) -> Optional[str]:
+    """Write a Blender image to destination_path in a form the engine can load.
 
-def write_blender_image_to_path(image_name: str, destination_path: Path, *, preserve_precision: bool = False) -> None:
+    Returns None when Blender wrote the image as it is. When it could only be written
+    from a metadata-free copy, returns what went wrong with the ordinary write. Hand that
+    back as failed_write_problem the next time the same image is written, and the write
+    that fails is not attempted again.
+    """
     blender_required()
     image = bpy.data.images.get(image_name)
     if image is None:
@@ -3310,12 +3344,12 @@ def write_blender_image_to_path(image_name: str, destination_path: Path, *, pres
         return _written_image_problem(destination_path)
 
     can_copy = _can_copy_without_metadata(image)
-    problem = _images_written_from_copy.get(image_name) if can_copy else None
+    problem = failed_write_problem if can_copy else None
     failed_before = problem is not None
     if not failed_before:
         problem = save(image)
         if problem is None:
-            return
+            return None
 
         # Blender writes the metadata it read from an image's source file back out on every
         # save, and a bad entry can abort the write after the file has been started. Seen
@@ -3347,8 +3381,8 @@ def write_blender_image_to_path(image_name: str, destination_path: Path, *, pres
             f"A second attempt from a copy without metadata failed too: {retry_problem}. Skipping texture."
         )
     if not failed_before:
-        _images_written_from_copy[image_name] = problem
-        print(f"  Wrote image '{image_name}' from the copy. Its other uses in this export are written the same way.", flush=True)
+        print(f"  Wrote image '{image_name}' from the copy.", flush=True)
+    return problem
 
 
 def _png_is_complete(path: Path) -> bool:
@@ -3787,6 +3821,14 @@ def stage_texture_for_output(
             source_path=existing_destination,
         )
 
+    # An image fails to write whether or not the texture is then inverted.
+    source_key = texture_staging_key(replace(texture, invert=False))
+    write_failures = context.write_failures
+    known_failure = write_failures.left_out.get(source_key)
+    if known_failure is not None:
+        skip(known_failure)
+        return None
+
     if source_path is not None:
         source_path = source_path.expanduser().resolve()
 
@@ -3809,21 +3851,31 @@ def stage_texture_for_output(
     )
     destination_path = texture_dir / destination_name
 
+    def write_image(image_name: str) -> None:
+        problem = write_blender_image_to_path(
+            image_name,
+            destination_path,
+            preserve_precision=preserve_precision,
+            failed_write_problem=write_failures.written_from_copy.get(source_key),
+        )
+        if problem is not None:
+            write_failures.written_from_copy[source_key] = problem
+
     try:
         if source_path is not None and source_path.is_file():
             if source_path != destination_path:
                 if texture.source_image_name:
-                    write_blender_image_to_path(texture.source_image_name, destination_path, preserve_precision=preserve_precision)
+                    write_image(texture.source_image_name)
                 elif bpy is not None:
                     tmp_image = bpy.data.images.load(str(source_path))
                     try:
-                        write_blender_image_to_path(tmp_image.name, destination_path, preserve_precision=preserve_precision)
+                        write_image(tmp_image.name)
                     finally:
                         bpy.data.images.remove(tmp_image)
                 else:
                     shutil.copy2(source_path, destination_path)
         elif texture.source_image_name:
-            write_blender_image_to_path(texture.source_image_name, destination_path, preserve_precision=preserve_precision)
+            write_image(texture.source_image_name)
         else:
             missing_path = str(source_path) if source_path is not None else "<none>"
             raise RuntimeError(f"Texture source does not exist and no Blender image fallback is available: {missing_path}")
@@ -3831,6 +3883,10 @@ def stage_texture_for_output(
         # One texture that cannot be exported costs its material a texture slot, not the
         # whole export: a multi-model pack writes its manifest last, so stopping here would
         # throw away every model already written.
+        if isinstance(exc, TextureWriteError):
+            # Taken to be the image's fault, not the folder's: its other uses in this
+            # export are left out without trying again.
+            write_failures.left_out[source_key] = str(exc)
         skip(str(exc))
         return None
 
@@ -4085,13 +4141,17 @@ def stage_nodes_for_output(
     output_path: Path,
     progress_callback: Optional[ProgressCallback] = None,
     skipped_textures: Optional[list[str]] = None,
+    write_failures: Optional[TextureWriteFailures] = None,
 ) -> list[ExportedNode]:
     """Stage every node's textures next to output_path.
 
     skipped_textures: a list that receives one line per texture that had to be left
     out, so the caller can report them together once the export is done.
+
+    write_failures: what the export already knows about textures Blender cannot write.
+    An export that stages several models or tiles hands the same one to each of them.
     """
-    context = TextureStagingContext(skipped_textures)
+    context = TextureStagingContext(skipped_textures, write_failures)
     staged_nodes: list[ExportedNode] = []
     total = len(exported_nodes)
     for i, exported_node in enumerate(exported_nodes, 1):
@@ -6012,7 +6072,13 @@ def export_objects_to_untold(
     color_grade_lut_path: Optional[Path] = None,
     clean_sidecars: bool = False,
     progress_callback: Optional[ProgressCallback] = None,
+    texture_write_failures: Optional[TextureWriteFailures] = None,
 ) -> dict[str, object]:
+    """Export the objects to a single `.untold` file, whatever number of models they hold.
+
+    texture_write_failures: for a caller that exports several files in one run, such as
+    one per tile, to hand the same one to every call (see TextureWriteFailures).
+    """
     exported_lights, exported_cameras = extract_scene_payload_from_objects(
         export_objects,
         convert_orientation=convert_orientation,
@@ -6043,7 +6109,11 @@ def export_objects_to_untold(
 
     skipped_textures: list[str] = []
     exported_nodes = stage_nodes_for_output(
-        exported_nodes, output_path, progress_callback=progress_callback, skipped_textures=skipped_textures
+        exported_nodes,
+        output_path,
+        progress_callback=progress_callback,
+        skipped_textures=skipped_textures,
+        write_failures=texture_write_failures,
     )
     untold_bytes = build_untold_file(
         exported_nodes,
@@ -6308,6 +6378,7 @@ def write_untold_pack_from_groups(
     total_indices = 0
     total_bytes = 0
     skipped_textures: list[str] = []
+    write_failures = TextureWriteFailures()
     used_model_dir_names: set[str] = set()
     for root_name, raw_group_nodes in model_groups.items():
         # The root's own placement is captured here, from the un-baked node, and
@@ -6324,7 +6395,11 @@ def write_untold_pack_from_groups(
         model_output_path.parent.mkdir(parents=True, exist_ok=True)
 
         staged_group_nodes = stage_nodes_for_output(
-            group_nodes, model_output_path, progress_callback=progress_callback, skipped_textures=skipped_textures
+            group_nodes,
+            model_output_path,
+            progress_callback=progress_callback,
+            skipped_textures=skipped_textures,
+            write_failures=write_failures,
         )
         model_bytes = build_untold_file(
             staged_group_nodes,

@@ -116,7 +116,6 @@ class TextureWriteChecks(unittest.TestCase):
         self.tmpdir = tempfile.TemporaryDirectory()
         self.folder = Path(self.tmpdir.name)
         self.images_before = set(bpy.data.images.keys())
-        u._images_written_from_copy.clear()
 
     def tearDown(self) -> None:
         for name in set(bpy.data.images.keys()) - self.images_before:
@@ -162,6 +161,51 @@ class TextureWriteChecks(unittest.TestCase):
         self.assertEqual(u._png_ihdr(exported), u._png_ihdr(expected))
         self.assertEqual(decoded_pixels(exported), decoded_pixels(expected))
         self.assertEqual((image.filepath_raw, image.file_format), original)
+        self.assert_no_copy_left()
+
+    def test_pack_writes_the_image_from_the_copy_at_once_for_its_second_model(self) -> None:
+        """Staged for two models of one export, the JPEG goes through the write that
+        fails once. An export of its own finds it out again."""
+        source_path = self.folder / "floor_normal.jpg"
+        write_source_image(source_path, file_format="JPEG")
+        add_jpeg_comment(source_path, ICC_PROFILE_COMMENT)
+        image = load_image(source_path, "Non-Color")
+        texture = u._exported_texture_from_image(image, self.folder / "scene.blend")
+
+        saved_images = []
+        real_save = u._save_blender_image
+
+        def counting_save(saved_image: object, destination_path: Path, **arguments) -> None:
+            saved_images.append(saved_image.name)
+            real_save(saved_image, destination_path, **arguments)
+
+        def stage(model: str, write_failures: u.TextureWriteFailures) -> list[str]:
+            saved_images.clear()
+            context = u.TextureStagingContext(write_failures=write_failures)
+            staged = u.stage_texture_for_output(texture, self.folder / model / f"{model}.untold", context)
+            self.assertIsNotNone(staged)
+            self.assertTrue(u._png_is_complete(self.folder / model / "Textures" / "floor_normal.png"))
+            return list(saved_images)
+
+        u._save_blender_image = counting_save
+        try:
+            write_failures = u.TextureWriteFailures()
+            first_model = stage("Floor", write_failures)
+            second_model = stage("Wall", write_failures)
+            another_export = stage("Roof", u.TextureWriteFailures())
+        finally:
+            u._save_blender_image = real_save
+
+        copy_name = f"{image.name}.untold_export"
+        if first_model == [image.name]:
+            self.skipTest("this Blender saves the image with the ICCProfile comment by itself")
+        self.assertEqual(first_model, [image.name, copy_name])
+        self.assertEqual(second_model, [copy_name])
+        self.assertEqual(another_export, [image.name, copy_name])
+        self.assertEqual(
+            decoded_pixels(self.folder / "Wall" / "Textures" / "floor_normal.png"),
+            decoded_pixels(self.folder / "Floor" / "Textures" / "floor_normal.png"),
+        )
         self.assert_no_copy_left()
 
     def write_with_first_attempt_failing(self, image: object, destination: Path) -> FailFirstSave:

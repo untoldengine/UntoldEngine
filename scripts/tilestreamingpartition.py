@@ -66,6 +66,7 @@ if str(SCRIPT_DIR) not in sys.path:
 from untoldexplorer import (
     ProgressCallback,
     ProgressReporter,
+    TextureWriteFailures,
     clear_scene,
     export_objects_to_untold,
     extract_scene_payload_from_objects,
@@ -484,6 +485,12 @@ ERROR_IF_UNSAVED_SOURCE_NOT_FOUND = True
 # Set by bridge.py for in-process (Blender add-on) exports so the overall
 # "tile export" ProgressReporter can drive a UI progress bar.
 PROGRESS_CALLBACK: ProgressCallback | None = None
+
+# What this run has found out about the textures Blender cannot write. Every tile is
+# exported on its own, so they share this one: a texture that many tiles use fails, and
+# says so, once. main() starts each run with a new one, because the add-on runs several
+# exports in one Blender session.
+TEXTURE_WRITE_FAILURES = TextureWriteFailures()
 
 # --- Auto tile sizing -----------------------------------------
 AUTO_TILE_SIZE = False
@@ -3258,6 +3265,7 @@ def export_local_tile(filepath, objects, tile_bounds, source_scene_path):
                 source_orientation=SOURCE_ORIENTATION,
                 compress_geometry=COMPRESS_GEOMETRY,
                 progress_callback=make_untold_progress_callback(os.path.basename(filepath)),
+                texture_write_failures=TEXTURE_WRITE_FAILURES,
             )
     finally:
         remove_scene(temp_scene)
@@ -3297,6 +3305,7 @@ def export_shared_bucket(filepath, objects, source_scene_path):
                     source_orientation=SOURCE_ORIENTATION,
                     compress_geometry=COMPRESS_GEOMETRY,
                     progress_callback=make_untold_progress_callback(os.path.basename(filepath)),
+                    texture_write_failures=TEXTURE_WRITE_FAILURES,
                 )
         finally:
             remove_scene(temp_scene)
@@ -3312,6 +3321,7 @@ def export_shared_bucket(filepath, objects, source_scene_path):
                 source_orientation=SOURCE_ORIENTATION,
                 compress_geometry=COMPRESS_GEOMETRY,
                 progress_callback=make_untold_progress_callback(os.path.basename(filepath)),
+                texture_write_failures=TEXTURE_WRITE_FAILURES,
             )
 
     return True, None
@@ -3358,6 +3368,7 @@ def export_hlod_tile(filepath, objects, tile_bounds, reduction_ratio, source_sce
                 source_orientation=SOURCE_ORIENTATION,
                 compress_geometry=COMPRESS_GEOMETRY,
                 progress_callback=make_untold_progress_callback(os.path.basename(filepath)),
+                texture_write_failures=TEXTURE_WRITE_FAILURES,
             )
     finally:
         remove_scene(temp_scene)
@@ -3416,6 +3427,7 @@ def export_debug_aabb(filepath, tile_bounds, color):
                 convert_orientation=CONVERT_ORIENTATION,
                 source_orientation=SOURCE_ORIENTATION,
                 compress_geometry=COMPRESS_GEOMETRY,
+                texture_write_failures=TEXTURE_WRITE_FAILURES,
             )
     finally:
         remove_scene(temp_scene)
@@ -6066,9 +6078,11 @@ def apply_cli_overrides(args):
 
 
 def main(argv=None):
+    global TEXTURE_WRITE_FAILURES
     argv = sys.argv if argv is None else argv
     args = parse_args(argv)
     apply_cli_overrides(args)
+    TEXTURE_WRITE_FAILURES = TextureWriteFailures()
     if getattr(args, "worker_mode", False):
         if not args.work_bundle or not args.result_file:
             print("Error: --worker-mode requires --work-bundle and --result-file", flush=True)
