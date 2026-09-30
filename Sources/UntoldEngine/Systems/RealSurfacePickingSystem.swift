@@ -317,7 +317,7 @@ public func pickRealSurfacePosition(
             guard yRange.contains(hitWorld.y) else { continue }
         }
 
-        let distance = simd_length(hitPosition - localRayOrigin)
+        let distance = simd_length(hitWorld - rayOrigin)
         guard distance <= maxDistance, distance < bestDistance else { continue }
 
         // Compute final world-space position (with SRT applied).
