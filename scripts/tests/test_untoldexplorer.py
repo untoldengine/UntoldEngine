@@ -1165,6 +1165,118 @@ class MaterialGraphAnalysisTests(unittest.TestCase):
         lines = u.material_fidelity_report_lines([mesh])
         self.assertEqual(lines, ["Material fidelity report: 1 supported, 0 bakeable, 0 unbakeable"])
 
+    def test_write_morph_target_record_layout_matches_runtime(self) -> None:
+        writer = u.BinaryWriter()
+        u.write_morph_target_record(writer, 3, 42, u.MORPH_FLAG_HAS_NORMAL_DELTAS, 7, 100, 1.5)
+        self.assertEqual(len(writer.data), 24)
+        mesh_index, name_offset, flags, first_entry, entry_count, scale = struct.unpack(
+            "<5If", writer.data
+        )
+        self.assertEqual(
+            (mesh_index, name_offset, flags, first_entry, entry_count), (3, 42, 1, 7, 100)
+        )
+        self.assertAlmostEqual(scale, 1.5)
+
+    def test_write_morph_driver_record_layout_matches_runtime(self) -> None:
+        writer = u.BinaryWriter()
+        u.write_morph_driver_record(writer, 2, 9, 0, (0.1, 0.2, 0.3, 0.9), 0.75)
+        self.assertEqual(len(writer.data), 36)
+        target_index, joint_offset, kernel = struct.unpack_from("<3I", writer.data, 0)
+        pose = struct.unpack_from("<4f", writer.data, 12)
+        radius, reserved = struct.unpack_from("<fI", writer.data, 28)
+        self.assertEqual((target_index, joint_offset, kernel), (2, 9, 0))
+        self.assertAlmostEqual(pose[3], 0.9, places=5)
+        self.assertAlmostEqual(radius, 0.75)
+        self.assertEqual(reserved, 0)
+
+    def test_write_muscle_record_layout_matches_runtime(self) -> None:
+        record = u.MuscleRecord(
+            skeleton_entity_id=3, name_offset=10, flags=u.MUSCLE_FLAG_HAS_DRIVER,
+            forward_joint_offset=11, forward_tip_joint_offset=12,
+            origin_joint_offset=13, origin_tip_joint_offset=u.INVALID_INDEX, origin_fraction=0.15,
+            origin_offset=(0.0, 0.0, 0.02),
+            insertion_joint_offset=14, insertion_tip_joint_offset=u.INVALID_INDEX, insertion_fraction=0.2,
+            insertion_offset=(0.0, 0.0, 0.01),
+            belly_radius=0.04, tendon_radius=0.012, max_contraction=0.25,
+            fiber_compliance=2e-6, cross_compliance=4e-6, volume_compliance=0.0,
+            damping=6.0, bone_radius=0.03, skin_influence=0.03, rings=7, segments=8,
+            driver_joint_offset=14, driver_start_angle=0.2, driver_full_angle=1.9,
+        )
+        writer = u.BinaryWriter()
+        u.write_muscle_record(writer, record)
+        self.assertEqual(len(writer.data), u.MUSCLE_RECORD_SIZE)
+        skeleton_id, name, flags, fwd, fwd_tip, origin, origin_tip = struct.unpack_from("<7I", writer.data, 0)
+        self.assertEqual((skeleton_id, name, flags, fwd, fwd_tip, origin, origin_tip), (3, 10, 1, 11, 12, 13, u.INVALID_INDEX))
+        origin_fraction, ox, oy, oz = struct.unpack_from("<4f", writer.data, 28)
+        self.assertAlmostEqual(origin_fraction, 0.15, places=6)
+        self.assertAlmostEqual(oz, 0.02, places=6)
+        insertion, insertion_tip = struct.unpack_from("<2I", writer.data, 44)
+        self.assertEqual((insertion, insertion_tip), (14, u.INVALID_INDEX))
+        rings, segments, driver = struct.unpack_from("<3I", writer.data, 104)
+        self.assertEqual((rings, segments, driver), (7, 8, 14))
+        start, full, reserved = struct.unpack_from("<2fI", writer.data, 116)
+        self.assertAlmostEqual(full, 1.9, places=5)
+        self.assertEqual(reserved, 0)
+
+    def test_validate_muscle_rig_rejects_malformed_input(self) -> None:
+        with self.assertRaises(RuntimeError):
+            u.validate_muscle_rig({"muscles": []})
+        with self.assertRaises(RuntimeError):
+            u.validate_muscle_rig({"muscles": [{"name": "x", "origin": {"joint": "a"}, "insertion": {}}]})
+        with self.assertRaises(RuntimeError):
+            u.validate_muscle_rig({"muscles": [{
+                "name": "x", "origin": {"joint": "a"}, "insertion": {"joint": "b"},
+                "bellyRadius": 0.0, "tendonRadius": 0.01,
+            }]})
+        rig = {
+            "forwardReference": {"from": "foot", "to": "toe"},
+            "muscles": [{
+                "name": "biceps", "origin": {"joint": "a", "fraction": 0.1, "offset": [0, 0, 0.02]},
+                "insertion": {"joint": "b"}, "bellyRadius": 0.04, "tendonRadius": 0.01,
+                "driver": {"joint": "b", "startAngle": 10, "fullAngle": 110},
+            }],
+        }
+        self.assertIs(u.validate_muscle_rig(rig), rig)
+
+    def test_build_muscle_records_resolves_skeleton_and_strings(self) -> None:
+        string_table = u.StringTableBuilder()
+        skeletons = [
+            u.SkeletonRecord(entity_id=4, name_offset=string_table.add("Other"), first_joint_record_index=0, joint_record_count=1),
+            u.SkeletonRecord(entity_id=7, name_offset=string_table.add("Armature"), first_joint_record_index=1, joint_record_count=1),
+        ]
+        rig = u.validate_muscle_rig({
+            "skeleton": "Armature",
+            "forwardReference": {"from": "foot", "to": "toe"},
+            "muscles": [{
+                "name": "biceps", "origin": {"joint": "upperArm", "fraction": 0.1, "offset": [0, 0, 0.02]},
+                "insertion": {"joint": "forearm", "tip": "hand"}, "bellyRadius": 0.04, "tendonRadius": 0.01,
+                "driver": {"joint": "forearm", "startAngle": 10, "fullAngle": 110},
+            }],
+        })
+        records = u.build_muscle_records(rig, skeletons, string_table)
+        self.assertEqual(len(records), 1)
+        record = records[0]
+        self.assertEqual(record.skeleton_entity_id, 7)
+        self.assertEqual(string_table.string_at(record.name_offset), "biceps")
+        self.assertEqual(string_table.string_at(record.origin_joint_offset), "upperArm")
+        self.assertEqual(string_table.string_at(record.insertion_tip_joint_offset), "hand")
+        self.assertEqual(string_table.string_at(record.forward_joint_offset), "foot")
+        self.assertEqual(record.origin_tip_joint_offset, u.INVALID_INDEX)
+        self.assertEqual(record.flags, u.MUSCLE_FLAG_HAS_DRIVER)
+        self.assertAlmostEqual(record.driver_start_angle, math.radians(10), places=6)
+        self.assertAlmostEqual(record.driver_full_angle, math.radians(110), places=6)
+        self.assertEqual(record.rings, 7)
+        self.assertAlmostEqual(record.fiber_compliance, 2e-6)
+        with self.assertRaises(RuntimeError):
+            u.build_muscle_records({**rig, "skeleton": "Missing"}, skeletons, string_table)
+        with self.assertRaises(RuntimeError):
+            u.build_muscle_records(rig, [], string_table)
+
+    def test_morph_entry_dtype_is_sixteen_bytes(self) -> None:
+        self.assertEqual(u.MORPH_ENTRY_SIZE, 16)
+        if u._MORPH_DTYPE is not None:
+            self.assertEqual(u._MORPH_DTYPE.itemsize, 16)
+
 
 def _build_minimal_png(bit_depth: int, color_type: int) -> bytes:
     """A syntactically valid PNG containing only a magic + IHDR chunk. _png_ihdr only
