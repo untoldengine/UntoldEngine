@@ -3780,6 +3780,12 @@ struct GaussianLoadResult {
     let boundingBox: (min: simd_float3, max: simd_float3)
 }
 
+// Built once by buildGaussianLoadResult and handed off exactly once (to the caller that
+// attaches it via applyGaussianLoadResult) — safe to cross an actor boundary despite the
+// non-Sendable MTLBuffer/GaussianPageManager fields, which is what setEntityGaussianAsync
+// below relies on to run the parse/encode work in a detached Task.
+extension GaussianLoadResult: @unchecked Sendable {}
+
 // `UntoldGSError`, `UntoldGSAsset` and `UntoldGSFormat` live in AssetFormat/UntoldGS*.swift.
 
 /// Builds GPU buffers from already-encoded Gaussian splat data.
@@ -4359,29 +4365,26 @@ public func setEntityGaussian(entityId: EntityID, source: GaussianSource) {
     }
 }
 
-/// Asynchronously reads and encodes a `.ply` Gaussian splat asset and attaches it to
-/// `entityId` without blocking the main thread. Parsing, per-splat encoding, and spherical-
-/// harmonics packing all run before the world-mutation gate is acquired; only the final
-/// component registration runs under `withWorldMutationGate`, mirroring `setEntityMeshAsync`'s
-/// pattern of keeping GPU resource work outside the gate.
+/// Shared async implementation behind `setEntityGaussianAsync`. Parsing, per-splat encoding,
+/// and spherical-harmonics packing all run off the calling thread (via `Task.detached`) before
+/// the world-mutation gate is acquired; only the final component registration runs under
+/// `withWorldMutationGate`, mirroring `setEntityMeshAsync`'s pattern of keeping GPU resource
+/// work outside the gate.
 ///
-/// `async -> Bool` (rather than `setEntityMeshAsync`'s fire-and-forget/completion shape) so
-/// `GeometryStreamingSystem.loadMesh` can `await` it directly from its own dispatch `Task`,
-/// the same way it awaits the mesh path. Used both by direct callers that want a non-blocking
-/// one-off load, and internally by the streaming system for distance-streamed splat props —
-/// gaussians have no cache/OCC layer analogous to `MeshResourceManager`, so unlike mesh
-/// streaming there is no separate streaming-only loader.
-@discardableResult
-public func setEntityGaussianAsync(
-    entityId: EntityID,
-    filename: String,
-    withExtension: String,
-    completion: (@Sendable (Bool) -> Void)? = nil
-) async -> Bool {
-    guard let result = buildGaussianLoadResult(filename: filename, withExtension: withExtension) else {
-        completion?(false)
-        return false
-    }
+/// `async -> Bool` so `GeometryStreamingSystem.loadGaussianStreamingEntity` can `await` it
+/// directly from its own dispatch `Task`, the same way it awaits the mesh path.
+/// `setEntityGaussianAsync` wraps this in a fire-and-forget `Task` for callers that just want
+/// `setEntityMeshAsync`'s plain completion-closure ergonomics.
+func performGaussianAsyncLoad(entityId: EntityID, filename: String, withExtension: String) async -> Bool {
+    // buildGaussianLoadResult is a plain synchronous function — awaiting it directly would
+    // just run it inline on whatever actor called us (e.g. still the main thread, if called
+    // from a `Task { @MainActor in ... }`). Task.detached guarantees the parse/decode/encode
+    // work actually happens off the caller's thread regardless of where it's awaited from.
+    let result = await Task.detached(priority: .userInitiated) {
+        buildGaussianLoadResult(filename: filename, withExtension: withExtension)
+    }.value
+
+    guard let result else { return false }
 
     withWorldMutationGate {
         applyGaussianLoadResult(result, to: entityId)
@@ -4389,8 +4392,25 @@ public func setEntityGaussianAsync(
             LoadingSystem.shared.resourceURL(forResource: filename, withExtension: withExtension, subResource: nil)
     }
 
-    completion?(true)
     return true
+}
+
+/// Asynchronously reads and encodes a `.ply`/`.untoldgs` Gaussian splat asset and attaches it
+/// to `entityId` without blocking the caller — call it directly, no `Task`/`await` needed at
+/// the call site, and read the result via `completion`, exactly like `setEntityMeshAsync`.
+/// Gaussians have no cache/OCC layer analogous to `MeshResourceManager`, so unlike mesh
+/// streaming there is no separate streaming-only loader.
+public func setEntityGaussianAsync(
+    entityId: EntityID,
+    filename: String,
+    withExtension: String,
+    completion: ((Bool) -> Void)? = nil
+) {
+    let completionBox = completion.map { BoolCompletionBox(callback: $0) }
+    Task {
+        let success = await performGaussianAsyncLoad(entityId: entityId, filename: filename, withExtension: withExtension)
+        completionBox?.call(success)
+    }
 }
 
 public struct GaussianStreamingOptions {

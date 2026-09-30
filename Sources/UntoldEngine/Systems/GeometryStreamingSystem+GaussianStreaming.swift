@@ -37,7 +37,7 @@ extension GeometryStreamingSystem {
         let ext = streaming.assetExtension
 
         dispatchGaussianLoad(entityId: entityId, streaming: streaming, isNearBand: isNearBand) {
-            await setEntityGaussianAsync(entityId: entityId, filename: filename, withExtension: ext)
+            await performGaussianAsyncLoad(entityId: entityId, filename: filename, withExtension: ext)
         }
     }
 
