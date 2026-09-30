@@ -6650,9 +6650,11 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument(
         "--assets-dir",
         default=None,
-        help="Folder for the files the result references: textures, HDR environments, the color grade LUT, "
-             "and the per-model folders of a .untoldpack. Defaults to the --output folder. The result at "
-             "--output refers to them by relative paths, so both folders must move together.",
+        help="Folder for what the export writes besides the result. Defaults to the --output folder. The "
+             "result at --output refers to the textures, the color grade LUT and the per-model folders of "
+             "a .untoldpack in it by relative paths, so both folders must move together. The HDR "
+             "environments are staged there too, as copies to put in the project's HDR folder: nothing "
+             "refers to them.",
     )
     parser.add_argument("--validate", action="store_true", help="Write a companion .validation.json file for engine-side validation tests.")
     parser.add_argument(

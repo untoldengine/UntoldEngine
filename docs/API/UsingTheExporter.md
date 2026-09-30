@@ -78,7 +78,7 @@ Common options:
 - `--mesh-name <name>`: optional, export only one mesh from a multi-mesh asset
 - `--convert-orientation`: optional, convert the export into engine space
 - `--source-orientation <blender-native|engine-oriented>`: optional, defaults to `blender-native`
-- `--assets-dir <path>`: optional, folder for the files the result references (textures, HDR environments, the color grade LUT, the per-model folders of a `.untoldpack`); defaults to the `--output` folder. The result refers to them by relative paths, so keep both folders together. A result an earlier export left inside that folder is removed.
+- `--assets-dir <path>`: optional, folder for what the export writes besides the result; defaults to the `--output` folder. The result refers to the textures, the color grade LUT and the per-model folders of a `.untoldpack` in it by relative paths, so keep both folders together. The `HDR/` copies (see below) go there as well. A result an earlier export left inside that folder is removed.
 - `--include-hidden`: optional, also export objects hidden in the viewport or disabled in renders (see [What a `.blend` scene exports](#what-a-blend-scene-exports))
 - `--validate`: optional, also writes `<name>.validation.json`
 - `--compress-geometry`: optional, LZ4-compress vertex and index chunks (requires `pip install lz4`)
@@ -101,7 +101,13 @@ Expected output:
 
 - `floorplanA.untold`
 - `Textures/...` beside the `.untold` file if the asset uses textures
+- `HDR/...` beside the `.untold` file if the Blender scene has an environment
+  image: the World's, or the studio light of a viewport in Material Preview
 - `floorplanA.validation.json` only when `--validate` is passed
+
+The files in `HDR/` are copies for you to use. Nothing in the export refers to
+them, and the engine does not look for them there: it loads an environment by
+name from your project's `GameData/HDR/` folder, so copy the ones you want into it.
 
 A texture that cannot be exported does not stop the export. Its material is
 written without that texture, and the end of the export log lists every texture
