@@ -311,8 +311,10 @@ final class TransparencyRenderGraphTests: BaseRenderSetup {
 
         XCTAssertNotNil(graph["transparency"],
                         "Transparency pass should exist when bypassing post-processing")
-        XCTAssertEqual(graph["postProcessBypass"]?.dependencies, ["spatialDebug"],
-                       "Bypass pass should depend on spatialDebug")
+        XCTAssertEqual(graph["postProcessBypass"]?.dependencies, ["muscleDebug"],
+                       "Bypass pass should depend on muscleDebug, the last debug overlay")
+        XCTAssertEqual(graph["muscleDebug"]?.dependencies, ["spatialDebug"],
+                       "Muscle debug overlay should draw on top of spatialDebug")
     }
 
     // MARK: - Test 5: Transparent objects sorted back-to-front

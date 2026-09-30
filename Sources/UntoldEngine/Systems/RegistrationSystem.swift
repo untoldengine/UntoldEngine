@@ -136,6 +136,9 @@ private func registerComponentCleanupHandlers() {
     ComponentRegistry.register(componentType: SkeletonComponent.self, handlerId: "mesh", priority: 20) { entityId in
         removeEntityMesh(entityId: entityId)
     }
+    ComponentRegistry.register(componentType: DeformationComponent.self, handlerId: "deformation", priority: 20) { entityId in
+        removeEntityDeformation(entityId: entityId)
+    }
 
     ComponentRegistry.register(componentType: AnimationComponent.self, handlerId: "animation", priority: 30) { entityId in
         removeEntityAnimations(entityId: entityId)
@@ -821,23 +824,32 @@ func registerRuntimeAnimationClips(
     to animationComponent: AnimationComponent
 ) -> [String] {
     var registeredNames: [String] = []
+    var clipsByEmbeddedName: [String: AnimationClip] = [:]
 
     for runtimeClip in runtimeClips {
         let animationClip = AnimationClip(runtimeClip: runtimeClip)
-        animationComponent.animationClips[runtimeClip.name] = animationClip
-        animationComponent.hiddenClipAliases.remove(runtimeClip.name)
-        registeredNames.append(runtimeClip.name)
+        clipsByEmbeddedName[runtimeClip.name] = animationClip
+        // Register under the clip's own name unless another file already
+        // claimed it: distinct animation files often reuse an authoring-tool
+        // action name (e.g. "flex"), and clobbering would silently alias
+        // every later load to the last file.
+        if animationComponent.animationClips[runtimeClip.name] == nil {
+            animationComponent.animationClips[runtimeClip.name] = animationClip
+            animationComponent.hiddenClipAliases.remove(runtimeClip.name)
+            registeredNames.append(runtimeClip.name)
+        }
     }
 
     if runtimeClips.count == 1,
        let runtimeClip = runtimeClips.first,
        preferredName.isEmpty == false,
        preferredName != runtimeClip.name,
-       let aliasedClip = animationComponent.animationClips[runtimeClip.name]
+       let aliasedClip = clipsByEmbeddedName[runtimeClip.name]
     {
-        // Reuse the same instance registered above under runtimeClip.name:
-        // compiledClips is now keyed by clip identity, so a second
-        // AnimationClip built from the same runtimeClip would compile twice.
+        // The preferred name always gets this file's clip (the same
+        // instance registered above when the embedded name was free:
+        // compiledClips is keyed by clip identity, so a second AnimationClip
+        // built from the same runtimeClip would compile twice).
         // If preferredName previously named a different clip (e.g. the
         // asset was re-exported with a different embedded action name),
         // drop that old clip's own alias keys so they don't linger as
@@ -846,7 +858,11 @@ func registerRuntimeAnimationClips(
             animationComponent.removeAnimationClip(animationClip: preferredName)
         }
         animationComponent.animationClips[preferredName] = aliasedClip
-        animationComponent.hiddenClipAliases.insert(runtimeClip.name)
+        if animationComponent.animationClips[runtimeClip.name] === aliasedClip {
+            // The embedded name is this clip's internal alias; when another
+            // file owns that name it stays that file's display name.
+            animationComponent.hiddenClipAliases.insert(runtimeClip.name)
+        }
         registeredNames.append(preferredName)
     }
 
@@ -3322,6 +3338,11 @@ func removeEntityMesh(entityId: EntityID) {
         skeletonComponent.cleanUp()
         scene.remove(component: SkeletonComponent.self, from: entityId)
         removedAnyResourceOwner = true
+    }
+
+    if let deformationComponent = scene.get(component: DeformationComponent.self, for: entityId) {
+        deformationComponent.cleanUp()
+        scene.remove(component: DeformationComponent.self, from: entityId)
     }
 
     guard removedAnyResourceOwner else {

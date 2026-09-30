@@ -142,6 +142,224 @@ typedef enum{
     modelPassFragmentNormalIsPackedXYIndex,
 }ModelPassFragmentBufferIndices;
 
+typedef enum{
+    deformationPassInPositionIndex,
+    deformationPassInNormalIndex,
+    deformationPassInTangentIndex,
+    deformationPassJointIdIndex,
+    deformationPassJointWeightsIndex,
+    deformationPassJointTransformIndex,
+    deformationPassOutPositionIndex,
+    deformationPassOutNormalIndex,
+    deformationPassOutTangentIndex,
+    deformationPassParamsIndex,
+    deformationPassOmegaIndex,
+    deformationPassMorphPositionDeltaIndex,
+    deformationPassMorphNormalDeltaIndex,
+}DeformationPassBufferIndices;
+
+typedef struct{
+    unsigned int vertexCount;
+    unsigned int hasMorphDeltas;
+}DeformationPassParams;
+
+// One sparse morph delta entry; must match UntoldMorphSparseEntryV1 (16 B).
+// Delta components are float16 bit patterns.
+typedef struct{
+    unsigned int vertexIndex;
+    unsigned short dPosition[3];
+    unsigned short dNormal[3];
+}MorphSparseEntry;
+
+typedef enum{
+    morphPassEntriesIndex,
+    morphPassPositionDeltaIndex,
+    morphPassNormalDeltaIndex,
+    morphPassParamsIndex,
+}MorphPassBufferIndices;
+
+typedef struct{
+    unsigned int entryOffset;
+    unsigned int entryCount;
+    unsigned int vertexCount;
+    float weightTimesScale;
+}MorphPassParams;
+
+// Per-joint rigid transform + scale for dual-quaternion skinning, converted
+// from the joint matrix palette by the deformDualQuatPalette kernel.
+typedef struct{
+    simd_float4 real;   // rotation quaternion (x, y, z, w)
+    simd_float4 dual;   // 0.5 * translation ⊗ real
+    simd_float4 scale;  // per-axis scale factored out of the matrix, w unused
+}JointDualQuat;
+
+typedef enum{
+    dualQuatPaletteJointTransformIndex,
+    dualQuatPaletteOutIndex,
+    dualQuatPaletteParamsIndex,
+}DualQuatPaletteBufferIndices;
+
+typedef struct{
+    unsigned int jointCount;
+}DualQuatPaletteParams;
+
+// One Direct Delta Mush precomputed matrix per (vertex, influencing joint):
+// the upper triangle of the symmetric 4x4 smoothed homogeneous outer-product
+// sum, in row-major order [a00,a01,a02,a03,a11,a12,a13,a22,a23,a33].
+// Four entries per vertex; jointIndex 0xFFFFFFFF marks an unused slot.
+typedef struct{
+    unsigned int jointIndex;
+    float m[10];
+}DDMOmegaEntry;
+
+#define DDM_OMEGAS_PER_VERTEX 4
+
+// MARK: - Volumetric muscles (XPBD)
+
+typedef enum{
+    musclePassPositionsIndex,            // float4: xyz + inverse mass in w
+    musclePassPositionsOutIndex,         // solve destination (ping-pong)
+    musclePassPrevPositionsIndex,
+    musclePassParticleInfoIndex,         // MuscleParticleInfo per particle
+    musclePassEdgesIndex,                // MuscleEdge
+    musclePassTetsIndex,                 // MuscleTet (skin wrap only)
+    musclePassTrianglesIndex,            // MuscleSurfaceTriangle (closed surface per muscle)
+    musclePassParticleEdgeOffsetsIndex,  // uint, particleCount + 1 (CSR)
+    musclePassParticleEdgeListIndex,     // uint edge indices
+    musclePassParticleTriOffsetsIndex,   // uint, particleCount + 1 (CSR)
+    musclePassParticleTriListIndex,      // uint triangle indices
+    musclePassGradientsIndex,            // float4 per particle: volume gradient, w = invMass * |grad|^2
+    musclePassMuscleParamsIndex,         // MuscleFrameParams per muscle
+    musclePassParamsIndex,               // MuscleSimParams
+    musclePassSkinBindingIndex,          // MuscleSkinBinding per skin vertex
+    musclePassSkinPositionsIndex,        // deformed skin streams, updated in place
+    musclePassSkinNormalsIndex,
+    musclePassSkinTangentsIndex,
+}MusclePassBufferIndices;
+
+#define MUSCLE_ATTACHMENT_FREE 0
+#define MUSCLE_ATTACHMENT_ORIGIN 1
+#define MUSCLE_ATTACHMENT_INSERTION 2
+// Ring centre: not simulated, follows the mean of its ring (skin wrap tets).
+#define MUSCLE_ATTACHMENT_CENTER 3
+
+// Static per-particle data of a muscle cage.
+typedef struct{
+    simd_float4 restPosition;   // bind-pose model space; w = axial parameter t in [0, 1]
+    simd_float4 restRadial;     // rest offset from the muscle axis at t (w unused)
+    unsigned int muscleIndex;
+    unsigned int attachment;    // MUSCLE_ATTACHMENT_*
+    unsigned int ringSegments;  // centres: number of ring particles that follow
+    unsigned int pad0;
+}MuscleParticleInfo;
+
+typedef struct{
+    unsigned int a;
+    unsigned int b;
+    float restLength;
+    float fiber;                // 1 = runs along the fibers (contracts with activation)
+}MuscleEdge;
+
+// Skin-wrap interpolation cell (ring centre + ring pair wedge split).
+typedef struct{
+    simd_uint4 vertices;
+    float restVolume;
+    unsigned int muscleIndex;
+    unsigned int pad0;
+    unsigned int pad1;
+}MuscleTet;
+
+// Outward-oriented surface triangle of a muscle's closed cage.
+typedef struct{
+    unsigned int a;
+    unsigned int b;
+    unsigned int c;
+    unsigned int muscleIndex;
+}MuscleSurfaceTriangle;
+
+// Per-muscle, per-frame parameters computed on the CPU from the skeleton pose.
+typedef struct{
+    simd_float4x4 originJoint;       // bind space -> current model space, origin joint
+    simd_float4x4 insertionJoint;    // same, insertion joint
+    simd_float4x4 referenceRotation; // minimal rotation taking the rest axis to the current axis
+    simd_float4 originCurrent;       // xyz current origin attachment point
+    simd_float4 insertionCurrent;    // xyz current insertion attachment point
+    simd_float4 capsuleA0;           // origin bone capsule start; radius in w
+    simd_float4 capsuleA1;           // origin bone capsule end
+    simd_float4 capsuleB0;           // insertion bone capsule start; radius in w
+    simd_float4 capsuleB1;
+    float fiberScale;                // rest-length multiplier of fiber edges (activation)
+    float fiberAlpha;                // fiber compliance / dt^2
+    float crossAlpha;                // cross-fiber compliance / dt^2
+    float volumeAlpha;               // volume compliance / dt^2
+    float damping;                   // velocity damping per second
+    float skinWeight;                // multiplier on the skin binding weight
+    float restVolume;                // closed-cage rest volume
+    float pad0;
+    unsigned int particleStart;      // first particle of this muscle
+    unsigned int particleCount;
+    unsigned int pad1;
+    unsigned int pad2;
+}MuscleFrameParams;
+
+typedef struct{
+    unsigned int particleCount;
+    unsigned int skinVertexCount;
+    float dt;                        // substep length
+    float relaxation;                // averaged-Jacobi relaxation
+    simd_float4 gravity;             // model space; w unused
+    float maxVelocity;
+    unsigned int pad0;
+    unsigned int pad1;
+    unsigned int pad2;
+}MuscleSimParams;
+
+// Skin-wrap binding of one skin vertex to the nearest muscle tet.
+typedef struct{
+    simd_float4 barycentric;
+    unsigned int tetIndex;           // 0xFFFFFFFF = unbound
+    float weight;
+    unsigned int pad0;
+    unsigned int pad1;
+}MuscleSkinBinding;
+
+#define MUSCLE_SKIN_UNBOUND 0xFFFFFFFFu
+
+// MARK: - ML deformer (PCA decode)
+
+typedef enum{
+    mlDecodePositionsIndex,        // deformed skin positions, updated in place
+    mlDecodeNormalsIndex,
+    mlDecodeActiveIndicesIndex,    // uint per active vertex: mesh-local vertex index
+    mlDecodeDeltaMeanIndex,        // half[activeCount * 6]
+    mlDecodeBasisIndex,            // half[componentCount * activeCount * 6]
+    mlDecodeCoefficientsIndex,     // float[componentCount]
+    mlDecodeParamsIndex,
+}MLDecodeBufferIndices;
+
+// Deformation override: vertices whose deformed position and normal are
+// supplied from outside (a cloth simulation driving part of a skinned
+// mesh); runs last in the deformation pass.
+typedef enum{
+    deformOverrideIndicesIndex,    // uint per entry: mesh-local vertex index
+    deformOverridePositionsIndex,  // float4 per entry, model space
+    deformOverrideNormalsIndex,    // float4 per entry, model space
+    deformOverrideOutPositionIndex,
+    deformOverrideOutNormalIndex,
+    deformOverrideParamsIndex,
+}DeformOverrideBufferIndices;
+
+typedef struct{
+    uint count;
+}DeformOverrideParams;
+
+typedef struct{
+    unsigned int activeCount;
+    unsigned int vertexCount;
+    unsigned int componentCount;
+    float weight;                  // blend of the decoded delta (0...1)
+}MLDecodeParams;
+
 
 typedef enum{
     prePassGizmoBufferIndex,

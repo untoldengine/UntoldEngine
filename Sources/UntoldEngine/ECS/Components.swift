@@ -346,6 +346,162 @@ public class SkeletonComponent: Component {
     }
 }
 
+/// How a `DeformationComponent` entity's skin vertices are deformed each frame.
+/// - `lbs`: linear blend skinning (compute-pass port of the legacy path).
+/// - `dqs`: dual-quaternion skinning — fixes candy-wrapper collapse and
+///   volume loss at twisting joints.
+/// - `ddm`: Direct Delta Mush — smoothed rigid fit per vertex; needs a
+///   one-time per-mesh bake that runs in the background, falling back to
+///   `lbs` until ready.
+public enum SkinningMode: String, CaseIterable, Sendable {
+    case lbs
+    case dqs
+    case ddm
+}
+
+/// GPU-written deformed vertex streams for one mesh, produced by the
+/// deformation compute pass and consumed by the render passes in place of the
+/// base position/normal/tangent streams.
+final class MeshDeformationBuffers {
+    let positions: MTLBuffer
+    let normals: MTLBuffer
+    let tangents: MTLBuffer
+    let vertexCount: Int
+
+    init?(device: MTLDevice, vertexCount: Int, label: String) {
+        let length = vertexCount * MemoryLayout<simd_float4>.stride
+        guard vertexCount > 0,
+              let positions = device.makeBuffer(length: length, options: .storageModePrivate),
+              let normals = device.makeBuffer(length: length, options: .storageModePrivate),
+              let tangents = device.makeBuffer(length: length, options: .storageModePrivate)
+        else {
+            return nil
+        }
+        positions.label = "\(label) deformed positions"
+        normals.label = "\(label) deformed normals"
+        tangents.label = "\(label) deformed tangents"
+        self.positions = positions
+        self.normals = normals
+        self.tangents = tangents
+        self.vertexCount = vertexCount
+    }
+}
+
+/// Externally supplied deformed positions and normals for some vertices of
+/// a mesh (see `setEntityDeformationOverride`), triple-buffered so the CPU
+/// writes never race the frame the GPU is reading.
+final class MeshDeformationOverride {
+    static let ringCount = 3
+    let capacity: Int
+    let indices: [MTLBuffer]
+    let positions: [MTLBuffer]
+    let normals: [MTLBuffer]
+    private(set) var count = 0
+    private(set) var slot = 0
+
+    init?(device: MTLDevice, capacity: Int, label: String) {
+        guard capacity > 0 else { return nil }
+        var indices: [MTLBuffer] = []
+        var positions: [MTLBuffer] = []
+        var normals: [MTLBuffer] = []
+        for ring in 0 ..< Self.ringCount {
+            guard let i = device.makeBuffer(length: capacity * MemoryLayout<UInt32>.stride, options: .storageModeShared),
+                  let p = device.makeBuffer(length: capacity * MemoryLayout<simd_float4>.stride, options: .storageModeShared),
+                  let n = device.makeBuffer(length: capacity * MemoryLayout<simd_float4>.stride, options: .storageModeShared)
+            else { return nil }
+            i.label = "\(label) override indices \(ring)"
+            p.label = "\(label) override positions \(ring)"
+            n.label = "\(label) override normals \(ring)"
+            indices.append(i)
+            positions.append(p)
+            normals.append(n)
+        }
+        self.capacity = capacity
+        self.indices = indices
+        self.positions = positions
+        self.normals = normals
+    }
+
+    /// Writes the next slot; entries beyond the capacity are dropped.
+    func write(indices newIndices: [UInt32], positions newPositions: [simd_float3], normals newNormals: [simd_float3]) {
+        let count = min(newIndices.count, newPositions.count, newNormals.count, capacity)
+        let next = (slot + 1) % Self.ringCount
+        let indexPointer = indices[next].contents().bindMemory(to: UInt32.self, capacity: capacity)
+        let positionPointer = positions[next].contents().bindMemory(to: simd_float4.self, capacity: capacity)
+        let normalPointer = normals[next].contents().bindMemory(to: simd_float4.self, capacity: capacity)
+        for i in 0 ..< count {
+            indexPointer[i] = newIndices[i]
+            positionPointer[i] = simd_float4(newPositions[i], 1)
+            normalPointer[i] = simd_float4(newNormals[i], 0)
+        }
+        slot = next
+        self.count = count
+    }
+}
+
+/// Opts an entity's skinned meshes into the deformation compute pass.
+/// Entities without this component keep the legacy vertex-shader skinning path.
+public class DeformationComponent: Component {
+    public var skinningMode: SkinningMode = .lbs
+
+    /// Active morph-target weights by target name (see
+    /// `setEntityMorphTargetWeight`); zero-weight targets are removed.
+    var morphWeights: [String: Float] = [:]
+
+    /// Pose-space deformation: when enabled, morph targets authored with a
+    /// driver get their weight from the current pose each frame (see
+    /// `PoseDriverEvaluation`), overriding any manual weight for that target.
+    public var poseDriversEnabled: Bool = true
+    var drivenMorphWeights: [String: Float] = [:]
+
+    /// Deformed streams per mesh, keyed by the mesh's MTKMesh identity and
+    /// filled lazily by the deformation pass. Nil entries (pass not run yet,
+    /// e.g. a graph without the deformation node) leave draws on the legacy
+    /// vertex-shader path.
+    var meshDeformations: [ObjectIdentifier: MeshDeformationBuffers] = [:]
+    /// Per mesh (keyed like `meshDeformations`): vertices whose deformed
+    /// position and normal come from outside the pass.
+    var meshOverrides: [ObjectIdentifier: MeshDeformationOverride] = [:]
+    let meshOverrideLock = NSLock()
+
+    /// Volumetric muscle simulation (XPBD tet cages wrapped onto the skin);
+    /// needs a muscle rig on the skeleton. See `setEntityMuscleSimulation`.
+    public var musclesEnabled: Bool = false
+    /// Manual per-muscle activations for muscles without a driver.
+    var muscleActivations: [String: Float] = [:]
+    /// When set, every muscle uses this activation.
+    var muscleActivationOverride: Float?
+    /// Muscles that keep simulating but no longer move the skin.
+    var disabledMuscles: Set<String> = []
+    /// Model-space gravity on free muscle particles.
+    var muscleGravity = simd_float3(0, -2.0, 0)
+    var muscleSim: MuscleSimState?
+    var muscleResetRequested = false
+    var muscleBakeFailed = false
+
+    /// ML deformer: a trained network predicting the muscle skin deltas from
+    /// the pose (see `setEntityMLDeformer`).
+    public var mlDeformerEnabled: Bool = false
+    var mlDeformerWeight: Float = 1
+    var mlDeformerURL: URL?
+    var mlDeformerState: MLDeformerLoadState?
+    let mlDeformerLock = NSLock()
+
+    public required init() {}
+
+    func cleanUp() {
+        meshDeformations.removeAll()
+        morphWeights.removeAll()
+        drivenMorphWeights.removeAll()
+        muscleActivations.removeAll()
+        muscleActivationOverride = nil
+        disabledMuscles.removeAll()
+        muscleSim = nil
+        muscleBakeFailed = false
+        mlDeformerState = nil
+    }
+}
+
 /// Per-entity animation control policy.
 ///
 /// Layered animation control (see upstream discussion #801): the global
@@ -418,6 +574,11 @@ public class AnimationComponent: Component {
     var rootMotion = RootMotionState()
     var footIK = FootIKState()
     var motionMatching = MotionMatchingState()
+    var poseLayer = PoseLayerState()
+    /// Pose driven from outside the clip pipeline (see `setEntityExternalPose`).
+    var externalPose = ExternalPoseState()
+    var reachIK = ReachIKState()
+    var physicsPose = PhysicsPoseState()
 
     public required init() {}
 
@@ -437,6 +598,10 @@ public class AnimationComponent: Component {
         rootMotion = RootMotionState()
         footIK = FootIKState()
         motionMatching = MotionMatchingState()
+        poseLayer = PoseLayerState()
+        externalPose = ExternalPoseState()
+        reachIK = ReachIKState()
+        physicsPose = PhysicsPoseState()
     }
 
     /// One display name per logical animation: hidden aliases (see

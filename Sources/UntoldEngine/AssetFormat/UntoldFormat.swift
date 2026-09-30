@@ -117,8 +117,12 @@ public struct UntoldChunkType: RawRepresentable, Hashable, Sendable, Equatable {
     public static let cameraTable = UntoldChunkType(rawValue: 20)
     public static let colorManagementTable = UntoldChunkType(rawValue: 21)
     public static let colorGradeLUTTable = UntoldChunkType(rawValue: 22)
-    /// 23–24 are reserved for the morph-target channel (in flight on develop).
+    public static let morphTargetTable = UntoldChunkType(rawValue: 23)
+    public static let morphTargetData = UntoldChunkType(rawValue: 24)
     public static let gaussianAssetTable = UntoldChunkType(rawValue: 25)
+    public static let morphDriverTable = UntoldChunkType(rawValue: 26)
+    public static let muscleTable = UntoldChunkType(rawValue: 27)
+    public static let mlDeformerTable = UntoldChunkType(rawValue: 28)
 
     public static let firstPluginChunkRawValue: UInt32 = 0x8000
 
@@ -1026,5 +1030,197 @@ public struct UntoldPBRStaticVertexV1: Sendable, Equatable {
         self.uv0 = uv0
         self.uv1 = uv1
         self.color0 = color0
+    }
+}
+
+/// One morph target (blend shape) belonging to a mesh record. Entries live in
+/// the shared `morphTargetData` chunk as a contiguous run.
+public struct UntoldMorphTargetRecordV1: Sendable, Equatable {
+    /// Bit 0: entries carry normal deltas in addition to position deltas.
+    public static let flagHasNormalDeltas: UInt32 = 1 << 0
+
+    public var meshRecordIndex: UInt32
+    public var nameOffset: UInt32
+    public var flags: UInt32
+    public var firstEntryIndex: UInt32
+    public var entryCount: UInt32
+    public var positionScale: Float
+
+    public init(
+        meshRecordIndex: UInt32,
+        nameOffset: UInt32,
+        flags: UInt32 = 0,
+        firstEntryIndex: UInt32,
+        entryCount: UInt32,
+        positionScale: Float = 1.0
+    ) {
+        self.meshRecordIndex = meshRecordIndex
+        self.nameOffset = nameOffset
+        self.flags = flags
+        self.firstEntryIndex = firstEntryIndex
+        self.entryCount = entryCount
+        self.positionScale = positionScale
+    }
+}
+
+/// One sparse morph delta: a mesh-local vertex index plus float16 position
+/// and normal deltas (normal deltas zero when the target has none). 16 bytes.
+public struct UntoldMorphSparseEntryV1: Sendable, Equatable {
+    public static let byteSize = 16
+
+    public var vertexIndex: UInt32
+    /// float16 bit patterns.
+    public var dPosition: SIMD3<UInt16>
+    public var dNormal: SIMD3<UInt16>
+
+    public init(vertexIndex: UInt32, dPosition: SIMD3<UInt16>, dNormal: SIMD3<UInt16> = .zero) {
+        self.vertexIndex = vertexIndex
+        self.dPosition = dPosition
+        self.dNormal = dNormal
+    }
+}
+
+/// Pose-space driver metadata for a morph target: the target reaches full
+/// weight when the named joint's rest-relative rotation matches
+/// `poseRotation`, falling off over `radius` (quaternion geodesic distance).
+/// Authored in Blender via shape-key custom properties; evaluated by the
+/// pose-space deformation runtime.
+public struct UntoldMorphDriverRecordV1: Sendable, Equatable {
+    public var targetIndex: UInt32
+    public var jointPathOffset: UInt32
+    public var kernelType: UInt32
+    public var poseRotation: SIMD4<Float>
+    public var radius: Float
+    public var reserved0: UInt32
+
+    public init(
+        targetIndex: UInt32,
+        jointPathOffset: UInt32,
+        kernelType: UInt32 = 0,
+        poseRotation: SIMD4<Float>,
+        radius: Float
+    ) {
+        self.targetIndex = targetIndex
+        self.jointPathOffset = jointPathOffset
+        self.kernelType = kernelType
+        self.poseRotation = poseRotation
+        self.radius = radius
+        reserved0 = 0
+    }
+}
+
+/// One volumetric muscle of a skeleton: a fusiform tet cage the engine builds
+/// procedurally at load between two bone attachments, simulated with XPBD and
+/// wrapped onto the skinned surface. Joint references are joint names (the
+/// last path component) or full joint paths; offsets are in the character
+/// frame (lateral-left, up, forward) in model units. 128 bytes.
+public struct UntoldMuscleRecordV1: Sendable, Equatable {
+    public static let byteSize = 128
+    /// Bit 0: `driverJointOffset`/angles describe an activation driver.
+    public static let flagHasDriver: UInt32 = 1 << 0
+
+    public var skeletonEntityId: UInt32
+    public var nameOffset: UInt32
+    public var flags: UInt32
+    public var forwardJointOffset: UInt32
+    public var forwardTipJointOffset: UInt32
+    public var originJointOffset: UInt32
+    public var originTipJointOffset: UInt32
+    public var originFraction: Float
+    public var originOffset: SIMD3<Float>
+    public var insertionJointOffset: UInt32
+    public var insertionTipJointOffset: UInt32
+    public var insertionFraction: Float
+    public var insertionOffset: SIMD3<Float>
+    public var bellyRadius: Float
+    public var tendonRadius: Float
+    public var maxContraction: Float
+    public var fiberCompliance: Float
+    public var crossCompliance: Float
+    public var volumeCompliance: Float
+    public var damping: Float
+    public var boneRadius: Float
+    public var skinInfluence: Float
+    public var rings: UInt32
+    public var segments: UInt32
+    public var driverJointOffset: UInt32
+    public var driverStartAngle: Float
+    public var driverFullAngle: Float
+    public var reserved0: UInt32
+
+    public init(
+        skeletonEntityId: UInt32,
+        nameOffset: UInt32,
+        flags: UInt32 = 0,
+        forwardJointOffset: UInt32 = UntoldFormat.invalidIndex,
+        forwardTipJointOffset: UInt32 = UntoldFormat.invalidIndex,
+        originJointOffset: UInt32,
+        originTipJointOffset: UInt32 = UntoldFormat.invalidIndex,
+        originFraction: Float,
+        originOffset: SIMD3<Float>,
+        insertionJointOffset: UInt32,
+        insertionTipJointOffset: UInt32 = UntoldFormat.invalidIndex,
+        insertionFraction: Float,
+        insertionOffset: SIMD3<Float>,
+        bellyRadius: Float,
+        tendonRadius: Float,
+        maxContraction: Float,
+        fiberCompliance: Float,
+        crossCompliance: Float,
+        volumeCompliance: Float,
+        damping: Float,
+        boneRadius: Float,
+        skinInfluence: Float,
+        rings: UInt32,
+        segments: UInt32,
+        driverJointOffset: UInt32 = UntoldFormat.invalidIndex,
+        driverStartAngle: Float = 0,
+        driverFullAngle: Float = 0
+    ) {
+        self.skeletonEntityId = skeletonEntityId
+        self.nameOffset = nameOffset
+        self.flags = flags
+        self.forwardJointOffset = forwardJointOffset
+        self.forwardTipJointOffset = forwardTipJointOffset
+        self.originJointOffset = originJointOffset
+        self.originTipJointOffset = originTipJointOffset
+        self.originFraction = originFraction
+        self.originOffset = originOffset
+        self.insertionJointOffset = insertionJointOffset
+        self.insertionTipJointOffset = insertionTipJointOffset
+        self.insertionFraction = insertionFraction
+        self.insertionOffset = insertionOffset
+        self.bellyRadius = bellyRadius
+        self.tendonRadius = tendonRadius
+        self.maxContraction = maxContraction
+        self.fiberCompliance = fiberCompliance
+        self.crossCompliance = crossCompliance
+        self.volumeCompliance = volumeCompliance
+        self.damping = damping
+        self.boneRadius = boneRadius
+        self.skinInfluence = skinInfluence
+        self.rings = rings
+        self.segments = segments
+        self.driverJointOffset = driverJointOffset
+        self.driverStartAngle = driverStartAngle
+        self.driverFullAngle = driverFullAngle
+        reserved0 = 0
+    }
+}
+
+/// Links a skeleton to a trained ML deformer payload (`.untoldml`, path
+/// relative to the asset's directory). 16 bytes. The runtime also picks up
+/// `<asset>.untoldml` next to the file without a record.
+public struct UntoldMLDeformerRecordV1: Sendable, Equatable {
+    public var skeletonEntityId: UInt32
+    public var payloadPathOffset: UInt32
+    public var flags: UInt32
+    public var reserved0: UInt32
+
+    public init(skeletonEntityId: UInt32, payloadPathOffset: UInt32, flags: UInt32 = 0) {
+        self.skeletonEntityId = skeletonEntityId
+        self.payloadPathOffset = payloadPathOffset
+        self.flags = flags
+        reserved0 = 0
     }
 }

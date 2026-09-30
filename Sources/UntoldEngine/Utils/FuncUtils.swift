@@ -934,6 +934,28 @@ func updateMaterialTexture(
     }
 }
 
+/// Names of `entityId`'s meshes in slot order (the asset's primitive names
+/// for native assets), for addressing material slots by content.
+public func getEntityMeshNames(entityId: EntityID) -> [String] {
+    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else { return [] }
+    return renderComponent.mesh.map(\.name)
+}
+
+/// Number of material slots (submeshes) in mesh `meshIndex` of `entityId`.
+public func getEntitySubmeshCount(entityId: EntityID, meshIndex: Int) -> Int {
+    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId),
+          renderComponent.mesh.indices.contains(meshIndex)
+    else { return 0 }
+    return renderComponent.mesh[meshIndex].submeshes.count
+}
+
+/// Name of a material slot's base colour texture as the asset records it
+/// (falls back to the file name of its URL), or nil without one.
+public func getMaterialBaseColorTextureName(entityId: EntityID, meshIndex: Int = 0, submeshIndex: Int = 0) -> String? {
+    guard let material = getMaterial(entityId: entityId, meshIndex: meshIndex, submeshIndex: submeshIndex) else { return nil }
+    return material.baseColorTextureName ?? material.baseColorURL?.lastPathComponent
+}
+
 public func getMaterialTextureURL(
     entityId: EntityID,
     type: TextureType,

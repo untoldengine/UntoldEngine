@@ -22,6 +22,23 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
         try await super.tearDown()
     }
 
+    // MARK: - Deformation ahead of the shadows
+
+    func testUpdateRenderingSystem_ShadowFollowsDeformationInEveryMode() throws {
+        // The deformation pass skins the meshes the shadow passes draw: it
+        // takes the shadow pass's place at the head of the chain, and the
+        // shadow pass follows it, whatever the background.
+        for (style, environment) in [(UntoldImmersionMode.none, true), (.none, false), (.ar, false)] {
+            renderInfo.immersionStyle = style
+            renderEnvironment = environment
+            let (graph, _) = try buildGameModeGraph()
+
+            XCTAssertNotNil(graph["deformation"], "Deformation pass should exist")
+            XCTAssertEqual(graph["shadow"]?.dependencies, ["deformation"],
+                           "Shadow should follow the deformation pass")
+        }
+    }
+
     // MARK: - UpdateRenderingSystem Environment Mode Tests
 
     func testUpdateRenderingSystem_EnvironmentModeConfiguresRenderGraphCorrectly() throws {
@@ -49,9 +66,9 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
         // Verify the final pass ID is correct
         XCTAssertEqual(finalPassID, "outputTransform", "Final pass ID should be outputTransform")
 
-        // Verify shadow depends on environment
-        XCTAssertEqual(graph["shadow"]?.dependencies, ["environment"],
-                       "Shadow should depend on environment in environment mode")
+        // Verify the shadow chain (headed by the deformation pass) depends on environment
+        XCTAssertEqual(graph["deformation"]?.dependencies, ["environment"],
+                       "Deformation should depend on environment in environment mode")
 
         // Verify the graph can be topologically sorted
         let sortedPasses = try topologicalSortGraph(graph: graph)
@@ -118,9 +135,9 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
         // Verify the final pass ID is correct
         XCTAssertEqual(finalPassID, "outputTransform", "Final pass ID should be outputTransform")
 
-        // Verify shadow depends on grid
-        XCTAssertEqual(graph["shadow"]?.dependencies, ["grid"],
-                       "Shadow should depend on grid in grid mode")
+        // Verify the shadow chain (headed by the deformation pass) depends on grid
+        XCTAssertEqual(graph["deformation"]?.dependencies, ["grid"],
+                       "Deformation should depend on grid in grid mode")
 
         // Verify the graph can be topologically sorted
         let sortedPasses = try topologicalSortGraph(graph: graph)
@@ -185,9 +202,9 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
 
         XCTAssertEqual(finalPassID, "outputTransform", "Final pass ID should be outputTransform")
 
-        // Verify shadow depends on sky
-        XCTAssertEqual(graph["shadow"]?.dependencies, ["sky"],
-                       "Shadow should depend on sky in sky mode")
+        // Verify the shadow chain (headed by the deformation pass) depends on sky
+        XCTAssertEqual(graph["deformation"]?.dependencies, ["sky"],
+                       "Deformation should depend on sky in sky mode")
 
         let sortedPasses = try topologicalSortGraph(graph: graph)
         XCTAssertTrue(sortedPasses.count > 0, "Sorted passes should not be empty")
@@ -338,14 +355,14 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
         renderSkyBackground = false
         let (gridGraph, _) = try buildGameModeGraph()
 
-        // Both should have shadow pass, but with different dependencies
+        // Both should have shadow pass; the deformation pass ahead of it has different dependencies
         XCTAssertNotNil(envGraph["shadow"], "Environment graph should have shadow pass")
         XCTAssertNotNil(gridGraph["shadow"], "Grid graph should have shadow pass")
 
-        XCTAssertEqual(envGraph["shadow"]?.dependencies, ["environment"],
-                       "In environment mode, shadow should depend on environment")
-        XCTAssertEqual(gridGraph["shadow"]?.dependencies, ["grid"],
-                       "In grid mode, shadow should depend on grid")
+        XCTAssertEqual(envGraph["deformation"]?.dependencies, ["environment"],
+                       "In environment mode, deformation should depend on environment")
+        XCTAssertEqual(gridGraph["deformation"]?.dependencies, ["grid"],
+                       "In grid mode, deformation should depend on grid")
     }
 
     // MARK: - Integration Tests

@@ -965,9 +965,11 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
         XCTAssertNotNil(graph["grid"], "Grid pass should exist when renderEnvironment is false")
         XCTAssertNil(graph["environment"], "Environment pass should not exist")
 
-        // Shadow should depend on grid
-        XCTAssertEqual(graph["shadow"]?.dependencies, ["grid"],
-                       "Shadow should depend on grid in grid mode")
+        // The deformation pre-pass sits between the base pass and shadow
+        XCTAssertEqual(graph["deformation"]?.dependencies, ["grid"],
+                       "Deformation should depend on grid in grid mode")
+        XCTAssertEqual(graph["shadow"]?.dependencies, ["deformation"],
+                       "Shadow should depend on deformation")
     }
 
     func testBuildGameModeGraph_XRPassthroughMode() throws {
@@ -978,9 +980,11 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
         XCTAssertNil(graph["environment"], "Environment pass should not exist in passthrough mode")
         XCTAssertNil(graph["grid"], "Grid pass should not exist in passthrough mode")
 
-        // Shadow should have no base pass dependency
-        XCTAssertEqual(graph["shadow"]?.dependencies, [],
-                       "Shadow should have no dependencies in passthrough mode")
+        // No base pass: the deformation pre-pass has no dependency
+        XCTAssertEqual(graph["deformation"]?.dependencies, [],
+                       "Deformation should have no dependencies in passthrough mode")
+        XCTAssertEqual(graph["shadow"]?.dependencies, ["deformation"],
+                       "Shadow should depend on deformation")
     }
 
     func testBuildGameModeGraph_XRFullImmersionMode() throws {
@@ -991,9 +995,11 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
         XCTAssertNotNil(graph["environment"], "Environment pass should exist in full immersion mode")
         XCTAssertNil(graph["grid"], "Grid pass should not exist in full immersion mode")
 
-        // Shadow should depend on environment
-        XCTAssertEqual(graph["shadow"]?.dependencies, ["environment"],
-                       "Shadow should depend on environment in full immersion mode")
+        // The deformation pre-pass depends on environment, shadow on it
+        XCTAssertEqual(graph["deformation"]?.dependencies, ["environment"],
+                       "Deformation should depend on environment in full immersion mode")
+        XCTAssertEqual(graph["shadow"]?.dependencies, ["deformation"],
+                       "Shadow should depend on deformation")
     }
 
     func testBuildGameModeGraph_ValidTopologicalOrder() throws {
@@ -1017,7 +1023,8 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
             ("lightPass", "transparency"),
             ("transparency", "wireframe"),
             ("wireframe", "spatialDebug"),
-            ("spatialDebug", "depthOfField"),
+            ("spatialDebug", "muscleDebug"),
+            ("muscleDebug", "depthOfField"),
             ("depthOfField", "chromatic"),
             ("chromatic", "bloomThreshold"),
             ("bloomThreshold", "precomp"),
@@ -1043,8 +1050,10 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
         XCTAssertEqual(graph["spatialDebug"]?.dependencies, ["wireframe"],
                        "Spatial debug pass should depend on wireframe")
         XCTAssertNotNil(graph["postProcessBypass"], "Bypass pass should exist when bypassPostProcessing is enabled")
-        XCTAssertEqual(graph["postProcessBypass"]?.dependencies, ["spatialDebug"],
-                       "Bypass pass should depend on spatialDebug")
+        XCTAssertEqual(graph["muscleDebug"]?.dependencies, ["spatialDebug"],
+                       "Muscle debug pass should depend on spatialDebug")
+        XCTAssertEqual(graph["postProcessBypass"]?.dependencies, ["muscleDebug"],
+                       "Bypass pass should depend on muscleDebug")
         XCTAssertNotNil(graph["look"], "Look pass should exist when bypassing post-processing")
         XCTAssertNotNil(graph["fxaa"], "FXAA pass should exist when bypassing post-processing")
         XCTAssertNotNil(graph["outputTransform"], "Output transform should exist when bypassing post-processing")
@@ -1433,14 +1442,14 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
 
         let (graph, _) = try buildGameModeGraph()
 
-        XCTAssertEqual(graph["test.beforePostProcess"]?.dependencies, ["spatialDebug"])
+        XCTAssertEqual(graph["test.beforePostProcess"]?.dependencies, ["muscleDebug"])
         XCTAssertEqual(graph["depthOfField"]?.dependencies, ["test.beforePostProcess"],
                        "Post-processing should start after beforePostProcess extension passes")
 
         let sorted = try topologicalSortGraph(graph: graph)
         let order = sorted.map(\.id)
         assertTopologicalConstraints(order: order, constraints: [
-            ("spatialDebug", "test.beforePostProcess"),
+            ("muscleDebug", "test.beforePostProcess"),
             ("test.beforePostProcess", "depthOfField"),
         ])
     }
@@ -1602,7 +1611,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
             ("test.stage.beforeTransparency", "transparency"),
             ("transparency", "test.stage.afterTransparency"),
             ("test.stage.afterTransparency", "wireframe"),
-            ("spatialDebug", "test.stage.beforePostProcess"),
+            ("muscleDebug", "test.stage.beforePostProcess"),
             ("test.stage.beforePostProcess", "postProcessBypass"),
             ("postProcessBypass", "test.stage.afterPostProcess"),
             ("test.stage.afterPostProcess", "test.stage.beforeComposite"),
