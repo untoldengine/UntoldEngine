@@ -682,6 +682,25 @@ class TileStreamingPartitionTests(unittest.TestCase):
         finally:
             t.COLOR_GRADE_LUT_PATH = previous
 
+    def test_main_starts_every_run_with_a_new_texture_write_memory(self) -> None:
+        """The add-on runs several tiled exports in one Blender session. What one of
+        them found out about a texture must not reach the next."""
+        earlier = t.TEXTURE_WRITE_FAILURES
+        earlier.left_out["image:floor_normal.jpg"] = "could not be written in an earlier export"
+        seen_by_run = []
+        original_run, original_apply_cli_overrides = t.run, t.apply_cli_overrides
+        t.run = lambda: seen_by_run.append(t.TEXTURE_WRITE_FAILURES)
+        t.apply_cli_overrides = lambda args: None
+        try:
+            self.assertEqual(t.main(["script.py"]), 0)
+        finally:
+            t.run, t.apply_cli_overrides = original_run, original_apply_cli_overrides
+
+        self.assertEqual(len(seen_by_run), 1)
+        self.assertIsNot(seen_by_run[0], earlier)
+        self.assertEqual(seen_by_run[0].left_out, {})
+        self.assertEqual(seen_by_run[0].written_from_copy, {})
+
     def test_manifest_color_grade_lut_payload_none_when_not_staged(self) -> None:
         self.assertIsNone(t._manifest_color_grade_lut_payload(None))
 

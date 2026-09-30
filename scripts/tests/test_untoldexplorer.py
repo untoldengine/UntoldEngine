@@ -1638,9 +1638,21 @@ def _fake_bpy_for_images(images: FakeImages) -> FakeData:
     )
 
 
-def _make_node_with_normal_map(image_name: str) -> "u.ExportedNode":
-    """One material-split fragment of the object 'Floor', whose material uses a normal map."""
+def _make_node_with_normal_map(
+    image_name: str, object_name: str = "Floor", *, as_inverted_roughness: bool = False
+) -> "u.ExportedNode":
+    """One material-split fragment of an object whose material uses the image as its
+    normal map, or inverted as its roughness map."""
     bounds = u.AABB(minimum=(0.0, 0.0, 0.0), maximum=(1.0, 1.0, 1.0))
+    texture = u.ExportedTexture(
+        name="floor_normal.jpg",
+        uri="../textures/floor_normal.jpg",
+        width=1,
+        height=1,
+        mip_count=1,
+        source_path=Path("/nonexistent/textures/floor_normal.jpg"),
+        source_image_name=image_name,
+    )
     material = u.ExportedMaterial(
         name="garage_floor",
         base_color_factor=(1.0, 1.0, 1.0, 1.0),
@@ -1651,20 +1663,13 @@ def _make_node_with_normal_map(image_name: str) -> "u.ExportedNode":
         occlusion_strength=1.0,
         alpha_cutoff=0.5,
         base_color_texture=None,
-        normal_texture=u.ExportedTexture(
-            name="floor_normal.jpg",
-            uri="../textures/floor_normal.jpg",
-            width=1,
-            height=1,
-            mip_count=1,
-            source_path=Path("/nonexistent/textures/floor_normal.jpg"),
-            source_image_name=image_name,
-        ),
+        normal_texture=None if as_inverted_roughness else texture,
+        roughness_texture=u.replace(texture, invert=True) if as_inverted_roughness else None,
     )
     mesh = u.ExportedMesh(
-        entity_name="Floor_mat0",
+        entity_name=f"{object_name}_mat0",
         parent_entity_name=None,
-        mesh_name="Floor",
+        mesh_name=object_name,
         local_transform_rows=u.identity_matrix_rows(),
         local_bounds=bounds,
         world_bounds=bounds,
@@ -1678,7 +1683,7 @@ def _make_node_with_normal_map(image_name: str) -> "u.ExportedNode":
         material=material,
         skin_binding=None,
         validation_mesh=u.ValidationMesh(
-            name="Floor",
+            name=object_name,
             vertex_count=0,
             index_count=0,
             positions=[],
@@ -1690,13 +1695,13 @@ def _make_node_with_normal_map(image_name: str) -> "u.ExportedNode":
         ),
     )
     return u.ExportedNode(
-        entity_name="Floor_mat0",
+        entity_name=f"{object_name}_mat0",
         parent_entity_name=None,
         local_transform_rows=u.identity_matrix_rows(),
         local_bounds=bounds,
         world_bounds=bounds,
         mesh=mesh,
-        material_split_root_name="Floor",
+        material_split_root_name=object_name,
     )
 
 
@@ -1714,12 +1719,21 @@ class TextureWriteFailureTests(unittest.TestCase):
         self.original_bpy = u.bpy
         self.tmpdir = tempfile.TemporaryDirectory()
         self.output_dir = Path(self.tmpdir.name)
-        u._images_written_from_copy.clear()
 
     def tearDown(self) -> None:
         u.bpy = self.original_bpy
-        u._images_written_from_copy.clear()
         self.tmpdir.cleanup()
+
+    def stage_model(self, object_name: str, **staging) -> tuple["u.ExportedMaterial", str]:
+        """Stage one model of a pack: the object, with the texture of 'floor_normal.jpg'.
+        Returns its staged material and what the staging printed."""
+        with contextlib.redirect_stdout(io.StringIO()) as output:
+            staged_nodes = u.stage_nodes_for_output(
+                [_make_node_with_normal_map("floor_normal.jpg", object_name)],
+                self.output_dir / object_name / f"{object_name}.untold",
+                **staging,
+            )
+        return staged_nodes[0].mesh.material, output.getvalue()
 
     def test_png_is_complete_rejects_the_header_only_file(self) -> None:
         header_only = self.output_dir / "header_only.png"
@@ -1783,9 +1797,7 @@ class TextureWriteFailureTests(unittest.TestCase):
         self.assertIn("floor_normal.jpg", output.getvalue())
         self.assertIn("Could not write image: internal error, see console", output.getvalue())
 
-    def test_image_that_failed_once_goes_straight_to_the_copy(self) -> None:
-        """A pack writes a texture once for every model that uses it. Only the first of
-        them should pay for the failed attempt and show Blender's error output."""
+    def test_handing_the_problem_back_goes_straight_to_the_copy(self) -> None:
         source = FakeWritableImage("floor_normal.jpg", save="fails")
         images = FakeImages(source, copies_save="works")
         u.bpy = _fake_bpy_for_images(images)
@@ -1793,10 +1805,12 @@ class TextureWriteFailureTests(unittest.TestCase):
         second = self.output_dir / "Wall" / "Textures" / "floor_normal.png"
 
         with contextlib.redirect_stdout(io.StringIO()) as first_output:
-            u.write_blender_image_to_path("floor_normal.jpg", first)
+            problem = u.write_blender_image_to_path("floor_normal.jpg", first)
         with contextlib.redirect_stdout(io.StringIO()) as second_output:
-            u.write_blender_image_to_path("floor_normal.jpg", second)
+            problem_again = u.write_blender_image_to_path("floor_normal.jpg", second, failed_write_problem=problem)
 
+        self.assertEqual(problem, "Error: Could not write image: internal error, see console")
+        self.assertEqual(problem_again, problem)
         self.assertTrue(u._png_is_complete(first))
         self.assertTrue(u._png_is_complete(second))
         self.assertEqual(source.save_count, 1, "the write that fails must not be tried again")
@@ -1804,6 +1818,106 @@ class TextureWriteFailureTests(unittest.TestCase):
         self.assertEqual(images.removed, images.created)
         self.assertNotEqual(first_output.getvalue(), "")
         self.assertEqual(second_output.getvalue(), "")
+
+    def test_write_remembers_nothing_by_itself(self) -> None:
+        """What is known about an image belongs to the export that found it out. Kept by
+        the module, it would outlive the export: the add-on runs many in one Blender
+        session, and the next one may meet another image by the same name."""
+        source = FakeWritableImage("floor_normal.jpg", save="fails")
+        images = FakeImages(source, copies_save="works")
+        u.bpy = _fake_bpy_for_images(images)
+
+        outputs = []
+        for folder in ("first_export", "second_export"):
+            with contextlib.redirect_stdout(io.StringIO()) as output:
+                u.write_blender_image_to_path("floor_normal.jpg", self.output_dir / folder / "floor_normal.png")
+            outputs.append(output.getvalue())
+
+        self.assertEqual(source.save_count, 2, "each export must try the ordinary write for itself")
+        self.assertIn("Blender could not write image", outputs[0])
+        self.assertIn("Blender could not write image", outputs[1])
+
+    def test_pack_tries_the_failing_write_once_for_all_its_models(self) -> None:
+        """A pack writes a texture once for every model that uses it. Only the first of
+        them should pay for the failed attempt and show Blender's error output."""
+        source = FakeWritableImage("floor_normal.jpg", save="fails")
+        u.bpy = _fake_bpy_for_images(FakeImages(source, copies_save="works"))
+        write_failures = u.TextureWriteFailures()
+
+        floor, floor_output = self.stage_model("Floor", write_failures=write_failures)
+        wall, wall_output = self.stage_model("Wall", write_failures=write_failures)
+
+        self.assertEqual(source.save_count, 1)
+        self.assertIn("Blender could not write image", floor_output)
+        self.assertEqual(wall_output, "")
+        for object_name, material in (("Floor", floor), ("Wall", wall)):
+            self.assertEqual(material.normal_texture.uri, "Textures/floor_normal.png")
+            self.assertTrue(u._png_is_complete(self.output_dir / object_name / "Textures" / "floor_normal.png"))
+
+    def test_export_does_not_inherit_what_another_one_found_out(self) -> None:
+        source = FakeWritableImage("floor_normal.jpg", save="fails")
+        u.bpy = _fake_bpy_for_images(FakeImages(source, copies_save="works"))
+
+        _, first_output = self.stage_model("Floor")
+        _, second_output = self.stage_model("Wall")
+
+        self.assertEqual(source.save_count, 2)
+        self.assertIn("Blender could not write image", first_output)
+        self.assertIn("Blender could not write image", second_output)
+
+    def test_pack_tries_an_unwritable_texture_once_and_reports_it_for_every_model(self) -> None:
+        """A texture that cannot be written at all must not go through both attempts,
+        and Blender's error output, again for every model that uses it."""
+        source = FakeWritableImage("floor_normal.jpg", save="fails")
+        images = FakeImages(source, copies_save="fails")
+        u.bpy = _fake_bpy_for_images(images)
+        write_failures = u.TextureWriteFailures()
+        skipped_textures: list[str] = []
+        staging = {"write_failures": write_failures, "skipped_textures": skipped_textures}
+
+        floor, floor_output = self.stage_model("Floor", **staging)
+        wall, wall_output = self.stage_model("Wall", **staging)
+
+        self.assertEqual(source.save_count, 1)
+        self.assertEqual(len(images.created), 1)
+        self.assertIsNone(floor.normal_texture)
+        self.assertIsNone(wall.normal_texture)
+        self.assertIn("Blender could not write image", floor_output)
+        self.assertNotIn("Blender could not write image", wall_output)
+        self.assertEqual(len(skipped_textures), 2)
+        self.assertIn("object 'Floor'", skipped_textures[0])
+        self.assertIn("object 'Wall'", skipped_textures[1])
+        self.assertIn(f"  Warning: {skipped_textures[1]}", wall_output)
+        for object_name in ("Floor", "Wall"):
+            self.assertEqual(list((self.output_dir / object_name / "Textures").iterdir()), [])
+
+    def test_inverted_use_of_an_image_shares_what_is_known_about_it(self) -> None:
+        source = FakeWritableImage("floor_normal.jpg", save="fails")
+        u.bpy = _fake_bpy_for_images(FakeImages(source, copies_save="fails"))
+        write_failures = u.TextureWriteFailures()
+
+        self.stage_model("Floor", write_failures=write_failures)
+        with contextlib.redirect_stdout(io.StringIO()):
+            staged_nodes = u.stage_nodes_for_output(
+                [_make_node_with_normal_map("floor_normal.jpg", "Wall", as_inverted_roughness=True)],
+                self.output_dir / "Wall" / "Wall.untold",
+                write_failures=write_failures,
+            )
+
+        self.assertIsNone(staged_nodes[0].mesh.material.roughness_texture)
+        self.assertEqual(source.save_count, 1, "the image fails to write whether or not it is inverted afterwards")
+
+    def test_texture_that_has_no_pixel_data_is_not_a_write_failure(self) -> None:
+        source = FakeWritableImage("floor_normal.jpg", save="works")
+        source.size = (0, 0)
+        u.bpy = _fake_bpy_for_images(FakeImages(source, copies_save="works"))
+        write_failures = u.TextureWriteFailures()
+
+        material, _ = self.stage_model("Floor", write_failures=write_failures)
+
+        self.assertIsNone(material.normal_texture)
+        self.assertEqual(write_failures.left_out, {})
+        self.assertEqual(write_failures.written_from_copy, {})
 
     def test_silently_truncated_file_is_retried_too(self) -> None:
         source = FakeWritableImage("floor_normal.jpg", save="truncates")
@@ -1825,8 +1939,9 @@ class TextureWriteFailureTests(unittest.TestCase):
         destination = self.output_dir / "floor_normal.png"
 
         with contextlib.redirect_stdout(io.StringIO()) as output:
-            u.write_blender_image_to_path("floor_normal.jpg", destination)
+            problem = u.write_blender_image_to_path("floor_normal.jpg", destination)
 
+        self.assertIsNone(problem)
         self.assertTrue(u._png_is_complete(destination))
         self.assertEqual(images.created, [])
         self.assertEqual(output.getvalue(), "")
