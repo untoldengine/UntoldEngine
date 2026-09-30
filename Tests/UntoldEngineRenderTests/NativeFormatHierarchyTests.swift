@@ -203,6 +203,126 @@ final class NativeFormatHierarchyRegistrationTests: BaseRenderSetup {
             }
         }
     }
+
+    // MARK: - #1273: armature-root collapse
+
+    func testSetEntityMesh_collapsesArmatureRootWithNonIdentityTransform() async throws {
+        // redplayer.untold's real armature transform happens to be identity, which
+        // can't catch a composition-order bug (wrong side of an inverse(), etc.) --
+        // an identity matrix divides out either way. This fixture gives the armature
+        // a real rotation + translation so the collapsed entity's final transform
+        // only matches if the engine composes armature-local x mesh-local in the
+        // right order, the same way NativeFormatLoader defines node.worldTransform.
+        let armatureRotation = simd_quatf(angle: .pi / 2, axis: SIMD3<Float>(0, 0, 1))
+        var armatureLocal = simd_float4x4(armatureRotation)
+        armatureLocal.columns.3 = simd_float4(5, 0, 0, 1)
+        let meshLocal = translationMatrix(x: 0, y: 2, z: 0)
+
+        let fixture = try makeRiggedUntoldFixture(armatureLocalTransform: armatureLocal, meshLocalTransforms: [meshLocal])
+        let originalResourceURLFn = LoadingSystem.shared.resourceURLFn
+        LoadingSystem.shared.resourceURLFn = { name, ext, _ in
+            guard name == "rigged", ext == "untold" else { return nil }
+            return fixture.url
+        }
+        defer { LoadingSystem.shared.resourceURLFn = originalResourceURLFn }
+
+        let rootEntity = createEntity()
+        setEntityName(entityId: rootEntity, name: "RiggedRoot")
+
+        let loadExp = expectation(description: "rigged fixture loaded")
+        setEntityMeshAsync(entityId: rootEntity, filename: "rigged", withExtension: "untold") { _ in loadExp.fulfill() }
+        await fulfillment(of: [loadExp], timeout: 10)
+
+        // No child entities: armature and skeleton scaffolding both collapse onto rootEntity.
+        // (This fixture doesn't wire up an actual skin/SkeletonComponent -- that propagation
+        // path is covered separately by testSetEntityMesh_doesNotCreateDeadSkeletonEntity
+        // against the real redplayer.untold asset. This test is purely about transform math.)
+        XCTAssertTrue(getEntityChildren(parentId: rootEntity).isEmpty)
+        XCTAssertTrue(hasComponent(entityId: rootEntity, componentType: RenderComponent.self))
+        XCTAssertFalse(hasComponent(entityId: rootEntity, componentType: AssetInstanceComponent.self),
+                        "Nothing but rig scaffolding remains, so there's no real hierarchy left to mark")
+
+        let expected = simd_mul(armatureLocal, meshLocal)
+        let actualPosition = getLocalPosition(entityId: rootEntity)
+        let actualOrientation = getLocalOrientation(entityId: rootEntity)
+        var actual = matrix_identity_float4x4
+        actual.columns.0 = simd_float4(actualOrientation.columns.0, 0)
+        actual.columns.1 = simd_float4(actualOrientation.columns.1, 0)
+        actual.columns.2 = simd_float4(actualOrientation.columns.2, 0)
+        actual.columns.3 = simd_float4(actualPosition, 1)
+
+        XCTAssertTrue(transformsApproximatelyEqualForTest(actual, expected, epsilon: 0.001),
+                      "Collapsed entity transform \(actual) does not match armature-local x mesh-local \(expected)")
+    }
+
+    func testSetEntityMesh_collapsesArmatureRootForMultiMeshRig() async throws {
+        // Same armature-root collapse, but with 2 meshes under the armature so
+        // structuralNodes.count > 1 and each mesh takes the createEntity() +
+        // basis-composition branch instead of the single-mesh reuse-entityId branch
+        // exercised by the test above -- a different code path in the fix. The
+        // basis in that branch resolves to the *asset's own rootTransform* here
+        // (Armature is top-level), so rootTransform must be non-identity too --
+        // otherwise composing against an identity basis can't tell a correct
+        // inverse(basis) x world from a wrong world x inverse(basis) apart.
+        let rootTransform = simd_float4x4(simd_quatf(angle: .pi / 2, axis: SIMD3<Float>(1, 0, 0)))
+        let armatureRotation = simd_quatf(angle: .pi / 2, axis: SIMD3<Float>(0, 1, 0))
+        var armatureLocal = simd_float4x4(armatureRotation)
+        armatureLocal.columns.3 = simd_float4(1, 2, 3, 1)
+        let mesh0Local = translationMatrix(x: 4, y: 0, z: 0)
+        let mesh1Local = translationMatrix(x: 0, y: 0, z: 4)
+
+        let fixture = try makeRiggedUntoldFixture(
+            rootTransform: rootTransform,
+            armatureLocalTransform: armatureLocal,
+            meshLocalTransforms: [mesh0Local, mesh1Local]
+        )
+        let originalResourceURLFn = LoadingSystem.shared.resourceURLFn
+        LoadingSystem.shared.resourceURLFn = { name, ext, _ in
+            guard name == "riggedMulti", ext == "untold" else { return nil }
+            return fixture.url
+        }
+        defer { LoadingSystem.shared.resourceURLFn = originalResourceURLFn }
+
+        let rootEntity = createEntity()
+        setEntityName(entityId: rootEntity, name: "RiggedMultiRoot")
+
+        let loadExp = expectation(description: "multi-mesh rigged fixture loaded")
+        setEntityMeshAsync(entityId: rootEntity, filename: "riggedMulti", withExtension: "untold") { _ in loadExp.fulfill() }
+        await fulfillment(of: [loadExp], timeout: 10)
+
+        // Armature and skeleton scaffolding both vanish; only the 2 meshes become
+        // direct children of rootEntity (no intermediate Armature entity).
+        let children = getEntityChildren(parentId: rootEntity)
+        XCTAssertEqual(children.count, 2)
+        XCTAssertTrue(hasComponent(entityId: rootEntity, componentType: AssetInstanceComponent.self),
+                      "2 real mesh nodes remain, so the preserved-hierarchy flag should still be set")
+
+        let meshByName = Dictionary(uniqueKeysWithValues: children.map { (getEntityName(entityId: $0), $0) })
+        let expectations: [(String, simd_float4x4)] = [
+            (fixture.meshNodeNames[0], simd_mul(armatureLocal, mesh0Local)),
+            (fixture.meshNodeNames[1], simd_mul(armatureLocal, mesh1Local)),
+        ]
+
+        for (name, expected) in expectations {
+            guard let meshEntity = meshByName[name] else {
+                XCTFail("Missing child entity for mesh node '\(name)'")
+                continue
+            }
+            XCTAssertTrue(hasComponent(entityId: meshEntity, componentType: RenderComponent.self))
+            XCTAssertEqual(getEntityParent(entityId: meshEntity), rootEntity)
+
+            let actualPosition = getLocalPosition(entityId: meshEntity)
+            let actualOrientation = getLocalOrientation(entityId: meshEntity)
+            var actual = matrix_identity_float4x4
+            actual.columns.0 = simd_float4(actualOrientation.columns.0, 0)
+            actual.columns.1 = simd_float4(actualOrientation.columns.1, 0)
+            actual.columns.2 = simd_float4(actualOrientation.columns.2, 0)
+            actual.columns.3 = simd_float4(actualPosition, 1)
+
+            XCTAssertTrue(transformsApproximatelyEqualForTest(actual, expected, epsilon: 0.001),
+                          "'\(name)' transform \(actual) does not match armature-local x mesh-local \(expected)")
+        }
+    }
 }
 
 private func collectDescendantEntities(from root: EntityID) -> [EntityID] {
@@ -357,20 +477,194 @@ private func makeHierarchicalUntoldFixture() throws -> HierarchicalUntoldFixture
     return HierarchicalUntoldFixture(url: outputURL)
 }
 
+private struct RiggedUntoldFixture {
+    let url: URL
+    let meshNodeNames: [String]
+}
+
+/// Builds a synthetic rigged `.untold` fixture mirroring the real exporter's
+/// shape for a rigged character: Armature (SkelRoot, `armatureLocalTransform`,
+/// no primitives) -> [ArmatureSkeleton (dead skeleton-data node, no primitives),
+/// Mesh0, Mesh1, ... (one entity per entry in `meshLocalTransforms`)]. Used to
+/// exercise #1273's armature-root collapse with a non-identity armature
+/// transform and/or multiple mesh children -- both untested by the real
+/// redplayer.untold fixture, whose armature happens to be identity and which
+/// only has one mesh.
+private func makeRiggedUntoldFixture(
+    rootTransform: simd_float4x4 = matrix_identity_float4x4,
+    armatureLocalTransform: simd_float4x4,
+    meshLocalTransforms: [simd_float4x4]
+) throws -> RiggedUntoldFixture {
+    let meshNodeNames = (0 ..< meshLocalTransforms.count).map { "Mesh\($0)" }
+    let stringTable = makeStringTable(
+        ["Armature", "ArmatureSkeleton"] + meshNodeNames + ["SharedPrimitive", "SharedMaterial"]
+    )
+
+    let unitBounds = UntoldAABB(min: SIMD3<Float>(-0.5, -0.5, -0.5), max: SIMD3<Float>(0.5, 0.5, 0.5))
+
+    let armatureEntity = UntoldEntityRecordV1(
+        entityId: 0,
+        parentEntityId: UntoldFormat.invalidIndex,
+        nameOffset: stringTable.offsets["Armature"] ?? UntoldFormat.invalidIndex,
+        firstMeshRecordIndex: 0,
+        meshRecordCount: 0,
+        flags: 0,
+        localBounds: unitBounds,
+        worldBounds: unitBounds,
+        localTransform: armatureLocalTransform
+    )
+
+    let skeletonEntity = UntoldEntityRecordV1(
+        entityId: 1,
+        parentEntityId: 0,
+        nameOffset: stringTable.offsets["ArmatureSkeleton"] ?? UntoldFormat.invalidIndex,
+        firstMeshRecordIndex: 0,
+        meshRecordCount: 0,
+        flags: 0,
+        localBounds: unitBounds,
+        worldBounds: unitBounds,
+        localTransform: matrix_identity_float4x4
+    )
+
+    let meshEntities = meshLocalTransforms.enumerated().map { index, localTransform in
+        UntoldEntityRecordV1(
+            entityId: UInt32(2 + index),
+            parentEntityId: 0,
+            nameOffset: stringTable.offsets[meshNodeNames[index]] ?? UntoldFormat.invalidIndex,
+            firstMeshRecordIndex: UInt32(index),
+            meshRecordCount: 1,
+            flags: 0,
+            localBounds: unitBounds,
+            worldBounds: unitBounds,
+            localTransform: localTransform
+        )
+    }
+
+    let material = UntoldMaterialRecordV1(
+        nameOffset: stringTable.offsets["SharedMaterial"] ?? UntoldFormat.invalidIndex,
+        flags: 0,
+        baseColorFactor: SIMD4<Float>(1, 1, 1, 1),
+        emissiveFactor: SIMD3<Float>(0, 0, 0),
+        normalScale: 1.0,
+        metallicFactor: 0.0,
+        roughnessFactor: 1.0,
+        occlusionStrength: 1.0,
+        alphaCutoff: 0.5,
+        baseColorTextureIndex: UntoldFormat.invalidIndex,
+        normalTextureIndex: UntoldFormat.invalidIndex,
+        metallicTextureIndex: UntoldFormat.invalidIndex,
+        roughnessTextureIndex: UntoldFormat.invalidIndex,
+        emissiveTextureIndex: UntoldFormat.invalidIndex,
+        occlusionTextureIndex: UntoldFormat.invalidIndex
+    )
+
+    let vertices = [
+        UntoldPBRStaticVertexV1(
+            position: SIMD3<Float>(-0.5, -0.5, 0),
+            normalPacked: UntoldVertexPacking.packNormal(SIMD3<Float>(0, 0, 1)),
+            tangentPacked: UntoldVertexPacking.packTangent(SIMD3<Float>(1, 0, 0), handedness: 1),
+            uv0: SIMD2<UInt16>(0, 0),
+            uv1: SIMD2<UInt16>(0, 0),
+            color0: SIMD4<UInt8>(255, 255, 255, 255)
+        ),
+        UntoldPBRStaticVertexV1(
+            position: SIMD3<Float>(0.5, -0.5, 0),
+            normalPacked: UntoldVertexPacking.packNormal(SIMD3<Float>(0, 0, 1)),
+            tangentPacked: UntoldVertexPacking.packTangent(SIMD3<Float>(1, 0, 0), handedness: 1),
+            uv0: SIMD2<UInt16>(0, 0),
+            uv1: SIMD2<UInt16>(0, 0),
+            color0: SIMD4<UInt8>(255, 255, 255, 255)
+        ),
+        UntoldPBRStaticVertexV1(
+            position: SIMD3<Float>(0.0, 0.5, 0),
+            normalPacked: UntoldVertexPacking.packNormal(SIMD3<Float>(0, 0, 1)),
+            tangentPacked: UntoldVertexPacking.packTangent(SIMD3<Float>(1, 0, 0), handedness: 1),
+            uv0: SIMD2<UInt16>(0, 0),
+            uv1: SIMD2<UInt16>(0, 0),
+            color0: SIMD4<UInt8>(255, 255, 255, 255)
+        ),
+    ]
+
+    let vertexWriter = UntoldBinaryWriter()
+    for vertex in vertices {
+        vertex.encode(to: vertexWriter)
+    }
+
+    let indexWriter = UntoldBinaryWriter()
+    indexWriter.writeUInt16LE(0)
+    indexWriter.writeUInt16LE(1)
+    indexWriter.writeUInt16LE(2)
+
+    // Every mesh entity references the same shared triangle geometry at offset 0 --
+    // only the entity's own localTransform differs, which is all this fixture needs
+    // to exercise armature-root transform composition.
+    let meshes = meshEntities.map { entity in
+        UntoldMeshRecordV1(
+            entityId: entity.entityId,
+            meshNameOffset: stringTable.offsets["SharedPrimitive"] ?? UntoldFormat.invalidIndex,
+            materialIndex: 0,
+            indexType: .uint16,
+            vertexCount: 3,
+            indexCount: 3,
+            vertexStrideBytes: 32,
+            flags: 0,
+            vertexDataOffset: 0,
+            indexDataOffset: 0,
+            vertexDataSizeBytes: UInt64(vertexWriter.data.count),
+            indexDataSizeBytes: UInt64(indexWriter.data.count),
+            estimatedGPUBytes: UInt64(vertexWriter.data.count + indexWriter.data.count),
+            localBounds: unitBounds
+        )
+    }
+
+    let skeletons = [UntoldSkeletonRecordV1(entityId: skeletonEntity.entityId, jointRecordCount: 0)]
+
+    let allEntities = [armatureEntity, skeletonEntity] + meshEntities
+    let chunkPayloads = buildHierarchicalChunkPayloads(
+        stringTableData: stringTable.data,
+        entities: allEntities,
+        meshes: meshes,
+        materials: [material],
+        vertexData: vertexWriter.data,
+        indexData: indexWriter.data,
+        skeletons: skeletons
+    )
+
+    let header = UntoldFileHeaderV1(
+        fileType: .tile,
+        chunkCount: UInt32(chunkPayloads.count),
+        meshCount: UInt32(meshes.count),
+        materialCount: 1,
+        textureRefCount: 0,
+        entityCount: UInt32(allEntities.count),
+        vertexLayout: .pbrStaticV1,
+        worldBounds: unitBounds,
+        rootTransform: rootTransform
+    )
+
+    let fileData = buildHierarchicalFileData(header: header, chunkPayloads: chunkPayloads)
+    let outputURL = FileManager.default.temporaryDirectory
+        .appendingPathComponent(UUID().uuidString)
+        .appendingPathExtension("untold")
+    try fileData.write(to: outputURL)
+    return RiggedUntoldFixture(url: outputURL, meshNodeNames: meshNodeNames)
+}
+
 private func buildHierarchicalChunkPayloads(
     stringTableData: Data,
     entities: [UntoldEntityRecordV1],
     meshes: [UntoldMeshRecordV1],
     materials: [UntoldMaterialRecordV1],
     vertexData: Data,
-    indexData: Data
+    indexData: Data,
+    skeletons: [UntoldSkeletonRecordV1] = []
 ) -> [(type: UntoldChunkType, data: Data, elementCount: UInt32)] {
     let entityChunk = encodeChunk(entities)
     let meshChunk = encodeChunk(meshes)
     let materialChunk = encodeChunk(materials)
     let textureChunk = Data()
 
-    return [
+    var payloads: [(type: UntoldChunkType, data: Data, elementCount: UInt32)] = [
         (.stringTable, stringTableData, 0),
         (.entityTable, entityChunk, UInt32(entities.count)),
         (.meshTable, meshChunk, UInt32(meshes.count)),
@@ -379,6 +673,12 @@ private func buildHierarchicalChunkPayloads(
         (.vertexData, vertexData, 0),
         (.indexData, indexData, 0),
     ]
+
+    if !skeletons.isEmpty {
+        payloads.append((.skeletonTable, encodeChunk(skeletons), UInt32(skeletons.count)))
+    }
+
+    return payloads
 }
 
 private func buildHierarchicalFileData(
