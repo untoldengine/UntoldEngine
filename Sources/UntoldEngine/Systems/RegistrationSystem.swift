@@ -3780,10 +3780,10 @@ struct GaussianLoadResult {
     let boundingBox: (min: simd_float3, max: simd_float3)
 }
 
-// Built once by buildGaussianLoadResult and handed off exactly once (to the caller that
-// attaches it via applyGaussianLoadResult) — safe to cross an actor boundary despite the
-// non-Sendable MTLBuffer/GaussianPageManager fields, which is what setEntityGaussianAsync
-// below relies on to run the parse/encode work in a detached Task.
+/// Built once by buildGaussianLoadResult and handed off exactly once (to the caller that
+/// attaches it via applyGaussianLoadResult) — safe to cross an actor boundary despite the
+/// non-Sendable MTLBuffer/GaussianPageManager fields, which is what setEntityGaussianAsync
+/// below relies on to run the parse/encode work in a detached Task.
 extension GaussianLoadResult: @unchecked Sendable {}
 
 // `UntoldGSError`, `UntoldGSAsset` and `UntoldGSFormat` live in AssetFormat/UntoldGS*.swift.
