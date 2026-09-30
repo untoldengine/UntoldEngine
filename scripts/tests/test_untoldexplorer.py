@@ -1,9 +1,12 @@
+import contextlib
+import io
 import json
 import math
 import struct
 import sys
 import tempfile
 import unittest
+import zlib
 from pathlib import Path
 
 
@@ -191,15 +194,19 @@ class UntoldExplorerTests(unittest.TestCase):
 
     def test_cleanup_temporary_export_objects_removes_tagged_split_meshes(self) -> None:
         class FakeBpyCollection:
-            def __init__(self) -> None:
+            def __init__(self, items=()) -> None:
+                self.items = list(items)
                 self.removed = []
+
+            def __iter__(self):
+                return iter(self.items)
 
             def remove(self, item, do_unlink=False) -> None:
                 self.removed.append((item, do_unlink))
 
         class FakeBpy:
-            def __init__(self) -> None:
-                self.data = FakeData(objects=FakeBpyCollection(), meshes=FakeBpyCollection())
+            def __init__(self, objects=()) -> None:
+                self.data = FakeData(objects=FakeBpyCollection(objects), meshes=FakeBpyCollection())
 
         class FakeTempObject(dict):
             def __init__(self, name: str, data=None, tagged: bool = False) -> None:
@@ -1132,7 +1139,7 @@ class MaterialGraphAnalysisTests(unittest.TestCase):
                 return LazyPixels(self)
 
             def save(self):
-                pass
+                Path(self.filepath_raw).write_bytes(_build_complete_png())
 
         original_bpy = u.bpy
         try:
@@ -1196,6 +1203,190 @@ def _build_minimal_tiff(bits_per_sample: list[int], *, big_endian: bool = False)
     header = (b"MM" if big_endian else b"II") + struct.pack(endian + "HI", 42, 8)
     ifd_body = struct.pack(endian + "H", len(entries)) + b"".join(e[1] for e in entries) + struct.pack(endian + "I", 0)
     return header + ifd_body + extra_data
+
+
+def _make_mapping_node(
+    *,
+    scale=(1.0, 1.0, 1.0),
+    location=(0.0, 0.0, 0.0),
+    rotation=(0.0, 0.0, 0.0),
+    vector_type: str = "POINT",
+    uv_source: bool = True,
+) -> FakeNode:
+    location_socket = FakeSocket("Location")
+    location_socket.default_value = location
+    rotation_socket = FakeSocket("Rotation")
+    rotation_socket.default_value = rotation
+    scale_socket = FakeSocket("Scale")
+    scale_socket.default_value = scale
+    vector = FakeSocket("Vector")
+    if uv_source:
+        vector.link_from(FakeNode("ShaderNodeTexCoord"), "UV")
+    mapping = FakeNode(
+        "ShaderNodeMapping",
+        inputs={"Location": location_socket, "Rotation": rotation_socket, "Scale": scale_socket, "Vector": vector},
+    )
+    mapping.name = "Mapping"
+    mapping.vector_type = vector_type
+    return mapping
+
+
+def _make_mapped_image_node(name: str, mapping: FakeNode | None) -> FakeNode:
+    node = _make_image_node(name)
+    vector = FakeSocket("Vector")
+    if mapping is not None:
+        vector.link_from(mapping, "Vector")
+    node.inputs = {"Vector": vector}
+    color_output = FakeSocket("Color")
+    color_output.is_linked = True
+    node.outputs = [color_output]
+    return node
+
+
+def _make_invert_node(source: FakeNode, fac: float) -> FakeNode:
+    fac_socket = FakeSocket("Fac")
+    fac_socket.default_value = fac
+    color = FakeSocket("Color")
+    color.link_from(source, "Color")
+    invert = FakeNode("ShaderNodeInvert", inputs={"Fac": fac_socket, "Color": color})
+    invert.name = "Invert Color"
+    return invert
+
+
+class BlendImportFidelityTests(unittest.TestCase):
+    def test_point_mapping_becomes_a_uv_scale_and_offset(self) -> None:
+        transform = u.mapping_node_uv_transform(_make_mapping_node(scale=(2.49, 2.49, 2.49), location=(0.25, 0.5, 0.0)))
+        self.assertEqual(transform.scale, (2.49, 2.49))
+        self.assertEqual(transform.offset, (0.25, 0.5))
+        self.assertEqual(transform.apply((1.0, 2.0)), (2.49 + 0.25, 4.98 + 0.5))
+
+    def test_texture_mapping_is_the_inverse_and_vector_mapping_ignores_location(self) -> None:
+        texture = u.mapping_node_uv_transform(
+            _make_mapping_node(scale=(2.0, 4.0, 1.0), location=(1.0, 1.0, 0.0), vector_type="TEXTURE")
+        )
+        self.assertEqual(texture.scale, (0.5, 0.25))
+        self.assertEqual(texture.offset, (-0.5, -0.25))
+        vector = u.mapping_node_uv_transform(
+            _make_mapping_node(scale=(2.0, 2.0, 1.0), location=(1.0, 1.0, 0.0), vector_type="VECTOR")
+        )
+        self.assertEqual(vector.offset, (0.0, 0.0))
+
+    def test_mappings_a_uv_scale_cannot_represent_are_refused(self) -> None:
+        self.assertIsNone(u.mapping_node_uv_transform(_make_mapping_node(rotation=(0.0, 0.0, 0.5))))
+        self.assertIsNone(u.mapping_node_uv_transform(_make_mapping_node(scale=(-1.0, 1.0, 1.0))))
+        self.assertIsNone(u.mapping_node_uv_transform(_make_mapping_node(vector_type="NORMAL")))
+        linked_scale = _make_mapping_node()
+        linked_scale.inputs["Scale"].link_from(FakeNode("ShaderNodeValue"), "Value")
+        self.assertIsNone(u.mapping_node_uv_transform(linked_scale))
+
+    def test_material_uv_transform_reads_the_mapping_in_front_of_its_textures(self) -> None:
+        mapping = _make_mapping_node(scale=(2.49, 2.49, 2.49))
+        albedo = _make_mapped_image_node("albedo", mapping)
+        roughness = _make_mapped_image_node("roughness", mapping)
+        principled, output = _make_principled_output(albedo)
+        material = _make_material("brushed", [output, principled, albedo, roughness, mapping])
+
+        transform = u.material_uv_transform(material)
+        self.assertEqual(transform.scale, (2.49, 2.49))
+        self.assertEqual(u.analyze_material(material).classification, u.MATERIAL_GRAPH_SUPPORTED)
+
+    def test_material_uv_transform_is_none_without_mapping_or_from_generated_coordinates(self) -> None:
+        plain = _make_mapped_image_node("plain", None)
+        principled, output = _make_principled_output(plain)
+        self.assertIsNone(u.material_uv_transform(_make_material("plain", [output, principled, plain])))
+
+        generated = _make_mapping_node(scale=(3.0, 3.0, 3.0), uv_source=False)
+        generated.inputs["Vector"].link_from(FakeNode("ShaderNodeTexCoord"), "Generated")
+        textured = _make_mapped_image_node("generated", generated)
+        principled, output = _make_principled_output(textured)
+        material = _make_material("generated", [output, principled, textured, generated])
+        self.assertIsNone(u.material_uv_transform(material))
+        self.assertNotEqual(u.analyze_material(material).classification, u.MATERIAL_GRAPH_SUPPORTED)
+
+    def test_textures_with_different_mappings_use_the_most_common_one_and_report_it(self) -> None:
+        tiled = _make_mapping_node(scale=(4.0, 4.0, 1.0))
+        a = _make_mapped_image_node("a", tiled)
+        b = _make_mapped_image_node("b", tiled)
+        c = _make_mapped_image_node("c", _make_mapping_node(scale=(2.0, 2.0, 1.0)))
+        principled, output = _make_principled_output(a)
+        material = _make_material("mixed", [output, principled, a, b, c])
+
+        self.assertEqual(u.material_uv_transform(material).scale, (4.0, 4.0))
+        findings = u.analyze_material(material).findings
+        self.assertTrue(any("different Mapping transforms" in finding.reason for finding in findings))
+
+    def test_full_invert_marks_the_texture_inverted_and_partial_invert_does_not(self) -> None:
+        glossiness = _make_image_node("glossiness")
+        roughness = FakeSocket("Roughness")
+        roughness.link_from(_make_invert_node(glossiness, 1.0), "Color")
+        with tempfile.TemporaryDirectory() as tmpdir:
+            texture = u.resolve_texture_from_socket(roughness, Path(tmpdir) / "asset.blend")
+        self.assertTrue(texture.invert)
+
+        partial = FakeSocket("Roughness")
+        partial.link_from(_make_invert_node(_make_image_node("gloss"), 0.5), "Color")
+        with tempfile.TemporaryDirectory() as tmpdir:
+            texture = u.resolve_texture_from_socket(partial, Path(tmpdir) / "asset.blend")
+        self.assertFalse(texture.invert)
+
+    def test_full_invert_is_supported_by_material_analysis(self) -> None:
+        glossiness = _make_image_node("glossiness")
+        invert = _make_invert_node(glossiness, 1.0)
+        principled, output = _make_principled_output(None)
+        roughness = FakeSocket("Roughness")
+        roughness.link_from(invert, "Color")
+        principled.inputs["Roughness"] = roughness
+        material = _make_material("gloss_mat", [output, principled, invert, glossiness])
+        self.assertEqual(u.analyze_material(material).classification, u.MATERIAL_GRAPH_SUPPORTED)
+
+    def test_inverted_texture_stages_apart_from_the_plain_one(self) -> None:
+        plain = u.ExportedTexture(name="gloss.png", uri="gloss.png", width=4, height=4, mip_count=1, source_image_name="gloss")
+        inverted = u.replace(plain, invert=True)
+        self.assertNotEqual(u.texture_staging_key(plain), u.texture_staging_key(inverted))
+        context = u.TextureStagingContext()
+        self.assertEqual(u.unique_texture_destination_name(inverted, context, ".png"), "gloss_inverted.png")
+        self.assertEqual(u.unique_texture_destination_name(plain, context, ".png"), "gloss.png")
+
+    def test_emission_only_surface_exports_an_emissive_material(self) -> None:
+        color = FakeSocket("Color")
+        color.default_value = (1.0, 0.5, 0.25, 1.0)
+        strength = FakeSocket("Strength")
+        strength.default_value = 4.0
+        emission = FakeNode("ShaderNodeEmission", inputs={"Color": color, "Strength": strength})
+        emission.name = "Emission"
+        surface = FakeSocket("Surface")
+        surface.link_from(emission, "Emission")
+        output = FakeNode("ShaderNodeOutputMaterial", inputs={"Surface": surface})
+        output.name = "Material Output"
+        material = _make_material("luz", [output, emission])
+        material.diffuse_color = (0.8, 0.8, 0.8, 1.0)
+        mesh_object = FakeSceneObject("Lamp", "MESH", FakeData(materials=[material]))
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            exported = u.extract_material(mesh_object, Path(tmpdir) / "asset.blend")
+
+        self.assertEqual(exported.base_color_factor, (0.0, 0.0, 0.0, 1.0))
+        self.assertEqual(exported.emissive_factor, (4.0, 2.0, 1.0))
+        self.assertEqual(u.analyze_material(material).classification, u.MATERIAL_GRAPH_SUPPORTED)
+
+    def test_skipped_ancestors_are_walked_past_not_exported(self) -> None:
+        class Obj:
+            def __init__(self, name, object_type, parent=None):
+                self.name, self.type, self.parent = name, object_type, parent
+
+            def as_pointer(self):
+                return id(self)
+
+        root = Obj("Root", "EMPTY")
+        hidden_wall = Obj("HiddenWall", "MESH", root)
+        lamp = Obj("Lamp", "MESH", hidden_wall)
+        chosen = u.choose_export_objects([root, lamp], None, {hidden_wall.as_pointer()})
+        self.assertEqual([obj.name for obj in chosen], ["Root", "Lamp"])
+
+    def test_include_hidden_flag_is_off_by_default(self) -> None:
+        base = ["blender", "--", "--input", "a.blend", "--output", "a.untold"]
+        self.assertFalse(u.parse_args(base).include_hidden)
+        self.assertTrue(u.parse_args(base + ["--include-hidden"]).include_hidden)
 
 
 class TextureBitDepthDetectionTests(unittest.TestCase):
@@ -1339,6 +1530,399 @@ class TextureBitDepthDetectionTests(unittest.TestCase):
                 self.assertTrue(needs_conversion, "16-bit grayscale source must trigger the 8-bit safety downconvert")
             finally:
                 u.bpy = original_bpy
+
+
+# What Blender left on disk for the normal map of a real scene: the PNG signature and
+# the IHDR chunk (2048 x 2048, 8-bit RGB), and nothing after them.
+_HEADER_ONLY_PNG = bytes.fromhex("89504e470d0a1a0a0000000d49484452000008000000080008020000003dc54467")
+
+
+def _build_complete_png() -> bytes:
+    """A whole 1x1 RGB PNG: signature, IHDR, IDAT and the closing IEND chunk."""
+
+    def chunk(chunk_type: bytes, payload: bytes) -> bytes:
+        crc = zlib.crc32(chunk_type + payload)
+        return struct.pack(">I", len(payload)) + chunk_type + payload + struct.pack(">I", crc)
+
+    return (
+        b"\x89PNG\r\n\x1a\n"
+        + chunk(b"IHDR", struct.pack(">IIBBBBB", 1, 1, 8, 2, 0, 0, 0))
+        + chunk(b"IDAT", zlib.compress(b"\x00\x80\x80\xff"))
+        + chunk(b"IEND", b"")
+    )
+
+
+class FakePixels:
+    def __init__(self, values: list[float]) -> None:
+        self.values = list(values)
+
+    def __getitem__(self, index: int) -> float:
+        return self.values[index]
+
+    def foreach_get(self, buffer) -> None:
+        for index, value in enumerate(self.values):
+            buffer[index] = value
+
+    def foreach_set(self, buffer) -> None:
+        self.values = list(buffer)
+
+
+class FakeWritableImage:
+    """A Blender image whose save() either works, or fails the way Blender's PNG writer
+    does on bad metadata: the header is already on disk when the error is raised."""
+
+    SAVE_ERROR = (
+        "Error: Could not write image: internal error, see console\n"
+        "Error: Image 'floor_normal.jpg' could not be saved to 'floor_normal.png'\n"
+    )
+
+    def __init__(self, name: str, *, save: str, pixels: list[float] | None = None) -> None:
+        self.name = name
+        self.has_data = True
+        self.size = (1, 1)
+        self.depth = 24
+        self.channels = 4
+        self.is_float = False
+        self.alpha_mode = "STRAIGHT"
+        self.colorspace_settings = FakeData(name="Non-Color")
+        self.filepath_raw = "//textures/floor_normal.jpg"
+        self.file_format = "JPEG"
+        self.library = None
+        self.pixels = FakePixels(pixels if pixels is not None else [0.0, 0.0, 0.0, 0.0])
+        self.save_behavior = save
+        self.save_count = 0
+
+    def save(self) -> None:
+        self.save_count += 1
+        destination = Path(self.filepath_raw)
+        if self.save_behavior == "works":
+            destination.write_bytes(_build_complete_png())
+            return
+        destination.write_bytes(_HEADER_ONLY_PNG)
+        if self.save_behavior == "fails":
+            raise RuntimeError(self.SAVE_ERROR)
+        # "truncates": the header-only file is left behind without any error.
+
+
+class FakeImages:
+    """bpy.data.images with one source image; every image made by new() saves as told."""
+
+    def __init__(self, source: FakeWritableImage, *, copies_save: str) -> None:
+        self.source = source
+        self.copies_save = copies_save
+        self.created: list[FakeWritableImage] = []
+        self.removed: list[FakeWritableImage] = []
+
+    def get(self, name: str):
+        return self.source if name == self.source.name else None
+
+    def new(self, name: str, width: int, height: int, alpha: bool = False, float_buffer: bool = False):
+        copy = FakeWritableImage(name, save=self.copies_save)
+        copy.size = (width, height)
+        copy.depth = 32 if alpha else 24
+        copy.is_float = float_buffer
+        copy.filepath_raw = ""
+        copy.file_format = "TARGA"
+        copy.colorspace_settings = FakeData(name="sRGB")
+        self.created.append(copy)
+        return copy
+
+    def remove(self, image: FakeWritableImage) -> None:
+        self.removed.append(image)
+
+
+def _fake_bpy_for_images(images: FakeImages) -> FakeData:
+    return FakeData(
+        data=FakeData(images=images),
+        path=FakeData(abspath=lambda filepath, library=None: filepath),
+    )
+
+
+def _make_node_with_normal_map(image_name: str) -> "u.ExportedNode":
+    """One material-split fragment of the object 'Floor', whose material uses a normal map."""
+    bounds = u.AABB(minimum=(0.0, 0.0, 0.0), maximum=(1.0, 1.0, 1.0))
+    material = u.ExportedMaterial(
+        name="garage_floor",
+        base_color_factor=(1.0, 1.0, 1.0, 1.0),
+        emissive_factor=(0.0, 0.0, 0.0),
+        normal_scale=1.0,
+        metallic_factor=0.0,
+        roughness_factor=0.5,
+        occlusion_strength=1.0,
+        alpha_cutoff=0.5,
+        base_color_texture=None,
+        normal_texture=u.ExportedTexture(
+            name="floor_normal.jpg",
+            uri="../textures/floor_normal.jpg",
+            width=1,
+            height=1,
+            mip_count=1,
+            source_path=Path("/nonexistent/textures/floor_normal.jpg"),
+            source_image_name=image_name,
+        ),
+    )
+    mesh = u.ExportedMesh(
+        entity_name="Floor_mat0",
+        parent_entity_name=None,
+        mesh_name="Floor",
+        local_transform_rows=u.identity_matrix_rows(),
+        local_bounds=bounds,
+        world_bounds=bounds,
+        vertices=b"",
+        indices=b"",
+        edge_indices=b"",
+        vertex_count=0,
+        index_count=0,
+        edge_index_count=0,
+        index_type=u.INDEX_TYPE_UINT16,
+        material=material,
+        skin_binding=None,
+        validation_mesh=u.ValidationMesh(
+            name="Floor",
+            vertex_count=0,
+            index_count=0,
+            positions=[],
+            normals=[],
+            tangents=[],
+            uv0=[],
+            indices=[],
+            edge_indices=[],
+        ),
+    )
+    return u.ExportedNode(
+        entity_name="Floor_mat0",
+        parent_entity_name=None,
+        local_transform_rows=u.identity_matrix_rows(),
+        local_bounds=bounds,
+        world_bounds=bounds,
+        mesh=mesh,
+        material_split_root_name="Floor",
+    )
+
+
+class TextureWriteFailureTests(unittest.TestCase):
+    """Regression coverage for an export that stopped half-way and left a 33-byte PNG behind.
+
+    The source was a JPEG that Blender itself had saved from an image with an embedded
+    ICC profile. Such a file carries a "Blender:ICCProfile:..." comment; read back, it
+    becomes a metadata entry that Blender's PNG writer takes for the profile itself, and
+    libpng aborts the write once the PNG header is on disk. The exporter now writes the
+    pixels again from a copy that has no metadata, never leaves an incomplete file, and
+    reports a texture it cannot write instead of stopping the export."""
+
+    def setUp(self) -> None:
+        self.original_bpy = u.bpy
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.output_dir = Path(self.tmpdir.name)
+        u._images_written_from_copy.clear()
+
+    def tearDown(self) -> None:
+        u.bpy = self.original_bpy
+        u._images_written_from_copy.clear()
+        self.tmpdir.cleanup()
+
+    def test_png_is_complete_rejects_the_header_only_file(self) -> None:
+        header_only = self.output_dir / "header_only.png"
+        header_only.write_bytes(_HEADER_ONLY_PNG)
+        complete = self.output_dir / "complete.png"
+        complete.write_bytes(_build_complete_png())
+        cut_short = self.output_dir / "cut_short.png"
+        cut_short.write_bytes(_build_complete_png()[:-1])
+        empty = self.output_dir / "empty.png"
+        empty.write_bytes(b"")
+        not_a_png = self.output_dir / "not_a_png.png"
+        not_a_png.write_bytes(b"not a png file, but longer than an IEND chunk")
+
+        self.assertEqual(len(_HEADER_ONLY_PNG), 33)
+        self.assertEqual(u._png_ihdr(header_only), (8, 2), "the header alone still reads as a valid PNG header")
+        self.assertFalse(u._png_is_complete(header_only))
+        self.assertTrue(u._png_is_complete(complete))
+        self.assertFalse(u._png_is_complete(cut_short))
+        self.assertFalse(u._png_is_complete(empty))
+        self.assertFalse(u._png_is_complete(not_a_png))
+        self.assertFalse(u._png_is_complete(self.output_dir / "missing.png"))
+
+    def test_written_image_problem_describes_what_is_wrong(self) -> None:
+        header_only = self.output_dir / "header_only.png"
+        header_only.write_bytes(_HEADER_ONLY_PNG)
+        complete = self.output_dir / "complete.png"
+        complete.write_bytes(_build_complete_png())
+        empty = self.output_dir / "empty.tga"
+        empty.write_bytes(b"")
+        other_format = self.output_dir / "texture.tga"
+        other_format.write_bytes(b"only PNG output is checked for its closing chunk")
+
+        self.assertIsNone(u._written_image_problem(complete))
+        self.assertIsNone(u._written_image_problem(other_format))
+        self.assertEqual(u._written_image_problem(self.output_dir / "missing.png"), "no file was written")
+        self.assertEqual(u._written_image_problem(empty), "the file is empty")
+        self.assertIn("33 bytes", u._written_image_problem(header_only))
+
+    def test_failed_save_is_retried_from_a_metadata_free_copy(self) -> None:
+        source = FakeWritableImage("floor_normal.jpg", save="fails", pixels=[0.5, 0.5, 1.0, 1.0])
+        images = FakeImages(source, copies_save="works")
+        u.bpy = _fake_bpy_for_images(images)
+        destination = self.output_dir / "Textures" / "floor_normal.png"
+
+        with contextlib.redirect_stdout(io.StringIO()) as output:
+            u.write_blender_image_to_path("floor_normal.jpg", destination)
+
+        self.assertTrue(u._png_is_complete(destination))
+        self.assertEqual(source.save_count, 1)
+        self.assertEqual(len(images.created), 1)
+        copy = images.created[0]
+        self.assertEqual(copy.save_count, 1)
+        self.assertEqual(copy.pixels.values, [0.5, 0.5, 1.0, 1.0])
+        self.assertEqual(copy.size, (1, 1))
+        self.assertEqual(copy.depth, 24, "an RGB source must not grow an alpha channel")
+        self.assertEqual(copy.colorspace_settings.name, "Non-Color")
+        self.assertEqual(copy.alpha_mode, "STRAIGHT")
+        self.assertEqual(images.removed, [copy], "the copy must not stay in the .blend data")
+        self.assertEqual(source.filepath_raw, "//textures/floor_normal.jpg")
+        self.assertEqual(source.file_format, "JPEG")
+        self.assertIn("floor_normal.jpg", output.getvalue())
+        self.assertIn("Could not write image: internal error, see console", output.getvalue())
+
+    def test_image_that_failed_once_goes_straight_to_the_copy(self) -> None:
+        """A pack writes a texture once for every model that uses it. Only the first of
+        them should pay for the failed attempt and show Blender's error output."""
+        source = FakeWritableImage("floor_normal.jpg", save="fails")
+        images = FakeImages(source, copies_save="works")
+        u.bpy = _fake_bpy_for_images(images)
+        first = self.output_dir / "Floor" / "Textures" / "floor_normal.png"
+        second = self.output_dir / "Wall" / "Textures" / "floor_normal.png"
+
+        with contextlib.redirect_stdout(io.StringIO()) as first_output:
+            u.write_blender_image_to_path("floor_normal.jpg", first)
+        with contextlib.redirect_stdout(io.StringIO()) as second_output:
+            u.write_blender_image_to_path("floor_normal.jpg", second)
+
+        self.assertTrue(u._png_is_complete(first))
+        self.assertTrue(u._png_is_complete(second))
+        self.assertEqual(source.save_count, 1, "the write that fails must not be tried again")
+        self.assertEqual(len(images.created), 2)
+        self.assertEqual(images.removed, images.created)
+        self.assertNotEqual(first_output.getvalue(), "")
+        self.assertEqual(second_output.getvalue(), "")
+
+    def test_silently_truncated_file_is_retried_too(self) -> None:
+        source = FakeWritableImage("floor_normal.jpg", save="truncates")
+        images = FakeImages(source, copies_save="works")
+        u.bpy = _fake_bpy_for_images(images)
+        destination = self.output_dir / "floor_normal.png"
+
+        with contextlib.redirect_stdout(io.StringIO()) as output:
+            u.write_blender_image_to_path("floor_normal.jpg", destination)
+
+        self.assertTrue(u._png_is_complete(destination))
+        self.assertEqual(len(images.created), 1)
+        self.assertIn("33 bytes", output.getvalue())
+
+    def test_successful_save_makes_no_copy(self) -> None:
+        source = FakeWritableImage("floor_normal.jpg", save="works")
+        images = FakeImages(source, copies_save="works")
+        u.bpy = _fake_bpy_for_images(images)
+        destination = self.output_dir / "floor_normal.png"
+
+        with contextlib.redirect_stdout(io.StringIO()) as output:
+            u.write_blender_image_to_path("floor_normal.jpg", destination)
+
+        self.assertTrue(u._png_is_complete(destination))
+        self.assertEqual(images.created, [])
+        self.assertEqual(output.getvalue(), "")
+
+    def test_no_file_is_left_behind_when_every_attempt_fails(self) -> None:
+        source = FakeWritableImage("floor_normal.jpg", save="fails")
+        images = FakeImages(source, copies_save="fails")
+        u.bpy = _fake_bpy_for_images(images)
+        destination = self.output_dir / "Textures" / "floor_normal.png"
+
+        with contextlib.redirect_stdout(io.StringIO()):
+            with self.assertRaises(u.TextureWriteError) as raised:
+                u.write_blender_image_to_path("floor_normal.jpg", destination)
+
+        self.assertFalse(destination.exists(), "a failed write must not leave a truncated PNG")
+        self.assertIn("floor_normal.jpg", str(raised.exception))
+        self.assertEqual(images.removed, images.created)
+        self.assertEqual(source.filepath_raw, "//textures/floor_normal.jpg")
+        self.assertEqual(source.file_format, "JPEG")
+
+    def test_float_image_is_not_retried_from_a_copy(self) -> None:
+        """A copy of a float buffer is not written back the way its source is (a 16-bit
+        sRGB texture came out darker), so such a texture is reported instead."""
+        source = FakeWritableImage("floor_height.png", save="fails")
+        source.is_float = True
+        source.depth = 96
+        images = FakeImages(source, copies_save="works")
+        u.bpy = _fake_bpy_for_images(images)
+        destination = self.output_dir / "floor_height.png"
+        scene = FakeData(
+            render=FakeData(image_settings=FakeData(file_format="PNG", color_depth="8", color_mode="RGB")),
+            view_settings=None,
+            display_settings=None,
+            sequencer_colorspace_settings=None,
+        )
+        u.bpy.context = FakeData(scene=scene)
+        source.save_render = lambda filepath, scene=None: source.save()
+
+        with contextlib.redirect_stdout(io.StringIO()):
+            with self.assertRaises(u.TextureWriteError) as raised:
+                u.write_blender_image_to_path("floor_height.png", destination)
+
+        self.assertIn("floor_height.png", str(raised.exception))
+        self.assertEqual(images.created, [])
+        self.assertFalse(destination.exists())
+
+    def test_unwritable_texture_is_reported_and_the_export_continues(self) -> None:
+        source = FakeWritableImage("floor_normal.jpg", save="fails")
+        u.bpy = _fake_bpy_for_images(FakeImages(source, copies_save="fails"))
+        output_path = self.output_dir / "Floor" / "Floor.untold"
+        skipped_textures: list[str] = []
+
+        with contextlib.redirect_stdout(io.StringIO()) as output:
+            staged_nodes = u.stage_nodes_for_output(
+                [_make_node_with_normal_map("floor_normal.jpg")],
+                output_path,
+                skipped_textures=skipped_textures,
+            )
+
+        self.assertEqual(len(staged_nodes), 1)
+        self.assertIsNone(staged_nodes[0].mesh.material.normal_texture)
+        self.assertEqual(list((output_path.parent / "Textures").iterdir()), [])
+
+        self.assertEqual(len(skipped_textures), 1)
+        for expected in ("'floor_normal.jpg'", "normal texture", "material 'garage_floor'", "object 'Floor'"):
+            self.assertIn(expected, skipped_textures[0])
+        self.assertIn(f"  Warning: {skipped_textures[0]}", output.getvalue())
+
+        with contextlib.redirect_stdout(io.StringIO()) as summary:
+            u.print_skipped_textures(skipped_textures)
+        self.assertIn("1 texture(s) could not be exported", summary.getvalue())
+        self.assertIn(skipped_textures[0], summary.getvalue())
+
+    def test_recovered_texture_is_staged_like_any_other(self) -> None:
+        source = FakeWritableImage("floor_normal.jpg", save="fails")
+        u.bpy = _fake_bpy_for_images(FakeImages(source, copies_save="works"))
+        output_path = self.output_dir / "Floor" / "Floor.untold"
+        skipped_textures: list[str] = []
+
+        with contextlib.redirect_stdout(io.StringIO()):
+            staged_nodes = u.stage_nodes_for_output(
+                [_make_node_with_normal_map("floor_normal.jpg")],
+                output_path,
+                skipped_textures=skipped_textures,
+            )
+
+        normal_texture = staged_nodes[0].mesh.material.normal_texture
+        self.assertIsNotNone(normal_texture)
+        self.assertEqual(normal_texture.uri, "Textures/floor_normal.png")
+        self.assertTrue(u._png_is_complete(output_path.parent / "Textures" / "floor_normal.png"))
+        self.assertEqual(skipped_textures, [])
+
+    def test_print_skipped_textures_is_silent_when_nothing_was_skipped(self) -> None:
+        with contextlib.redirect_stdout(io.StringIO()) as output:
+            u.print_skipped_textures([])
+        self.assertEqual(output.getvalue(), "")
 
 
 _MINIMAL_CUBE_LUT = (

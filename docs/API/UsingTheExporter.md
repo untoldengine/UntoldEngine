@@ -78,6 +78,7 @@ Common options:
 - `--mesh-name <name>`: optional, export only one mesh from a multi-mesh asset
 - `--convert-orientation`: optional, convert the export into engine space
 - `--source-orientation <blender-native|engine-oriented>`: optional, defaults to `blender-native`
+- `--include-hidden`: optional, also export objects hidden in the viewport or disabled in renders (see [What a `.blend` scene exports](#what-a-blend-scene-exports))
 - `--validate`: optional, also writes `<name>.validation.json`
 - `--compress-geometry`: optional, LZ4-compress vertex and index chunks (requires `pip install lz4`)
 - `--optimize`: optional, compress geometry and bake/patch textures after export (implies `--compress-geometry`)
@@ -101,9 +102,46 @@ Expected output:
 - `Textures/...` beside the `.untold` file if the asset uses textures
 - `floorplanA.validation.json` only when `--validate` is passed
 
+A texture that cannot be exported does not stop the export. Its material is
+written without that texture, and the end of the export log lists every texture
+that was left out, with the material and the object that use it.
+
 The older `./scripts/export-untold` repository wrapper remains available for
 engine development and compatibility. Game developers should prefer
 `untoldengine export` because it can be called directly from their project.
+
+## What A `.blend` Scene Exports
+
+A whole-scene export (no `--mesh-name`) follows what Blender itself shows:
+
+- Objects in collections excluded from the view layer (the checkbox in the
+  Outliner) are never exported. Blender does not evaluate them, so their
+  placement would be stale.
+- Objects hidden in the viewport (the eye or monitor icon, on the object or on
+  a collection holding it) or disabled in renders (the camera icon) are skipped
+  by default; the export log lists them. Pass `--include-hidden` to export them,
+  for example when an artist hides parts of the model while working that the
+  game still needs.
+- Curve, surface and text objects are exported as meshes when their geometry has
+  faces (a bevelled or extruded curve). Curves without faces, such as paths used
+  by a Curve modifier, export nothing.
+- Modifiers, Geometry Nodes and shape keys are applied, including on objects
+  split into one mesh per material. Objects deformed by an Armature modifier keep
+  their rest pose and skinning.
+- An object whose parent is not exported (skipped, or split into one mesh per
+  material) keeps its place in the scene.
+
+Some material nodes are carried over instead of dropped:
+
+- A Mapping node between UV coordinates and the image textures (scale and
+  location, no rotation) is applied to the mesh's first UV map, so tiled textures
+  keep their tiling. When textures use different Mapping nodes, the one most of
+  them use is applied and the material fidelity report says so.
+- An Invert node at full strength between an image texture and its socket (for
+  example a glossiness map feeding Roughness) is written into the staged texture,
+  saved as `<name>_inverted.png`.
+- A material whose surface is an Emission shader exports as an emissive material
+  with a black base color.
 
 ## Bake Textures To `.utex`
 

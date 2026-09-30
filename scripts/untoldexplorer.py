@@ -17,6 +17,7 @@ import shutil
 import struct
 import sys
 import tempfile
+from array import array
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Callable, Iterable, Optional
@@ -117,11 +118,16 @@ TEXTURE_CHANNEL_G = 1
 TEXTURE_CHANNEL_B = 2
 TEXTURE_CHANNEL_A = 3
 UNTOLD_EXPORT_TEMP_OBJECT_PROP = "_untold_export_temp_object"
-# Records the pre-split object's name on each single-material fragment produced by
-# split_blender_objects_by_material(), so multi-model .untoldpack grouping (see
-# group_export_nodes_by_root) can reunite fragments of one multi-material object
-# into a single model instead of treating each material fragment as its own model.
+# Records the name of the source object a temporary export object stands in for:
+# each single-material fragment produced by split_blender_objects_by_material(), and
+# each mesh made from a curve, surface or text object by convert_curve_objects_to_meshes().
+# Multi-model .untoldpack grouping (see group_export_nodes_by_root) uses it to reunite
+# the fragments of one object into a single model, and extract_nodes_from_objects uses
+# it to parent the source object's children to its stand-in.
 UNTOLD_MATERIAL_SPLIT_SOURCE_PROP = "_untold_material_split_source"
+# Object types whose evaluated geometry is exported as a mesh when it has faces (a
+# curve with a bevel or extrusion, a surface, a text object).
+CONVERTIBLE_GEOMETRY_OBJECT_TYPES = {"CURVE", "SURFACE", "FONT"}
 
 ProgressCallback = Callable[[str, int, int, str], None]
 
@@ -642,6 +648,20 @@ class ExportedTexture:
     source_image_name: Optional[str] = None
     channel: int = TEXTURE_CHANNEL_R
     texture_format: int = TEXTURE_FORMAT_UNKNOWN
+    # Set when the texture reaches its socket through an Invert node at full strength
+    # (e.g. a glossiness map feeding Roughness): staging writes the inverted image.
+    invert: bool = False
+
+
+@dataclass(frozen=True)
+class UVTransform:
+    """A texture-coordinate scale and offset applied to a mesh's first UV map, read
+    from the Mapping node in front of a material's image textures."""
+    scale: tuple[float, float]
+    offset: tuple[float, float]
+
+    def apply(self, uv: tuple[float, float]) -> tuple[float, float]:
+        return (uv[0] * self.scale[0] + self.offset[0], uv[1] * self.scale[1] + self.offset[1])
 
 
 @dataclass(frozen=True)
@@ -829,13 +849,20 @@ class UnsupportedTextureFormatError(Exception):
     """Raised when a texture is not usable by the engine pipeline (e.g. EXR/HDR format, or no pixel data)."""
 
 
+class TextureWriteError(Exception):
+    """Raised when Blender could not write a texture to disk, not even from a metadata-free copy."""
+
+
 class TextureStagingContext:
     staged_by_key: dict[str, Path]
     used_names: set[str]
+    # One line per texture that was left out of the export, for the caller to report.
+    skipped_textures: list[str]
 
-    def __init__(self) -> None:
+    def __init__(self, skipped_textures: Optional[list[str]] = None) -> None:
         self.staged_by_key = {}
         self.used_names = set()
+        self.skipped_textures = skipped_textures if skipped_textures is not None else []
 
 
 class HDRStagingContext:
@@ -1774,8 +1801,21 @@ def choose_mesh_objects(imported_objects: list[object], mesh_name: Optional[str]
     return sorted(mesh_objects, key=lambda obj: obj.name)
 
 
-def choose_export_objects(imported_objects: list[object], mesh_name: Optional[str]) -> list[object]:
+def choose_export_objects(
+    imported_objects: list[object],
+    mesh_name: Optional[str],
+    skipped_ancestor_ids: Optional[set[int]] = None,
+) -> list[object]:
+    """The mesh objects to export plus every ancestor they need as a transform node.
+
+    skipped_ancestor_ids names objects that must not come back in as ancestors: objects
+    left out of the export (see filter_scene_objects_for_export) and curves replaced by
+    their mesh stand-ins (see convert_curve_objects_to_meshes). The walk continues past
+    them to the next ancestor; extract_nodes_from_objects then places each child relative
+    to the nearest ancestor that is exported.
+    """
     mesh_objects = choose_mesh_objects(imported_objects, mesh_name)
+    skipped_ids = skipped_ancestor_ids or set()
     selected_ids: set[int] = set()
     selected_objects: list[object] = []
 
@@ -1786,7 +1826,8 @@ def choose_export_objects(imported_objects: list[object], mesh_name: Optional[st
             pointer = current.as_pointer()
             if pointer in selected_ids:
                 break
-            chain.append(current)
+            if pointer not in skipped_ids:
+                chain.append(current)
             current = getattr(current, "parent", None)
 
         for candidate in reversed(chain):
@@ -1832,16 +1873,143 @@ def include_linked_armatures(export_objects: list[object]) -> list[object]:
     return selected_objects
 
 
+def _layer_collection_tree(layer_collection: object) -> Iterable[tuple[object, bool]]:
+    """Yields (layer collection, disabled in renders) for a view layer's collection tree,
+    leaving out excluded collections and everything under them; a collection is
+    disabled in renders when it or any parent collection is."""
+    stack = [(layer_collection, False)]
+    while stack:
+        current, parent_render_disabled = stack.pop()
+        if getattr(current, "exclude", False):
+            continue
+        render_disabled = parent_render_disabled or bool(getattr(current.collection, "hide_render", False))
+        yield current, render_disabled
+        for child in current.children:
+            stack.append((child, render_disabled))
+
+
+def filter_scene_objects_for_export(objects: list[object], *, include_hidden: bool = False) -> list[object]:
+    """Drop the objects of a whole-scene export that Blender itself does not show.
+
+    Objects that only live in collections excluded from the view layer (the checkbox
+    in the Outliner) are always dropped: Blender does not evaluate them, so their
+    transforms are stale, and they appear in no viewport or render.
+
+    Hidden objects are dropped unless include_hidden is set: hidden in the viewport
+    (the eye or the monitor icon, on the object or a collection holding it) or disabled
+    in renders (the camera icon, on the object or on every collection holding it).
+    Artists often hide what they are not working on, so include_hidden lets a game
+    cook them anyway.
+    """
+    if bpy is None:
+        return list(objects)
+    view_layer = bpy.context.view_layer
+    view_layer_object_ids = {obj.as_pointer() for obj in view_layer.objects}
+    collection_render_disabled: dict[int, bool] = {}
+    for layer_collection, render_disabled in _layer_collection_tree(view_layer.layer_collection):
+        pointer = layer_collection.collection.as_pointer()
+        collection_render_disabled[pointer] = collection_render_disabled.get(pointer, True) and render_disabled
+
+    def is_hidden(obj: object) -> bool:
+        if not obj.visible_get(view_layer=view_layer) or getattr(obj, "hide_render", False):
+            return True
+        states = [
+            collection_render_disabled[collection.as_pointer()]
+            for collection in getattr(obj, "users_collection", [])
+            if collection.as_pointer() in collection_render_disabled
+        ]
+        return bool(states) and all(states)
+
+    kept: list[object] = []
+    excluded_names: list[str] = []
+    hidden_names: list[str] = []
+    for obj in objects:
+        if obj.as_pointer() not in view_layer_object_ids:
+            excluded_names.append(obj.name)
+        elif not include_hidden and is_hidden(obj):
+            hidden_names.append(obj.name)
+        else:
+            kept.append(obj)
+    if excluded_names:
+        print(f"  Skipped {len(excluded_names)} object(s) in collections excluded from the view layer", flush=True)
+    if hidden_names:
+        print(
+            f"  Skipped {len(hidden_names)} hidden or render-disabled object(s): {', '.join(sorted(hidden_names))} "
+            "(pass --include-hidden to export them)",
+            flush=True,
+        )
+    return kept
+
+
+def convert_curve_objects_to_meshes(objects: list[object]) -> tuple[list[object], set[int]]:
+    """Replace each curve, surface or text object whose evaluated geometry has faces
+    (a bevelled or extruded curve, for instance) with a temporary mesh object built
+    from that geometry, placed and parented like the source.
+
+    Returns the new object list and the pointers of the replaced source objects. A
+    curve without faces (a path used by a Curve modifier or as a guide) is left as it
+    is and exports nothing, as before.
+    """
+    if bpy is None or not any(getattr(obj, "type", None) in CONVERTIBLE_GEOMETRY_OBJECT_TYPES for obj in objects):
+        return list(objects), set()
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    result: list[object] = []
+    replaced_ids: set[int] = set()
+    for obj in objects:
+        if getattr(obj, "type", None) not in CONVERTIBLE_GEOMETRY_OBJECT_TYPES:
+            result.append(obj)
+            continue
+        mesh = bpy.data.meshes.new_from_object(
+            obj.evaluated_get(depsgraph), preserve_all_data_layers=True, depsgraph=depsgraph
+        )
+        if len(mesh.polygons) == 0:
+            bpy.data.meshes.remove(mesh)
+            result.append(obj)
+            continue
+        print(f"  Converting {obj.type.lower()} '{obj.name}' to a mesh", flush=True)
+        stand_in = bpy.data.objects.new(f"{obj.name}_mesh", mesh)
+        stand_in.parent = obj.parent
+        if obj.parent is not None:
+            stand_in.matrix_parent_inverse = obj.matrix_parent_inverse.copy()
+        stand_in.matrix_world = obj.matrix_world.copy()
+        stand_in[UNTOLD_EXPORT_TEMP_OBJECT_PROP] = True
+        stand_in[UNTOLD_MATERIAL_SPLIT_SOURCE_PROP] = obj.name
+        bpy.context.scene.collection.objects.link(stand_in)
+        result.append(stand_in)
+        replaced_ids.add(obj.as_pointer())
+    return result, replaced_ids
+
+
 def prepare_export_objects_from_blender_objects(
     objects: list[object],
     mesh_name: Optional[str] = None,
+    *,
+    filter_scene: bool = False,
+    include_hidden: bool = False,
 ) -> list[object]:
     """Apply the common Blender-object export preparation path.
 
     Used by both the CLI importer path and the Blender add-on path so object
-    selection, linked armatures, and material splitting stay consistent.
+    selection, curve conversion, linked armatures, and material splitting stay
+    consistent.
+
+    filter_scene applies filter_scene_objects_for_export (with include_hidden) first;
+    the CLI sets it when it exports a whole scene. It is ignored when mesh_name picks
+    one mesh, so an explicitly named mesh is exported even when hidden.
     """
-    export_objects = choose_export_objects(objects, mesh_name)
+    skipped_ids: set[int] = set()
+    if filter_scene and mesh_name is None:
+        kept = filter_scene_objects_for_export(objects, include_hidden=include_hidden)
+        kept_ids = {obj.as_pointer() for obj in kept}
+        skipped_ids = {
+            obj.as_pointer()
+            for obj in objects
+            if obj.as_pointer() not in kept_ids
+            and getattr(obj, "type", None) in CONVERTIBLE_GEOMETRY_OBJECT_TYPES | {"MESH"}
+        }
+        objects = kept
+    objects, replaced_ids = convert_curve_objects_to_meshes(objects)
+    export_objects = choose_export_objects(objects, mesh_name, skipped_ids | replaced_ids)
     export_objects = include_linked_armatures(export_objects)
     export_objects = split_blender_objects_by_material(export_objects)
     return export_objects
@@ -2162,6 +2330,14 @@ def _resolve_texture_from_socket(input_socket: object, asset_path: Path, visited
         texture_channel = texture_channel_from_socket_name(getattr(source_socket, "name", ""), channel)
         return _exported_texture_from_image(source_node.image, asset_path, channel=texture_channel)
 
+    if source_node.bl_idname == "ShaderNodeInvert":
+        # At full strength the inversion is written into the staged image (see
+        # stage_texture_for_output); at any other strength its math is dropped.
+        resolved = _resolve_texture_from_socket(source_node.inputs.get("Color"), asset_path, visited_nodes, channel)
+        if resolved is not None and _invert_node_is_full(source_node):
+            return replace(resolved, invert=not resolved.invert)
+        return resolved
+
     if source_node.bl_idname in {"ShaderNodeSeparateColor", "ShaderNodeSeparateRGB"}:
         texture_channel = texture_channel_from_socket_name(getattr(source_socket, "name", ""), channel)
         input_name = "Color" if source_node.bl_idname == "ShaderNodeSeparateColor" else "Image"
@@ -2177,7 +2353,6 @@ def _resolve_texture_from_socket(input_socket: object, asset_path: Path, visited
         "ShaderNodeGamma":          ["Color"],
         "ShaderNodeBrightContrast": ["Color"],
         "ShaderNodeHueSaturation":  ["Color"],
-        "ShaderNodeInvert":         ["Color"],
         "ShaderNodeCurveRGB":       ["Color"],
         "ShaderNodeCurveFloat":     ["Value"],
         # Mix nodes — try both color inputs; returns whichever one traces to a texture.
@@ -2194,6 +2369,143 @@ def _resolve_texture_from_socket(input_socket: object, asset_path: Path, visited
             return resolved
 
     return None
+
+
+def _invert_node_is_full(node: object) -> bool:
+    """True for an Invert node at full strength (Fac unlinked and 1)."""
+    return _socket_is_identity(node, "Fac", 1.0)
+
+
+def _linked_source(input_socket: object) -> tuple[Optional[object], Optional[object]]:
+    """The node and output socket feeding an input socket, looking through reroutes."""
+    socket = input_socket
+    while socket is not None and getattr(socket, "is_linked", False):
+        link = socket.links[0]
+        node = link.from_node
+        if node.bl_idname != "NodeReroute":
+            return node, getattr(link, "from_socket", None)
+        socket = node.inputs.get("Input") if getattr(node, "inputs", None) is not None else None
+    return None, None
+
+
+def _is_uv_coordinate_source(node: Optional[object], from_socket: Optional[object]) -> bool:
+    if node is None:
+        return False
+    if node.bl_idname == "ShaderNodeTexCoord":
+        return getattr(from_socket, "name", "") == "UV"
+    return node.bl_idname == "ShaderNodeUVMap"
+
+
+def mapping_node_uv_transform(node: object) -> Optional[UVTransform]:
+    """The UV scale and offset a Mapping node applies, or None when a positive UV scale
+    and offset cannot represent it: a rotation, a linked Location/Rotation/Scale, a
+    Normal mapping, or a zero or negative scale (which would also flip normal maps)."""
+    vector_type = getattr(node, "vector_type", "POINT")
+    if vector_type not in {"POINT", "TEXTURE", "VECTOR"}:
+        return None
+    inputs = getattr(node, "inputs", None)
+    if inputs is None:
+        return None
+    for name in ("Location", "Rotation", "Scale"):
+        socket = inputs.get(name)
+        if socket is not None and getattr(socket, "is_linked", False):
+            return None
+    if not _socket_is_identity(node, "Rotation", (0.0, 0.0, 0.0)):
+        return None
+    scale_socket = inputs.get("Scale")
+    scale = scale_socket.default_value if scale_socket is not None else (1.0, 1.0, 1.0)
+    scale_x, scale_y = float(scale[0]), float(scale[1])
+    if scale_x <= 1.0e-8 or scale_y <= 1.0e-8:
+        return None
+    location_socket = inputs.get("Location")
+    location = location_socket.default_value if location_socket is not None and vector_type != "VECTOR" else (0.0, 0.0, 0.0)
+    location_x, location_y = float(location[0]), float(location[1])
+    if vector_type == "TEXTURE":
+        # Texture mapping moves the texture instead of the coordinates: the inverse.
+        return UVTransform((1.0 / scale_x, 1.0 / scale_y), (-location_x / scale_x, -location_y / scale_y))
+    return UVTransform((scale_x, scale_y), (location_x, location_y))
+
+
+def image_node_uv_transform(image_node: object) -> tuple[bool, Optional[UVTransform]]:
+    """How an Image Texture node's coordinates relate to the mesh's UVs.
+
+    Returns (True, None) when it samples the UVs as they are (Vector unlinked or fed
+    by UV coordinates), (True, transform) when a Mapping node the exporter can apply
+    to the UVs sits in between, and (False, None) for anything else (generated or
+    object coordinates, rotations, node math on the vector).
+    """
+    node, from_socket = _linked_source(image_node.inputs.get("Vector"))
+    if node is None:
+        return True, None
+    if _is_uv_coordinate_source(node, from_socket):
+        return True, None
+    if node.bl_idname == "ShaderNodeMapping":
+        mapping_source, mapping_socket = _linked_source(node.inputs.get("Vector"))
+        transform = mapping_node_uv_transform(node)
+        if transform is not None and _is_uv_coordinate_source(mapping_source, mapping_socket):
+            return True, transform
+    return False, None
+
+
+def _uv_transform_key(transform: Optional[UVTransform]) -> tuple[float, ...]:
+    if transform is None:
+        return (1.0, 1.0, 0.0, 0.0)
+    return tuple(round(value, 6) for value in (*transform.scale, *transform.offset))
+
+
+def _material_image_uv_transforms(material: object) -> list[Optional[UVTransform]]:
+    """The UV transform of every connected Image Texture node the exporter can map to UVs."""
+    node_tree = getattr(material, "node_tree", None)
+    transforms: list[Optional[UVTransform]] = []
+    for node in getattr(node_tree, "nodes", []):
+        if node.bl_idname != "ShaderNodeTexImage" or getattr(node, "image", None) is None:
+            continue
+        if not any(getattr(output, "is_linked", False) for output in getattr(node, "outputs", [])):
+            continue
+        representable, transform = image_node_uv_transform(node)
+        if representable:
+            transforms.append(transform)
+    return transforms
+
+
+def material_uv_transform(material: Optional[object]) -> Optional[UVTransform]:
+    """The UV scale and offset to bake into a mesh's first UV map for its material.
+
+    The engine has no per-material texture transform, so the Mapping node in front
+    of the material's image textures (typically a tiling scale) is applied to the
+    UVs instead. When the textures disagree, the transform most of them use wins and
+    material fidelity analysis reports the others.
+    """
+    if material is None:
+        return None
+    transforms = _material_image_uv_transforms(material)
+    if not transforms:
+        return None
+    counts: dict[tuple[float, ...], int] = {}
+    first_by_key: dict[tuple[float, ...], Optional[UVTransform]] = {}
+    for transform in transforms:
+        key = _uv_transform_key(transform)
+        counts[key] = counts.get(key, 0) + 1
+        first_by_key.setdefault(key, transform)
+    winner = max(counts, key=lambda key: counts[key])
+    return first_by_key[winner]
+
+
+def _first_material(mesh_object: object) -> Optional[object]:
+    material_slots = getattr(getattr(mesh_object, "data", None), "materials", [])
+    return material_slots[0] if material_slots and material_slots[0] is not None else None
+
+
+def _emission_surface_node(material: object) -> Optional[object]:
+    """The Emission shader wired straight into the active Material Output's Surface, if any."""
+    node_tree = getattr(material, "node_tree", None)
+    if node_tree is None:
+        return None
+    output_node = _material_output_node(node_tree)
+    if output_node is None:
+        return None
+    node, _ = _linked_source(output_node.inputs.get("Surface"))
+    return node if node is not None and node.bl_idname == "ShaderNodeEmission" else None
 
 
 # --- Material graph fidelity analysis (see docs/API/UsingBlenderAddon.md#material-fidelity) ---
@@ -2341,6 +2653,16 @@ def _classify_graph_node(node: object, from_socket_name: str) -> Optional[Materi
         return None
     if _node_is_identity_configured(node):
         return None
+    # Applied to the mesh's UVs (material_uv_transform) and written into the staged
+    # texture (stage_texture_for_output) respectively.
+    if (
+        node_id == "ShaderNodeMapping"
+        and mapping_node_uv_transform(node) is not None
+        and _is_uv_coordinate_source(*_linked_source(node.inputs.get("Vector")))
+    ):
+        return None
+    if node_id == "ShaderNodeInvert" and _invert_node_is_full(node):
+        return None
     if node_id in _GRAPH_TRACED_THROUGH_NODE_IDS or node_id == "ShaderNodeMapping":
         return MaterialGraphFinding(node_name, node_id, MATERIAL_GRAPH_BAKEABLE, "node math is dropped by the exporter")
     return MaterialGraphFinding(node_name, node_id, MATERIAL_GRAPH_BAKEABLE, "not evaluated by the exporter")
@@ -2462,6 +2784,23 @@ def analyze_material(material: object) -> MaterialGraphAnalysis:
     output_node = _material_output_node(node_tree)
     if output_node is not None:
         _walk_material_graph(output_node, "", findings, visited_nodes=set(), classified=set())
+
+    # An Emission shader used as the whole surface is exported as an emissive material.
+    emission_node = _emission_surface_node(material)
+    if emission_node is not None:
+        emission_name = getattr(emission_node, "name", "") or emission_node.bl_idname
+        findings = [finding for finding in findings if finding.node_name != emission_name]
+
+    distinct_uv_transforms = {_uv_transform_key(transform) for transform in _material_image_uv_transforms(material)}
+    if len(distinct_uv_transforms) > 1:
+        findings.append(
+            MaterialGraphFinding(
+                material_name,
+                "ShaderNodeMapping",
+                MATERIAL_GRAPH_BAKEABLE,
+                "image textures use different Mapping transforms; only the most common one is applied to the UVs",
+            )
+        )
 
     if any(finding.category == MATERIAL_GRAPH_UNBAKEABLE for finding in findings):
         classification = MATERIAL_GRAPH_UNBAKEABLE
@@ -2918,6 +3257,11 @@ _FORMATS_WITHOUT_8BIT = {"OPEN_EXR", "OPEN_EXR_MULTILAYER", "HDR", "CINEON", "DP
 _UNSUPPORTED_TEXTURE_SUFFIXES = {".exr", ".hdr", ".cin", ".dpx"}
 _HDR_IMAGE_SUFFIXES = {".exr", ".hdr"}
 
+# Images that Blender could only write from a metadata-free copy, with what went wrong
+# the first time. A pack stages a texture once for every model that uses it; remembering
+# the image spares each of those models the failed attempt and Blender's error output.
+_images_written_from_copy: dict[str, str] = {}
+
 
 def write_blender_image_to_path(image_name: str, destination_path: Path, *, preserve_precision: bool = False) -> None:
     blender_required()
@@ -2943,13 +3287,163 @@ def write_blender_image_to_path(image_name: str, destination_path: Path, *, pres
 
     destination_path.parent.mkdir(parents=True, exist_ok=True)
 
+    # Must read the source file's own header before filepath_raw is overwritten to the
+    # destination path in _save_blender_image — image.filepath/.filepath_raw both then
+    # point at the (not yet written) output PNG, not the original source, and the header
+    # would resolve to the wrong file or nothing at all.
+    source_info = _source_bit_depth_and_channels(image)
+
+    def save(target: object) -> Optional[str]:
+        """Write target to destination_path. Returns what went wrong, or None if nothing did."""
+        try:
+            _save_blender_image(
+                target,
+                destination_path,
+                image_name=image_name,
+                source_image=image,
+                source_info=source_info,
+                preserve_precision=preserve_precision,
+            )
+        except (RuntimeError, OSError) as exc:
+            lines = str(exc).strip().splitlines()
+            return lines[0] if lines else type(exc).__name__
+        return _written_image_problem(destination_path)
+
+    can_copy = _can_copy_without_metadata(image)
+    problem = _images_written_from_copy.get(image_name) if can_copy else None
+    failed_before = problem is not None
+    if not failed_before:
+        problem = save(image)
+        if problem is None:
+            return
+
+        # Blender writes the metadata it read from an image's source file back out on every
+        # save, and a bad entry can abort the write after the file has been started. Seen
+        # with JPEGs that Blender itself saved from a source with an embedded ICC profile:
+        # they carry a "Blender:ICCProfile:..." comment, which comes back as a text entry
+        # named ICCProfile that the PNG writer takes for the profile itself. libpng rejects
+        # it ("ICC profile too short") once the PNG header is on disk, leaving a 33-byte
+        # file. The pixels are fine, so write them again from a copy that has no metadata.
+        _remove_incomplete_file(destination_path)
+        if not can_copy:
+            raise TextureWriteError(f"'{image_name}' could not be written: {problem}. Skipping texture.")
+        print(f"  Blender could not write image '{image_name}' ({problem}). Retrying from a copy without the source file's metadata.", flush=True)
+
+    try:
+        metadata_free_copy = _metadata_free_image_copy(image)
+    except Exception as exc:
+        raise TextureWriteError(
+            f"'{image_name}' could not be written: {problem}. "
+            f"Copying its pixels for a second attempt failed too: {exc}. Skipping texture."
+        ) from exc
+    try:
+        retry_problem = save(metadata_free_copy)
+    finally:
+        bpy.data.images.remove(metadata_free_copy)
+    if retry_problem is not None:
+        _remove_incomplete_file(destination_path)
+        raise TextureWriteError(
+            f"'{image_name}' could not be written: {problem}. "
+            f"A second attempt from a copy without metadata failed too: {retry_problem}. Skipping texture."
+        )
+    if not failed_before:
+        _images_written_from_copy[image_name] = problem
+        print(f"  Wrote image '{image_name}' from the copy. Its other uses in this export are written the same way.", flush=True)
+
+
+def _png_is_complete(path: Path) -> bool:
+    """Return True when a PNG was written through to its closing IEND chunk.
+
+    libpng writes the signature and IHDR before anything else, so a write that fails
+    later leaves a header-only file that still passes a signature check.
+    """
+    iend_chunk = b"\x00\x00\x00\x00IEND\xaeB`\x82"
+    try:
+        with open(path, "rb") as f:
+            if f.read(8) != b"\x89PNG\r\n\x1a\n":
+                return False
+            f.seek(-len(iend_chunk), os.SEEK_END)
+            return f.read() == iend_chunk
+    except OSError:
+        return False
+
+
+def _written_image_problem(path: Path) -> Optional[str]:
+    """Return what is wrong with a just-written image file, or None when it is complete."""
+    if not path.is_file():
+        return "no file was written"
+    size = path.stat().st_size
+    if size == 0:
+        return "the file is empty"
+    if path.suffix.lower() == ".png" and not _png_is_complete(path):
+        return f"the PNG is incomplete ({size} bytes, no closing IEND chunk)"
+    return None
+
+
+def _remove_incomplete_file(path: Path) -> None:
+    """Delete what a failed write left behind, so a truncated file never outlives the failure."""
+    try:
+        path.unlink(missing_ok=True)
+    except OSError as exc:
+        print(f"  Warning: could not remove incomplete file '{path}': {exc}", flush=True)
+
+
+def _can_copy_without_metadata(image: object) -> bool:
+    """Return True when _metadata_free_image_copy reproduces the image exactly.
+
+    That holds for 8-bit images, which Blender keeps as RGBA bytes in the image's own
+    color space. A float buffer holds scene-linear values instead, and a generated copy
+    of those is not written back the way its source is: a 16-bit sRGB texture came out
+    darker. A texture that is reported as skipped is better than one that is subtly wrong.
+    """
+    return not getattr(image, "is_float", False) and getattr(image, "channels", 0) == 4
+
+
+def _metadata_free_image_copy(image: object) -> object:
+    """Copy an image's pixels into a new datablock that has none of its source file's metadata.
+
+    Blender has no Python API to edit or drop the metadata an image was loaded with. A
+    generated image has no source file and so no metadata, which makes it a way to get the
+    same pixels to disk without it. The caller removes the copy once it is saved.
+    """
+    width, height = int(image.size[0]), int(image.size[1])
+    # image.depth is the bits per pixel of the source: only 32 (RGBA) and 16 (gray + alpha)
+    # have an alpha channel to keep.
+    copy = bpy.data.images.new(
+        f"{image.name}.untold_export",
+        width=width,
+        height=height,
+        alpha=image.depth in (16, 32),
+    )
+    try:
+        # Before the pixels: changing the color space of a generated image clears them.
+        copy.colorspace_settings.name = image.colorspace_settings.name
+        copy.alpha_mode = image.alpha_mode
+        pixels = array("f", bytes(4 * width * height * 4))
+        image.pixels.foreach_get(pixels)
+        copy.pixels.foreach_set(pixels)
+    except Exception:
+        bpy.data.images.remove(copy)
+        raise
+    return copy
+
+
+def _save_blender_image(
+    image: object,
+    destination_path: Path,
+    *,
+    image_name: str,
+    source_image: object,
+    source_info: Optional[tuple[int, int]],
+    preserve_precision: bool,
+) -> None:
+    """Save image to destination_path, converted as the engine needs.
+
+    image is the datablock that gets written: source_image itself, or a metadata-free
+    copy of it. What to convert is always decided from source_image and source_info.
+    """
     original_filepath_raw = getattr(image, "filepath_raw", "")
     original_file_format = getattr(image, "file_format", "PNG")
-    # Must read the source file's own header before filepath_raw is overwritten to the
-    # destination path below — image.filepath/.filepath_raw both then point at the (not
-    # yet written) output PNG, not the original source, and the header would resolve to
-    # the wrong file or nothing at all.
-    source_info = _source_bit_depth_and_channels(image)
     try:
         image.filepath_raw = str(destination_path)
         if destination_path.suffix:
@@ -2994,14 +3488,14 @@ def write_blender_image_to_path(image_name: str, destination_path: Path, *, pres
         # — which silently defeats the needs_conversion check below. Read the true
         # values from the source file's own header when one is available, and only
         # fall back to Blender's metadata for formats/sources that can't be inspected
-        # directly (JPEG, packed images, generated images, etc.). Captured above, before
-        # filepath_raw was overwritten to point at the destination instead of the source.
+        # directly (JPEG, packed images, generated images, etc.). Captured by the caller,
+        # before filepath_raw was overwritten to point at the destination instead of the source.
         if source_info is not None:
             bits_per_sample, image_channels = source_info
             image_depth = bits_per_sample * image_channels
         else:
-            image_depth = getattr(image, "depth", 0)
-            image_channels = getattr(image, "channels", 4)
+            image_depth = getattr(source_image, "depth", 0)
+            image_channels = getattr(source_image, "channels", 4)
         # Convert when: 16-bit RGB/RGBA (depth > 32), OR any grayscale image
         # (channels < 3, any bit depth).  depth = bits-per-pixel:
         #   8-bit grayscale  → depth=8,  channels=1  (missed by depth>32)
@@ -3052,7 +3546,7 @@ def write_blender_image_to_path(image_name: str, destination_path: Path, *, pres
             # engine then loads those linear values as sRGB and applies sRGB→linear
             # expansion a second time, making the surface appear too dark / wrong.
             _LINEAR_COLORSPACES = {"Non-Color", "Linear", "Linear Rec.709", "Linear BT.709", "Raw"}
-            colorspace_name = getattr(getattr(image, "colorspace_settings", None), "name", "sRGB")
+            colorspace_name = getattr(getattr(source_image, "colorspace_settings", None), "name", "sRGB")
             is_linear_data = colorspace_name in _LINEAR_COLORSPACES
             target_view_transform = "Raw" if is_linear_data else "Standard"
 
@@ -3141,11 +3635,40 @@ def write_blender_hdr_image_to_path(image_name: str, destination_path: Path) -> 
 
 
 def texture_staging_key(texture: ExportedTexture) -> str:
+    inverted = "|inverted" if texture.invert else ""
     if texture.source_path is not None:
-        return f"path:{texture.source_path.expanduser().resolve()}"
+        return f"path:{texture.source_path.expanduser().resolve()}{inverted}"
     if texture.source_image_name:
-        return f"image:{texture.source_image_name}"
-    return f"uri:{texture.uri}"
+        return f"image:{texture.source_image_name}{inverted}"
+    return f"uri:{texture.uri}{inverted}"
+
+
+def invert_staged_image(path: Path) -> None:
+    """Invert the color channels of a staged image in place, leaving alpha alone
+    (Blender's Invert node inverts color only)."""
+    blender_required()
+    image = bpy.data.images.load(str(path), check_existing=False)
+    try:
+        image.colorspace_settings.name = "Non-Color"
+        channels = int(image.channels)
+        color_channels = 3 if channels >= 3 else 1
+        if _HAS_NUMPY:
+            pixels = np.empty(len(image.pixels), dtype=np.float32)
+            image.pixels.foreach_get(pixels)
+            pixels = pixels.reshape(-1, channels)
+            pixels[:, :color_channels] = 1.0 - pixels[:, :color_channels]
+            image.pixels.foreach_set(pixels.ravel())
+        else:
+            pixels = list(image.pixels)
+            for start in range(0, len(pixels), channels):
+                for offset in range(color_channels):
+                    pixels[start + offset] = 1.0 - pixels[start + offset]
+            image.pixels[:] = pixels
+        image.filepath_raw = str(path)
+        image.file_format = "PNG"
+        image.save()
+    finally:
+        bpy.data.images.remove(image)
 
 
 def hdr_staging_key(source_path: Optional[Path], image_name: Optional[str], label: str) -> str:
@@ -3185,6 +3708,8 @@ def unique_texture_destination_name(
 ) -> str:
     source_name = texture.source_path.name if texture.source_path is not None else texture.name
     base = Path(source_name).stem or "texture"
+    if texture.invert:
+        base = f"{base}_inverted"
     suffix = suffix_override if suffix_override is not None else Path(source_name).suffix
     candidate = f"{base}{suffix}"
     if candidate not in context.used_names:
@@ -3217,20 +3742,29 @@ def stage_texture_for_output(
     context: TextureStagingContext,
     *,
     preserve_precision: bool = False,
+    used_as: Optional[str] = None,
 ) -> Optional[ExportedTexture]:
     """Stage a texture for output.  Returns None if the texture format is not
-    supported by the engine pipeline (e.g. EXR, HDR) — callers should treat
-    None as "no texture" for that material slot.
+    supported by the engine pipeline (e.g. EXR, HDR) or the texture could not be
+    written — callers should treat None as "no texture" for that material slot.
 
     preserve_precision: keep 16-bit depth for a genuinely-16-bit source instead of
     the usual 8-bit downconvert (see write_blender_image_to_path). Set by the
     height/displacement and normal slots — texbake.py's height and normal paths are
     the consumers built to preserve and use that extra precision.
+
+    used_as: where the texture is used (see texture_usage), so a skipped texture is
+    reported together with the material and object that lose it.
     """
     source_path = texture.source_path
     texture_dir = output_path.parent / "Textures"
     texture_dir.mkdir(parents=True, exist_ok=True)
     staging_key = texture_staging_key(texture)
+
+    def skip(reason: str) -> None:
+        message = f"{reason} It was the {used_as}." if used_as else reason
+        print(f"  Warning: {message}", flush=True)
+        context.skipped_textures.append(message)
 
     # Early rejection: file-backed textures with unsupported suffixes (EXR, HDR, …)
     # are not part of the engine pipeline.  Skip with a warning so the export
@@ -3238,11 +3772,10 @@ def stage_texture_for_output(
     if source_path is not None:
         resolved = source_path.expanduser().resolve()
         if resolved.suffix.lower() in _UNSUPPORTED_TEXTURE_SUFFIXES:
-            print(
-                f"  Warning: texture '{texture.name}' uses unsupported format "
+            skip(
+                f"texture '{texture.name}' uses unsupported format "
                 f"'{resolved.suffix}' (EXR/HDR are not supported by the engine). "
-                f"Skipping texture.",
-                flush=True,
+                f"Skipping texture."
             )
             return None
 
@@ -3294,9 +3827,18 @@ def stage_texture_for_output(
         else:
             missing_path = str(source_path) if source_path is not None else "<none>"
             raise RuntimeError(f"Texture source does not exist and no Blender image fallback is available: {missing_path}")
-    except UnsupportedTextureFormatError as exc:
-        print(f"  Warning: {exc}", flush=True)
+    except (UnsupportedTextureFormatError, TextureWriteError) as exc:
+        # One texture that cannot be exported costs its material a texture slot, not the
+        # whole export: a multi-model pack writes its manifest last, so stopping here would
+        # throw away every model already written.
+        skip(str(exc))
         return None
+
+    if texture.invert:
+        if bpy is not None:
+            invert_staged_image(destination_path)
+        else:
+            print(f"  Warning: texture '{texture.name}' feeds an Invert node, which needs Blender to apply; staged as is.", flush=True)
 
     context.staged_by_key[staging_key] = destination_path
 
@@ -3484,23 +4026,57 @@ def stage_hdr_assets_for_output(output_dir: Path, asset_path: Path) -> list[Path
     return unique_staged
 
 
-def stage_material_for_output(material: ExportedMaterial, output_path: Path, context: TextureStagingContext) -> ExportedMaterial:
+def texture_usage(slot: str, material_name: str, object_name: Optional[str] = None) -> str:
+    """Describe where a texture is used, for the report of a texture that had to be skipped."""
+    usage = f"{slot} texture of material '{material_name}'"
+    return f"{usage} on object '{object_name}'" if object_name else usage
+
+
+def stage_material_for_output(
+    material: ExportedMaterial,
+    output_path: Path,
+    context: TextureStagingContext,
+    *,
+    object_name: Optional[str] = None,
+) -> ExportedMaterial:
+    def stage(texture: Optional[ExportedTexture], slot: str, preserve_precision: bool = False) -> Optional[ExportedTexture]:
+        if texture is None:
+            return None
+        return stage_texture_for_output(
+            texture,
+            output_path,
+            context,
+            preserve_precision=preserve_precision,
+            used_as=texture_usage(slot, material.name, object_name),
+        )
+
     return replace(
         material,
-        base_color_texture=stage_texture_for_output(material.base_color_texture, output_path, context) if material.base_color_texture is not None else None,
-        normal_texture=stage_texture_for_output(material.normal_texture, output_path, context, preserve_precision=True) if material.normal_texture is not None else None,
-        metallic_texture=stage_texture_for_output(material.metallic_texture, output_path, context) if material.metallic_texture is not None else None,
-        roughness_texture=stage_texture_for_output(material.roughness_texture, output_path, context) if material.roughness_texture is not None else None,
-        emissive_texture=stage_texture_for_output(material.emissive_texture, output_path, context) if material.emissive_texture is not None else None,
-        occlusion_texture=stage_texture_for_output(material.occlusion_texture, output_path, context) if material.occlusion_texture is not None else None,
-        height_texture=stage_texture_for_output(material.height_texture, output_path, context, preserve_precision=True) if material.height_texture is not None else None,
+        base_color_texture=stage(material.base_color_texture, "base color"),
+        normal_texture=stage(material.normal_texture, "normal", preserve_precision=True),
+        metallic_texture=stage(material.metallic_texture, "metallic"),
+        roughness_texture=stage(material.roughness_texture, "roughness"),
+        emissive_texture=stage(material.emissive_texture, "emissive"),
+        occlusion_texture=stage(material.occlusion_texture, "occlusion"),
+        height_texture=stage(material.height_texture, "height", preserve_precision=True),
     )
 
 
-def stage_mesh_for_output(exported_mesh: ExportedMesh, output_path: Path, context: TextureStagingContext) -> ExportedMesh:
+def stage_mesh_for_output(
+    exported_mesh: ExportedMesh,
+    output_path: Path,
+    context: TextureStagingContext,
+    *,
+    object_name: Optional[str] = None,
+) -> ExportedMesh:
     return replace(
         exported_mesh,
-        material=stage_material_for_output(exported_mesh.material, output_path, context),
+        material=stage_material_for_output(
+            exported_mesh.material,
+            output_path,
+            context,
+            object_name=object_name or exported_mesh.entity_name,
+        ),
     )
 
 
@@ -3508,8 +4084,14 @@ def stage_nodes_for_output(
     exported_nodes: list[ExportedNode],
     output_path: Path,
     progress_callback: Optional[ProgressCallback] = None,
+    skipped_textures: Optional[list[str]] = None,
 ) -> list[ExportedNode]:
-    context = TextureStagingContext()
+    """Stage every node's textures next to output_path.
+
+    skipped_textures: a list that receives one line per texture that had to be left
+    out, so the caller can report them together once the export is done.
+    """
+    context = TextureStagingContext(skipped_textures)
     staged_nodes: list[ExportedNode] = []
     total = len(exported_nodes)
     for i, exported_node in enumerate(exported_nodes, 1):
@@ -3519,12 +4101,32 @@ def stage_nodes_for_output(
             staged_nodes.append(
                 replace(
                     exported_node,
-                    mesh=stage_mesh_for_output(exported_node.mesh, output_path, context),
+                    mesh=stage_mesh_for_output(
+                        exported_node.mesh,
+                        output_path,
+                        context,
+                        # A material-split fragment is named "<object>_mat<n>"; report the
+                        # object as it is named in Blender.
+                        object_name=exported_node.material_split_root_name or exported_node.entity_name,
+                    ),
                 )
             )
         if progress_callback is not None:
             progress_callback("Stage nodes", i, total, exported_node.entity_name)
     return staged_nodes
+
+
+def print_skipped_textures(skipped_textures: list[str]) -> None:
+    """Repeat the textures that were left out at the end of an export, where they get read."""
+    if not skipped_textures:
+        return
+    print(
+        f"Warning: {len(skipped_textures)} texture(s) could not be exported. "
+        "The materials that use them were written without them:",
+        flush=True,
+    )
+    for skipped_texture in skipped_textures:
+        print(f"  - {skipped_texture}", flush=True)
 
 
 def _detect_occlusion_texture(material: object, asset_path: Path) -> Optional[ExportedTexture]:
@@ -3597,6 +4199,36 @@ def extract_material(mesh_object: object, asset_path: Path) -> ExportedMaterial:
             if node.bl_idname == "ShaderNodeBsdfPrincipled":
                 principled = node
                 break
+
+    emission_node = _emission_surface_node(material) if principled is None else None
+    if emission_node is not None:
+        # An Emission shader as the whole surface: it reflects nothing and glows with
+        # its color times its strength.
+        color_input = emission_node.inputs.get("Color")
+        strength_input = emission_node.inputs.get("Strength")
+        strength = (
+            float(strength_input.default_value)
+            if strength_input is not None and not strength_input.is_linked
+            else 1.0
+        )
+        emissive_texture = resolve_texture_from_socket(color_input, asset_path) if color_input is not None else None
+        if color_input is not None and not color_input.is_linked:
+            color = color_input.default_value
+            emissive = (float(color[0]) * strength, float(color[1]) * strength, float(color[2]) * strength)
+        else:
+            emissive = (strength, strength, strength)
+        return ExportedMaterial(
+            name=material.name,
+            base_color_factor=(0.0, 0.0, 0.0, 1.0),
+            emissive_factor=emissive,
+            normal_scale=1.0,
+            metallic_factor=0.0,
+            roughness_factor=1.0,
+            occlusion_strength=1.0,
+            alpha_cutoff=float(getattr(material, "alpha_threshold", 0.5)),
+            base_color_texture=None,
+            emissive_texture=emissive_texture,
+        )
 
     if principled is None:
         base_color = vector4(material.diffuse_color)
@@ -3829,6 +4461,11 @@ def _extract_mesh_numpy(mesh_object: object, mesh_data: object, asset_path: Path
         uv0_flat = np.empty(n_loops * 2, dtype=np.float32)
         mesh_data.uv_layers[0].data.foreach_get("uv", uv0_flat)
         loop_uv0 = uv0_flat.reshape(-1, 2)
+        uv_transform = material_uv_transform(_first_material(mesh_object))
+        if uv_transform is not None:
+            loop_uv0 = loop_uv0 * np.array(uv_transform.scale, dtype=np.float32) + np.array(
+                uv_transform.offset, dtype=np.float32
+            )
     else:
         loop_uv0 = np.zeros((n_loops, 2), dtype=np.float32)
 
@@ -4066,6 +4703,7 @@ def extract_mesh_object(
         uv1_layer = mesh_data.uv_layers[1].data if len(mesh_data.uv_layers) > 1 else None
         if has_uvs:
             mesh_data.calc_tangents(uvmap=mesh_data.uv_layers[0].name)
+        uv_transform = material_uv_transform(_first_material(mesh_object)) if has_uvs else None
 
         color_layer = mesh_data.color_attributes.active_color
         vertex_writer = BinaryWriter()
@@ -4108,6 +4746,8 @@ def extract_mesh_object(
                     normal = transform_direction(conversion_matrix, normal, (0.0, 0.0, 1.0))
                     tangent = transform_direction(conversion_matrix, tangent, (1.0, 0.0, 0.0))
                 uv0_pair = (float(uv0[0]), float(uv0[1]))
+                if uv_transform is not None:
+                    uv0_pair = uv_transform.apply(uv0_pair)
                 uv1_pair = (float(uv1[0]), float(uv1[1]))
                 if vertex_skin_indices:
                     joint_index_tuple = vertex_skin_indices[loop.vertex_index]
@@ -4235,17 +4875,44 @@ def split_blender_objects_by_material(objects: list[object]) -> list[object]:
     The V1 exporter requires each mesh to carry exactly one material.  This
     mirrors the split step in the tile-streaming pipeline so that direct
     export-untold calls on multi-material USD assets also work.
+
+    The fragments are cut from the object's evaluated mesh, with its modifiers and
+    shape keys applied, since the fragments carry no modifiers of their own: cutting
+    the base mesh lost Geometry Nodes, Curve, Mirror, Bevel and Solidify results and
+    left arrays and curve-deformed parts in the wrong place. An object deformed by an
+    Armature modifier is cut from its base mesh instead, so its rest pose is kept.
     """
     import bpy, bmesh as _bmesh  # noqa: F401 — bmesh may not be at module level
+
+    # Every evaluated mesh is taken before the first fragment is linked into the
+    # scene, which invalidates the depsgraph.
+    evaluated_meshes: dict[int, object] = {}
+    depsgraph = None
+    for obj in objects:
+        if getattr(obj, "type", None) != "MESH" or obj.data is None:
+            continue
+        if len({p.material_index for p in obj.data.polygons}) <= 1 and not getattr(obj, "modifiers", None):
+            continue
+        if any(getattr(modifier, "type", None) == "ARMATURE" for modifier in getattr(obj, "modifiers", [])):
+            continue
+        if depsgraph is None:
+            depsgraph = bpy.context.evaluated_depsgraph_get()
+        evaluated_meshes[obj.as_pointer()] = bpy.data.meshes.new_from_object(
+            obj.evaluated_get(depsgraph), preserve_all_data_layers=True, depsgraph=depsgraph
+        )
+
     result = []
     split_count = 0
     for obj in objects:
         if getattr(obj, "type", None) != "MESH" or obj.data is None:
             result.append(obj)
             continue
-        mesh = obj.data
+        evaluated_mesh = evaluated_meshes.pop(obj.as_pointer(), None)
+        mesh = evaluated_mesh if evaluated_mesh is not None else obj.data
         used_indices = {p.material_index for p in mesh.polygons}
         if len(used_indices) <= 1:
+            if evaluated_mesh is not None:
+                bpy.data.meshes.remove(evaluated_mesh)
             result.append(obj)
             continue
         print(f"  Splitting '{obj.name}' into {len(used_indices)} single-material mesh(es)", flush=True)
@@ -4265,7 +4932,7 @@ def split_blender_objects_by_material(objects: list[object]) -> list[object]:
                     _bmesh.ops.delete(bm, geom=loose_verts, context="VERTS")
                 if not bm.faces:
                     continue
-                new_mesh = bpy.data.meshes.new(f"{mesh.name}_mat{mat_idx}")
+                new_mesh = bpy.data.meshes.new(f"{obj.data.name}_mat{mat_idx}")
                 bm.to_mesh(new_mesh)
                 new_mesh.update()
                 mat = mesh.materials[mat_idx] if mat_idx < len(mesh.materials) else None
@@ -4285,19 +4952,32 @@ def split_blender_objects_by_material(objects: list[object]) -> list[object]:
                     new_obj.matrix_parent_inverse = obj.matrix_parent_inverse.copy()
                 new_obj.matrix_world = obj.matrix_world.copy()
                 new_obj[UNTOLD_EXPORT_TEMP_OBJECT_PROP] = True
-                new_obj[UNTOLD_MATERIAL_SPLIT_SOURCE_PROP] = obj.name
+                # A stand-in being split (a converted curve) passes on the object it
+                # already stands in for.
+                new_obj[UNTOLD_MATERIAL_SPLIT_SOURCE_PROP] = obj.get(UNTOLD_MATERIAL_SPLIT_SOURCE_PROP) or obj.name
                 bpy.context.scene.collection.objects.link(new_obj)
                 result.append(new_obj)
             finally:
                 bm.free()
+        if evaluated_mesh is not None:
+            bpy.data.meshes.remove(evaluated_mesh)
     return result
 
 
 def cleanup_temporary_export_objects(objects: Iterable[object]) -> None:
-    """Remove temporary Blender objects created for one export pass."""
+    """Remove temporary Blender objects created for one export pass, including those
+    no longer in the export list (a converted curve that was then split)."""
     if bpy is None:
         return
-    for obj in list(objects):
+    candidates = list(objects)
+    candidate_ids = {id(obj) for obj in candidates}
+    for obj in list(getattr(bpy.data, "objects", [])):
+        try:
+            if obj.get(UNTOLD_EXPORT_TEMP_OBJECT_PROP) and id(obj) not in candidate_ids:
+                candidates.append(obj)
+        except ReferenceError:
+            continue
+    for obj in candidates:
         try:
             if not obj.get(UNTOLD_EXPORT_TEMP_OBJECT_PROP):
                 continue
@@ -4322,6 +5002,7 @@ def extract_nodes(
     source_orientation: str = "blender-native",
     validate: bool = False,
     progress_callback: Optional[ProgressCallback] = None,
+    include_hidden: bool = False,
 ) -> list[ExportedNode]:
     blender_required()
     stage_label = "Open .blend" if asset_path.suffix.lower() == ".blend" else "Import USD"
@@ -4330,7 +5011,12 @@ def extract_nodes(
     imported_objects = load_source_objects(asset_path)
     if progress_callback is not None:
         progress_callback("Select objects", 0, 1, f"{len(imported_objects)} imported object(s)")
-    export_objects = prepare_export_objects_from_blender_objects(imported_objects, mesh_name)
+    export_objects = prepare_export_objects_from_blender_objects(
+        imported_objects,
+        mesh_name,
+        filter_scene=True,
+        include_hidden=include_hidden,
+    )
     try:
         return extract_nodes_from_objects(
             export_objects,
@@ -4427,12 +5113,43 @@ def extract_nodes_from_objects(
         return corners
 
     export_object_ids = {obj.as_pointer() for obj in export_objects}
+    # A source object replaced by stand-ins (split by material, or a curve converted to
+    # a mesh) is not exported itself; its children hang from its first stand-in, which
+    # has the same world transform.
+    stand_in_by_source_name: dict[str, object] = {}
+    for obj in export_objects:
+        source_name = obj.get(UNTOLD_MATERIAL_SPLIT_SOURCE_PROP)
+        if source_name:
+            stand_in_by_source_name.setdefault(source_name, obj)
+
+    def exported_parent(obj: object) -> Optional[object]:
+        """The nearest ancestor (or ancestor's stand-in) that is itself exported."""
+        parent = getattr(obj, "parent", None)
+        while parent is not None:
+            if parent.as_pointer() in export_object_ids:
+                return parent
+            stand_in = stand_in_by_source_name.get(parent.name)
+            if stand_in is not None and stand_in.as_pointer() != obj.as_pointer():
+                return stand_in
+            parent = getattr(parent, "parent", None)
+        return None
+
     nodes: list[ExportedNode] = []
     for obj in export_objects:
         if getattr(obj, "type", None) in {"LIGHT", "CAMERA"}:
             continue
 
-        local_transform_rows = matrix_rows_from_blender(obj.matrix_local)
+        parent = exported_parent(obj)
+        blender_parent = getattr(obj, "parent", None)
+        if parent is not None and blender_parent is not None and parent.as_pointer() == blender_parent.as_pointer():
+            local_matrix = obj.matrix_local
+        elif parent is not None:
+            local_matrix = parent.matrix_world.inverted_safe() @ obj.matrix_world
+        else:
+            # Its Blender parent is not exported, so this node is a root: matrix_local
+            # would place it relative to a parent that is no longer there.
+            local_matrix = obj.matrix_world if blender_parent is not None else obj.matrix_local
+        local_transform_rows = matrix_rows_from_blender(local_matrix)
         if conversion_matrix is not None:
             local_transform_rows = transform_matrix_rows(local_transform_rows, conversion_matrix)
 
@@ -4462,8 +5179,7 @@ def extract_nodes_from_objects(
                 local_bounds = AABB((0.0, 0.0, 0.0), (0.0, 0.0, 0.0))
                 world_bounds = local_bounds
 
-        parent = getattr(obj, "parent", None)
-        parent_entity_name = parent.name if parent is not None and parent.as_pointer() in export_object_ids else None
+        parent_entity_name = (parent.get("mesh_original_name") or parent.name) if parent is not None else None
         nodes.append(
             ExportedNode(
                 entity_name=obj.get("mesh_original_name") or obj.name,
@@ -5325,7 +6041,10 @@ def export_objects_to_untold(
             progress_callback("Stage color grade LUT", 0, 1, color_grade_lut_path.name)
         color_grade_lut = stage_color_grade_lut_for_output(color_grade_lut_path, output_path.parent)
 
-    exported_nodes = stage_nodes_for_output(exported_nodes, output_path, progress_callback=progress_callback)
+    skipped_textures: list[str] = []
+    exported_nodes = stage_nodes_for_output(
+        exported_nodes, output_path, progress_callback=progress_callback, skipped_textures=skipped_textures
+    )
     untold_bytes = build_untold_file(
         exported_nodes,
         output_path,
@@ -5365,6 +6084,7 @@ def export_objects_to_untold(
         "vertex_count": sum(exported_mesh.vertex_count for exported_mesh in exported_meshes),
         "index_count": sum(exported_mesh.index_count for exported_mesh in exported_meshes),
         "color_grade_lut_staged": color_grade_lut is not None,
+        "skipped_textures": skipped_textures,
     }
 
 
@@ -5500,7 +6220,10 @@ def write_single_untold_from_nodes(
             progress_callback("Stage color grade LUT", 0, 1, color_grade_lut_path.name)
         color_grade_lut = stage_color_grade_lut_for_output(color_grade_lut_path, output_path.parent)
 
-    exported_nodes = stage_nodes_for_output(exported_nodes, output_path, progress_callback=progress_callback)
+    skipped_textures: list[str] = []
+    exported_nodes = stage_nodes_for_output(
+        exported_nodes, output_path, progress_callback=progress_callback, skipped_textures=skipped_textures
+    )
     untold_bytes = build_untold_file(
         exported_nodes,
         output_path,
@@ -5551,6 +6274,7 @@ def write_single_untold_from_nodes(
         "color_grade_lut_staged": color_grade_lut is not None,
         "color_grade_lut_uri": color_grade_lut.uri if color_grade_lut is not None else None,
         "removed_stale_pack_path": removed_stale_pack_path,
+        "skipped_textures": skipped_textures,
     }
 
 
@@ -5583,6 +6307,7 @@ def write_untold_pack_from_groups(
     total_vertices = 0
     total_indices = 0
     total_bytes = 0
+    skipped_textures: list[str] = []
     used_model_dir_names: set[str] = set()
     for root_name, raw_group_nodes in model_groups.items():
         # The root's own placement is captured here, from the un-baked node, and
@@ -5598,7 +6323,9 @@ def write_untold_pack_from_groups(
         model_output_path = output_path.parent / model_dir_name / f"{model_dir_name}.untold"
         model_output_path.parent.mkdir(parents=True, exist_ok=True)
 
-        staged_group_nodes = stage_nodes_for_output(group_nodes, model_output_path, progress_callback=progress_callback)
+        staged_group_nodes = stage_nodes_for_output(
+            group_nodes, model_output_path, progress_callback=progress_callback, skipped_textures=skipped_textures
+        )
         model_bytes = build_untold_file(
             staged_group_nodes,
             model_output_path,
@@ -5660,6 +6387,7 @@ def write_untold_pack_from_groups(
         "bytes_written": total_bytes,
         "removed_stale_single_path": removed_stale_single_path,
         "removed_orphan_dir_names": orphaned_dir_names,
+        "skipped_textures": skipped_textures,
     }
 
 
@@ -5769,6 +6497,12 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         choices=["blender-native", "engine-oriented"],
         help="Orientation of the input USD/USDZ before any exporter-side conversion. Use 'blender-native' for assets still in Blender's default space (-Y forward, +Z up), or 'engine-oriented' for assets already oriented to the engine's convention (+Z forward, +Y up).",
     )
+    parser.add_argument(
+        "--include-hidden",
+        action="store_true",
+        help="Also export objects hidden in the viewport or disabled in renders (the eye, monitor and camera "
+             "icons in Blender's Outliner). Objects in collections excluded from the view layer are never exported.",
+    )
     parser.add_argument("--validate", action="store_true", help="Write a companion .validation.json file for engine-side validation tests.")
     parser.add_argument(
         "--compress-geometry",
@@ -5830,6 +6564,7 @@ def main(argv: list[str]) -> int:
             convert_orientation=args.convert_orientation,
             source_orientation=args.source_orientation,
             validate=args.validate,
+            include_hidden=args.include_hidden,
             progress_callback=lambda stage, done, total, detail: progress.stage(
                 stage,
                 f"{done}/{total} {detail}" if total > 1 else detail,
@@ -5887,6 +6622,7 @@ def main(argv: list[str]) -> int:
             # leftover state from an earlier one.
             if result["removed_stale_pack_path"] is not None:
                 print(f"Removed stale pack manifest: {result['removed_stale_pack_path']}", flush=True)
+            print_skipped_textures(result["skipped_textures"])
             progress.advance("Complete", output_path.name)
         else:
             # Multiple independent models were found in the source scene: emit one
@@ -5928,6 +6664,7 @@ def main(argv: list[str]) -> int:
             if result["removed_orphan_dir_names"]:
                 print(f"Removed {len(result['removed_orphan_dir_names'])} orphaned pack model folder(s): {', '.join(result['removed_orphan_dir_names'])}", flush=True)
             progress.advance("Write file", result["pack_path"].name)
+            print_skipped_textures(result["skipped_textures"])
             progress.advance("Complete", result["pack_path"].name)
     return 0
 
