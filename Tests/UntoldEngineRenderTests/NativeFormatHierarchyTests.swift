@@ -240,7 +240,7 @@ final class NativeFormatHierarchyRegistrationTests: BaseRenderSetup {
         XCTAssertTrue(getEntityChildren(parentId: rootEntity).isEmpty)
         XCTAssertTrue(hasComponent(entityId: rootEntity, componentType: RenderComponent.self))
         XCTAssertFalse(hasComponent(entityId: rootEntity, componentType: AssetInstanceComponent.self),
-                        "Nothing but rig scaffolding remains, so there's no real hierarchy left to mark")
+                       "Nothing but rig scaffolding remains, so there's no real hierarchy left to mark")
 
         let expected = simd_mul(armatureLocal, meshLocal)
         let actualPosition = getLocalPosition(entityId: rootEntity)
