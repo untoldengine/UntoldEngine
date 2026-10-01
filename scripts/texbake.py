@@ -582,9 +582,11 @@ def bake_texture(
 # Flags map: read sibling .untold files to get authoritative slot info
 # ──────────────────────────────────────────────
 
-def _build_flags_map_from_untold_dir(textures_dir: Path) -> dict[str, int]:
-    """Scan .untold files in the parent directory of `textures_dir` and build a
-    mapping of {texture_stem_lower → flags} from their texture records.
+def _build_flags_map_from_untold_dir(textures_dir: Path, untold_files: list[Path] | None = None) -> dict[str, int]:
+    """Scan .untold files in the parent directory of `textures_dir` (or the given
+    `untold_files`, for a .untold kept outside that folder, see the exporter's
+    --assets-dir) and build a mapping of {texture_stem_lower → flags} from their
+    texture records.
 
     Used by bake_directory so that textures with opaque names (no slot keywords)
     are encoded with the correct sRGB/LDR block format.
@@ -592,8 +594,8 @@ def _build_flags_map_from_untold_dir(textures_dir: Path) -> dict[str, int]:
     Returns an empty dict when no .untold files are found or parsing fails.
     """
     result: dict[str, int] = {}
-    search_dir = textures_dir.parent
-    untold_files = list(search_dir.glob("*.untold"))
+    if untold_files is None:
+        untold_files = list(textures_dir.parent.glob("*.untold"))
     if not untold_files:
         return result
 
@@ -664,6 +666,7 @@ def bake_directory(
     quality: str,
     keep_temp: bool,
     progress_callback: Callable[[int, int, str], None] | None = None,
+    untold_files: list[Path] | None = None,
 ) -> None:
     sources = sorted(
         p for p in directory.iterdir()
@@ -675,7 +678,7 @@ def bake_directory(
 
     # Build flags map from sibling .untold files so textures with opaque names
     # (e.g. "SimpleDungeonTexture") get the correct sRGB/LDR encoding.
-    flags_map = _build_flags_map_from_untold_dir(directory)
+    flags_map = _build_flags_map_from_untold_dir(directory, untold_files)
     if flags_map:
         print(f"  Loaded slot hints for {len(flags_map)} texture(s) from .untold files\n")
 
@@ -1169,6 +1172,17 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--keep-temp", action="store_true", help="Retain intermediate temp files")
     parser.add_argument(
+        "--untold",
+        type=Path,
+        action="append",
+        metavar="UNTOLD_FILE",
+        help=(
+            "With --dir: read texture slot hints from this .untold instead of the .untold files "
+            "beside the directory (repeatable). Use it when the .untold lives elsewhere, as with "
+            "the exporter's --assets-dir."
+        ),
+    )
+    parser.add_argument(
         "--patch-refs",
         type=Path,
         metavar="UNTOLD_FILE_OR_DIR",
@@ -1219,7 +1233,7 @@ def main(argv: list[str] | None = None) -> int:
         if not args.dir.is_dir():
             print(f"error: --dir '{args.dir}' is not a directory", file=sys.stderr)
             return 1
-        bake_directory(args.dir, args.quality, args.keep_temp)
+        bake_directory(args.dir, args.quality, args.keep_temp, untold_files=args.untold)
         return 0
 
     if args.input is None:

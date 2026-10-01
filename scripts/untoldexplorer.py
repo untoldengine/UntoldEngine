@@ -879,16 +879,20 @@ class TextureStagingContext:
     skipped_textures: list[str]
     # Shared with the other models or tiles of the same export.
     write_failures: TextureWriteFailures
+    # Where Textures/ goes; None means beside the output file.
+    assets_dir: Optional[Path]
 
     def __init__(
         self,
         skipped_textures: Optional[list[str]] = None,
         write_failures: Optional[TextureWriteFailures] = None,
+        assets_dir: Optional[Path] = None,
     ) -> None:
         self.staged_by_key = {}
         self.used_names = set()
         self.skipped_textures = skipped_textures if skipped_textures is not None else []
         self.write_failures = write_failures if write_failures is not None else TextureWriteFailures()
+        self.assets_dir = assets_dir
 
 
 class HDRStagingContext:
@@ -900,15 +904,17 @@ class HDRStagingContext:
         self.used_names = set()
 
 
-def clean_generated_sidecar_dirs(output_path: Path) -> None:
+def clean_generated_sidecar_dirs(output_path: Path, assets_dir: Optional[Path] = None) -> None:
     """Remove sidecar directories fully owned by a single-asset export.
 
     Re-exporting into an existing asset folder must not leave stale staged
     textures, baked .utex files, color LUTs, or HDR environments from earlier
-    runs. The .untold file itself is overwritten separately.
+    runs. The .untold file itself is overwritten separately. The sidecars live in
+    assets_dir when the export was given one (see --assets-dir), else beside the
+    output.
     """
     for dirname in ("Textures", "HDR"):
-        sidecar_dir = output_path.parent / dirname
+        sidecar_dir = (assets_dir or output_path.parent) / dirname
         if sidecar_dir.is_dir():
             shutil.rmtree(sidecar_dir)
 
@@ -3242,7 +3248,7 @@ def _parse_cube_lut_header(path: Path) -> tuple[int, tuple[float, float, float],
     return lut_size, domain_min, domain_max
 
 
-def stage_color_grade_lut_for_output(lut_path: Path, output_dir: Path) -> ColorGradeLUT:
+def stage_color_grade_lut_for_output(lut_path: Path, output_dir: Path, uri_base: Optional[Path] = None) -> ColorGradeLUT:
     """Validate and stage an externally-authored .cube LUT next to the export.
 
     Nothing is rendered or derived here -- the artist's .cube is copied as-is
@@ -3266,7 +3272,9 @@ def stage_color_grade_lut_for_output(lut_path: Path, output_dir: Path) -> ColorG
         destination_path.write_bytes(data)
 
     return ColorGradeLUT(
-        uri=str(Path("Textures") / destination_path.name),
+        # Relative to the file that references it (uri_base), which is output_dir
+        # unless the export keeps its assets in a separate folder.
+        uri=relative_asset_uri(destination_path, uri_base or output_dir),
         lut_size=lut_size,
         domain_min=domain_min,
         domain_max=domain_max,
@@ -3791,7 +3799,7 @@ def stage_texture_for_output(
     reported together with the material and object that lose it.
     """
     source_path = texture.source_path
-    texture_dir = output_path.parent / "Textures"
+    texture_dir = (context.assets_dir or output_path.parent) / "Textures"
     texture_dir.mkdir(parents=True, exist_ok=True)
     staging_key = texture_staging_key(texture)
 
@@ -3817,7 +3825,7 @@ def stage_texture_for_output(
     if existing_destination is not None:
         return replace(
             texture,
-            uri=existing_destination.relative_to(output_path.parent).as_posix(),
+            uri=relative_asset_uri(existing_destination, output_path.parent),
             source_path=existing_destination,
         )
 
@@ -3900,7 +3908,7 @@ def stage_texture_for_output(
 
     return replace(
         texture,
-        uri=destination_path.relative_to(output_path.parent).as_posix(),
+        uri=relative_asset_uri(destination_path, output_path.parent),
         source_path=destination_path,
     )
 
@@ -4142,8 +4150,9 @@ def stage_nodes_for_output(
     progress_callback: Optional[ProgressCallback] = None,
     skipped_textures: Optional[list[str]] = None,
     write_failures: Optional[TextureWriteFailures] = None,
+    assets_dir: Optional[Path] = None,
 ) -> list[ExportedNode]:
-    """Stage every node's textures next to output_path.
+    """Stage every node's textures next to output_path, or in assets_dir when given.
 
     skipped_textures: a list that receives one line per texture that had to be left
     out, so the caller can report them together once the export is done.
@@ -4151,7 +4160,7 @@ def stage_nodes_for_output(
     write_failures: what the export already knows about textures Blender cannot write.
     An export that stages several models or tiles hands the same one to each of them.
     """
-    context = TextureStagingContext(skipped_textures, write_failures)
+    context = TextureStagingContext(skipped_textures, write_failures, assets_dir)
     staged_nodes: list[ExportedNode] = []
     total = len(exported_nodes)
     for i, exported_node in enumerate(exported_nodes, 1):
@@ -6233,12 +6242,20 @@ def write_untoldpack_manifest(
     pack_path.write_text(json.dumps(pack_data, indent=2), encoding="utf-8")
 
 
-def read_pack_model_dir_names(pack_path: Path) -> list[str]:
-    """Best-effort read of an existing .untoldpack manifest's per-model directory names.
+def relative_asset_uri(path: Path, base_dir: Path) -> str:
+    """A path as the engine resolves it from a file in base_dir: relative, with
+    forward slashes (it may start with ../ when the asset sits outside base_dir)."""
+    return Path(os.path.relpath(path, base_dir)).as_posix()
+
+
+def read_pack_model_dirs(pack_path: Path) -> list[Path]:
+    """Best-effort read of an existing .untoldpack manifest's per-model directories.
 
     Used only for stale-file cleanup bookkeeping when a re-export changes a scene's
     model topology (see the two call sites in main()) -- a missing or unreadable
-    manifest just yields no names to clean up rather than failing the export.
+    manifest just yields nothing to clean up rather than failing the export. Only
+    directories strictly inside the manifest's own folder are returned, so a
+    malformed manifest can never point the cleanup at the folder itself or outside it.
     """
     if not pack_path.is_file():
         return []
@@ -6246,20 +6263,48 @@ def read_pack_model_dir_names(pack_path: Path) -> list[str]:
         pack_data = json.loads(pack_path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return []
-    dir_names = []
+    pack_dir = pack_path.parent.resolve()
+    model_dirs: list[Path] = []
     for model in pack_data.get("models", []):
         path = model.get("path")
-        if path:
-            dir_names.append(Path(path).parent.name)
-    return dir_names
+        if not path:
+            continue
+        model_dir = (pack_dir / path).parent.resolve()
+        if model_dir != pack_dir and pack_dir in model_dir.parents:
+            model_dirs.append(model_dir)
+    return model_dirs
 
 
-def remove_pack_model_dirs(models_root: Path, dir_names: Iterable[str]) -> None:
-    """Delete the given per-model subfolders under models_root, if present."""
-    for dir_name in dir_names:
-        model_dir = models_root / dir_name
+def remove_pack_model_dirs(model_dirs: Iterable[Path]) -> None:
+    """Delete the given per-model folders, if present."""
+    for model_dir in model_dirs:
         if model_dir.is_dir():
             shutil.rmtree(model_dir)
+
+
+def remove_results_left_in_assets_dir(output_path: Path, assets_dir: Optional[Path], keep_dirs: Iterable[Path] = ()) -> list[Path]:
+    """Remove the results an earlier export wrote inside assets_dir itself.
+
+    Before --assets-dir existed, a source kept in its own folder was exported into
+    that folder: <assets_dir>/<stem>.untold or <stem>.untoldpack. Once the result
+    lives at output_path instead, those leftovers would show up as a second copy
+    of the model, so they go (with the old manifest's model folders that the new
+    export did not reuse). Nothing happens when assets_dir is the output's folder.
+    """
+    if assets_dir is None or assets_dir.resolve() == output_path.parent.resolve():
+        return []
+    keep = {path.resolve() for path in keep_dirs}
+    removed: list[Path] = []
+    old_pack = assets_dir / f"{output_path.stem}.untoldpack"
+    if old_pack.is_file():
+        remove_pack_model_dirs(path for path in read_pack_model_dirs(old_pack) if path not in keep)
+        old_pack.unlink()
+        removed.append(old_pack)
+    old_single = assets_dir / f"{output_path.stem}.untold"
+    if old_single.is_file():
+        old_single.unlink()
+        removed.append(old_single)
+    return removed
 
 
 def write_single_untold_from_nodes(
@@ -6273,8 +6318,12 @@ def write_single_untold_from_nodes(
     color_grade_lut_path: Optional[Path],
     validate: bool,
     progress_callback: Optional[ProgressCallback],
+    assets_dir: Optional[Path] = None,
 ) -> dict[str, object]:
     """Builds and writes a single `.untold` file from already-extracted nodes.
+
+    Its textures (and color grade LUT) are staged in assets_dir/Textures when an
+    assets_dir is given (see --assets-dir), else beside output_path.
 
     Shares its stale-artifact cleanup with write_untold_pack_from_groups() (see
     export_objects_to_untold_or_pack) so both the CLI's `export` command and the
@@ -6288,11 +6337,17 @@ def write_single_untold_from_nodes(
     if color_grade_lut_path is not None:
         if progress_callback is not None:
             progress_callback("Stage color grade LUT", 0, 1, color_grade_lut_path.name)
-        color_grade_lut = stage_color_grade_lut_for_output(color_grade_lut_path, output_path.parent)
+        color_grade_lut = stage_color_grade_lut_for_output(
+            color_grade_lut_path, assets_dir or output_path.parent, uri_base=output_path.parent
+        )
 
     skipped_textures: list[str] = []
     exported_nodes = stage_nodes_for_output(
-        exported_nodes, output_path, progress_callback=progress_callback, skipped_textures=skipped_textures
+        exported_nodes,
+        output_path,
+        progress_callback=progress_callback,
+        skipped_textures=skipped_textures,
+        assets_dir=assets_dir,
     )
     untold_bytes = build_untold_file(
         exported_nodes,
@@ -6326,9 +6381,10 @@ def write_single_untold_from_nodes(
     removed_stale_pack_path: Optional[Path] = None
     pack_path = output_path.with_suffix(".untoldpack")
     if pack_path.is_file():
-        remove_pack_model_dirs(output_path.parent, read_pack_model_dir_names(pack_path))
+        remove_pack_model_dirs(read_pack_model_dirs(pack_path))
         pack_path.unlink()
         removed_stale_pack_path = pack_path
+    removed_earlier_results = remove_results_left_in_assets_dir(output_path, assets_dir)
 
     return {
         "is_pack": False,
@@ -6345,6 +6401,7 @@ def write_single_untold_from_nodes(
         "color_grade_lut_uri": color_grade_lut.uri if color_grade_lut is not None else None,
         "removed_stale_pack_path": removed_stale_pack_path,
         "skipped_textures": skipped_textures,
+        "removed_earlier_results": removed_earlier_results,
     }
 
 
@@ -6357,19 +6414,25 @@ def write_untold_pack_from_groups(
     compress_geometry: bool,
     validate: bool,
     progress_callback: Optional[ProgressCallback],
+    assets_dir: Optional[Path] = None,
 ) -> dict[str, object]:
     """Builds and writes one self-contained `.untold` per model plus a
     `.untoldpack` manifest referencing them, instead of fusing unrelated models
     into one file. See write_single_untold_from_nodes() for the single-model
     counterpart and its matching stale-artifact cleanup.
+
+    The per-model folders go in assets_dir when one is given (see --assets-dir),
+    else beside the manifest; the manifest's model paths are relative to its own
+    folder either way.
     """
     pack_path = output_path.with_suffix(".untoldpack")
+    models_root = assets_dir or output_path.parent
     # Captured before write_untoldpack_manifest() overwrites pack_path below, so
     # any model directories from a previous pack export that the new manifest no
     # longer references can be pruned as orphans once the new pack has written
     # successfully (see the orphan cleanup below).
-    old_model_dir_names = read_pack_model_dir_names(pack_path)
-    new_model_dir_names: list[str] = []
+    old_model_dirs = read_pack_model_dirs(pack_path)
+    new_model_dirs: list[Path] = []
 
     manifest_models: list[dict[str, object]] = []
     model_paths: list[Path] = []
@@ -6391,7 +6454,7 @@ def write_untold_pack_from_groups(
         group_nodes = normalize_export_nodes(zero_root_transform(raw_group_nodes))
 
         model_dir_name = unique_pack_model_dir_name(root_name, used_model_dir_names)
-        model_output_path = output_path.parent / model_dir_name / f"{model_dir_name}.untold"
+        model_output_path = models_root / model_dir_name / f"{model_dir_name}.untold"
         model_output_path.parent.mkdir(parents=True, exist_ok=True)
 
         staged_group_nodes = stage_nodes_for_output(
@@ -6426,11 +6489,11 @@ def write_untold_pack_from_groups(
         manifest_models.append(
             {
                 "displayName": root_name,
-                "path": f"{model_dir_name}/{model_dir_name}.untold",
+                "path": relative_asset_uri(model_output_path, pack_path.parent),
                 "transform": original_root_transform,
             }
         )
-        new_model_dir_names.append(model_dir_name)
+        new_model_dirs.append(model_output_path.parent.resolve())
 
     write_untoldpack_manifest(pack_path, source_asset_name, manifest_models)
 
@@ -6446,9 +6509,11 @@ def write_untold_pack_from_groups(
     # A previous pack export at this stem may have included models that no
     # longer exist in the source scene (renamed/deleted objects) -- their
     # subfolders are now orphaned since the new manifest doesn't reference them.
-    orphaned_dir_names = [name for name in old_model_dir_names if name not in new_model_dir_names]
-    if orphaned_dir_names:
-        remove_pack_model_dirs(output_path.parent, orphaned_dir_names)
+    orphaned_dirs = [path for path in old_model_dirs if path not in new_model_dirs]
+    if orphaned_dirs:
+        remove_pack_model_dirs(orphaned_dirs)
+    orphaned_dir_names = [path.name for path in orphaned_dirs]
+    removed_earlier_results = remove_results_left_in_assets_dir(output_path, assets_dir, keep_dirs=new_model_dirs)
 
     return {
         "is_pack": True,
@@ -6463,6 +6528,7 @@ def write_untold_pack_from_groups(
         "removed_stale_single_path": removed_stale_single_path,
         "removed_orphan_dir_names": orphaned_dir_names,
         "skipped_textures": skipped_textures,
+        "removed_earlier_results": removed_earlier_results,
     }
 
 
@@ -6479,6 +6545,7 @@ def export_objects_to_untold_or_pack(
     color_grade_lut_path: Optional[Path] = None,
     clean_sidecars: bool = False,
     progress_callback: Optional[ProgressCallback] = None,
+    assets_dir: Optional[Path] = None,
 ) -> dict[str, object]:
     """Like export_objects_to_untold(), but writes a `.untoldpack` manifest plus
     one self-contained `.untold` per model instead of fusing everything into a
@@ -6516,7 +6583,7 @@ def export_objects_to_untold_or_pack(
         cleanup_temporary_export_objects(export_objects)
 
     if clean_sidecars:
-        clean_generated_sidecar_dirs(output_path)
+        clean_generated_sidecar_dirs(output_path, assets_dir)
 
     model_groups = group_export_nodes_by_root(exported_nodes)
     if len(model_groups) <= 1:
@@ -6530,6 +6597,7 @@ def export_objects_to_untold_or_pack(
             color_grade_lut_path=color_grade_lut_path,
             validate=validate,
             progress_callback=progress_callback,
+            assets_dir=assets_dir,
         )
         return result
 
@@ -6541,6 +6609,7 @@ def export_objects_to_untold_or_pack(
         compress_geometry=compress_geometry,
         validate=validate,
         progress_callback=progress_callback,
+        assets_dir=assets_dir,
     )
     result["node_count"] = len(exported_nodes)
     result["light_count"] = len(exported_lights)
@@ -6578,6 +6647,15 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         help="Also export objects hidden in the viewport or disabled in renders (the eye, monitor and camera "
              "icons in Blender's Outliner). Objects in collections excluded from the view layer are never exported.",
     )
+    parser.add_argument(
+        "--assets-dir",
+        default=None,
+        help="Folder for what the export writes besides the result. Defaults to the --output folder. The "
+             "result at --output refers to the textures, the color grade LUT and the per-model folders of "
+             "a .untoldpack in it by relative paths, so both folders must move together. The HDR "
+             "environments are staged there too, as copies to put in the project's HDR folder: nothing "
+             "refers to them.",
+    )
     parser.add_argument("--validate", action="store_true", help="Write a companion .validation.json file for engine-side validation tests.")
     parser.add_argument(
         "--compress-geometry",
@@ -6604,6 +6682,7 @@ def main(argv: list[str]) -> int:
     args = parse_args(argv)
     input_path = normalize_blender_path(args.input)
     output_path = normalize_blender_path(args.output)
+    assets_dir = normalize_blender_path(args.assets_dir) if args.assets_dir else None
 
     if input_path.suffix.lower() not in {".usd", ".usda", ".usdc", ".usdz", ".blend"}:
         raise RuntimeError(f"Unsupported source asset type: {input_path.suffix}")
@@ -6651,10 +6730,10 @@ def main(argv: list[str]) -> int:
             convert_orientation=args.convert_orientation,
             source_orientation=args.source_orientation,
         )
-        clean_generated_sidecar_dirs(output_path)
+        clean_generated_sidecar_dirs(output_path, assets_dir)
 
         model_groups = group_export_nodes_by_root(exported_nodes)
-        staged_hdr_assets = stage_hdr_assets_for_output(output_path.parent, input_path)
+        staged_hdr_assets = stage_hdr_assets_for_output(assets_dir or output_path.parent, input_path)
         progress_stage_callback = lambda stage, done, total, detail: progress.stage(
             stage,
             f"{done}/{total} {detail}" if total > 1 else detail,
@@ -6675,6 +6754,7 @@ def main(argv: list[str]) -> int:
                 color_grade_lut_path=Path(args.color_grade_lut) if args.color_grade_lut else None,
                 validate=args.validate,
                 progress_callback=progress_stage_callback,
+                assets_dir=assets_dir,
             )
             progress.advance("Stage nodes", output_path.name)
             progress.advance("Build file", output_path.name)
@@ -6698,6 +6778,8 @@ def main(argv: list[str]) -> int:
             if result["removed_stale_pack_path"] is not None:
                 print(f"Removed stale pack manifest: {result['removed_stale_pack_path']}", flush=True)
             print_skipped_textures(result["skipped_textures"])
+            for removed_path in result["removed_earlier_results"]:
+                print(f"Removed an earlier result from the assets folder: {removed_path}", flush=True)
             progress.advance("Complete", output_path.name)
         else:
             # Multiple independent models were found in the source scene: emit one
@@ -6721,6 +6803,7 @@ def main(argv: list[str]) -> int:
                 compress_geometry=args.compress_geometry,
                 validate=args.validate,
                 progress_callback=progress_stage_callback,
+                assets_dir=assets_dir,
             )
             progress.advance("Build file", result["pack_path"].name)
             print(f"Wrote {result['pack_path']} ({result['model_count']} model(s))")
@@ -6738,6 +6821,8 @@ def main(argv: list[str]) -> int:
             # subfolders were orphaned since the new manifest doesn't reference them.
             if result["removed_orphan_dir_names"]:
                 print(f"Removed {len(result['removed_orphan_dir_names'])} orphaned pack model folder(s): {', '.join(result['removed_orphan_dir_names'])}", flush=True)
+            for removed_path in result["removed_earlier_results"]:
+                print(f"Removed an earlier result from the assets folder: {removed_path}", flush=True)
             progress.advance("Write file", result["pack_path"].name)
             print_skipped_textures(result["skipped_textures"])
             progress.advance("Complete", result["pack_path"].name)

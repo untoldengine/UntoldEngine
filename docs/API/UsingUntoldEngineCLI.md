@@ -218,6 +218,7 @@ re-export from the source tool as v2/v3, or convert through `.ply` instead.
 | `--file-type <tile\|lod\|hlod\|shared\|animation>` | Untold file type (default `tile`) |
 | `--source-orientation <blender-native\|engine-oriented>` | Input orientation |
 | `--compress-geometry` | LZ4-compress vertex/index chunks |
+| `--assets-dir <path>` | Folder for the textures and per-model folders the result references (default: the `--output` folder) |
 | `--include-hidden` | Also export objects hidden in the viewport or disabled in renders |
 | `--validate` | Write a companion validation JSON file |
 | `--color-grade-lut <path>` | Stage an externally-authored `.cube` 3D LUT and apply it as a post-tonemap creative grade (no Blender render, no conversion) — see [Using Color Management](UsingColorManagement.md) |
