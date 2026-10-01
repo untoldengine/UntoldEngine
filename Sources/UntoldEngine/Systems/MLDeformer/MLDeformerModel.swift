@@ -151,7 +151,7 @@ final class MLDeformerModel: @unchecked Sendable {
 
 /// What the background load takes across to its queue: the skeleton, which
 /// it only reads joint names from, and the component, whose load state it
-/// writes under the component's own lock.
+/// ends through the component's locked accessors.
 private struct MLDeformerLoadRequest: @unchecked Sendable {
     let component: DeformationComponent
     let skeleton: Skeleton
@@ -175,21 +175,17 @@ extension DeformationSystem {
         device: MTLDevice,
         label: String
     ) -> MLDeformerModel? {
-        switch component.mlDeformerState {
-        case let .ready(model):
+        if case let .ready(model) = component.mlDeformerLoadState {
             return model
-        case .loading, .failed:
-            return nil
-        case nil:
-            break
         }
+        // One caller gets to start the load; it is loading, or failed, for
+        // the others.
+        guard let token = component.beginMLDeformerLoad() else { return nil }
         guard let url = component.mlDeformerURL ?? skeleton.mlDeformerURL else {
-            component.mlDeformerState = .failed
+            component.finishMLDeformerLoad(token, as: .failed)
             Logger.logWarning(message: "No ML deformer payload for \(label)")
             return nil
         }
-        component.mlDeformerState = .loading
-        let lock = component.mlDeformerLock
         let request = MLDeformerLoadRequest(component: component, skeleton: skeleton)
         Self.mlDeformerLoadQueue.async {
             do {
@@ -197,14 +193,10 @@ extension DeformationSystem {
                 guard let model = MLDeformerModel(payload: payload, skeleton: request.skeleton, device: device, label: label) else {
                     throw MLDeformerPayloadError.inconsistent("GPU tables")
                 }
-                lock.lock()
-                request.component.mlDeformerState = .ready(model)
-                lock.unlock()
+                guard request.component.finishMLDeformerLoad(token, as: .ready(model)) else { return }
                 Logger.log(message: "ML deformer loaded for \(label): \(payload.jointPaths.count) joints, \(payload.componentCount) components, \(payload.activeCount) active vertices")
             } catch {
-                lock.lock()
-                request.component.mlDeformerState = .failed
-                lock.unlock()
+                guard request.component.finishMLDeformerLoad(token, as: .failed) else { return }
                 Logger.logWarning(message: "ML deformer payload \(url.lastPathComponent) failed to load: \(error)")
             }
         }
@@ -233,7 +225,7 @@ public func setEntityMLDeformerPayload(entityId: EntityID, url: URL?) {
     for targetEntityId in resolveAnimationBindingTargetEntities(entityId: entityId) {
         guard let component = scene.get(component: DeformationComponent.self, for: targetEntityId) else { continue }
         component.mlDeformerURL = url
-        component.mlDeformerState = nil
+        component.resetMLDeformerLoad()
     }
 }
 

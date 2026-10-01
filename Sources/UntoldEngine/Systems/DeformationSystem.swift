@@ -469,11 +469,9 @@ final class DeformationSystem: @unchecked Sendable {
     ) {
         guard let pipeline = deformOverridePipeline.pipelineState else { return }
         let key = ObjectIdentifier(mesh.metalKitMesh)
-        let (override, count, slot) = component.meshOverrideLock.withLock { () -> (MeshDeformationOverride?, Int, Int) in
-            guard let override = component.meshOverrides[key] else { return (nil, 0, 0) }
-            return (override, override.count, override.slot)
-        }
-        guard let override, count > 0 else { return }
+        guard let override = component.meshOverrideLock.withLock({ component.meshOverrides[key] }) else { return }
+        let (slot, count) = override.current()
+        guard count > 0 else { return }
         encoder.setComputePipelineState(pipeline)
         encoder.setBuffer(override.indices[slot], offset: 0, index: Int(deformOverrideIndicesIndex.rawValue))
         encoder.setBuffer(override.positions[slot], offset: 0, index: Int(deformOverridePositionsIndex.rawValue))

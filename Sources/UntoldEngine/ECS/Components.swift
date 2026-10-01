@@ -389,15 +389,17 @@ final class MeshDeformationBuffers {
 
 /// Externally supplied deformed positions and normals for some vertices of
 /// a mesh (see `setEntityDeformationOverride`), triple-buffered so the CPU
-/// writes never race the frame the GPU is reading.
+/// writes never race the frame the GPU is reading. Safe from any thread:
+/// `write` and `current` take the override's own lock.
 final class MeshDeformationOverride {
     static let ringCount = 3
     let capacity: Int
     let indices: [MTLBuffer]
     let positions: [MTLBuffer]
     let normals: [MTLBuffer]
-    private(set) var count = 0
-    private(set) var slot = 0
+    private var count = 0
+    private var slot = 0
+    private let lock = NSLock()
 
     init?(device: MTLDevice, capacity: Int, label: String) {
         guard capacity > 0 else { return nil }
@@ -422,8 +424,17 @@ final class MeshDeformationOverride {
         self.normals = normals
     }
 
+    /// The slot written last and how many entries it holds.
+    func current() -> (slot: Int, count: Int) {
+        lock.lock()
+        defer { lock.unlock() }
+        return (slot, count)
+    }
+
     /// Writes the next slot; entries beyond the capacity are dropped.
     func write(indices newIndices: [UInt32], positions newPositions: [simd_float3], normals newNormals: [simd_float3]) {
+        lock.lock()
+        defer { lock.unlock() }
         let count = min(newIndices.count, newPositions.count, newNormals.count, capacity)
         let next = (slot + 1) % Self.ringCount
         let indexPointer = indices[next].contents().bindMemory(to: UInt32.self, capacity: capacity)
@@ -484,10 +495,50 @@ public class DeformationComponent: Component {
     public var mlDeformerEnabled: Bool = false
     var mlDeformerWeight: Float = 1
     var mlDeformerURL: URL?
-    var mlDeformerState: MLDeformerLoadState?
-    let mlDeformerLock = NSLock()
+    /// The deformation pass reads the load state and the background load
+    /// writes it: both go through the accessors below, under one lock.
+    private var mlDeformerState: MLDeformerLoadState?
+    /// Counts the resets: a load that finishes after one is dropped.
+    private var mlDeformerLoadID = 0
+    private let mlDeformerLock = NSLock()
 
     public required init() {}
+
+    var mlDeformerLoadState: MLDeformerLoadState? {
+        mlDeformerLock.lock()
+        defer { mlDeformerLock.unlock() }
+        return mlDeformerState
+    }
+
+    /// Marks the load as started when none has been: the token to finish
+    /// it with, or nil when a load is running, done or failed already.
+    func beginMLDeformerLoad() -> Int? {
+        mlDeformerLock.lock()
+        defer { mlDeformerLock.unlock() }
+        guard mlDeformerState == nil else { return nil }
+        mlDeformerState = .loading
+        return mlDeformerLoadID
+    }
+
+    /// Ends the load begun with `token`; false (and nothing kept) when the
+    /// state was reset meanwhile.
+    @discardableResult
+    func finishMLDeformerLoad(_ token: Int, as state: MLDeformerLoadState) -> Bool {
+        mlDeformerLock.lock()
+        defer { mlDeformerLock.unlock() }
+        guard token == mlDeformerLoadID else { return false }
+        mlDeformerState = state
+        return true
+    }
+
+    /// Forgets the model and any load under way (another payload, or the
+    /// component going away).
+    func resetMLDeformerLoad() {
+        mlDeformerLock.lock()
+        mlDeformerState = nil
+        mlDeformerLoadID += 1
+        mlDeformerLock.unlock()
+    }
 
     func cleanUp() {
         meshDeformations.removeAll()
@@ -498,7 +549,7 @@ public class DeformationComponent: Component {
         disabledMuscles.removeAll()
         muscleSim = nil
         muscleBakeFailed = false
-        mlDeformerState = nil
+        resetMLDeformerLoad()
     }
 }
 
