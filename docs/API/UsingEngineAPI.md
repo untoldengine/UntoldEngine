@@ -49,6 +49,17 @@ setRendering(.wireframe(.params(
 )))
 ```
 
+Directional-light (CSM) shadows cover a fixed real-world distance from the camera regardless of
+`SceneRootTransform.shared.scale` — a scene placed at a small scale (e.g. AR tabletop placement)
+packs its geometry into a much smaller slice of that distance, so the default spends most of the
+shadow map's resolution on empty space. Tighten it to roughly the placed content's physical size
+to sharpen shadow edges:
+
+```swift
+setRendering(.maxShadowCastingDistance(2.0))
+getMaxShadowCastingDistance()
+```
+
 ## PostFX
 
 Use `setPostFX` for individual post-processing and SSAO settings:

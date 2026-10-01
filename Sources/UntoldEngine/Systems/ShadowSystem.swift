@@ -384,15 +384,29 @@ struct ShadowSystem {
         }
         guard directionalLight.castsShadow else { return }
 
-        let lightForward = getLightEmissionDirection(entityId: lightEntity)
+        // Rotate into visual-world space to match the root-rotation-aware corners/caster bounds
+        // below -- the light entity's own transform is scene-local, same as every other entity.
+        // Uses getMatrix4x4FromQuaternion (not simd_quatf.act) because SceneRootTransform's default
+        // `rotation` is the zero quaternion, not simd's true identity (0,0,0,1) -- this codebase's
+        // own quaternion-to-matrix formula reduces to the identity matrix for that zero value, but
+        // simd's built-in `act(_:)` expects a unit quaternion and returns NaN for it.
+        let rootRotation = matrix3x3_upper_left(getMatrix4x4FromQuaternion(q: SceneRootTransform.shared.rotation))
+        let lightForward = rootRotation * getLightEmissionDirection(entityId: lightEntity)
 
         // Get camera
         guard let camEntity = CameraSystem.shared.activeCamera,
               let cameraComponent = scene.get(component: CameraComponent.self, for: camEntity)
         else { return }
 
-        let effectiveView = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
-        let invView = effectiveView.inverse
+        // Corners are derived from the raw (root-uncorrected) camera view so they land in
+        // real/visual-world space. `cascadeLightSpaceMatrices` is consumed everywhere through
+        // `SceneRootTransform.shared.effectiveLightMatrix(...)`, which right-multiplies by the
+        // scene-root matrix to map scene-local model/G-buffer positions into this same visual-world
+        // space before projecting into light space. Using the root-corrected view here instead would
+        // put these corners in scene-local space, and every consumer would apply the root transform
+        // a second time -- harmless when the root is at unit scale, but collapsing shadows to
+        // sub-texel size under a shrunk root scale (e.g. AR tabletop placement).
+        let invView = cameraComponent.viewSpace.inverse
 
         // Extract tangent-of-half-FOV from the current perspective projection matrix.
         // proj[0][0] = f/aspect  → tanHalfFovX = 1/proj[0][0]
@@ -568,6 +582,13 @@ struct ShadowSystem {
         return corners
     }
 
+    /// Internal — exposed for testing via @testable import. Lets tests check caster bounds
+    /// directly, since their effect on cascade output (e.g. cascadeDepthSpans) can otherwise be
+    /// masked by other, already-correct mechanisms like camera-frustum culling.
+    func collectShadowCasterBoundsForTesting() -> [(min: simd_float3, max: simd_float3)] {
+        collectShadowCasterBounds().map { (min: $0.min, max: $0.max) }
+    }
+
     private func collectShadowCasterBounds() -> [ShadowCasterBounds] {
         let transformId = getComponentId(for: WorldTransformComponent.self)
         let localTransformId = getComponentId(for: LocalTransformComponent.self)
@@ -597,17 +618,26 @@ struct ShadowSystem {
                 continue
             }
 
+            // Fold the scene-root transform into the caster's world matrix so these bounds land in
+            // the same visual-world space as the cascade corners above -- see the comment on
+            // `invView` in updateCascades().
+            let combinedMatrix = simd_mul(SceneRootTransform.shared.matrix, worldTransformComponent.space)
             let (worldMin, worldMax) = worldAABB_MinMax(
                 localMin: localTransformComponent.boundingBox.min,
                 localMax: localTransformComponent.boundingBox.max,
-                worldMatrix: worldTransformComponent.space
+                worldMatrix: combinedMatrix
             )
             bounds.append(ShadowCasterBounds(min: worldMin, max: worldMax))
         }
 
         if batchingEnabled {
             for group in BatchingSystem.shared.batchGroups where shouldRenderSceneChannelsOpaque(group.sceneChannels) {
-                bounds.append(ShadowCasterBounds(min: group.boundingBox.min, max: group.boundingBox.max))
+                let (worldMin, worldMax) = worldAABB_MinMax(
+                    localMin: group.boundingBox.min,
+                    localMax: group.boundingBox.max,
+                    worldMatrix: SceneRootTransform.shared.matrix
+                )
+                bounds.append(ShadowCasterBounds(min: worldMin, max: worldMax))
             }
         }
 
@@ -664,4 +694,9 @@ public func setShadowSoftness(_ settings: ShadowSoftnessSettings) {
 
 public func getShadowSoftness() -> ShadowSoftnessSettings {
     shadowSystem.softnessSettings
+}
+
+/// Current value set via `setRendering(.maxShadowCastingDistance(_:))`.
+public func getMaxShadowCastingDistance() -> Float {
+    RenderPasses.maxShadowCastingDistance
 }

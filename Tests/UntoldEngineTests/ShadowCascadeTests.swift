@@ -33,6 +33,31 @@ final class CsmCascadeCountTests: XCTestCase {
     }
 }
 
+// MARK: - Max shadow casting distance API
+
+final class MaxShadowCastingDistanceAPITests: XCTestCase {
+    override func tearDown() {
+        // RenderPasses.maxShadowCastingDistance is a process-global knob; restore the engine
+        // default so other tests in this process don't inherit a value this test set.
+        setRendering(.maxShadowCastingDistance(40.0))
+        super.tearDown()
+    }
+
+    func testSetAndGetRoundTrip() {
+        setRendering(.maxShadowCastingDistance(2.5))
+        XCTAssertEqual(getMaxShadowCastingDistance(), 2.5, accuracy: 0.0001)
+    }
+
+    func testValueIsClampedToAPositiveMinimum() {
+        // A zero or negative distance would make the shadow-distance reject in
+        // RenderPasses.shadowCasterEntityIds degenerate (shadowEntityBeyondMaxDistance treats
+        // maxDistance <= 0 as "cull nothing", so this guards against accidentally disabling the
+        // cull entirely rather than tightening it).
+        setRendering(.maxShadowCastingDistance(-5.0))
+        XCTAssertGreaterThan(getMaxShadowCastingDistance(), 0.0)
+    }
+}
+
 // MARK: - ShadowSystem.makeUniforms
 
 /// ShadowSystem is a plain struct with no Metal dependencies; makeUniforms() reads
