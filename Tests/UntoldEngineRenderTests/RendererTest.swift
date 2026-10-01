@@ -312,6 +312,156 @@ final class RendererTests: BaseRenderSetup {
         }
     }
 
+    func testCascadeShadowMappingIsInvariantToSceneRootScale() {
+        XCTAssertNotNil(CameraSystem.shared.activeCamera, "Test precondition failed: expected an active camera")
+
+        SceneRootTransform.shared.reset()
+        shadowSystem.updateCascades()
+        XCTAssertTrue(shadowSystem.isActive, "Test precondition failed: CSM should be active at the identity scene root")
+
+        let baselineRadii = shadowSystem.cascadeWorldRadii
+        let baselineCenters = shadowSystem.cascadeWorldCenters
+
+        // Regression guard: shrinking the scene root (as AR tabletop placement does via
+        // SceneRootTransform.shared.scale) must not change what the camera can actually see.
+        // Cascade sizing/centers are derived purely from the camera's own frustum, so they must
+        // stay invariant to the scene-root scale. Before the fix, updateCascades() derived its
+        // frustum corners through the root-corrected view matrix, so shrinking the root scale
+        // inflated cascadeWorldRadii by 1/scale and collapsed the shadow map's usable region to a
+        // sub-texel sliver -- shadows would render but become imperceptible.
+        SceneRootTransform.shared.scale = simd_float3(repeating: 0.01)
+        SceneRootTransform.shared.updateIfNeeded()
+        defer { SceneRootTransform.shared.reset() }
+
+        shadowSystem.updateCascades()
+
+        XCTAssertTrue(shadowSystem.isActive, "CSM should remain active under a shrunk scene-root scale")
+        for i in 0 ..< csmCascadeCount {
+            XCTAssertEqual(
+                shadowSystem.cascadeWorldRadii[i], baselineRadii[i], accuracy: 0.01,
+                "Cascade \(i) radius must be derived from the camera frustum, not the scene-root scale"
+            )
+            XCTAssertEqual(
+                simd_distance(shadowSystem.cascadeWorldCenters[i], baselineCenters[i]), 0.0, accuracy: 0.01,
+                "Cascade \(i) center must be derived from the camera frustum, not the scene-root scale"
+            )
+        }
+    }
+
+    func testCascadeLightDirectionRespondsToSceneRootRotation() {
+        func matrixIsFinite(_ matrix: simd_float4x4) -> Bool {
+            let values = [
+                matrix.columns.0.x, matrix.columns.0.y, matrix.columns.0.z, matrix.columns.0.w,
+                matrix.columns.1.x, matrix.columns.1.y, matrix.columns.1.z, matrix.columns.1.w,
+                matrix.columns.2.x, matrix.columns.2.y, matrix.columns.2.z, matrix.columns.2.w,
+                matrix.columns.3.x, matrix.columns.3.y, matrix.columns.3.z, matrix.columns.3.w,
+            ]
+            return values.allSatisfy(\.isFinite)
+        }
+
+        XCTAssertNotNil(CameraSystem.shared.activeCamera, "Test precondition failed: expected an active camera")
+
+        SceneRootTransform.shared.reset()
+        shadowSystem.updateCascades()
+        XCTAssertTrue(shadowSystem.isActive, "Test precondition failed: CSM should be active at the identity scene root")
+        let baselineMatrices = shadowSystem.cascadeLightSpaceMatrices
+
+        // Regression guard for two bugs at once:
+        // 1. SceneRootTransform.shared.rotation defaults to simd_quatf()'s zero quaternion, not
+        //    simd's true identity (0,0,0,1). Rotating the light direction with simd_quatf.act(_:)
+        //    on that default value returns NaN (act() expects a unit quaternion), which poisoned
+        //    every downstream cascade matrix -- exactly the regression this test's NaN check below
+        //    catches, now exercised at an actual non-identity rotation rather than just the reset
+        //    default (which testCascadeShadowMappingComputesValidCascadesAndUniforms already
+        //    covers for the zero-quaternion case).
+        // 2. The light direction must actually incorporate SceneRootTransform.rotation -- the
+        //    light entity's own transform is scene-local like any other entity, and the player can
+        //    rotate the placed scene during AR placement (SpatialManipulationSystem's anchored
+        //    rotate), so shadow direction needs to track that rotation to stay visually consistent.
+        SceneRootTransform.shared.rotation = simd_quatf(angle: .pi / 2, axis: simd_float3(0, 1, 0))
+        SceneRootTransform.shared.updateIfNeeded()
+        defer { SceneRootTransform.shared.reset() }
+
+        shadowSystem.updateCascades()
+
+        XCTAssertTrue(shadowSystem.isActive, "CSM should remain active under a rotated scene root")
+        var matricesDiffer = false
+        for i in 0 ..< csmCascadeCount {
+            let matrix = shadowSystem.cascadeLightSpaceMatrices[i]
+            XCTAssertTrue(matrixIsFinite(matrix), "Cascade \(i) light-space matrix must not contain NaN or infinity under a rotated scene root")
+            if !compareMatrices(matrix, baselineMatrices[i]) {
+                matricesDiffer = true
+            }
+        }
+        XCTAssertTrue(matricesDiffer, "Rotating the scene root should change the light's shadow-space matrices")
+    }
+
+    func testShadowCasterBoundsFoldSceneRootTransform() {
+        // A caster's effect on cascade output (e.g. cascadeDepthSpans, lastShadowCasterCount) can
+        // be masked by other, already-correct mechanisms like camera-frustum culling, so this
+        // checks collectShadowCasterBoundsForTesting() directly instead of inferring correctness
+        // from a downstream symptom.
+        let casterPosition = simd_float3(2.0, 0.5, -3.0)
+        let caster = createEntity()
+        setEntityMeshDirect(entityId: caster, meshes: BasicPrimitives.createCube(extent: 1.0), assetName: "RootTransformCasterProbe")
+        translateTo(entityId: caster, position: casterPosition)
+
+        SceneRootTransform.shared.position = simd_float3(5.0, 1.0, -2.0)
+        SceneRootTransform.shared.rotation = simd_quatf(angle: .pi / 2, axis: simd_float3(0, 1, 0))
+        SceneRootTransform.shared.scale = simd_float3(repeating: 0.5)
+        SceneRootTransform.shared.updateIfNeeded()
+        defer { SceneRootTransform.shared.reset() }
+
+        // Regression guard: collectShadowCasterBounds() (ShadowSystem.swift) must fold
+        // SceneRootTransform.shared.matrix into each caster's world matrix so its bounds land in
+        // the same visual-world space as the (root-independent) camera frustum corners -- see the
+        // comment on `invView` in updateCascades(). Before that fix, this returned the probe's raw
+        // scene-local position unchanged, ignoring the scene root entirely.
+        let expectedCenter = SceneRootTransform.shared.sceneLocalToVisualWorld(casterPosition)
+        let bounds = shadowSystem.collectShadowCasterBoundsForTesting()
+        let closest = bounds.min(by: {
+            simd_distance(($0.min + $0.max) * 0.5, expectedCenter) < simd_distance(($1.min + $1.max) * 0.5, expectedCenter)
+        })
+        guard let closest else {
+            XCTFail("Expected at least one shadow-caster bound")
+            return
+        }
+        let actualCenter = (closest.min + closest.max) * 0.5
+        XCTAssertEqual(
+            simd_distance(actualCenter, expectedCenter), 0.0, accuracy: 0.05,
+            "Caster bounds must be transformed into visual-world space via SceneRootTransform, not left raw/scene-local"
+        )
+    }
+
+    func testMaxShadowCastingDistanceTightensCascadeTexelDensity() {
+        XCTAssertNotNil(CameraSystem.shared.activeCamera, "Test precondition failed: expected an active camera")
+
+        let originalMaxDistance = getMaxShadowCastingDistance()
+        defer { setRendering(.maxShadowCastingDistance(originalMaxDistance)) }
+
+        setRendering(.maxShadowCastingDistance(originalMaxDistance))
+        shadowSystem.updateCascades()
+        XCTAssertTrue(shadowSystem.isActive, "Test precondition failed: CSM should be active at the default distance")
+        let baselineTexelSizes = shadowSystem.cascadeWorldTexelSizes
+
+        // A tabletop-scale AR scene packs all of its geometry into a small slice of the camera's
+        // real-world range, so the default (full-scale-tuned) shadow distance spends most of the
+        // shadow map's fixed texel budget on empty space beyond the content. Lowering the distance
+        // must shrink the cascade's real-world coverage -- and so shrink cascadeWorldTexelSizes
+        // (finer shadow-map resolution per meter of actual content) -- proportionally.
+        let tightDistance: Float = max(originalMaxDistance / 20.0, 0.5)
+        setRendering(.maxShadowCastingDistance(tightDistance))
+        shadowSystem.updateCascades()
+
+        XCTAssertTrue(shadowSystem.isActive, "CSM should remain active under a tightened shadow distance")
+        for i in 0 ..< csmCascadeCount {
+            XCTAssertLessThan(
+                shadowSystem.cascadeWorldTexelSizes[i], baselineTexelSizes[i],
+                "Cascade \(i) texel size should shrink (finer shadow resolution) when the shadow-casting distance is tightened"
+            )
+        }
+    }
+
     func testTransparencyTarget() {
         XCTAssertNotNil(renderer, "Renderer should be initialized")
         XCTAssertNotNil(renderer.metalView, "MetalView should be initialized")

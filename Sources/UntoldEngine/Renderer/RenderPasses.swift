@@ -677,8 +677,19 @@ public enum RenderPasses {
             // The world-space distance reject above stays correct for any light
             // direction; the fitted light-space cascade frustum below is the
             // correctness-preserving cull for what actually lands in the map.
+            //
+            // cascadeCenter/cascadeReach are in visual-world space (they come from the
+            // camera-frustum-derived cascade bounds), while worldMin/worldMax above are
+            // scene-local (needed as-is for the frustum test below, since `frustum` is built
+            // from a matrix that folds the scene-root transform back in). Fold the root
+            // transform into a second, visual-world copy of the bounds just for this check.
+            let (visualWorldMin, visualWorldMax) = worldAABB_MinMax(
+                localMin: localTransformComponent.boundingBox.min,
+                localMax: localTransformComponent.boundingBox.max,
+                worldMatrix: simd_mul(SceneRootTransform.shared.matrix, worldTransformComponent.space)
+            )
             if shadowEntityBeyondMaxDistance(
-                worldMin: worldMin, worldMax: worldMax,
+                worldMin: visualWorldMin, worldMax: visualWorldMax,
                 cameraPosition: cascadeCenter,
                 maxDistance: cascadeReach
             ) { continue }

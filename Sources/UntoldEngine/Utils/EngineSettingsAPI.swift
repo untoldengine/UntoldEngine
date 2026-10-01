@@ -59,6 +59,18 @@ public enum RenderingProperty: Sendable {
     case wireframe(WireframeProperty)
     case environment(RenderingEnvironmentProperty)
     case extensions(RenderExtensionProperty)
+    /// How far (in real-world meters, from the camera) directional-light CSM shadows are
+    /// computed. The shadow map's texel count is fixed, so this distance directly sets the
+    /// shadow's meters-per-texel density: the cascades always cover this same real-world
+    /// distance regardless of `SceneRootTransform.shared.scale`, since that scale only affects
+    /// how large the scene *looks*, not how far away the real camera's frustum reaches. A scene
+    /// placed at a small scale (e.g. AR tabletop placement) packs all of its geometry into a
+    /// much smaller slice of that real-world distance than a full-scale scene does, so the
+    /// default (tuned for full-scale content) spends most of its shadow-map resolution on empty
+    /// space. Lowering this to roughly the physical size of the placed content concentrates the
+    /// existing texel budget on it instead, sharpening shadow edges without needing a larger
+    /// shadow map. See `getMaxShadowCastingDistance()` to read the current value.
+    case maxShadowCastingDistance(Float)
 }
 
 public enum RenderingToggle: Sendable {
@@ -115,6 +127,8 @@ public func setRendering(_ property: RenderingProperty) {
         applyRenderingEnvironmentProperty(property)
     case let .extensions(property):
         applyRenderExtensionProperty(property)
+    case let .maxShadowCastingDistance(distance):
+        RenderPasses.maxShadowCastingDistance = max(distance, 0.001)
     }
 }
 
