@@ -596,6 +596,12 @@ def _build_flags_map_from_untold_dir(textures_dir: Path, untold_files: list[Path
     result: dict[str, int] = {}
     if untold_files is None:
         untold_files = list(textures_dir.parent.glob("*.untold"))
+    else:
+        # A folder stands for every .untold under it (a pack's model folders).
+        expanded: list[Path] = []
+        for path in untold_files:
+            expanded.extend(sorted(Path(path).rglob("*.untold")) if Path(path).is_dir() else [Path(path)])
+        untold_files = expanded
     if not untold_files:
         return result
 
@@ -1177,9 +1183,10 @@ def main(argv: list[str] | None = None) -> int:
         action="append",
         metavar="UNTOLD_FILE",
         help=(
-            "With --dir: read texture slot hints from this .untold instead of the .untold files "
-            "beside the directory (repeatable). Use it when the .untold lives elsewhere, as with "
-            "the exporter's --assets-dir."
+            "With --dir: read texture slot hints from this .untold, or from every .untold under "
+            "this folder, instead of the .untold files beside the directory (repeatable). Use it "
+            "when the .untold lives elsewhere, as with the exporter's --assets-dir, or for a "
+            "pack's shared Textures folder."
         ),
     )
     parser.add_argument(

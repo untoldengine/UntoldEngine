@@ -44,9 +44,9 @@ struct ExportCommand: ParsableCommand {
         If the source .blend scene contains more than one independent model
         (more than one object with no parent among the exported objects), the
         exporter writes a <name>.untoldpack manifest next to --output instead
-        of a single .untold file, plus one self-contained .untold per model
-        under its own subfolder. --optimize bakes textures for every model
-        in the pack.
+        of a single .untold file, plus one .untold per model under its own
+        subfolder; copies of a model share one file, and the models share one
+        Textures folder. --optimize bakes those textures for the whole pack.
 
         Example:
           untoldengine export --input model.usdz --output model.untold --convert-orientation --optimize
@@ -272,9 +272,20 @@ struct ExportCommand: ParsableCommand {
                 printInfo("  \(model.displayName ?? model.path) -> \(model.path)")
             }
             if optimize {
+                // Several placements can share one .untold, so each file is handled once.
+                var modelURLs: [URL] = []
                 for model in pack.models {
-                    let modelURL = packURL.deletingLastPathComponent().appendingPathComponent(model.path)
-                    try optimizeTextures(outputURL: modelURL)
+                    let modelURL = packURL.deletingLastPathComponent().appendingPathComponent(model.path).standardizedFileURL
+                    if !modelURLs.contains(modelURL) { modelURLs.append(modelURL) }
+                }
+                let sharedTextures = (assetsURL ?? packURL.deletingLastPathComponent()).appendingPathComponent("Textures")
+                if validateDirectory(sharedTextures) {
+                    try optimizeSharedTextures(texturesDir: sharedTextures, modelURLs: modelURLs)
+                } else {
+                    // An exporter that predates the shared Textures/ folder gives each model its own.
+                    for modelURL in modelURLs {
+                        try optimizeTextures(outputURL: modelURL)
+                    }
                 }
             }
         } else {
@@ -513,6 +524,24 @@ struct ExportCommand: ParsableCommand {
 
         printInfo("Patching texture references: \(outputURL.path)")
         try runPython(python3URL, [texbakeScriptURL.path, "--patch-refs", outputURL.path])
+
+        printSuccess("Optimized textures: \(texturesDir.path)")
+    }
+
+    /// A pack's Textures/ folder, shared by its models: baked once, with every model
+    /// file under the same folder read for slot hints, then each model's references patched.
+    private func optimizeSharedTextures(texturesDir: URL, modelURLs: [URL]) throws {
+        let python3URL = try resolvePython3()
+        let texbakeScriptURL = try resolveTexbakeScript()
+
+        printInfo("Baking textures: \(texturesDir.path)")
+        // The models' folder, not each file: a large pack would overflow the command line.
+        try runPython(python3URL, [texbakeScriptURL.path, "--dir", texturesDir.path, "--untold", texturesDir.deletingLastPathComponent().path])
+
+        for modelURL in modelURLs {
+            printInfo("Patching texture references: \(modelURL.path)")
+            try runPython(python3URL, [texbakeScriptURL.path, "--patch-refs", modelURL.path])
+        }
 
         printSuccess("Optimized textures: \(texturesDir.path)")
     }
