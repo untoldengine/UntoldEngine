@@ -262,8 +262,30 @@ func buildFrustum(from viewProj: simd_float4x4,
     return Frustum(planes: planes)
 }
 
+/// The most bounding boxes the reduce-scan path can cull in one frame: its block-sum
+/// scan runs in a single threadgroup of at most 1,024 threads, one per block.
+let maxReduceScanAABBCount = 1024 * Int(BLOCK_SIZE)
+
+/// Grows the reduce-scan buffers (flags and indices per bounding box, sums and offsets
+/// per block) to hold `count` bounding boxes, by powers of two. They were sized for a
+/// fixed number of entities, and a scene with more bounding boxes made the culling
+/// kernels write past their end.
+func ensureReduceScanCapacity(_ count: Int) {
+    guard count > bufferResources.reduceScanCapacity, let device = renderInfo.device else { return }
+    var capacity = max(Int(BLOCK_SIZE), 1)
+    while capacity < count {
+        capacity <<= 1
+    }
+    let blocks = (capacity + Int(BLOCK_SIZE) - 1) / Int(BLOCK_SIZE)
+    bufferResources.reduceScanFlags = device.makeBuffer(length: MemoryLayout<UInt32>.stride * capacity, options: .storageModePrivate)
+    bufferResources.reduceScanIndices = device.makeBuffer(length: MemoryLayout<UInt32>.stride * capacity, options: .storageModePrivate)
+    bufferResources.reduceScanBlockSums = device.makeBuffer(length: MemoryLayout<UInt32>.stride * blocks, options: .storageModePrivate)
+    bufferResources.reduceScanBlockOffsets = device.makeBuffer(length: MemoryLayout<UInt32>.stride * blocks, options: .storageModePrivate)
+    bufferResources.reduceScanCapacity = capacity
+}
+
 func initFrustumCulllingCompute() {
-    let numBlocks = (Int32(MAX_ENTITIES) + BLOCK_SIZE - 1) / BLOCK_SIZE
+    let numBlocks = (Int32(INITIAL_ENTITY_CAPACITY) + BLOCK_SIZE - 1) / BLOCK_SIZE
 
     if renderInfo.device == nil {
         handleError(.metalDeviceNotFound)
@@ -311,29 +333,23 @@ func initFrustumCulllingCompute() {
     // Make and allocate buffers
     tripleBufferResources.frustumPlane = TripleBuffer<simd_float4>(device: renderInfo.device, initialCapacity: planeCount)
 
-    tripleBufferResources.entityAABB = TripleBuffer(device: renderInfo.device, initialCapacity: MAX_ENTITIES)
+    tripleBufferResources.entityAABB = TripleBuffer(device: renderInfo.device, initialCapacity: INITIAL_ENTITY_CAPACITY)
 
     // Per-frame visibility outputs (triple-buffered)
     tripleBufferResources.visibleCount = TripleBuffer<UInt32>(device: renderInfo.device, initialCapacity: 1)
-    tripleBufferResources.visibility = TripleBuffer<VisibleEntity>(device: renderInfo.device, initialCapacity: MAX_ENTITIES)
+    tripleBufferResources.visibility = TripleBuffer<VisibleEntity>(device: renderInfo.device, initialCapacity: INITIAL_ENTITY_CAPACITY)
     tripleBufferResources.hzbCandidateVisibleCount = TripleBuffer<UInt32>(device: renderInfo.device, initialCapacity: 1)
-    tripleBufferResources.hzbCandidateVisibility = TripleBuffer<VisibleEntity>(device: renderInfo.device, initialCapacity: MAX_ENTITIES)
+    tripleBufferResources.hzbCandidateVisibility = TripleBuffer<VisibleEntity>(device: renderInfo.device, initialCapacity: INITIAL_ENTITY_CAPACITY)
 
     // Reduce scan buffers
-    bufferResources.reduceScanFlags = renderInfo.device.makeBuffer(length: MemoryLayout<UInt32>.stride * MAX_ENTITIES, options: .storageModePrivate)
-
-    bufferResources.reduceScanIndices = renderInfo.device.makeBuffer(length: MemoryLayout<UInt32>.stride * MAX_ENTITIES, options: .storageModePrivate)
-
-    bufferResources.reduceScanBlockSums = renderInfo.device.makeBuffer(length: MemoryLayout<UInt32>.stride * Int(numBlocks), options: .storageModePrivate)
-
-    bufferResources.reduceScanBlockOffsets = renderInfo.device.makeBuffer(length: MemoryLayout<UInt32>.stride * Int(numBlocks), options: .storageModePrivate)
+    ensureReduceScanCapacity(Int(numBlocks) * Int(BLOCK_SIZE))
 
     // Per-eye HZB culling buffers for XR stereo (Vision Pro)
     if renderInfo.isXRStereoMode {
         tripleBufferResources.hzbEye0VisibleCount = TripleBuffer<UInt32>(device: renderInfo.device, initialCapacity: 1)
-        tripleBufferResources.hzbEye0Visibility = TripleBuffer<VisibleEntity>(device: renderInfo.device, initialCapacity: MAX_ENTITIES)
+        tripleBufferResources.hzbEye0Visibility = TripleBuffer<VisibleEntity>(device: renderInfo.device, initialCapacity: INITIAL_ENTITY_CAPACITY)
         tripleBufferResources.hzbEye1VisibleCount = TripleBuffer<UInt32>(device: renderInfo.device, initialCapacity: 1)
-        tripleBufferResources.hzbEye1Visibility = TripleBuffer<VisibleEntity>(device: renderInfo.device, initialCapacity: MAX_ENTITIES)
+        tripleBufferResources.hzbEye1Visibility = TripleBuffer<VisibleEntity>(device: renderInfo.device, initialCapacity: INITIAL_ENTITY_CAPACITY)
     }
 
     // clear up visible entity array
@@ -880,8 +896,6 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
     let submitFrameIndex = cullSubmitIndex
     cullSubmitIndex += 1
 
-    let numBlocks = (Int32(MAX_ENTITIES) + BLOCK_SIZE - 1) / BLOCK_SIZE
-
     let effectiveViewMatrix = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
     let viewProjection: simd_float4x4 = simd_mul(renderInfo.perspectiveSpace, effectiveViewMatrix)
 
@@ -992,6 +1006,17 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         return
     }
 
+    // The scan's buffers follow this frame's bounding-box count. Past what the
+    // single-threadgroup block scan can take, the remaining boxes are not culled in
+    // (not drawn), and the log says so once.
+    let scannedCount = min(count, maxReduceScanAABBCount)
+    if scannedCount < count, !bufferResources.reportedReduceScanOverflow {
+        bufferResources.reportedReduceScanOverflow = true
+        Logger.logWarning(message: "[Culling] \(count) bounding boxes this frame; the reduce-scan culling path handles \(maxReduceScanAABBCount), the rest are not drawn")
+    }
+    ensureReduceScanCapacity(scannedCount)
+    let numBlocks = Int32((scannedCount + Int(BLOCK_SIZE) - 1) / Int(BLOCK_SIZE))
+
     // write current frame's data
     let entityAABBWriteBuffer = entityAABBTripleBuffer.bufferForWrite(frame: submitFrameIndex)
 
@@ -1004,7 +1029,7 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
 
     let candidateVisibilityBuffer = hzbCandidateVisibilityTriple.bufferForWrite(frame: submitFrameIndex)
 
-    var count32 = UInt32(count)
+    var count32 = UInt32(scannedCount)
 
     // Mark visible launch
     do {
@@ -1020,7 +1045,7 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         computeEncoderMarkVisible.setBuffer(bufferResources.reduceScanFlags, offset: 0, index: Int(markVisibilityPassFlagIndex.rawValue))
 
         let w = min(reduceScanMarkVisiblePipeline.pipelineState!.maxTotalThreadsPerThreadgroup, 256)
-        let numThreadgroups = (count + w - 1) / w
+        let numThreadgroups = (scannedCount + w - 1) / w
         computeEncoderMarkVisible.dispatchThreadgroups(MTLSize(width: numThreadgroups, height: 1, depth: 1), threadsPerThreadgroup: MTLSize(width: w, height: 1, depth: 1))
 
         computeEncoderMarkVisible.endEncoding()

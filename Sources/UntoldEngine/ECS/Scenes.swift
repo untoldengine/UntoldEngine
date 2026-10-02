@@ -156,10 +156,11 @@ public struct Scene {
             return nil
         }
 
-        // Ensure the pool for this component type exists
+        // Ensure the pool for this component type exists and has room for this entity
         if componentPool[componentId] == nil {
             componentPool[componentId] = ComponentPool(MemoryLayout<T>.stride)
         }
+        componentPool[componentId]?.reserve(upTo: Int(entityIndex))
 
         // Retrieve the specific component pool
         guard let pool = componentPool[componentId] else {
