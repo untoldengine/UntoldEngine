@@ -77,8 +77,17 @@ setReachIKChainTargets(entityId: character, targets: [
    the model's ground whose height is ignored: a leg chain (hip, knee,
    ankle) holds a foot where it stands while the pose lifts and lowers it.
    A chain whose entry is nil reaches for the shared target, or keeps its
-   pose when there is none. `targetHalflife` is the easing of the targets
-   themselves: short for a source that is already filtered.
+   pose when there is none. `targetHalflife` is the easing of the chains'
+   own targets: short for a source that is already filtered. It leaves
+   the shared target's easing alone.
+
+   The two calls can be mixed (tracked hands on some chains, a shared
+   grab target for the rest), with one thing to keep in mind: an entity
+   has a single reach influence. `weight`, `halflife` and `reach` belong
+   to the entity, not to the call, so whichever of `setReachIKTarget` and
+   `setReachIKChainTargets` runs last in a frame sets them for every
+   chain. Pass the same values to both; per-chain differences go through
+   `setReachIKChainWeights`.
 
 ## What Happens Behind the Scenes
 

@@ -606,6 +606,12 @@ public func setReachIKChains(entityId: EntityID, chains: [ReachIKChainDescriptor
 /// reach and points at it beyond, the arm extended to `reach` of its
 /// length. The influence eases to `weight` over `halflife`; a nil position
 /// eases it back out.
+///
+/// An entity has one reach influence: `weight`, `halflife` and `reach` are
+/// shared with `setReachIKChainTargets`, and the call made last sets them
+/// for every chain. A caller that uses both in the same frame (tracked
+/// hands on some chains, this target for the rest) passes the same values
+/// to both.
 public func setReachIKTarget(
     entityId: EntityID,
     worldPosition: simd_float3?,
@@ -641,6 +647,12 @@ public func setReachIKTarget(
 /// The influence eases to `weight` over `halflife`; with no target at all
 /// it eases back out. Each target is eased over `targetHalflife`, in its
 /// own space; 0 follows it exactly (a source that is already filtered).
+///
+/// An entity has one reach influence: `weight`, `halflife` and `reach` are
+/// shared with `setReachIKTarget`, and the call made last sets them for
+/// every chain, so a caller that mixes the two passes the same values to
+/// both. `targetHalflife` is the chains' own: it does not change how the
+/// shared target is eased.
 public func setReachIKChainTargets(
     entityId: EntityID,
     targets: [ReachIKChainTarget?],
@@ -667,7 +679,7 @@ public func setReachIKChainTargets(
         }
         animationComponent.reachIK.halflife = max(halflife, 0)
         animationComponent.reachIK.reach = min(max(reach, 0.05), 1)
-        animationComponent.reachIK.targetHalflife = max(targetHalflife, 0)
+        animationComponent.reachIK.chainTargetHalflife = max(targetHalflife, 0)
         if halflife <= 0 {
             animationComponent.reachIK.weight = animationComponent.reachIK.targetWeight
         }

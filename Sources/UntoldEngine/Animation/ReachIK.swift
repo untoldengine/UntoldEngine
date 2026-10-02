@@ -87,6 +87,9 @@ struct ReachIKState {
     /// instead of one. Nil until the first target.
     var smoothedTarget: simd_float3?
     var targetHalflife: Float = 0.08
+    /// The same easing for the chains' own targets: theirs to set, so a
+    /// tracked hand followed exactly does not make the shared target jump.
+    var chainTargetHalflife: Float = 0.08
     var weight: Float = 0
     var targetWeight: Float = 0
     var halflife: Float = 0.25
@@ -183,6 +186,7 @@ func applyReachIK(
         return
     }
     let ease = 1 - exp(-ln2 * deltaTime / max(animationComponent.reachIK.targetHalflife, 1e-4))
+    let chainEase = 1 - exp(-ln2 * deltaTime / max(animationComponent.reachIK.chainTargetHalflife, 1e-4))
     var targetWorld: simd_float3?
     if let rawTarget {
         if let previous = animationComponent.reachIK.smoothedTarget {
@@ -215,7 +219,7 @@ func applyReachIK(
     for (index, chain) in chains.enumerated() {
         // Eased every frame, also while the chain's weight is zero, so
         // the target is current when the weight returns.
-        let chainTarget = animationComponent.reachIK.easedChainTarget(index, ease: ease)
+        let chainTarget = animationComponent.reachIK.easedChainTarget(index, ease: chainEase)
         let chainWeight = weight * (index < chainWeights.count ? min(max(chainWeights[index], 0), 1) : 1)
         guard chainWeight > 1e-4 else { continue }
         guard chain.shoulder < pose.jointCount, chain.elbow < pose.jointCount, chain.hand < pose.jointCount else {

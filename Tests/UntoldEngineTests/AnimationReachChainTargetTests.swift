@@ -216,6 +216,45 @@ final class AnimationReachChainTargetTests: XCTestCase {
         XCTAssertLessThan(simd_distance(hands().left, leftShoulder + second.position), 0.01)
     }
 
+    func testFollowingTheChainTargetsExactlyLeavesTheSharedTargetEased() {
+        // The left hand is tracked and followed exactly; the right takes
+        // the shared target, which still eases when it jumps.
+        let tracked = ReachIKChainTarget(position: simd_float3(0.1, -0.2, 0.3), space: .shoulder)
+        setReachIKTarget(entityId: entityId, worldPosition: simd_float3(-0.4, 1.2, 0.3), weight: 1, halflife: 0)
+        setReachIKChainTargets(entityId: entityId, targets: [tracked, nil], halflife: 0, targetHalflife: 0)
+        AnimationSystem.shared.update(deltaTime)
+        let before = hands().right
+
+        setReachIKTarget(entityId: entityId, worldPosition: simd_float3(0.0, 1.2, 0.3), weight: 1, halflife: 0)
+        setReachIKChainTargets(entityId: entityId, targets: [tracked, nil], halflife: 0, targetHalflife: 0)
+        AnimationSystem.shared.update(deltaTime)
+
+        XCTAssertLessThan(simd_distance(hands().left, leftShoulder + tracked.position), 0.01)
+        XCTAssertLessThan(abs(hands().right.x - before.x), 0.15, "the shared target is crossed over several frames")
+        for _ in 0 ..< 40 {
+            AnimationSystem.shared.update(deltaTime)
+        }
+        XCTAssertLessThan(simd_distance(hands().right, simd_float3(0.0, 1.2, 0.3)), 0.01)
+    }
+
+    func testTheReachInfluenceIsTheEntitysWhicheverCallSetItLast() {
+        // One influence per entity: the call made last sets the reach
+        // limit for every chain, the shared target's included.
+        let far = simd_float3(-0.2, 1.4, 5)
+        setReachIKTarget(entityId: entityId, worldPosition: far, weight: 1, halflife: 0, reach: 0.5)
+        setReachIKChainTargets(
+            entityId: entityId,
+            targets: [ReachIKChainTarget(position: simd_float3(0, 0, 5), space: .shoulder), nil],
+            halflife: 0, reach: 1
+        )
+        AnimationSystem.shared.update(deltaTime)
+
+        // Both arms straight (0.6 m), the right one too: the chain call's
+        // reach, not the shared call's half.
+        XCTAssertLessThan(simd_distance(hands().right, rightShoulder + simd_float3(0, 0, 0.6)), 0.01)
+        XCTAssertLessThan(simd_distance(hands().left, leftShoulder + simd_float3(0, 0, 0.6)), 0.01)
+    }
+
     func testAJumpingChainTargetIsFollowedOverSeveralFrames() {
         let first = ReachIKChainTarget(position: simd_float3(0.2, -0.2, 0.3), space: .shoulder)
         let second = ReachIKChainTarget(position: simd_float3(-0.2, -0.2, 0.3), space: .shoulder)
