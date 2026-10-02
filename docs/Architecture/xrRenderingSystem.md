@@ -26,7 +26,7 @@ At init time, three things happen in parallel:
 
 **Environment lighting provider ownership**: The XR layer observes the runtime rendering lighting mode. When the app sets `setRendering(.environment(.lightingMode(.realWorldEstimate)))`, the XR runtime includes ARKit environment light estimation in the provider set and feeds accepted probe updates into the engine's IBL path. Switching back to `.authoredOnly` or `.staticIBL` disables that provider path. `realWorldLightingContribution` is a rendering multiplier and can change at runtime without restarting ARKit providers.
 
-**Plane monitor** (background Task): A long-running Swift structured concurrency task that consumes the `planeDetection.anchorUpdates` async stream. Every time the system detects, updates, or removes a real-world surface (floor, wall, table, etc.), it maps the ARKit classification to the engine's `RealSurfaceKind` enum and forwards it to `RealSurfacePlaneStore`. Game code queries this store to snap objects to real surfaces.
+**Plane monitor** (background Task): A long-running Swift structured concurrency task that consumes the `planeDetection.anchorUpdates` async stream. Every time the system detects, updates, or removes a real-world surface (floor, wall, table, etc.), it maps the ARKit classification to the engine's `RealSurfaceKind` enum and forwards `TrackedPlane` snapshots to `RealSurfacePlaneStore`. Game code uses [`pickRealSurfacePosition`](../API/UsingSpatialInput.md#get-groundplane-hit-position) to query those planes for placement; the API guide covers filters, hit fields, diagnostics, and physical world coordinates under scene-root scaling.
 
 **Renderer creation**: `UntoldRenderer.createXR(...)` initializes the Metal device, command queue, G-Buffer textures, pipeline states, and all other GPU resources at the fixed visionOS viewport size (2048 × 1984 per eye).
 
@@ -200,6 +200,8 @@ The completion handler signals `commandBufferSemaphore` when the GPU finishes, f
 4. Packs everything into an `XRSpatialInputSnapshot` and enqueues it in `InputSystem`
 
 The snapshot is processed on the next frame's update phase by `spatialGestureRecognizer.updateSpatialInputState()`, which converts raw ray/phase sequences into higher-level gesture events (tap, hold, drag) that game code can query.
+
+Selection rays update from interaction events, not continuously as the user looks around. A completed tap is reported on `.ended`, and an event without a valid ray retains the previous ray. Ray fields, phase, and timestamp can persist between events; game code should gate actions on gesture signals rather than assume those fields describe fresh input. The gaze fields are currently placeholders, and the active camera entity's transform is not synchronized to the ARKit head pose used for rendering. See the [XR input model](../API/UsingSpatialInput.md#xr-input-model) for tap handling, ray lifetime, and camera limitations.
 
 > The bridge is gated on `isSceneReady()` and `!AssetLoadingGate.shared.isLoadingAny`. Input events while loading are discarded to prevent game code from acting on uninitialized entities.
 

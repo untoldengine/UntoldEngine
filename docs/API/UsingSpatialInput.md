@@ -10,6 +10,56 @@ Spatial input in Untold Engine follows a simple pipeline:
 
 That separation keeps the system flexible: the OS-facing code stays in UntoldEngineXR, while gesture classification stays in the recognizer.
 
+## XR Input Model
+
+### Selection rays follow interactions
+
+`XRSpatialInputState.rayOriginWorld` and `rayDirectionWorld` describe the selection ray supplied by a visionOS spatial event, in world coordinates. They are updated when the recognizer processes a primary interaction snapshot with a valid ray direction. This is an **event-driven selection ray**, not a continuously updated eye-gaze or head-forward ray. Looking around without interacting does not refresh these fields.
+
+An event can arrive without a selection ray, including on `.ended`. In that case, the recognizer keeps the previous ray. Frames without new snapshots also retain the ray, `currentPhase`, and `timestamp`. Before any valid ray arrives, both ray fields are zero; clearing XR input resets the state. A nonzero ray or a `.changed` phase alone therefore does not indicate new input in the current frame. `timestamp` records the processed primary snapshot's time, not necessarily the last valid ray's time.
+
+Use gesture signals to decide when to act:
+
+| Signal | How to use it |
+|---|---|
+| `spatialTapActive` | Handle a completed tap once. The recognizer sets it on `.ended` when the interaction did not become a drag, then clears it on the next input update. The ray may be retained from an earlier event in that interaction. |
+| `spatialPinchActive` / `spatialDragActive` | Drive ongoing manipulation while the gesture is active. These signals do not guarantee a newly received selection ray each frame. |
+| `spatialZoomActive` / `spatialRotateActive` and their deltas | Apply the current input update's two-hand gesture deltas; the recognizer clears these signals and deltas at the next update. |
+| `.cancelled` | End manipulation without treating the interaction as a tap. The retained ray is not a new selection. |
+
+For example, raycast against a detected real surface when a tap completes:
+
+```swift
+func handleInput() {
+    let state = getXRSpatialInputState()
+    guard state.spatialTapActive else { return }
+
+    if let hit = pickRealSurfacePosition(
+        rayOrigin: state.rayOriginWorld,
+        rayDirection: state.rayDirectionWorld,
+        filter: .horizontalAny
+    ) {
+        Logger.log(message: "Tapped surface", vector: hit.worldPosition)
+    }
+}
+```
+
+Do not restrict tap handling to `.began` or `.changed`: a completed tap is reported on `.ended`. For entity selection, use `pickedEntityId` and the picked position/normal fields, which preserve the selection captured at the start of a completed tap. For ongoing transforms, use the [manipulation lifecycle helpers](#quick-example) to handle begin, update, end, and cancellation.
+
+### Gaze fields do not supply live tracking
+
+`gazePosition` and `gazeDirection` are placeholders for future expansion. The XR runtime does not populate them with live eye-gaze or head-pose data; both default to zero.
+
+On visionOS, `InputSystem.shared.getGazeTarget(maxDistance:)` only calculates `gazePosition + normalize(gazeDirection) * maxDistance` from the stored fields. It does not query tracking or raycast the scene. It returns `nil` for the default zero direction, non-finite position/direction values, or a non-finite/non-positive distance. Supplying values yourself makes this a target-point calculation, not a live gaze accessor.
+
+The engine currently exposes no continuous gaze ray through these APIs. A head-forward direction would also be a different input from eye gaze.
+
+### The active camera entity is not the XR head pose
+
+`CameraSystem.shared.activeCamera` identifies the scene's camera entity. Reading that entity with `getPosition(entityId:)` returns its authored or application-updated position. The XR runtime does not synchronize its entity transform to the live ARKit device anchor, so this is not a head-position accessor.
+
+XR rendering instead derives per-eye view matrices from the ARKit device anchor and the compositor's eye transforms. That rendering pose is not published as a current head-pose accessor for game code. See the [XR rendering lifecycle](../Architecture/xrRenderingSystem.md#2e-device-anchor-acquisition) for how anchors are acquired and retained during tracking gaps.
+
 ## What You Get in Game Code
 
 From XRSpatialInputState, you can read:
@@ -416,22 +466,23 @@ Use this as the default scene-root helper when your app supports both panning an
 
 ## Combining Scene Drag, Rotate and Zoom
 
-All three scene-level gestures can live in the same input loop — they gate on different input conditions so they don't conflict:
+Scene drag/rotate and entity zoom can share an input loop, but choose explicit precedence: the unified lifecycle latches its drag/rotate mode, and adding a second hand does not automatically stop an already active drag. This example gives two-hand entity zoom priority and ends the scene session before scaling:
 
 ```swift
 func handleInput() {
     let state = getXRSpatialInputState()
 
-    // Single-hand pinch + drag → pan the scene
-    processAnchoredSceneDragLifecycle(from: state)
-
-    // Two-hand pinch + twist → rotate the scene (yaw)
-    processAnchoredSceneRotateLifecycle(from: state)
-
-    // Two-hand pinch + spread/pinch → zoom an entity
-    applyTwoHandZoomIfNeeded(from: state)
+    if state.currentPhase != .ended, state.currentPhase != .cancelled,
+       state.leftHandPinching, state.rightHandPinching, state.spatialZoomActive {
+        endAnchoredSceneManipulation()
+        applyTwoHandZoomIfNeeded(from: state)
+    } else {
+        processAnchoredSceneManipulationLifecycle(from: state)
+    }
 }
 ```
+
+`applyTwoHandZoomIfNeeded` changes a selected entity's **local scale** (its parent by default); it does not resize `SceneRootTransform`. For a tabletop model or an entire placed scene, use the [scene-root scaling recipe](#two-hand-scene-root-scaling) below instead.
 
 For context-based entity vs. scene rotation — route two-hand twist to entity rotate when something is picked, and to scene rotate otherwise:
 
@@ -439,18 +490,25 @@ For context-based entity vs. scene rotation — route two-hand twist to entity r
 func handleInput() {
     let state = getXRSpatialInputState()
 
-    // Scene-level drag (always active)
-    processAnchoredSceneDragLifecycle(from: state)
+    if state.currentPhase == .ended || state.currentPhase == .cancelled {
+        endAnchoredSceneManipulation()
+        return
+    }
+
+    if state.leftHandPinching, state.rightHandPinching, state.spatialZoomActive {
+        endAnchoredSceneManipulation()
+        applyTwoHandZoomIfNeeded(from: state)
+        return
+    }
 
     if state.pickedEntityId != nil {
+        endAnchoredSceneManipulation()
         // Entity is picked → two-hand twist rotates the entity
         applyTwoHandRotateIfNeeded(from: state)
     } else {
-        // Nothing picked → two-hand twist rotates the scene
-        processAnchoredSceneRotateLifecycle(from: state)
+        // Nothing picked → drag or rotate the scene
+        processAnchoredSceneManipulationLifecycle(from: state)
     }
-
-    applyTwoHandZoomIfNeeded(from: state)
 }
 ```
 
@@ -458,7 +516,7 @@ func handleInput() {
 
 ## Two-Hand Zoom
 
-Apply the built-in zoom response:
+Apply the built-in **entity** zoom response. This scales the target's local transform, even if you call that entity your "scene root"; it does not change the engine's `SceneRootTransform`. Its limits come from `setSpatialManipulation(.zoomScale(min:max:))`.
 
 ```swift
 let state = getXRSpatialInputState()
@@ -481,6 +539,73 @@ if let picked = state.pickedEntityId {
     }
 }
 ```
+
+------------------------------------------------------------------------
+
+## Two-Hand Scene-Root Scaling
+
+To resize an entire placed scene, use the public uniform `scaleSceneTo(_ scale: Float)` overload. It changes `SceneRootTransform` without rewriting entity transforms or rebuilding static batches. No picked entity is required. `getSpatialZoomDelta()` reports the frame's change in hand separation in meters (positive for spreading, negative for bringing hands together). The following app-defined response maps that delta through sensitivity to a multiplicative factor (`1 + delta * sensitivity`), once per frame, matching the entity helper's response:
+
+```swift
+import UntoldEngine
+import simd
+
+// Call scaleSceneTo(1.0) when initializing/resetting your placement.
+// Configure these limits for your model's units and intended tabletop size.
+func applySceneRootZoom(
+    from state: XRSpatialInputState,
+    sensitivity: Float = 1.0,
+    minScale: Float = 0.05,
+    maxScale: Float = 20.0
+) {
+    guard state.currentPhase != .ended, state.currentPhase != .cancelled,
+          state.leftHandPinching, state.rightHandPinching, state.spatialZoomActive,
+          sensitivity.isFinite, sensitivity > 0,
+          minScale.isFinite, maxScale.isFinite,
+          minScale > 0, maxScale >= minScale else { return }
+
+    let delta = InputSystem.shared.getSpatialZoomDelta() * sensitivity
+    guard delta.isFinite, delta != 0 else { return }
+
+    let factor: Float = 1 + delta
+    guard factor.isFinite, factor > 0 else { return }
+
+    let current = SceneRootTransform.shared.scale
+    // This recipe expects an already uniform, positive scene scale.
+    guard current.x.isFinite, current.y.isFinite, current.z.isFinite,
+          current.x > 0, current.x == current.y, current.x == current.z else { return }
+
+    let requested = current.x * factor
+    guard requested.isFinite else { return }
+
+    let clamped = min(max(requested, minScale), maxScale)
+    scaleSceneTo(clamped) // Float overload writes the same value on all three axes.
+}
+
+func handleInput() {
+    let state = getXRSpatialInputState()
+
+    if state.currentPhase != .ended, state.currentPhase != .cancelled,
+       state.leftHandPinching, state.rightHandPinching, state.spatialZoomActive {
+        // Zoom owns this frame, even if the delta is rejected or at a limit.
+        endAnchoredSceneManipulation()
+        applySceneRootZoom(from: state, minScale: 0.05, maxScale: 20.0)
+    } else {
+        // Always forward end/cancel and release frames for lifecycle cleanup.
+        processAnchoredSceneManipulationLifecycle(from: state)
+    }
+}
+```
+
+These are app-configured scene limits, independent of the entity helper's `.zoomScale` setting. Invalid limits, sensitivity, deltas, overflow, or a nonuniform/nonpositive current scale skip the write. Initialize the scene with a uniform scale inside your chosen range; after a valid update the scale stays within that range. Poll and apply the delta only once in each `handleInput()` frame; do not also call the entity zoom helper for the same scene-resize interaction.
+
+### Placement Pivot And Lifecycle Composition
+
+The scene-root matrix is `T * R * S`. Scaling keeps the **scene-local origin** fixed at `SceneRootTransform.shared.position` in visual world space; it changes neither position nor rotation. Author or arrange the model so its intended contact point (for example, the center of its base) is at scene-local `(0, 0, 0)`, then place that origin on the table using `translateSceneTo(position: hit.worldPosition)`. A contact point away from the origin will move when scaling: the pivot is not the picked entity, hand midpoint, or last surface hit.
+
+The input loop gives zoom priority over rotation if both signals are active. Ending the unified lifecycle clears its latched mode and cached drag position/rotation baseline. When zoom ends, drag/rotate begins a fresh session at the current placement, so a drag that started before zoom cannot restore an old placement. This intentionally sequences zoom and drag/rotate; it does not provide simultaneous three-way manipulation. Call `endAnchoredSceneManipulation()` on mode changes and before externally changing placement. If your app previously used the individual scene drag/rotate helpers, switch to this unified loop rather than continuing to call them alongside it.
+
+For a contact point away from the origin, keeping that point fixed would also require compensating the root translation: for scene-local pivot `p`, preserve `worldPivot = position + rotation.act(scale * p)` and set the new position to `worldPivot - rotation.act(newScale * p)`. Such translation must end/rebase any anchored drag session. It also changes the root origin used by scene yaw rotation, so the origin-based placement above is the recommended recipe when composing with the existing anchored rotation helper.
 
 ------------------------------------------------------------------------
 
@@ -566,6 +691,61 @@ if state.spatialTapActive, let entityId = state.pickedEntityId {
 To retrieve the exact world-space position where the user taps on a real-world surface, use `pickRealSurfacePosition`. This raycasts against ARKit-detected physical planes in the user's environment. This is useful for calibration workflows where you need to anchor a point on the ground and scale a model relative to it.
 
 The `filter` parameter controls which planes are considered by **alignment** and, optionally, by **surface classification**. The function always returns the single closest hit that passes the filter.
+
+### Hit fields and coordinate spaces
+
+`pickRealSurfacePosition` returns `RealSurfaceHit?`; it returns `nil` when no tracked plane qualifies. All input rays and returned positions use the session's **physical world coordinates**, not authored scene/entity coordinates.
+
+| Field | Meaning |
+|---|---|
+| `worldPosition: simd_float3` | Intersection point in physical world space, in meters. |
+| `surfaceKind: RealSurfaceKind` | Detected plane classification: `.floor`, `.ceiling`, `.wall`, `.table`, `.seat`, `.door`, `.window`, or `.unknown`. |
+| `distance: Float` | Distance from the input ray origin to `worldPosition`, in world-space meters. |
+| `planeNormal: simd_float3` | Unit normal of the detected plane in world space. |
+| `surfaceNormal: simd_float3` | Read-only alias of `planeNormal`. |
+
+Pass `XRSpatialInputState.rayOriginWorld` and `rayDirectionWorld` directly. The direction does not need to be normalized. `hitYRange` tests the intersection's physical world Y coordinate in meters. `maxDistance` limits the accepted hit distance in world-space meters and defaults to unlimited. Both `maxDistance` and the returned `distance` remain in physical meters when `SceneRootTransform` scales the authored scene; do not rescale the input ray or distance limit.
+
+### Where detected planes come from
+
+`TrackedPlane` is the core engine's platform-independent snapshot of a detected plane. It contains the anchor `id`, `originFromAnchorTransform` (anchor to physical world), `anchorFromExtentTransform` (extent to anchor), `extentWidth` and `extentHeight` in meters along the extent's local X and Z axes, `alignment`, and `classification`. Picking tests the finite extent rectangle, including its offset from the anchor origin.
+
+`RealSurfacePlaneStore.shared` is the thread-safe store of the latest `[TrackedPlane]`. The **`UntoldEngineXR` layer** populates it from ARKit's `PlaneDetectionProvider.anchorUpdates`, handling added, updated, and removed anchors. The core `UntoldEngine` picking function reads a `snapshot()` of that store; it does not start plane detection itself. See the [XR plane monitor](../Architecture/xrRenderingSystem.md#step-0-initialization) for the provider lifecycle.
+
+Normal XR application code consumes the store rather than populating it. `update(planes:)` replaces the entire set, `snapshot()` reads it, `clear()` empties it, and `logAllPlanes()` prints diagnostics. Without plane data, picking returns `nil`; check world-sensing authorization and allow time for scanning.
+
+### Tabletop placement with a scaled scene
+
+This example shrinks the authored scene to 1% of its size and places a top-level entity's origin on a detected table. Call the setup once, then call the placement function from your tap/update handler with an existing entity that has a transform:
+
+```swift
+import simd
+import UntoldEngine
+
+func configureTabletopScale() {
+    SceneRootTransform.shared.scale = simd_float3(repeating: 0.01)
+    SceneRootTransform.shared.updateIfNeeded()
+}
+
+func placeOnTable(entityId: EntityID) {
+    let state = getXRSpatialInputState()
+    guard state.spatialTapActive,
+          let hit = pickRealSurfacePosition(
+              rayOrigin: state.rayOriginWorld,
+              rayDirection: state.rayDirectionWorld,
+              filter: .tableOnly,
+              maxDistance: 2.0 // Two physical meters, even at 1% scene scale.
+          )
+    else { return }
+
+    let scenePoint = SceneRootTransform.shared.visualWorldToSceneLocal(hit.worldPosition)
+    translateTo(entityId: entityId, position: scenePoint)
+}
+```
+
+`worldPosition` stays on the physical table. Convert it with `visualWorldToSceneLocal(_:)` before using it as an authored scene position; the helper accounts for scene-root translation, rotation, and scale. With only a uniform `0.01` scale, a world point `(0, 0.75, 0)` becomes scene point `(0, 75, 0)`, while a hit one physical meter from the ray origin still reports `distance == 1`. Use `sceneLocalToVisualWorld(_:)` for the reverse conversion.
+
+`translateTo` sets an entity's local position. The example assumes a top-level entity; for a child, also convert the scene point into its parent's local space before passing it to `translateTo`. If the table remains `.unknown`, use `.horizontalAny` with a `hitYRange` chosen from observed world heights, as described below.
 
 ### Alignment presets
 
@@ -734,7 +914,7 @@ func applyWallAlignment(to modelRoot: EntityID) {
 }
 ```
 
-This sample assumes `modelRoot` is the top-level model entity you want to calibrate. If it has a parent transform, convert the target position and rotation into that parent space before calling `translateTo` or `rotateTo`. In a production calibration flow, keep the model's intended up axis stable when applying the rotation so wall alignment does not introduce unwanted roll.
+This sample assumes `modelRoot` is the top-level model entity you want to calibrate and `SceneRootTransform` is identity. With a scene-root transform, convert the world points and normals into authored scene space before computing the alignment. If the entity has a parent transform, convert the target position and rotation into that parent space before calling `translateTo` or `rotateTo`. In a production calibration flow, keep the model's intended up axis stable when applying the rotation so wall alignment does not introduce unwanted roll.
 
 ### Choosing the right filter
 
@@ -770,7 +950,7 @@ This reveals a common issue: **ARKit frequently classifies desks and tables as `
 
 When ARKit does not classify a desk or table correctly, use the `hitYRange` parameter to restrict hits by the world-space Y coordinate of the intersection point. This is reliable regardless of classification.
 
-Floor is always near Y≈0. A standard desk or table is typically between 0.5m and 1.1m:
+The floor's Y coordinate depends on the session's coordinate origin; it is not universally near Y≈0. Choose height filters from observed plane positions (use `logAllPlanes()`), rather than assuming a fixed floor height. The following ranges assume a session where the observed floor is near Y=0 and the desk or table is between Y=0.5m and Y=1.1m. Adjust both ranges for your session; scene-root scaling does not change these physical world heights.
 
 ```swift
 let state = getXRSpatialInputState()
