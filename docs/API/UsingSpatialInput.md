@@ -617,6 +617,61 @@ To retrieve the exact world-space position where the user taps on a real-world s
 
 The `filter` parameter controls which planes are considered by **alignment** and, optionally, by **surface classification**. The function always returns the single closest hit that passes the filter.
 
+### Hit fields and coordinate spaces
+
+`pickRealSurfacePosition` returns `RealSurfaceHit?`; it returns `nil` when no tracked plane qualifies. All input rays and returned positions use the session's **physical world coordinates**, not authored scene/entity coordinates.
+
+| Field | Meaning |
+|---|---|
+| `worldPosition: simd_float3` | Intersection point in physical world space, in meters. |
+| `surfaceKind: RealSurfaceKind` | Detected plane classification: `.floor`, `.ceiling`, `.wall`, `.table`, `.seat`, `.door`, `.window`, or `.unknown`. |
+| `distance: Float` | Distance from the input ray origin to `worldPosition`, in world-space meters. |
+| `planeNormal: simd_float3` | Unit normal of the detected plane in world space. |
+| `surfaceNormal: simd_float3` | Read-only alias of `planeNormal`. |
+
+Pass `XRSpatialInputState.rayOriginWorld` and `rayDirectionWorld` directly. The direction does not need to be normalized. `hitYRange` tests the intersection's physical world Y coordinate in meters. `maxDistance` limits the accepted hit distance in world-space meters and defaults to unlimited. Both `maxDistance` and the returned `distance` remain in physical meters when `SceneRootTransform` scales the authored scene; do not rescale the input ray or distance limit.
+
+### Where detected planes come from
+
+`TrackedPlane` is the core engine's platform-independent snapshot of a detected plane. It contains the anchor `id`, `originFromAnchorTransform` (anchor to physical world), `anchorFromExtentTransform` (extent to anchor), `extentWidth` and `extentHeight` in meters along the extent's local X and Z axes, `alignment`, and `classification`. Picking tests the finite extent rectangle, including its offset from the anchor origin.
+
+`RealSurfacePlaneStore.shared` is the thread-safe store of the latest `[TrackedPlane]`. The **`UntoldEngineXR` layer** populates it from ARKit's `PlaneDetectionProvider.anchorUpdates`, handling added, updated, and removed anchors. The core `UntoldEngine` picking function reads a `snapshot()` of that store; it does not start plane detection itself. See the [XR plane monitor](../Architecture/xrRenderingSystem.md#step-0-initialization) for the provider lifecycle.
+
+Normal XR application code consumes the store rather than populating it. `update(planes:)` replaces the entire set, `snapshot()` reads it, `clear()` empties it, and `logAllPlanes()` prints diagnostics. Without plane data, picking returns `nil`; check world-sensing authorization and allow time for scanning.
+
+### Tabletop placement with a scaled scene
+
+This example shrinks the authored scene to 1% of its size and places a top-level entity's origin on a detected table. Call the setup once, then call the placement function from your tap/update handler with an existing entity that has a transform:
+
+```swift
+import simd
+import UntoldEngine
+
+func configureTabletopScale() {
+    SceneRootTransform.shared.scale = simd_float3(repeating: 0.01)
+    SceneRootTransform.shared.updateIfNeeded()
+}
+
+func placeOnTable(entityId: EntityID) {
+    let state = getXRSpatialInputState()
+    guard state.spatialTapActive,
+          let hit = pickRealSurfacePosition(
+              rayOrigin: state.rayOriginWorld,
+              rayDirection: state.rayDirectionWorld,
+              filter: .tableOnly,
+              maxDistance: 2.0 // Two physical meters, even at 1% scene scale.
+          )
+    else { return }
+
+    let scenePoint = SceneRootTransform.shared.visualWorldToSceneLocal(hit.worldPosition)
+    translateTo(entityId: entityId, position: scenePoint)
+}
+```
+
+`worldPosition` stays on the physical table. Convert it with `visualWorldToSceneLocal(_:)` before using it as an authored scene position; the helper accounts for scene-root translation, rotation, and scale. With only a uniform `0.01` scale, a world point `(0, 0.75, 0)` becomes scene point `(0, 75, 0)`, while a hit one physical meter from the ray origin still reports `distance == 1`. Use `sceneLocalToVisualWorld(_:)` for the reverse conversion.
+
+`translateTo` sets an entity's local position. The example assumes a top-level entity; for a child, also convert the scene point into its parent's local space before passing it to `translateTo`. If the table remains `.unknown`, use `.horizontalAny` with a `hitYRange` chosen from observed world heights, as described below.
+
 ### Alignment presets
 
 - `.horizontalAny` — horizontal planes only (floor, ceiling, table, seat). **Warning:** this includes tables and seats — use `.floorOnly` when you need the floor specifically.
@@ -784,7 +839,7 @@ func applyWallAlignment(to modelRoot: EntityID) {
 }
 ```
 
-This sample assumes `modelRoot` is the top-level model entity you want to calibrate. If it has a parent transform, convert the target position and rotation into that parent space before calling `translateTo` or `rotateTo`. In a production calibration flow, keep the model's intended up axis stable when applying the rotation so wall alignment does not introduce unwanted roll.
+This sample assumes `modelRoot` is the top-level model entity you want to calibrate and `SceneRootTransform` is identity. With a scene-root transform, convert the world points and normals into authored scene space before computing the alignment. If the entity has a parent transform, convert the target position and rotation into that parent space before calling `translateTo` or `rotateTo`. In a production calibration flow, keep the model's intended up axis stable when applying the rotation so wall alignment does not introduce unwanted roll.
 
 ### Choosing the right filter
 
@@ -820,7 +875,7 @@ This reveals a common issue: **ARKit frequently classifies desks and tables as `
 
 When ARKit does not classify a desk or table correctly, use the `hitYRange` parameter to restrict hits by the world-space Y coordinate of the intersection point. This is reliable regardless of classification.
 
-Floor is always near Y≈0. A standard desk or table is typically between 0.5m and 1.1m:
+The floor's Y coordinate depends on the session's coordinate origin; it is not universally near Y≈0. Choose height filters from observed plane positions (use `logAllPlanes()`), rather than assuming a fixed floor height. The following ranges assume a session where the observed floor is near Y=0 and the desk or table is between Y=0.5m and Y=1.1m. Adjust both ranges for your session; scene-root scaling does not change these physical world heights.
 
 ```swift
 let state = getXRSpatialInputState()
