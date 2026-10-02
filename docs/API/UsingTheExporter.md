@@ -144,11 +144,36 @@ Some material nodes are carried over instead of dropped:
   location, no rotation) is applied to the mesh's first UV map, so tiled textures
   keep their tiling. When textures use different Mapping nodes, the one most of
   them use is applied and the material fidelity report says so.
-- An Invert node at full strength between an image texture and its socket (for
-  example a glossiness map feeding Roughness) is written into the staged texture,
-  saved as `<name>_inverted.png`.
+- Colour nodes between an image texture and its socket are written into the
+  staged texture, with the same math Cycles uses: Invert, Gamma,
+  Bright/Contrast, Hue/Saturation/Value, RGB Curves and ColorRamp (its Color
+  output). They are applied to linear values, so an sRGB texture is decoded and
+  encoded again. The texture is saved as `<name>_inverted.png` for a lone Invert,
+  or as `<name>_adj<fingerprint>.png`. A node whose settings are themselves
+  linked to other nodes is still dropped, and the material fidelity report says
+  so.
 - A material whose surface is an Emission shader exports as an emissive material
   with a black base color.
+- Each mesh exports the material of the slot its faces use, which need not be the
+  first slot.
+- EXR textures used by a material (a normal or metallic map, for example) are
+  converted to PNG. Values above 1 are clipped.
+
+Transparency becomes the engine's blended alpha mode:
+
+- A constant Alpha below 1 blends the material at that opacity.
+- An Alpha fed by the base color image's own Alpha output uses that alpha.
+- An Alpha fed by another texture, or through colour nodes, is written into the
+  alpha channel of the base color texture (a white one when the base color is a
+  constant), since the engine reads alpha from the base color texture.
+- Glass is approximated, since the engine has no transmission: a Principled BSDF
+  with Transmission keeps 10 % opacity at full transmission, and Transparent BSDFs
+  mixed in by a Mix Shader lower the opacity by their share. A mix driven by
+  Geometry > Backfacing takes its front-face side. The material fidelity report
+  lists these approximations.
+
+Lights and cameras follow the same rules as objects: never from collections
+excluded from the view layer, and hidden ones only with `--include-hidden`.
 
 ## Bake Textures To `.utex`
 

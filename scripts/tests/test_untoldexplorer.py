@@ -1427,19 +1427,19 @@ class BlendImportFidelityTests(unittest.TestCase):
         findings = u.analyze_material(material).findings
         self.assertTrue(any("different Mapping transforms" in finding.reason for finding in findings))
 
-    def test_full_invert_marks_the_texture_inverted_and_partial_invert_does_not(self) -> None:
+    def test_invert_becomes_an_adjustment_at_its_strength(self) -> None:
         glossiness = _make_image_node("glossiness")
         roughness = FakeSocket("Roughness")
         roughness.link_from(_make_invert_node(glossiness, 1.0), "Color")
         with tempfile.TemporaryDirectory() as tmpdir:
             texture = u.resolve_texture_from_socket(roughness, Path(tmpdir) / "asset.blend")
-        self.assertTrue(texture.invert)
+        self.assertEqual(texture.adjustments, (u.ImageAdjustment("invert"),))
 
         partial = FakeSocket("Roughness")
         partial.link_from(_make_invert_node(_make_image_node("gloss"), 0.5), "Color")
         with tempfile.TemporaryDirectory() as tmpdir:
             texture = u.resolve_texture_from_socket(partial, Path(tmpdir) / "asset.blend")
-        self.assertFalse(texture.invert)
+        self.assertEqual(texture.adjustments, (u.ImageAdjustment("invert", fac=0.5),))
 
     def test_full_invert_is_supported_by_material_analysis(self) -> None:
         glossiness = _make_image_node("glossiness")
@@ -1453,7 +1453,7 @@ class BlendImportFidelityTests(unittest.TestCase):
 
     def test_inverted_texture_stages_apart_from_the_plain_one(self) -> None:
         plain = u.ExportedTexture(name="gloss.png", uri="gloss.png", width=4, height=4, mip_count=1, source_image_name="gloss")
-        inverted = u.replace(plain, invert=True)
+        inverted = u.replace(plain, adjustments=(u.ImageAdjustment("invert"),))
         self.assertNotEqual(u.texture_staging_key(plain), u.texture_staging_key(inverted))
         context = u.TextureStagingContext()
         self.assertEqual(u.unique_texture_destination_name(inverted, context, ".png"), "gloss_inverted.png")
@@ -1596,6 +1596,235 @@ class AssetsDirTests(unittest.TestCase):
         base = ["blender", "--", "--input", "a.blend", "--output", "a.untold"]
         self.assertIsNone(u.parse_args(base).assets_dir)
         self.assertEqual(u.parse_args(base + ["--assets-dir", "a"]).assets_dir, "a")
+
+
+def _socket(name: str, value=None, linked_from: tuple[FakeNode, str] | None = None) -> FakeSocket:
+    socket = FakeSocket(name)
+    socket.default_value = value
+    if linked_from is not None:
+        socket.link_from(*linked_from)
+    return socket
+
+
+def _color_node(bl_idname: str, source: FakeNode, input_name: str = "Color", **settings) -> FakeNode:
+    inputs = {input_name: _socket(input_name, linked_from=(source, "Color"))}
+    for name, value in settings.items():
+        inputs[name.replace("_", " ").title() if name != "fac" else "Fac"] = _socket(name, value)
+    node = FakeNode(bl_idname, inputs=inputs)
+    node.name = bl_idname
+    return node
+
+
+class _FakeCurveMapping:
+    """RGB Curves' mapping: curves R, G, B, C as functions."""
+
+    def __init__(self, red, green, blue, combined) -> None:
+        self.curves = [red, green, blue, combined]
+
+    def evaluate(self, curve, position: float) -> float:
+        return curve(position)
+
+
+try:
+    import numpy as _np
+except ImportError:  # the CI image has no numpy; Blender's Python does
+    _np = None
+
+
+class MaterialColorNodeTests(unittest.TestCase):
+    """Colour nodes between an image and a socket become image adjustments."""
+
+    def test_settings_become_adjustments_and_no_op_settings_none(self) -> None:
+        tex = _make_image_node()
+        self.assertEqual(
+            u.image_adjustment_for_node(_color_node("ShaderNodeGamma", tex, Gamma=1.3)),
+            u.ImageAdjustment("gamma", (1.3,)),
+        )
+        self.assertIsNone(u.image_adjustment_for_node(_color_node("ShaderNodeGamma", tex, Gamma=1.0)))
+        self.assertEqual(
+            u.image_adjustment_for_node(_color_node("ShaderNodeBrightContrast", tex, Bright=0.1, Contrast=0.3)),
+            u.ImageAdjustment("bright_contrast", (0.1, 0.3)),
+        )
+        hsv = FakeNode("ShaderNodeHueSaturation", inputs={
+            "Color": _socket("Color", linked_from=(tex, "Color")),
+            "Hue": _socket("Hue", 1.0), "Saturation": _socket("Saturation", 1.7),
+            "Value": _socket("Value", 0.4), "Fac": _socket("Fac", 0.815),
+        })
+        self.assertEqual(u.image_adjustment_for_node(hsv), u.ImageAdjustment("hue_saturation", (1.0, 1.7, 0.4), fac=0.815))
+        hsv.inputs["Hue"].default_value = 0.5
+        hsv.inputs["Saturation"].default_value = 1.0
+        hsv.inputs["Value"].default_value = 1.0
+        self.assertIsNone(u.image_adjustment_for_node(hsv))
+
+    def test_a_linked_setting_cannot_be_written_into_the_image(self) -> None:
+        tex = _make_image_node()
+        gamma = _color_node("ShaderNodeGamma", tex, Gamma=1.3)
+        gamma.inputs["Gamma"].link_from(FakeNode("ShaderNodeValue"), "Value")
+        self.assertIs(u.image_adjustment_for_node(gamma), u.NOT_REPRESENTABLE)
+
+        socket = _socket("Base Color", linked_from=(gamma, "Color"))
+        with tempfile.TemporaryDirectory() as tmpdir:
+            texture = u.resolve_texture_from_socket(socket, Path(tmpdir) / "asset.blend")
+        self.assertEqual(texture.adjustments, (), "the texture still goes through, without the node")
+
+    def test_adjustments_stack_in_node_order(self) -> None:
+        tex = _make_image_node("paint")
+        gamma = _color_node("ShaderNodeGamma", tex, Gamma=2.0)
+        invert = FakeNode("ShaderNodeInvert", inputs={"Color": _socket("Color", linked_from=(gamma, "Color")), "Fac": _socket("Fac", 1.0)})
+        socket = _socket("Base Color", linked_from=(invert, "Color"))
+        with tempfile.TemporaryDirectory() as tmpdir:
+            texture = u.resolve_texture_from_socket(socket, Path(tmpdir) / "asset.blend")
+        self.assertEqual(texture.adjustments, (u.ImageAdjustment("gamma", (2.0,)), u.ImageAdjustment("invert")))
+
+    def test_rgb_curves_apply_the_combined_curve_before_each_channel(self) -> None:
+        tex = _make_image_node()
+        curves = _color_node("ShaderNodeRGBCurve", tex, fac=1.0)
+        curves.mapping = _FakeCurveMapping(lambda x: x * 0.5, lambda x: x, lambda x: x, lambda x: x * x)
+        adjustment = u.image_adjustment_for_node(curves)
+        size = u.CURVE_LUT_SIZE
+        red_table = adjustment.params[:size]
+        self.assertAlmostEqual(red_table[-1], 0.5)
+        self.assertAlmostEqual(red_table[size // 2], ((size // 2) / (size - 1)) ** 2 * 0.5)
+        curves.mapping = _FakeCurveMapping(*([lambda x: x] * 4))
+        self.assertIsNone(u.image_adjustment_for_node(curves), "identity curves change nothing")
+
+    def test_color_ramp_traces_its_texture_through_the_color_output_only(self) -> None:
+        tex = _make_image_node("roughness")
+        ramp = FakeNode("ShaderNodeValToRGB", inputs={"Fac": _socket("Fac", linked_from=(tex, "Color"))})
+        ramp.color_ramp = FakeData(evaluate=lambda x: (x * 0.131 / 0.6 if x < 0.6 else 0.131,) * 3 + (1.0,))
+        with tempfile.TemporaryDirectory() as tmpdir:
+            asset = Path(tmpdir) / "asset.blend"
+            through_color = u.resolve_texture_from_socket(_socket("Roughness", linked_from=(ramp, "Color")), asset)
+            through_alpha = u.resolve_texture_from_socket(_socket("Roughness", linked_from=(ramp, "Alpha")), asset)
+        self.assertEqual(through_color.adjustments[0].kind, "ramp")
+        self.assertIsNone(through_alpha)
+
+    def test_adjusted_images_stage_apart_and_a_lone_invert_keeps_its_name(self) -> None:
+        plain = u.ExportedTexture(name="gloss.png", uri="gloss.png", width=4, height=4, mip_count=1, source_image_name="gloss")
+        gamma = u.replace(plain, adjustments=(u.ImageAdjustment("gamma", (1.3,)),))
+        keys = {u.texture_staging_key(texture) for texture in (plain, gamma, u.replace(plain, adjustments=(u.ImageAdjustment("invert"),)))}
+        self.assertEqual(len(keys), 3)
+        self.assertEqual(u.adjustments_suffix((u.ImageAdjustment("invert"),)), "_inverted")
+        self.assertTrue(u.adjustments_suffix(gamma.adjustments).startswith("_adj"))
+
+    def test_color_nodes_on_a_texture_count_as_supported(self) -> None:
+        tex = _make_image_node()
+        hsv = FakeNode("ShaderNodeHueSaturation", inputs={
+            "Color": _socket("Color", linked_from=(tex, "Color")),
+            "Hue": _socket("Hue", 1.0), "Saturation": _socket("Saturation", 1.0),
+            "Value": _socket("Value", 1.0), "Fac": _socket("Fac", 1.0),
+        })
+        hsv.name = "Hue/Saturation/Value"
+        principled, output = _make_principled_output(hsv)
+        analysis = u.analyze_material(_make_material("cartel", [output, principled, hsv, tex]))
+        self.assertEqual(analysis.classification, u.MATERIAL_GRAPH_SUPPORTED)
+
+    @unittest.skipIf(_np is None, "needs numpy (run under Blender's Python)")
+    def test_pixel_math_matches_the_cycles_formulas(self) -> None:
+        rgb = _np.array([[0.2, 0.5, 0.8], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]])
+        gamma = u.apply_image_adjustments(rgb, (u.ImageAdjustment("gamma", (2.0,)),))
+        self.assertTrue(_np.allclose(gamma, rgb ** 2))
+        half_invert = u.apply_image_adjustments(rgb, (u.ImageAdjustment("invert", fac=0.5),))
+        self.assertTrue(_np.allclose(half_invert, 0.5))
+        rotated = u.apply_image_adjustments(rgb[1:2], (u.ImageAdjustment("hue_saturation", (1.0, 1.0, 1.0)),))
+        self.assertTrue(_np.allclose(rotated, [[0.0, 1.0, 1.0]]), "hue 1.0 turns red into cyan")
+        contrast = u.apply_image_adjustments(rgb, (u.ImageAdjustment("bright_contrast", (0.0, 1.0)),))
+        self.assertTrue(_np.allclose(contrast, _np.maximum(2.0 * rgb - 0.5, 0.0)))
+        self.assertTrue(_np.allclose(u.linear_to_srgb(u.srgb_to_linear(rgb)), rgb, atol=1.0e-6))
+
+
+class MeshMaterialSlotTests(unittest.TestCase):
+    def test_the_material_of_the_slot_the_faces_use(self) -> None:
+        metal, sign = FakeData(name="METAL"), FakeData(name="INFO CARTEL")
+        data = FakeData(materials=[metal, sign], polygons=[FakeData(material_index=1)])
+        obj = FakeSceneObject("Cube.004", "MESH", data)
+        self.assertIs(u.mesh_object_material(obj), sign)
+
+    def test_an_object_linked_slot_wins_over_the_mesh_material(self) -> None:
+        mesh_material, object_material = FakeData(name="mesh"), FakeData(name="object")
+        data = FakeData(materials=[mesh_material], polygons=[FakeData(material_index=0)])
+        obj = FakeSceneObject("Cube", "MESH", data)
+        obj.material_slots = [FakeData(material=object_material)]
+        self.assertIs(u.mesh_object_material(obj), object_material)
+
+    def test_without_faces_the_first_material(self) -> None:
+        first = FakeData(name="first")
+        obj = FakeSceneObject("Empty mesh", "MESH", FakeData(materials=[first, FakeData(name="second")]))
+        self.assertIs(u.mesh_object_material(obj), first)
+
+
+class MaterialAlphaTests(unittest.TestCase):
+    """Alpha and glass become the engine's blended alpha mode."""
+
+    def _glass_mix(self) -> FakeNode:
+        """The scene's GLASS: back faces transparent, front faces 92.5 % transparent and
+        7.5 % a fully transmissive Principled BSDF."""
+        principled = FakeNode("ShaderNodeBsdfPrincipled", inputs={"Transmission Weight": _socket("Transmission Weight", 1.0)})
+        transparent = FakeNode("ShaderNodeBsdfTransparent")
+        front = FakeNode("ShaderNodeMixShader")
+        front.inputs = [_socket("Fac", 0.075), _socket("Shader", linked_from=(transparent, "BSDF")), _socket("Shader", linked_from=(principled, "BSDF"))]
+        backfacing = FakeNode("ShaderNodeNewGeometry")
+        outer = FakeNode("ShaderNodeMixShader")
+        outer.inputs = [_socket("Fac", 0.5, linked_from=(backfacing, "Backfacing")), _socket("Shader", linked_from=(front, "Shader")), _socket("Shader", linked_from=(FakeNode("ShaderNodeBsdfTransparent"), "BSDF"))]
+        return outer
+
+    def _material_with_surface(self, surface: FakeNode) -> FakeData:
+        output = FakeNode("ShaderNodeOutputMaterial", inputs={"Surface": _socket("Surface", linked_from=(surface, "Shader"))})
+        return _make_material("m", [output, surface])
+
+    def test_shader_opacity_of_glass_transmission_and_transparent_mixes(self) -> None:
+        self.assertAlmostEqual(u.surface_opacity(self._material_with_surface(self._glass_mix())), 0.075 * u.TRANSMISSION_OPACITY)
+        tempered = FakeNode("ShaderNodeBsdfPrincipled", inputs={"Transmission Weight": _socket("Transmission Weight", 1.0)})
+        self.assertAlmostEqual(u.surface_opacity(self._material_with_surface(tempered)), u.TRANSMISSION_OPACITY)
+        plain = FakeNode("ShaderNodeBsdfPrincipled", inputs={"Transmission Weight": _socket("Transmission Weight", 0.0)})
+        self.assertEqual(u.surface_opacity(self._material_with_surface(plain)), 1.0)
+
+    def test_a_mix_driven_by_anything_but_backfacing_is_left_opaque(self) -> None:
+        mix = FakeNode("ShaderNodeMixShader")
+        mix.inputs = [_socket("Fac", 0.5, linked_from=(FakeNode("ShaderNodeLayerWeight"), "Facing")), _socket("Shader", linked_from=(FakeNode("ShaderNodeBsdfTransparent"), "BSDF")), _socket("Shader", linked_from=(FakeNode("ShaderNodeBsdfPrincipled"), "BSDF"))]
+        self.assertEqual(u.surface_opacity(self._material_with_surface(mix)), 1.0)
+
+    def _principled_material(self, alpha_socket: FakeSocket, base_color_source: FakeNode | None = None) -> tuple[FakeData, FakeNode]:
+        principled, output = _make_principled_output(base_color_source)
+        principled.inputs["Alpha"] = alpha_socket
+        return _make_material("mat", [output, principled]), principled
+
+    def test_constant_alpha_blends_and_full_alpha_stays_opaque(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            asset = Path(tmpdir) / "asset.blend"
+            material, _ = self._principled_material(_socket("Alpha", 0.516))
+            self.assertEqual(u._material_alpha(material, material.node_tree.nodes[1].inputs["Alpha"], 0.516, None, asset), (0.516, u.MATERIAL_ALPHA_MODE_BLEND, None))
+            material, _ = self._principled_material(_socket("Alpha", 1.0))
+            self.assertEqual(u._material_alpha(material, material.node_tree.nodes[1].inputs["Alpha"], 1.0, None, asset)[1], u.MATERIAL_ALPHA_MODE_OPAQUE)
+
+    def test_alpha_from_the_base_colour_image_needs_no_extra_texture(self) -> None:
+        image = _make_image_node("leaves")
+        with tempfile.TemporaryDirectory() as tmpdir:
+            asset = Path(tmpdir) / "asset.blend"
+            base = u.resolve_texture_from_socket(_socket("Base Color", linked_from=(image, "Color")), asset)
+            alpha_socket = _socket("Alpha", 1.0, linked_from=(image, "Alpha"))
+            material, _ = self._principled_material(alpha_socket, image)
+            factor, mode, alpha_texture = u._material_alpha(material, alpha_socket, 1.0, base, asset)
+        self.assertEqual((factor, mode, alpha_texture), (1.0, u.MATERIAL_ALPHA_MODE_BLEND, None))
+
+    def test_alpha_from_another_texture_is_kept_for_staging(self) -> None:
+        mask = _make_image_node("mask")
+        gamma = _color_node("ShaderNodeGamma", mask, Gamma=1.3)
+        alpha_socket = _socket("Alpha", 1.0, linked_from=(gamma, "Color"))
+        material, _ = self._principled_material(alpha_socket)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            factor, mode, alpha_texture = u._material_alpha(material, alpha_socket, 1.0, None, Path(tmpdir) / "asset.blend")
+        self.assertEqual((factor, mode), (1.0, u.MATERIAL_ALPHA_MODE_BLEND))
+        self.assertEqual(alpha_texture.adjustments, (u.ImageAdjustment("gamma", (1.3,)),))
+
+    def test_the_alpha_mode_is_written_in_the_material_flags(self) -> None:
+        writer = u.BinaryWriter()
+        u.write_material_record(writer, u.MaterialRecord(
+            name_offset=0, flags=u.MATERIAL_ALPHA_MODE_BLEND, base_color_factor=(1.0, 1.0, 1.0, 0.5),
+            emissive_factor=(0.0, 0.0, 0.0), normal_scale=1.0, metallic_factor=0.0, roughness_factor=0.5,
+            occlusion_strength=1.0, alpha_cutoff=0.5, base_color_texture_index=u.INVALID_INDEX,
+        ))
+        self.assertEqual(struct.unpack_from("<I", writer.data, 4)[0], u.MATERIAL_ALPHA_MODE_BLEND)
 
 
 class TextureBitDepthDetectionTests(unittest.TestCase):
@@ -1873,7 +2102,7 @@ def _make_node_with_normal_map(
         alpha_cutoff=0.5,
         base_color_texture=None,
         normal_texture=None if as_inverted_roughness else texture,
-        roughness_texture=u.replace(texture, invert=True) if as_inverted_roughness else None,
+        roughness_texture=u.replace(texture, adjustments=(u.ImageAdjustment("invert"),)) if as_inverted_roughness else None,
     )
     mesh = u.ExportedMesh(
         entity_name=f"{object_name}_mat0",
