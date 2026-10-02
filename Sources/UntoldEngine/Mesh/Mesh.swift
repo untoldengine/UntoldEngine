@@ -877,6 +877,13 @@ public struct Material {
                 )
             }
 
+            // Many models share an image (a pack's shared Textures/ folder): decode it once
+            // while any material still holds it.
+            let cacheKey = LoadedTextureCache.key(url: url, isSRGB: isSRGB)
+            if let cached = LoadedTextureCache.shared.texture(for: cacheKey) {
+                return cached
+            }
+
             let options: [MTKTextureLoader.Option: Any] = [
                 .textureUsage: NSNumber(value: MTLTextureUsage([.shaderRead, .pixelFormatView]).rawValue),
                 .textureStorageMode: NSNumber(value: MTLStorageMode.private.rawValue),
@@ -909,6 +916,7 @@ public struct Material {
                             message: "[UntoldTexture] Expanded grayscale \(label.lowercased()) to RGBA '\(runtimeMaterial.name ?? "<unnamed material>")' \(texture.width)x\(texture.height)",
                             category: LogCategory.textureLoading.rawValue
                         )
+                        LoadedTextureCache.shared.store(texture, for: cacheKey)
                         return texture
                     }
                 }
@@ -920,6 +928,7 @@ public struct Material {
                     message: "[UntoldTexture] Loaded \(label.lowercased()) texture '\(runtimeMaterial.name ?? "<unnamed material>")' \(texture.width)x\(texture.height)",
                     category: LogCategory.textureLoading.rawValue
                 )
+                LoadedTextureCache.shared.store(texture, for: cacheKey)
                 return texture
             } catch {
                 handleError(.textureFailedLoading, "\(label) \(error.localizedDescription)", runtimeMaterial.name ?? "<unnamed material>")
@@ -1765,4 +1774,31 @@ private func cachedSamplerState(device: MTLDevice, wrapMode: WrapMode) -> MTLSam
     }
 
     return sampler
+}
+
+/// Image textures (PNG, JPEG, ...) loaded for runtime materials, by file and colour
+/// space, held only while some material still uses them (weak values). Models that
+/// share an image, such as the models of a `.untoldpack` with its shared Textures/
+/// folder, decode and upload it once instead of once per model. `.utex` textures
+/// have their own cache (NativeTextureLoader.sharedCache).
+///
+/// Sharing is safe because loaded textures are never written after loading: material
+/// edits and texture streaming replace a material's texture rather than change it.
+final class LoadedTextureCache: @unchecked Sendable {
+    static let shared = LoadedTextureCache()
+
+    private let lock = NSLock()
+    private let textures = NSMapTable<NSString, AnyObject>(keyOptions: .strongMemory, valueOptions: .weakMemory)
+
+    static func key(url: URL, isSRGB: Bool) -> String {
+        "\(url.standardizedFileURL.path)|srgb=\(isSRGB)"
+    }
+
+    func texture(for key: String) -> MTLTexture? {
+        lock.withLock { textures.object(forKey: key as NSString) as? MTLTexture }
+    }
+
+    func store(_ texture: MTLTexture, for key: String) {
+        lock.withLock { textures.setObject(texture as AnyObject, forKey: key as NSString) }
+    }
 }

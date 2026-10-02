@@ -98,4 +98,70 @@ final class UntoldPackRenderTests: BaseRenderSetup {
         XCTAssertEqual(getPosition(entityId: armId).x, 2.5, accuracy: 0.0001)
         XCTAssertTrue(hasComponent(entityId: armId, componentType: RenderComponent.self))
     }
+
+    /// Loads a pack and returns its children by display name.
+    private func loadPack(_ packURL: URL) async throws -> [String: EntityID] {
+        let rootId = createEntity()
+        let expectation = expectation(description: "pack load completes")
+        setEntityMeshAsync(entityId: rootId, filename: packURL.deletingPathExtension().path, withExtension: "untoldpack") { success in
+            XCTAssertTrue(success)
+            expectation.fulfill()
+        }
+        await fulfillment(of: [expectation], timeout: 10.0)
+        let scenegraph = try XCTUnwrap(scene.get(component: ScenegraphComponent.self, for: rootId))
+        return Dictionary(uniqueKeysWithValues: scenegraph.children.map { (getEntityName(entityId: $0) ?? "", $0) })
+    }
+
+    private func meshIdentity(_ entityId: EntityID) throws -> ObjectIdentifier {
+        let render = try XCTUnwrap(scene.get(component: RenderComponent.self, for: entityId))
+        let mesh = try XCTUnwrap(render.mesh.first)
+        return ObjectIdentifier(mesh.metalKitMesh)
+    }
+
+    func testPlacementsOfOneFileShareItsGPUMeshes() async throws {
+        // Two placements of one file (the exporter writes a repeated model once) and one
+        // of another file with the same content.
+        let packURL = try writePack(models: [
+            (displayName: "Tree A", path: "Tree/Tree.untold", translationX: 0.0),
+            (displayName: "Tree B", path: "Tree/Tree.untold", translationX: 5.0),
+            (displayName: "Rock", path: "Rock/Rock.untold", translationX: 10.0),
+        ])
+
+        let children = try await loadPack(packURL)
+
+        let treeA = try XCTUnwrap(children["Tree A"])
+        let treeB = try XCTUnwrap(children["Tree B"])
+        let rock = try XCTUnwrap(children["Rock"])
+        XCTAssertEqual(try meshIdentity(treeA), try meshIdentity(treeB), "both placements draw the same GPU buffers")
+        XCTAssertNotEqual(try meshIdentity(treeA), try meshIdentity(rock), "another file is built on its own")
+        XCTAssertEqual(getPosition(entityId: treeB).x, 5.0, accuracy: 0.0001, "each placement keeps its own transform")
+    }
+
+    func testAMaterialEditOnOnePlacementLeavesTheOtherAlone() async throws {
+        let packURL = try writePack(models: [
+            (displayName: "Tree A", path: "Tree/Tree.untold", translationX: 0.0),
+            (displayName: "Tree B", path: "Tree/Tree.untold", translationX: 5.0),
+        ])
+        let children = try await loadPack(packURL)
+        let treeA = try XCTUnwrap(children["Tree A"])
+        let treeB = try XCTUnwrap(children["Tree B"])
+        let before = scene.get(component: RenderComponent.self, for: treeB)?.mesh.first?.submeshes.first?.material?.roughnessValue
+
+        updateMaterialRoughness(entityId: treeA, roughness: 0.123)
+
+        XCTAssertEqual(scene.get(component: RenderComponent.self, for: treeA)?.mesh.first?.submeshes.first?.material?.roughnessValue, 0.123)
+        XCTAssertEqual(scene.get(component: RenderComponent.self, for: treeB)?.mesh.first?.submeshes.first?.material?.roughnessValue, before)
+    }
+
+    func testLoadedImageTexturesAreSharedWhileInUseAndReleasedAfter() throws {
+        let device = try XCTUnwrap(renderInfo.device)
+        let key = LoadedTextureCache.key(url: tempRoot.appendingPathComponent("shared.png"), isSRGB: true)
+        autoreleasepool {
+            let descriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .rgba8Unorm, width: 4, height: 4, mipmapped: false)
+            let texture = device.makeTexture(descriptor: descriptor)!
+            LoadedTextureCache.shared.store(texture, for: key)
+            XCTAssertTrue(LoadedTextureCache.shared.texture(for: key) === texture)
+        }
+        XCTAssertNil(LoadedTextureCache.shared.texture(for: key), "the cache does not keep a texture no material holds")
+    }
 }
