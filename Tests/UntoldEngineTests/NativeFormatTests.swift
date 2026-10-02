@@ -272,6 +272,248 @@ final class NativeFormatTests: XCTestCase {
         }
     }
 
+    func testMorphTargetChunksRoundtripThroughRuntimeLoader() throws {
+        // One morph target on mesh 0 with two sparse entries, plus a driver
+        // record. Assembled through the generic extra-chunk path.
+        let entryWriter = UntoldBinaryWriter()
+        let entries = [
+            UntoldMorphSparseEntryV1(
+                vertexIndex: 0,
+                dPosition: SIMD3<UInt16>(
+                    Float16(0.25).bitPattern, Float16(-0.5).bitPattern, Float16(1.0).bitPattern
+                )
+            ),
+            UntoldMorphSparseEntryV1(
+                vertexIndex: 2,
+                dPosition: SIMD3<UInt16>(
+                    Float16(0.125).bitPattern, Float16(0).bitPattern, Float16(-0.25).bitPattern
+                )
+            ),
+        ]
+        for entry in entries {
+            entry.encode(to: entryWriter)
+        }
+
+        let targetWriter = UntoldBinaryWriter()
+        let target = UntoldMorphTargetRecordV1(
+            meshRecordIndex: 0,
+            nameOffset: UntoldFormat.invalidIndex,
+            firstEntryIndex: 0,
+            entryCount: 2,
+            positionScale: 1.0
+        )
+        target.encode(to: targetWriter)
+
+        let driverWriter = UntoldBinaryWriter()
+        let driver = UntoldMorphDriverRecordV1(
+            targetIndex: 0,
+            jointPathOffset: UntoldFormat.invalidIndex,
+            poseRotation: SIMD4<Float>(0, 0, 0, 1),
+            radius: 0.8
+        )
+        driver.encode(to: driverWriter)
+
+        let fixture = makeTinyFixture(pluginChunks: [
+            (.morphTargetTable, targetWriter.data, 1),
+            (.morphTargetData, entryWriter.data, 2),
+            (.morphDriverTable, driverWriter.data, 1),
+        ])
+
+        let decoded = try UntoldReader().readAsset(from: fixture.fileData)
+        XCTAssertEqual(decoded.morphTargets, [target])
+        XCTAssertEqual(decoded.morphDrivers, [driver])
+
+        let loaded = try NativeFormatLoader().loadAssetSync(from: writeFixtureToTemporaryFile(fixture.fileData))
+        let primitive = try XCTUnwrap(loaded.nodes.first?.primitives.first)
+        XCTAssertEqual(primitive.morphTargets.count, 1)
+        let runtimeTarget = try XCTUnwrap(primitive.morphTargets.first)
+        XCTAssertEqual(runtimeTarget.entryCount, 2)
+        XCTAssertEqual(runtimeTarget.entryData, entryWriter.data)
+        XCTAssertNil(runtimeTarget.driver, "Driver without a joint path must be dropped")
+    }
+
+    func testMuscleTableRoundtripsIntoRuntimeSkeleton() throws {
+        // A one-joint skeleton on entity 0 plus one muscle record referencing
+        // it, assembled through the generic extra-chunk path. The tiny
+        // fixture's strings double as joint names.
+        let skeletonWriter = UntoldBinaryWriter()
+        UntoldSkeletonRecordV1(entityId: 0, nameOffset: 0, firstJointRecordIndex: 0, jointRecordCount: 2)
+            .encode(to: skeletonWriter)
+        let jointWriter = UntoldBinaryWriter()
+        let names = makeStringTable(["root_entity", "mesh_0", "mat_0", "albedo.ktx2"]).offsets
+        let joint0 = UntoldSkeletonJointRecordV1(
+            parentJointIndex: UntoldFormat.invalidIndex,
+            jointPathOffset: names["mesh_0"] ?? 0,
+            bindTransform: matrix_identity_float4x4,
+            restTransform: matrix_identity_float4x4
+        )
+        let joint1 = UntoldSkeletonJointRecordV1(
+            parentJointIndex: 0,
+            jointPathOffset: names["mat_0"] ?? 0,
+            bindTransform: matrix_identity_float4x4,
+            restTransform: matrix_identity_float4x4
+        )
+        joint0.encode(to: jointWriter)
+        joint1.encode(to: jointWriter)
+
+        let muscleWriter = UntoldBinaryWriter()
+        let muscle = UntoldMuscleRecordV1(
+            skeletonEntityId: 0,
+            nameOffset: names["root_entity"] ?? 0,
+            flags: UntoldMuscleRecordV1.flagHasDriver,
+            originJointOffset: names["mesh_0"] ?? 0,
+            originFraction: 0.15,
+            originOffset: SIMD3<Float>(0, 0, 0.02),
+            insertionJointOffset: names["mat_0"] ?? 0,
+            insertionFraction: 0.2,
+            insertionOffset: SIMD3<Float>(0, 0, 0.01),
+            bellyRadius: 0.04,
+            tendonRadius: 0.012,
+            maxContraction: 0.25,
+            fiberCompliance: 2e-6,
+            crossCompliance: 4e-6,
+            volumeCompliance: 0,
+            damping: 6,
+            boneRadius: 0.03,
+            skinInfluence: 0.03,
+            rings: 7,
+            segments: 8,
+            driverJointOffset: names["mat_0"] ?? 0,
+            driverStartAngle: 0.2,
+            driverFullAngle: 1.9
+        )
+        muscle.encode(to: muscleWriter)
+        XCTAssertEqual(muscleWriter.data.count, UntoldMuscleRecordV1.byteSize)
+
+        let fixture = makeTinyFixture(pluginChunks: [
+            (.skeletonTable, skeletonWriter.data, 1),
+            (.skeletonJointTable, jointWriter.data, 2),
+            (.muscleTable, muscleWriter.data, 1),
+        ])
+
+        let decoded = try UntoldReader().readAsset(from: fixture.fileData)
+        XCTAssertEqual(decoded.muscles, [muscle])
+
+        let loaded = try NativeFormatLoader().loadAssetSync(from: writeFixtureToTemporaryFile(fixture.fileData))
+        let rig = try XCTUnwrap(loaded.nodes.first?.skeleton?.muscleRig)
+        XCTAssertNil(rig.forwardReference)
+        XCTAssertEqual(rig.muscles.count, 1)
+        let definition = rig.muscles[0]
+        XCTAssertEqual(definition.name, "root_entity")
+        XCTAssertEqual(definition.origin.jointName, "mesh_0")
+        XCTAssertEqual(definition.insertion.jointName, "mat_0")
+        XCTAssertEqual(definition.origin.fraction, 0.15)
+        XCTAssertEqual(definition.insertion.offset, SIMD3<Float>(0, 0, 0.01))
+        XCTAssertEqual(definition.rings, 7)
+        XCTAssertEqual(definition.driver?.jointName, "mat_0")
+        XCTAssertEqual(definition.driver?.fullAngle, 1.9)
+    }
+
+    func testMLDeformerRecordAndSidecarResolveThePayloadURL() throws {
+        let names = makeStringTable(["root_entity", "mesh_0", "mat_0", "albedo.ktx2"]).offsets
+        let skeletonWriter = UntoldBinaryWriter()
+        UntoldSkeletonRecordV1(entityId: 0, nameOffset: 0, firstJointRecordIndex: 0, jointRecordCount: 1)
+            .encode(to: skeletonWriter)
+        let jointWriter = UntoldBinaryWriter()
+        UntoldSkeletonJointRecordV1(
+            parentJointIndex: UntoldFormat.invalidIndex,
+            jointPathOffset: names["mesh_0"] ?? 0,
+            bindTransform: matrix_identity_float4x4,
+            restTransform: matrix_identity_float4x4
+        ).encode(to: jointWriter)
+        let recordWriter = UntoldBinaryWriter()
+        let record = UntoldMLDeformerRecordV1(skeletonEntityId: 0, payloadPathOffset: names["albedo.ktx2"] ?? 0)
+        record.encode(to: recordWriter)
+        XCTAssertEqual(recordWriter.data.count, 16)
+
+        let fixture = makeTinyFixture(pluginChunks: [
+            (.skeletonTable, skeletonWriter.data, 1),
+            (.skeletonJointTable, jointWriter.data, 1),
+            (.mlDeformerTable, recordWriter.data, 1),
+        ])
+        let decoded = try UntoldReader().readAsset(from: fixture.fileData)
+        XCTAssertEqual(decoded.mlDeformers, [record])
+
+        // Record path, relative to the asset's directory.
+        let assetURL = try writeFixtureToTemporaryFile(fixture.fileData)
+        let loaded = try NativeFormatLoader().loadAssetSync(from: assetURL)
+        XCTAssertEqual(
+            loaded.nodes.first?.skeleton?.mlDeformerURL?.lastPathComponent, "albedo.ktx2"
+        )
+
+        // A `<asset>.untoldml` sidecar wins over the record.
+        let sidecar = assetURL.deletingPathExtension().appendingPathExtension("untoldml")
+        try Data([0]).write(to: sidecar)
+        defer { try? FileManager.default.removeItem(at: sidecar) }
+        let reloaded = try NativeFormatLoader().loadAssetSync(from: assetURL)
+        XCTAssertEqual(reloaded.nodes.first?.skeleton?.mlDeformerURL, sidecar)
+    }
+
+    func testRejectsMLDeformerWithUnknownSkeleton() throws {
+        let recordWriter = UntoldBinaryWriter()
+        UntoldMLDeformerRecordV1(skeletonEntityId: 5, payloadPathOffset: 0).encode(to: recordWriter)
+        let fixture = makeTinyFixture(pluginChunks: [(.mlDeformerTable, recordWriter.data, 1)])
+        XCTAssertThrowsError(try UntoldReader().readAsset(from: fixture.fileData)) { error in
+            guard case .invalidMLDeformerRecord(index: 0, reason: _)? = error as? UntoldValidationError else {
+                return XCTFail("unexpected error \(error)")
+            }
+        }
+    }
+
+    func testRejectsMuscleWithUnknownSkeleton() throws {
+        let muscleWriter = UntoldBinaryWriter()
+        UntoldMuscleRecordV1(
+            skeletonEntityId: 9,
+            nameOffset: UntoldFormat.invalidIndex,
+            originJointOffset: 0,
+            originFraction: 0,
+            originOffset: .zero,
+            insertionJointOffset: 0,
+            insertionFraction: 1,
+            insertionOffset: .zero,
+            bellyRadius: 0.04,
+            tendonRadius: 0.01,
+            maxContraction: 0.2,
+            fiberCompliance: 0,
+            crossCompliance: 0,
+            volumeCompliance: 0,
+            damping: 1,
+            boneRadius: 0,
+            skinInfluence: 0.01,
+            rings: 4,
+            segments: 6
+        ).encode(to: muscleWriter)
+        let fixture = makeTinyFixture(pluginChunks: [(.muscleTable, muscleWriter.data, 1)])
+        XCTAssertThrowsError(try UntoldReader().readAsset(from: fixture.fileData)) { error in
+            guard case .invalidMuscleRecord(index: 0, reason: _)? = error as? UntoldValidationError else {
+                return XCTFail("unexpected error \(error)")
+            }
+        }
+    }
+
+    func testRejectsMorphTargetWithInvalidMeshIndex() throws {
+        let targetWriter = UntoldBinaryWriter()
+        UntoldMorphTargetRecordV1(
+            meshRecordIndex: 7,
+            nameOffset: UntoldFormat.invalidIndex,
+            firstEntryIndex: 0,
+            entryCount: 0,
+            positionScale: 1.0
+        ).encode(to: targetWriter)
+
+        let fixture = makeTinyFixture(pluginChunks: [
+            (.morphTargetTable, targetWriter.data, 1),
+            (.morphTargetData, Data(), 0),
+        ])
+
+        XCTAssertThrowsError(try UntoldReader().readAsset(from: fixture.fileData)) { error in
+            XCTAssertEqual(
+                error as? UntoldValidationError,
+                .invalidMorphTargetMesh(targetIndex: 0, meshRecordIndex: 7)
+            )
+        }
+    }
+
     func testUnknownCoreChunkTypeIsIgnored() throws {
         // A core-range chunk type this runtime does not know (e.g. one added by a
         // newer format revision) must not prevent the rest of the asset from loading.

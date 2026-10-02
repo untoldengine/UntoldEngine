@@ -50,6 +50,7 @@ public struct Mesh {
     /// callers that only need to read it.
     public var boundingBox: (min: simd_float3, max: simd_float3)
     var skin: Skin?
+    var morphTargets: MorphTargetSet?
     var featureEdgeIndexBuffer: MTLBuffer?
     var featureEdgeIndexCount: Int = 0
     var featureEdgeIndexType: MTLIndexType = .uint32
@@ -322,6 +323,8 @@ public struct Mesh {
                 submesh.material = Material(runtimeMaterial: runtimeMaterial, device: device)
                 mesh.submeshes[0] = submesh
             }
+
+            mesh.morphTargets = MorphTargetSet(primitive: primitive, device: device)
 
             return mesh
         } catch {
@@ -737,6 +740,9 @@ public struct Material {
     public var normalIsPackedXY: Bool = false
 
     // Texture URLs
+    /// Name of the base colour texture as the asset records it (native
+    /// assets keep no file URL for their textures).
+    public var baseColorTextureName: String?
     public var baseColorURL: URL?
     public var roughnessURL: URL?
     public var metallicURL: URL?
@@ -949,6 +955,8 @@ public struct Material {
         height = createTextureDescriptor(device: device, texture: heightTexture, wrapMode: .repeat)
         normalIsPackedXY = normalTexturePackedXY(reference: runtimeMaterial.normalTexture)
 
+        baseColorTextureName = runtimeMaterial.baseColorTexture?.name
+            ?? runtimeMaterial.baseColorTexture?.sourceURL?.lastPathComponent
         baseColorURL = runtimeMaterial.baseColorTexture?.sourceURL
         normalURL = runtimeMaterial.normalTexture?.sourceURL
         roughnessURL = runtimeMaterial.roughnessTexture?.sourceURL

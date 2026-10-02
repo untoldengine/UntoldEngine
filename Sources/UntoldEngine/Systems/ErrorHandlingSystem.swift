@@ -97,6 +97,7 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
     case manifestNotFound = 1085
     case manifestDecodeFailed = 1086
     case assetIsAnimationOnly = 1087
+    case physicsPoseJointCountMismatch = 1088
 
     public var description: String {
         switch self {
@@ -272,6 +273,8 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
             return "Failed to decode scene manifest — check JSON format"
         case .assetIsAnimationOnly:
             return "This is a .untoldanim animation clip, not a mesh — use setEntityAnimations instead of setEntityMeshAsync"
+        case .physicsPoseJointCountMismatch:
+            return "Physics pose joint count does not match the skeleton"
         }
     }
 }

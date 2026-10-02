@@ -63,6 +63,20 @@ public struct FootIKChainDescriptor {
     }
 }
 
+/// What tells the stance lock that a foot is planted.
+public enum FootIKStanceLockSource: Sendable {
+    /// The displayed ankle's world speed: catches the slide a clip's own
+    /// root motion leaves, and lets go as soon as the foot moves — for
+    /// whatever reason, a transition included.
+    case displayedFoot
+    /// The playing clip's own ankle motion, in the clip's model space: a
+    /// foot the clip holds still is planted whatever the transition, the
+    /// root-velocity crossfade or the heading warp does to the entity, and
+    /// it is released only when the clip lifts it, so the catch-up hides
+    /// in the swing. The frame after a clip switch holds the lock as it is.
+    case clipContact
+}
+
 /// Per-chain stance lock: while the animated ankle is (near) stationary in
 /// world space, the IK target is pinned to the world position where it
 /// planted, absorbing residual root-motion slide. Unlocking hands the
@@ -87,6 +101,22 @@ struct FootIKState {
     /// where they landed. See `FootLockState`.
     var stanceLockEnabled = false
     var lockStates: [FootLockState] = []
+    var lockSource: FootIKStanceLockSource = .displayedFoot
+
+    /// Clip-contact thresholds on the authored ankle speed (model space,
+    /// root travel included): slower plants, faster lifts.
+    var contactEnterSpeed: Float = 0.15
+    var contactExitSpeed: Float = 0.4
+
+    /// Scratch for the playing clip's raw pose (clip contact): the clip,
+    /// its wrapped time and the ankles' model-space positions last frame.
+    var rawSampler = ClipSampler()
+    var rawPose = PoseBuffer()
+    var rawPositions: [simd_float3] = []
+    var rawRotations: [simd_quatf] = []
+    var rawClip: ObjectIdentifier?
+    var rawTime: Float = 0
+    var rawAnkles: [simd_float3] = []
 
     /// A foot slower than this locks; faster than the exit speed unlocks.
     /// Between the two, the current state holds (hysteresis) — residual
@@ -123,6 +153,19 @@ struct FootIKState {
     mutating func invalidateResolution() {
         resolvedChains = nil
         lockStates = []
+        rawClip = nil
+        rawAnkles = []
+    }
+
+    /// Samples the playing clip's raw pose at `time` and runs FK on it.
+    mutating func refreshRawPose(compiled: CompiledAnimationClip, clip: AnimationClip, time: Float, parentIndices: [Int?]) {
+        rawSampler.sample(compiled, time: time, duration: clip.duration, speed: clip.speed, into: &rawPose)
+        computeForwardKinematics(
+            pose: rawPose,
+            parentIndices: parentIndices,
+            positions: &rawPositions,
+            rotations: &rawRotations
+        )
     }
 
     /// Refreshes the FK scratch from a pose. Lives on the state so the
@@ -196,6 +239,37 @@ func applyFootIK(
         animationComponent.footIK.lockStates = [FootLockState](repeating: FootLockState(), count: chains.count)
     }
 
+    // Clip contact: the authored ankle speed, from the playing clip's own
+    // pose this frame against last frame's (same clip, wrap corrected).
+    var authoredSpeeds = [Float?](repeating: nil, count: chains.count)
+    if animationComponent.footIK.stanceLockEnabled,
+       animationComponent.footIK.lockSource == .clipContact,
+       let clip = animationComponent.currentAnimation,
+       deltaTime > 0
+    {
+        let compiled = animationComponent.compiledClip(for: clip, skeleton: skeleton)
+        let duration = max(clip.duration, 1e-4)
+        let time = fmod(animationComponent.currentTime, duration)
+        animationComponent.footIK.refreshRawPose(
+            compiled: compiled, clip: clip, time: time, parentIndices: skeleton.parentIndices
+        )
+        let rawPositions = animationComponent.footIK.rawPositions
+        let sameClip = animationComponent.footIK.rawClip == ObjectIdentifier(clip)
+        let wrapped = time < animationComponent.footIK.rawTime
+        if sameClip, animationComponent.footIK.rawAnkles.count == chains.count {
+            for (index, chain) in chains.enumerated() where chain.ankle < rawPositions.count {
+                var delta = rawPositions[chain.ankle] - animationComponent.footIK.rawAnkles[index]
+                if wrapped {
+                    delta += compiled.rootTranslationPerLoop
+                }
+                authoredSpeeds[index] = simd_length(delta) / deltaTime
+            }
+        }
+        animationComponent.footIK.rawClip = ObjectIdentifier(clip)
+        animationComponent.footIK.rawTime = time
+        animationComponent.footIK.rawAnkles = chains.map { $0.ankle < rawPositions.count ? rawPositions[$0.ankle] : .zero }
+    }
+
     for (chainIndex, chain) in chains.enumerated() {
         guard chain.hip < pose.jointCount, chain.knee < pose.jointCount, chain.ankle < pose.jointCount else {
             continue
@@ -216,7 +290,8 @@ func applyFootIK(
                 lock: &animationComponent.footIK.lockStates[chainIndex],
                 ankleWorld: ankleWorld,
                 state: animationComponent.footIK,
-                deltaTime: deltaTime
+                deltaTime: deltaTime,
+                authoredSpeed: authoredSpeeds[chainIndex]
             )
         }
 
@@ -341,12 +416,15 @@ func footIKDefaultGroundSample(
 /// Advances one chain's stance lock and returns the world position the IK
 /// target should use horizontally. Speed thresholds are hysteretic. The
 /// catch-up decay runs on top of whatever the lock wants, so a release and
-/// a re-plant mid-catch-up are both continuous.
+/// a re-plant mid-catch-up are both continuous. With clip contact the
+/// planted/lifting decision comes from `authoredSpeed` (the clip's own
+/// ankle motion; nil the frame after a switch holds the state).
 private func updateFootLock(
     lock: inout FootLockState,
     ankleWorld: simd_float3,
     state: FootIKState,
-    deltaTime: Float
+    deltaTime: Float,
+    authoredSpeed: Float? = nil
 ) -> simd_float3 {
     defer {
         lock.previousAnkleWorld = ankleWorld
@@ -355,6 +433,16 @@ private func updateFootLock(
 
     guard lock.hasPreviousAnkleWorld, deltaTime > 0 else { return ankleWorld }
     let speed = simd_length(ankleWorld - lock.previousAnkleWorld) / deltaTime
+    let planted: Bool
+    let lifting: Bool
+    switch state.lockSource {
+    case .displayedFoot:
+        planted = speed < state.lockEnterSpeed
+        lifting = speed > state.lockExitSpeed
+    case .clipContact:
+        planted = authoredSpeed.map { $0 < state.contactEnterSpeed } ?? false
+        lifting = authoredSpeed.map { $0 > state.contactExitSpeed } ?? false
+    }
 
     // Where the lock wants the foot: the anchor while planted, the animated
     // ankle otherwise.
@@ -362,15 +450,24 @@ private func updateFootLock(
     if lock.locked {
         var horizontal = lock.anchorWorld - ankleWorld
         horizontal.y = 0
-        if speed > state.lockExitSpeed || simd_length(horizontal) > state.maxLockDistance {
+        if lifting || simd_length(horizontal) > state.maxLockDistance {
             // Release: the pinned offset joins any catch-up still in flight
-            // so this frame lines up with the last locked one.
+            // so this frame lines up with the last locked one. Releases
+            // that land on a catch-up still decaying would otherwise stack
+            // up past the lock distance and, at `maxAdjustment`, skip the
+            // solve for a frame (a pop): the sum is capped at the larger of
+            // the lock distance and this release's own offset.
             lock.locked = false
             lock.releaseOffset += horizontal
+            let cap = max(state.maxLockDistance, simd_length(horizontal))
+            let length = simd_length(lock.releaseOffset)
+            if length > cap {
+                lock.releaseOffset *= cap / length
+            }
         } else {
             pinned = simd_float3(lock.anchorWorld.x, ankleWorld.y, lock.anchorWorld.z)
         }
-    } else if speed < state.lockEnterSpeed {
+    } else if planted {
         // Plant at the animated ankle, so an anchor never starts outside
         // the lock distance. A catch-up still in flight keeps decaying on
         // top of it below: re-planting mid-catch-up eases the rest of the

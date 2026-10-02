@@ -96,6 +96,26 @@ finished, so a foot that re-plants mid catch-up eases the last few
 centimetres into place instead of snapping. Thresholds are hysteretic so
 a foot never flickers between states.
 
+What counts as planted is the `source`:
+
+```swift
+setFootIKStanceLocking(entityId: player, enabled: true, source: .clipContact)
+```
+
+- `.displayedFoot` (default) watches the displayed ankle's world speed. It
+  catches slide baked into a clip's own root motion, and it lets go as
+  soon as the foot moves for any reason — a transition's blend included,
+  which is when a foot most needs holding.
+- `.clipContact` watches the playing clip's own ankle motion, in the
+  clip's model space. A foot the clip holds still stays pinned through an
+  inertialized jump, the root-velocity crossfade and the heading warp,
+  whatever those do to the entity, and is released only when the clip
+  lifts it, so the catch-up hides in the swing. Motion-matched characters
+  want this one: in the headless chase harness the drift of a foot the
+  clip calls planted fell from 12 to 4 cm/s. The frame after a clip
+  switch holds the lock as it is (there is no previous sample to compare
+  against). Thresholds: planted below 0.15 m/s, lifting above 0.4 m/s.
+
 ## Tips and Best Practices
 
 - Feed the query point terrain, not props: with the default ray probe, a

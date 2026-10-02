@@ -57,9 +57,9 @@ final class UpdateARRenderingSystemTest: BaseRenderSetup {
         // Verify the final pass ID is correct
         XCTAssertEqual(finalPassID, "outputTransform", "Final pass ID should be outputTransform")
 
-        // Verify shadow has no base pass dependency in AR mode
-        XCTAssertEqual(graph["shadow"]?.dependencies, [],
-                       "Shadow should have no dependencies in AR mode")
+        // Verify the shadow chain (headed by the deformation pass) has no base pass dependency in AR mode
+        XCTAssertEqual(graph["deformation"]?.dependencies, [],
+                       "Deformation should have no dependencies in AR mode")
 
         // Verify the graph can be topologically sorted
         let sortedPasses = try topologicalSortGraph(graph: graph)
@@ -80,10 +80,10 @@ final class UpdateARRenderingSystemTest: BaseRenderSetup {
         XCTAssertNil(graph["environment"], "AR mode should not create environment pass")
         XCTAssertNil(graph["grid"], "AR mode should not create grid pass")
 
-        // Verify shadow pass has no dependencies (no base pass to depend on)
+        // Verify the head of the shadow chain, the deformation pass, has no dependencies (no base pass to depend on)
         XCTAssertNotNil(graph["shadow"], "Shadow pass should exist")
-        XCTAssertEqual(graph["shadow"]?.dependencies.count, 0,
-                       "Shadow pass should have no dependencies in AR mode")
+        XCTAssertEqual(graph["deformation"]?.dependencies.count, 0,
+                       "The deformation pass should have no dependencies in AR mode")
     }
 
     func testUpdateARRenderingSystem_ARModeBehavesLikePassthrough() throws {
@@ -275,11 +275,11 @@ final class UpdateARRenderingSystemTest: BaseRenderSetup {
         // None mode should have grid pass (since renderEnvironment is false)
         XCTAssertNotNil(noneGraph["grid"], "None mode should have grid pass when environment is disabled")
 
-        // AR shadow should have no dependencies, none mode shadow should depend on grid
-        XCTAssertEqual(arGraph["shadow"]?.dependencies, [],
-                       "AR shadow should have no dependencies")
-        XCTAssertEqual(noneGraph["shadow"]?.dependencies, ["grid"],
-                       "None mode shadow should depend on grid")
+        // The shadow chain is headed by the deformation pass: none in AR, the grid in none mode
+        XCTAssertEqual(arGraph["deformation"]?.dependencies, [],
+                       "AR deformation should have no dependencies")
+        XCTAssertEqual(noneGraph["deformation"]?.dependencies, ["grid"],
+                       "None mode deformation should depend on grid")
     }
 
     func testUpdateARRenderingSystem_BasePassModeEnum() throws {
@@ -292,10 +292,12 @@ final class UpdateARRenderingSystemTest: BaseRenderSetup {
         XCTAssertNil(graph["environment"], "BasePassMode.ar should not create environment pass")
         XCTAssertNil(graph["grid"], "BasePassMode.ar should not create grid pass")
 
-        // Shadow should be the first pass in the graph
+        // The deformation pass, ahead of the shadows, should be the first pass in the graph
         let sortedPasses = try topologicalSortGraph(graph: graph)
-        XCTAssertEqual(sortedPasses.first?.id, "shadow",
-                       "Shadow should be the first pass when no base pass exists")
+        XCTAssertEqual(sortedPasses.first?.id, "deformation",
+                       "Deformation should be the first pass when no base pass exists")
+        XCTAssertEqual(graph["shadow"]?.dependencies, ["deformation"],
+                       "Shadow should follow the deformation pass")
     }
 
     // MARK: - Helper Methods

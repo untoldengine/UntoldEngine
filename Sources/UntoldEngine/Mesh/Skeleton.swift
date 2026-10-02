@@ -17,6 +17,12 @@ class Skeleton {
     var restTransform: [simd_float4x4]
     var currentPose: [simd_float4x4]
 
+    /// Volumetric muscles attached to this skeleton (from the asset's muscle
+    /// table or `setEntityMuscleRig`); simulated by the deformation pass.
+    var muscleRig: MuscleRig?
+    /// Trained ML deformer payload (`.untoldml`) belonging to this skeleton.
+    var mlDeformerURL: URL?
+
     /// Scratch storage for the compiled sampling path; reused across frames
     /// so pose composition never allocates in steady state.
     private var worldPoseScratch: [simd_float4x4] = []
@@ -44,6 +50,8 @@ class Skeleton {
         bindTransform = runtimeSkeleton.bindTransforms
         restTransform = runtimeSkeleton.restTransforms
         currentPose = runtimeSkeleton.restTransforms
+        muscleRig = runtimeSkeleton.muscleRig
+        mlDeformerURL = runtimeSkeleton.mlDeformerURL
     }
 
     deinit {}
@@ -60,6 +68,51 @@ class Skeleton {
     /// Maps external joint paths to indices in the skeleton's joint paths
     func mapJoints(from jointPaths: [String]) -> [Int] {
         jointPaths.compactMap { self.jointPaths.firstIndex(of: $0) }
+    }
+
+    /// The model-space joint matrices the last `updateWorldPose(from:localScales:)`
+    /// composed — the pose the skin shows — or the bind pose before the first
+    /// update, when nothing has been composed yet and the skin still carries
+    /// its identity fill (bind times inverse bind).
+    var displayedModelPose: [simd_float4x4] {
+        worldPoseScratch.count == jointPaths.count ? worldPoseScratch : bindTransform
+    }
+
+    /// The model-space joint matrices the animation alone composed on the
+    /// last update, before a physics pose was blended in — captured only
+    /// while one is active; otherwise the displayed pose is the animation.
+    var animatedModelPose: [simd_float4x4] {
+        animatedPoseCaptured && animatedPoseScratch.count == jointPaths.count ? animatedPoseScratch : displayedModelPose
+    }
+
+    /// Set by `captureAnimatedPose`; cleared by the animation update when no
+    /// physics pose is active.
+    var animatedPoseCaptured = false
+    private var animatedPoseScratch: [simd_float4x4] = []
+
+    /// Composes the animated local pose into `animatedModelPose` with the
+    /// same T * R * S(rest scale) chain as `updateWorldPose`, without
+    /// touching the displayed pose or the skin.
+    func captureAnimatedPose(from localPose: PoseBuffer, localScales: [simd_float3]) {
+        let jointCount = jointPaths.count
+        guard localPose.jointCount == jointCount, localScales.count == jointCount else {
+            animatedPoseCaptured = false
+            return
+        }
+        if animatedPoseScratch.count != jointCount {
+            animatedPoseScratch = [simd_float4x4](repeating: .identity, count: jointCount)
+        }
+        for index in 0 ..< jointCount {
+            let localMatrix = simd_float4x4(translation: localPose.translations[index])
+                * simd_float4x4(localPose.rotations[index])
+                * simd_float4x4(scale: localScales[index])
+            if let parentIndex = parentIndices[index] {
+                animatedPoseScratch[index] = animatedPoseScratch[parentIndex] * localMatrix
+            } else {
+                animatedPoseScratch[index] = localMatrix
+            }
+        }
+        animatedPoseCaptured = true
     }
 
     /// Updates the skeleton's world pose from a sampled local-space pose.

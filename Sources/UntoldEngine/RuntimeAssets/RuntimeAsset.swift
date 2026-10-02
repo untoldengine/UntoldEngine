@@ -322,19 +322,28 @@ public struct RuntimeSkeleton: Sendable, Equatable {
     public var parentIndices: [Int?]
     public var bindTransforms: [simd_float4x4]
     public var restTransforms: [simd_float4x4]
+    /// Volumetric muscles from the asset's muscle table, if any.
+    public var muscleRig: MuscleRig?
+    /// Trained ML deformer payload: `<asset>.untoldml` next to the file, or
+    /// the asset's `mlDeformerTable` record.
+    public var mlDeformerURL: URL?
 
     public init(
         name: String? = nil,
         jointPaths: [String],
         parentIndices: [Int?],
         bindTransforms: [simd_float4x4],
-        restTransforms: [simd_float4x4]
+        restTransforms: [simd_float4x4],
+        muscleRig: MuscleRig? = nil,
+        mlDeformerURL: URL? = nil
     ) {
         self.name = name
         self.jointPaths = jointPaths
         self.parentIndices = parentIndices
         self.bindTransforms = bindTransforms
         self.restTransforms = restTransforms
+        self.muscleRig = muscleRig
+        self.mlDeformerURL = mlDeformerURL
     }
 }
 
@@ -498,6 +507,7 @@ public struct RuntimeMeshPrimitive: Sendable, Equatable {
     public var edgeIndexCount: Int
     public var material: RuntimeMaterialSource?
     public var skin: RuntimeSkinBinding?
+    public var morphTargets: [RuntimeMorphTarget]
     public var estimatedGPUBytes: Int
 
     public init(
@@ -516,6 +526,7 @@ public struct RuntimeMeshPrimitive: Sendable, Equatable {
         edgeIndexCount: Int = 0,
         material: RuntimeMaterialSource? = nil,
         skin: RuntimeSkinBinding? = nil,
+        morphTargets: [RuntimeMorphTarget] = [],
         estimatedGPUBytes: Int = 0
     ) {
         self.name = name
@@ -533,7 +544,51 @@ public struct RuntimeMeshPrimitive: Sendable, Equatable {
         self.edgeIndexCount = edgeIndexCount
         self.material = material
         self.skin = skin
+        self.morphTargets = morphTargets
         self.estimatedGPUBytes = estimatedGPUBytes
+    }
+}
+
+/// Pose-space driver metadata carried alongside a morph target (evaluated by
+/// the PSD runtime; ignored when absent).
+public struct RuntimeMorphDriver: Sendable, Equatable {
+    public var jointPath: String
+    public var poseRotation: simd_float4
+    public var radius: Float
+    public var kernelType: UInt32
+
+    public init(jointPath: String, poseRotation: simd_float4, radius: Float, kernelType: UInt32 = 0) {
+        self.jointPath = jointPath
+        self.poseRotation = poseRotation
+        self.radius = radius
+        self.kernelType = kernelType
+    }
+}
+
+/// One morph target of a mesh primitive: sparse float16 deltas over the
+/// primitive's vertices (raw `UntoldMorphSparseEntryV1` records).
+public struct RuntimeMorphTarget: Sendable, Equatable {
+    public var name: String
+    public var hasNormalDeltas: Bool
+    public var positionScale: Float
+    public var entryCount: Int
+    public var entryData: Data
+    public var driver: RuntimeMorphDriver?
+
+    public init(
+        name: String,
+        hasNormalDeltas: Bool = false,
+        positionScale: Float = 1.0,
+        entryCount: Int,
+        entryData: Data,
+        driver: RuntimeMorphDriver? = nil
+    ) {
+        self.name = name
+        self.hasNormalDeltas = hasNormalDeltas
+        self.positionScale = positionScale
+        self.entryCount = entryCount
+        self.entryData = entryData
+        self.driver = driver
     }
 }
 

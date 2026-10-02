@@ -62,10 +62,10 @@ final class UpdateiOSRenderingSystemTest: BaseRenderSetup {
         // iOS mode should have a base pass (grid when environment is disabled)
         XCTAssertNotNil(graph["grid"], "iOS mode should have grid pass when environment is disabled")
 
-        // Verify shadow pass depends on the base pass
+        // Verify the shadow chain (headed by the deformation pass) depends on the base pass
         XCTAssertNotNil(graph["shadow"], "Shadow pass should exist")
-        XCTAssertEqual(graph["shadow"]?.dependencies, ["grid"],
-                       "Shadow pass should depend on grid in iOS mode")
+        XCTAssertEqual(graph["deformation"]?.dependencies, ["grid"],
+                       "The deformation pass should depend on grid in iOS mode")
     }
 
     func testUpdateiOSRenderingSystem_iOSModeWithEnvironment() throws {
@@ -78,9 +78,9 @@ final class UpdateiOSRenderingSystemTest: BaseRenderSetup {
         // Should have environment pass
         XCTAssertNotNil(graph["environment"], "iOS mode with environment should have environment pass")
 
-        // Shadow should depend on environment
-        XCTAssertEqual(graph["shadow"]?.dependencies, ["environment"],
-                       "Shadow should depend on environment when enabled")
+        // The shadow chain (headed by the deformation pass) should depend on environment
+        XCTAssertEqual(graph["deformation"]?.dependencies, ["environment"],
+                       "Deformation should depend on environment when enabled")
     }
 
     // MARK: - Final Pass Tests
@@ -215,11 +215,11 @@ final class UpdateiOSRenderingSystemTest: BaseRenderSetup {
         XCTAssertNil(arGraph["environment"], "AR mode should not have environment pass")
         XCTAssertNil(arGraph["grid"], "AR mode should not have grid pass")
 
-        // iOS shadow should depend on grid, AR shadow should have no dependencies
-        XCTAssertEqual(iosGraph["shadow"]?.dependencies, ["grid"],
-                       "iOS shadow should depend on grid")
-        XCTAssertEqual(arGraph["shadow"]?.dependencies, [],
-                       "AR shadow should have no dependencies")
+        // The deformation pass heads the shadow chain: on grid in iOS, on nothing in AR
+        XCTAssertEqual(iosGraph["deformation"]?.dependencies, ["grid"],
+                       "IOS deformation should depend on grid")
+        XCTAssertEqual(arGraph["deformation"]?.dependencies, [],
+                       "AR deformation should have no dependencies")
     }
 
     func testUpdateiOSRenderingSystem_iOSVsMacOSModeSimilarity() throws {

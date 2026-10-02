@@ -59,9 +59,9 @@ final class UpdateXRRenderingSystemTest: BaseRenderSetup {
         // Verify the final pass ID is correct
         XCTAssertEqual(finalPassID, "outputTransform", "Final pass ID should be outputTransform")
 
-        // Verify shadow depends on environment in full immersion
-        XCTAssertEqual(graph["shadow"]?.dependencies, ["environment"],
-                       "Shadow should depend on environment in full immersion mode")
+        // Verify the shadow chain (headed by the deformation pass) depends on environment in full immersion
+        XCTAssertEqual(graph["deformation"]?.dependencies, ["environment"],
+                       "Deformation should depend on environment in full immersion mode")
 
         // Verify the graph can be topologically sorted
         let sortedPasses = try topologicalSortGraph(graph: graph)
@@ -131,9 +131,9 @@ final class UpdateXRRenderingSystemTest: BaseRenderSetup {
         // Verify the final pass ID is correct
         XCTAssertEqual(finalPassID, "outputTransform", "Final pass ID should be outputTransform")
 
-        // Verify shadow has no base pass dependency in passthrough mode
-        XCTAssertEqual(graph["shadow"]?.dependencies, [],
-                       "Shadow should have no dependencies in passthrough mode")
+        // Verify the shadow chain (headed by the deformation pass) has no base pass dependency in passthrough mode
+        XCTAssertEqual(graph["deformation"]?.dependencies, [],
+                       "Deformation should have no dependencies in passthrough mode")
 
         // Verify the graph can be topologically sorted
         let sortedPasses = try topologicalSortGraph(graph: graph)
@@ -154,10 +154,10 @@ final class UpdateXRRenderingSystemTest: BaseRenderSetup {
         XCTAssertNil(graph["environment"], "Passthrough mode should not create environment pass")
         XCTAssertNil(graph["grid"], "Passthrough mode should not create grid pass")
 
-        // Verify shadow pass has no dependencies (no base pass to depend on)
+        // Verify the head of the shadow chain, the deformation pass, has no dependencies (no base pass to depend on)
         XCTAssertNotNil(graph["shadow"], "Shadow pass should exist")
-        XCTAssertEqual(graph["shadow"]?.dependencies.count, 0,
-                       "Shadow pass should have no dependencies in passthrough mode")
+        XCTAssertEqual(graph["deformation"]?.dependencies.count, 0,
+                       "The deformation pass should have no dependencies in passthrough mode")
     }
 
     // MARK: - Final Pass Tests

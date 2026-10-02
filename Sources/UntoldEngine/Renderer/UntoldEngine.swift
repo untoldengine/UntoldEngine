@@ -172,6 +172,8 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
 
         initFrustumCulllingCompute()
 
+        DeformationSystem.shared.initComputePipelines()
+
         TextureStreamingSystem.shared.configure(device: renderInfo.device)
 
         initGuassianComputePipelines()

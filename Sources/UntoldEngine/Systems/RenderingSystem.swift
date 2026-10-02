@@ -221,6 +221,7 @@ let gameModeReservedPassIDs: Set<String> = [
     "environment",
     "sky",
     "grid",
+    "deformation",
     "shadow",
     "batchedShadow",
     "spotShadow",
@@ -234,6 +235,7 @@ let gameModeReservedPassIDs: Set<String> = [
     "transparency",
     "wireframe",
     "spatialDebug",
+    "muscleDebug",
     "gaussian",
     "postProcessBypass",
     "postProcessDisabledBypass",
@@ -345,8 +347,15 @@ private func buildGameModeGraphWithCompilation() throws -> CompiledRenderGraphRe
         ?? beforeShadowsAnchor
     let shadowDependency = beforeShadowsID.map { [$0] } ?? []
 
+    // Deformation compute pass: skins DeformationComponent meshes into their
+    // deformed vertex buffers before any pass that draws them.
+    let deformationPass = RenderPass(
+        id: "deformation", dependencies: shadowDependency, execute: DeformationSystem.executeDeformationPass
+    )
+    builder.addPass(deformationPass)
+
     let shadowPass = RenderPass(
-        id: "shadow", dependencies: shadowDependency, execute: RenderPasses.shadowExecution
+        id: "shadow", dependencies: [deformationPass.id], execute: RenderPasses.shadowExecution
     )
     builder.addPass(shadowPass)
 
@@ -402,12 +411,20 @@ private func buildGameModeGraphWithCompilation() throws -> CompiledRenderGraphRe
     )
     builder.addPass(spatialDebugPass)
 
+    // Muscle cage wireframes (tuning aid) on top of the spatial overlays.
+    let muscleDebugPass = RenderPass(
+        id: "muscleDebug",
+        dependencies: [spatialDebugPass.id],
+        execute: RenderPasses.muscleDebugExecution
+    )
+    builder.addPass(muscleDebugPass)
+
     // Gaussian pass depends on the model pass and the occluder shells - it snapshots the opaque
     // depth they wrote to occlude splats.
     let gaussianPass = RenderPass(id: "gaussian", dependencies: ["model", "meshOccluderShell"], execute: RenderPasses.gaussianExecution)
     builder.addPass(gaussianPass)
 
-    let beforePostProcessID = builder.resolveStage(.beforePostProcess, after: spatialDebugPass.id) ?? spatialDebugPass.id
+    let beforePostProcessID = builder.resolveStage(.beforePostProcess, after: muscleDebugPass.id) ?? muscleDebugPass.id
 
     let postProcessID: String
     if bypassPostProcessing {

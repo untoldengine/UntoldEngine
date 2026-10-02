@@ -971,3 +971,174 @@ public extension UntoldBinaryReader {
         return simd_float4x4(columns: (c0, c1, c2, c3))
     }
 }
+
+extension UntoldMorphTargetRecordV1: UntoldBinaryEncodable, UntoldBinaryDecodable {
+    public func encode(to writer: UntoldBinaryWriter) {
+        writer.writeUInt32LE(meshRecordIndex)
+        writer.writeUInt32LE(nameOffset)
+        writer.writeUInt32LE(flags)
+        writer.writeUInt32LE(firstEntryIndex)
+        writer.writeUInt32LE(entryCount)
+        writer.writeFloat32LE(positionScale)
+    }
+
+    public static func decode(from reader: UntoldBinaryReader) throws -> UntoldMorphTargetRecordV1 {
+        try UntoldMorphTargetRecordV1(
+            meshRecordIndex: reader.readUInt32LE(),
+            nameOffset: reader.readUInt32LE(),
+            flags: reader.readUInt32LE(),
+            firstEntryIndex: reader.readUInt32LE(),
+            entryCount: reader.readUInt32LE(),
+            positionScale: reader.readFloat32LE()
+        )
+    }
+}
+
+extension UntoldMorphSparseEntryV1: UntoldBinaryEncodable, UntoldBinaryDecodable {
+    public func encode(to writer: UntoldBinaryWriter) {
+        writer.writeUInt32LE(vertexIndex)
+        writer.writeUInt16LE(dPosition.x)
+        writer.writeUInt16LE(dPosition.y)
+        writer.writeUInt16LE(dPosition.z)
+        writer.writeUInt16LE(dNormal.x)
+        writer.writeUInt16LE(dNormal.y)
+        writer.writeUInt16LE(dNormal.z)
+    }
+
+    public static func decode(from reader: UntoldBinaryReader) throws -> UntoldMorphSparseEntryV1 {
+        try UntoldMorphSparseEntryV1(
+            vertexIndex: reader.readUInt32LE(),
+            dPosition: SIMD3<UInt16>(
+                reader.readUInt16LE(),
+                reader.readUInt16LE(),
+                reader.readUInt16LE()
+            ),
+            dNormal: SIMD3<UInt16>(
+                reader.readUInt16LE(),
+                reader.readUInt16LE(),
+                reader.readUInt16LE()
+            )
+        )
+    }
+}
+
+extension UntoldMorphDriverRecordV1: UntoldBinaryEncodable, UntoldBinaryDecodable {
+    public func encode(to writer: UntoldBinaryWriter) {
+        writer.writeUInt32LE(targetIndex)
+        writer.writeUInt32LE(jointPathOffset)
+        writer.writeUInt32LE(kernelType)
+        writer.writeFloat32LE(poseRotation.x)
+        writer.writeFloat32LE(poseRotation.y)
+        writer.writeFloat32LE(poseRotation.z)
+        writer.writeFloat32LE(poseRotation.w)
+        writer.writeFloat32LE(radius)
+        writer.writeUInt32LE(reserved0)
+    }
+
+    public static func decode(from reader: UntoldBinaryReader) throws -> UntoldMorphDriverRecordV1 {
+        var record = try UntoldMorphDriverRecordV1(
+            targetIndex: reader.readUInt32LE(),
+            jointPathOffset: reader.readUInt32LE(),
+            kernelType: reader.readUInt32LE(),
+            poseRotation: SIMD4<Float>(
+                reader.readFloat32LE(),
+                reader.readFloat32LE(),
+                reader.readFloat32LE(),
+                reader.readFloat32LE()
+            ),
+            radius: reader.readFloat32LE()
+        )
+        record.reserved0 = try reader.readUInt32LE()
+        return record
+    }
+}
+
+extension UntoldMuscleRecordV1: UntoldBinaryEncodable, UntoldBinaryDecodable {
+    public func encode(to writer: UntoldBinaryWriter) {
+        writer.writeUInt32LE(skeletonEntityId)
+        writer.writeUInt32LE(nameOffset)
+        writer.writeUInt32LE(flags)
+        writer.writeUInt32LE(forwardJointOffset)
+        writer.writeUInt32LE(forwardTipJointOffset)
+        writer.writeUInt32LE(originJointOffset)
+        writer.writeUInt32LE(originTipJointOffset)
+        writer.writeFloat32LE(originFraction)
+        writer.writeFloat32LE(originOffset.x)
+        writer.writeFloat32LE(originOffset.y)
+        writer.writeFloat32LE(originOffset.z)
+        writer.writeUInt32LE(insertionJointOffset)
+        writer.writeUInt32LE(insertionTipJointOffset)
+        writer.writeFloat32LE(insertionFraction)
+        writer.writeFloat32LE(insertionOffset.x)
+        writer.writeFloat32LE(insertionOffset.y)
+        writer.writeFloat32LE(insertionOffset.z)
+        writer.writeFloat32LE(bellyRadius)
+        writer.writeFloat32LE(tendonRadius)
+        writer.writeFloat32LE(maxContraction)
+        writer.writeFloat32LE(fiberCompliance)
+        writer.writeFloat32LE(crossCompliance)
+        writer.writeFloat32LE(volumeCompliance)
+        writer.writeFloat32LE(damping)
+        writer.writeFloat32LE(boneRadius)
+        writer.writeFloat32LE(skinInfluence)
+        writer.writeUInt32LE(rings)
+        writer.writeUInt32LE(segments)
+        writer.writeUInt32LE(driverJointOffset)
+        writer.writeFloat32LE(driverStartAngle)
+        writer.writeFloat32LE(driverFullAngle)
+        writer.writeUInt32LE(reserved0)
+    }
+
+    public static func decode(from reader: UntoldBinaryReader) throws -> UntoldMuscleRecordV1 {
+        var record = try UntoldMuscleRecordV1(
+            skeletonEntityId: reader.readUInt32LE(),
+            nameOffset: reader.readUInt32LE(),
+            flags: reader.readUInt32LE(),
+            forwardJointOffset: reader.readUInt32LE(),
+            forwardTipJointOffset: reader.readUInt32LE(),
+            originJointOffset: reader.readUInt32LE(),
+            originTipJointOffset: reader.readUInt32LE(),
+            originFraction: reader.readFloat32LE(),
+            originOffset: SIMD3<Float>(reader.readFloat32LE(), reader.readFloat32LE(), reader.readFloat32LE()),
+            insertionJointOffset: reader.readUInt32LE(),
+            insertionTipJointOffset: reader.readUInt32LE(),
+            insertionFraction: reader.readFloat32LE(),
+            insertionOffset: SIMD3<Float>(reader.readFloat32LE(), reader.readFloat32LE(), reader.readFloat32LE()),
+            bellyRadius: reader.readFloat32LE(),
+            tendonRadius: reader.readFloat32LE(),
+            maxContraction: reader.readFloat32LE(),
+            fiberCompliance: reader.readFloat32LE(),
+            crossCompliance: reader.readFloat32LE(),
+            volumeCompliance: reader.readFloat32LE(),
+            damping: reader.readFloat32LE(),
+            boneRadius: reader.readFloat32LE(),
+            skinInfluence: reader.readFloat32LE(),
+            rings: reader.readUInt32LE(),
+            segments: reader.readUInt32LE(),
+            driverJointOffset: reader.readUInt32LE(),
+            driverStartAngle: reader.readFloat32LE(),
+            driverFullAngle: reader.readFloat32LE()
+        )
+        record.reserved0 = try reader.readUInt32LE()
+        return record
+    }
+}
+
+extension UntoldMLDeformerRecordV1: UntoldBinaryEncodable, UntoldBinaryDecodable {
+    public func encode(to writer: UntoldBinaryWriter) {
+        writer.writeUInt32LE(skeletonEntityId)
+        writer.writeUInt32LE(payloadPathOffset)
+        writer.writeUInt32LE(flags)
+        writer.writeUInt32LE(reserved0)
+    }
+
+    public static func decode(from reader: UntoldBinaryReader) throws -> UntoldMLDeformerRecordV1 {
+        var record = try UntoldMLDeformerRecordV1(
+            skeletonEntityId: reader.readUInt32LE(),
+            payloadPathOffset: reader.readUInt32LE(),
+            flags: reader.readUInt32LE()
+        )
+        record.reserved0 = try reader.readUInt32LE()
+        return record
+    }
+}
