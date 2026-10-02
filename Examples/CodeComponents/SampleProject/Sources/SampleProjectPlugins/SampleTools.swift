@@ -1,3 +1,13 @@
+//
+//  SampleTools.swift
+//  UntoldEngine
+//
+// Copyright (C) Untold Engine Studios
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 // Editor-only. The editor compiles this folder with UNTOLD_EDITOR defined; the game does not,
 // so nothing below ends up in the game binary.
 #if UNTOLD_EDITOR

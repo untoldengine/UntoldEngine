@@ -1,3 +1,13 @@
+//
+//  PulseClock.swift
+//  UntoldEngine
+//
+// Copyright (C) Untold Engine Studios
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 import Foundation
 
 /// A clock shared by everything that pulses, so it all moves in step. It stands in for a
