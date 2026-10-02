@@ -1753,6 +1753,56 @@ class MeshMaterialSlotTests(unittest.TestCase):
         self.assertIs(u.mesh_object_material(obj), first)
 
 
+class FacingEvaluationTests(unittest.TestCase):
+    """Node chains with no texture behind them are exported as seen straight on."""
+
+    def _mix(self, fac_source, a, b, fac=0.5) -> FakeNode:
+        fac_socket = _socket("Factor", fac, linked_from=fac_source)
+        mix = FakeNode("ShaderNodeMix")
+        mix.data_type = "RGBA"
+        mix.blend_type = "MIX"
+        mix.inputs = [fac_socket, a, b]
+        return mix
+
+    def test_layer_weight_facing_is_zero_and_its_fresnel_the_normal_reflectance(self) -> None:
+        weight = FakeNode("ShaderNodeLayerWeight", inputs={"Blend": _socket("Blend", 0.5)})
+        self.assertEqual(u.evaluate_socket_facing(_socket("Roughness", linked_from=(weight, "Facing"))), 0.0)
+        fresnel = u.evaluate_socket_facing(_socket("Roughness", linked_from=(weight, "Fresnel")))
+        self.assertAlmostEqual(fresnel, ((2.0 - 1.0) / (2.0 + 1.0)) ** 2)
+
+    def test_a_mix_picks_its_side_without_looking_at_the_other(self) -> None:
+        weight = FakeNode("ShaderNodeLayerWeight", inputs={"Blend": _socket("Blend", 0.5)})
+        texture = _make_image_node("scratches")
+        mix = self._mix((weight, "Facing"), _socket("A", (0.004, 0.004, 0.004, 1.0)), _socket("B", linked_from=(texture, "Color")))
+        self.assertEqual(u.evaluate_socket_facing(_socket("Base Color", linked_from=(mix, "Result"))), (0.004, 0.004, 0.004))
+
+        constant_one = FakeNode("ShaderNodeMix")
+        constant_one.data_type, constant_one.blend_type = "RGBA", "MIX"
+        constant_one.inputs = [_socket("Factor", 1.0), _socket("A", linked_from=(texture, "Color")), _socket("B", (0.27, 0.27, 0.27, 1.0))]
+        self.assertEqual(u.evaluate_socket_facing(_socket("Roughness", linked_from=(constant_one, "Result"))), (0.27, 0.27, 0.27))
+
+    def test_a_texture_in_the_way_gives_no_value(self) -> None:
+        texture = _make_image_node("noise")
+        mix = self._mix(None, _socket("A", linked_from=(texture, "Color")), _socket("B", (1.0, 1.0, 1.0, 1.0)), fac=0.5)
+        self.assertIsNone(u.evaluate_socket_facing(_socket("Roughness", linked_from=(mix, "Result"))))
+
+    def test_math_and_node_groups(self) -> None:
+        math = FakeNode("ShaderNodeMath")
+        math.operation = "MULTIPLY"
+        math.inputs = [_socket("Value", 0.5), _socket("Value", 0.4)]
+        group_input = FakeNode("NodeGroupInput")
+        group_output = FakeNode("NodeGroupOutput", inputs={"Rough": _socket("Rough", linked_from=(group_input, "Scale"))})
+        group = FakeNode("ShaderNodeGroup", inputs={"Scale": _socket("Scale", linked_from=(math, "Value"))})
+        group.node_tree = FakeData(nodes=[group_input, group_output])
+        self.assertAlmostEqual(u.evaluate_socket_facing(_socket("Roughness", linked_from=(group, "Rough"))), 0.2)
+
+    def test_linked_scalar_without_texture_uses_the_evaluated_value(self) -> None:
+        value = FakeNode("ShaderNodeValue")
+        value.outputs = [_socket("Value", 0.27)]
+        socket = _socket("Roughness", 0.5, linked_from=(value, "Value"))
+        self.assertAlmostEqual(u._scalar_socket_factor(socket, None, default=0.5), 0.27)
+
+
 class MaterialAlphaTests(unittest.TestCase):
     """Alpha and glass become the engine's blended alpha mode."""
 

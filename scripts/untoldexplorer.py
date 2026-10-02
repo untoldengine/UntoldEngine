@@ -3040,8 +3040,8 @@ _GRAPH_TRACED_THROUGH_NODE_IDS = {
 }
 
 _GRAPH_UNBAKEABLE_NODE_IDS = {
-    "ShaderNodeFresnel": "view-dependent",
-    "ShaderNodeLayerWeight": "view-dependent",
+    "ShaderNodeFresnel": "view-dependent; exported as seen straight on",
+    "ShaderNodeLayerWeight": "view-dependent; exported as seen straight on",
     "ShaderNodeCameraData": "view-dependent",
     "ShaderNodeLightPath": "depends on the active render ray",
 }
@@ -4924,6 +4924,161 @@ def _detect_occlusion_texture(material: object, asset_path: Path) -> Optional[Ex
     return None
 
 
+def _as_color(value) -> tuple[float, float, float]:
+    if isinstance(value, tuple):
+        return (float(value[0]), float(value[1]), float(value[2])) if len(value) >= 3 else (float(value[0]),) * 3
+    return (float(value),) * 3
+
+
+def _as_scalar(value) -> float:
+    """A value as Blender converts it for a float socket: a colour becomes its luminance."""
+    if isinstance(value, tuple):
+        color = _as_color(value)
+        return sum(component * weight for component, weight in zip(color, LUMINANCE_WEIGHTS))
+    return float(value)
+
+
+def _socket_default(socket: object):
+    value = getattr(socket, "default_value", None)
+    if value is None:
+        return None
+    return tuple(float(component) for component in value) if hasattr(value, "__len__") else float(value)
+
+
+def _enabled_inputs(node: object) -> list:
+    return [socket for socket in getattr(node, "inputs", []) if getattr(socket, "enabled", True)]
+
+
+def _mix_colors(blend_type: str, fac: float, a: tuple, b: tuple) -> Optional[tuple]:
+    if blend_type == "MIX":
+        return tuple(x + (y - x) * fac for x, y in zip(a, b))
+    if blend_type == "MULTIPLY":
+        return tuple(x * (1.0 - fac + fac * y) for x, y in zip(a, b))
+    if blend_type == "ADD":
+        return tuple(x + fac * y for x, y in zip(a, b))
+    if blend_type == "SUBTRACT":
+        return tuple(x - fac * y for x, y in zip(a, b))
+    if blend_type == "SCREEN":
+        return tuple(1.0 - (1.0 - fac + fac * (1.0 - y)) * (1.0 - x) for x, y in zip(a, b))
+    return None
+
+
+_MATH_OPERATIONS = {
+    "ADD": lambda a, b: a + b,
+    "SUBTRACT": lambda a, b: a - b,
+    "MULTIPLY": lambda a, b: a * b,
+    "DIVIDE": lambda a, b: a / b if b != 0.0 else 0.0,
+    "POWER": lambda a, b: a ** b if a > 0.0 or float(b).is_integer() else 0.0,
+    "MINIMUM": min,
+    "MAXIMUM": max,
+    "GREATER_THAN": lambda a, b: 1.0 if a > b else 0.0,
+    "LESS_THAN": lambda a, b: 1.0 if a < b else 0.0,
+    "ABSOLUTE": lambda a, b: abs(a),
+}
+
+
+def evaluate_socket_facing(socket: object, _groups: tuple = (), _depth: int = 0):
+    """The value a shader node chain gives an input socket for a surface seen straight
+    on: a float or an RGB(A) tuple, or None when the chain holds something that is not
+    a constant there (an image or procedural texture, an unknown node).
+
+    View-dependent nodes take their straight-on value (Layer Weight Facing 0, Fresnel
+    the normal-incidence reflectance), so a material built on them exports what it
+    shows facing the camera; the engine's own Fresnel then brightens its edges. A Mix
+    whose factor is 0 or 1 never looks at the side it ignores.
+    """
+    if socket is None or _depth > 64:
+        return None
+    if not getattr(socket, "is_linked", False):
+        return _socket_default(socket)
+    link = socket.links[0]
+    return _evaluate_node_output(link.from_node, getattr(getattr(link, "from_socket", None), "name", ""), _groups, _depth + 1)
+
+
+def _evaluate_node_output(node: object, output_name: str, groups: tuple, depth: int):
+    node_id = node.bl_idname
+    inputs = _enabled_inputs(node)
+
+    def value_of(socket):
+        return evaluate_socket_facing(socket, groups, depth)
+
+    if node_id == "NodeReroute":
+        return value_of(node.inputs.get("Input") if hasattr(node.inputs, "get") else inputs[0])
+    if node_id in {"ShaderNodeValue", "ShaderNodeRGB"}:
+        outputs = list(getattr(node, "outputs", []))
+        return _socket_default(outputs[0]) if outputs else None
+    if node_id == "ShaderNodeLayerWeight":
+        if output_name == "Facing":
+            return 0.0
+        blend = _unlinked_value(node, "Blend", 0.5)
+        if blend is None:
+            return None
+        eta = 1.0 / max(1.0 - min(max(blend, 0.0), 0.99999), 1.0e-5)
+        return ((eta - 1.0) / (eta + 1.0)) ** 2
+    if node_id == "ShaderNodeFresnel":
+        ior = _unlinked_value(node, "IOR", 1.45)
+        return None if ior is None else ((ior - 1.0) / (ior + 1.0)) ** 2
+    if node_id in {"ShaderNodeMix", "ShaderNodeMixRGB"}:
+        if len(inputs) < 3:
+            return None
+        fac = value_of(inputs[0])
+        if fac is None:
+            return None
+        fac = _as_scalar(fac)
+        if node_id == "ShaderNodeMix" and getattr(node, "data_type", "RGBA") != "RGBA":
+            if getattr(node, "data_type", "") != "FLOAT":
+                return None
+            fac = min(max(fac, 0.0), 1.0) if getattr(node, "clamp_factor", True) else fac
+            a = value_of(inputs[1]) if fac < 1.0 else 0.0
+            b = value_of(inputs[2]) if fac > 0.0 else 0.0
+            if a is None or b is None:
+                return None
+            return _as_scalar(a) + (_as_scalar(b) - _as_scalar(a)) * fac
+        fac = min(max(fac, 0.0), 1.0) if getattr(node, "clamp_factor", True) else fac
+        blend_type = getattr(node, "blend_type", "MIX")
+        a = value_of(inputs[1]) if not (blend_type == "MIX" and fac >= 1.0) else (0.0, 0.0, 0.0)
+        b = value_of(inputs[2]) if fac > 0.0 else (0.0, 0.0, 0.0)
+        if a is None or b is None:
+            return None
+        mixed = _mix_colors(blend_type, fac, _as_color(a), _as_color(b))
+        if mixed is None:
+            return None
+        if getattr(node, "clamp_result", False) or getattr(node, "use_clamp", False):
+            mixed = tuple(min(max(component, 0.0), 1.0) for component in mixed)
+        return mixed
+    if node_id == "ShaderNodeMath":
+        operation = _MATH_OPERATIONS.get(getattr(node, "operation", ""))
+        if operation is None or not inputs:
+            return None
+        a = value_of(inputs[0])
+        b = value_of(inputs[1]) if len(inputs) > 1 else 0.0
+        if a is None or b is None:
+            return None
+        result = operation(_as_scalar(a), _as_scalar(b))
+        return min(max(result, 0.0), 1.0) if getattr(node, "use_clamp", False) else result
+    if node_id in _ADJUSTMENT_NODE_INPUTS:
+        source = value_of(node.inputs.get(_ADJUSTMENT_NODE_INPUTS[node_id]))
+        adjustment = image_adjustment_for_node(node, output_name)
+        if source is None or adjustment is NOT_REPRESENTABLE or not _HAS_NUMPY:
+            return None
+        color = _as_color(source)
+        if adjustment is None:
+            return color
+        adjusted = apply_image_adjustments(np.asarray([color], dtype=np.float64), (adjustment,))[0]
+        return tuple(float(component) for component in adjusted)
+    if node_id == "ShaderNodeGroup":
+        tree = getattr(node, "node_tree", None)
+        group_output = _group_output_node(tree) if tree is not None else None
+        if group_output is None:
+            return None
+        inner = group_output.inputs.get(output_name) if hasattr(group_output.inputs, "get") else None
+        return evaluate_socket_facing(inner, groups + (node,), depth) if inner is not None else None
+    if node_id == "NodeGroupInput" and groups:
+        outer = groups[-1].inputs.get(output_name) if hasattr(groups[-1].inputs, "get") else None
+        return evaluate_socket_facing(outer, groups[:-1], depth) if outer is not None else None
+    return None
+
+
 def _scalar_socket_factor(input_socket: object, texture: Optional[ExportedTexture], default: float) -> float:
     """Factor exported for a scalar Principled socket (Metallic, Roughness).
 
@@ -4941,6 +5096,11 @@ def _scalar_socket_factor(input_socket: object, texture: Optional[ExportedTextur
         return default
     if texture is not None:
         return 1.0
+    if getattr(input_socket, "is_linked", False):
+        # No texture behind it: the chain's value seen straight on, if it has one.
+        value = evaluate_socket_facing(input_socket)
+        if value is not None:
+            return min(max(_as_scalar(value), 0.0), 1.0)
     return float(input_socket.default_value)
 
 
@@ -5124,6 +5284,11 @@ def extract_material(mesh_object: object, asset_path: Path) -> ExportedMaterial:
     # default_value when NO texture is connected (i.e. solid color material).
     if base_color_input is None or base_color_input.is_linked:
         base_color = (1.0, 1.0, 1.0, 1.0)
+        if base_color_input is not None and resolve_texture_from_socket(base_color_input, asset_path) is None:
+            # Node math with no texture behind it: its colour seen straight on.
+            value = evaluate_socket_facing(base_color_input)
+            if value is not None:
+                base_color = (*(min(max(component, 0.0), 1.0) for component in _as_color(value)), 1.0)
     else:
         base_color = vector4(base_color_input.default_value)
     # Blender 4.0+ splits Emission into "Emission Color" (defaults to white)
@@ -5145,6 +5310,10 @@ def extract_material(mesh_object: object, asset_path: Path) -> ExportedMaterial:
         emissive = (0.0, 0.0, 0.0)
     elif emissive_input.is_linked:
         emissive = (emission_strength, emission_strength, emission_strength)
+        if resolve_texture_from_socket(emissive_input, asset_path) is None:
+            value = evaluate_socket_facing(emissive_input)
+            if value is not None:
+                emissive = tuple(max(component, 0.0) * emission_strength for component in _as_color(value))
     else:
         emissive_default = emissive_input.default_value
         emissive = (

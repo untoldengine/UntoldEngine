@@ -154,6 +154,12 @@ Some material nodes are carried over instead of dropped:
   so.
 - A material whose surface is an Emission shader exports as an emissive material
   with a black base color.
+- A Base Color, Roughness, Metallic or Emission input driven by node math with no
+  texture behind it (Mix, Math, RGB Curves, ColorRamp, node groups, ...) exports
+  the value the chain gives for a surface seen straight on. View-dependent nodes
+  such as Layer Weight and Fresnel take their straight-on value; the engine's own
+  Fresnel then brightens the edges. A chain with an image or procedural texture
+  in the way keeps the input's slider value, as before.
 - Each mesh exports the material of the slot its faces use, which need not be the
   first slot.
 - EXR textures used by a material (a normal or metallic map, for example) are
