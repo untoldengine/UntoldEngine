@@ -2,6 +2,16 @@
 //  RemoteStreamFlyThroughTests.swift
 //  UntoldEngine
 //
+// Copyright (C) Untold Engine Studios
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+//
+//  RemoteStreamFlyThroughTests.swift
+//  UntoldEngine
+//
 //  Integration test: loads a remote tiled scene, flies the camera through
 //  a sequence of waypoints, and PSNR-compares a screenshot at each stop.
 //
