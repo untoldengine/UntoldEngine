@@ -479,7 +479,7 @@ private func drawModelSurfaceMeshes(
         uniforms.normalMatrix = normalMatrix
         uniforms.viewMatrix = viewMatrix
         uniforms.modelMatrix = modelMatrix
-        uniforms.cameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
+        uniforms.cameraPosition = shadingCameraPosition(cameraComponent)
         uniforms.projectionMatrix = renderInfo.perspectiveSpace
 
         renderEncoder.setVertexBytes(
