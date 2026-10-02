@@ -466,22 +466,23 @@ Use this as the default scene-root helper when your app supports both panning an
 
 ## Combining Scene Drag, Rotate and Zoom
 
-All three scene-level gestures can live in the same input loop — they gate on different input conditions so they don't conflict:
+Scene drag/rotate and entity zoom can share an input loop, but choose explicit precedence: the unified lifecycle latches its drag/rotate mode, and adding a second hand does not automatically stop an already active drag. This example gives two-hand entity zoom priority and ends the scene session before scaling:
 
 ```swift
 func handleInput() {
     let state = getXRSpatialInputState()
 
-    // Single-hand pinch + drag → pan the scene
-    processAnchoredSceneDragLifecycle(from: state)
-
-    // Two-hand pinch + twist → rotate the scene (yaw)
-    processAnchoredSceneRotateLifecycle(from: state)
-
-    // Two-hand pinch + spread/pinch → zoom an entity
-    applyTwoHandZoomIfNeeded(from: state)
+    if state.currentPhase != .ended, state.currentPhase != .cancelled,
+       state.leftHandPinching, state.rightHandPinching, state.spatialZoomActive {
+        endAnchoredSceneManipulation()
+        applyTwoHandZoomIfNeeded(from: state)
+    } else {
+        processAnchoredSceneManipulationLifecycle(from: state)
+    }
 }
 ```
+
+`applyTwoHandZoomIfNeeded` changes a selected entity's **local scale** (its parent by default); it does not resize `SceneRootTransform`. For a tabletop model or an entire placed scene, use the [scene-root scaling recipe](#two-hand-scene-root-scaling) below instead.
 
 For context-based entity vs. scene rotation — route two-hand twist to entity rotate when something is picked, and to scene rotate otherwise:
 
@@ -489,18 +490,25 @@ For context-based entity vs. scene rotation — route two-hand twist to entity r
 func handleInput() {
     let state = getXRSpatialInputState()
 
-    // Scene-level drag (always active)
-    processAnchoredSceneDragLifecycle(from: state)
+    if state.currentPhase == .ended || state.currentPhase == .cancelled {
+        endAnchoredSceneManipulation()
+        return
+    }
+
+    if state.leftHandPinching, state.rightHandPinching, state.spatialZoomActive {
+        endAnchoredSceneManipulation()
+        applyTwoHandZoomIfNeeded(from: state)
+        return
+    }
 
     if state.pickedEntityId != nil {
+        endAnchoredSceneManipulation()
         // Entity is picked → two-hand twist rotates the entity
         applyTwoHandRotateIfNeeded(from: state)
     } else {
-        // Nothing picked → two-hand twist rotates the scene
-        processAnchoredSceneRotateLifecycle(from: state)
+        // Nothing picked → drag or rotate the scene
+        processAnchoredSceneManipulationLifecycle(from: state)
     }
-
-    applyTwoHandZoomIfNeeded(from: state)
 }
 ```
 
@@ -508,7 +516,7 @@ func handleInput() {
 
 ## Two-Hand Zoom
 
-Apply the built-in zoom response:
+Apply the built-in **entity** zoom response. This scales the target's local transform, even if you call that entity your "scene root"; it does not change the engine's `SceneRootTransform`. Its limits come from `setSpatialManipulation(.zoomScale(min:max:))`.
 
 ```swift
 let state = getXRSpatialInputState()
@@ -531,6 +539,73 @@ if let picked = state.pickedEntityId {
     }
 }
 ```
+
+------------------------------------------------------------------------
+
+## Two-Hand Scene-Root Scaling
+
+To resize an entire placed scene, use the public uniform `scaleSceneTo(_ scale: Float)` overload. It changes `SceneRootTransform` without rewriting entity transforms or rebuilding static batches. No picked entity is required. `getSpatialZoomDelta()` reports the frame's change in hand separation in meters (positive for spreading, negative for bringing hands together). The following app-defined response maps that delta through sensitivity to a multiplicative factor (`1 + delta * sensitivity`), once per frame, matching the entity helper's response:
+
+```swift
+import UntoldEngine
+import simd
+
+// Call scaleSceneTo(1.0) when initializing/resetting your placement.
+// Configure these limits for your model's units and intended tabletop size.
+func applySceneRootZoom(
+    from state: XRSpatialInputState,
+    sensitivity: Float = 1.0,
+    minScale: Float = 0.05,
+    maxScale: Float = 20.0
+) {
+    guard state.currentPhase != .ended, state.currentPhase != .cancelled,
+          state.leftHandPinching, state.rightHandPinching, state.spatialZoomActive,
+          sensitivity.isFinite, sensitivity > 0,
+          minScale.isFinite, maxScale.isFinite,
+          minScale > 0, maxScale >= minScale else { return }
+
+    let delta = InputSystem.shared.getSpatialZoomDelta() * sensitivity
+    guard delta.isFinite, delta != 0 else { return }
+
+    let factor: Float = 1 + delta
+    guard factor.isFinite, factor > 0 else { return }
+
+    let current = SceneRootTransform.shared.scale
+    // This recipe expects an already uniform, positive scene scale.
+    guard current.x.isFinite, current.y.isFinite, current.z.isFinite,
+          current.x > 0, current.x == current.y, current.x == current.z else { return }
+
+    let requested = current.x * factor
+    guard requested.isFinite else { return }
+
+    let clamped = min(max(requested, minScale), maxScale)
+    scaleSceneTo(clamped) // Float overload writes the same value on all three axes.
+}
+
+func handleInput() {
+    let state = getXRSpatialInputState()
+
+    if state.currentPhase != .ended, state.currentPhase != .cancelled,
+       state.leftHandPinching, state.rightHandPinching, state.spatialZoomActive {
+        // Zoom owns this frame, even if the delta is rejected or at a limit.
+        endAnchoredSceneManipulation()
+        applySceneRootZoom(from: state, minScale: 0.05, maxScale: 20.0)
+    } else {
+        // Always forward end/cancel and release frames for lifecycle cleanup.
+        processAnchoredSceneManipulationLifecycle(from: state)
+    }
+}
+```
+
+These are app-configured scene limits, independent of the entity helper's `.zoomScale` setting. Invalid limits, sensitivity, deltas, overflow, or a nonuniform/nonpositive current scale skip the write. Initialize the scene with a uniform scale inside your chosen range; after a valid update the scale stays within that range. Poll and apply the delta only once in each `handleInput()` frame; do not also call the entity zoom helper for the same scene-resize interaction.
+
+### Placement Pivot And Lifecycle Composition
+
+The scene-root matrix is `T * R * S`. Scaling keeps the **scene-local origin** fixed at `SceneRootTransform.shared.position` in visual world space; it changes neither position nor rotation. Author or arrange the model so its intended contact point (for example, the center of its base) is at scene-local `(0, 0, 0)`, then place that origin on the table using `translateSceneTo(position: hit.worldPosition)`. A contact point away from the origin will move when scaling: the pivot is not the picked entity, hand midpoint, or last surface hit.
+
+The input loop gives zoom priority over rotation if both signals are active. Ending the unified lifecycle clears its latched mode and cached drag position/rotation baseline. When zoom ends, drag/rotate begins a fresh session at the current placement, so a drag that started before zoom cannot restore an old placement. This intentionally sequences zoom and drag/rotate; it does not provide simultaneous three-way manipulation. Call `endAnchoredSceneManipulation()` on mode changes and before externally changing placement. If your app previously used the individual scene drag/rotate helpers, switch to this unified loop rather than continuing to call them alongside it.
+
+For a contact point away from the origin, keeping that point fixed would also require compensating the root translation: for scene-local pivot `p`, preserve `worldPivot = position + rotation.act(scale * p)` and set the new position to `worldPivot - rotation.act(newScale * p)`. Such translation must end/rebase any anchored drag session. It also changes the root origin used by scene yaw rotation, so the origin-based placement above is the recommended recipe when composing with the existing anchored rotation helper.
 
 ------------------------------------------------------------------------
 
