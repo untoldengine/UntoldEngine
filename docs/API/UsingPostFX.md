@@ -96,7 +96,7 @@ setRendering(.antiAliasing(.none))   // No anti-aliasing
 | `.smaa` | Three-pass chain (edge detection → blend weights → neighborhood blend). Sharper than FXAA, handles diagonal and corner patterns. Costs ~3× the GPU time of FXAA. |
 | `.none` | Anti-aliasing skipped entirely. The output transform reads directly from the look pass. |
 
-SMAA also exposes intermediate debug views through `setRendering(.debugView(...))`:
+SMAA also exposes intermediate debug views through `setRendering(.debugView(...))`, alongside G-Buffer, occlusion, tonemap, and POM debug views:
 
 ```swift
 setRendering(.debugView(.smaaEdges))      // Show edge detection result
@@ -104,7 +104,17 @@ setRendering(.debugView(.smaaBlend))      // Show blend-weight texture
 setRendering(.debugView(.smaaDifference)) // Show original vs. resolved difference
 setRendering(.debugView(.fxaaEdgeDebug))  // Show FXAA luma-gradient edge map
 setRendering(.debugView(.lit))            // Normal rendering (default)
+
+setRendering(.debugView(.roughness))              // G-Buffer roughness channel
+setRendering(.debugView(.metallic))               // G-Buffer metallic channel
+setRendering(.debugView(.occlusionDebug))         // Green wireframe AABBs around HZB-occluded entities
+setRendering(.debugView(.preTonemapHDRLuminance)) // Scene luminance before Look/ACES tonemapping
+setRendering(.debugView(.postTonemapOutput))      // Post-tonemap output, routed explicitly for color-pipeline checks
+setRendering(.debugView(.heightDebug))            // Raw height-map sample used by Parallax Occlusion Mapping
+setRendering(.debugView(.pomOffsetDebug))         // Magnitude of the POM UV displacement, as a heatmap
 ```
+
+See [Using Rendering System](UsingRenderingSystem.md#debug-view-modes) for the full `RenderDebugViewMode` list.
 
 ---
 

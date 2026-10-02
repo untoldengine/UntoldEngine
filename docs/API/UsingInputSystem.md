@@ -56,7 +56,7 @@ if keyState.dPressed {
 |---|---|
 | Movement/common letters | `wPressed`, `aPressed`, `sPressed`, `dPressed`, `qPressed`, `ePressed`, `fPressed`, `hPressed`, `jPressed`, `kPressed`, `lPressed` |
 | Function keys | `f1Pressed` through `f12Pressed` |
-| Navigation/modifier keys | `tabPressed`, `spacePressed`, `shiftPressed`, `ctrlPressed`, `altPressed` |
+| Navigation/modifier keys | `tabPressed`, `spacePressed`, `shiftPressed`, `ctrlPressed`, `altPressed`, `commandPressed` |
 | Mouse buttons | `leftMousePressed`, `rightMousePressed`, `middleMousePressed` |
 
 On macOS, keyboard events are ignored while an `NSText` field is focused, so typing into editor text controls does not leak into game input. Modifier flags update from system flag-change events.

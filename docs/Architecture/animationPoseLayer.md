@@ -1,190 +1,105 @@
-# Animation Pose Layer
+# Animation Pose Pipeline
 
-Status: **design — pending review**
-Branch: `feature/animation_pose_layer`
+Status: **shipped** — covers the full animation foundation and character
+deformation stack: pose layers, physics pose, compute skinning, DQS/DDM, morph
+targets, pose drivers, XPBD muscles, ML deformer, and motion-capture seams.
 
 ## Purpose
 
-This document specifies the first milestone (M1) of the data-driven character
-animation effort: a runtime **pose layer** that upgrades the engine's skeletal
-animation from "one clip, hard cuts, no locomotion" to a foundation that
-supports motion matching and, later, learned controllers.
+`Sources/UntoldEngine/Animation/` is a data-driven character animation
+pipeline that replaced the engine's original "one clip, hard cuts, no
+locomotion" skeletal animation with indexed, allocation-free clip sampling,
+inertialized transitions, root motion, pose layering, two kinds of IK, motion
+matching, and a physics-pose seam. It is built **in-engine**, not as a
+pluggable external system — see *Extensibility* below for why.
 
-The overall roadmap (see *Context* below) is:
+This document describes the pose-production pipeline: turning clips (and,
+optionally, motion matching or a physics plugin) into the per-frame joint pose
+that gets composed into world space and uploaded to the skin. It does not
+cover the post-skinning deformation stack (compute skinning variants, DQS/DDM,
+morph targets, XPBD muscles, the ML deformer) — that lives downstream of this
+pipeline's output and is documented separately in
+[`muscleDeformation.md`](muscleDeformation.md).
 
-| Milestone | Deliverable |
-|---|---|
-| **M1 (this doc)** | Indexed pose representation, allocation-free clip sampling, inertialized transitions, root motion |
-| M2 | Two-bone foot IK using the existing ray-picking systems |
-| M3 | Motion matching: feature database, nearest-neighbour search, trajectory queries from `SteeringSystem` |
-| M4 | Demo: AI character locomoting over real terrain on visionOS with no animation state machine |
-| Later | Learned Motion Matching (network compression of the database); physics-based controllers |
+## Runtime representation
 
-M1 is valuable on its own even if nothing after it ships: every consumer of
-`changeAnimation` gets smooth transitions, and locomotion clips stop sliding.
+**Pose buffer** (`PoseBuffer.swift`) — structure-of-arrays, local space,
+indexed by skeleton joint index (same order as `Skeleton.jointPaths`):
+translations (`[simd_float3]`) and rotations (`[simd_quatf]`). Scale is not
+animated by the runtime format; rest-pose local scale is folded in when
+matrices are built.
 
-## Context: what exists today
+**Compiled clip** (`CompiledAnimationClip.swift`) — built once when a clip is
+bound to a skeleton. The loader-facing `AnimationClip`'s string-path joint
+lookups are resolved to skeleton-joint-index-aligned arrays exactly once, at
+compile time (via `Skeleton.mapJoints`); joints the clip doesn't animate fall
+back to the rest pose at compile time, so there's no per-frame dictionary-miss
+handling. `AnimationComponent` lazily builds and caches `compiledClip(for:
+skeleton:)` per clip name.
 
-- `Skeleton` (`Sources/UntoldEngine/Mesh/Skeleton.swift`) stores parallel
-  arrays of `simd_float4x4` keyed by joint **string paths**.
-- `AnimationClip.jointAnimation` is a `[String: Animation]` dictionary; every
-  joint lookup, every frame, hashes a string path.
-- `Animation.interpolateKeyframes` builds a `(previous, next)` tuple **array
-  per joint per channel per frame** and linear-scans it — an allocation and an
-  O(keys) walk in the hottest loop of the system.
-- `changeAnimation` swaps `currentAnimation` with an instant pop; `currentTime`
-  is not even reset, so the new clip starts at an arbitrary phase.
-- Root joint translation is baked into the pose: a walk clip drags the mesh
-  away from the entity transform, then snaps back on loop
-  (`updateWorldPose` wraps with `fmod`).
-- The per-skin joint `MTLBuffer` is single-buffered and CPU-written while
-  earlier frames may still read it (contrast `TripleBuffer.swift` used for
-  per-mesh uniforms).
+**Sampler** (`ClipSampler.swift`) — allocation-free, binary search with a
+per-player cursor hint; consecutive frames advance monotonically so the hint
+hits almost always.
 
-None of this matters at "one idle clip per entity". All of it matters when a
-controller samples multiple clips per frame and transitions constantly.
+## Per-frame pipeline
 
-## Design
+`updateAnimationSystem` (`Sources/UntoldEngine/Systems/AnimationSystem.swift`)
+runs this sequence per entity, every frame, in this order:
 
-Four pieces, deliberately layered so each lands as its own PR with tests.
-
-### 1. Indexed pose representation + compiled clips
-
-New directory `Sources/UntoldEngine/Animation/`.
-
-**Pose buffer** — structure-of-arrays, local space, indexed by skeleton joint
-index (same order as `Skeleton.jointPaths`):
-
-```swift
-struct PoseBuffer {
-    var translations: [simd_float3]   // local, per joint
-    var rotations: [simd_quatf]       // local, per joint
-    // scale is not animated by the runtime format; the rest-pose local
-    // scale is folded in when matrices are built (matches current
-    // AnimationClip.getPose behavior).
-}
-```
-
-Local quaternions + translations are the canonical runtime representation.
-Matrices are derived at the end of the frame; nothing blends matrices. (The 6D
-rotation representation from the research plan is a *network I/O* format for
-M3+/ML; it does not appear in the runtime.)
-
-**Compiled clip** — built once when a clip is bound to a skeleton:
-
-```swift
-final class CompiledAnimationClip {
-    let name: String
-    let duration: Float
-    // Per skeleton-joint channel, index-aligned with Skeleton.jointPaths.
-    // Joints the clip does not animate fall back to the rest pose at
-    // compile time — no per-frame dictionary miss handling.
-    let rotationTimes: [[Float]]      // per joint, sorted
-    let rotationValues: [[simd_quatf]]
-    let translationTimes: [[Float]]
-    let translationValues: [[simd_float3]]
-    // Root motion metadata (section 3)
-    let rootDisplacementPerLoop: simd_float3
-    let rootYawPerLoop: Float
-}
-```
-
-The string-path → index resolution happens exactly once, at compile time,
-using the existing `Skeleton.mapJoints`. The existing `AnimationClip` remains
-the loader-facing type; `AnimationComponent` gains a lazily-built
-`compiledClips: [String: CompiledAnimationClip]` cache keyed by clip name.
-
-**Sampler** — allocation-free, binary search with a per-player cursor hint
-(consecutive frames advance monotonically, so the hint hits almost always):
-
-```swift
-struct ClipSampler {
-    var cursor: [Int]   // per-joint last keyframe index hint
-    mutating func sample(_ clip: CompiledAnimationClip, at time: Float,
-                         into pose: inout PoseBuffer)
-}
-```
-
-`Skeleton` gains one method to close the loop with the existing renderer:
-
-```swift
-func updateWorldPose(from localPose: PoseBuffer)
-```
-
-which composes the hierarchy exactly like the current `computeWorldPose`
-(including the inverse-bind multiply) and writes `currentPose`. GPU skinning,
-shaders, and `Skin.updateJointMatrices` are untouched.
-
-**Compatibility gate:** unit tests sample the same clip through the old path
-(`AnimationClip.getPose`) and the new path and assert per-joint equality
-within epsilon. The old sampling code is removed only after that test is
-green; `AnimationSystem.update` then routes through the compiled path
-unconditionally.
-
-### 2. Inertialized transitions
-
-Replaces nothing (there is no blending today) and does not introduce
-crossfades. On `changeAnimation`, instead of popping:
-
-1. Sample the **outgoing** state one last time (pose + per-joint velocity,
-   estimated by finite difference over the previous frame).
-2. Compute the per-joint **offset** from the incoming clip's pose at its
-   start time: translation offset as a vector, rotation offset as a rotation
-   vector (quaternion log), plus offset velocities.
-3. Each frame, decay the offset toward zero with a critically damped
-   spring (Daniel Holden's inertialization formulation, halflife-parameterized)
-   and add it on top of the incoming clip's sampled pose.
-
-State lives in a `PoseTransition` struct on `AnimationComponent` (offset
-buffers + halflife + remaining flag). Cost: two `PoseBuffer`s per entity and
-a few fused multiply-adds per joint — no second clip is sampled after the
-transition frame, which is the point of inertialization vs. crossfade.
-
-Public API — extend, don't break:
-
-```swift
-public func changeAnimation(entityId: EntityID, name: String,
-                            transitionHalflife: Float = 0.1,
-                            withPause: Bool = false)
-```
-
-`transitionHalflife: 0` reproduces today's hard cut. `currentTime` resets to
-0 on change (bug fix; noted in the PR).
-
-### 3. Root motion
-
-Opt-in per entity (default off — existing content behaves exactly as today):
-
-```swift
-public func setRootMotionEnabled(entityId: EntityID, enabled: Bool, rootJointPath: String? = nil)
-```
-
-When enabled, for the designated root joint (the first joint with a `nil`
-parent, overridable by joint path):
-
-- The sampler extracts the root's **horizontal translation delta and yaw
-  delta** per frame in character space. Loop wrap is handled with the
-  precomputed `rootDisplacementPerLoop` / `rootYawPerLoop`: when the clip
-  time wraps, the delta is `(end→loopEnd) + (loopStart→newTime)` rather than
-  the raw negative jump.
-- Those deltas are applied to the entity via the existing
-  `translateBy` / `rotateBy` (`TransformSystem`), rotated into world space by
-  the entity's current orientation.
-- The root joint's horizontal translation and yaw are **removed from the
-  pose** (vertical motion, pitch and roll stay — a stumbling zombie leans).
-
-This runs inside `AnimationSystem.update`, which executes before
-`PhysicsSystem` in the frame (`UntoldEngine.swift` update order), so physics
-and steering see the post-root-motion transform in the same frame.
-
-### 4. Joint buffer frames-in-flight fix
-
-Independent `[Patch]` PR: `Skin.jointTransformsBuffer` becomes a ring of
-`totalPerMeshUniformBuffers()` buffers indexed by the frame-in-flight counter,
-mirroring the existing per-mesh uniform pattern, with the bind site in
-`RenderPasses.swift` selecting the current slot. Today's single buffer is a
-latent CPU-write/GPU-read race that becomes visible tearing the moment poses
-change every frame on multiple entities.
+1. **Motion matching** (if `animationComponent.motionMatching.isEnabled`) may
+   switch the current clip/time before anything else samples it — it reads
+   the goal trajectory and feature database and picks the best-matching
+   clip/time for this frame. See `MotionMatching.swift`/`MotionDatabase.swift`
+   and [`UsingMotionMatching.md`](../API/UsingMotionMatching.md).
+2. **Sample** the compiled clip into `localPose` (raw, no transitions applied
+   yet).
+3. **Root motion** (`RootMotion.swift`) runs on the *raw* sampled pose, before
+   transition offsets — deltas come straight from the clip; extracts the root
+   joint's horizontal translation/yaw delta per frame, applies it to the
+   entity transform, and removes it from the pose (vertical motion, pitch,
+   and roll stay in the pose — a stumbling zombie still leans). Opt-in per
+   entity via `setRootMotionEnabled`. See
+   [`UsingRootMotion.md`](../API/UsingRootMotion.md).
+4. **Inertialized transition** (`Inertialization.swift`) decays in real time
+   (independent of playback speed) toward zero offset, blending the outgoing
+   pose's offset on top of the incoming clip — no second clip is sampled
+   after the transition frame, which is the point of inertialization over
+   crossfade. Triggered by `changeAnimation(transitionHalflife:)`. See
+   [`UsingAnimationTransitions.md`](../API/UsingAnimationTransitions.md).
+5. **External pose** (`ExternalPose.swift`) overrides the animated rotations
+   of whichever joints a motion-capture (or other external) source is
+   driving, on top of the transitioned pose.
+6. **Pose layer** (`PoseLayer.swift`) — one override clip, sampled on its own
+   clock, whose local rotations replace those of a joint subset (given as
+   subtree roots, e.g. both clavicles → the whole upper body). Layer clip
+   switches crossfade over a halflife, and influence eases toward a target
+   weight, so a posture change reads as a movement rather than a cut. Runs
+   after the base clip's transition but before IK, so motion matching (which
+   reads feet/hips) never sees it, and reach IK bends the layered arms. See
+   [`UsingPoseLayers.md`](../API/UsingPoseLayers.md).
+7. **Reach IK** (`ReachIK.swift`) — multi-chain IK (e.g. hand-to-target)
+   applied after the pose layer.
+8. **Foot IK** (`FootIK.swift`) — corrects the final pose by planting feet on
+   real geometry (via a ground query), after root motion and transitions have
+   settled the pose. Includes optional stance locking
+   (`FootIKStanceLockSource`). See [`UsingFootIK.md`](../API/UsingFootIK.md).
+9. **Physics pose** (`PhysicsPose.swift`) lands last, on the fully animated
+   pose: for the joints it weights, a physics plugin's bodies win over every
+   stage above. The animation's own local pose is captured aside first (via
+   `Skeleton.captureAnimatedPose`) so a plugin driving its bodies toward the
+   animation never chases its own already-blended result; it's restored after
+   skinning (`restoreAnimatedLocalPose`) so pose history for the *next*
+   frame's transitions/inertialization stays the animation's own, not the
+   physics-blended one. See [`UsingPhysicsPose.md`](../API/UsingPhysicsPose.md).
+10. **Compose** — `Skeleton.updateWorldPose(from:localScales:)` turns the
+    final local pose into world-space joint matrices (hierarchy compose,
+    including the inverse-bind multiply), matching the pre-pipeline
+    `computeWorldPose` behavior exactly.
+11. **Skin** — `Skin.updateJointMatrices(skeleton:)` per mesh in the render
+    component. GPU skinning, shaders, and the skin buffer itself are
+    unaffected by anything above; downstream deformation (compute skinning
+    variants, DQS/DDM, morph targets, XPBD muscles, ML deformer) consumes this
+    output — see [`muscleDeformation.md`](muscleDeformation.md).
 
 ## Extensibility: where the plugin seam is
 
@@ -192,85 +107,64 @@ A recurring question: should this live outside the engine as a plugin, with
 the engine exposing only a minimal API — so a game could swap in a different
 animation system later?
 
-The realistic future is not "one game uses a different animation system"; it
-is "one *scene* uses several at once": crowd characters on motion matching,
-props on plain clip playback, a hero character on a learned controller. That
+The realistic case is not "one game uses a different animation system"; it is
+"one *scene* uses several at once": crowd characters on motion matching, props
+on plain clip playback, a hero character with physics-driven joints. That
 argues for a seam **per entity**, not a globally replaceable system. The
 layering is:
 
 ```
 ┌────────────────────────────────────────────────────────┐
 │ Controllers (pluggable, per entity)                    │
-│   built-in clip player · motion matching (M3) · ML     │
+│   built-in clip player · motion matching ·             │
+│   physics pose (external bodies) · motion capture      │
 ├────────────────────────────────────────────────────────┤
 │ Pose machinery (engine-owned, this doc)                │
 │   PoseBuffer · compiled clips · sampler ·              │
 │   inertialization · root motion application ·          │
-│   hierarchy compose · skinning upload                  │
+│   pose layer · reach/foot IK · hierarchy compose ·     │
+│   skinning upload                                       │
 └────────────────────────────────────────────────────────┘
 ```
 
-The contract between the layers is small: *given an entity and a delta time,
-fill a `PoseBuffer` (local space) and optionally report a root-motion delta*.
-Everything below that line is machinery every controller needs and should not
-be reimplemented per plugin; everything above it is strategy.
+The contract between the layers stays small: *given an entity and a delta
+time, fill (or override part of) a `PoseBuffer` (local space), optionally
+reporting a root-motion delta or taking over weighted joints*. Everything
+below that line is machinery every controller needs and should not be
+reimplemented per plugin; everything above it is strategy.
 
-Consequences for M1:
+There is still no general-purpose public `AnimationPoseController` protocol —
+each controller (motion matching, physics pose, external/motion-capture pose,
+pose layer) is a dedicated built-in stage with its own public setup API
+(`setMotionMatching`, `setPhysicsPose`, `setPoseLayerMask/Clip/Weight`, etc.)
+rather than a registrable plugin type. Publishing a generic controller
+protocol remains deferred until a concrete third-party use case needs it; the
+cost of freezing the wrong API before a second independent implementation has
+exercised it reliably still outweighs the convenience.
 
-- The machinery is built **in-engine** (as decided), but `AnimationSystem`'s
-  update is structured as *evaluate controller → inertialize → apply root
-  motion → compose → skin* from the start, with the existing clip player as
-  the built-in controller. No public protocol yet. (Since M1 the layer, reach
-  IK and foot IK stages sit between root motion and compose, and a
-  **physics pose** — a model-space pose a physics plugin hands in through
-  `setPhysicsPose`, blended per joint — is the last stage before compose;
-  see `docs/API/UsingPhysicsPose.md`.)
-- The controller interface (`PoseBuffer` + an `AnimationPoseController`
-  protocol + registration) is **published only when M3 exists** — motion
-  matching is the first real external consumer, and freezing a public API
-  before a second implementation has exercised it reliably produces the
-  wrong API. Publishing it is a small `[Feature]` PR at that point; under
-  the repo's auto-semver it must be additive.
-- Until then nothing new is `public`; the engine's API surface (and semver)
-  is untouched by PRs ①–②.
+## What this pipeline does not do
 
-## What M1 does not do
+- No layered/partial-body **state machines** — pose layer crossfades and
+  inertialized transitions cover the cases this engine's consumers need
+  without one.
+- No new shaders or metallib changes from the pose pipeline itself; skinning
+  consumes its output unchanged. (The separate deformation stack in
+  `muscleDeformation.md` does add shaders/kernels, downstream of this.)
+- No changes to the `.untold` format from the pose pipeline itself (motion
+  matching's offline database builder and the muscle/ML-deformer work added
+  their own format additions, documented in their own docs).
 
-- No motion database, feature vectors, or nearest-neighbour search (M3).
-- No IK (M2).
-- No layered/partial-body blending, no state machines — the target
-  architecture (motion matching) does not need them.
-- No new shaders or metallib changes; skinning stays as-is.
-- No changes to the `.untold` format or the Blender exporter. (M3 will need
-  an offline motion-database builder that consumes `.untold` clips; format
-  additions are deferred until then.)
+## See Also
 
-## PR breakdown
-
-Per the contribution guidelines (one feature per PR, tests required,
-how-to guide for new systems):
-
-1. `[Feature]` Compiled clips + allocation-free pose sampling — internal,
-   behavior-identical, gated by the old-vs-new equality test.
-2. `[Patch]` Joint transform buffer frames-in-flight ring.
-3. `[Feature]` Inertialized animation transitions — public API change,
-   how-to guide (`docs/API/UsingAnimationTransitions.md`), demo snippet.
-4. `[Feature]` Root motion — public API, how-to guide, test with a synthetic
-   clip whose root displacement is known analytically.
-
-## Testing
-
-- **Equality gate:** old sampler vs. compiled sampler, all clips in the test
-  assets, epsilon 1e-5.
-- **Sampler correctness:** synthetic clips with hand-computed keyframe values
-  (mid-key interpolation, exact-key hits, wrap, single-key channels, unanimated
-  joints preserving rest translation/scale).
-- **Inertialization:** offset decays monotonically to zero within ~4×
-  halflife; zero halflife reproduces a hard cut; pose is continuous (C0) at
-  the transition frame by construction.
-- **Root motion:** synthetic 4-key straight-walk clip — accumulated entity
-  displacement over exactly N loops equals N × known displacement; no snap at
-  the wrap frame.
-- **Performance guard:** the sampler's buffers must not grow after warm-up
-  (steady-state sampling reuses `PoseBuffer` and scratch storage), plus a
-  `measure`-based regression test over many sequential frames.
+- [`UsingAnimationSystem.md`](../API/UsingAnimationSystem.md) — basic clip
+  playback and policy API
+- [`UsingAnimationTransitions.md`](../API/UsingAnimationTransitions.md) —
+  inertialized transitions
+- [`UsingPoseLayers.md`](../API/UsingPoseLayers.md) — pose layer + reach IK API
+- [`UsingFootIK.md`](../API/UsingFootIK.md) — foot IK API
+- [`UsingRootMotion.md`](../API/UsingRootMotion.md) — root motion API
+- [`UsingPhysicsPose.md`](../API/UsingPhysicsPose.md) — physics pose seam
+- [`UsingMotionMatching.md`](../API/UsingMotionMatching.md) — motion matching
+  API
+- [`muscleDeformation.md`](muscleDeformation.md) — post-skinning deformation
+  stack (compute skinning, DQS/DDM, morph targets, XPBD muscles, ML deformer)
