@@ -10,6 +10,56 @@ Spatial input in Untold Engine follows a simple pipeline:
 
 That separation keeps the system flexible: the OS-facing code stays in UntoldEngineXR, while gesture classification stays in the recognizer.
 
+## XR Input Model
+
+### Selection rays follow interactions
+
+`XRSpatialInputState.rayOriginWorld` and `rayDirectionWorld` describe the selection ray supplied by a visionOS spatial event, in world coordinates. They are updated when the recognizer processes a primary interaction snapshot with a valid ray direction. This is an **event-driven selection ray**, not a continuously updated eye-gaze or head-forward ray. Looking around without interacting does not refresh these fields.
+
+An event can arrive without a selection ray, including on `.ended`. In that case, the recognizer keeps the previous ray. Frames without new snapshots also retain the ray, `currentPhase`, and `timestamp`. Before any valid ray arrives, both ray fields are zero; clearing XR input resets the state. A nonzero ray or a `.changed` phase alone therefore does not indicate new input in the current frame. `timestamp` records the processed primary snapshot's time, not necessarily the last valid ray's time.
+
+Use gesture signals to decide when to act:
+
+| Signal | How to use it |
+|---|---|
+| `spatialTapActive` | Handle a completed tap once. The recognizer sets it on `.ended` when the interaction did not become a drag, then clears it on the next input update. The ray may be retained from an earlier event in that interaction. |
+| `spatialPinchActive` / `spatialDragActive` | Drive ongoing manipulation while the gesture is active. These signals do not guarantee a newly received selection ray each frame. |
+| `spatialZoomActive` / `spatialRotateActive` and their deltas | Apply the current input update's two-hand gesture deltas; the recognizer clears these signals and deltas at the next update. |
+| `.cancelled` | End manipulation without treating the interaction as a tap. The retained ray is not a new selection. |
+
+For example, raycast against a detected real surface when a tap completes:
+
+```swift
+func handleInput() {
+    let state = getXRSpatialInputState()
+    guard state.spatialTapActive else { return }
+
+    if let hit = pickRealSurfacePosition(
+        rayOrigin: state.rayOriginWorld,
+        rayDirection: state.rayDirectionWorld,
+        filter: .horizontalAny
+    ) {
+        Logger.log(message: "Tapped surface", vector: hit.worldPosition)
+    }
+}
+```
+
+Do not restrict tap handling to `.began` or `.changed`: a completed tap is reported on `.ended`. For entity selection, use `pickedEntityId` and the picked position/normal fields, which preserve the selection captured at the start of a completed tap. For ongoing transforms, use the [manipulation lifecycle helpers](#quick-example) to handle begin, update, end, and cancellation.
+
+### Gaze fields do not supply live tracking
+
+`gazePosition` and `gazeDirection` are placeholders for future expansion. The XR runtime does not populate them with live eye-gaze or head-pose data; both default to zero.
+
+On visionOS, `InputSystem.shared.getGazeTarget(maxDistance:)` only calculates `gazePosition + normalize(gazeDirection) * maxDistance` from the stored fields. It does not query tracking or raycast the scene. It returns `nil` for the default zero direction, non-finite position/direction values, or a non-finite/non-positive distance. Supplying values yourself makes this a target-point calculation, not a live gaze accessor.
+
+The engine currently exposes no continuous gaze ray through these APIs. A head-forward direction would also be a different input from eye gaze.
+
+### The active camera entity is not the XR head pose
+
+`CameraSystem.shared.activeCamera` identifies the scene's camera entity. Reading that entity with `getPosition(entityId:)` returns its authored or application-updated position. The XR runtime does not synchronize its entity transform to the live ARKit device anchor, so this is not a head-position accessor.
+
+XR rendering instead derives per-eye view matrices from the ARKit device anchor and the compositor's eye transforms. That rendering pose is not published as a current head-pose accessor for game code. See the [XR rendering lifecycle](../Architecture/xrRenderingSystem.md#2e-device-anchor-acquisition) for how anchors are acquired and retained during tracking gaps.
+
 ## What You Get in Game Code
 
 From XRSpatialInputState, you can read:

@@ -201,6 +201,8 @@ The completion handler signals `commandBufferSemaphore` when the GPU finishes, f
 
 The snapshot is processed on the next frame's update phase by `spatialGestureRecognizer.updateSpatialInputState()`, which converts raw ray/phase sequences into higher-level gesture events (tap, hold, drag) that game code can query.
 
+Selection rays update from interaction events, not continuously as the user looks around. A completed tap is reported on `.ended`, and an event without a valid ray retains the previous ray. Ray fields, phase, and timestamp can persist between events; game code should gate actions on gesture signals rather than assume those fields describe fresh input. The gaze fields are currently placeholders, and the active camera entity's transform is not synchronized to the ARKit head pose used for rendering. See the [XR input model](../API/UsingSpatialInput.md#xr-input-model) for tap handling, ray lifetime, and camera limitations.
+
 > The bridge is gated on `isSceneReady()` and `!AssetLoadingGate.shared.isLoadingAny`. Input events while loading are discarded to prevent game code from acting on uninitialized entities.
 
 ---
