@@ -3282,17 +3282,21 @@ def analyze_material(material: object) -> MaterialGraphAnalysis:
 
     principled = _principled_bsdf_node(node_tree)
     if principled is not None:
-        transmission = _unlinked_value(principled, "Transmission Weight", None)
-        if transmission is None:
-            transmission = _unlinked_value(principled, "Transmission", 0.0)
-        if transmission:
-            opacity = 1.0 - min(max(transmission, 0.0), 1.0) * (1.0 - TRANSMISSION_OPACITY)
+        transmission, unfollowed = principled_transmission(principled)
+        if transmission or unfollowed:
+            opacity = 1.0 - transmission * (1.0 - TRANSMISSION_OPACITY)
+            reason = f"transmission is approximated as a blended surface at {opacity:.0%} opacity"
+            if unfollowed:
+                reason = (
+                    "Transmission is driven by a texture or node math the exporter cannot follow; "
+                    f"its slider value {transmission:.2f} is used, so {reason}"
+                )
             findings.append(
                 MaterialGraphFinding(
                     getattr(principled, "name", "") or principled.bl_idname,
                     principled.bl_idname,
                     MATERIAL_GRAPH_BAKEABLE,
-                    f"transmission is approximated as a blended surface at {opacity:.0%} opacity",
+                    reason,
                 )
             )
 
@@ -5104,6 +5108,39 @@ def _scalar_socket_factor(input_socket: object, texture: Optional[ExportedTextur
     return float(input_socket.default_value)
 
 
+def principled_transmission(node: object) -> tuple[float, bool]:
+    """A Principled BSDF's transmission in [0, 1], and whether it could not be followed.
+
+    The socket is "Transmission Weight" from Blender 4.0 and "Transmission" before;
+    the old name is looked up only when the new one is absent, so a linked "Transmission
+    Weight" is not mistaken for a missing one (which read as no transmission at all).
+    A linked socket gets the value its node chain has seen straight on (see
+    evaluate_socket_facing). When a texture is in the way the slider value stands in,
+    as for the other scalar inputs (see _scalar_socket_factor), and the second value is
+    True so material fidelity analysis reports it.
+    """
+    inputs = getattr(node, "inputs", None)
+    socket = None
+    if inputs is not None:
+        socket = inputs.get("Transmission Weight")
+        if socket is None:
+            socket = inputs.get("Transmission")
+    if socket is None:
+        return 0.0, False
+    unfollowed = False
+    if getattr(socket, "is_linked", False):
+        value = evaluate_socket_facing(socket)
+        if value is not None:
+            return min(max(_as_scalar(value), 0.0), 1.0), False
+        unfollowed = True
+    value = getattr(socket, "default_value", 0.0)
+    try:
+        transmission = float(value)
+    except (TypeError, ValueError):
+        transmission = 0.0
+    return min(max(transmission, 0.0), 1.0), unfollowed
+
+
 def _shader_opacity(node: Optional[object]) -> Optional[float]:
     """How much of the surface a shader covers: 1 for a BSDF, 0 for Transparent BSDF,
     less for a transmissive Principled BSDF (see TRANSMISSION_OPACITY), mixed by a Mix
@@ -5115,10 +5152,7 @@ def _shader_opacity(node: Optional[object]) -> Optional[float]:
     if node_id == "ShaderNodeBsdfTransparent":
         return 0.0
     if node_id == "ShaderNodeBsdfPrincipled":
-        transmission = _unlinked_value(node, "Transmission Weight", None)
-        if transmission is None:
-            transmission = _unlinked_value(node, "Transmission", 0.0)
-        transmission = min(max(transmission or 0.0, 0.0), 1.0)
+        transmission, _ = principled_transmission(node)
         return 1.0 - transmission * (1.0 - TRANSMISSION_OPACITY)
     if node_id in {"ShaderNodeBsdfDiffuse", "ShaderNodeBsdfGlossy", "ShaderNodeEmission"}:
         return 1.0

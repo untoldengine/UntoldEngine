@@ -1829,6 +1829,30 @@ class MaterialAlphaTests(unittest.TestCase):
         plain = FakeNode("ShaderNodeBsdfPrincipled", inputs={"Transmission Weight": _socket("Transmission Weight", 0.0)})
         self.assertEqual(u.surface_opacity(self._material_with_surface(plain)), 1.0)
 
+    def test_a_linked_transmission_is_not_mistaken_for_none(self) -> None:
+        """A Transmission Weight driven by a texture (frosted or masked glass) used to
+        fall through to the pre-4.0 "Transmission" lookup and read as 0: opaque."""
+        mask = _make_image_node("frost_mask")
+        glass = FakeNode("ShaderNodeBsdfPrincipled", inputs={"Transmission Weight": _socket("Transmission Weight", 1.0, linked_from=(mask, "Color"))})
+        self.assertEqual(u.principled_transmission(glass), (1.0, True))
+        self.assertAlmostEqual(u.surface_opacity(self._material_with_surface(glass)), u.TRANSMISSION_OPACITY)
+
+        output = FakeNode("ShaderNodeOutputMaterial", inputs={"Surface": _socket("Surface", linked_from=(glass, "BSDF"))})
+        glass.name = "Principled BSDF"
+        findings = u.analyze_material(_make_material("frosted", [output, glass])).findings
+        self.assertTrue(any("cannot follow" in finding.reason and "slider value 1.00" in finding.reason for finding in findings))
+
+    def test_a_transmission_from_constant_node_math_is_evaluated(self) -> None:
+        value = FakeNode("ShaderNodeValue")
+        value.outputs = [_socket("Value", 0.5)]
+        glass = FakeNode("ShaderNodeBsdfPrincipled", inputs={"Transmission Weight": _socket("Transmission Weight", 0.0, linked_from=(value, "Value"))})
+        self.assertEqual(u.principled_transmission(glass), (0.5, False))
+        self.assertAlmostEqual(u.surface_opacity(self._material_with_surface(glass)), 1.0 - 0.5 * (1.0 - u.TRANSMISSION_OPACITY))
+
+    def test_the_pre_4_0_transmission_socket_is_still_read(self) -> None:
+        legacy = FakeNode("ShaderNodeBsdfPrincipled", inputs={"Transmission": _socket("Transmission", 1.0)})
+        self.assertEqual(u.principled_transmission(legacy), (1.0, False))
+
     def test_a_mix_driven_by_anything_but_backfacing_is_left_opaque(self) -> None:
         mix = FakeNode("ShaderNodeMixShader")
         mix.inputs = [_socket("Fac", 0.5, linked_from=(FakeNode("ShaderNodeLayerWeight"), "Facing")), _socket("Shader", linked_from=(FakeNode("ShaderNodeBsdfTransparent"), "BSDF")), _socket("Shader", linked_from=(FakeNode("ShaderNodeBsdfPrincipled"), "BSDF"))]
