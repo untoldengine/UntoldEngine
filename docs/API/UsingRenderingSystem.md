@@ -137,16 +137,23 @@ Use `.ssaoBlurred` in the debug view to inspect the final blurred occlusion text
 The engine can visualize individual G-Buffer layers and anti-aliasing internals in place of the final lit image:
 
 ```swift
-setRendering(.debugView(.lit))            // Normal output (default)
-setRendering(.debugView(.albedo))         // G-Buffer base color
-setRendering(.debugView(.normal))         // G-Buffer surface normals
-setRendering(.debugView(.position))       // G-Buffer world position
-setRendering(.debugView(.depth))          // Linearized depth buffer (grayscale)
-setRendering(.debugView(.ssaoBlurred))    // SSAO occlusion result
-setRendering(.debugView(.fxaaEdgeDebug))  // FXAA luma-gradient edge map
-setRendering(.debugView(.smaaEdges))      // SMAA edge detection output
-setRendering(.debugView(.smaaBlend))      // SMAA blend-weight texture
-setRendering(.debugView(.smaaDifference)) // Original vs. SMAA-resolved difference
+setRendering(.debugView(.lit))                // Normal output (default)
+setRendering(.debugView(.albedo))             // G-Buffer base color
+setRendering(.debugView(.normal))             // G-Buffer surface normals
+setRendering(.debugView(.position))           // G-Buffer world position
+setRendering(.debugView(.depth))              // Linearized depth buffer (grayscale)
+setRendering(.debugView(.roughness))          // G-Buffer roughness channel
+setRendering(.debugView(.metallic))           // G-Buffer metallic channel
+setRendering(.debugView(.ssaoBlurred))        // SSAO occlusion result
+setRendering(.debugView(.occlusionDebug))     // Lit scene with green wireframe AABBs around HZB-occluded entities
+setRendering(.debugView(.preTonemapHDRLuminance)) // Scene luminance before Look/ACES tonemapping
+setRendering(.debugView(.postTonemapOutput))  // Post-tonemap output, routed explicitly for color-pipeline checks
+setRendering(.debugView(.heightDebug))        // Raw height-map sample used by Parallax Occlusion Mapping
+setRendering(.debugView(.pomOffsetDebug))     // Magnitude of the POM UV displacement, as a heatmap
+setRendering(.debugView(.fxaaEdgeDebug))      // FXAA luma-gradient edge map
+setRendering(.debugView(.smaaEdges))          // SMAA edge detection output
+setRendering(.debugView(.smaaBlend))          // SMAA blend-weight texture
+setRendering(.debugView(.smaaDifference))     // Original vs. SMAA-resolved difference
 ```
 
 Restore normal rendering with `setRendering(.debugView(.lit))`.

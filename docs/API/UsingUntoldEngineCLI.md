@@ -334,6 +334,43 @@ scale s`).
 
 ---
 
+## Baking an ML Deformer Training Set
+
+`untoldengine bake-mldeformer` plays animation clips (plus smooth random
+augmentations) through the volumetric XPBD muscle simulation of a rigged
+`.untold` asset and records pose features and the skin deltas the muscles
+produce, every few frames, into a dataset you train a model on:
+
+```bash
+untoldengine bake-mldeformer --untold Models/hero/hero.untold \
+  --clip Animations/hero_flex/hero_flex.untoldanim \
+  --muscles hero.muscles.json --output bake/hero --passes 8
+```
+
+This writes `bake/hero.json`, `bake/hero.features.f32`, and
+`bake/hero.deltas.f16`. Train the network with `scripts/train_mldeformer.py`,
+which writes the `.untoldml` sidecar the runtime loads from next to the
+asset — see [`muscleDeformation.md`](../Architecture/muscleDeformation.md).
+
+| Flag | Description | Default |
+|---|---|---|
+| `--untold <path>` | The rigged `.untold` asset | — |
+| `--clip <path>` | Animation clip (`.untoldanim`); repeatable | — |
+| `--muscles <path>` | Muscle rig JSON (same format `untoldexplorer.py --muscles` consumes) | asset's muscle table |
+| `--output <path>` | Output base path, without extension | — |
+| `--passes <n>` | Augmentation passes per clip | `6` |
+| `--every <n>` | Record a sample every N simulated frames | `4` |
+| `--settle <n>` | Settle frames before the first sample of a play | `24` |
+| `--max-angle-degrees <f>` | Largest augmentation rotation per joint | `25` |
+| `--frame-rate <f>` | Simulation frame rate | `90` |
+| `--seed <u64>` | Random seed | `1` |
+
+If `--muscles` is omitted, the asset's own muscle table is used; the command
+fails with a clear error if neither is present. At least one `--clip` is
+required.
+
+---
+
 ## Partitioning Scenes into Streaming Tiles
 
 For large outdoor scenes, `export-tiles` partitions a USD/USDZ/`.blend` scene into
