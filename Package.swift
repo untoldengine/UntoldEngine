@@ -64,6 +64,10 @@ let package = Package(
         // @UntoldMenu, reflection, scene storage and the per-frame system. Platform neutral.
         .library(name: "UntoldComponentKit", targets: ["UntoldComponentKit"]),
 
+        // Cook-time mesh work: the automatic LOD chains of cooked models. For tools
+        // that cook assets (the CLI, an editor), not for the apps that load them.
+        .library(name: "UntoldEngineMeshCook", targets: ["UntoldEngineMeshCook"]),
+
         // NOTE: Demo executables are intentionally NOT declared as products so they
         // stay hidden from consumers of the package. SwiftPM creates implicit
         // products for executable targets in the root package, so they remain
@@ -87,6 +91,14 @@ let package = Package(
             cSettings: [
                 .headerSearchPath("include"),
             ]
+        ),
+        // meshoptimizer (MIT), unmodified: the mesh simplifier behind the cook's automatic
+        // LOD chains. UntoldEngineMeshCook calls it from Swift through its C API.
+        .target(
+            name: "CMeshOptimizer",
+            path: "Sources/CMeshOptimizer",
+            exclude: ["LICENSE.md", "README.md"],
+            publicHeadersPath: "include"
         ),
         .target(
             name: "UntoldEngine",
@@ -119,6 +131,17 @@ let package = Package(
                 // iOS UI stack (only if some targets import UIKit)
                 .linkedFramework("UIKit", .when(platforms: [.iOS])),
             ]
+        ),
+
+        // The cook's mesh work. A module of its own so that UntoldEngine does not import
+        // CMeshOptimizer: whatever compiles against a built UntoldEngine module without
+        // SwiftPM (the editor compiles a project's components that way) would otherwise
+        // need the module map of that C++ library as well.
+        .target(
+            name: "UntoldEngineMeshCook",
+            dependencies: ["UntoldEngine", "CMeshOptimizer"],
+            path: "Sources/UntoldEngineMeshCook",
+            swiftSettings: [.swiftLanguageMode(.v6)]
         ),
 
         // Vision OS target
@@ -273,14 +296,14 @@ let package = Package(
         ),
         .testTarget(
             name: "UntoldEngineTests",
-            dependencies: ["UntoldEngine", "UntoldEngineShaderSupport"],
+            dependencies: ["UntoldEngine", "UntoldEngineMeshCook", "UntoldEngineShaderSupport"],
             path: "Tests/UntoldEngineTests",
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),
         // Render-specific test target
         .testTarget(
             name: "UntoldEngineRenderTests",
-            dependencies: ["UntoldEngine"],
+            dependencies: ["UntoldEngine", "UntoldEngineMeshCook"],
             path: "Tests/UntoldEngineRenderTests",
             exclude: ["Resources/compare_psnr.py"],
             resources: [

@@ -427,6 +427,11 @@ At runtime, `NM_` objects default to `.selectableGeometry` and `.preserveIdentit
 After exporting assets, use [Optimizations](Optimizations.md) for optional
 workflows such as ASTC texture compression and LZ4 geometry compression.
 
+The export scripts write a `.untoldpack` without LOD chains. `untoldengine
+export` adds them as its last step; for a pack written by `scripts/export-untold`
+or by the Blender add-on, run `untoldengine bake-lods --input <name>.untoldpack`
+afterwards (see [LOD chains for packs](UsingUntoldEngineCLI.md#lod-chains-for-packs)).
+
 ## Loading The Result In The Engine
 
 Single asset:
