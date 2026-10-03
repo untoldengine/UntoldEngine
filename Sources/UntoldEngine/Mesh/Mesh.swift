@@ -887,34 +887,14 @@ public struct Material {
                 .generateMipmaps: NSNumber(value: true),
             ]
 
-            // Grayscale PNGs produce an r8Unorm Metal texture.  The shader samples it as
-            // RGBA where G=B=0, making the mesh appear solid red.  Detect and expand to
-            // RGBA via Core Graphics before handing off to MTKTextureLoader.
-            if let imageSource = CGImageSourceCreateWithURL(url as CFURL, nil),
-               let cgImage = CGImageSourceCreateImageAtIndex(imageSource, 0, nil),
-               cgImage.colorSpace?.model == .monochrome
-            {
-                let w = cgImage.width, h = cgImage.height
-                let colorSpace = isSRGB
-                    ? (CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB())
-                    : CGColorSpaceCreateDeviceRGB()
-                if let ctx = CGContext(
-                    data: nil, width: w, height: h,
-                    bitsPerComponent: 8, bytesPerRow: w * 4,
-                    space: colorSpace,
-                    bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.noneSkipLast.rawValue).rawValue
-                ) {
-                    ctx.draw(cgImage, in: CGRect(x: 0, y: 0, width: w, height: h))
-                    if let rgbaImage = ctx.makeImage(),
-                       let texture = try? textureLoader.newTexture(cgImage: rgbaImage, options: options)
-                    {
-                        Logger.log(
-                            message: "[UntoldTexture] Expanded grayscale \(label.lowercased()) to RGBA '\(runtimeMaterial.name ?? "<unnamed material>")' \(texture.width)x\(texture.height)",
-                            category: LogCategory.textureLoading.rawValue
-                        )
-                        return texture
-                    }
-                }
+            // A grayscale image loads as a texture of one channel, which a shader reading a
+            // color from it shows as solid red: load it with that channel in red, green and blue.
+            if let texture = loadGrayscaleTextureAsRGBA(url: url, isSRGB: isSRGB, loader: textureLoader, options: options) {
+                Logger.log(
+                    message: "[UntoldTexture] Expanded grayscale \(label.lowercased()) to RGBA '\(runtimeMaterial.name ?? "<unnamed material>")' \(texture.width)x\(texture.height)",
+                    category: LogCategory.textureLoading.rawValue
+                )
+                return texture
             }
 
             do {
@@ -1727,6 +1707,74 @@ final class TextureLoader {
         tex.replace(region: MTLRegionMake2D(0, 0, size, size), mipmapLevel: 0, withBytes: pixels, bytesPerRow: size * 4)
         return tex
     }
+}
+
+/// Loads a grayscale image as a texture that carries its one channel in red, green and
+/// blue, so that a shader reading a color from it sees gray and not red. Returns nil when
+/// the image is not grayscale: the caller then loads it as it is.
+///
+/// MTKTextureLoader takes the `.SRGB` option from a file and ignores it for a CGImage: the
+/// texture comes back as plain rgba8Unorm, and a color texture would be read as linear
+/// values, more than twice as bright in the middle tones. A color image is therefore
+/// handed back as an sRGB view of that texture.
+func loadGrayscaleTextureAsRGBA(
+    url: URL,
+    isSRGB: Bool,
+    loader: MTKTextureLoader,
+    options: [MTKTextureLoader.Option: Any]
+) -> MTLTexture? {
+    guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
+          let cgImage = CGImageSourceCreateImageAtIndex(source, 0, nil),
+          cgImage.colorSpace?.model == .monochrome
+    else { return nil }
+
+    let width = cgImage.width
+    let height = cgImage.height
+    let colorSpace = isSRGB
+        ? (CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB())
+        : CGColorSpaceCreateDeviceRGB()
+    guard let context = CGContext(
+        data: nil,
+        width: width,
+        height: height,
+        bitsPerComponent: 8,
+        bytesPerRow: width * 4,
+        space: colorSpace,
+        bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.noneSkipLast.rawValue).rawValue
+    ) else { return nil }
+
+    context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
+
+    guard let rgbaImage = context.makeImage(),
+          let texture = try? loader.newTexture(cgImage: rgbaImage, options: options)
+    else { return nil }
+
+    return isSRGB ? sRGBView(of: texture) : texture
+}
+
+/// The texture read as sRGB values: a view of it in the sRGB twin of its format, or the
+/// texture itself when it has none or is one already.
+private func sRGBView(of texture: MTLTexture) -> MTLTexture {
+    let sRGBFormat: MTLPixelFormat
+    switch texture.pixelFormat {
+    case .rgba8Unorm: sRGBFormat = .rgba8Unorm_srgb
+    case .bgra8Unorm: sRGBFormat = .bgra8Unorm_srgb
+    default: return texture
+    }
+    guard let view = texture.makeTextureView(pixelFormat: sRGBFormat) else { return texture }
+    view.label = texture.label
+
+    // The smaller levels were averaged from the stored values. Build them again through
+    // the view, which averages the light those values stand for, as for any color texture.
+    if view.mipmapLevelCount > 1,
+       let commandBuffer = renderInfo.commandQueue?.makeCommandBuffer(),
+       let blitEncoder = commandBuffer.makeBlitCommandEncoder()
+    {
+        blitEncoder.generateMipmaps(for: view)
+        blitEncoder.endEncoding()
+        commandBuffer.commit()
+    }
+    return view
 }
 
 func createTextureDescriptor(device: MTLDevice,

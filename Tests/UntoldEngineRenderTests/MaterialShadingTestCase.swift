@@ -157,6 +157,24 @@ class MaterialShadingTestCase: BaseRenderSetup {
         return sum / Float(window * window)
     }
 
+    /// An 8 x 8 grayscale PNG of one value: a single channel of 8 bits, the way an
+    /// exporter writes a texture whose red, green and blue are the same.
+    func writeGrayscaleTexture(value: UInt8) throws -> URL {
+        let size = 8
+        var pixels = [UInt8](repeating: value, count: size * size)
+        let context = try XCTUnwrap(CGContext(
+            data: &pixels, width: size, height: size, bitsPerComponent: 8, bytesPerRow: size,
+            space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGImageAlphaInfo.none.rawValue
+        ))
+        let image = try XCTUnwrap(context.makeImage())
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("texture-gray-\(value)-\(UUID().uuidString).png")
+        let destination = try XCTUnwrap(CGImageDestinationCreateWithURL(url as CFURL, UTType.png.identifier as CFString, 1, nil))
+        CGImageDestinationAddImage(destination, image, nil)
+        XCTAssertTrue(CGImageDestinationFinalize(destination))
+        addTeardownBlock { try? FileManager.default.removeItem(at: url) }
+        return url
+    }
+
     /// An 8 x 8 PNG of one color, 8 bits per channel, as an exporter writes a texture.
     func writeTexture(red: UInt8, green: UInt8, blue: UInt8) throws -> URL {
         let size = 8
