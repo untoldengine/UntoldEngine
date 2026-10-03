@@ -201,21 +201,29 @@ def export_asset(
     result["texture_bake_status"] = "skipped"
 
     if bake_textures:
-        # A pack model's textures are staged relative to its own subfolder, not
-        # output_path's directory (see write_untold_pack_from_groups) -- bake and
-        # patch each model independently, same as ExportCommand.swift's --optimize.
-        untold_paths = result["model_paths"] if result.get("is_pack") else [output_path]
-        texbake = texbake_module()
-        baked_any = False
+        # What the export wrote, which is not always what output_path names: a scene
+        # with one model is a single .untold even when the output names a pack (see
+        # single_file_output_path). Its textures are in the Textures folder beside it,
+        # one folder that the models of a pack share (see write_untold_pack_from_groups):
+        # bake it once, with what the written files say of each texture, then patch
+        # every file -- same as ExportCommand.swift's --optimize.
+        if result.get("is_pack"):
+            untold_paths = list(result["model_paths"])
+            textures_dir = result["pack_path"].parent / "Textures"
+        else:
+            untold_paths = [result["output_path"]]
+            textures_dir = result["output_path"].parent / "Textures"
 
         def texture_bake_progress(done: int, total: int, detail: str) -> None:
             if progress_callback is not None:
                 progress_callback("Bake textures", done, total, detail)
 
-        for untold_path in untold_paths:
-            textures_dir = untold_path.parent / "Textures"
-            if not textures_dir.is_dir():
-                continue
+        if not textures_dir.is_dir():
+            result["texture_bake_status"] = "no textures"
+            if progress_callback is not None:
+                progress_callback("Bake textures", 0, 1, "No Textures directory was generated")
+        else:
+            texbake = texbake_module()
             if progress_callback is not None:
                 progress_callback("Bake textures", 0, 1, textures_dir.name)
             try:
@@ -224,19 +232,14 @@ def export_asset(
                     texture_quality,
                     keep_texture_temp,
                     progress_callback=texture_bake_progress,
+                    untold_files=untold_paths,
                 )
-                texbake.patch_refs(untold_path)
+                for untold_path in untold_paths:
+                    texbake.patch_refs(untold_path)
             except SystemExit as exc:
                 code = exc.code if isinstance(exc.code, int) else 1
                 if code != 0:
                     raise RuntimeError(f"Texture bake failed with exit code {code}") from exc
-            baked_any = True
-
-        if not baked_any:
-            result["texture_bake_status"] = "no textures"
-            if progress_callback is not None:
-                progress_callback("Bake textures", 0, 1, "No Textures directory was generated")
-        else:
             result["texture_bake_status"] = "baked"
             if progress_callback is not None:
                 progress_callback("Bake textures", 1, 1, "Baked .utex files and patched .untold references")
