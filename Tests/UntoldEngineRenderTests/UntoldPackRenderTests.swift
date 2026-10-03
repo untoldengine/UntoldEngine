@@ -205,15 +205,95 @@ final class UntoldPackRenderTests: BaseRenderSetup {
         XCTAssertEqual(tracked(), rockBytes)
     }
 
-    func testLoadedImageTexturesAreSharedWhileInUseAndReleasedAfter() throws {
+    // MARK: - Image textures
+
+    private func makeTexture() throws -> MTLTexture {
         let device = try XCTUnwrap(renderInfo.device)
-        let key = LoadedTextureCache.key(url: tempRoot.appendingPathComponent("shared.png"), isSRGB: true)
-        autoreleasepool {
-            let descriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .rgba8Unorm, width: 4, height: 4, mipmapped: false)
-            let texture = device.makeTexture(descriptor: descriptor)!
-            LoadedTextureCache.shared.store(texture, for: key)
-            XCTAssertTrue(LoadedTextureCache.shared.texture(for: key) === texture)
+        let descriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .rgba8Unorm, width: 4, height: 4, mipmapped: false)
+        return try XCTUnwrap(device.makeTexture(descriptor: descriptor))
+    }
+
+    private final class Counter: @unchecked Sendable {
+        private let lock = NSLock()
+        private var value = 0
+
+        func increment() {
+            lock.withLock { value += 1 }
         }
-        XCTAssertNil(LoadedTextureCache.shared.texture(for: key), "the cache does not keep a texture no material holds")
+
+        var count: Int {
+            lock.withLock { value }
+        }
+    }
+
+    func testLoadedImageTexturesAreSharedWhileInUseAndReleasedAfter() throws {
+        let key = LoadedTextureCache.key(url: tempRoot.appendingPathComponent("shared.png"), isSRGB: true)
+        let loads = Counter()
+        try autoreleasepool {
+            let made = try makeTexture()
+            let first = LoadedTextureCache.shared.texture(for: key) {
+                loads.increment()
+                return made
+            }
+            let second = LoadedTextureCache.shared.texture(for: key) {
+                loads.increment()
+                return nil
+            }
+            XCTAssertTrue(first === made)
+            XCTAssertTrue(second === made, "a material that asks while another holds the texture gets the same one")
+        }
+        XCTAssertEqual(loads.count, 1)
+
+        // Nothing holds it any more: the cache lets it go, and the next material loads it.
+        let again = LoadedTextureCache.shared.texture(for: key) {
+            loads.increment()
+            return nil
+        }
+        XCTAssertNil(again)
+        XCTAssertEqual(loads.count, 2, "the cache does not keep a texture no material holds")
+    }
+
+    func testAnImageThatSeveralThreadsAskForAtOnceIsDecodedOnce() throws {
+        // A pack loads eight models at a time, and they share the images of its Textures folder.
+        let key = LoadedTextureCache.key(url: tempRoot.appendingPathComponent("atlas.png"), isSRGB: true)
+        let loads = Counter()
+        let made = try makeTexture()
+        let results = UnsafeMutablePointer<Unmanaged<AnyObject>?>.allocate(capacity: 8)
+        results.initialize(repeating: nil, count: 8)
+        defer { results.deallocate() }
+
+        DispatchQueue.concurrentPerform(iterations: 8) { index in
+            let texture = LoadedTextureCache.shared.texture(for: key) {
+                loads.increment()
+                Thread.sleep(forTimeInterval: 0.05)
+                return made
+            }
+            results[index] = texture.map { Unmanaged.passRetained($0 as AnyObject) }
+        }
+
+        XCTAssertEqual(loads.count, 1, "the threads that arrive while it is decoded wait for it")
+        for index in 0 ..< 8 {
+            let texture = results[index]?.takeRetainedValue()
+            XCTAssertTrue(texture === made, "thread \(index)")
+        }
+    }
+
+    func testAnImageThatFailsToLoadIsTriedAgain() throws {
+        let key = LoadedTextureCache.key(url: tempRoot.appendingPathComponent("missing.png"), isSRGB: false)
+        let loads = Counter()
+        let made = try makeTexture()
+
+        let failed = LoadedTextureCache.shared.texture(for: key) {
+            loads.increment()
+            return nil
+        }
+        let loaded = LoadedTextureCache.shared.texture(for: key) {
+            loads.increment()
+            return made
+        }
+
+        XCTAssertNil(failed)
+        XCTAssertTrue(loaded === made)
+        XCTAssertEqual(loads.count, 2)
     }
 }
