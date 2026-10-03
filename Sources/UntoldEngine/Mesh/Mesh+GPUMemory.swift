@@ -114,6 +114,44 @@ public func calculateMeshArrayTotalMemory(_ meshes: [Mesh]) -> Int {
     meshes.reduce(0) { $0 + $1.totalGPUMemorySize }
 }
 
+// MARK: - GPU Allocations
+
+/// The vertex, index and skinning buffers `meshes` hold. One that several meshes or
+/// submeshes use is listed for each; `MemoryBudgetManager` counts it once.
+func meshBufferAllocations(of meshes: [Mesh]) -> [GPUAllocation] {
+    var allocations: [GPUAllocation] = []
+    for mesh in meshes {
+        for vertexBuffer in mesh.metalKitMesh.vertexBuffers {
+            allocations.append(GPUAllocation(object: vertexBuffer.buffer, bytes: vertexBuffer.buffer.length))
+        }
+        for submesh in mesh.metalKitMesh.submeshes {
+            allocations.append(GPUAllocation(object: submesh.indexBuffer.buffer, bytes: submesh.indexBuffer.buffer.length))
+        }
+        if let ring = mesh.skin?.jointTransformsRing {
+            for buffer in ring.buffers {
+                allocations.append(GPUAllocation(object: buffer, bytes: buffer.length))
+            }
+        }
+    }
+    return allocations
+}
+
+/// The material textures `meshes` hold: those `SubMesh.textureMemorySize` measures.
+func textureAllocations(of meshes: [Mesh]) -> [GPUAllocation] {
+    var allocations: [GPUAllocation] = []
+    for mesh in meshes {
+        for submesh in mesh.submeshes {
+            guard let material = submesh.material else { continue }
+            for texture in [material.baseColor.texture, material.normal.texture, material.metallic.texture, material.roughness.texture] {
+                if let texture {
+                    allocations.append(GPUAllocation(object: texture, bytes: texture.allocatedSize))
+                }
+            }
+        }
+    }
+    return allocations
+}
+
 // MARK: - Memory Formatting Helpers
 
 public extension Int {

@@ -12,6 +12,7 @@
 import CShaderTypes
 import Foundation
 import MetalKit
+import os
 
 @inline(__always)
 private func enforceRegistrationMainActor() {
@@ -1613,6 +1614,33 @@ public func setEntityMeshAsync(
     blockRenderLoop: Bool = true,
     completion: ((Bool) -> Void)? = nil
 ) {
+    loadEntityMeshAsync(
+        entityId: entityId,
+        filename: filename,
+        withExtension: withExtension,
+        assetName: assetName,
+        streamingPolicy: streamingPolicy,
+        blockRenderLoop: blockRenderLoop,
+        sharedBuilds: nil,
+        completion: completion
+    )
+}
+
+/// setEntityMeshAsync's implementation. `sharedBuilds` lets the models of one
+/// `.untoldpack` that point at the same `.untold` parse it and build its GPU meshes
+/// once (see UntoldBuildCache). It applies to whole files loaded at once, as the pack
+/// loader asks for them: with an `assetName` or a streaming policy other than
+/// `.immediate` the load is not shared.
+func loadEntityMeshAsync(
+    entityId: EntityID,
+    filename: String,
+    withExtension: String?,
+    assetName: String?,
+    streamingPolicy: MeshStreamingPolicy,
+    blockRenderLoop: Bool,
+    sharedBuilds: UntoldBuildCache?,
+    completion: ((Bool) -> Void)?
+) {
     let (filename, withExtension) = resolveAssetFilenameExtension(filename, withExtension)
     let completionBox = completion.map { BoolCompletionBox(callback: $0) }
 
@@ -1676,7 +1704,26 @@ public func setEntityMeshAsync(
         }
 
         if RuntimeAssetSource.infer(from: url).kind == .untold {
-            guard let runtimeAsset = loadUntoldRuntimeAsset(url: url) else {
+            // Placements of one pack that share this file reuse its parsed asset and its
+            // GPU meshes: each entity registers its own copy of the Mesh values, which
+            // share the buffers and textures.
+            //
+            // A shared build is the whole file, built at once. A load of one named node
+            // (`assetName`) or one that streams its meshes in later is neither, so it
+            // goes the way it always did, on its own, even when the caller passes
+            // `sharedBuilds`. The pack loader asks for whole files loaded at once, which
+            // is why every one of its placements shares. A caller that needs shared
+            // builds for named nodes or streamed meshes has to teach the cache about
+            // them first: this test is where that shows.
+            let usesSharedBuild = sharedBuilds != nil && assetName == nil && streamingPolicy == .immediate
+            var sharedBuild: UntoldBuild?
+            if usesSharedBuild, let sharedBuilds {
+                sharedBuild = await sharedBuilds.build(for: url) {
+                    guard let runtimeAsset = loadUntoldRuntimeAsset(url: url) else { return nil }
+                    return UntoldBuild(runtimeAsset: runtimeAsset, prebuiltMeshes: prebuildNodeMeshes(from: runtimeAsset.nodes))
+                }
+            }
+            guard let runtimeAsset = usesSharedBuild ? sharedBuild?.runtimeAsset : loadUntoldRuntimeAsset(url: url) else {
                 withWorldMutationGate {
                     loadFallbackMesh(entityId: entityId, filename: filename)
                 }
@@ -1713,7 +1760,7 @@ public func setEntityMeshAsync(
             // Keeping this inside withWorldMutationGate was the root cause of 30-40ms gate
             // holds during HLOD and LOD tile registration, which blocked the main thread.
             // OCC path builds meshes separately (CPU→GPU upload), so no pre-build needed there.
-            let prebuiltMeshes: [UInt32: [Mesh]] = useOCC ? [:] : prebuildNodeMeshes(from: runtimeAsset.nodes)
+            let prebuiltMeshes: [UInt32: [Mesh]] = useOCC ? [:] : (sharedBuild?.prebuiltMeshes ?? prebuildNodeMeshes(from: runtimeAsset.nodes))
 
             let didLoad: Bool = withWorldMutationGate {
                 if hasComponent(entityId: entityId, componentType: LocalTransformComponent.self) == false {
@@ -2457,6 +2504,139 @@ public func createUntoldScene(fromPackAt packURL: URL, savingTo sceneURL: URL) -
     }
 }
 
+/// A `.untold` parsed and built into GPU meshes, ready for any number of entities to
+/// register copies of.
+final class UntoldBuild: @unchecked Sendable {
+    let runtimeAsset: RuntimeAsset
+    let prebuiltMeshes: [UInt32: [Mesh]]
+
+    init(runtimeAsset: RuntimeAsset, prebuiltMeshes: [UInt32: [Mesh]]) {
+        self.runtimeAsset = runtimeAsset
+        self.prebuiltMeshes = prebuiltMeshes
+    }
+}
+
+/// The `.untold` builds of one pack load, keyed by file. A `.untoldpack` can place the
+/// same `.untold` hundreds of times (the exporter writes a repeated model once), and
+/// each placement used to read the file, decode it and allocate its own GPU buffers.
+/// `Mesh` is a value type whose buffers and textures are references, so every entity
+/// registers its own copy of the built meshes, sharing the GPU memory, while material
+/// edits and skins stay per entity.
+///
+/// Single-flight: the first caller for a file builds it; callers arriving meanwhile
+/// suspend until it is ready instead of building it again. A build that fails is tried
+/// a second time at once, so that a passing read error does not cost every placement
+/// of the file its model; a file that fails twice is remembered as failed, and its
+/// other placements fall back without reading it again.
+///
+/// The table of states lives inside an unfair lock, so it can only be read or changed
+/// while the lock is held, and that is for a few instructions at a time. The lock is
+/// never held while a file is built, so different files build at the same time, and
+/// never while a waiting caller is resumed.
+final class UntoldBuildCache: Sendable {
+    private typealias Waiter = CheckedContinuation<UntoldBuild?, Never>
+
+    /// Where the build of one file stands.
+    private enum State {
+        /// A caller is building it; these callers wait for the result.
+        case building(waiters: [Waiter])
+        /// Built, or failed twice (nil).
+        case finished(UntoldBuild?)
+    }
+
+    /// What a caller that asks for a file has to do.
+    private enum Claim {
+        case take(UntoldBuild?)
+        case wait
+        case build
+    }
+
+    /// What became of a caller that went to wait for a build.
+    private enum Arrival {
+        /// It is queued, and will be resumed with the result.
+        case queued
+        /// The build finished before it could queue.
+        case finished(UntoldBuild?)
+    }
+
+    /// The state of every file asked for so far, by its standardized path.
+    private let states = OSAllocatedUnfairLock<[String: State]>(initialState: [:])
+
+    func build(for url: URL, make: () -> UntoldBuild?) async -> UntoldBuild? {
+        let key = url.standardizedFileURL.path
+        switch claim(key) {
+        case let .take(build):
+            return build
+        case .wait:
+            return await withCheckedContinuation { continuation in
+                if case let .finished(build) = queue(continuation, for: key) {
+                    continuation.resume(returning: build)
+                }
+            }
+        case .build:
+            let result = make() ?? make()
+            // Resumed here, after `finish` has let go of the lock.
+            for waiter in finish(key, result) {
+                waiter.resume(returning: result)
+            }
+            return result
+        }
+    }
+
+    /// Whether the file is built, being built by another caller, or now this caller's to build.
+    private func claim(_ key: String) -> Claim {
+        states.withLock { states in
+            switch states[key] {
+            case let .finished(build):
+                return .take(build)
+            case .building:
+                return .wait
+            case nil:
+                states[key] = .building(waiters: [])
+                return .build
+            }
+        }
+    }
+
+    /// Queues a caller behind the build in progress, unless it finished since `claim`.
+    private func queue(_ waiter: Waiter, for key: String) -> Arrival {
+        states.withLock { states in
+            switch states[key] {
+            case let .building(waiters):
+                states[key] = .building(waiters: waiters + [waiter])
+                return .queued
+            case let .finished(build):
+                return .finished(build)
+            case nil:
+                // Not reached: a caller waits only for a build that was claimed, and a
+                // claimed build ends in `finished`.
+                return .finished(nil)
+            }
+        }
+    }
+
+    /// Records the result and hands back the callers waiting for it.
+    private func finish(_ key: String, _ result: UntoldBuild?) -> [Waiter] {
+        states.withLock { states in
+            defer { states[key] = .finished(result) }
+            if case let .building(waiters) = states[key] {
+                return waiters
+            }
+            return []
+        }
+    }
+
+    /// The number of distinct files built so far (for tests and diagnostics).
+    var buildCount: Int {
+        states.withLock { states in
+            states.values.reduce(0) { count, state in
+                if case .finished = state { return count + 1 }
+                return count
+            }
+        }
+    }
+}
+
 /// Drives loadEntityFromPack's model loads through a bounded concurrency window
 /// instead of firing every model's setEntityMeshAsync at once.
 ///
@@ -2478,6 +2658,10 @@ private final class PackLoadDispatcher: @unchecked Sendable {
     private var nextIndex = 0
     private var remaining: Int
     private var overallSuccess = true
+    /// One parse and one GPU build per distinct .untold for the duration of the pack
+    /// load; dropped with the dispatcher, after which the entities' copies keep the
+    /// shared buffers alive.
+    private let builds = UntoldBuildCache()
 
     private static let maxConcurrentLoads = 8
 
@@ -2521,7 +2705,15 @@ private final class PackLoadDispatcher: @unchecked Sendable {
             setEntityName(entityId: childId, name: displayName)
             setParent(childId: childId, parentId: rootEntityId)
 
-            setEntityMeshAsync(entityId: childId, filename: modelPath, withExtension: withExtension) { success in
+            loadEntityMeshAsync(
+                entityId: childId,
+                filename: modelPath,
+                withExtension: withExtension,
+                assetName: nil,
+                streamingPolicy: .immediate,
+                blockRenderLoop: true,
+                sharedBuilds: builds
+            ) { success in
                 withWorldMutationGate {
                     translateTo(entityId: childId, position: position)
                     scaleTo(entityId: childId, scale: scale)

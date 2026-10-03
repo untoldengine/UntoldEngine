@@ -877,6 +877,16 @@ public struct Material {
                 )
             }
 
+            // Many models share an image (a pack's shared Textures/ folder): it is decoded
+            // once while any material still holds it, also when several of those models
+            // load at the same time.
+            let cacheKey = LoadedTextureCache.key(url: url, isSRGB: isSRGB)
+            return LoadedTextureCache.shared.texture(for: cacheKey) {
+                decodeRuntimeTexture(label, url: url, isSRGB: isSRGB)
+            }
+        }
+
+        func decodeRuntimeTexture(_ label: String, url: URL, isSRGB: Bool) -> MTLTexture? {
             let options: [MTKTextureLoader.Option: Any] = [
                 .textureUsage: NSNumber(value: MTLTextureUsage([.shaderRead, .pixelFormatView]).rawValue),
                 .textureStorageMode: NSNumber(value: MTLStorageMode.private.rawValue),
@@ -1765,4 +1775,59 @@ private func cachedSamplerState(device: MTLDevice, wrapMode: WrapMode) -> MTLSam
     }
 
     return sampler
+}
+
+/// Image textures (PNG, JPEG, ...) loaded for runtime materials, by file and colour
+/// space, held only while some material still uses them (weak values). Models that
+/// share an image, such as the models of a `.untoldpack` with its shared Textures/
+/// folder, decode and upload it once instead of once per model. `.utex` textures
+/// have their own cache (NativeTextureLoader.sharedCache).
+///
+/// Sharing is safe because loaded textures are never written after loading: material
+/// edits and texture streaming replace a material's texture rather than change it.
+///
+/// Single-flight, as `NativeTextureLoader` is: materials are built on several threads
+/// at once (a pack loads eight models at a time), and a thread that asks for an image
+/// another one is decoding waits for it and takes its texture. The callers build their
+/// materials synchronously, so they wait on a condition, and the lock is never held
+/// while an image is decoded.
+final class LoadedTextureCache: @unchecked Sendable {
+    static let shared = LoadedTextureCache()
+
+    /// Guards `textures` and `loading`, and wakes the threads waiting for a load.
+    private let condition = NSCondition()
+    private let textures = NSMapTable<NSString, AnyObject>(keyOptions: .strongMemory, valueOptions: .weakMemory)
+    /// The keys one thread is loading right now.
+    private var loading: Set<String> = []
+
+    static func key(url: URL, isSRGB: Bool) -> String {
+        "\(url.standardizedFileURL.path)|srgb=\(isSRGB)"
+    }
+
+    /// The texture cached for `key`, or the one `load` returns, which is then cached.
+    /// `load` runs on the calling thread, and for one caller at a time per key. A load
+    /// that fails is not remembered: the next caller tries again.
+    func texture(for key: String, load: () -> MTLTexture?) -> MTLTexture? {
+        condition.lock()
+        while loading.contains(key) {
+            condition.wait()
+        }
+        if let cached = textures.object(forKey: key as NSString) as? MTLTexture {
+            condition.unlock()
+            return cached
+        }
+        loading.insert(key)
+        condition.unlock()
+
+        let texture = load()
+
+        condition.lock()
+        if let texture {
+            textures.setObject(texture as AnyObject, forKey: key as NSString)
+        }
+        loading.remove(key)
+        condition.broadcast()
+        condition.unlock()
+        return texture
+    }
 }

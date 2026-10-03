@@ -95,9 +95,38 @@ struct MemoryEntry {
     var textureSizeBytes: Int
     var lastUsedFrame: UInt64
     var registrationFrame: UInt64
+    /// The allocations behind `meshSizeBytes`, as tokens of the ledger, when the entity
+    /// was registered by what it holds (`registerMesh(entityId:meshes:)`). Several
+    /// entities can hold the same allocation, and the totals count it once. Empty for a
+    /// size registered as a number, which counts as the entity's own.
+    var meshAllocations: [Int] = []
+    /// The same for `textureSizeBytes`.
+    var textureAllocations: [Int] = []
 
     var totalSize: Int {
         meshSizeBytes + textureSizeBytes
+    }
+}
+
+/// A GPU allocation an entity holds: a vertex, index or skinning buffer, or a texture.
+struct GPUAllocation {
+    let object: AnyObject
+    let bytes: Int
+}
+
+/// An allocation in the ledger, counted once however many entities hold it.
+private final class GPUAllocationRecord {
+    let identifier: ObjectIdentifier
+    /// Weak, so that the ledger never keeps GPU memory alive, and so that an address
+    /// handed out again after the allocation died is not mistaken for it.
+    weak var object: AnyObject?
+    let bytes: Int
+    var holders = 0
+
+    init(_ allocation: GPUAllocation) {
+        identifier = ObjectIdentifier(allocation.object)
+        object = allocation.object
+        bytes = allocation.bytes
     }
 }
 
@@ -172,6 +201,12 @@ public class MemoryBudgetManager: @unchecked Sendable {
 
     /// Memory entries indexed by entity ID
     private var memoryEntries: [EntityID: MemoryEntry] = [:]
+    /// The allocations entities were registered with, by token, and the token of each
+    /// allocation that is alive. The placements of a pack model share its buffers and
+    /// models share textures; each is in the totals once, while any entity holds it.
+    private var allocationRecords: [Int: GPUAllocationRecord] = [:]
+    private var allocationTokens: [ObjectIdentifier: Int] = [:]
+    private var nextAllocationToken: Int = 0
     private var auxiliaryMeshBytes: [EntityID: Int] = [:]
     /// The Gaussian splat frame's shared working set (`GaussianSharedWorkingSet`): one entry for
     /// the buffers every splat entity compacts into, counted with the geometry.
@@ -306,8 +341,7 @@ public class MemoryBudgetManager: @unchecked Sendable {
         lock.lock()
         // Remove existing entry if present (handles updates)
         if let existing = memoryEntries[entityId] {
-            totalMeshMemory -= existing.meshSizeBytes
-            totalTextureMemory -= existing.textureSizeBytes
+            removeFromTotals(existing)
         }
 
         let entry = MemoryEntry(
@@ -326,14 +360,116 @@ public class MemoryBudgetManager: @unchecked Sendable {
         checkThresholdLogging()
     }
 
-    /// Register mesh memory by calculating size from mesh array
+    /// Register an entity by the buffers and textures its meshes hold.
+    ///
+    /// Entities can share them: the placements of a pack model share its vertex and
+    /// index buffers, and models share the textures of a pack. Each buffer and texture
+    /// is counted once in the totals, while any registered entity holds it.
     /// - Parameters:
     ///   - entityId: The entity owning the meshes
-    ///   - meshes: Array of meshes to calculate size from
+    ///   - meshes: The meshes whose GPU allocations the entity holds
     public func registerMesh(entityId: EntityID, meshes: [Mesh]) {
-        let meshSize = calculateMeshArrayMemory(meshes)
-        let textureSize = meshes.reduce(0) { $0 + $1.textureMemorySize }
-        registerMesh(entityId: entityId, meshSizeBytes: meshSize, textureSizeBytes: textureSize)
+        registerMesh(
+            entityId: entityId,
+            meshAllocations: meshBufferAllocations(of: meshes),
+            textureAllocations: textureAllocations(of: meshes)
+        )
+    }
+
+    /// `registerMesh(entityId:meshes:)` for allocations that are already listed.
+    func registerMesh(entityId: EntityID, meshAllocations: [GPUAllocation], textureAllocations: [GPUAllocation]) {
+        guard enabled else { return }
+
+        lock.lock()
+        if let existing = memoryEntries[entityId] {
+            removeFromTotals(existing)
+        }
+
+        let mesh = hold(meshAllocations)
+        let texture = hold(textureAllocations)
+        memoryEntries[entityId] = MemoryEntry(
+            entityId: entityId,
+            meshSizeBytes: mesh.size,
+            textureSizeBytes: texture.size,
+            lastUsedFrame: currentFrame,
+            registrationFrame: currentFrame,
+            meshAllocations: mesh.tokens,
+            textureAllocations: texture.tokens
+        )
+        totalMeshMemory += mesh.added
+        totalTextureMemory += texture.added
+        lock.unlock()
+
+        checkThresholdLogging()
+    }
+
+    // MARK: - Shared allocations (call with the lock held)
+
+    /// Gives the entity being registered a hold on each of `allocations`, once each.
+    /// Returns their tokens, their size, and how many of those bytes are new to the
+    /// ledger: the rest another entity already holds.
+    private func hold(_ allocations: [GPUAllocation]) -> (tokens: [Int], size: Int, added: Int) {
+        var tokens: [Int] = []
+        var size = 0
+        var added = 0
+        tokens.reserveCapacity(allocations.count)
+        for allocation in allocations {
+            let identifier = ObjectIdentifier(allocation.object)
+            let record: GPUAllocationRecord
+            let token: Int
+            if let known = allocationTokens[identifier], let existing = allocationRecords[known], existing.object === allocation.object {
+                if tokens.contains(known) { continue }
+                token = known
+                record = existing
+            } else {
+                token = nextAllocationToken
+                nextAllocationToken += 1
+                record = GPUAllocationRecord(allocation)
+                allocationRecords[token] = record
+                allocationTokens[identifier] = token
+                added += record.bytes
+            }
+            record.holders += 1
+            tokens.append(token)
+            size += record.bytes
+        }
+        return (tokens, size, added)
+    }
+
+    /// Lets go of the entity's hold on `tokens`. Returns the bytes that left the ledger
+    /// with it: those of the allocations no other entity holds.
+    private func release(_ tokens: [Int]) -> Int {
+        var removed = 0
+        for token in tokens {
+            guard let record = allocationRecords[token] else { continue }
+            record.holders -= 1
+            guard record.holders <= 0 else { continue }
+            allocationRecords.removeValue(forKey: token)
+            if allocationTokens[record.identifier] == token {
+                allocationTokens.removeValue(forKey: record.identifier)
+            }
+            removed += record.bytes
+        }
+        return removed
+    }
+
+    /// Takes an entry out of the totals: its own bytes, and its hold on what it shares.
+    private func removeFromTotals(_ entry: MemoryEntry) {
+        totalMeshMemory -= entry.meshAllocations.isEmpty ? entry.meshSizeBytes : release(entry.meshAllocations)
+        totalTextureMemory -= entry.textureAllocations.isEmpty ? entry.textureSizeBytes : release(entry.textureAllocations)
+    }
+
+    /// The bytes that evicting the entity alone would free: its own, and the allocations
+    /// that no other entity holds.
+    private func bytesHeldAlone(by entry: MemoryEntry) -> Int {
+        var bytes = entry.meshAllocations.isEmpty ? entry.meshSizeBytes : 0
+        bytes += entry.textureAllocations.isEmpty ? entry.textureSizeBytes : 0
+        for token in entry.meshAllocations + entry.textureAllocations {
+            if let record = allocationRecords[token], record.holders == 1 {
+                bytes += record.bytes
+            }
+        }
+        return bytes
     }
 
     /// Bytes an entity keeps resident alongside its mesh — a splat on a mesh entity
@@ -396,8 +532,7 @@ public class MemoryBudgetManager: @unchecked Sendable {
 
         guard let entry = memoryEntries.removeValue(forKey: entityId) else { return }
 
-        totalMeshMemory -= entry.meshSizeBytes
-        totalTextureMemory -= entry.textureSizeBytes
+        removeFromTotals(entry)
     }
 
     // MARK: - Usage Tracking
@@ -565,7 +700,10 @@ public class MemoryBudgetManager: @unchecked Sendable {
             lock.unlock()
             return
         }
-        totalTextureMemory -= entry.textureSizeBytes
+        // The textures streamed in are the entity's own count from here on: it lets go
+        // of the ones it was registered with.
+        totalTextureMemory -= entry.textureAllocations.isEmpty ? entry.textureSizeBytes : release(entry.textureAllocations)
+        entry.textureAllocations = []
         entry.textureSizeBytes = newSizeBytes
         entry.lastUsedFrame = currentFrame
         totalTextureMemory += newSizeBytes
@@ -575,12 +713,14 @@ public class MemoryBudgetManager: @unchecked Sendable {
         checkThresholdLogging()
     }
 
-    /// Get memory size for an entity (if tracked)
+    /// Get memory size for an entity (if tracked): the bytes that evicting it would
+    /// free. Buffers and textures that another registered entity also holds are not in
+    /// it, since they stay when this entity goes.
     public func getMemorySize(for entityId: EntityID) -> Int? {
         lock.lock()
         defer { lock.unlock() }
 
-        return memoryEntries[entityId]?.totalSize
+        return memoryEntries[entityId].map(bytesHeldAlone)
     }
 
     /// Get last used frame for an entity
@@ -627,7 +767,7 @@ public class MemoryBudgetManager: @unchecked Sendable {
         let sorted = memoryEntries.values
             .sorted { $0.lastUsedFrame < $1.lastUsedFrame }
             .prefix(count)
-            .map { (entityId: $0.entityId, sizeBytes: $0.totalSize) }
+            .map { (entityId: $0.entityId, sizeBytes: bytesHeldAlone(by: $0)) }
 
         return Array(sorted)
     }
@@ -652,11 +792,23 @@ public class MemoryBudgetManager: @unchecked Sendable {
         // Sort by last used frame (oldest first)
         let sorted = memoryEntries.values.sorted { $0.lastUsedFrame < $1.lastUsedFrame }
 
+        // What a shared allocation frees depends on who went before: it goes with the
+        // last of the entities that hold it.
+        var holdersLeft: [Int: Int] = [:]
         var candidates: [EntityID] = []
         for entry in sorted {
             if memoryToFree <= 0 { break }
             candidates.append(entry.entityId)
-            memoryToFree -= entry.totalSize
+            memoryToFree -= entry.meshAllocations.isEmpty ? entry.meshSizeBytes : 0
+            memoryToFree -= entry.textureAllocations.isEmpty ? entry.textureSizeBytes : 0
+            for token in entry.meshAllocations + entry.textureAllocations {
+                guard let record = allocationRecords[token] else { continue }
+                let left = (holdersLeft[token] ?? record.holders) - 1
+                holdersLeft[token] = left
+                if left == 0 {
+                    memoryToFree -= record.bytes
+                }
+            }
         }
 
         return candidates
@@ -718,6 +870,8 @@ public class MemoryBudgetManager: @unchecked Sendable {
         defer { lock.unlock() }
 
         memoryEntries.removeAll()
+        allocationRecords.removeAll()
+        allocationTokens.removeAll()
         auxiliaryMeshBytes.removeAll()
         gaussianWorkingSetBytes = 0
         totalMeshMemory = 0
