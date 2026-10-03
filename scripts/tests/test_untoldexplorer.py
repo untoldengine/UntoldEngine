@@ -2256,6 +2256,33 @@ class PackSharedModelTests(unittest.TestCase):
         self.assertIsNotNone(first)
         self.assertEqual(first, copy)
 
+    def test_copies_of_a_mesh_with_no_material_are_copies_too(self) -> None:
+        """A mesh with no material got one named after its object, and the material is
+        part of the signature: Tree.001 and Tree.174, the same prop with no material,
+        were two models, each written in full."""
+        def node(name: str, root_x: float) -> "u.ExportedNode":
+            mesh_object = FakeSceneObject(name, "MESH", FakeData(materials=[]))
+            with tempfile.TemporaryDirectory() as tmpdir:
+                material = u.extract_material(mesh_object, Path(tmpdir) / "asset.untold")
+            self.assertNotIn(name, material.name)
+            triangle = _triangle_node(name, root_x=root_x)
+            return u.replace(triangle, mesh=u.replace(triangle.mesh, material=material))
+
+        digests: dict[int, tuple[bytes, str]] = {}
+        first = u.model_content_signature([node("Tree.001", 0.0)], digests)
+        copy = u.model_content_signature([node("Tree.174", 40.0)], digests)
+        self.assertIsNotNone(first)
+        self.assertEqual(first, copy)
+
+        groups = {name: [node(name, root_x)] for name, root_x in (("Tree.001", 0.0), ("Tree.002", 10.0), ("Tree.174", 40.0))}
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output = Path(tmpdir) / "Park.untold"
+            result = u.write_untold_pack_from_groups(
+                groups, source_asset_name="Park.blend", output_path=output, file_type_name="tile",
+                compress_geometry=False, validate=False, progress_callback=None,
+            )
+        self.assertEqual((result["written_model_count"], result["shared_model_count"]), (1, 2))
+
     def test_different_geometry_material_or_child_placement_differ(self) -> None:
         digests: dict[int, tuple[bytes, str]] = {}
         base = u.model_content_signature([_triangle_node("A")], digests)

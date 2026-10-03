@@ -168,8 +168,9 @@ A model placed more than once (a shelf copied fifty times, a tree planted all
 over a site) is written once: every placement in the manifest points at the
 same `.untold`, with its own transform. Copies are found by content: the same
 geometry, materials and hierarchy, wherever they stand and whatever their
-names; skinned models and models with morph targets are always written on
-their own. Objects that share one mesh datablock in Blender (linked
+names; meshes with no material all get the same default one, so their copies
+count as well. Skinned models and models with morph targets are always written
+on their own. Objects that share one mesh datablock in Blender (linked
 duplicates) and have no modifiers are also split and extracted once, which is
 most of the export time on scenes full of copies.
 

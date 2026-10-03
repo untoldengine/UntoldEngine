@@ -138,6 +138,11 @@ TEXTURE_CHANNEL_G = 1
 TEXTURE_CHANNEL_B = 2
 TEXTURE_CHANNEL_A = 3
 UNTOLD_EXPORT_TEMP_OBJECT_PROP = "_untold_export_temp_object"
+# The name of the material a mesh with no material of its own is given. It is one name
+# for all of them, and not one made from the object's name: the material is part of what
+# tells two models apart (see model_content_signature), so a name taken from the object
+# made every copy of a prop with no material a model of its own.
+DEFAULT_MATERIAL_NAME = "default_material"
 # Material alpha modes, the low two bits of a material record's flags (the engine's
 # MaterialAlphaMode).
 MATERIAL_ALPHA_MODE_OPAQUE = 0
@@ -5235,7 +5240,7 @@ def extract_material(mesh_object: object, asset_path: Path) -> ExportedMaterial:
     material = mesh_object_material(mesh_object)
     if material is None:
         return ExportedMaterial(
-            name=f"{mesh_object.name}_material",
+            name=DEFAULT_MATERIAL_NAME,
             base_color_factor=(1.0, 1.0, 1.0, 1.0),
             emissive_factor=(0.0, 0.0, 0.0),
             normal_scale=1.0,
@@ -7709,7 +7714,9 @@ def write_single_untold_from_nodes(
 
 def model_content_signature(nodes: list[ExportedNode], digests: dict[int, tuple[bytes, str]]) -> Optional[str]:
     """A fingerprint of what a pack model's .untold would hold, independent of where the
-    model stands (its root transform goes in the manifest) and of its objects' names.
+    model stands (its root transform goes in the manifest) and of its objects' names:
+    geometry, materials (a mesh with none has the same one as any other, see
+    DEFAULT_MATERIAL_NAME) and hierarchy.
     Two models with the same fingerprint are the same model placed twice, and are
     written once. None for a model that is not compared: skinned or with morph targets.
 
