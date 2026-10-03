@@ -3095,5 +3095,593 @@ class ColorGradeLUTTests(unittest.TestCase):
                 u.stage_color_grade_lut_for_output(bad_path, tmp_path / "out")
 
 
+def _procedural_node(bl_idname: str, vector_from: tuple[FakeNode, str] | None) -> FakeNode:
+    node = FakeNode(bl_idname, inputs={"Vector": _socket("Vector", linked_from=vector_from)})
+    node.name = bl_idname
+    return node
+
+
+def _bake_material(**principled_inputs) -> FakeData:
+    """A material whose Principled BSDF has the given inputs: a (node, output name)
+    pair links one, anything else is its slider value."""
+    inputs = {}
+    for name, source in principled_inputs.items():
+        socket_name = name.replace("_", " ")
+        linked = isinstance(source, tuple) and isinstance(source[0], FakeNode)
+        inputs[socket_name] = _socket(socket_name, linked_from=source) if linked else _socket(socket_name, source)
+    principled = FakeNode("ShaderNodeBsdfPrincipled", inputs=inputs)
+    return _make_material("procedural", [principled])
+
+
+class MaterialBakePlanTests(unittest.TestCase):
+    """Which Principled inputs a swatch bake takes, and whether their pattern can be
+    mapped by position."""
+
+    def test_a_pattern_on_object_coordinates_is_projected_in_object_space(self) -> None:
+        coordinates = FakeNode("ShaderNodeTexCoord")
+        noise = _procedural_node("ShaderNodeTexNoise", (coordinates, "Object"))
+        plan = u.material_bake_plan(_bake_material(Base_Color=(noise, "Color"), Roughness=0.4))
+        self.assertEqual(plan.inputs, ("Base Color",))
+        self.assertTrue(plan.projected)
+        self.assertEqual(plan.orientation_space, "object")
+        self.assertFalse(plan.world_mapped)
+        self.assertEqual(plan.note, "")
+
+    def test_a_pattern_on_world_positions_is_laid_out_in_the_world(self) -> None:
+        geometry = FakeNode("ShaderNodeNewGeometry")
+        bricks = _procedural_node("ShaderNodeTexBrick", (geometry, "Position"))
+        plan = u.material_bake_plan(_bake_material(Base_Color=(bricks, "Color"), Normal=(bricks, "Fac")))
+        self.assertEqual(plan.inputs, ("Base Color", "Normal"))
+        self.assertTrue(plan.projected)
+        self.assertEqual(plan.orientation_space, "world")
+        self.assertTrue(plan.world_mapped)
+
+    def test_object_coordinates_with_a_world_normal_face_the_world_but_stay_with_the_object(self) -> None:
+        coordinates = FakeNode("ShaderNodeTexCoord")
+        geometry = FakeNode("ShaderNodeNewGeometry")
+        noise = _procedural_node("ShaderNodeTexNoise", (coordinates, "Object"))
+        mix = FakeNode(
+            "ShaderNodeMix",
+            inputs={"Factor": _socket("Factor", linked_from=(geometry, "Normal")), "A": _socket("A", linked_from=(noise, "Fac"))},
+        )
+        plan = u.material_bake_plan(_bake_material(Roughness=(mix, "Result")))
+        self.assertTrue(plan.projected)
+        self.assertEqual(plan.orientation_space, "world")
+        self.assertFalse(plan.world_mapped)
+
+    def test_an_input_with_an_image_behind_it_is_left_alone_and_keeps_the_mesh_uvs(self) -> None:
+        coordinates = FakeNode("ShaderNodeTexCoord")
+        noise = _procedural_node("ShaderNodeTexNoise", (coordinates, "Object"))
+        image = _make_image_node("wall")
+        material = _bake_material(Base_Color=(image, "Color"), Roughness=(noise, "Fac"))
+        material.node_tree.nodes.append(image)
+        plan = u.material_bake_plan(material)
+        self.assertEqual(plan.inputs, ("Roughness",))
+        self.assertFalse(plan.projected)
+        self.assertIn("image textures", plan.note)
+
+    def test_an_image_node_the_export_does_not_use_does_not_keep_the_uvs(self) -> None:
+        coordinates = FakeNode("ShaderNodeTexCoord")
+        noise = _procedural_node("ShaderNodeTexNoise", (coordinates, "Object"))
+        material = _bake_material(Base_Color=(noise, "Color"))
+        material.node_tree.nodes.append(_make_image_node("leftover"))
+        self.assertTrue(u.material_bake_plan(material).projected)
+        # An unconnected occlusion map is picked up by its name, and needs the UVs.
+        material.node_tree.nodes.append(_make_image_node("wall_ao"))
+        self.assertFalse(u.material_bake_plan(material).projected)
+
+    def test_a_height_on_the_material_output_is_baked_as_bump(self) -> None:
+        coordinates = FakeNode("ShaderNodeTexCoord")
+        noise = _procedural_node("ShaderNodeTexNoise", (coordinates, "Object"))
+        displacement = FakeNode("ShaderNodeDisplacement", inputs={"Height": _socket("Height", linked_from=(noise, "Fac"))})
+        principled = FakeNode("ShaderNodeBsdfPrincipled", inputs={"Roughness": _socket("Roughness", 0.5)})
+        output = FakeNode(
+            "ShaderNodeOutputMaterial",
+            inputs={
+                "Surface": _socket("Surface", linked_from=(principled, "BSDF")),
+                "Displacement": _socket("Displacement", linked_from=(displacement, "Displacement")),
+            },
+        )
+        material = _make_material("pebbles", [principled, output, displacement, noise])
+        material.displacement_method = "BUMP"
+        plan = u.material_bake_plan(material)
+        self.assertEqual(plan.inputs, ("Normal",))
+        self.assertTrue(plan.projected)
+        material.displacement_method = "DISPLACEMENT"
+        self.assertIsNone(u.material_bake_plan(material))
+
+    def test_patterns_a_swatch_cannot_follow_are_not_projected(self) -> None:
+        coordinates = FakeNode("ShaderNodeTexCoord")
+        for output, expected in (("UV", "UV coordinates"), ("Generated", "generated coordinates"), ("Camera", "the view")):
+            noise = _procedural_node("ShaderNodeTexNoise", (coordinates, output))
+            plan = u.material_bake_plan(_bake_material(Base_Color=(noise, "Color")))
+            self.assertEqual(plan.inputs, ("Base Color",))
+            self.assertFalse(plan.projected)
+            self.assertIn(expected, plan.note)
+        # Nothing plugged into Vector: a procedural texture reads generated coordinates.
+        unplugged = _procedural_node("ShaderNodeTexNoise", None)
+        self.assertIn("generated", u.material_bake_plan(_bake_material(Base_Color=(unplugged, "Color"))).note)
+        # Object coordinates of another object are not this object's.
+        other = FakeNode("ShaderNodeTexCoord")
+        other.object = object()
+        noise = _procedural_node("ShaderNodeTexNoise", (other, "Object"))
+        self.assertIn("another object", u.material_bake_plan(_bake_material(Base_Color=(noise, "Color"))).note)
+
+    def test_node_math_with_no_pattern_is_baked_for_its_value(self) -> None:
+        value = FakeNode("ShaderNodeValue")
+        math = FakeNode("ShaderNodeMapRange", inputs={"Value": _socket("Value", linked_from=(value, "Value"))})
+        plan = u.material_bake_plan(_bake_material(Roughness=(math, "Result")))
+        self.assertEqual(plan.inputs, ("Roughness",))
+        self.assertFalse(plan.projected)
+        self.assertEqual(plan.note, "no pattern laid out by position")
+
+    def test_nothing_to_bake(self) -> None:
+        self.assertIsNone(u.material_bake_plan(_bake_material(Base_Color=(0.8, 0.8, 0.8, 1.0))))
+        self.assertIsNone(u.material_bake_plan(FakeData(name="no nodes", node_tree=None)))
+        image = _make_image_node("wall")
+        self.assertIsNone(u.material_bake_plan(_bake_material(Base_Color=(image, "Color"))))
+        # A vertex colour is not there on a swatch.
+        attribute = FakeNode("ShaderNodeVertexColor")
+        self.assertIsNone(u.material_bake_plan(_bake_material(Base_Color=(attribute, "Color"))))
+        # Animated nodes: one bake cannot stand for every frame.
+        coordinates = FakeNode("ShaderNodeTexCoord")
+        noise = _procedural_node("ShaderNodeTexNoise", (coordinates, "Object"))
+        animated = _bake_material(Base_Color=(noise, "Color"))
+        animated.node_tree.animation_data = FakeData(action=object(), drivers=[])
+        self.assertIsNone(u.material_bake_plan(animated))
+
+    def test_a_node_group_is_followed_inside_and_out(self) -> None:
+        coordinates = FakeNode("ShaderNodeTexCoord")
+        group_input = FakeNode("NodeGroupInput")
+        noise = _procedural_node("ShaderNodeTexNoise", (group_input, "Vector"))
+        group_output = FakeNode("NodeGroupOutput", inputs={"Color": _socket("Color", linked_from=(noise, "Color"))})
+        group = FakeNode("ShaderNodeGroup", inputs={"Vector": _socket("Vector", linked_from=(coordinates, "Object"))})
+        group.node_tree = FakeData(nodes=[group_input, noise, group_output])
+        plan = u.material_bake_plan(_bake_material(Base_Color=(group, "Color")))
+        self.assertTrue(plan.projected)
+        self.assertEqual(plan.orientation_space, "object")
+
+
+@unittest.skipIf(_np is None, "needs numpy (run under Blender's Python)")
+class MaterialBakeTilingTests(unittest.TestCase):
+    """Cutting a baked swatch so that it repeats."""
+
+    def _stripes(self, period: int, size: int = 256):
+        columns = _np.sin(_np.arange(size) * 2.0 * _np.pi / period) * 0.5 + 0.5
+        return _np.repeat(columns[None, :, None], size, axis=0).repeat(3, axis=2)
+
+    def _noise(self, size: int = 256, seed: int = 3):
+        return _np.random.default_rng(seed).random((size, size, 3))
+
+    def test_mismatch_is_low_at_a_period_and_high_for_noise(self) -> None:
+        lengths = _np.arange(100, 205)
+        stripes = u.seam_mismatch(self._stripes(50), 1, lengths)
+        self.assertLess(stripes[0], 1.0e-9)      # 100 = two periods
+        self.assertLess(stripes[50], 1.0e-9)     # 150
+        self.assertGreater(stripes[25], 1.5)     # 125 = half a period out of step
+        noise = u.seam_mismatch(self._noise(), 1, lengths)
+        self.assertTrue(_np.all(_np.abs(noise - 1.0) < 0.15))
+        # Along the other axis the stripes do not vary at all: any length will do.
+        self.assertLess(u.seam_mismatch(self._stripes(50), 0, lengths).max(), 1.0e-9)
+        self.assertEqual(u.seam_mismatch(_np.full((8, 8, 3), 0.5), 1, _np.arange(2, 5)).tolist(), [0.0, 0.0, 0.0])
+
+    def test_the_tile_is_cut_at_the_longest_whole_number_of_periods(self) -> None:
+        lengths = _np.arange(100, 205)
+        length, periodic = u.choose_tile_length(u.seam_mismatch(self._stripes(50), 1, lengths), lengths)
+        self.assertTrue(periodic)
+        self.assertAlmostEqual(length, 200.0, delta=0.05)
+        length, periodic = u.choose_tile_length(u.seam_mismatch(self._noise(), 1, lengths), lengths)
+        self.assertEqual((length, periodic), (204.0, False))
+
+    def test_a_period_between_two_pixels_is_found_between_them(self) -> None:
+        # Stripes 40.3 pixels apart: five of them make 201.5.
+        columns = _np.sin(_np.arange(512) * 2.0 * _np.pi / 40.3) * 0.5 + 0.5
+        stripes = _np.repeat(columns[None, :, None], 8, axis=0)
+        lengths = _np.arange(190, 211)
+        length, periodic = u.choose_tile_length(u.seam_mismatch(stripes, 1, lengths), lengths)
+        self.assertTrue(periodic)
+        self.assertAlmostEqual(length, 201.5, delta=0.1)
+
+    def test_noise_in_one_image_does_not_hide_the_period_of_another(self) -> None:
+        lengths = _np.arange(100, 205)
+        length, periodic, deciding = u.choose_tile_lengths([self._noise(), self._stripes(64)], 1, lengths)
+        self.assertEqual((periodic, deciding), (True, 1))
+        self.assertAlmostEqual(length, 192.0, delta=0.05)
+        # An image that does not vary has no say, and with nothing varying any length will do.
+        flat = _np.full((256, 256, 3), 0.25)
+        self.assertEqual(u.choose_tile_lengths([flat, self._stripes(64)], 1, lengths)[2], 1)
+        self.assertEqual(u.choose_tile_lengths([flat], 1, lengths), (204.0, False, 0))
+
+    def test_bricks_of_random_colours_still_repeat_at_their_joints(self) -> None:
+        # 40 x 16 texel bricks, each its own colour, with thin joints: the colours do
+        # not repeat, the joints do.
+        rng = _np.random.default_rng(9)
+        size = 320
+        wall = _np.empty((size, size, 3))
+        for row in range(size // 16):
+            offset = 20 if row % 2 else 0
+            for column in range(-1, size // 40 + 1):
+                left, right = max(column * 40 + offset, 0), min(column * 40 + offset + 40, size)
+                if left < right:
+                    wall[row * 16:(row + 1) * 16, left:right] = 0.3 + 0.5 * rng.random(3)
+            wall[row * 16, :] = 0.1
+            for column in range(-1, size // 40 + 1):
+                joint = column * 40 + offset
+                if 0 <= joint < size:
+                    wall[row * 16:(row + 1) * 16, joint] = 0.1
+        lengths = _np.arange(128, 257)
+        # Going by the colours alone the wall looks like noise ...
+        self.assertFalse(u.choose_tile_length(u.seam_mismatch(wall, 1, lengths), lengths)[1])
+        # ... its edges show the bricks: cut at a whole number of them, both ways.
+        groups = [wall, u.edge_strength(wall)]
+        length, periodic, deciding = u.choose_tile_lengths(groups, 1, lengths)
+        self.assertEqual((periodic, deciding), (True, 1))
+        self.assertAlmostEqual(length / 40.0, round(length / 40.0), delta=0.01)
+        length, periodic, deciding = u.choose_tile_lengths(groups, 0, lengths)
+        self.assertEqual((periodic, deciding), (True, 1))
+        self.assertAlmostEqual(length / 32.0, round(length / 32.0), delta=0.01)
+
+    def test_a_blended_tile_repeats_without_a_seam(self) -> None:
+        # A pattern cut at its period is left as it was.
+        stripes = self._stripes(50)
+        tile = u.blend_seam(stripes, 1, 200, 25)
+        self.assertEqual(tile.shape, (256, 200, 3))
+        self.assertLess(_np.abs(tile - stripes[:, :200]).max(), 1.0e-9)
+
+        # Smooth content with no period: the tile's first column continues its last one.
+        x = _np.arange(256, dtype=_np.float64)
+        ramp = _np.repeat((0.2 + 0.6 * x / 255.0)[None, :, None], 16, axis=0)
+        tile = u.blend_seam(ramp, 1, 200, 25)
+        step_inside = _np.abs(_np.diff(tile[0, :, 0])).max()
+        self.assertLess(abs(tile[0, 0, 0] - tile[0, -1, 0]), 2.0 * step_inside)
+        self.assertLess(_np.abs(tile[:, 25:] - ramp[:, 25:200]).max(), 1.0e-12)  # only the band changes
+
+        # Noise keeps its contrast through the band instead of being averaged flat.
+        noise = self._noise(256, seed=11)
+        tile = u.blend_seam(noise, 1, 200, 32)
+        self.assertAlmostEqual(float(tile[:, :32].std()), float(noise.std()), delta=0.1 * float(noise.std()))
+        # The other axis works the same way.
+        self.assertEqual(u.blend_seam(noise, 0, 180, 16).shape, (180, 256, 3))
+
+    def test_resampling_wraps_around_and_averages_when_shrinking(self) -> None:
+        self.assertTrue(_np.allclose(u.resample_periodic(_np.full((10, 12, 3), 0.3), 7, 5), 0.3))
+        checker = _np.indices((8, 8)).sum(axis=0) % 2
+        self.assertTrue(_np.allclose(u.resample_periodic(checker.astype(float), 4, 4), 0.5))
+        stripes = self._stripes(64)[:, :192]
+        larger = u.resample_periodic(stripes, 256, 192)
+        self.assertEqual(larger.shape, (192, 256, 3))
+        # Still one pattern across the wrap: the seam is no rougher than the inside.
+        steps = _np.abs(_np.diff(_np.concatenate([larger[0, :, 0], larger[0, :1, 0]])))
+        self.assertLess(steps[-1], steps[:-1].max() * 1.01)
+
+    def test_the_detail_of_an_image_that_does_not_repeat(self) -> None:
+        y, x = _np.mgrid[0:320, 0:320]
+        slope = _np.repeat((0.2 + 0.5 * x / 319.0 + 0.1 * y / 319.0)[..., None], 3, axis=2)
+        self.assertEqual(u.faithful_size(slope), 80)          # a slope from edge to edge is no detail: halved twice
+        self.assertEqual(u.faithful_size(self._noise(320)), 320)
+
+    def test_a_smooth_tile_shrinks_and_a_detailed_one_does_not(self) -> None:
+        self.assertEqual(u.shrink_tile_while_faithful(_np.full((256, 256, 3), 0.5)).shape, (64, 64, 3))
+        y, x = _np.mgrid[0:256, 0:256]
+        smooth = _np.repeat((0.5 + 0.2 * _np.sin(x * 2.0 * _np.pi / 256.0) * _np.sin(y * 2.0 * _np.pi / 256.0))[..., None], 3, axis=2)
+        self.assertLess(u.shrink_tile_while_faithful(smooth).shape[0], 256)
+        # A thin line every 32 texels, like a joint between bricks: lost if halved.
+        lines = _np.full((256, 256, 3), 0.8)
+        lines[:, ::32] = 0.2
+        self.assertEqual(u.shrink_tile_while_faithful(lines).shape, (256, 256, 3))
+        self.assertEqual(u.shrink_tile_while_faithful(self._noise()).shape, (256, 256, 3))
+
+
+def _quad_mesh(quads: list[list[tuple[float, float, float]]]):
+    """Corner positions, corner faces and face normals of flat quads."""
+    positions = _np.array([corner for quad in quads for corner in quad], dtype=_np.float64)
+    corner_face = _np.repeat(_np.arange(len(quads)), 4)
+    normals = []
+    for quad in quads:
+        a, b, c = (_np.array(point, dtype=_np.float64) for point in quad[:3])
+        normal = _np.cross(b - a, c - b)
+        normals.append(normal / _np.linalg.norm(normal))
+    return positions, corner_face, _np.array(normals)
+
+
+@unittest.skipIf(_np is None, "needs numpy (run under Blender's Python)")
+class MaterialBakeProjectionTests(unittest.TestCase):
+    """Texture coordinates that lay a baked tile onto any mesh."""
+
+    def test_a_face_reads_the_coordinates_a_swatch_of_its_facing_shows(self) -> None:
+        normals = _np.array([[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]], dtype=float)
+        u_axis, v_axis = u.projection_frames(normals)
+        y, x, z = [0, 1, 0], [1, 0, 0], [0, 0, 1]
+        self.assertTrue(_np.allclose(u_axis, [y, y, x, x, x, x]))
+        self.assertTrue(_np.allclose(v_axis, [z, z, z, z, y, y]))
+
+    def test_frames_do_not_stretch_and_walls_run_level(self) -> None:
+        rng = _np.random.default_rng(5)
+        normals = rng.normal(size=(200, 3))
+        normals /= _np.linalg.norm(normals, axis=1, keepdims=True)
+        u_axis, v_axis = u.projection_frames(normals)
+        self.assertTrue(_np.allclose(_np.linalg.norm(u_axis, axis=1), 1.0))
+        self.assertTrue(_np.allclose(_np.linalg.norm(v_axis, axis=1), 1.0))
+        self.assertTrue(_np.allclose(_np.einsum("ij,ij->i", u_axis, v_axis), 0.0, atol=1.0e-9))
+        self.assertTrue(_np.allclose(_np.einsum("ij,ij->i", u_axis, normals), 0.0, atol=1.0e-9))
+        steep = _np.abs(normals[:, 2]) <= 0.966
+        self.assertTrue(_np.allclose(u_axis[steep][:, 2], 0.0))       # u runs level
+        self.assertTrue(_np.all(v_axis[steep][:, 2] > 0.0))           # v runs up
+        # A wall at 45 degrees is mapped along itself, not squeezed onto an axis.
+        diagonal = _np.array([[_np.sqrt(0.5), _np.sqrt(0.5), 0.0]])
+        u_axis, v_axis = u.projection_frames(diagonal)
+        self.assertTrue(_np.allclose(_np.abs(u_axis[0]), [_np.sqrt(0.5), _np.sqrt(0.5), 0.0]))
+        self.assertTrue(_np.allclose(v_axis[0], [0.0, 0.0, 1.0]))
+
+    def test_a_wall_is_mapped_by_its_length_and_height_in_repeats_of_the_tile(self) -> None:
+        # A 4 m x 3 m wall facing +x, and its floor, at the origin.
+        wall = [(0, 0, 0), (0, 4, 0), (0, 4, 3), (0, 0, 3)]
+        floor = [(0, 0, 0), (-2, 0, 0), (-2, 4, 0), (0, 4, 0)]
+        positions, corner_face, normals = _quad_mesh([wall, floor])
+        uv = u.project_material_uvs(positions, corner_face, normals, normals[corner_face], (2.0, 1.5))
+        self.assertTrue(_np.allclose(uv[:4], [(0, 0), (2, 0), (2, 2), (0, 2)]))
+        self.assertTrue(_np.allclose(uv[4:], [(1, 0), (0, 0), (0, 2 + 2 / 3), (1, 2 + 2 / 3)], atol=2.0e-4))
+
+    def test_coordinates_stay_small_far_from_the_origin_and_keep_the_pattern_in_step(self) -> None:
+        # The same wall 300.4 m away: whole repeats come off, the part of a repeat stays.
+        wall = [(0, 300.4, 0), (0, 304.4, 0), (0, 304.4, 3), (0, 300.4, 3)]
+        positions, corner_face, normals = _quad_mesh([wall])
+        uv = u.project_material_uvs(positions, corner_face, normals, normals[corner_face], (2.0, 1.5))
+        self.assertTrue(_np.allclose(uv, [(0.2, 0), (2.2, 0), (2.2, 2), (0.2, 2)], atol=2.0e-4))
+        self.assertLess(float(uv.max()), 4.0)
+
+    def test_corners_in_any_order_get_the_same_coordinates(self) -> None:
+        wall = [(0, 300.4, 0), (0, 304.4, 0), (0, 304.4, 3), (0, 300.4, 3)]
+        floor = [(0, 0, 0), (-2, 0, 0), (-2, 4, 0), (0, 4, 0)]
+        positions, corner_face, normals = _quad_mesh([wall, floor])
+        in_order = u.project_material_uvs(positions, corner_face, normals, normals[corner_face], (2.0, 1.5))
+        shuffled = _np.array([5, 0, 7, 2, 4, 1, 6, 3])
+        out_of_order = u.project_material_uvs(
+            positions[shuffled], corner_face[shuffled], normals, normals[corner_face[shuffled]], (2.0, 1.5)
+        )
+        self.assertTrue(_np.array_equal(out_of_order, in_order[shuffled]))
+
+    def test_faces_of_one_plane_share_their_corners(self) -> None:
+        # Two quads side by side in one plane, tilted, well inside one repeat.
+        tilt = _np.array([[1.0, 0.0, 0.0], [0.0, 0.8, -0.6], [0.0, 0.6, 0.8]])
+        left = [tuple(tilt @ _np.array(p)) for p in [(0.1, 0.1, 0), (0.4, 0.1, 0), (0.4, 0.5, 0), (0.1, 0.5, 0)]]
+        right = [tuple(tilt @ _np.array(p)) for p in [(0.4, 0.1, 0), (0.7, 0.1, 0), (0.7, 0.5, 0), (0.4, 0.5, 0)]]
+        positions, corner_face, normals = _quad_mesh([left, right])
+        uv = u.project_material_uvs(positions, corner_face, normals, normals[corner_face], (2.0, 2.0))
+        self.assertTrue(_np.array_equal(uv[1], uv[4]))
+        self.assertTrue(_np.array_equal(uv[2], uv[7]))
+        # No stretch: 0.3 m x 0.4 m in space is 0.15 x 0.2 of a 2 m repeat.
+        self.assertAlmostEqual(float(_np.linalg.norm(uv[1] - uv[0])), 0.15, places=3)
+        self.assertAlmostEqual(float(_np.linalg.norm(uv[3] - uv[0])), 0.2, places=3)
+
+    def test_a_smooth_surface_is_mapped_along_the_nearest_axis(self) -> None:
+        # Two facets of a column, 20 degrees apart, shaded smooth: one mapping for both.
+        angles = _np.radians([-20.0, 0.0, 20.0])
+        ring = [(_np.cos(a), _np.sin(a), 0.0) for a in angles]
+        quads = [
+            [ring[i], ring[i + 1], (ring[i + 1][0], ring[i + 1][1], 1.0), (ring[i][0], ring[i][1], 1.0)]
+            for i in range(2)
+        ]
+        positions, corner_face, normals = _quad_mesh(quads)
+        shading = positions.copy()
+        shading[:, 2] = 0.0
+        shading /= _np.linalg.norm(shading, axis=1, keepdims=True)
+        smooth = u.project_material_uvs(positions, corner_face, normals, shading, (1.0, 1.0))
+        # Both facets read (y, z): the edge they share maps to one place in the tile,
+        # whole repeats apart at most.
+        for facet in (slice(0, 4), slice(4, 8)):
+            offsets = smooth[facet] - positions[facet, 1:3]
+            self.assertTrue(_np.allclose(offsets, _np.round(offsets[0]), atol=2.0e-4))
+        apart = smooth[1] - smooth[4]
+        self.assertTrue(_np.allclose(apart, _np.round(apart), atol=2.0e-4))
+        # Shaded flat, each facet is mapped in its own plane, without stretch.
+        flat = u.project_material_uvs(positions, corner_face, normals, normals[corner_face], (1.0, 1.0))
+        self.assertAlmostEqual(float(_np.linalg.norm(flat[1] - flat[0])), float(_np.linalg.norm(positions[1] - positions[0])), places=3)
+        self.assertLess(float(_np.linalg.norm(smooth[1] - smooth[0])), float(_np.linalg.norm(positions[1] - positions[0])) - 0.003)
+
+    def test_a_transform_lays_the_pattern_out_in_another_space(self) -> None:
+        wall = [(0, 0, 0), (0, 4, 0), (0, 4, 3), (0, 0, 3)]
+        positions, corner_face, normals = _quad_mesh([wall])
+        # At a scale: the pattern keeps its size, so the wall takes more or fewer repeats.
+        scale = _np.diag([1.0, 0.5, 2.0, 1.0])
+        uv = u.project_material_uvs(positions, corner_face, normals, normals[corner_face], (2.0, 1.5), scale)
+        self.assertTrue(_np.allclose(uv, [(0, 0), (1, 0), (1, 4), (0, 4)]))
+        # Placed in the world: a quarter turn about z and 10.5 m along x. The wall now
+        # faces +y and runs from x = 10.5 back to x = 6.5, and is mapped by world x and z.
+        placed = _np.array([[0.0, -1.0, 0.0, 10.5], [1.0, 0.0, 0.0, 0.0], [0.0, 0.0, 1.0, 0.0], [0.0, 0.0, 0.0, 1.0]])
+        uv = u.project_material_uvs(positions, corner_face, normals, normals[corner_face], (2.0, 1.5), placed)
+        world_x = _np.array([10.5, 6.5, 6.5, 10.5])
+        self.assertTrue(_np.allclose(uv[:, 0], world_x / 2.0 - 3.0, atol=2.0e-4))   # three whole repeats off
+        self.assertTrue(_np.allclose(uv[:, 1], [0, 0, 2, 2]))
+        # Mirrored: still the same plane and the same coordinates.
+        mirrored = _np.diag([-1.0, 1.0, 1.0, 1.0])
+        uv = u.project_material_uvs(positions, corner_face, normals, normals[corner_face], (2.0, 1.5), mirrored)
+        self.assertTrue(_np.allclose(uv, [(0, 0), (2, 0), (2, 2), (0, 2)]))
+
+    def test_scales_are_taken_in_steps(self) -> None:
+        self.assertEqual([u.scale_step(scale) for scale in (1.0, 0.95, 1.15, -1.0)], [1.0, 1.0, 1.0, 1.0])
+        self.assertAlmostEqual(u.scale_step(1.3), 2.0 ** 0.5)
+        self.assertAlmostEqual(u.scale_step(0.001), 2.0 ** -10)
+        self.assertEqual(u.scale_step(0.0), 1.0)
+        for scale in (0.37, 2.9, 41.0):
+            self.assertLess(abs(u.scale_step(scale) / scale - 1.0), 0.2)
+
+    def test_areas_by_facing_follow_the_object(self) -> None:
+        normals = _np.array([[0, 0, 1], [0, 0, 1], [1, 0, 0], [0, -1, 0], [0.6, 0.0, 0.8]], dtype=float)
+        areas = u.facing_areas(normals, _np.array([1.0, 2.0, 4.0, 8.0, 16.0]))
+        self.assertEqual(areas.tolist(), [4.0, 0.0, 0.0, 8.0, 19.0, 0.0])
+        self.assertEqual(u.facing_areas(_np.zeros((0, 3)), _np.zeros(0)).tolist(), [0.0] * 6)
+        # Laid on its side (a quarter turn about x): what faced up now faces +y, and
+        # what faced -y faces up.
+        turn = _np.array([[1.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, -1.0, 0.0]])
+        placed = u.facing_areas_placed(areas, turn, True)
+        self.assertTrue(_np.allclose(placed, [4.0, 0.0, 19.0, 0.0, 8.0, 0.0]))
+        # In the object's own space only the size changes: twice as large, four times the area.
+        self.assertTrue(_np.allclose(u.facing_areas_placed(areas, turn * 2.0, False), areas * 4.0))
+        self.assertEqual(u.facing_areas_placed(areas, _np.zeros((3, 3)), True).tolist(), [0.0] * 6)
+
+    def test_the_swatch_faces_the_way_most_of_the_surface_does(self) -> None:
+        self.assertEqual(u.choose_bake_plane(_np.array([1.0, 0.0, 0.0, 9.0, 2.0, 0.0])), "-y")
+        # A slab's top and underside are even: the top is taken.
+        self.assertEqual(u.choose_bake_plane(_np.array([1.0, 1.0, 0.0, 0.0, 5.0, 5.2])), "+z")
+        self.assertEqual(u.choose_bake_plane(_np.array([1.0, 1.0, 0.0, 0.0, 2.0, 5.2])), "-z")
+        self.assertEqual(u.choose_bake_plane(_np.zeros(6)), "+z")
+        self.assertEqual(u.choose_bake_plane(None), "+z")
+
+    def test_a_swatch_faces_its_plane_and_shows_its_pair_of_coordinates(self) -> None:
+        pairs = {"x": (1, 2), "y": (0, 2), "z": (0, 1)}
+        for plane in u.MATERIAL_BAKE_PLANES:
+            corners, uvs = u.swatch_plane_corners(plane, 2.0, 3.0)
+            points = _np.array(corners)
+            normal = _np.cross(points[1] - points[0], points[2] - points[1])
+            expected = _np.zeros(3)
+            expected["xyz".index(plane[1])] = 1.0 if plane[0] == "+" else -1.0
+            self.assertTrue(_np.allclose(normal / _np.linalg.norm(normal), expected), plane)
+            first, second = pairs[plane[1]]
+            for corner, uv in zip(corners, uvs):
+                self.assertEqual((corner[first] / 2.0, corner[second] / 3.0), uv, plane)
+            # The frame a face of this facing gets reads the same pair.
+            u_axis, v_axis = u.projection_frames(expected[None, :])
+            self.assertEqual((int(_np.abs(u_axis[0]).argmax()), int(_np.abs(v_axis[0]).argmax())), (first, second), plane)
+
+
+class MaterialBakeExportTests(unittest.TestCase):
+    """What a bake changes in the exported material, the share key and the report."""
+
+    def _material(self) -> "u.ExportedMaterial":
+        return u.ExportedMaterial(
+            name="steel",
+            base_color_factor=(0.8, 0.8, 0.8, 0.5),
+            emissive_factor=(0.0, 0.0, 0.0),
+            normal_scale=0.3,
+            metallic_factor=0.0,
+            roughness_factor=0.5,
+            occlusion_strength=1.0,
+            alpha_cutoff=0.5,
+            base_color_texture=None,
+        )
+
+    def _texture(self, name: str, channel: int = u.TEXTURE_CHANNEL_R) -> "u.ExportedTexture":
+        return u.ExportedTexture(name=name, uri=name, width=64, height=64, mip_count=1, source_image_name=name, channel=channel)
+
+    def test_baked_textures_replace_the_stale_sliders(self) -> None:
+        surface = self._texture("steel_orm.png")
+        bake = u.MaterialBake(
+            inputs=("Base Color", "Roughness", "Metallic", "Normal"),
+            base_color=(0.2, 0.2, 0.2),
+            base_color_texture=self._texture("steel_basecolor.png"),
+            roughness=0.4,
+            roughness_texture=u.replace(surface, channel=u.TEXTURE_CHANNEL_G),
+            metallic=0.9,
+            normal_texture=self._texture("steel_normal.png"),
+            tile=(2.0, 2.0),
+        )
+        baked = u.apply_material_bake(self._material(), bake)
+        self.assertEqual(baked.base_color_texture.name, "steel_basecolor.png")
+        self.assertEqual(baked.base_color_factor, (1.0, 1.0, 1.0, 0.5))          # alpha is kept
+        self.assertEqual((baked.roughness_factor, baked.roughness_texture_channel), (1.0, u.TEXTURE_CHANNEL_G))
+        self.assertEqual((baked.metallic_factor, baked.metallic_texture), (0.9, None))  # metallic came out as a value
+        self.assertEqual((baked.normal_texture.name, baked.normal_scale), ("steel_normal.png", 1.0))
+        self.assertTrue(bake.has_textures)
+
+    def test_baked_values_replace_only_the_baked_inputs(self) -> None:
+        bake = u.MaterialBake(inputs=("Base Color",), base_color=(0.1, 0.2, 0.3), roughness=0.9)
+        baked = u.apply_material_bake(self._material(), bake)
+        self.assertEqual(baked.base_color_factor, (0.1, 0.2, 0.3, 0.5))
+        self.assertEqual(baked.roughness_factor, 0.5)
+        self.assertFalse(bake.has_textures)
+        untouched = self._material()
+        self.assertIs(u.apply_material_bake(untouched, u.MaterialBake(inputs=("Normal",))), untouched)
+
+    def test_copies_of_a_world_mapped_mesh_share_by_scale_and_a_single_mesh_is_mapped_in_the_world(self) -> None:
+        material = FakeData(name="bricks", node_tree=None)
+        material.as_pointer = lambda: 11
+        slot = FakeData(material=material)
+        mesh = FakeData(polygons=[FakeData(material_index=0)], shape_keys=None, materials=[material])
+        mesh.as_pointer = lambda: 7
+
+        def placed(scale, translation=(0.0, 0.0, 0.0)):
+            obj = FakeData(type="MESH", data=mesh, modifiers=[], material_slots=[slot])
+            rows = [
+                [scale[0], 0.0, 0.0, translation[0]],
+                [0.0, scale[1], 0.0, translation[1]],
+                [0.0, 0.0, scale[2], translation[2]],
+                [0.0, 0.0, 0.0, 1.0],
+            ]
+            obj.matrix_world = type("Matrix", (), {"to_scale": lambda self: scale, "__getitem__": lambda self, row: rows[row]})()
+            return obj
+
+        self.addCleanup(u.clear_material_bakes)
+        key = u.mesh_copy_key(placed((1.0, 1.0, 1.0)))
+        # Without a bake, copies share whatever their scale.
+        self.assertEqual(u.mesh_share_key(placed((1.0, 1.0, 1.0))), u.mesh_share_key(placed((2.0, 2.0, 2.0))))
+
+        world_mapped = u.MaterialBake(inputs=("Base Color",), tile=(2.0, 2.0), world_mapped=True)
+        u._ACTIVE_MATERIAL_BAKES[11] = world_mapped
+        # A mesh placed once: mapped by its world placement, nothing to share.
+        single = placed((1.0, 1.0, 1.0), translation=(5.0, 0.0, 0.0))
+        self.assertEqual(u.mesh_share_key(single), key)
+        if _np is not None:
+            self.assertEqual(u.projection_transform(single, world_mapped)[0].tolist(), [1.0, 0.0, 0.0, 5.0])
+
+        # Copies: those at about the same scale share, the others stay apart.
+        u._ACTIVE_COPIED_WORLD_MAPPED_MESHES.add(key)
+        self.assertNotEqual(u.mesh_share_key(placed((1.0, 1.0, 1.0))), u.mesh_share_key(placed((2.0, 2.0, 2.0))))
+        self.assertEqual(u.mesh_share_key(placed((2.0, 2.0, 2.0))), u.mesh_share_key(placed((2.1, 1.9, 2.0))))
+        if _np is not None:
+            moved = u.projection_transform(placed((2.1, 1.9, 2.0), translation=(5.0, 0.0, 0.0)), world_mapped)
+            self.assertEqual(moved.tolist(), _np.diag([2.0, 2.0, 2.0, 1.0]).tolist())
+
+        # A pattern laid out in the object maps every copy alike, in the object's space.
+        object_mapped = u.MaterialBake(inputs=("Base Color",), tile=(2.0, 2.0), world_mapped=False)
+        u._ACTIVE_MATERIAL_BAKES[11] = object_mapped
+        self.assertEqual(u.mesh_share_key(placed((1.0, 1.0, 1.0))), u.mesh_share_key(placed((2.0, 2.0, 2.0))))
+        self.assertIsNone(u.projection_transform(placed((2.0, 2.0, 2.0)), object_mapped))
+
+    def test_the_report_says_what_was_baked_and_what_still_differs(self) -> None:
+        coordinates = FakeNode("ShaderNodeTexCoord")
+        coordinates.name = "Texture Coordinate"
+        noise = _procedural_node("ShaderNodeTexNoise", (coordinates, "Object"))
+        noise.name = "Noise Texture"
+        principled, output = _make_principled_output(noise, "Color")
+        material = _make_material("rust", [output, principled, noise, coordinates])
+        mesh_object = FakeData(name="Beam", data=FakeData(materials=[material], uv_layers=[]))
+
+        before = u.material_fidelity_report_lines([mesh_object])
+        self.assertEqual(before[0], "Material fidelity report: 0 supported, 1 bakeable, 0 unbakeable")
+        self.assertTrue(before[1].startswith("  [bakeable] rust"))
+        self.assertTrue(any("has no UV map" in line for line in before))
+
+        self.addCleanup(u.clear_material_bakes)
+        u._ACTIVE_MATERIAL_BAKE_NOTES["rust"] = "base color 512 px, repeating every 2.00 x 2.00 m, baked facing +z"
+        after = u.material_fidelity_report_lines([mesh_object])
+        self.assertEqual(after[0], "Material fidelity report: 0 supported, 1 bakeable, 0 unbakeable; 1 baked by this export")
+        self.assertEqual(after[1], "  [baked] rust — base color 512 px, repeating every 2.00 x 2.00 m, baked facing +z")
+        # A baked value does not map the mesh, so a hand bake would still need its UV map ...
+        self.assertTrue(any("has no UV map" in line for line in after))
+        # ... baked textures are mapped by position, and need none.
+        material.as_pointer = lambda: 23
+        u._ACTIVE_MATERIAL_BAKES[23] = u.MaterialBake(inputs=("Base Color",), tile=(2.0, 2.0))
+        self.assertEqual(len(u.material_fidelity_report_lines([mesh_object])), 2)
+
+    def test_bake_options_on_the_command_line(self) -> None:
+        arguments = ["blender", "--", "--input", "scene.blend", "--output", "scene.untold"]
+        defaults = u.parse_args(arguments)
+        self.assertFalse(defaults.no_material_bake)
+        # Nothing bakes unless an export switches it on (the command-line export does).
+        self.assertFalse(u.MaterialBakeOptions().enabled)
+        self.assertEqual((defaults.material_bake_size, defaults.material_bake_tile), (1024, 2.0))
+        chosen = u.parse_args(arguments + ["--no-material-bake", "--material-bake-size", "512", "--material-bake-tile", "4"])
+        self.assertTrue(chosen.no_material_bake)
+        self.assertEqual((chosen.material_bake_size, chosen.material_bake_tile), (512, 4.0))
+
+    def test_baked_texture_names_are_safe_and_tell_materials_apart(self) -> None:
+        first = u._bake_texture_stem("BC3 | Clínker blanco liso 24 × 5,2 cm", "basecolor")
+        second = u._bake_texture_stem("BC3 | Clinker blanco liso 24 x 5,2 cm", "basecolor")
+        self.assertRegex(first, r"^[A-Za-z0-9_]+_basecolor$")
+        self.assertNotEqual(first, second)
+        self.assertLessEqual(len(u._bake_texture_stem("x" * 200, "basecolor")), 63)
+
+
 if __name__ == "__main__":
     unittest.main()

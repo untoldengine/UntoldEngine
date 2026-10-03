@@ -80,6 +80,9 @@ Common options:
 - `--source-orientation <blender-native|engine-oriented>`: optional, defaults to `blender-native`
 - `--assets-dir <path>`: optional, folder for what the export writes besides the result; defaults to the `--output` folder. The result refers to the textures, the color grade LUT and the per-model folders of a `.untoldpack` in it by relative paths, so keep both folders together. The `HDR/` copies (see below) go there as well. A result an earlier export left inside that folder is removed.
 - `--include-hidden`: optional, also export objects hidden in the viewport or disabled in renders (see [What a `.blend` scene exports](#what-a-blend-scene-exports))
+- `--no-material-bake`: optional, do not bake procedural materials (see [Procedural materials](#procedural-materials))
+- `--material-bake-size <texels>`: optional, the size of a baked material texture; defaults to `1024`
+- `--material-bake-tile <metres>`: optional, the longest stretch of surface one repeat of a baked material texture covers; defaults to `2`
 - `--validate`: optional, also writes `<name>.validation.json`
 - `--compress-geometry`: optional, LZ4-compress vertex and index chunks (requires `pip install lz4`)
 - `--optimize`: optional, compress geometry and bake/patch textures after export (implies `--compress-geometry`)
@@ -158,8 +161,9 @@ Some material nodes are carried over instead of dropped:
   texture behind it (Mix, Math, RGB Curves, ColorRamp, node groups, ...) exports
   the value the chain gives for a surface seen straight on. View-dependent nodes
   such as Layer Weight and Fresnel take their straight-on value; the engine's own
-  Fresnel then brightens the edges. A chain with an image or procedural texture
-  in the way keeps the input's slider value, as before.
+  Fresnel then brightens the edges. A chain with a procedural texture in it is
+  baked (see [Procedural materials](#procedural-materials)); one with an image in
+  the way keeps the image.
 - Each mesh exports the material of the slot its faces use, which need not be the
   first slot.
 - EXR textures used by a material (a normal or metallic map, for example) are
@@ -199,6 +203,58 @@ A height texture drives the engine's parallax occlusion mapping:
 
 Lights and cameras follow the same rules as objects: never from collections
 excluded from the view layer, and hidden ones only with `--include-hidden`.
+
+### Procedural materials
+
+A Base Color, Roughness, Metallic or Normal input driven by procedural nodes
+(a Noise or Brick texture, node math, a Bump from a procedural height) has no
+image to export. The exporter bakes such inputs with Cycles on a flat swatch:
+what the material shows on a plane.
+
+- A pattern laid out by **object coordinates or world positions** becomes one
+  set of textures per material that repeat: base color, an occlusion-roughness-
+  metallic texture and a normal map, as needed, named
+  `<material>_<id>_basecolor.png` and so on. The meshes that use the material
+  get texture coordinates projected from their positions, so they need no UV
+  map, and copies of a mesh still export as one model.
+- Anything else (a pattern on UV, generated or camera coordinates, or image
+  textures elsewhere in the same material) keeps the mesh's UVs. The input
+  exports the value it averages to over the swatch.
+- An input that is the same all over (node math on constants) exports that
+  value.
+
+How the textures are made:
+
+- The swatch faces the way most of the material's surface does, so bricks
+  written for walls are baked on a wall.
+- A pattern with a period (bricks, tiles, solar cells) is cut at a whole number
+  of periods, at most `--material-bake-tile` metres long. A pattern with none
+  (noise) is cut at that length, and a band along the cut is blended so the
+  texture repeats without a seam.
+- Each texture is as large as its detail needs, up to `--material-bake-size`.
+- A flat face is mapped in its own plane, without stretch: level faces by x and
+  y, walls level along the wall and up. A smooth surface is mapped along the
+  nearest axis.
+- A pattern laid out in the world is mapped from world positions on a mesh that
+  is placed once, so it continues from one object to the next as in Blender.
+  Copies of one mesh share one mapping, in the mesh's own space and at the
+  pattern's world size.
+
+What a swatch cannot show, and the material fidelity report still lists where
+it applies:
+
+- A material has one swatch, facing one way. Faces that look another way show
+  the same pattern, so a graph that tells top from sides (dirt on top, bricks
+  that turn with the wall's normal) is right on the faces the swatch was baked
+  for.
+- The texture repeats.
+- Edge wear from Pointiness, vertex colours and other things that need the real
+  mesh are not there on a swatch. An input that reads an attribute is not baked.
+- Animated node trees are not baked.
+
+Baking takes a second or two per material. `--no-material-bake` switches it
+off; the inputs then export their slider values as before. The tile pipeline
+(`export-tiles`) and the Blender add-on's export do not bake.
 
 ## Bake Textures To `.utex`
 

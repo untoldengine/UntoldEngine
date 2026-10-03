@@ -17,6 +17,7 @@ import shutil
 import struct
 import sys
 import tempfile
+import time
 from array import array
 from dataclasses import dataclass, replace
 from pathlib import Path
@@ -3413,7 +3414,11 @@ def compute_material_fidelity(mesh_objects: Iterable[object]) -> MaterialFidelit
                     print(f"  Warning: material analysis failed for '{name}': {exc}", flush=True)
                     continue
             if analyses_by_name[name].classification != MATERIAL_GRAPH_SUPPORTED:
-                object_needs_bake = True
+                # A material this export baked into repeating textures is mapped by
+                # position (see prepare_material_bakes): it needs no UV map.
+                bake = material_bake_for(material)
+                if bake is None or not bake.has_textures:
+                    object_needs_bake = True
         if object_needs_bake:
             uv_warning = _mesh_uv_warning(getattr(mesh_object, "data", None))
             if uv_warning is not None:
@@ -3432,24 +3437,50 @@ def material_fidelity_report_lines(mesh_objects: Iterable[object]) -> list[str]:
     for analysis in analyses_by_name.values():
         counts[analysis.classification] += 1
 
+    # What this export baked (see prepare_material_bakes), by material name.
+    baked = {name: note for name, note in _ACTIVE_MATERIAL_BAKE_NOTES.items() if name in analyses_by_name}
+    divergent = [
+        analysis for analysis in analyses_by_name.values()
+        if analysis.classification != MATERIAL_GRAPH_SUPPORTED and analysis.material_name not in baked
+    ]
     lines = [
         "Material fidelity report: "
         f"{counts[MATERIAL_GRAPH_SUPPORTED]} supported, "
         f"{counts[MATERIAL_GRAPH_BAKEABLE]} bakeable, "
         f"{counts[MATERIAL_GRAPH_UNBAKEABLE]} unbakeable"
+        + (f"; {len(baked)} baked by this export" if baked else "")
     ]
     for analysis in sorted(analyses_by_name.values(), key=lambda a: a.material_name):
         if analysis.classification == MATERIAL_GRAPH_SUPPORTED:
             continue
-        details = "; ".join(
-            f"{finding.node_name} ({finding.node_type}): {finding.reason}" for finding in analysis.findings
-        )
-        lines.append(f"  [{analysis.classification}] {analysis.material_name} — {details}")
+        findings = analysis.findings
+        note = baked.get(analysis.material_name)
+        if note is not None:
+            # The bake took care of the nodes the exporter does not evaluate.
+            findings = [finding for finding in findings if not _finding_is_covered_by_a_bake(finding)]
+        details = "; ".join(f"{finding.node_name} ({finding.node_type}): {finding.reason}" for finding in findings)
+        if note is not None:
+            lines.append(f"  [baked] {analysis.material_name} — {note}" + (f"; still differs: {details}" if details else ""))
+        else:
+            lines.append(f"  [{analysis.classification}] {analysis.material_name} — {details}")
     lines.extend(report.uv_warnings)
-    if counts[MATERIAL_GRAPH_BAKEABLE] or counts[MATERIAL_GRAPH_UNBAKEABLE]:
-        lines.append("  Materials listed above will render differently in the engine than in Blender")
+    if divergent:
+        lines.append(
+            "  Materials listed above will render differently in the engine than in Blender"
+            if not baked
+            else "  Materials listed above that were not baked will render differently in the engine than in Blender"
+        )
         lines.append("  unless baked to flat textures with a third-party tool or fixed in the graph.")
     return lines
+
+
+def _finding_is_covered_by_a_bake(finding: MaterialGraphFinding) -> bool:
+    """Whether a swatch bake captures what a fidelity finding reports as lost: nodes
+    the exporter does not evaluate, and coordinates other than UVs."""
+    return finding.category == MATERIAL_GRAPH_BAKEABLE and (
+        finding.reason in {"not evaluated by the exporter", "node math is dropped by the exporter"}
+        or finding.reason.endswith("coordinates are frozen into UV space when baked")
+    )
 
 
 def _png_bit_depth(path: Path) -> int:
@@ -5583,7 +5614,7 @@ def extract_material(mesh_object: object, asset_path: Path) -> ExportedMaterial:
 
     occlusion_texture = _detect_occlusion_texture(material, asset_path)
 
-    return ExportedMaterial(
+    exported = ExportedMaterial(
         name=material.name,
         base_color_factor=(base_color[0], base_color[1], base_color[2], alpha),
         emissive_factor=emissive,
@@ -5606,7 +5637,1188 @@ def extract_material(mesh_object: object, asset_path: Path) -> ExportedMaterial:
         alpha_mode=alpha_mode,
         alpha_texture=alpha_texture,
     )
+    bake = material_bake_for(material)
+    return apply_material_bake(exported, bake) if bake is not None else exported
 
+
+
+# --- Procedural material bake -------------------------------------------------------
+#
+# A Principled input driven by procedural nodes (a Noise or Brick texture, node math)
+# has no image for the exporter to hand to the engine, and used to export as the
+# socket's slider value. With Blender at hand, such inputs are baked with Cycles on a
+# flat swatch instead: what the material shows on a plane, cut and blended so that it
+# repeats. A material laid out by object or world position then gets one set of
+# repeating textures, and the meshes that use it get texture coordinates projected
+# from their positions (project_material_uvs), so one texture set per material serves
+# every mesh, with or without a UV map, and copies of a mesh still share one model.
+# Anything else (a pattern laid out by UV, generated or camera coordinates, or mixed
+# with image textures) keeps its UVs and takes the average the swatch shows.
+
+MATERIAL_BAKE_DEFAULT_RESOLUTION = 1024
+MATERIAL_BAKE_DEFAULT_TILE_METERS = 2.0
+MATERIAL_BAKE_MIN_RESOLUTION = 64
+# Principled inputs a swatch can capture.
+MATERIAL_BAKE_INPUTS = ("Base Color", "Roughness", "Metallic", "Normal")
+# The six ways a swatch can face (see swatch_plane_corners).
+MATERIAL_BAKE_PLANES = ("+x", "-x", "+y", "-y", "+z", "-z")
+
+_BAKE_ANALYSIS_PIXELS = 640
+_BAKE_ANALYSIS_SAMPLES = 4
+_BAKE_SAMPLES = 8
+# The lengths a tile may be cut at, as shares of the analysed extent: any period up to
+# the longer one has a multiple in between.
+_BAKE_TILE_SEARCH = (0.4, 0.8)
+# The share of a tile that fades into the pixels continuing its far edge.
+_BAKE_SEAM_BAND = 0.125
+# A baked channel that varies by less than this (8-bit steps) is written as a value.
+_BAKE_FLAT_TOLERANCE = 1.5 / 255.0
+# A baked tile is halved while that changes it by less than this on average.
+_BAKE_SHRINK_TOLERANCE = 1.0 / 255.0
+# Projected UVs are rounded to this, so corners that share a position share a vertex.
+_PROJECTED_UV_STEP = 1.0 / 8192.0
+
+_PROCEDURAL_TEXTURE_NODE_IDS = {
+    "ShaderNodeTexNoise",
+    "ShaderNodeTexVoronoi",
+    "ShaderNodeTexWhiteNoise",
+    "ShaderNodeTexBrick",
+    "ShaderNodeTexChecker",
+    "ShaderNodeTexWave",
+    "ShaderNodeTexGradient",
+    "ShaderNodeTexMagic",
+    "ShaderNodeTexGabor",
+    "ShaderNodeTexMusgrave",
+}
+# What a node output stands for in a bake: "object"/"position" lay a pattern out in
+# space a swatch can follow, the others cannot be followed or are not there on a swatch.
+_BAKE_OUTPUT_DEPENDENCIES = {
+    "ShaderNodeTexCoord": {
+        "Generated": "generated",
+        "Normal": "object_normal",
+        "UV": "uv",
+        "Object": "object",
+        "Camera": "view",
+        "Window": "view",
+        "Reflection": "view",
+    },
+    "ShaderNodeNewGeometry": {
+        "Position": "position",
+        "Normal": "world_normal",
+        "True Normal": "world_normal",
+        "Incoming": "view",
+        "Parametric": "parametric",
+        "Tangent": "tangent",
+    },
+    "ShaderNodeObjectInfo": {"Color": "attribute", "Alpha": "attribute"},
+}
+_BAKE_NODE_DEPENDENCIES = {
+    "ShaderNodeUVMap": "uv",
+    "ShaderNodeAttribute": "attribute",
+    "ShaderNodeVertexColor": "attribute",
+    "ShaderNodeHairInfo": "attribute",
+    "ShaderNodeParticleInfo": "attribute",
+    "ShaderNodePointInfo": "attribute",
+    "ShaderNodeVolumeInfo": "attribute",
+    "ShaderNodeWireframe": "attribute",
+    "ShaderNodeScript": "attribute",
+    "ShaderNodeTangent": "tangent",
+    "ShaderNodeLightPath": "view",
+    "ShaderNodeCameraData": "view",
+}
+# Dependencies that lay a pattern out over the surface.
+_BAKE_LAYOUT_DEPENDENCIES = {"object", "position", "generated", "uv", "view", "parametric", "tangent", "other_object"}
+
+
+@dataclass
+class MaterialBakeOptions:
+    # Off unless an export switches it on: the command-line export does (see main).
+    # The tile pipeline exports a scene in many pieces, and would bake every material
+    # again for each of them.
+    enabled: bool = False
+    # Texels along a baked tile.
+    resolution: int = MATERIAL_BAKE_DEFAULT_RESOLUTION
+    # The longest stretch of surface, in metres, one repeat of a baked texture covers.
+    tile_meters: float = MATERIAL_BAKE_DEFAULT_TILE_METERS
+
+
+MATERIAL_BAKE_OPTIONS = MaterialBakeOptions()
+
+
+@dataclass(frozen=True)
+class MaterialBakePlan:
+    """What a material's node graph lets a swatch bake capture."""
+    # Principled inputs to bake: linked, with no image texture behind them.
+    inputs: tuple[str, ...]
+    # Their pattern is laid out by object or world position, so it can be baked as
+    # repeating textures and mapped by projecting positions.
+    projected: bool
+    # The space the direction a surface faces is taken in, to choose the swatch's
+    # plane: "world" when the graph reads world positions or normals, else "object".
+    orientation_space: str
+    # The pattern is laid out in the world (world positions only): it stays where it
+    # is, and the size it is, however an object is placed. Otherwise it is laid out in
+    # the object (object coordinates) and moves, turns and grows with it.
+    world_mapped: bool
+    # Why the pattern is not projected, for the export log; empty when it is.
+    note: str = ""
+
+
+@dataclass(frozen=True)
+class MaterialBake:
+    """What a swatch bake found for a material: per baked input, a texture or the one
+    value the input has all over the swatch."""
+    inputs: tuple[str, ...]
+    base_color: Optional[tuple[float, float, float]] = None
+    base_color_texture: Optional[ExportedTexture] = None
+    roughness: Optional[float] = None
+    roughness_texture: Optional[ExportedTexture] = None
+    metallic: Optional[float] = None
+    metallic_texture: Optional[ExportedTexture] = None
+    normal_texture: Optional[ExportedTexture] = None
+    # Metres one repeat of the textures covers along u and v; None when there is no
+    # texture to map (every input came out as a value, or the pattern is not projected).
+    tile: Optional[tuple[float, float]] = None
+    # See MaterialBakePlan.world_mapped.
+    world_mapped: bool = False
+    plane: str = "+z"
+
+    @property
+    def has_textures(self) -> bool:
+        return self.tile is not None
+
+
+# The bakes of the export in progress, by material (as_pointer); see prepare_material_bakes.
+_ACTIVE_MATERIAL_BAKES: dict[int, MaterialBake] = {}
+# What each of them found, by material name, for the fidelity report.
+_ACTIVE_MATERIAL_BAKE_NOTES: dict[str, str] = {}
+# The meshes with a world-mapped bake that several objects copy (their mesh_copy_key):
+# see projection_transform.
+_ACTIVE_COPIED_WORLD_MAPPED_MESHES: set[tuple] = set()
+
+
+def material_bake_for(material: Optional[object]) -> Optional[MaterialBake]:
+    """The swatch bake of a material in the export in progress, if it has one."""
+    if material is None or not _ACTIVE_MATERIAL_BAKES:
+        return None
+    return _ACTIVE_MATERIAL_BAKES.get(_graph_node_key(material))
+
+
+def _socket_dependencies(socket: object, found: set[str], visited: set[int]) -> None:
+    """Adds to `found` what the value of an input socket depends on: "image" for an
+    image texture, and the entries of _BAKE_OUTPUT_DEPENDENCIES / _BAKE_NODE_DEPENDENCIES
+    for coordinates and attributes. Node groups are followed inside and out, taking
+    everything a group reads as read by each of its outputs."""
+    node, from_socket = _linked_source(socket)
+    if node is None:
+        return
+    node_id = node.bl_idname
+    output_name = getattr(from_socket, "name", "") or ""
+    by_output = _BAKE_OUTPUT_DEPENDENCIES.get(node_id)
+    if by_output is not None:
+        dependency = by_output.get(output_name)
+        if dependency == "object" and getattr(node, "object", None) is not None:
+            dependency = "other_object"
+        if dependency is not None:
+            found.add(dependency)
+    dependency = _BAKE_NODE_DEPENDENCIES.get(node_id)
+    if dependency is not None:
+        found.add(dependency)
+    if node_id in {"ShaderNodeTexImage", "ShaderNodeTexEnvironment"} and getattr(node, "image", None) is not None:
+        found.add("image")
+    if node_id in _PROCEDURAL_TEXTURE_NODE_IDS:
+        vector = node.inputs.get("Vector") if hasattr(node.inputs, "get") else None
+        if vector is not None and not getattr(vector, "is_linked", False):
+            # A procedural texture with nothing plugged into Vector reads generated
+            # coordinates.
+            found.add("generated")
+
+    node_key = _graph_node_key(node)
+    if node_key in visited:
+        return
+    visited.add(node_key)
+    group_tree = getattr(node, "node_tree", None) if node_id == "ShaderNodeGroup" else None
+    if group_tree is not None:
+        group_output = _group_output_node(group_tree)
+        if group_output is not None:
+            for inner in _node_input_sockets(group_output):
+                _socket_dependencies(inner, found, visited)
+    for input_socket in _node_input_sockets(node):
+        _socket_dependencies(input_socket, found, visited)
+
+
+def _node_input_sockets(node: object) -> list:
+    inputs = getattr(node, "inputs", None)
+    if inputs is None:
+        return []
+    return list(inputs.values()) if hasattr(inputs, "values") else list(inputs)
+
+
+def material_bake_plan(material: object) -> Optional[MaterialBakePlan]:
+    """What to bake for a material, or None when there is nothing a swatch can add: no
+    Principled BSDF, animated nodes, or no linked input without an image behind it."""
+    node_tree = getattr(material, "node_tree", None)
+    if node_tree is None or _node_tree_is_animated(node_tree):
+        return None
+    principled = _principled_bsdf_node(node_tree)
+    if principled is None:
+        return None
+
+    inputs: list[str] = []
+    dependencies: set[str] = set()
+    # Whether an image texture the export uses is in the material: the mesh's own UVs
+    # are then still needed, and nothing can be mapped by position.
+    keeps_uvs = _detect_occlusion_texture(material, Path(".")) is not None
+
+    def reads(socket: Optional[object]) -> Optional[set[str]]:
+        """What a linked socket depends on; None when it is not linked."""
+        if socket is None or not getattr(socket, "is_linked", False):
+            return None
+        found: set[str] = set()
+        _socket_dependencies(socket, found, set())
+        return found
+
+    for name in MATERIAL_BAKE_INPUTS:
+        found = reads(principled.inputs.get(name))
+        if found is None:
+            continue
+        if "image" in found:
+            keeps_uvs = True   # exported as the image it is
+        elif "attribute" not in found:   # an attribute is not there on a swatch
+            inputs.append(name)
+            dependencies |= found
+    for name in ("Emission Color", "Emission", "Alpha"):
+        found = reads(principled.inputs.get(name))
+        keeps_uvs = keeps_uvs or (found is not None and "image" in found)
+    # A height plugged into the Material Output shows as bump unless the material asks
+    # for true displacement only; the normal bake picks it up.
+    output = _material_output_node(node_tree)
+    found = reads(output.inputs.get("Displacement")) if output is not None else None
+    if found is not None:
+        if "image" in found:
+            keeps_uvs = True
+        elif "attribute" not in found and "Normal" not in inputs and _displacement_shows_as_bump(material):
+            inputs.append("Normal")
+            dependencies |= found
+    if not inputs:
+        return None
+
+    layout = dependencies & _BAKE_LAYOUT_DEPENDENCIES
+    note = ""
+    if not layout & {"object", "position"}:
+        note = "no pattern laid out by position" if not layout else "laid out by " + _bake_layout_names(layout)
+    elif layout - {"object", "position"}:
+        note = "also laid out by " + _bake_layout_names(layout - {"object", "position"})
+    elif keeps_uvs:
+        note = "its image textures need the mesh's UVs"
+    return MaterialBakePlan(
+        inputs=tuple(inputs),
+        projected=not note,
+        orientation_space="world" if dependencies & {"position", "world_normal"} else "object",
+        world_mapped="position" in dependencies and "object" not in dependencies,
+        note=note,
+    )
+
+
+def _displacement_shows_as_bump(material: object) -> bool:
+    method = getattr(material, "displacement_method", None)
+    if method is None:   # before Blender 4.1 the setting was Cycles' own
+        method = getattr(getattr(material, "cycles", None), "displacement_method", "BUMP")
+    return method in {"BUMP", "BOTH"}
+
+
+def _bake_layout_names(layout: set[str]) -> str:
+    names = {
+        "generated": "generated coordinates",
+        "uv": "UV coordinates",
+        "view": "the view",
+        "parametric": "parametric coordinates",
+        "tangent": "tangents",
+        "other_object": "another object's coordinates",
+        "object": "object coordinates",
+        "position": "world positions",
+    }
+    return ", ".join(sorted(names[item] for item in layout))
+
+
+# --- Tiling: cut a baked swatch so that it repeats ------------------------------------
+
+
+def seam_mismatch(image: "np.ndarray", axis: int, lengths: "np.ndarray", stride: int = 1) -> "np.ndarray":
+    """How badly an image continues into itself when it repeats every `length` pixels
+    along `axis` (0 rows, 1 columns), for each of `lengths`: the mean squared
+    difference between the image and itself shifted by that length, over twice its
+    variance. About 1 for a pattern with no period (noise), near 0 at a period."""
+    data = image if axis == 1 else np.swapaxes(image, 0, 1)
+    data = data[::stride].astype(np.float64)
+    if data.ndim == 2:
+        data = data[..., None]
+    variance = float(data.var(axis=(0, 1)).sum())
+    lengths = np.asarray(lengths, dtype=np.int64)
+    if variance <= 1.0e-12:
+        return np.zeros(len(lengths))
+    # Centred, which changes no difference and keeps the sums below small.
+    data = data - data.mean(axis=(0, 1), keepdims=True)
+    size = data.shape[1]
+    # sum (a - b)^2 = sum a^2 + sum b^2 - 2 sum a b, for every length at once: the
+    # squares from running totals, the products from one correlation.
+    squares = np.concatenate([[0.0], np.cumsum((data * data).sum(axis=(0, 2)))])
+    spectrum = np.fft.rfft(data, n=2 * size, axis=1)
+    products = np.fft.irfft(spectrum * np.conj(spectrum), n=2 * size, axis=1).sum(axis=(0, 2))
+    overlap = size - lengths
+    total = squares[overlap] + (squares[size] - squares[lengths]) - 2.0 * products[lengths]
+    count = overlap * data.shape[0]
+    return np.maximum(total, 0.0) / np.maximum(count, 1) / (2.0 * variance)
+
+
+def choose_tile_length(
+    mismatch: "np.ndarray", lengths: "np.ndarray", periodic_below: float = 0.6, slack: float = 0.05
+) -> tuple[float, bool]:
+    """The length to cut a swatch at so that it repeats, and whether the pattern has a
+    period: the longest length the pattern repeats at about as well as at its best, or
+    the longest length on offer for a pattern with no period. A pattern has a period
+    when it continues into itself clearly better at some length than at most. The
+    length of a period is placed between two of `lengths` when the mismatch on either
+    side says so, since a swatch baked more finely is cut by it."""
+    best = float(mismatch.min())
+    typical = float(np.median(mismatch))
+    if typical <= 1.0e-9 or best >= periodic_below * typical:
+        return float(lengths[-1]), False
+    last = len(lengths) - 1
+    candidates = [
+        index
+        for index in range(len(lengths))
+        if mismatch[index] <= best + slack * typical
+        and (index == 0 or mismatch[index] <= mismatch[index - 1])
+        and (index == last or mismatch[index] <= mismatch[index + 1])
+    ]
+    index = candidates[-1]
+    length = float(lengths[index])
+    if 0 < index < last:
+        before, here, after = (float(mismatch[i]) for i in (index - 1, index, index + 1))
+        curvature = before - 2.0 * here + after
+        if curvature > 1.0e-12:
+            length += min(max(0.5 * (before - after) / curvature, -0.5), 0.5) * float(lengths[index + 1] - lengths[index])
+    return length, True
+
+
+def edge_strength(image: "np.ndarray") -> "np.ndarray":
+    """How much an image changes from each pixel to the next, across and down. The
+    joints of a brick wall repeat even where the bricks' own colours do not."""
+    data = image.astype(np.float64)
+    if data.ndim == 2:
+        data = data[..., None]
+    across = np.abs(np.diff(data, axis=1))[:-1]
+    down = np.abs(np.diff(data, axis=0))[:, :-1]
+    return across + down
+
+
+def choose_tile_lengths(
+    groups: list["np.ndarray"], axis: int, lengths: "np.ndarray", stride: int = 1
+) -> tuple[float, bool, int]:
+    """choose_tile_length over several images of one swatch (its colour, its normals,
+    their edges...), going by the one whose best length stands out most: noise in one
+    of them must not hide the bricks in another. Images that barely vary have no say.
+    Returns the length, whether the pattern has a period, and the index of the image
+    that decided."""
+    best: Optional[tuple[float, int, "np.ndarray"]] = None
+    for index, group in enumerate(groups):
+        if float(group.std(axis=(0, 1)).max()) < 0.5 / 255.0:
+            continue
+        mismatch = seam_mismatch(group, axis, lengths, stride)
+        typical = float(np.median(mismatch))
+        standing_out = float(mismatch.min()) / typical if typical > 1.0e-9 else 1.0
+        if best is None or standing_out < best[0]:
+            best = (standing_out, index, mismatch)
+    if best is None:
+        return float(lengths[-1]), False, 0
+    length, periodic = choose_tile_length(best[2], lengths)
+    return length, periodic, best[1]
+
+
+def blend_seam(image: "np.ndarray", axis: int, length: int, band: int) -> "np.ndarray":
+    """Cut an image to `length` pixels along `axis` so that it repeats without a seam:
+    its first `band` pixels fade from the pixels that follow the cut, which continue
+    its far edge, into its own. Where the two do not match (noise), the fade keeps
+    their contrast instead of averaging it away."""
+    data = image if axis == 1 else np.swapaxes(image, 0, 1)
+    data = data.astype(np.float64)
+    own = data[:, :band]
+    continuation = data[:, length:length + band]
+    ramp = (np.arange(band) + 0.5) / band
+    weight = (ramp * ramp * (3.0 - 2.0 * ramp)).reshape((1, band) + (1,) * (data.ndim - 2))
+    mean = 0.5 * (own.mean(axis=(0, 1), keepdims=True) + continuation.mean(axis=(0, 1), keepdims=True))
+    a = own - mean
+    b = continuation - mean
+    spread = float(np.sqrt((a * a).sum() * (b * b).sum()))
+    correlation = min(max(float((a * b).sum()) / spread, 0.0), 1.0) if spread > 1.0e-12 else 1.0
+    gain = 1.0 / np.sqrt(weight * weight + (1.0 - weight) ** 2 + 2.0 * weight * (1.0 - weight) * correlation)
+    blended = mean + (weight * a + (1.0 - weight) * b) * gain
+    result = np.concatenate([blended, data[:, band:length]], axis=1)
+    return result if axis == 1 else np.swapaxes(result, 0, 1)
+
+
+def _periodic_lookup(image: "np.ndarray", axis: int, positions: "np.ndarray") -> "np.ndarray":
+    size = image.shape[axis]
+    base = np.floor(positions).astype(np.int64)
+    fraction_shape = [1] * image.ndim
+    fraction_shape[axis] = len(positions)
+    fraction = (positions - base).reshape(fraction_shape)
+    return np.take(image, base % size, axis=axis) * (1.0 - fraction) + np.take(image, (base + 1) % size, axis=axis) * fraction
+
+
+def resample_periodic(image: "np.ndarray", width: int, height: int) -> "np.ndarray":
+    """Resize an image that repeats, wrapping around its edges: an average over each
+    new texel's footprint when shrinking, linear interpolation otherwise."""
+    result = image.astype(np.float64)
+    for axis, target in ((1, width), (0, height)):
+        size = result.shape[axis]
+        if size == target:
+            continue
+        scale = size / target
+        centres = (np.arange(target) + 0.5) * scale - 0.5
+        if scale > 1.0:
+            taps = int(math.ceil(scale)) * 2
+            offsets = ((np.arange(taps) + 0.5) / taps - 0.5) * scale
+            result = sum(_periodic_lookup(result, axis, centres + offset) for offset in offsets) / taps
+        else:
+            result = _periodic_lookup(result, axis, centres)
+    return result
+
+
+def shrink_tile_while_faithful(
+    tile: "np.ndarray", minimum: int = MATERIAL_BAKE_MIN_RESOLUTION, tolerance: float = _BAKE_SHRINK_TOLERANCE
+) -> "np.ndarray":
+    """Halve a repeating tile (values as they are stored, in [0, 1]) for as long as
+    that barely changes it, so a smooth pattern does not take the memory of a detailed
+    one. Both the average change and the change of the few texels that change most
+    (a thin joint between bricks) must stay small."""
+    while min(tile.shape[0], tile.shape[1]) // 2 >= minimum:
+        smaller = resample_periodic(tile, tile.shape[1] // 2, tile.shape[0] // 2)
+        change = np.abs(resample_periodic(smaller, tile.shape[1], tile.shape[0]) - tile)
+        if float(np.sqrt((change * change).mean())) > tolerance or float(np.percentile(change, 99.5)) > 3.0 * tolerance:
+            break
+        tile = smaller
+    return tile
+
+
+def faithful_size(image: "np.ndarray", minimum: int = MATERIAL_BAKE_MIN_RESOLUTION) -> int:
+    """The longer side, in pixels, that an image which does not repeat can be shrunk to
+    before it changes (see shrink_tile_while_faithful). It is mirrored across its edges
+    first, which makes it repeat without adding detail."""
+    mirrored = np.concatenate([image, image[:, ::-1]], axis=1)
+    mirrored = np.concatenate([mirrored, mirrored[::-1]], axis=0)
+    shrunk = shrink_tile_while_faithful(mirrored, minimum=2 * minimum)
+    return max(shrunk.shape[0], shrunk.shape[1]) // 2
+
+
+# --- Projected UVs: map a baked tile onto any mesh --------------------------------------
+
+
+def projection_frames(normals: "np.ndarray") -> tuple["np.ndarray", "np.ndarray"]:
+    """For each unit face normal, the directions texture u and v run along in the
+    face's plane, without stretch. Level faces take (x, y); steeper faces run u level
+    along the face, towards whichever of +x or +y it follows more, and v up it. A face
+    looking along an axis so reads the pair of coordinates a swatch of that facing
+    shows: (y, z) looking along x, (x, z) along y, (x, y) along z."""
+    normals = np.asarray(normals, dtype=np.float64)
+    count = len(normals)
+    u = np.zeros((count, 3))
+    v = np.zeros((count, 3))
+    nz = normals[:, 2]
+    level = np.abs(nz) > 0.966  # within 15 degrees of facing straight up or down
+    # Level faces: u is x laid into the face's plane.
+    x_axis = np.array([1.0, 0.0, 0.0])
+    u_level = x_axis - normals * normals[:, :1]
+    u_level /= np.maximum(np.linalg.norm(u_level, axis=1, keepdims=True), 1.0e-12)
+    v_level = np.cross(normals, u_level)
+    v_level *= np.where(v_level[:, 1:2] < 0.0, -1.0, 1.0)
+    # Steeper faces: u is level (z cross n), v points up the face.
+    u_steep = np.stack([-normals[:, 1], normals[:, 0], np.zeros(count)], axis=1)
+    u_steep /= np.maximum(np.linalg.norm(u_steep, axis=1, keepdims=True), 1.0e-12)
+    dominant = np.where(np.abs(u_steep[:, 0]) >= np.abs(u_steep[:, 1]), u_steep[:, 0], u_steep[:, 1])
+    u_steep *= np.where(dominant < 0.0, -1.0, 1.0)[:, None]
+    v_steep = np.cross(normals, u_steep)
+    v_steep *= np.where(v_steep[:, 2:3] < 0.0, -1.0, 1.0)
+    u[level], v[level] = u_level[level], v_level[level]
+    u[~level], v[~level] = u_steep[~level], v_steep[~level]
+    return u, v
+
+
+def project_material_uvs(
+    positions: "np.ndarray",
+    corner_face: "np.ndarray",
+    face_normals: "np.ndarray",
+    corner_normals: "np.ndarray",
+    tile: tuple[float, float],
+    transform: Optional["np.ndarray"] = None,
+) -> "np.ndarray":
+    """Texture coordinates for a baked tile, one pair per face corner, projected from
+    the corners' positions onto each face's own plane.
+
+    positions: each corner's position in the object's space. corner_face: each
+    corner's face. face_normals: unit, per face. corner_normals: the shading normals,
+    per corner. tile: the metres one repeat covers along u and v. transform: a 4 x 4
+    matrix taking the object's space to the space the pattern is laid out in, when
+    that is not the object's own (see projection_transform).
+
+    A flat face is mapped in its own plane, with no stretch. A face of a smooth
+    surface (its shading normals lean away from its own) is mapped along the nearest
+    axis instead, like its neighbours, so the pattern does not break at every edge of
+    a curve. Each face starts within the first repeat, so the coordinates stay small
+    (they are stored as half floats).
+    """
+    positions = np.asarray(positions, dtype=np.float64)
+    normals = np.asarray(face_normals, dtype=np.float64)
+    shading = np.asarray(corner_normals, dtype=np.float64)
+    if transform is not None:
+        transform = np.asarray(transform, dtype=np.float64)
+        linear = transform[:3, :3]
+        positions = positions @ linear.T + transform[:3, 3]
+        normal_matrix = np.linalg.inv(linear).T
+        normals = normals @ normal_matrix.T
+        shading = shading @ normal_matrix.T
+    normals = normals / np.maximum(np.linalg.norm(normals, axis=1, keepdims=True), 1.0e-12)
+    shading = shading / np.maximum(np.linalg.norm(shading, axis=1, keepdims=True), 1.0e-12)
+
+    agreement = np.einsum("ij,ij->i", shading, normals[corner_face])
+    smooth = np.zeros(len(normals), dtype=bool)
+    smooth[corner_face[agreement < 0.9962]] = True  # a corner leans more than 5 degrees
+    if smooth.any():
+        axis = np.abs(normals[smooth]).argmax(axis=1)
+        snapped = np.zeros((int(smooth.sum()), 3))
+        snapped[np.arange(len(axis)), axis] = np.sign(normals[smooth][np.arange(len(axis)), axis])
+        normals[smooth] = snapped
+    # Faces of one plane must get the very same frame.
+    normals = np.round(normals, 6)
+    normals /= np.maximum(np.linalg.norm(normals, axis=1, keepdims=True), 1.0e-12)
+
+    frame_u, frame_v = projection_frames(normals)
+    uv = np.stack(
+        [
+            np.einsum("ij,ij->i", positions, frame_u[corner_face]) / tile[0],
+            np.einsum("ij,ij->i", positions, frame_v[corner_face]) / tile[1],
+        ],
+        axis=1,
+    )
+    # Whole repeats are taken off face by face: the texture repeats, so a face may
+    # start at any whole number, and small numbers keep their precision.
+    lowest = np.full((len(normals), 2), np.inf)
+    if len(corner_face) > 0 and bool(np.all(np.diff(corner_face) >= 0)):
+        # Corners listed face by face, as a mesh has them: one pass.
+        starts = np.flatnonzero(np.diff(corner_face, prepend=-1))
+        lowest[corner_face[starts]] = np.minimum.reduceat(uv, starts, axis=0)
+    else:
+        np.minimum.at(lowest, corner_face, uv)
+    uv -= np.floor(lowest)[corner_face]
+    return (np.round(uv / _PROJECTED_UV_STEP) * _PROJECTED_UV_STEP).astype(np.float32)
+
+
+def scale_step(scale: float) -> float:
+    """A scale rounded to the nearest step of the square root of two (..., 0.71, 1,
+    1.41, 2, ...): at most a fifth off, and the same for scales close to each other."""
+    magnitude = abs(float(scale))
+    if magnitude <= 1.0e-9:
+        return 1.0
+    return 2.0 ** (round(2.0 * math.log2(magnitude)) / 2.0)
+
+
+def mesh_copy_key(obj: object) -> Optional[tuple]:
+    """What makes mesh objects copies of one mesh, before any bake is taken into
+    account: see mesh_share_key, which is this for most meshes."""
+    if getattr(obj, "type", None) != "MESH" or getattr(obj, "data", None) is None:
+        return None
+    if getattr(obj, "modifiers", None) or _is_rigged_object(obj):
+        return None
+    materials = tuple(
+        slot.material.as_pointer() if getattr(slot, "material", None) is not None else 0
+        for slot in getattr(obj, "material_slots", [])
+    )
+    return (obj.data.as_pointer(), materials)
+
+
+def world_mapped_copy_scale(obj: object, bake: Optional[MaterialBake]) -> Optional[tuple[float, float, float]]:
+    """For an object that copies a mesh whose material has a world-mapped bake, the
+    scale its texture coordinates are made for (its own, in steps: see scale_step);
+    None for any other object."""
+    if bake is None or not bake.has_textures or not bake.world_mapped:
+        return None
+    if mesh_copy_key(obj) not in _ACTIVE_COPIED_WORLD_MAPPED_MESHES:
+        return None
+    return tuple(scale_step(component) for component in obj.matrix_world.to_scale())
+
+
+def projection_transform(mesh_object: object, bake: MaterialBake) -> Optional["np.ndarray"]:
+    """The matrix from an object's space to the space its material's baked pattern is
+    laid out in (None when that is the object's own space).
+
+    A pattern laid out in the object needs none. A pattern laid out in the world is
+    mapped from world positions, exactly as Blender shows it, on a mesh placed once.
+    Copies of one mesh cannot each have their own mapping and still be one model, so
+    they are mapped in their own space instead, at the size the pattern has in the
+    world: the pattern keeps its scale (to scale_step) but turns and moves with each
+    copy.
+    """
+    if not bake.world_mapped:
+        return None
+    scale = world_mapped_copy_scale(mesh_object, bake)
+    if scale is not None:
+        return np.diag([scale[0], scale[1], scale[2], 1.0])
+    return np.array([[float(mesh_object.matrix_world[row][column]) for column in range(4)] for row in range(4)])
+
+
+def write_projected_uv_layer(mesh_data: object, mesh_object: object, bake: MaterialBake) -> None:
+    """Replace a mesh's first UV map (or give it one) with the coordinates that map the
+    material's baked tile onto it; see project_material_uvs."""
+    polygon_count = len(mesh_data.polygons)
+    corner_count = len(mesh_data.loops)
+    if polygon_count == 0 or corner_count == 0:
+        return
+    positions = np.empty(len(mesh_data.vertices) * 3, dtype=np.float32)
+    mesh_data.vertices.foreach_get("co", positions)
+    corner_vertex = np.empty(corner_count, dtype=np.int32)
+    mesh_data.loops.foreach_get("vertex_index", corner_vertex)
+    corner_normals = np.empty(corner_count * 3, dtype=np.float32)
+    mesh_data.loops.foreach_get("normal", corner_normals)
+    face_normals = np.empty(polygon_count * 3, dtype=np.float32)
+    mesh_data.polygons.foreach_get("normal", face_normals)
+    corner_start = np.empty(polygon_count, dtype=np.int32)
+    mesh_data.polygons.foreach_get("loop_start", corner_start)
+    corner_total = np.empty(polygon_count, dtype=np.int32)
+    mesh_data.polygons.foreach_get("loop_total", corner_total)
+    corner_face = np.zeros(corner_count, dtype=np.int64)
+    np.add.at(corner_face, corner_start[1:], 1)
+    corner_face = np.cumsum(corner_face)
+    if not np.array_equal(corner_start, np.concatenate([[0], np.cumsum(corner_total)[:-1]])):
+        # Faces that do not list their corners one after the other.
+        for face in range(polygon_count):
+            corner_face[corner_start[face]:corner_start[face] + corner_total[face]] = face
+
+    uv = project_material_uvs(
+        positions.reshape(-1, 3)[corner_vertex],
+        corner_face,
+        face_normals.reshape(-1, 3),
+        corner_normals.reshape(-1, 3),
+        bake.tile,
+        projection_transform(mesh_object, bake),
+    )
+    layer = mesh_data.uv_layers[0] if len(mesh_data.uv_layers) > 0 else mesh_data.uv_layers.new(name="UVMap")
+    layer.data.foreach_set("uv", uv.ravel())
+
+
+# --- Baking the swatch (needs Blender) ----------------------------------------------------
+
+
+def facing_areas(face_normals: "np.ndarray", face_areas: "np.ndarray") -> "np.ndarray":
+    """The area of a mesh's faces by the axis they face most, in the order of
+    MATERIAL_BAKE_PLANES."""
+    normals = np.asarray(face_normals, dtype=np.float64).reshape(-1, 3)
+    if len(normals) == 0:
+        return np.zeros(6)
+    axis = np.abs(normals).argmax(axis=1)
+    negative = normals[np.arange(len(normals)), axis] < 0.0
+    return np.bincount(axis * 2 + negative, weights=np.asarray(face_areas, dtype=np.float64), minlength=6)
+
+
+def facing_areas_placed(areas: "np.ndarray", matrix: "np.ndarray", reorient: bool) -> "np.ndarray":
+    """facing_areas of a mesh as an object places it: scaled by the object's transform
+    (its upper 3 x 3 `matrix`) and, with `reorient`, counted under the axis each
+    direction faces in the world instead of in the object."""
+    matrix = np.asarray(matrix, dtype=np.float64)
+    determinant = abs(float(np.linalg.det(matrix)))
+    result = np.zeros(6)
+    if determinant <= 1.0e-12:
+        return result
+    normal_matrix = np.linalg.inv(matrix).T
+    for index in range(6):
+        direction = np.zeros(3)
+        direction[index // 2] = -1.0 if index % 2 else 1.0
+        placed = normal_matrix @ direction
+        length = float(np.linalg.norm(placed))
+        target = index
+        if reorient and length > 0.0:
+            axis = int(np.abs(placed).argmax())
+            target = axis * 2 + (1 if placed[axis] < 0.0 else 0)
+        result[target] += areas[index] * determinant * length
+    return result
+
+
+def choose_bake_plane(areas: Optional["np.ndarray"]) -> str:
+    """The facing to bake a swatch at: the one most of the material's surface has. The
+    two sides of an axis (a slab's top and underside) count as even when within a tenth
+    of each other, and the positive one is taken."""
+    if areas is None or float(areas.max()) <= 0.0:
+        return "+z"
+    index = int(areas.argmax())
+    if index % 2 == 1 and areas[index - 1] >= 0.9 * areas[index]:
+        index -= 1
+    return MATERIAL_BAKE_PLANES[index]
+
+
+def swatch_plane_corners(plane: str, extent_u: float, extent_v: float) -> tuple[list[tuple[float, float, float]], list[tuple[float, float]]]:
+    """The corners of a swatch facing `plane` (one of MATERIAL_BAKE_PLANES) and their
+    UVs, in the order that makes the face look that way. Its u and v run along the
+    coordinates projection_frames gives a face of that facing: (y, z) for x, (x, z)
+    for y, (x, y) for z."""
+    axis = plane[1]
+    if axis == "x":
+        corners = [(0.0, 0.0, 0.0), (0.0, extent_u, 0.0), (0.0, extent_u, extent_v), (0.0, 0.0, extent_v)]
+        faces_positive = True
+    elif axis == "y":
+        corners = [(0.0, 0.0, 0.0), (extent_u, 0.0, 0.0), (extent_u, 0.0, extent_v), (0.0, 0.0, extent_v)]
+        faces_positive = False
+    else:
+        corners = [(0.0, 0.0, 0.0), (extent_u, 0.0, 0.0), (extent_u, extent_v, 0.0), (0.0, extent_v, 0.0)]
+        faces_positive = True
+    uvs = [(0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0)]
+    if faces_positive != (plane[0] == "+"):
+        corners = [corners[0], corners[3], corners[2], corners[1]]
+        uvs = [uvs[0], uvs[3], uvs[2], uvs[1]]
+    return corners, uvs
+
+
+class _QuietStandardOutput:
+    """Sends what Blender itself prints to standard output nowhere for a while: every
+    bake reports "Baking map saved to internal image", three lines per material."""
+
+    @staticmethod
+    def _flush() -> None:
+        # Blender writes through C's buffered stdout, which Python's flush does not reach.
+        sys.stdout.flush()
+        try:
+            import ctypes
+
+            ctypes.CDLL(None).fflush(None)
+        except (ImportError, OSError, AttributeError):
+            pass
+
+    def __enter__(self) -> None:
+        self._flush()
+        self._saved = os.dup(1)
+        self._null = os.open(os.devnull, os.O_WRONLY)
+        os.dup2(self._null, 1)
+
+    def __exit__(self, *_: object) -> None:
+        self._flush()
+        os.dup2(self._saved, 1)
+        os.close(self._null)
+        os.close(self._saved)
+
+
+class _SwatchBaker:
+    """Bakes swatches in a scene of its own, so Cycles never loads the scene being
+    exported."""
+
+    def __init__(self) -> None:
+        self.scene = bpy.data.scenes.new("UntoldMaterialBake")
+        self.scene.render.engine = "CYCLES"
+        cycles = self.scene.cycles
+        cycles.device = "CPU"
+        cycles.use_denoising = False
+        cycles.use_adaptive_sampling = False
+        bake = self.scene.render.bake
+        bake.margin = 0
+        bake.use_clear = True
+        bake.target = "IMAGE_TEXTURES"
+        bake.use_selected_to_active = False
+
+    def close(self) -> None:
+        bpy.data.scenes.remove(self.scene)
+
+    def bake(
+        self,
+        material: object,
+        inputs: tuple[str, ...],
+        plane: str,
+        extent_u: float,
+        extent_v: float,
+        width: int,
+        height: int,
+        samples: int,
+    ) -> dict[str, "np.ndarray"]:
+        """What the material's inputs show on a plane of extent_u x extent_v metres
+        facing `plane`, as linear images of (height, width, 3) with row 0 at v = 0:
+        "base" (Base Color), "surface" (Roughness in green, Metallic in blue) and
+        "normal" (the tangent-space normal, encoded to [0, 1])."""
+        corners, uvs = swatch_plane_corners(plane, extent_u, extent_v)
+        mesh = bpy.data.meshes.new("UntoldSwatch")
+        mesh.from_pydata(corners, [], [(0, 1, 2, 3)])
+        uv_layer = mesh.uv_layers.new(name="UVMap")
+        for loop, uv in zip(mesh.loops, uvs):
+            uv_layer.data[loop.index].uv = uv
+        mesh.update()
+        swatch = bpy.data.objects.new("UntoldSwatch", mesh)
+        self.scene.collection.objects.link(swatch)
+        working = material.copy()
+        mesh.materials.append(working)
+        target = bpy.data.images.new("UntoldBakeTarget", width, height, alpha=False, float_buffer=True)
+        target.colorspace_settings.name = "Non-Color"
+        try:
+            tree = working.node_tree
+            principled = _principled_bsdf_node(tree)
+            output = _material_output_node(tree)
+            target_node = tree.nodes.new("ShaderNodeTexImage")
+            target_node.image = target
+            tree.nodes.active = target_node
+            self.scene.cycles.samples = samples
+            results: dict[str, "np.ndarray"] = {}
+
+            def run(bake_type: str) -> "np.ndarray":
+                with _QuietStandardOutput(), bpy.context.temp_override(
+                    scene=self.scene,
+                    view_layer=self.scene.view_layers[0],
+                    active_object=swatch,
+                    object=swatch,
+                    selected_objects=[swatch],
+                    selected_editable_objects=[swatch],
+                ):
+                    if bake_type == "NORMAL":
+                        bpy.ops.object.bake(type="NORMAL", normal_space="TANGENT")
+                    else:
+                        bpy.ops.object.bake(type=bake_type)
+                pixels = np.empty(width * height * 4, dtype=np.float32)
+                target.pixels.foreach_get(pixels)
+                return pixels.reshape(height, width, 4)[..., :3].astype(np.float64)
+
+            def source_of(name: str) -> Optional[object]:
+                socket = principled.inputs.get(name)
+                if name not in inputs or socket is None or not socket.is_linked:
+                    return None
+                return socket.links[0].from_socket
+
+            if "Normal" in inputs:
+                results["normal"] = run("NORMAL")
+            emission = tree.nodes.new("ShaderNodeEmission")
+            tree.links.new(emission.outputs[0], output.inputs["Surface"])
+            base_source = source_of("Base Color")
+            if base_source is not None:
+                tree.links.new(base_source, emission.inputs["Color"])
+                results["base"] = run("EMIT")
+            roughness_source, metallic_source = source_of("Roughness"), source_of("Metallic")
+            if roughness_source is not None or metallic_source is not None:
+                combine = tree.nodes.new("ShaderNodeCombineColor")
+                combine.mode = "RGB"
+                combine.inputs[0].default_value = 1.0
+                for socket, source in ((combine.inputs[1], roughness_source), (combine.inputs[2], metallic_source)):
+                    if source is not None:
+                        tree.links.new(source, socket)
+                    else:
+                        socket.default_value = 0.0
+                tree.links.new(combine.outputs[0], emission.inputs["Color"])
+                results["surface"] = run("EMIT")
+            return results
+        finally:
+            bpy.data.images.remove(target)
+            bpy.data.objects.remove(swatch)
+            bpy.data.meshes.remove(mesh)
+            bpy.data.materials.remove(working)
+
+
+def _bake_texture_stem(material_name: str, role: str) -> str:
+    stem = "".join(character if character.isascii() and character.isalnum() else "_" for character in material_name)
+    stem = "_".join(part for part in stem.split("_") if part)[:40] or "material"
+    digest = hashlib.sha1(material_name.encode("utf-8")).hexdigest()[:6]
+    return f"{stem}_{digest}_{role}"
+
+
+# Images made by the last prepare_material_bakes, to remove before the next one.
+_MATERIAL_BAKE_IMAGE_NAMES: list[str] = []
+
+
+def _baked_texture(material_name: str, role: str, tile: "np.ndarray", *, srgb: bool, channel: int = TEXTURE_CHANNEL_R) -> ExportedTexture:
+    """A Blender image holding a baked tile (values as stored, in [0, 1], row 0 at
+    v = 0) and the texture that refers to it; staging writes it out like any other
+    generated image."""
+    height, width = tile.shape[:2]
+    image = bpy.data.images.new(_bake_texture_stem(material_name, role), width, height, alpha=False, float_buffer=False)
+    image.colorspace_settings.name = "sRGB" if srgb else "Non-Color"
+    pixels = np.ones((height, width, 4), dtype=np.float32)
+    pixels[..., :3] = np.clip(tile, 0.0, 1.0)
+    image.pixels.foreach_set(pixels.ravel())
+    image.update()
+    _MATERIAL_BAKE_IMAGE_NAMES.append(image.name)
+    return ExportedTexture(
+        name=f"{image.name}.png",
+        uri=f"{image.name}.png",
+        width=width,
+        height=height,
+        mip_count=1,
+        source_path=None,
+        source_image_name=image.name,
+        channel=channel,
+        srgb_source=srgb,
+    )
+
+
+def _is_flat(values: "np.ndarray", tolerance: float = _BAKE_FLAT_TOLERANCE) -> bool:
+    """Whether an image (or one channel of it) is one value all over, give or take."""
+    flattened = values.reshape(-1, values.shape[-1]) if values.ndim == 3 else values.reshape(-1, 1)
+    spread = np.percentile(flattened, 99.9, axis=0) - np.percentile(flattened, 0.1, axis=0)
+    return bool(float(spread.max()) <= tolerance)
+
+
+def _values_from_swatch(plan: MaterialBakePlan, images: dict[str, "np.ndarray"]) -> dict:
+    """The average each baked input has over a swatch, as MaterialBake fields."""
+    fields: dict = {}
+    if "base" in images:
+        fields["base_color"] = tuple(float(min(max(value, 0.0), 1.0)) for value in images["base"].mean(axis=(0, 1)))
+    if "surface" in images:
+        mean = images["surface"].mean(axis=(0, 1))
+        if "Roughness" in plan.inputs:
+            fields["roughness"] = float(min(max(mean[1], 0.0), 1.0))
+        if "Metallic" in plan.inputs:
+            fields["metallic"] = float(min(max(mean[2], 0.0), 1.0))
+    return fields
+
+
+def bake_material(baker: _SwatchBaker, material: object, plan: MaterialBakePlan, plane: str, options: MaterialBakeOptions) -> MaterialBake:
+    """Bake a material's swatch (see the section's introduction): repeating textures
+    for a pattern laid out by position, the values the inputs average to otherwise."""
+    name = material.name
+    if not plan.projected:
+        # Only the values the inputs average to: a normal has none worth keeping.
+        valued = tuple(input_name for input_name in plan.inputs if input_name != "Normal")
+        if not valued:
+            return MaterialBake(inputs=plan.inputs)
+        images = baker.bake(material, valued, "+z", 1.0, 1.0, 64, 64, _BAKE_ANALYSIS_SAMPLES)
+        return MaterialBake(inputs=plan.inputs, **_values_from_swatch(plan, images))
+
+    # A first, coarse bake to see what varies, what repeats and how long a tile to cut.
+    extent = options.tile_meters / _BAKE_TILE_SEARCH[1]
+    analysis = baker.bake(
+        material, plan.inputs, plane, extent, extent, _BAKE_ANALYSIS_PIXELS, _BAKE_ANALYSIS_PIXELS, _BAKE_ANALYSIS_SAMPLES
+    )
+    fields = _values_from_swatch(plan, analysis)
+    stored = {key: _as_stored(key, image) for key, image in analysis.items()}
+    varying = sorted(key for key, image in stored.items() if not _is_flat(image))
+    if not varying:
+        return MaterialBake(inputs=plan.inputs, **fields)
+    lengths = np.arange(
+        int(_BAKE_TILE_SEARCH[0] * _BAKE_ANALYSIS_PIXELS), int(_BAKE_TILE_SEARCH[1] * _BAKE_ANALYSIS_PIXELS) + 1
+    )
+    # Each image and its edges: see edge_strength.
+    groups = [analysis[key] for key in varying] + [edge_strength(analysis[key]) for key in varying]
+    analysis_pixel = extent / _BAKE_ANALYSIS_PIXELS
+    cut = [choose_tile_lengths(groups, axis, lengths, stride=4)[0] for axis in (1, 0)]  # along u, then v
+    tile = (cut[0] * analysis_pixel, cut[1] * analysis_pixel)
+
+    # The bakes that are kept, one per image: the tile and the band that fades into
+    # it, at the size the image's detail asks for. A smooth image, which the coarse
+    # bake already shows whole, is baked small.
+    limit = max(int(options.resolution), MATERIAL_BAKE_MIN_RESOLUTION)
+    inputs_of = {
+        "base": ("Base Color",),
+        "normal": ("Normal",),
+        "surface": tuple(input_name for input_name in ("Roughness", "Metallic") if input_name in plan.inputs),
+    }
+    tiles: dict[str, "np.ndarray"] = {}
+    for key in varying:
+        seen = stored[key][: int(cut[1]), : int(cut[0])]
+        detail = faithful_size(seen)
+        resolution = limit
+        if detail <= _BAKE_ANALYSIS_PIXELS // 4:
+            # Twice what the coarse bake needed, as a power of two.
+            resolution = min(limit, 1 << (max(MATERIAL_BAKE_MIN_RESOLUTION, 2 * detail) - 1).bit_length())
+        band = max(int(resolution * _BAKE_SEAM_BAND), 4)
+        size = resolution + band
+        image = baker.bake(
+            material, inputs_of[key], plane, tile[0] * size / resolution, tile[1] * size / resolution, size, size, _BAKE_SAMPLES
+        )[key]
+        tiles[key] = _as_stored(key, blend_seam(blend_seam(image, 1, resolution, band), 0, resolution, band))
+
+    textured = False
+    if "base" in tiles and not _is_flat(tiles["base"]):
+        fields["base_color_texture"] = _baked_texture(name, "basecolor", shrink_tile_while_faithful(tiles["base"]), srgb=True)
+        textured = True
+    if "surface" in tiles:
+        surface = tiles["surface"]
+        varies = {
+            "Roughness": "Roughness" in plan.inputs and not _is_flat(surface[..., 1]),
+            "Metallic": "Metallic" in plan.inputs and not _is_flat(surface[..., 2]),
+        }
+        if any(varies.values()):
+            # Occlusion, roughness, metallic: the channels an ORM texture has.
+            surface[..., 0] = 1.0
+            if not varies["Roughness"]:
+                surface[..., 1] = fields.get("roughness", 1.0)
+            if not varies["Metallic"]:
+                surface[..., 2] = fields.get("metallic", 0.0)
+            texture = _baked_texture(name, "orm", shrink_tile_while_faithful(surface), srgb=False)
+            if varies["Roughness"]:
+                fields["roughness_texture"] = replace(texture, channel=TEXTURE_CHANNEL_G)
+            if varies["Metallic"]:
+                fields["metallic_texture"] = replace(texture, channel=TEXTURE_CHANNEL_B)
+            textured = True
+    if "normal" in tiles and not _is_flat(tiles["normal"]):
+        fields["normal_texture"] = _baked_texture(name, "normal", shrink_tile_while_faithful(tiles["normal"]), srgb=False)
+        textured = True
+    return MaterialBake(
+        inputs=plan.inputs,
+        tile=tile if textured else None,
+        world_mapped=plan.world_mapped,
+        plane=plane,
+        **fields,
+    )
+
+
+def _as_stored(key: str, image: "np.ndarray") -> "np.ndarray":
+    """A baked image as its texture stores it, in [0, 1]: the base colour sRGB-encoded,
+    normals of unit length, the rest clipped."""
+    if key == "base":
+        return linear_to_srgb(image)
+    if key == "normal":
+        vectors = image * 2.0 - 1.0
+        vectors = vectors / np.maximum(np.linalg.norm(vectors, axis=2, keepdims=True), 1.0e-6)
+        return vectors * 0.5 + 0.5
+    return np.clip(image, 0.0, 1.0)
+
+
+def _material_bake_summary(bake: MaterialBake, plan: MaterialBakePlan) -> str:
+    textures = []
+    values = []
+    for name, input_name, texture, value in (
+        ("base color", "Base Color", bake.base_color_texture, bake.base_color),
+        ("roughness", "Roughness", bake.roughness_texture, bake.roughness),
+        ("metallic", "Metallic", bake.metallic_texture, bake.metallic),
+        ("normal", "Normal", bake.normal_texture, None),
+    ):
+        if input_name not in bake.inputs:
+            continue
+        if texture is not None:
+            textures.append(f"{name} {texture.width} px")
+        elif value is not None:
+            values.append(name)
+    parts = []
+    if textures:
+        parts.append(f"{', '.join(textures)}, repeating every {bake.tile[0]:.2f} x {bake.tile[1]:.2f} m, baked facing {bake.plane}")
+    if values:
+        parts.append(f"{', '.join(values)} as {'a value' if len(values) == 1 else 'values'}")
+    if "Normal" in bake.inputs and bake.normal_texture is None:
+        parts.append("no bump to speak of" if plan.projected else "its bump is left out")
+    if plan.note:
+        parts.append(f"not laid out as a texture: {plan.note}")
+    return "; ".join(parts)
+
+
+def prepare_material_bakes(mesh_objects: list[object]) -> None:
+    """Bake the procedural materials of the meshes about to be extracted and keep the
+    results for extract_material and the mesh extraction to use (material_bake_for),
+    until clear_material_bakes. Does nothing without Blender and numpy, or when baking
+    is switched off (MATERIAL_BAKE_OPTIONS)."""
+    clear_material_bakes()
+    options = MATERIAL_BAKE_OPTIONS
+    if not options.enabled or bpy is None or not _HAS_NUMPY:
+        return
+    for image_name in _MATERIAL_BAKE_IMAGE_NAMES:
+        image = bpy.data.images.get(image_name)
+        if image is not None:
+            bpy.data.images.remove(image)
+    _MATERIAL_BAKE_IMAGE_NAMES.clear()
+
+    plans: dict[int, tuple[object, Optional[MaterialBakePlan]]] = {}
+    areas: dict[int, "np.ndarray"] = {}
+    mesh_areas: dict[int, "np.ndarray"] = {}
+    for mesh_object in mesh_objects:
+        material = mesh_object_material(mesh_object)
+        if material is None:
+            continue
+        key = _graph_node_key(material)
+        if key not in plans:
+            try:
+                plans[key] = (material, material_bake_plan(material))
+            except Exception as exc:
+                print(f"  Warning: material '{material.name}' could not be analysed for baking: {exc}", flush=True)
+                plans[key] = (material, None)
+        plan = plans[key][1]
+        if plan is None or not plan.projected:
+            continue
+        mesh = mesh_object.data
+        mesh_key = mesh.as_pointer()
+        local = mesh_areas.get(mesh_key)
+        if local is None:
+            polygon_count = len(mesh.polygons)
+            normals = np.empty(polygon_count * 3, dtype=np.float32)
+            face_area = np.empty(polygon_count, dtype=np.float32)
+            mesh.polygons.foreach_get("normal", normals)
+            mesh.polygons.foreach_get("area", face_area)
+            local = mesh_areas[mesh_key] = facing_areas(normals, face_area)
+        matrix = np.array([[float(mesh_object.matrix_world[row][column]) for column in range(3)] for row in range(3)])
+        areas[key] = areas.get(key, np.zeros(6)) + facing_areas_placed(local, matrix, plan.orientation_space == "world")
+
+    to_bake = [(key, material, plan) for key, (material, plan) in plans.items() if plan is not None]
+    if not to_bake:
+        return
+    try:
+        baker = _SwatchBaker()
+    except Exception as exc:
+        # Cycles is an add-on: it can be switched off, or left out of a custom build.
+        print(f"  Warning: {len(to_bake)} procedural material(s) are not baked, Cycles cannot be used here: {exc}", flush=True)
+        return
+    print(f"  Baking {len(to_bake)} procedural material(s) ...", flush=True)
+    started = time.monotonic()
+    try:
+        for index, (key, material, plan) in enumerate(to_bake, 1):
+            plane = choose_bake_plane(areas.get(key))
+            try:
+                bake = bake_material(baker, material, plan, plane, options)
+            except Exception as exc:
+                print(f"    [{index}/{len(to_bake)}] {material.name}: not baked ({exc})", flush=True)
+                continue
+            _ACTIVE_MATERIAL_BAKES[key] = bake
+            _ACTIVE_MATERIAL_BAKE_NOTES[material.name] = _material_bake_summary(bake, plan)
+            print(f"    [{index}/{len(to_bake)}] {material.name}: {_ACTIVE_MATERIAL_BAKE_NOTES[material.name]}", flush=True)
+    finally:
+        baker.close()
+    print(f"  Baked in {time.monotonic() - started:.1f} s", flush=True)
+
+    copies: dict[tuple, int] = {}
+    for mesh_object in mesh_objects:
+        bake = material_bake_for(mesh_object_material(mesh_object))
+        if bake is None or not bake.has_textures or not bake.world_mapped:
+            continue
+        key = mesh_copy_key(mesh_object)
+        if key is not None:
+            copies[key] = copies.get(key, 0) + 1
+    _ACTIVE_COPIED_WORLD_MAPPED_MESHES.update(key for key, count in copies.items() if count > 1)
+
+
+def clear_material_bakes() -> None:
+    """Forget the bakes of the export that just ended. The images stay until the next
+    export bakes, since staging writes them out after extraction."""
+    _ACTIVE_MATERIAL_BAKES.clear()
+    _ACTIVE_MATERIAL_BAKE_NOTES.clear()
+    _ACTIVE_COPIED_WORLD_MAPPED_MESHES.clear()
+
+
+def apply_material_bake(material: ExportedMaterial, bake: MaterialBake) -> ExportedMaterial:
+    """An extracted material with its baked inputs filled in: each one's texture, or
+    the value it has all over the swatch in place of the socket's stale slider."""
+    changes: dict = {}
+    if "Base Color" in bake.inputs:
+        alpha = material.base_color_factor[3]
+        if bake.base_color_texture is not None:
+            changes["base_color_texture"] = bake.base_color_texture
+            changes["base_color_factor"] = (1.0, 1.0, 1.0, alpha)
+        elif bake.base_color is not None:
+            changes["base_color_factor"] = (*bake.base_color, alpha)
+    if "Roughness" in bake.inputs:
+        if bake.roughness_texture is not None:
+            changes["roughness_texture"] = bake.roughness_texture
+            changes["roughness_texture_channel"] = bake.roughness_texture.channel
+            changes["roughness_factor"] = 1.0
+        elif bake.roughness is not None:
+            changes["roughness_factor"] = bake.roughness
+    if "Metallic" in bake.inputs:
+        if bake.metallic_texture is not None:
+            changes["metallic_texture"] = bake.metallic_texture
+            changes["metallic_texture_channel"] = bake.metallic_texture.channel
+            changes["metallic_factor"] = 1.0
+        elif bake.metallic is not None:
+            changes["metallic_factor"] = bake.metallic
+    if "Normal" in bake.inputs and bake.normal_texture is not None:
+        changes["normal_texture"] = bake.normal_texture
+        changes["normal_scale"] = 1.0
+    return replace(material, **changes) if changes else material
 
 
 def extract_shape_key_targets(mesh_object, evaluated_mesh, u_vi, conv_np):
@@ -5689,6 +6901,11 @@ def extract_shape_key_targets(mesh_object, evaluated_mesh, u_vi, conv_np):
 def _extract_mesh_numpy(mesh_object: object, mesh_data: object, asset_path: Path,
                         *, conversion_matrix, validate: bool) -> ExportedMesh:
     """numpy-accelerated mesh extraction (inner worker, mesh_data already evaluated)."""
+    bake = material_bake_for(mesh_object_material(mesh_object))
+    if bake is not None and bake.has_textures:
+        # Before triangulating, so the triangles of a face share its mapping.
+        write_projected_uv_layer(mesh_data, mesh_object, bake)
+
     n_polys = len(mesh_data.polygons)
 
     # Skip expensive bmesh roundtrip when the mesh is already fully triangulated.
@@ -6172,17 +7389,16 @@ def mesh_share_key(obj: object) -> Optional[tuple]:
     the mesh per object. Their geometry is then split and extracted once and reused.
 
     None for anything that can differ per object: modifiers (a Mirror or Array can
-    depend on the object), skinning or shape keys (see _is_rigged_object).
+    depend on the object), skinning or shape keys (see _is_rigged_object). Copies at
+    clearly different scales stay apart when their material's baked pattern keeps its
+    size in the world, since their texture coordinates then differ (see
+    projection_transform).
     """
-    if getattr(obj, "type", None) != "MESH" or getattr(obj, "data", None) is None:
+    key = mesh_copy_key(obj)
+    if key is None:
         return None
-    if getattr(obj, "modifiers", None) or _is_rigged_object(obj):
-        return None
-    materials = tuple(
-        slot.material.as_pointer() if getattr(slot, "material", None) is not None else 0
-        for slot in getattr(obj, "material_slots", [])
-    )
-    return (obj.data.as_pointer(), materials)
+    scale = world_mapped_copy_scale(obj, material_bake_for(mesh_object_material(obj)))
+    return key if scale is None else key + (scale,)
 
 
 def _is_rigged_object(obj: object) -> bool:
@@ -6486,10 +7702,31 @@ def extract_nodes_from_objects(
         raise RuntimeError("No Blender objects were provided for export")
     conversion_matrix = resolve_conversion_matrix(convert_orientation, source_orientation)
 
+    mesh_objects = [obj for obj in export_objects if getattr(obj, "type", None) == "MESH"]
+    # Procedural materials are baked first (see prepare_material_bakes): the meshes'
+    # texture coordinates and materials depend on what the bakes find.
+    prepare_material_bakes(mesh_objects)
+    try:
+        return _extract_nodes_from_prepared_objects(
+            export_objects, mesh_objects, asset_path, convert_orientation, source_orientation, validate,
+            progress_callback, conversion_matrix,
+        )
+    finally:
+        clear_material_bakes()
+
+
+def _extract_nodes_from_prepared_objects(
+    export_objects: list[object],
+    mesh_objects: list[object],
+    asset_path: Path,
+    convert_orientation: bool,
+    source_orientation: str,
+    validate: bool,
+    progress_callback: Optional[ProgressCallback],
+    conversion_matrix: Optional[object],
+) -> list[ExportedNode]:
     import bpy as _bpy
     depsgraph = _bpy.context.evaluated_depsgraph_get()
-
-    mesh_objects = [obj for obj in export_objects if getattr(obj, "type", None) == "MESH"]
 
     total = len(mesh_objects)
     print(f"  Processing {total} mesh(es) ...", flush=True)
@@ -8188,6 +9425,27 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
              "environments are staged there too, as copies to put in the project's HDR folder: nothing "
              "refers to them.",
     )
+    parser.add_argument(
+        "--no-material-bake",
+        action="store_true",
+        help="Do not bake procedural materials. By default a Principled BSDF input driven by procedural "
+             "nodes (noise, bricks, node math) with no image texture behind it is baked with Cycles: into "
+             "textures that repeat, mapped onto the meshes by position, when the pattern is laid out by "
+             "object or world coordinates, and into the value it averages to otherwise.",
+    )
+    parser.add_argument(
+        "--material-bake-size",
+        type=int,
+        default=MATERIAL_BAKE_DEFAULT_RESOLUTION,
+        help="Texels along a baked material texture (default: %(default)s). Smooth patterns are written smaller.",
+    )
+    parser.add_argument(
+        "--material-bake-tile",
+        type=float,
+        default=MATERIAL_BAKE_DEFAULT_TILE_METERS,
+        help="The longest stretch of surface, in metres, that one repeat of a baked material texture covers "
+             "(default: %(default)s). A pattern with a period is cut at a whole number of periods below it.",
+    )
     parser.add_argument("--validate", action="store_true", help="Write a companion .validation.json file for engine-side validation tests.")
     parser.add_argument("--export-shapekeys", action="store_true", help="Export Blender shape keys as morph target chunks (with optional untold_driver_* custom-property pose drivers).")
     parser.add_argument(
@@ -8220,6 +9478,9 @@ def main(argv: list[str]) -> int:
     global EXPORT_SHAPE_KEYS
     args = parse_args(argv)
     EXPORT_SHAPE_KEYS = bool(getattr(args, "export_shapekeys", False))
+    MATERIAL_BAKE_OPTIONS.enabled = not args.no_material_bake
+    MATERIAL_BAKE_OPTIONS.resolution = max(int(args.material_bake_size), MATERIAL_BAKE_MIN_RESOLUTION)
+    MATERIAL_BAKE_OPTIONS.tile_meters = max(float(args.material_bake_tile), 0.01)
     input_path = normalize_blender_path(args.input)
     output_path = single_file_output_path(normalize_blender_path(args.output))
     assets_dir = normalize_blender_path(args.assets_dir) if args.assets_dir else None

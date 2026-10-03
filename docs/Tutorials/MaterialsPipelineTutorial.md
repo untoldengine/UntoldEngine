@@ -77,12 +77,15 @@ Material changes automatically notify static batching when needed.
 ## Complex Blender Materials
 
 The exporter only reads a fixed set of material inputs (base color,
-roughness, metallic, normal, emissive). If a Blender material uses node
-graphs the runtime cannot evaluate directly — procedural nodes, `Mix`,
-`Math`, or other complex graph behavior — bake it to flat textures with a
-third-party tool before export so the imported result matches Blender. The
-Blender addon's `Untold Materials` panel (`Scan Materials`) tells you which
-materials diverge and why; see [Using The Blender
+roughness, metallic, normal, emissive). Inputs driven by procedural nodes
+with no image behind them are baked by the export itself (see [Procedural
+materials](../API/UsingTheExporter.md#procedural-materials)). If a Blender
+material uses other node graphs the runtime cannot evaluate directly —
+image textures blended by `Mix`, adjusted by `Math`, or other complex graph
+behavior — bake it to flat textures with a third-party tool before export
+so the imported result matches Blender. The Blender addon's `Untold
+Materials` panel (`Scan Materials`) tells you which materials diverge and
+why; see [Using The Blender
 Plugin](../API/UsingBlenderAddon.md#material-fidelity).
 
 ## Color Grading
@@ -144,8 +147,9 @@ When a material does not look right:
 
 1. Confirm the `.untold` asset loads successfully.
 2. Check base color, roughness, metallic, normal, and opacity.
-3. If Blender node graphs are involved, scan materials in the Blender addon
-   and bake divergent ones with a third-party tool before re-exporting.
+3. If Blender node graphs are involved, read the material fidelity report at
+   the end of the export log: it says what the export baked and what still
+   differs. Bake those with a third-party tool before re-exporting.
 4. If the whole image tone differs from Blender, try switching the tonemap
    operator (`.aces`/`.agx`) or applying a `--color-grade-lut`.
 5. If runtime memory or package size is high, apply texture baking/optimization.

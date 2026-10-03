@@ -44,9 +44,13 @@ temporary folder.
 - `blender/texture_write_checks.py`: writing textures through
   `write_blender_image_to_path`, including a JPEG whose metadata makes
   Blender's PNG writer fail.
+- `blender/material_bake_checks.py`: the procedural material bake. Tiles cut
+  at whole bricks, noise that repeats without a seam, and the projected UVs:
+  what Blender shows on a mesh through them is what the baked texture holds.
 
 Run from the repo root:
 
 ```sh
 blender --background --factory-startup --python-exit-code 1 --python scripts/tests/blender/texture_write_checks.py
+blender --background --factory-startup --python-exit-code 1 --python scripts/tests/blender/material_bake_checks.py
 ```
