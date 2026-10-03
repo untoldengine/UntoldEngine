@@ -685,6 +685,8 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
     }
 
     public func draw(in view: MTKView) {
+        // Not an XR eye: shading uses the camera's own position.
+        renderInfo.xrEyeCameraPosition = nil
         if pendingResize {
             initSizeableResources()
             pendingResize = false
@@ -827,6 +829,10 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         }
 
         cameraComponent.viewSpace = viewMatrix
+        // The eye's own position: the view matrix is the inverse of the eye's camera
+        // transform. CameraComponent.localPosition stays at the head centre (see
+        // setXRCameraWorldPosition), which streaming wants and shading does not.
+        renderInfo.xrEyeCameraPosition = eyePosition(fromViewMatrix: viewMatrix)
 
         // Save this eye's view-projection for next frame's per-eye HZB culling, and the raw
         // view and projection it was built from for the Gaussian chunk cull, which folds in
