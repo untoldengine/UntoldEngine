@@ -60,6 +60,18 @@ setRendering(.maxShadowCastingDistance(2.0))
 getMaxShadowCastingDistance()
 ```
 
+Objects too small on screen to be seen are left out of the frame: by default, any object whose
+bounds are under one pixel tall is not drawn and casts no shadow. A scene with tens of thousands
+of small parts (a building model with every clip and bolt) shows most of them at a pixel or less
+from a distance, and each would still cost a draw. The size is that of the sphere around the
+object's bounds, so a long thin object goes only once its whole length is that small. Raise the
+size to drop more, or set it to 0 to draw everything:
+
+```swift
+setRendering(.smallObjectCulling(pixels: 2.0))
+getSmallObjectCullingPixels()
+```
+
 ## PostFX
 
 Use `setPostFX` for individual post-processing and SSAO settings:

@@ -71,6 +71,13 @@ public enum RenderingProperty: Sendable {
     /// existing texel budget on it instead, sharpening shadow edges without needing a larger
     /// shadow map. See `getMaxShadowCastingDistance()` to read the current value.
     case maxShadowCastingDistance(Float)
+    /// Objects whose bounds are under this many pixels tall on screen are not drawn and
+    /// cast no shadow. A scene with tens of thousands of small parts shows most of them
+    /// at a pixel or less from any distance, and each would still cost a draw. The size
+    /// is that of the sphere around the object's bounds, the largest it can look, so a
+    /// long thin object goes only once its whole length is that small. The default is 1;
+    /// 0 draws everything. See `getSmallObjectCullingPixels()` to read the current value.
+    case smallObjectCulling(pixels: Float)
 }
 
 public enum RenderingToggle: Sendable {
@@ -129,6 +136,8 @@ public func setRendering(_ property: RenderingProperty) {
         applyRenderExtensionProperty(property)
     case let .maxShadowCastingDistance(distance):
         RenderPasses.maxShadowCastingDistance = max(distance, 0.001)
+    case let .smallObjectCulling(pixels):
+        SmallObjectCulling.minimumPixels = pixels.isFinite ? max(pixels, 0) : 0
     }
 }
 
