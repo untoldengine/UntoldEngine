@@ -12,6 +12,7 @@
 import CShaderTypes
 import Foundation
 import MetalKit
+import os
 
 @inline(__always)
 private func enforceRegistrationMainActor() {
@@ -1570,7 +1571,9 @@ public func setEntityMeshAsync(
 
 /// setEntityMeshAsync's implementation. `sharedBuilds` lets the models of one
 /// `.untoldpack` that point at the same `.untold` parse it and build its GPU meshes
-/// once (see UntoldBuildCache).
+/// once (see UntoldBuildCache). It applies to whole files loaded at once, as the pack
+/// loader asks for them: with an `assetName` or a streaming policy other than
+/// `.immediate` the load is not shared.
 func loadEntityMeshAsync(
     entityId: EntityID,
     filename: String,
@@ -1643,6 +1646,14 @@ func loadEntityMeshAsync(
             // Placements of one pack that share this file reuse its parsed asset and its
             // GPU meshes: each entity registers its own copy of the Mesh values, which
             // share the buffers and textures.
+            //
+            // A shared build is the whole file, built at once. A load of one named node
+            // (`assetName`) or one that streams its meshes in later is neither, so it
+            // goes the way it always did, on its own, even when the caller passes
+            // `sharedBuilds`. The pack loader asks for whole files loaded at once, which
+            // is why every one of its placements shares. A caller that needs shared
+            // builds for named nodes or streamed meshes has to teach the cache about
+            // them first: this test is where that shows.
             let usesSharedBuild = sharedBuilds != nil && assetName == nil && streamingPolicy == .immediate
             var sharedBuild: UntoldBuild?
             if usesSharedBuild, let sharedBuilds {
@@ -2456,73 +2467,112 @@ final class UntoldBuild: @unchecked Sendable {
 /// a second time at once, so that a passing read error does not cost every placement
 /// of the file its model; a file that fails twice is remembered as failed, and its
 /// other placements fall back without reading it again.
-final class UntoldBuildCache: @unchecked Sendable {
-    private let lock = NSLock()
-    private var builds: [String: UntoldBuild?] = [:]
-    private var waiters: [String: [CheckedContinuation<UntoldBuild?, Never>]] = [:]
+///
+/// The table of states lives inside an unfair lock, so it can only be read or changed
+/// while the lock is held, and that is for a few instructions at a time. The lock is
+/// never held while a file is built, so different files build at the same time, and
+/// never while a waiting caller is resumed.
+final class UntoldBuildCache: Sendable {
+    private typealias Waiter = CheckedContinuation<UntoldBuild?, Never>
+
+    /// Where the build of one file stands.
+    private enum State: Sendable {
+        /// A caller is building it; these callers wait for the result.
+        case building(waiters: [Waiter])
+        /// Built, or failed twice (nil).
+        case finished(UntoldBuild?)
+    }
+
+    /// What a caller that asks for a file has to do.
+    private enum Claim: Sendable {
+        case take(UntoldBuild?)
+        case wait
+        case build
+    }
+
+    /// What became of a caller that went to wait for a build.
+    private enum Arrival: Sendable {
+        /// It is queued, and will be resumed with the result.
+        case queued
+        /// The build finished before it could queue.
+        case finished(UntoldBuild?)
+    }
+
+    /// The state of every file asked for so far, by its standardized path.
+    private let states = OSAllocatedUnfairLock<[String: State]>(initialState: [:])
 
     func build(for url: URL, make: () -> UntoldBuild?) async -> UntoldBuild? {
         let key = url.standardizedFileURL.path
         switch claim(key) {
-        case let .built(build):
+        case let .take(build):
             return build
-        case .building:
+        case .wait:
             return await withCheckedContinuation { continuation in
-                if case let .some(build) = waitOrResult(key, continuation) {
+                if case let .finished(build) = queue(continuation, for: key) {
                     continuation.resume(returning: build)
                 }
             }
-        case .yours:
+        case .build:
             let result = make() ?? make()
-            for continuation in finish(key, result) {
-                continuation.resume(returning: result)
+            // Resumed here, after `finish` has let go of the lock.
+            for waiter in finish(key, result) {
+                waiter.resume(returning: result)
             }
             return result
         }
     }
 
-    private enum Claim {
-        case built(UntoldBuild?)
-        case building
-        case yours
-    }
-
     /// Whether the file is built, being built by another caller, or now this caller's to build.
     private func claim(_ key: String) -> Claim {
-        lock.withLock {
-            if let build = builds[key] {
-                return .built(build)
+        states.withLock { states in
+            switch states[key] {
+            case let .finished(build):
+                return .take(build)
+            case .building:
+                return .wait
+            case nil:
+                states[key] = .building(waiters: [])
+                return .build
             }
-            if waiters[key] != nil {
-                return .building
-            }
-            waiters[key] = []
-            return .yours
         }
     }
 
-    /// Queues a waiter, or returns the result if the build finished since `claim`.
-    private func waitOrResult(_ key: String, _ continuation: CheckedContinuation<UntoldBuild?, Never>) -> UntoldBuild?? {
-        lock.withLock {
-            if let build = builds[key] {
-                return .some(build)
+    /// Queues a caller behind the build in progress, unless it finished since `claim`.
+    private func queue(_ waiter: Waiter, for key: String) -> Arrival {
+        states.withLock { states in
+            switch states[key] {
+            case let .building(waiters):
+                states[key] = .building(waiters: waiters + [waiter])
+                return .queued
+            case let .finished(build):
+                return .finished(build)
+            case nil:
+                // Not reached: a caller waits only for a build that was claimed, and a
+                // claimed build ends in `finished`.
+                return .finished(nil)
             }
-            waiters[key, default: []].append(continuation)
-            return nil
         }
     }
 
     /// Records the result and hands back the callers waiting for it.
-    private func finish(_ key: String, _ result: UntoldBuild?) -> [CheckedContinuation<UntoldBuild?, Never>] {
-        lock.withLock {
-            builds[key] = .some(result)
-            return waiters.removeValue(forKey: key) ?? []
+    private func finish(_ key: String, _ result: UntoldBuild?) -> [Waiter] {
+        states.withLock { states in
+            defer { states[key] = .finished(result) }
+            if case let .building(waiters) = states[key] {
+                return waiters
+            }
+            return []
         }
     }
 
     /// The number of distinct files built so far (for tests and diagnostics).
     var buildCount: Int {
-        lock.withLock { builds.count }
+        states.withLock { states in
+            states.values.reduce(0) { count, state in
+                if case .finished = state { return count + 1 }
+                return count
+            }
+        }
     }
 }
 

@@ -80,6 +80,38 @@ final class UntoldBuildCacheTests: XCTestCase {
         XCTAssertTrue(results.all.allSatisfy { $0 === built }, "every caller gets the one build")
     }
 
+    func testDifferentFilesBuildAtTheSameTime() async {
+        // A pack loads eight models at once, so the build of one file must not wait
+        // for another's: each of these two builds only ends once the other has begun.
+        let cache = UntoldBuildCache()
+        let treeBegan = DispatchSemaphore(value: 0)
+        let rockBegan = DispatchSemaphore(value: 0)
+        let tree = emptyBuild("/tmp/Tree/Tree.untold")
+        let rock = emptyBuild("/tmp/Rock/Rock.untold")
+        let results = Results()
+
+        await withTaskGroup(of: Void.self) { group in
+            group.addTask {
+                let build = await cache.build(for: URL(fileURLWithPath: "/tmp/Tree/Tree.untold")) {
+                    treeBegan.signal()
+                    return rockBegan.wait(timeout: .now() + 2) == .success ? tree : nil
+                }
+                results.append(build)
+            }
+            group.addTask {
+                let build = await cache.build(for: URL(fileURLWithPath: "/tmp/Rock/Rock.untold")) {
+                    rockBegan.signal()
+                    return treeBegan.wait(timeout: .now() + 2) == .success ? rock : nil
+                }
+                results.append(build)
+            }
+        }
+
+        XCTAssertEqual(results.all.count, 2)
+        XCTAssertTrue(results.all.contains { $0 === tree }, "the tree was built while the rock was")
+        XCTAssertTrue(results.all.contains { $0 === rock }, "the rock was built while the tree was")
+    }
+
     func testAnotherPathToTheSameFileIsTheSameBuild() async {
         let cache = UntoldBuildCache()
         let builds = Counter()
