@@ -6,7 +6,7 @@ UntoldEngine has two separate LOD mechanisms that operate at different granulari
 |---|---|---|
 | Unit | Individual mesh entity (`LODComponent`) | Whole tile `.untold` file (`TileLODLevel`) |
 | Control | `LODSystem` — called every frame, but the full entity pass is throttled to every `lodUpdateFrameInterval` frames (default 4) unless the camera moved past `minimumCameraDisplacementForLODUpdate` (default 0.5 units) | `GeometryStreamingSystem.update()` — runs per tick |
-| Switch trigger | Camera distance vs `LODLevel.maxDistance` | Camera distance vs `TileLODLevel.switchDistance` (with hysteresis) |
+| Switch trigger | Camera distance vs `LODLevel.maxDistance`, or size on screen vs `LODLevel.screenPercentage` for a component that sets `selectsByScreenSize` | Camera distance vs `TileLODLevel.switchDistance` (with hysteresis) |
 | Hysteresis | 5-unit inner band on finer-LOD transitions only, at most a tenth of the level's switch distance | `lodHysteresisFactor` (default 0.90 = 10% band) on active level |
 | Meshes in memory | All LOD levels GPU-resident simultaneously | Only the active LOD level is loaded |
 | Use case | Individual detailed objects (buildings, props) | Tile-granularity intermediate representations for large scenes |
@@ -81,6 +81,16 @@ Beyond all thresholds      → desiredLOD = 2  (lowest available)
 ```
 
 **Hysteresis:** When switching to a *finer* LOD (e.g. camera approaching, LOD2→LOD1), the threshold is tightened by `5.0` units, and never by more than a tenth of the threshold itself (`lodHysteresisDistanceShare`): a level that switches a few units from the camera would otherwise never be returned to. This prevents flickering when the camera hovers right at a boundary. Switching to *coarser* LODs has no penalty — it happens immediately.
+
+**By screen size:** a component with `selectsByScreenSize` set (the levels of a pack's automatic LOD chain are) does not compare against the stored distances. Each level ends at the distance where the entity covers the `screenPercentage` of the next one:
+
+```
+worldRadius    = radius of the sphere around the local AABB (or screenSizeRadius) × largest world scale
+reach          = projection[1][1]                                (once per pass, lodScreenSizeReach)
+switchDistance = worldRadius × reach / nextLevel.screenPercentage
+```
+
+`projection[1][1]` is `1 / tan(fovY / 2)` of the projection in use (`renderInfo.perspectiveSpace`), so the switch follows the entity's scale and the field of view. A screen size is a share of the viewport height whatever its resolution, so a denser display draws the same levels. The walk, the bias and the hysteresis are those above, applied to these distances. Under an orthographic projection, and for a level whose successor has no screen size, the stored `maxDistance` applies.
 
 ---
 

@@ -227,20 +227,24 @@ chain:
 
 - **The levels are built once.** Placements of the same model share the GPU
   buffers of every level, as they share those of the model.
-- **Each placement switches at its own distances.** The manifest gives every
+- **Each placement switches by its size on screen.** The manifest gives every
   level a screen size: the share of the viewport height the model's bounding
-  sphere covers when the level becomes detailed enough. On load that size becomes
-  a distance for the placement, from the model's bounds, the placement's scale and
-  the engine's field of view. A small prop and a large tree therefore both switch
-  where their triangles are a few pixels each, although their distances differ
-  by orders of magnitude. The distances are computed when the pack loads; scaling
-  a placement afterwards does not move them.
+  sphere covers when the level becomes detailed enough. The engine compares it
+  with the size the placement has in the frame being drawn, from the model's
+  bounds, the placement's scale and the field of view (see [Selecting by Screen
+  Size](#selecting-by-screen-size)). A small prop and a large tree therefore
+  both switch where their triangles are a few pixels each, although their
+  distances differ by orders of magnitude, and they keep doing so when a
+  placement is scaled or the camera zooms. The parts of a model that has
+  several change level together, at the size of the whole model.
 - **The materials belong to the entity.** The levels are drawn with the model's
   materials, and a material that is edited or streamed while one level is on
   screen stays when another takes its place (`LODComponent.levelsShareMaterials`).
 
-`setLOD(.distanceBias(...))` moves all switch distances together, and
-`forcedLOD` pins a level, as for any other LOD entity.
+`setLOD(.distanceBias(...))` moves all switches together, and `forcedLOD` pins
+a level, as for any other LOD entity. Each level also carries, in
+`maxDistance`, the distance its switch falls at as the pack loads; it is what
+an orthographic view uses.
 
 The manifest records the chains under `lodChains`, by model path:
 
@@ -254,8 +258,9 @@ The manifest records the chains under `lodChains`, by model path:
 }
 ```
 
-`screenSize` is measured on a viewport 1080 pixels high, and `error` is the
-largest deviation from the model in model units.
+`screenSize` is a share of the viewport height: the cook chooses it so that the
+level's triangles are about four pixels each on a viewport 1080 pixels high.
+`error` is the largest deviation from the model in model units.
 
 To build chains from your own tools, add the `UntoldEngineMeshCook` product of the
 engine package to the tool and call the cooker:
@@ -324,6 +329,37 @@ setLOD(.distanceThresholds([25.0, 75.0, 200.0]))
 `LODSystem.update()` doesn't re-evaluate every entity every frame — the full pass is throttled to once every `updateFrameInterval` frames, with an early-out that forces an immediate pass if the camera moved more than `minimumCameraDisplacement` units since the last one. Lowering `updateFrameInterval` (e.g. to `1`) trades performance for LOD responsiveness; raising `minimumCameraDisplacement` makes fast camera movement less likely to force an off-cycle update. See [`docs/Architecture/lodSystem.md`](../Architecture/lodSystem.md) for the full throttling behavior.
 
 The older `LODConfig.shared` values remain available for compatibility and advanced tuning. New code should prefer `setLOD(...)` so LOD settings follow the same style as scene channels, rendering, and PostFX.
+
+### Selecting by Screen Size
+
+A distance suits one size of object under one field of view. An entity can
+instead choose its level by how large it is on screen:
+
+```swift
+if let lodComponent = scene.get(component: LODComponent.self, for: tree) {
+    lodComponent.lodLevels[1].screenPercentage = 0.5   // LOD1 from half the viewport height down
+    lodComponent.lodLevels[2].screenPercentage = 0.2   // LOD2 from a fifth down
+    lodComponent.selectsByScreenSize = true
+}
+```
+
+`screenPercentage` is the size at which a level takes over from the one before
+it: the share of the viewport height (1 is the whole height) covered by the
+sphere around the entity's bounding box. The size is read as each LOD pass
+runs, so it follows the entity's scale and the field of view:
+
+- The size is a share of the viewport, whatever its resolution: a denser
+  display draws the same levels as a coarser one. `setLOD(.distanceBias(...))`
+  moves every switch where a platform needs more or less detail, and
+  `setLOD(.hysteresis(...))` acts as it does on distances.
+- A level whose `screenPercentage` is 0 takes over at the `maxDistance` of the
+  level before it, and so does every level under an orthographic projection.
+- `LODComponent.screenSizeRadius` replaces the sphere around the bounding box
+  with one of that radius, in the entity's own space. The parts of a model
+  loaded from a pack carry the radius of the whole model.
+
+The levels of [automatic LOD chains](#automatic-lod-chains-for-packs) are
+selected this way.
 
 ### Forced LOD Override
 

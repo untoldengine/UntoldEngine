@@ -872,7 +872,11 @@ protocol LODDistanceLevel {
 public struct LODLevel {
     public var mesh: [Mesh] // Meshes for this lod
     public var maxDistance: Float // Switch to next LOD beyond this
-    public var screenPercentage: Float // Optional: screen-space threshold
+    /// The size on screen at which this level is detailed enough to take over from the
+    /// one before it: the share of the viewport height (1 is the whole height) that
+    /// the sphere around the entity covers. Read when the component selects by screen
+    /// size (`LODComponent.selectsByScreenSize`); 0 leaves the switch to `maxDistance`.
+    public var screenPercentage: Float
     public var url: URL? // URL to the LOD file (for streaming reload)
     public var assetName: String? // Mesh name within the file (for streaming reload)
     public var residencyState: LODResidencyState = .unknown // Streaming state
@@ -917,6 +921,19 @@ public class LODComponent: Component {
     /// level, and a switch carries them over, so a material edited or streamed while
     /// one level is drawn stays when another takes its place.
     public var levelsShareMaterials: Bool = false
+
+    /// True when the levels are chosen by the size of the entity on screen instead of
+    /// by distances fixed beforehand: a level takes over when the sphere around the
+    /// entity covers no more than the level's `screenPercentage`. The size follows the
+    /// entity's scale and the field of view, so the switch stays where the entity looks
+    /// as large as when the level was made for it. A level without a screen size, and
+    /// any view without perspective, falls back to `maxDistance`.
+    public var selectsByScreenSize: Bool = false
+
+    /// The radius of that sphere in the entity's own space. 0 measures the entity's
+    /// bounding box. A part of a larger model carries the radius of the whole model, so
+    /// that all its parts change level together.
+    public var screenSizeRadius: Float = 0
 
     public required init() {}
 
