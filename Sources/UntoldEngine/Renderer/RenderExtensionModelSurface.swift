@@ -464,7 +464,7 @@ private func drawModelSurfaceMeshes(
     renderEncoder: MTLRenderCommandEncoder
 ) {
     for mesh in meshes {
-        guard mesh.metalKitMesh.vertexBuffers.count > Int(modelPassJointWeightsIndex.rawValue) else {
+        guard mesh.vertexBuffers.count > Int(modelPassJointWeightsIndex.rawValue) else {
             continue
         }
 
@@ -498,11 +498,11 @@ private func drawModelSurfaceMeshes(
 
         for submesh in mesh.submeshes {
             renderEncoder.drawIndexedPrimitivesTracked(
-                type: submesh.metalKitSubmesh.primitiveType,
-                indexCount: submesh.metalKitSubmesh.indexCount,
-                indexType: submesh.metalKitSubmesh.indexType,
-                indexBuffer: submesh.metalKitSubmesh.indexBuffer.buffer,
-                indexBufferOffset: submesh.metalKitSubmesh.indexBuffer.offset,
+                type: submesh.primitiveType,
+                indexCount: submesh.indexCount,
+                indexType: submesh.indexType,
+                indexBuffer: submesh.indexBuffer,
+                indexBufferOffset: submesh.indexBufferOffset,
                 category: .other
             )
         }
