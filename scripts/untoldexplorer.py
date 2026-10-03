@@ -1859,6 +1859,16 @@ def blender_required() -> None:
         raise RuntimeError("This exporter must run inside Blender so it can use bpy for USD import and mesh extraction.")
 
 
+def single_file_output_path(output_path: Path) -> Path:
+    """The single `.untold` an output path stands for. A scene with several models is
+    written as a `.untoldpack` of the same name, and a caller may name that pack as the
+    output: taken as it is, the pack would count as a stale single-file export and be
+    removed right after it is written."""
+    if output_path.suffix.lower() == ".untoldpack":
+        return output_path.with_suffix(".untold")
+    return output_path
+
+
 def normalize_blender_path(path: str) -> Path:
     raw_path = path
     if bpy is not None and path.startswith("//"):
@@ -7679,6 +7689,7 @@ def write_single_untold_from_nodes(
     Blender add-on's "Export Untold Asset" operator behave identically when a
     scene's model topology changes between runs at the same --output stem.
     """
+    output_path = single_file_output_path(output_path)
     exported_nodes = normalize_export_nodes(exported_nodes)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -7821,6 +7832,7 @@ def write_untold_pack_from_groups(
     transform. Textures go in one Textures/ folder beside the model folders, shared by
     every model, instead of a copy in each.
     """
+    output_path = single_file_output_path(output_path)
     pack_path = output_path.with_suffix(".untoldpack")
     models_root = assets_dir or output_path.parent
     # Captured before write_untoldpack_manifest() overwrites pack_path below, so
@@ -8053,7 +8065,14 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         argv = argv[1:]
     parser = argparse.ArgumentParser(description="Cook USD scene or animation data into UntoldEngine's .untold format.")
     parser.add_argument("--input", required=True, help="Path to a source USD/USDZ asset or a .blend file.")
-    parser.add_argument("--output", required=True, help="Path to the output .untold file (or .untoldanim with --animation).")
+    parser.add_argument(
+        "--output",
+        required=True,
+        help=(
+            "Path to the output .untold file (or .untoldanim with --animation). A scene with several "
+            "models is written as a .untoldpack of the same name; that name may be given as well."
+        ),
+    )
     parser.add_argument("--file-type", default="tile", choices=sorted(FILE_TYPES.keys()), help="Untold file type to emit.")
     parser.add_argument("--mesh-name", default=None, help="Optional mesh object name when the USD asset imports multiple meshes.")
     parser.add_argument(
@@ -8117,7 +8136,7 @@ def main(argv: list[str]) -> int:
     args = parse_args(argv)
     EXPORT_SHAPE_KEYS = bool(getattr(args, "export_shapekeys", False))
     input_path = normalize_blender_path(args.input)
-    output_path = normalize_blender_path(args.output)
+    output_path = single_file_output_path(normalize_blender_path(args.output))
     assets_dir = normalize_blender_path(args.assets_dir) if args.assets_dir else None
 
     if input_path.suffix.lower() not in {".usd", ".usda", ".usdc", ".usdz", ".blend"}:

@@ -73,7 +73,7 @@ untoldengine export \
 Common options:
 
 - `--input <path>`: required source `.usd`, `.usda`, `.usdc`, `.usdz`, or `.blend`
-- `--output <path>`: required destination `.untold` (or `.untoldanim` with `--animation`)
+- `--output <path>`: required destination `.untold` (or `.untoldanim` with `--animation`). A scene with several models is written as a `.untoldpack` of the same name; that name may be given as well
 - `--file-type <tile|lod|hlod|shared|animation>`: optional, defaults to `tile`
 - `--mesh-name <name>`: optional, export only one mesh from a multi-mesh asset
 - `--convert-orientation`: optional, convert the export into engine space

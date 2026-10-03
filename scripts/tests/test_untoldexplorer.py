@@ -2417,6 +2417,60 @@ class PackSharedModelTests(unittest.TestCase):
             self.assertTrue((output.parent / by_name["Tree.001"]["path"]).is_file())
 
 
+class PackOutputNameTests(unittest.TestCase):
+    """A scene with several models is written as a .untoldpack next to where the single
+    .untold would be. Named as the output itself, the pack used to be taken for a stale
+    single-file export and removed right after it was written: the export reported
+    success and left the models without their manifest."""
+
+    def setUp(self) -> None:
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.output_dir = Path(self.tmpdir.name)
+
+    def tearDown(self) -> None:
+        self.tmpdir.cleanup()
+
+    def _write_pack(self, output_name: str) -> dict:
+        def empty_node(name: str) -> "u.ExportedNode":
+            node = _make_node_with_normal_map("floor_normal.jpg", name)
+            return u.replace(node, entity_name=name, mesh=None, material_split_root_name=None)
+
+        with contextlib.redirect_stdout(io.StringIO()):
+            return u.write_untold_pack_from_groups(
+                {"Floor": [empty_node("Floor")], "Wall": [empty_node("Wall")]},
+                source_asset_name="scene.blend",
+                output_path=self.output_dir / output_name,
+                file_type_name="tile",
+                compress_geometry=False,
+                validate=False,
+                progress_callback=None,
+            )
+
+    def test_single_file_output_path(self) -> None:
+        self.assertEqual(u.single_file_output_path(Path("/models/scene.untoldpack")), Path("/models/scene.untold"))
+        self.assertEqual(u.single_file_output_path(Path("/models/scene.UNTOLDPACK")), Path("/models/scene.untold"))
+        self.assertEqual(u.single_file_output_path(Path("/models/scene.untold")), Path("/models/scene.untold"))
+        self.assertEqual(u.single_file_output_path(Path("/models/walk.untoldanim")), Path("/models/walk.untoldanim"))
+
+    def test_a_pack_named_as_the_output_is_kept(self) -> None:
+        result = self._write_pack("scene.untoldpack")
+        pack_path = self.output_dir / "scene.untoldpack"
+        self.assertEqual(result["pack_path"], pack_path)
+        self.assertTrue(pack_path.is_file(), "the manifest is still there after the export")
+        self.assertIsNone(result["removed_stale_single_path"])
+        self.assertEqual(len(json.loads(pack_path.read_text())["models"]), 2)
+
+    def test_a_stale_single_file_is_removed_under_either_name(self) -> None:
+        for output_name in ("scene.untold", "scene.untoldpack"):
+            with self.subTest(output_name=output_name):
+                stale = self.output_dir / "scene.untold"
+                stale.write_bytes(b"an earlier single-model export")
+                result = self._write_pack(output_name)
+                self.assertEqual(result["removed_stale_single_path"], stale)
+                self.assertFalse(stale.exists())
+                self.assertTrue((self.output_dir / "scene.untoldpack").is_file())
+
+
 class TextureWriteFailureTests(unittest.TestCase):
     """Regression coverage for an export that stopped half-way and left a 33-byte PNG behind.
 
