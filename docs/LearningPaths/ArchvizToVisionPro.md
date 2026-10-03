@@ -122,6 +122,12 @@ This is where the generated project sets up the engine scene. The two important 
 
 In `init()`, after `configureEngineSystems()`, create an entity and load the archviz model with `setEntityMeshAsync`.
 
+> This walkthrough's `Bedroom` is a single-model export (`Bedroom.untold`),
+> which is what `loadSceneAuthored` can bring scene-authored lights/cameras
+> in from. A `.blend` scene with more than one independent model exports as
+> a `.untoldpack` instead, and `loadSceneAuthored` has no effect on those —
+> see [Using the Untold Engine CLI](../API/UsingUntoldEngineCLI.md#multi-model-blend-scenes--untoldpack).
+
 ```swift
 let entity = createEntity()
 setEntityName(entityId: entity, name: "Bedroom")

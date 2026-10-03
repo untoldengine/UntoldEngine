@@ -149,4 +149,75 @@ final class UntoldPackTests: XCTestCase {
 
         XCTAssertFalse(createUntoldScene(fromPackAt: packURL, savingTo: sceneURL))
     }
+
+    // MARK: - resolveProbedAssetURL (extension-less mesh/animation resolution)
+
+    func testResolveProbedAssetURLPrefersPackOverUntold() throws {
+        try Data().write(to: tempRoot.appendingPathComponent("Foo").appendingPathExtension("untoldpack"))
+        try Data().write(to: tempRoot.appendingPathComponent("Foo").appendingPathExtension("untold"))
+
+        let url = try XCTUnwrap(resolveProbedAssetURL(filename: "Foo", ext: "", probeExtensions: ["untoldpack", "untold"]))
+        XCTAssertEqual(url.pathExtension, "untoldpack")
+    }
+
+    func testResolveProbedAssetURLFallsBackToUntoldWhenNoPackExists() throws {
+        try Data().write(to: tempRoot.appendingPathComponent("Foo").appendingPathExtension("untold"))
+
+        let url = try XCTUnwrap(resolveProbedAssetURL(filename: "Foo", ext: "", probeExtensions: ["untoldpack", "untold"]))
+        XCTAssertEqual(url.pathExtension, "untold")
+    }
+
+    func testResolveProbedAssetURLPrefersUntoldAnimOverUntoldForAnimations() throws {
+        try Data().write(to: tempRoot.appendingPathComponent("Walk").appendingPathExtension("untoldanim"))
+        try Data().write(to: tempRoot.appendingPathComponent("Walk").appendingPathExtension("untold"))
+
+        let url = try XCTUnwrap(resolveProbedAssetURL(filename: "Walk", ext: "", probeExtensions: ["untoldanim", "untold"]))
+        XCTAssertEqual(url.pathExtension, "untoldanim")
+    }
+
+    func testResolveProbedAssetURLHonorsExplicitExtensionOverProbing() throws {
+        try Data().write(to: tempRoot.appendingPathComponent("Foo").appendingPathExtension("untoldpack"))
+        try Data().write(to: tempRoot.appendingPathComponent("Foo").appendingPathExtension("untold"))
+
+        // A non-empty ext (explicit withExtension, or one embedded in filename) must
+        // resolve exactly that file and skip probing entirely, even when a
+        // higher-priority candidate also exists.
+        let url = try XCTUnwrap(resolveProbedAssetURL(filename: "Foo", ext: "untold", probeExtensions: ["untoldpack", "untold"]))
+        XCTAssertEqual(url.pathExtension, "untold")
+    }
+
+    func testResolveProbedAssetURLReturnsNilWhenNoCandidateExists() throws {
+        XCTAssertNil(resolveProbedAssetURL(filename: "Missing", ext: "", probeExtensions: ["untoldpack", "untold"]))
+    }
+
+    func testResolveProbedAssetURLPrefersUntoldGSOverPLYForGaussianSplats() throws {
+        try Data().write(to: tempRoot.appendingPathComponent("Splat").appendingPathExtension("untoldgs"))
+        try Data().write(to: tempRoot.appendingPathComponent("Splat").appendingPathExtension("ply"))
+
+        let url = try XCTUnwrap(resolveProbedAssetURL(filename: "Splat", ext: "", probeExtensions: ["untoldgs", "ply"]))
+        XCTAssertEqual(url.pathExtension, "untoldgs")
+    }
+
+    func testResolveProbedAssetURLFallsBackToPLYWhenNoUntoldGSExists() throws {
+        try Data().write(to: tempRoot.appendingPathComponent("Splat").appendingPathExtension("ply"))
+
+        let url = try XCTUnwrap(resolveProbedAssetURL(filename: "Splat", ext: "", probeExtensions: ["untoldgs", "ply"]))
+        XCTAssertEqual(url.pathExtension, "ply")
+    }
+
+    func testResolveProbedAssetReturnsResolvedExtensionAlongsideURL() throws {
+        try Data().write(to: tempRoot.appendingPathComponent("Splat").appendingPathExtension("ply"))
+
+        let resolved = try XCTUnwrap(resolveProbedAsset(filename: "Splat", ext: "", probeExtensions: ["untoldgs", "ply"]))
+        XCTAssertEqual(resolved.extension, "ply")
+        XCTAssertEqual(resolved.url.pathExtension, "ply")
+    }
+
+    func testResolveProbedAssetHonorsExplicitExtensionWithoutProbing() throws {
+        try Data().write(to: tempRoot.appendingPathComponent("Splat").appendingPathExtension("untoldgs"))
+        try Data().write(to: tempRoot.appendingPathComponent("Splat").appendingPathExtension("ply"))
+
+        let resolved = try XCTUnwrap(resolveProbedAsset(filename: "Splat", ext: "ply", probeExtensions: ["untoldgs", "ply"]))
+        XCTAssertEqual(resolved.extension, "ply")
+    }
 }

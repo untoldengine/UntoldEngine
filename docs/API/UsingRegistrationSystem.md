@@ -52,6 +52,31 @@ setEntityMeshAsync(entityId: entity, filename: "model.untold") { success in ... 
 
 Passing `withExtension` explicitly (as above) still works exactly as before and takes priority if both are given; this applies to every `filename`/`withExtension` pair in the engine (`setEntityMesh`, `setEntityMeshAsync`, `setEntityAnimations`, `setEntityGaussian`, `loadSceneAuthored`, `setColorGradeLUT`).
 
+Leaving `withExtension` out entirely (and not embedding one in `filename`
+either) goes one step further for `setEntityMesh`/`setEntityMeshAsync` and
+`setEntityAnimations`: instead of failing to resolve anything, each probes
+for the format that needs disambiguating first, falling back to plain
+`.untold`:
+
+```swift
+// Resolves "model.untoldpack" if the source .blend had more than one
+// independent model, otherwise "model.untold" — the caller doesn't need
+// to know which one the export produced.
+setEntityMeshAsync(entityId: entity, filename: "model") { success in ... }
+
+// Resolves "walk.untoldanim", or a plain "walk.untold" from before that
+// extension existed.
+setEntityAnimations(entityId: entity, filename: "walk", name: "Walk")
+```
+
+This is the recommended default for both calls — reach for an explicit
+`withExtension` only when you need to force one specific file regardless of
+what else exists at that name. If both candidates exist for a given base
+name (normally impossible: the exporter keeps `.untold`/`.untoldpack` and
+`.untoldanim`/`.untold` single-owner per name, removing the stale one on
+re-export — see [Using the Untold Engine CLI](UsingUntoldEngineCLI.md)), the
+first-priority format wins and a warning is logged.
+
 For immediate loading, use:
 
 ```swift
@@ -149,6 +174,13 @@ loadSceneAuthored(url: manifestURL) { success in
 
 Important behavior:
 
+- `loadSceneAuthored(filename:withExtension:)` only ever resolves a single
+  `.untold` file — unlike `setEntityMeshAsync`/`setEntityAnimations`, it does
+  not probe for `.untoldpack`. A `.untoldpack` manifest has no scene-level
+  slot to begin with: a multi-model `.blend` scene's lights, cameras, and
+  color-grade LUT are dropped at export time (see [Using the Untold Engine
+  CLI](UsingUntoldEngineCLI.md#multi-model-blend-scenes--untoldpack)), so
+  there is nothing for this call to load for a pack regardless of extension.
 - Calling either overload clears any previously-loaded `.cube` grade first
   (`ColorGradeLUTParams.shared.clear()`), then re-populates it only if the
   asset/manifest actually has one staged.

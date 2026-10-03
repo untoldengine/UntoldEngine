@@ -28,7 +28,7 @@ setup.
 let crate = createEntity()
 setEntityName(entityId: crate, name: "crate")
 
-setEntityMesh(entityId: crate, filename: "crate", withExtension: "untold")
+setEntityMesh(entityId: crate, filename: "crate")
 translateTo(entityId: crate, position: simd_float3(0.0, 0.0, 0.0))
 ```
 
@@ -48,7 +48,7 @@ setSceneReady(false)
 let robot = createEntity()
 setEntityName(entityId: robot, name: "robot")
 
-setEntityMeshAsync(entityId: robot, filename: "robot", withExtension: "untold") { success in
+setEntityMeshAsync(entityId: robot, filename: "robot") { success in
     if success {
         translateTo(entityId: robot, position: simd_float3(0.0, 0.0, 0.0))
         rotateTo(entityId: robot, angle: 0.0, axis: simd_float3(0.0, 1.0, 0.0))
@@ -95,13 +95,18 @@ data, load that data separately from the mesh. `setEntityMesh` and
 the Blender-authored lights/cameras and installs any `.cube` creative grade LUT
 staged with `--color-grade-lut`.
 
+`loadSceneAuthored` always needs `withExtension: "untold"` explicitly — unlike
+the mesh load above it, it never probes for `.untoldpack`, since a pack has no
+scene-level slot for this data in the first place (see [Using the Untold
+Engine CLI](UsingUntoldEngineCLI.md#multi-model-blend-scenes--untoldpack)).
+
 ```swift
 setSceneReady(false)
 
 let office = createEntity()
 setEntityName(entityId: office, name: "office")
 
-setEntityMeshAsync(entityId: office, filename: "office", withExtension: "untold") { meshLoaded in
+setEntityMeshAsync(entityId: office, filename: "office") { meshLoaded in
     guard meshLoaded else {
         setSceneReady(false)
         return
@@ -182,14 +187,14 @@ same entity. Use `changeAnimation` to choose the active clip.
 let player = createEntity()
 setEntityName(entityId: player, name: "player")
 
-setEntityMeshAsync(entityId: player, filename: "redplayer", withExtension: "untold") { success in
+setEntityMeshAsync(entityId: player, filename: "redplayer") { success in
     guard success else {
         setSceneReady(false)
         return
     }
 
-    setEntityAnimations(entityId: player, filename: "running", withExtension: "untold", name: "running")
-    setEntityAnimations(entityId: player, filename: "idle", withExtension: "untold", name: "idle")
+    setEntityAnimations(entityId: player, filename: "running", name: "running")
+    setEntityAnimations(entityId: player, filename: "idle", name: "idle")
 
     changeAnimation(entityId: player, name: "idle")
     setSceneReady(true)
@@ -221,7 +226,7 @@ gravity, or forces as needed.
 let ball = createEntity()
 setEntityName(entityId: ball, name: "ball")
 
-setEntityMeshAsync(entityId: ball, filename: "ball", withExtension: "untold") { success in
+setEntityMeshAsync(entityId: ball, filename: "ball") { success in
     guard success else {
         setSceneReady(false)
         return
@@ -322,11 +327,11 @@ final class GameScene {
         let player = createEntity()
         setEntityName(entityId: player, name: "player")
 
-        setEntityMeshAsync(entityId: player, filename: "redplayer", withExtension: "untold") { success in
+        setEntityMeshAsync(entityId: player, filename: "redplayer") { success in
             if success {
                 translateTo(entityId: player, position: simd_float3(0.0, 0.0, 0.0))
-                setEntityAnimations(entityId: player, filename: "idle", withExtension: "untold", name: "idle")
-                setEntityAnimations(entityId: player, filename: "running", withExtension: "untold", name: "running")
+                setEntityAnimations(entityId: player, filename: "idle", name: "idle")
+                setEntityAnimations(entityId: player, filename: "running", name: "running")
                 changeAnimation(entityId: player, name: "idle")
                 setEntityKinetics(entityId: player)
             }
@@ -339,7 +344,7 @@ final class GameScene {
         let ball = createEntity()
         setEntityName(entityId: ball, name: "ball")
 
-        setEntityMeshAsync(entityId: ball, filename: "ball", withExtension: "untold") { success in
+        setEntityMeshAsync(entityId: ball, filename: "ball") { success in
             if success {
                 translateTo(entityId: ball, position: simd_float3(2.0, 1.0, 0.0))
                 setEntityKinetics(entityId: ball)

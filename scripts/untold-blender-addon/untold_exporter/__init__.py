@@ -235,7 +235,16 @@ class UNTOLD_OT_export_asset(bpy.types.Operator, ExportHelper):
         skipped_textures = result.get("skipped_textures") or []
         if skipped_textures:
             message += f" | {len(skipped_textures)} texture(s) left out, see the system console"
-        self.report({"WARNING"} if skipped_textures else {"INFO"}, message)
+        dropped_scene_payload = result.get("dropped_scene_payload")
+        if dropped_scene_payload:
+            # A .untoldpack has no scene-level slot to carry these -- they were
+            # extracted from the scene and then discarded, same as the CLI's
+            # own console note (untoldexplorer.py main()).
+            message += (
+                f" | {result.get('light_count', 0)} light(s)/{result.get('camera_count', 0)} camera(s) "
+                "are scene-level and were not written into any pack model"
+            )
+        self.report({"WARNING"} if (skipped_textures or dropped_scene_payload) else {"INFO"}, message)
         print(f"[Untold Exporter] {message}", flush=True)
         for skipped_texture in skipped_textures:
             print(f"[Untold Exporter]   - {skipped_texture}", flush=True)

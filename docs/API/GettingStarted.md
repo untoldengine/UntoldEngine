@@ -105,13 +105,21 @@ Use `setEntityMeshAsync` to load an `.untold` file as an always-resident asset.
 This is the right choice for props, characters, and any object that should stay
 in memory for the lifetime of the scene.
 
+> `setEntityMeshAsync` here works whether `Bedroom` exported as a single
+> `.untold` or, for a `.blend` scene with more than one independent model, a
+> `.untoldpack` — omitting `withExtension` probes for either. `loadSceneAuthored`
+> below is different: it only ever resolves a single `.untold` and has no
+> effect on a `.untoldpack`, since a pack has no scene-level slot for the
+> lights/cameras/color-grade it would bring in — see [Using the Untold Engine
+> CLI](UsingUntoldEngineCLI.md#multi-model-blend-scenes--untoldpack).
+
 ```swift
 
 //...After configureEngineSystems()
 
 let entity = createEntity()
 
-setEntityMeshAsync(entityId: entity, filename: "Bedroom", withExtension: "untold"){ success in
+setEntityMeshAsync(entityId: entity, filename: "Bedroom"){ success in
     if success {
         
         // Load blender authored color management
