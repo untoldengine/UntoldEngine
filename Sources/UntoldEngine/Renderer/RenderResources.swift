@@ -78,10 +78,10 @@ public struct RenderInfo {
     public var xrEye0Projection: simd_float4x4 = matrix_identity_float4x4
     public var xrEye1View: simd_float4x4 = matrix_identity_float4x4
     public var xrEye1Projection: simd_float4x4 = matrix_identity_float4x4
-    // The position of the eye `renderXR` is drawing, in the same space as
-    // CameraComponent.localPosition; nil outside XR. Shading reads it through
-    // shadingCameraPosition so each eye gets its own view vector (specular highlights,
-    // Fresnel), while streaming, LOD and culling keep the head-centre camera position.
+    /// The position of the eye `renderXR` is drawing, in the same space as
+    /// CameraComponent.localPosition; nil outside XR. Shading reads it through
+    /// shadingCameraPosition so each eye gets its own view vector (specular highlights,
+    /// Fresnel), while streaming, LOD and culling keep the head-centre camera position.
     public var xrEyeCameraPosition: simd_float3?
 }
 
