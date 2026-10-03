@@ -244,6 +244,8 @@ public struct RuntimeMaterialSource: Sendable, Equatable {
     public var heightMidlevel: Float
     public var heightRemapMin: Float
     public var heightRemapMax: Float
+    /// How much of the surface is glass, from 0 to 1 (see `Material.transmission`).
+    public var transmissionFactor: Float
 
     public init(
         name: String? = nil,
@@ -267,7 +269,8 @@ public struct RuntimeMaterialSource: Sendable, Equatable {
         heightScale: Float = 0.05,
         heightMidlevel: Float = 0.5,
         heightRemapMin: Float = 0.0,
-        heightRemapMax: Float = 1.0
+        heightRemapMax: Float = 1.0,
+        transmissionFactor: Float = 0.0
     ) {
         self.name = name
         self.baseColorFactor = baseColorFactor
@@ -291,6 +294,7 @@ public struct RuntimeMaterialSource: Sendable, Equatable {
         self.heightMidlevel = heightMidlevel
         self.heightRemapMin = heightRemapMin
         self.heightRemapMax = heightRemapMax
+        self.transmissionFactor = transmissionFactor
     }
 }
 

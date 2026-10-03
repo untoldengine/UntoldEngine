@@ -525,9 +525,8 @@ float3 environmentReflectance(float3 F0, float roughness, float NoV, texture2d<f
     return reflectedInOneBounce * laterBounces;
 }
 
-// adapted from "Real Shading in Unreal Engine 4", Brian Karis, Epic Games
-// https://cdn2.unrealengine.com/Resources/files/2013SiggraphPresentationsNotes-26915738.pdf
-float3 specularIBL(float3 F0 , float roughness, float3 N, float3 V, texture2d<float> specularMap, texture2d<float> brdfMap, float3 rotationAxis, float rotationAngle) {
+// The environment in a direction, as blurred as a roughness makes it.
+float3 blurredEnvironment(float3 direction, float roughness, texture2d<float> specularMap, float3 rotationAxis, float rotationAngle) {
 
     // The environment holds one level per roughness, from a mirror image (level 0) to
     // the widest blur (the last level): the mip filter is what reads the level asked
@@ -540,17 +539,25 @@ float3 specularIBL(float3 F0 , float roughness, float3 N, float3 V, texture2d<fl
                                          t_address::clamp_to_edge);
 
     int mipCount=6;
+
+    //Rotate the direction
+    float3 rotatedDirection=normalize(rotateDirection(direction, rotationAxis, rotationAngle));
+
+    float2 uv = equirectUVFromCubeDirection(rotatedDirection);
+    float mipLevel = roughness * float(mipCount - 1);
+    return specularMap.sample(environmentSampler, uv, level(mipLevel)).rgb;
+}
+
+// adapted from "Real Shading in Unreal Engine 4", Brian Karis, Epic Games
+// https://cdn2.unrealengine.com/Resources/files/2013SiggraphPresentationsNotes-26915738.pdf
+float3 specularIBL(float3 F0 , float roughness, float3 N, float3 V, texture2d<float> specularMap, texture2d<float> brdfMap, float3 rotationAxis, float rotationAngle) {
+
     // The angle to the surface, whichever side of it is seen: a pane seen from behind
     // reflects as its front does at that angle, not like a surface seen edge on.
     float NoV = min(abs(dot(N, V)), 1.0);
     float3 R = reflect(-V, N);
 
-    //Rotate the reflection vector
-    float3 rotatedR=normalize(rotateDirection(R, rotationAxis, rotationAngle));
-
-    float2 uv = equirectUVFromCubeDirection(rotatedR);
-    float mipLevel = roughness * float(mipCount - 1);
-    float3 prefilteredColor = specularMap.sample(environmentSampler, uv, level(mipLevel)).rgb;
+    float3 prefilteredColor = blurredEnvironment(R, roughness, specularMap, rotationAxis, rotationAngle);
 
     return prefilteredColor * environmentReflectance(F0, roughness, NoV, brdfMap);
 

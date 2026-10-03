@@ -438,7 +438,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
             for mesh in render.mesh {
                 for submesh in mesh.submeshes {
                     guard let material = submesh.material else { continue }
-                    if material.alphaMode == .blend { continue }
+                    if material.hasTransparency { continue }
 
                     draws += 1
                     triangles += max(0, submesh.indexCount / 3)

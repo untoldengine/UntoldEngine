@@ -234,6 +234,10 @@ RenderPass(id: "transparency", dependencies: ["lightPass"])
 
 Transparent materials cannot go through the G-Buffer — they require alpha blending which deferred rendering cannot express per-fragment. These entities are rendered **forward** in a separate pass on top of the deferred lit scene color. They depend on `lightPass` being complete so they composite correctly against the opaque scene.
 
+The pass draws the materials with the blend alpha mode and those that let light through by their transmission (`Material.hasTransparency`). For each pixel the fragment shader gives the light the surface adds and the share of what is already there that it lets through, one share for each of red, green and blue: a blended surface lets through what its alpha leaves, and glass what its base color tints, less what it reflects. The pipeline blends with two sources to keep the three shares (`PipelineBlendMode.premultipliedOverFilteredDestination`), so tinted glass filters the scene behind it and keeps its reflections whole. Where that blend is not available (the simulator), it falls back to premultiplied alpha and one share for the three colors.
+
+Entities are drawn from the farthest to the nearest, and the triangles of a mesh in the order they come. Glass is drawn in two goes for that reason, its faces turned away from the viewer and then the ones turned towards the viewer (`TransparencyPassFaces`); the fragment shader keeps the faces of the go and lights each on the side the viewer sees. The shadow passes leave glass out.
+
 ### Wireframe Pass
 
 ```swift

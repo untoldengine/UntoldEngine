@@ -644,7 +644,19 @@ typedef struct{
     // 1 when the material has an emissive texture: the light it gives off is then
     // `emmissive` times the texture's color, and `emmissive` alone otherwise.
     int hasEmissiveTexture;
+    // How much of the surface is glass, from 0 to 1: what is behind it shows through,
+    // tinted by the base color (see fragmentTransparencyShader).
+    float transmission;
 }MaterialParametersUniform;
+
+// Glass and roughness. Nothing is blurred behind glass, so rough glass shows less of
+// what is behind it and glows with the light that comes from behind it instead: all of
+// what is behind it shows up to the first roughness, none of it from the second, and a
+// smooth step leads from one to the other (see fragmentTransparencyShader). From the
+// second roughness on a material is drawn as a solid surface (Material.transmitsLight).
+// The exporter's roughness_sharpness repeats the two values.
+#define GLASS_CLEAR_UP_TO_ROUGHNESS 0.05f
+#define GLASS_FROSTED_FROM_ROUGHNESS 0.5f
 
 // Runtime-tunable Parallax Occlusion Mapping cost controls (global, not per-material — see
 // POMQualitySettings in Globals.swift). minSteps/maxSteps bound the adaptive ray-march step
@@ -1386,7 +1398,18 @@ typedef enum {
     transparencyPassAreaLightsIndex,               // AreaLightBlock
     transparencyPassIBLParamIndex,                 // IBLParamsUniform
     transparencyPassIBLRotationAngleIndex,         // float
+    transparencyPassFacesIndex,                    // int (TransparencyPassFaces)
 } TransparencyPassLightingBufferIndices;
+
+// Which faces of a surface a draw of the transparency pass keeps. Glass is drawn in two
+// goes, its faces turned away from the viewer first and the ones turned towards the
+// viewer over them, so that the far side of a pane or a bottle never comes out over
+// its near side. The other materials are drawn in one go.
+typedef enum {
+    transparencyPassEveryFace,
+    transparencyPassFarFaces,
+    transparencyPassNearFaces,
+} TransparencyPassFaces;
 
 typedef enum {
     transparencyPassAreaLTCMatTextureIndex = 5,    // starts after TransparencyPassTextureIndices

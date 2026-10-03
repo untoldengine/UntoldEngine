@@ -72,6 +72,12 @@ public enum PipelineBlendMode: Equatable, Sendable {
     case alphaStraight
     case alphaPremultiplied
     case additive
+    /// Premultiplied color over a destination that the fragment function filters one
+    /// channel at a time: its second output for the attachment
+    /// (`[[color(0), index(1)]]`) is the share of red, green and blue already there
+    /// that stays. The alpha of its first output does the same for the destination's
+    /// alpha, as in `alphaPremultiplied`.
+    case premultipliedOverFilteredDestination
 }
 
 public func CreatePipeline(
@@ -197,6 +203,16 @@ func buildRenderPipeline(
                 attachment?.alphaBlendOperation = .add
                 attachment?.sourceAlphaBlendFactor = .one
                 attachment?.destinationAlphaBlendFactor = .one
+
+            case .premultipliedOverFilteredDestination:
+                attachment?.isBlendingEnabled = true
+                attachment?.rgbBlendOperation = .add
+                attachment?.sourceRGBBlendFactor = .one
+                attachment?.destinationRGBBlendFactor = .source1Color
+
+                attachment?.alphaBlendOperation = .add
+                attachment?.sourceAlphaBlendFactor = .one
+                attachment?.destinationAlphaBlendFactor = .oneMinusSourceAlpha
             }
         }
 
@@ -1022,7 +1038,38 @@ public func InitDebugPipeline() -> RenderPipeline? {
 }
 
 public func InitTransparencyPipeline() -> RenderPipeline? {
-    CreatePipeline(
+    // Glass filters what is behind it one color at a time, which takes the blender's
+    // second source (see fragmentTransparencyShader). The simulator is not asked for
+    // it: what it cannot do it refuses with an assertion, not with an error.
+    #if !targetEnvironment(simulator)
+        do {
+            return try makeTransparencyPipeline(filteringByColor: true)
+        } catch {
+            Logger.log(message: "Transparency pipeline: no blending with two sources here (\(failureReason(for: error))); tinted glass darkens what is behind it without coloring it")
+        }
+    #endif
+    do {
+        return try makeTransparencyPipeline(filteringByColor: false)
+    } catch PipelineCreationError.missingShaderLibrary {
+        return nil
+    } catch let PipelineCreationError.missingFunction(function) {
+        handleError(.shaderCreationFailed, function)
+        return nil
+    } catch {
+        handleError(.pipelineStateCreationFailed, "\(transparencyPipelineName): \(failureReason(for: error))")
+        return nil
+    }
+}
+
+let transparencyPipelineName = "Transparency Pipeline"
+/// The name of the transparency pipeline that blends with premultiplied alpha alone.
+let transparencyPipelineNameWithoutColorFilter = "Transparency Pipeline (premultiplied alpha)"
+
+/// The pipeline of the transparency pass. Filtering by color, what a surface lets
+/// through stays for each of red, green and blue on its own; otherwise one share
+/// stands for the three, and tinted glass comes out as dark as it should be but gray.
+func makeTransparencyPipeline(filteringByColor: Bool) throws -> RenderPipeline {
+    try buildRenderPipeline(
         vertexShader: "vertexModelShader",
         fragmentShader: "fragmentTransparencyShader",
         vertexDescriptor: createModelVertexDescriptor(),
@@ -1030,8 +1077,8 @@ public func InitTransparencyPipeline() -> RenderPipeline? {
         depthFormat: renderInfo.depthPixelFormat,
         depthCompareFunction: .lessEqual,
         depthEnabled: false, // depth test enabled, writes disabled
-        blendMode: .alphaPremultiplied,
-        name: "Transparency Pipeline"
+        blendMode: filteringByColor ? .premultipliedOverFilteredDestination : .alphaPremultiplied,
+        name: filteringByColor ? transparencyPipelineName : transparencyPipelineNameWithoutColorFilter
     )
 }
 

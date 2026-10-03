@@ -936,6 +936,61 @@ final class NativeFormatTests: XCTestCase {
         XCTAssertEqual(material.heightRemapMax, 0.9, accuracy: 0.0001)
     }
 
+    func testMaterialTransmissionRoundtripsThroughRuntimeLoader() throws {
+        let fixture = makeTinyFixture(mutator: { _, _, _, material, _, _, _ in
+            material.transmissionFactor = 0.75
+        })
+
+        let decoded = try UntoldReader().readAsset(from: fixture.fileData)
+        // The record's second reserved word holds it, as the bits of the value.
+        XCTAssertEqual(decoded.materials[0].reserved0[1], Float(0.75).bitPattern)
+        XCTAssertEqual(decoded.materials[0].transmissionFactor, 0.75)
+
+        let loaded = try NativeFormatLoader().loadAssetSync(from: writeFixtureToTemporaryFile(fixture.fileData))
+        let material = try XCTUnwrap(loaded.nodes.first?.primitives.first?.material)
+        XCTAssertEqual(material.transmissionFactor, 0.75)
+    }
+
+    /// A file written before the record had a transmission leaves the word at zero.
+    func testAMaterialWrittenWithoutATransmissionHasNone() throws {
+        let fixture = makeTinyFixture()
+
+        let decoded = try UntoldReader().readAsset(from: fixture.fileData)
+        XCTAssertEqual(decoded.materials[0].reserved0[1], 0)
+        XCTAssertEqual(decoded.materials[0].transmissionFactor, 0.0)
+
+        let loaded = try NativeFormatLoader().loadAssetSync(from: writeFixtureToTemporaryFile(fixture.fileData))
+        let material = try XCTUnwrap(loaded.nodes.first?.primitives.first?.material)
+        XCTAssertEqual(material.transmissionFactor, 0.0)
+    }
+
+    func testMaterialTransmissionStaysBetweenNoneAndAll() {
+        var material = UntoldMaterialRecordV1()
+        XCTAssertEqual(material.transmissionFactor, 0.0)
+
+        material.transmissionFactor = 2.0
+        XCTAssertEqual(material.transmissionFactor, 1.0)
+        material.transmissionFactor = -1.0
+        XCTAssertEqual(material.transmissionFactor, 0.0)
+        XCTAssertEqual(material.reserved0[1], 0, "no transmission leaves the word as files had it before")
+        material.transmissionFactor = .nan
+        XCTAssertEqual(material.transmissionFactor, 0.0)
+
+        // A word that holds no factor (a damaged file) reads as one all the same.
+        material.reserved0[1] = Float.nan.bitPattern
+        XCTAssertEqual(material.transmissionFactor, 0.0)
+        material.reserved0[1] = Float(7).bitPattern
+        XCTAssertEqual(material.transmissionFactor, 1.0)
+        material.reserved0[1] = Float(-3).bitPattern
+        XCTAssertEqual(material.transmissionFactor, 0.0)
+
+        // The texture channels, in the word before it, keep their place.
+        let glass = UntoldMaterialRecordV1(roughnessTextureChannel: .g, metallicTextureChannel: .b, transmissionFactor: 0.4)
+        XCTAssertEqual(glass.transmissionFactor, 0.4)
+        XCTAssertEqual(glass.roughnessTextureChannel, .g)
+        XCTAssertEqual(glass.metallicTextureChannel, .b)
+    }
+
     func testDecodeLegacyWithHeightNoRemapDefaultsRemapFields() throws {
         // formatVersion in [minHeightMapVersion, minHeightRemapVersion) — height-map fields
         // are on disk, but height-remap fields were added later and are NOT: they must come
