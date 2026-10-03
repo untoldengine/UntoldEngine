@@ -43,6 +43,23 @@ A baked `.untoldgs` file (see [Exporting Assets](UsingUntoldEngineCLI.md#gaussia
 loads the same way and is the faster path: its chunks are read by byte range and decoded on the
 GPU, so nothing is parsed on the CPU.
 
+**Omitting `withExtension` is the recommended default.** `setEntityGaussian`,
+`setEntityGaussianAsync`, and `.single(filename:)` on `GaussianSource` all probe
+for `.untoldgs` first, then `.ply`, the same convention `setEntityMeshAsync`
+uses for `.untoldpack`/`.untold` (see [Using the Registration
+System](UsingRegistrationSystem.md)):
+
+```swift
+// Resolves "splat.untoldgs" if a baked capture exists, otherwise "splat.ply" —
+// the caller doesn't need to know which one is on disk.
+setEntityGaussian(entityId: myEntity, filename: "splat")
+setEntityGaussianAsync(entityId: myEntity, filename: "splat") { success in ... }
+setEntityGaussian(entityId: myEntity, source: .single(filename: "splat"))
+```
+
+Pass `withExtension` explicitly only to force one format regardless of what
+else exists at that name.
+
 ```swift
 setEntityGaussian(entityId: myEntity, filename: "splat", withExtension: "untoldgs")
 ```
@@ -60,27 +77,11 @@ parsing, per-splat encoding, and spherical-harmonics packing all run off the mai
 only the final component registration touches the world. Use it for a one-off splat load
 where you don't want a frame hitch but don't need distance-based streaming.
 
-```swift
-Task {
-    let ok = await setEntityGaussianAsync(
-        entityId: myEntity,
-        filename: "splat",
-        withExtension: "ply"
-    )
-    if !ok {
-        print("Failed to load splat")
-    }
-}
-```
-
-`completion` is an optional alternative to checking the returned `Bool`:
+Call it directly — no `Task`/`await` needed at the call site — and read the
+result via the optional `completion`:
 
 ```swift
-await setEntityGaussianAsync(
-    entityId: myEntity,
-    filename: "splat",
-    withExtension: "ply"
-) { success in
+setEntityGaussianAsync(entityId: myEntity, filename: "splat") { success in
     print(success ? "Loaded" : "Failed to load splat")
 }
 ```
@@ -710,7 +711,9 @@ setEntityGaussianTileStreaming(
 `GaussianSource` selects what kind of Gaussian asset the streaming system should load:
 
 ```swift
-.single(filename: String, withExtension: String)
+// withExtension defaults to "" (probe .untoldgs then .ply); pass one explicitly
+// to force a specific format.
+.single(filename: String, withExtension: String = "")
 
 .progressive(
     baseFilename: String,
@@ -768,9 +771,11 @@ setEntityGaussianTileStreaming(
 Parameters:
 
 - `entityId`: The entity created and positioned in Step 1.
-- `source`: Use `.single(filename:withExtension:)` for a whole `.ply`/`.untoldgs` asset, or
+- `source`: Use `.single(filename:)` for a whole `.ply`/`.untoldgs` asset — omit
+  `withExtension` to probe `.untoldgs` then `.ply`, or pass it explicitly to force one — or
   `.progressive(baseFilename:levelCount:maxDistances:)` for progressive tiers named
-  `<baseFilename>_lod0.untoldgs`, `<baseFilename>_lod1.untoldgs`, etc.
+  `<baseFilename>_lod0.untoldgs`, `<baseFilename>_lod1.untoldgs`, etc. (always `.untoldgs`;
+  there is no progressive `.ply`).
 - `streamingRadius`: Distance from the camera at which the splat starts loading.
 - `unloadRadius`: Distance beyond which the splat unloads. Should be larger than
   `streamingRadius` to avoid load/unload thrashing at the boundary.

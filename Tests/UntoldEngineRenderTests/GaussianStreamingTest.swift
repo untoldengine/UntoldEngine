@@ -200,6 +200,43 @@ final class GaussianStreamingTest: BaseRenderSetup {
         XCTAssertNotNil(scene.get(component: GaussianComponent.self, for: entity), "❌ GaussianComponent should be attached after load")
     }
 
+    /// `.single(filename:)` with no `withExtension` must probe `.untoldgs` then `.ply` —
+    /// same convention as `setEntityMeshAsync`'s `.untoldpack`/`.untold` probing. Only
+    /// `test_gaussians.ply` exists in the test bundle, so this also proves the fallback leg,
+    /// not just that an extension was found at all.
+    func testSetEntityGaussianStreamable_probesPLYWhenExtensionOmitted() async {
+        let tileRoot = createEntity()
+        if let tileComp = scene.assign(to: tileRoot, component: TileComponent.self) {
+            tileComp.state = .parsed
+        }
+        if let tileLocal = scene.get(component: LocalTransformComponent.self, for: tileRoot) {
+            tileLocal.boundingBox = (min: simd_float3(-10, -10, -10), max: simd_float3(10, 10, 10))
+        }
+        OctreeSystem.shared.registerEntity(tileRoot)
+
+        let entity = createEntity()
+        translateTo(entityId: entity, position: .zero)
+
+        setEntityGaussianTileStreaming(
+            entityId: entity,
+            source: .single(filename: "test_gaussians"),
+            options: GaussianStreamingOptions(
+                streamingRadius: 10.0,
+                unloadRadius: 20.0,
+                boundingBoxHalfExtent: simd_float3(1, 1, 1)
+            )
+        )
+
+        let streaming = scene.get(component: StreamingComponent.self, for: entity)
+        XCTAssertEqual(streaming?.assetExtension, "ply", "❌ Probing should have resolved the omitted extension to .ply and stored it concretely")
+
+        GeometryStreamingSystem.shared.update(cameraPosition: .zero, deltaTime: 0.1)
+        await scene.get(component: StreamingComponent.self, for: entity)?.loadTask?.value
+
+        XCTAssertEqual(scene.get(component: StreamingComponent.self, for: entity)?.state, .loaded, "❌ Entity should still load correctly once the probed extension is persisted")
+        XCTAssertNotNil(scene.get(component: GaussianComponent.self, for: entity), "❌ GaussianComponent should be attached after load")
+    }
+
     /// If no tile contains the entity's position, the entity should be left as a plain,
     /// non-streaming entity rather than crashing or silently half-configuring it.
     func testSetEntityGaussianTileStreaming_noContainingTileLeavesEntityNonStreaming() {
@@ -569,6 +606,34 @@ final class GaussianStreamingTest: BaseRenderSetup {
         XCTAssertEqual(closeState, .loaded, "❌ Close visible splat (within visibleEvictionProtectionRadius) must not be evicted")
         XCTAssertEqual(farState, .unloaded, "❌ Far visible splat must be evicted through the same evictLRU pool meshes use")
         XCTAssertNil(scene.get(component: GaussianComponent.self, for: farEntity), "❌ Evicted splat's GaussianComponent should be torn down")
+    }
+
+    // MARK: - Extension-less probing (setEntityGaussian / setEntityGaussianAsync)
+
+    /// `setEntityGaussian(entityId:filename:)` with no `withExtension` must probe
+    /// `.untoldgs` then `.ply`, same as the tile-streaming entry point.
+    func testSetEntityGaussian_probesPLYWhenExtensionOmitted() {
+        let entity = createEntity()
+        setEntityGaussian(entityId: entity, filename: "test_gaussians")
+
+        XCTAssertNotNil(scene.get(component: GaussianComponent.self, for: entity), "❌ Omitting withExtension should still resolve and load test_gaussians.ply synchronously")
+        XCTAssertEqual(scene.get(component: GaussianComponent.self, for: entity)?.sourceURL?.pathExtension, "ply")
+    }
+
+    /// `setEntityGaussianAsync(entityId:filename:completion:)` with no `withExtension` must
+    /// also probe `.untoldgs` then `.ply`.
+    func testSetEntityGaussianAsync_probesPLYWhenExtensionOmitted() async {
+        let entity = createEntity()
+        let expectation = XCTestExpectation(description: "Gaussian async load completes")
+        var succeeded = false
+        setEntityGaussianAsync(entityId: entity, filename: "test_gaussians") { success in
+            succeeded = success
+            expectation.fulfill()
+        }
+        await fulfillment(of: [expectation], timeout: TimeInterval(timeoutFactor))
+
+        XCTAssertTrue(succeeded, "❌ Omitting withExtension should still resolve and load test_gaussians.ply")
+        XCTAssertNotNil(scene.get(component: GaussianComponent.self, for: entity))
     }
 
     // MARK: - markUsed correctness

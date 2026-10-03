@@ -198,6 +198,11 @@ setEntityMeshAsync(entityId: room, filename: "DigitalTwin", withExtension: "unto
 
 `setEntityMeshAsync` looks for the asset by name in `GameData`, so the filename is `"DigitalTwin"` and the extension is `"untold"`.
 
+> This assumes `DigitalTwin` exported as a single model. A `.blend` scene
+> with more than one independent model exports as a `.untoldpack` instead,
+> and `loadSceneAuthored` has no effect on those — see [Using the Untold
+> Engine CLI](../API/UsingUntoldEngineCLI.md#multi-model-blend-scenes--untoldpack).
+
 ## Configure XR Input And Rendering
 
 Use the same Vision Pro setup pattern as the archviz path:

@@ -165,9 +165,10 @@ untoldengine export \
 ```
 
 `--optimize` bakes textures for every model in the pack. Load the result with
-`setEntityMeshAsync(entityId:filename:withExtension:)` using `"untoldpack"` —
-the engine loads a pack the same way it loads a single `.untold`, placing
-each model as a child entity. See [Using the Registration
+`setEntityMeshAsync(entityId:filename:)`, leaving `withExtension` out —
+the engine probes for `.untoldpack` then `.untold` automatically, so the same
+call works whether the scene exported as one file or a pack, placing each
+pack model as a child entity. See [Using the Registration
 System](UsingRegistrationSystem.md).
 
 Re-exporting the same `--output` path after the scene's model count changes
@@ -175,6 +176,17 @@ Re-exporting the same `--output` path after the scene's model count changes
 `.untold`/`.untoldpack` output, and any model subfolders a shrunk pack no
 longer references, so a caller never picks up a leftover file from an older
 export by accident.
+
+**A pack carries no scene-level data.** Scene-authored lights, cameras, and
+a `--color-grade-lut` are extracted from the `.blend` scene but have nowhere
+to go in a `.untoldpack` — there's no scene-wide slot in the manifest, only
+one self-contained `.untold` per model. The exporter prints a console note
+when this happens (and the Blender add-on's status bar shows the same
+warning). `loadSceneAuthored` (see [Using the Registration
+System](UsingRegistrationSystem.md)) only ever resolves a single `.untold`
+file, so it has nothing to do for a pack — recreate those lights/cameras by
+hand in the scene you build from the pack's models, or keep the source
+`.blend` to a single root model if you need them carried automatically.
 
 ### Animation-only exports → `.untoldanim`
 
@@ -190,7 +202,9 @@ untoldengine export \
 
 `.untoldanim` is a plain `.untold` container under the hood, named distinctly
 so it's never mistaken for a mesh — `setEntityMeshAsync` rejects it; load it
-with `setEntityAnimations(entityId:filename:withExtension:name:)` instead.
+with `setEntityAnimations(entityId:filename:name:)` instead, again leaving
+`withExtension` out — it probes `.untoldanim` then `.untold`, covering assets
+exported before `.untoldanim` existed.
 
 ### Gaussian splats → `.untoldgs`
 

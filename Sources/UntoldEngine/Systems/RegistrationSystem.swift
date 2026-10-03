@@ -1357,6 +1357,63 @@ private func resolveAssetFilenameExtension(
     return ((filename as NSString).deletingPathExtension, embeddedExtension)
 }
 
+/// Resolves a resource URL, probing between two candidate extensions when the caller didn't
+/// say which one they meant -- mesh (`.untoldpack`/`.untold`), animation
+/// (`.untoldanim`/`.untold`), and Gaussian splats (`.untoldgs`/`.ply`) all share this.
+///
+/// When `ext` is non-empty -- an explicit `withExtension` or one embedded in
+/// `filename` via `resolveAssetFilenameExtension` -- resolves exactly that file,
+/// same as before this helper existed. When `ext` is empty (no extension given
+/// anywhere), tries each of `probeExtensions` in order and returns the first
+/// that exists, so `setEntityMeshAsync(entityId:, filename: "Bedroom")` works
+/// whether "Bedroom" exported as a single `.untold` or a multi-model
+/// `.untoldpack`, without the caller needing to know which ahead of time.
+///
+/// The exporter keeps a given base name single-owner -- re-exporting after a
+/// scene's model count changes removes the stale `.untold`/`.untoldpack` at
+/// that stem (see UsingUntoldEngineCLI.md) -- so more than one candidate
+/// existing here means something outside the normal export flow put both
+/// there; that's worth a log line since the choice would otherwise be silent.
+func resolveProbedAssetURL(
+    filename: String,
+    ext: String,
+    probeExtensions: [String],
+    subResource: String? = nil
+) -> URL? {
+    guard ext.isEmpty else {
+        return LoadingSystem.shared.resourceURL(forResource: filename, withExtension: ext, subResource: subResource)
+    }
+    let matches = probeExtensions.compactMap { candidate -> (String, URL)? in
+        LoadingSystem.shared.resourceURL(forResource: filename, withExtension: candidate, subResource: subResource)
+            .map { (candidate, $0) }
+    }
+    if matches.count > 1 {
+        Logger.logWarning(
+            message: "[RegistrationSystem] '\(filename)' resolves to both ." +
+                matches.map(\.0).joined(separator: " and .") +
+                "; using .\(matches[0].0). Pass withExtension explicitly to choose."
+        )
+    }
+    return matches.first?.1
+}
+
+/// Like `resolveProbedAssetURL`, but also returns the concrete extension that won -- for
+/// callers that must persist a filename/extension pair for a later, deferred load (e.g.
+/// `StreamingComponent.assetExtension`) rather than resolving a URL once and using it
+/// immediately. Persisting the resolved extension means the deferred load never has to probe
+/// again or risk re-resolving to a different file if one is added later.
+func resolveProbedAsset(
+    filename: String,
+    ext: String,
+    probeExtensions: [String],
+    subResource: String? = nil
+) -> (url: URL, extension: String)? {
+    guard let url = resolveProbedAssetURL(filename: filename, ext: ext, probeExtensions: probeExtensions, subResource: subResource) else {
+        return nil
+    }
+    return (url, ext.isEmpty ? url.pathExtension : ext)
+}
+
 /// Loads a standalone .cube color-grade LUT and applies it immediately, fully
 /// independent of any scene/manifest -- unlike the colorGradeLUT reference
 /// installed by loadSceneAuthored, this can point at any .cube file (hand
@@ -1507,10 +1564,10 @@ public func setEntityMesh(
     assetName: String? = nil
 ) {
     let (filename, withExtension) = resolveAssetFilenameExtension(filename, withExtension)
-    guard let url = LoadingSystem.shared.resourceURL(
-        forResource: filename,
-        withExtension: withExtension,
-        subResource: nil
+    guard let url = resolveProbedAssetURL(
+        filename: filename,
+        ext: withExtension,
+        probeExtensions: ["untoldpack", "untold"]
     ) else {
         handleError(.filenameNotFound, filename)
         loadFallbackMesh(entityId: entityId, filename: filename)
@@ -1566,7 +1623,11 @@ public func setEntityMeshAsync(
         await AssetLoadingState.shared.startLoading(entityId: entityId, filename: filename, blockRenderLoop: blockRenderLoop)
 
         // Get URL
-        guard let url = LoadingSystem.shared.resourceURL(forResource: filename, withExtension: withExtension, subResource: nil) else {
+        guard let url = resolveProbedAssetURL(
+            filename: filename,
+            ext: withExtension,
+            probeExtensions: ["untoldpack", "untold"]
+        ) else {
             handleError(.filenameNotFound, filename)
             withWorldMutationGate {
                 loadFallbackMesh(entityId: entityId, filename: filename)
@@ -3372,7 +3433,11 @@ public func setEntityAnimations(entityId: EntityID, filename: String, withExtens
         return
     }
 
-    let resourceURL = LoadingSystem.shared.resourceURL(forResource: filename, withExtension: withExtension)
+    let resourceURL = resolveProbedAssetURL(
+        filename: filename,
+        ext: withExtension,
+        probeExtensions: ["untoldanim", "untold"]
+    )
     guard let url = resourceURL else {
         handleError(.filenameNotFound, filename)
         return
@@ -4056,26 +4121,6 @@ func computeGaussianSplatBoundingBox(_ splats: [GaussianSplat]) -> (min: simd_fl
     )
 }
 
-/// Reads a `.ply` or `.untoldgs` Gaussian splat asset from disk and builds its GPU buffers.
-/// Returns `nil` on any failure, calling `handleError` internally — callers just guard-return.
-private func buildGaussianLoadResult(filename: String, withExtension: String) -> GaussianLoadResult? {
-    guard let url = LoadingSystem.shared.resourceURL(forResource: filename, withExtension: withExtension, subResource: nil) else {
-        handleError(.filenameNotFound, filename)
-        return nil
-    }
-
-    if withExtension.lowercased() == "untoldgs" {
-        return buildGaussianLoadResultFromUntoldGS(url: url)
-    }
-
-    do {
-        return try buildGaussianLoadResultFromPLY(url: url, sourceDescription: filename)
-    } catch {
-        handleError(.assetDataMissing, "Failed to read Gaussian splats from \(filename): \(error.localizedDescription)")
-        return nil
-    }
-}
-
 func buildGaussianLoadResultFromPLY(url: URL, sourceDescription: String) throws -> GaussianLoadResult? {
     let asset = try PLYReader.readGaussianAsset(from: url)
     let encodedSplats = asset.splats.map(encodeGaussianSplatForTBDR)
@@ -4387,7 +4432,10 @@ func copyGaussianLoadResult(_ result: GaussianLoadResult, to gaussianComponent: 
 }
 
 public enum GaussianSource {
-    case single(filename: String, withExtension: String)
+    /// `withExtension` defaults to `""`, meaning "probe": resolve `.untoldgs` first, then
+    /// `.ply`, the same convention `setEntityMeshAsync` uses for `.untoldpack`/`.untold`.
+    /// Pass an explicit extension to force one or the other regardless of what else exists.
+    case single(filename: String, withExtension: String = "")
     /// No `boundingBoxHalfExtent` here: both `setEntityGaussian(source:)` and
     /// `setEntityGaussianTileStreaming(source:options:)` can read a real box baked into the
     /// `.untoldgs` header itself (see `UntoldGSFormat.readHeader`) — an explicit override, when
@@ -4408,14 +4456,17 @@ public typealias GaussianStreamingSource = GaussianSource
 
 public func setEntityGaussian(entityId: EntityID, filename: String, withExtension: String? = nil) {
     let (filename, withExtension) = resolveAssetFilenameExtension(filename, withExtension)
-    guard let result = buildGaussianLoadResult(filename: filename, withExtension: withExtension) else {
+    guard let url = resolveProbedAssetURL(filename: filename, ext: withExtension, probeExtensions: ["untoldgs", "ply"]) else {
+        handleError(.filenameNotFound, filename)
         return
     }
-    let sourceURL = LoadingSystem.shared.resourceURL(forResource: filename, withExtension: withExtension, subResource: nil)
+    guard let result = buildGaussianLoadResult(url: url) else {
+        return
+    }
 
     withWorldMutationGate {
         applyGaussianLoadResult(result, to: entityId)
-        scene.get(component: GaussianComponent.self, for: entityId)?.sourceURL = sourceURL
+        scene.get(component: GaussianComponent.self, for: entityId)?.sourceURL = url
     }
 }
 
@@ -4449,20 +4500,27 @@ public func setEntityGaussian(entityId: EntityID, source: GaussianSource) {
 /// `setEntityGaussianAsync` wraps this in a fire-and-forget `Task` for callers that just want
 /// `setEntityMeshAsync`'s plain completion-closure ergonomics.
 func performGaussianAsyncLoad(entityId: EntityID, filename: String, withExtension: String) async -> Bool {
+    // Resolved up front (cheap file-existence probing, not the heavy parse/decode below) so
+    // both the detached decode and the sourceURL assignment share one answer, and an empty
+    // withExtension probes .untoldgs then .ply instead of failing outright.
+    guard let url = resolveProbedAssetURL(filename: filename, ext: withExtension, probeExtensions: ["untoldgs", "ply"]) else {
+        handleError(.filenameNotFound, filename)
+        return false
+    }
+
     // buildGaussianLoadResult is a plain synchronous function — awaiting it directly would
     // just run it inline on whatever actor called us (e.g. still the main thread, if called
     // from a `Task { @MainActor in ... }`). Task.detached guarantees the parse/decode/encode
     // work actually happens off the caller's thread regardless of where it's awaited from.
     let result = await Task.detached(priority: .userInitiated) {
-        buildGaussianLoadResult(filename: filename, withExtension: withExtension)
+        buildGaussianLoadResult(url: url)
     }.value
 
     guard let result else { return false }
 
     withWorldMutationGate {
         applyGaussianLoadResult(result, to: entityId)
-        scene.get(component: GaussianComponent.self, for: entityId)?.sourceURL =
-            LoadingSystem.shared.resourceURL(forResource: filename, withExtension: withExtension, subResource: nil)
+        scene.get(component: GaussianComponent.self, for: entityId)?.sourceURL = url
     }
 
     return true
@@ -4473,12 +4531,16 @@ func performGaussianAsyncLoad(entityId: EntityID, filename: String, withExtensio
 /// the call site, and read the result via `completion`, exactly like `setEntityMeshAsync`.
 /// Gaussians have no cache/OCC layer analogous to `MeshResourceManager`, so unlike mesh
 /// streaming there is no separate streaming-only loader.
+///
+/// `withExtension` is optional, like `setEntityMeshAsync` — omitting it (or leaving it out
+/// of `filename`) probes `.untoldgs` first, then `.ply`.
 public func setEntityGaussianAsync(
     entityId: EntityID,
     filename: String,
-    withExtension: String,
+    withExtension: String? = nil,
     completion: ((Bool) -> Void)? = nil
 ) {
+    let (filename, withExtension) = resolveAssetFilenameExtension(filename, withExtension)
     let completionBox = completion.map { BoolCompletionBox(callback: $0) }
     Task {
         let success = await performGaussianAsyncLoad(entityId: entityId, filename: filename, withExtension: withExtension)
@@ -4520,10 +4582,18 @@ public func setEntityGaussianTileStreaming(
 ) {
     switch source {
     case let .single(filename, ext):
+        // Resolved to a concrete extension now, once, rather than carrying ext == ""
+        // (meaning "probe") into StreamingComponent.assetExtension -- the deferred load this
+        // registers for reads that field directly (GeometryStreamingSystem+GaussianStreaming.swift)
+        // without ever coming back through this probing logic.
+        guard let resolved = resolveProbedAsset(filename: filename, ext: ext, probeExtensions: ["untoldgs", "ply"]) else {
+            handleError(.filenameNotFound, filename)
+            return
+        }
         setEntityGaussianStreamable(
             entityId: entityId,
             filename: filename,
-            withExtension: ext,
+            withExtension: resolved.extension,
             streamingRadius: options.streamingRadius,
             unloadRadius: options.unloadRadius,
             boundingBoxHalfExtent: options.boundingBoxHalfExtent,

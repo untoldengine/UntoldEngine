@@ -168,6 +168,12 @@ loadSceneAuthored(filename: "Bedroom", withExtension: "untold") { authoredLoaded
 }
 ```
 
+> This only works for a single-model export (`Bedroom.untold`). A `.blend`
+> scene with more than one independent model exports as a `.untoldpack`
+> instead, which has no scene-level slot for this data — the exporter drops
+> it and `loadSceneAuthored` has no effect. See [Using the Untold Engine
+> CLI](../API/UsingUntoldEngineCLI.md#multi-model-blend-scenes--untoldpack).
+
 Normal mesh loading only loads geometry and materials. Scene-authored data is a
 separate step.
 
