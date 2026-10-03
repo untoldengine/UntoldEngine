@@ -26,10 +26,17 @@ class MaterialShadingTestCase: BaseRenderSetup {
     }
 
     private var subject: EntityID = .invalid
+    private var hasItsOwnEnvironment = false
 
     override func tearDown() async throws {
         destroyAllEntities()
         subject = .invalid
+        if hasItsOwnEnvironment {
+            // The bake of this test's environment went into the textures the engine keeps
+            // for the default one: drop them, so the next test bakes its own again.
+            invalidateIBLBakeCache()
+            hasItsOwnEnvironment = false
+        }
         try await super.tearDown()
     }
 
@@ -68,6 +75,29 @@ class MaterialShadingTestCase: BaseRenderSetup {
             local.boundingBox = Mesh.computeMeshBoundingBox(for: meshes)
         }
         setVisibleEntities()
+    }
+
+    /// Lights the scene with an environment that is equally bright all around, and with
+    /// nothing else. What a surface then shows is the share of that light it gives back:
+    /// one that gives back all of it comes out as bright as a matte white one.
+    func lightWithAnEvenEnvironment() throws {
+        // A Radiance picture of one value: 0.5 is a mantissa of 128 with an exponent of 128.
+        let width = 64
+        let height = 32
+        var picture = Data("#?RADIANCE\nFORMAT=32-bit_rle_rgbe\n\n-Y \(height) +X \(width)\n".utf8)
+        for _ in 0 ..< width * height {
+            picture.append(contentsOf: [128, 128, 128, 128])
+        }
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("even-environment-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        addTeardownBlock { try? FileManager.default.removeItem(at: folder) }
+        try picture.write(to: folder.appendingPathComponent("even.hdr"))
+
+        hasItsOwnEnvironment = true
+        generateHDR("even.hdr", from: folder)
+        XCTAssertTrue(iblSuccessful, "the even environment was baked")
+        applyIBL = true
+        ambientIntensity = 1.0
     }
 
     /// Draws the shape with the material and returns the lit frame, in linear values:

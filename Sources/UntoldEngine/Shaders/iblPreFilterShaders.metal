@@ -36,7 +36,10 @@ fragment IBLFragmentOut fragmentIBLPreFilterShader(VertexCompositeOutput in [[st
 
     out.irradiance=diffuseImportanceMap(in.uvCoords, environmentTexture);
     out.specular=specularImportanceMap(in.uvCoords, environmentTexture, 0.0);
-    out.brdfMap=BRDFIntegrationMap(1.0-in.uvCoords.y, in.uvCoords.x);
+    // One row per roughness, from 0 in the first row to 1 in the last, and one column per
+    // angle of view: specularIBL reads it at (NoV, roughness). The rows used to run the
+    // other way, so a polished surface took the share of a rough one and the reverse.
+    out.brdfMap=BRDFIntegrationMap(in.uvCoords.y, in.uvCoords.x);
 
     return out;
 }
@@ -107,7 +110,8 @@ fragment IBLFragmentOut fragmentXRIBLCubePreFilterShader(VertexCompositeOutput i
     IBLFragmentOut out;
     out.irradiance = diffuseImportanceMapCube(in.uvCoords, environmentTexture);
     out.specular = specularImportanceMapCube(in.uvCoords, environmentTexture, 0.0);
-    out.brdfMap = BRDFIntegrationMap(1.0 - in.uvCoords.y, in.uvCoords.x);
+    // See fragmentIBLPreFilterShader: one row per roughness, as specularIBL reads it.
+    out.brdfMap = BRDFIntegrationMap(in.uvCoords.y, in.uvCoords.x);
     return out;
 }
 

@@ -67,4 +67,17 @@ final class EnvironmentReflectionShadingTests: MaterialShadingTestCase {
         XCTAssertLessThan(satin, polished * 0.6)
         XCTAssertLessThan(rough, polished * 0.25)
     }
+
+    /// The table that tells how much of the environment a surface reflects was read
+    /// upside down: a polished metal took the share of a rough one, about a third, and
+    /// its reflections came out that dark.
+    func testAPolishedMetalReflectsAllOfTheEnvironment() throws {
+        try buildScene(.sphere, towardsLight: nil)
+        try lightWithAnEvenEnvironment()
+        let all = try shade(material(metallic: 0.0, roughness: 1.0)).y
+        let polished = try shade(material(metallic: 1.0, roughness: 0.05)).y
+
+        XCTAssertGreaterThan(all, 0.05, "a matte white gives back the light of the environment")
+        XCTAssertEqual(polished, all, accuracy: all * 0.05)
+    }
 }
