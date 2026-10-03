@@ -61,6 +61,34 @@ setReachIKTarget(entityId: zombie, worldPosition: nil)
 setReachIKChainWeights(entityId: zombie, weights: [0.9, 0.2])
 ```
 
+   When the hands follow tracking instead of sharing one goal, give each
+   chain its own target, index-aligned with the chains:
+
+```swift
+setReachIKChainTargets(entityId: character, targets: [
+    ReachIKChainTarget(position: leftOffset, space: .shoulder),
+    ReachIKChainTarget(position: rightOffset, space: .shoulder),
+], halflife: 0.2, targetHalflife: 0.03)
+```
+
+   A target is a world position, a model-space position, an offset from
+   the chain's own shoulder along the model axes (the hand keeps its place
+   relative to the body however the body moves that frame), or a spot on
+   the model's ground whose height is ignored: a leg chain (hip, knee,
+   ankle) holds a foot where it stands while the pose lifts and lowers it.
+   A chain whose entry is nil reaches for the shared target, or keeps its
+   pose when there is none. `targetHalflife` is the easing of the chains'
+   own targets: short for a source that is already filtered. It leaves
+   the shared target's easing alone.
+
+   The two calls can be mixed (tracked hands on some chains, a shared
+   grab target for the rest), with one thing to keep in mind: an entity
+   has a single reach influence. `weight`, `halflife` and `reach` belong
+   to the entity, not to the call, so whichever of `setReachIKTarget` and
+   `setReachIKChainTargets` runs last in a frame sets them for every
+   chain. Pass the same values to both; per-chain differences go through
+   `setReachIKChainWeights`.
+
 ## What Happens Behind the Scenes
 
 Every frame, after the base clip is sampled, root motion extracted and
