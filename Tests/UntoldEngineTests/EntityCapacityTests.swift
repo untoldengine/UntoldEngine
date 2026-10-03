@@ -31,7 +31,7 @@ final class EntityCapacityTests: XCTestCase {
     }
 
     func testAPoolHasNoStorageUntilItIsReservedAndThenGrowsByChunks() {
-        var pool = ComponentPool(MemoryLayout<CapacityTestComponent>.stride)
+        var pool = ComponentPool(for: CapacityTestComponent.self)
         XCTAssertNil(pool.get(0))
 
         pool.reserve(upTo: ComponentPool.chunkCapacity + 1)
