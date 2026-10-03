@@ -172,18 +172,30 @@ Transparency becomes the engine's blended alpha mode:
 - An Alpha fed by another texture, or through colour nodes, is written into the
   alpha channel of the base color texture (a white one when the base color is a
   constant), since the engine reads alpha from the base color texture.
-- Glass is approximated, since the engine has no transmission: a Principled BSDF
-  with Transmission becomes a blended surface. Clear glass (a white base color)
-  keeps 10 % opacity at full transmission. The base color tints the light that
-  crosses glass, so tinted glass is more opaque by the light its color takes
-  (counted by its brightness), and black glass is exported opaque: the black
-  mirror it is in Blender. The metallic share of a surface lets no light
-  through, so a metal with Transmission left on is opaque as well. A rough
-  surface scatters what crosses it, so frosted glass is more opaque the rougher
-  it is. A base color, a metallic value or a roughness that comes from a texture
-  counts as clear, as no metal and as polished. Transparent BSDFs mixed in by a Mix Shader lower the opacity by their
-  share. A mix driven by Geometry > Backfacing takes its front-face side. The
-  material fidelity report lists these approximations.
+- Transparent BSDFs mixed in by a Mix Shader lower the opacity by their share. A
+  mix driven by Geometry > Backfacing takes its front-face side.
+
+Glass is the material's transmission, not its alpha:
+
+- A Principled BSDF's Transmission Weight exports as the material's transmission
+  (see [Using Materials](UsingMaterials.md#transmission-glass)). The surface
+  itself stays whole, so glass keeps its reflections, and the engine tints what
+  crosses it by the base color, texel by texel.
+- The engine bends and blurs nothing behind glass. A flat pane looks as it does
+  in Blender; through a thick or curved piece of glass the view is not distorted.
+  Rough glass shows less of what is behind it the rougher it is (all of it up to
+  a roughness of 0.05, none of it from 0.5) and glows with the light that comes
+  from behind it instead, and the material fidelity report says so.
+- A surface through which next to nothing would be seen exports as a solid one:
+  less than 5 % of what is behind it, counting its transmission, the brightness
+  of its base color, its metallic share (metal lets nothing through) and its
+  roughness. Black glass is the black mirror it is in Blender, and a metal or a
+  rough, dark paint with Transmission left on (an imported car's, for example)
+  stays the solid surface it looks like. A base color, a metallic value or a
+  roughness that comes from a texture counts as clear, as no metal and as
+  polished. The report lists the surfaces kept solid.
+- A Transmission driven by a texture exports its slider value for the whole
+  surface.
 
 A height texture drives the engine's parallax occlusion mapping:
 

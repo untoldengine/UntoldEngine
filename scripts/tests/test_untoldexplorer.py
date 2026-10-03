@@ -1986,7 +1986,7 @@ class FacingEvaluationTests(unittest.TestCase):
 
 
 class MaterialAlphaTests(unittest.TestCase):
-    """Alpha and glass become the engine's blended alpha mode."""
+    """Alpha becomes the engine's blended alpha mode, and glass its transmission."""
 
     def _glass_mix(self) -> FakeNode:
         """The scene's GLASS: back faces transparent, front faces 92.5 % transparent and
@@ -2004,12 +2004,16 @@ class MaterialAlphaTests(unittest.TestCase):
         output = FakeNode("ShaderNodeOutputMaterial", inputs={"Surface": _socket("Surface", linked_from=(surface, "Shader"))})
         return _make_material("m", [output, surface])
 
-    def test_shader_opacity_of_glass_transmission_and_transparent_mixes(self) -> None:
-        self.assertAlmostEqual(u.surface_opacity(self._material_with_surface(self._glass_mix())), 0.075 * u.TRANSMISSION_OPACITY)
+    def test_glass_covers_its_surface_and_a_transparent_shader_does_not(self) -> None:
+        """Glass used to be stood in for by a surface 10 % opaque, which took its
+        reflections down with it. What shows through glass is now its transmission:
+        the surface itself is there, whole."""
         tempered = FakeNode("ShaderNodeBsdfPrincipled", inputs={"Transmission Weight": _socket("Transmission Weight", 1.0)})
-        self.assertAlmostEqual(u.surface_opacity(self._material_with_surface(tempered)), u.TRANSMISSION_OPACITY)
+        self.assertEqual(u.surface_opacity(self._material_with_surface(tempered)), 1.0)
         plain = FakeNode("ShaderNodeBsdfPrincipled", inputs={"Transmission Weight": _socket("Transmission Weight", 0.0)})
         self.assertEqual(u.surface_opacity(self._material_with_surface(plain)), 1.0)
+        # Mixed with a Transparent BSDF, the glass is there by its share of the mix.
+        self.assertAlmostEqual(u.surface_opacity(self._material_with_surface(self._glass_mix())), 0.075)
 
     def _glass(self, base_color, transmission: float = 1.0, metallic=None, roughness=None) -> FakeNode:
         inputs = {
@@ -2022,105 +2026,140 @@ class MaterialAlphaTests(unittest.TestCase):
             inputs["Roughness"] = roughness
         return FakeNode("ShaderNodeBsdfPrincipled", inputs=inputs)
 
-    def test_tinted_glass_is_as_opaque_as_the_light_its_colour_takes(self) -> None:
-        """All glass used to keep 10 % opacity whatever its colour: the black tempered
-        glass of an oven door, a black mirror in Blender, came out as clear as a window."""
+    def test_glass_is_exported_with_its_transmission(self) -> None:
         clear = self._glass(_socket("Base Color", (1.0, 1.0, 1.0, 1.0)))
-        self.assertAlmostEqual(u.surface_opacity(self._material_with_surface(clear)), u.TRANSMISSION_OPACITY)
-
-        black = self._glass(_socket("Base Color", (0.0, 0.0, 0.0, 1.0)))
-        self.assertEqual(u.principled_transmittance(black), (0.0, False))
-        self.assertEqual(u.surface_opacity(self._material_with_surface(black)), 1.0)
-
+        self.assertEqual(u.exported_transmission(clear), 1.0)
+        # The engine tints what crosses the glass itself: the value is the transmission as it stands.
         gray = self._glass(_socket("Base Color", (0.5, 0.5, 0.5, 1.0)))
         self.assertAlmostEqual(u.principled_transmittance(gray)[0], 0.5)
-        self.assertAlmostEqual(u.surface_opacity(self._material_with_surface(gray)), 1.0 - 0.5 * (1.0 - u.TRANSMISSION_OPACITY))
+        self.assertEqual(u.exported_transmission(gray), 1.0)
+        half = self._glass(_socket("Base Color", (1.0, 1.0, 1.0, 1.0)), transmission=0.5)
+        self.assertEqual(u.exported_transmission(half), 0.5)
+        self.assertEqual(u.exported_transmission(FakeNode("ShaderNodeBsdfPrincipled", inputs={})), 0.0)
+        self.assertEqual(u.exported_transmission(None), 0.0)
+
+    def test_black_glass_stays_a_solid_surface(self) -> None:
+        """The black tempered glass of an oven door is a black mirror in Blender: nothing
+        is seen through it. As a solid surface it keeps its depth, its shadow and its batch."""
+        black = self._glass(_socket("Base Color", (0.0, 0.0, 0.0, 1.0)))
+        self.assertEqual(u.principled_transmittance(black), (0.0, False))
+        self.assertEqual(u.exported_transmission(black), 0.0)
 
         # A colour counts by its brightness: green passes more light than blue.
-        green = u.surface_opacity(self._material_with_surface(self._glass(_socket("Base Color", (0.0, 1.0, 0.0, 1.0)))))
-        blue = u.surface_opacity(self._material_with_surface(self._glass(_socket("Base Color", (0.0, 0.0, 1.0, 1.0)))))
-        self.assertLess(green, blue)
-        self.assertAlmostEqual(green, 1.0 - 0.7152 * (1.0 - u.TRANSMISSION_OPACITY))
+        green = u.principled_transmittance(self._glass(_socket("Base Color", (0.0, 1.0, 0.0, 1.0))))[0]
+        blue = u.principled_transmittance(self._glass(_socket("Base Color", (0.0, 0.0, 1.0, 1.0))))[0]
+        self.assertAlmostEqual(green, 0.7152)
+        self.assertAlmostEqual(blue, 0.0722)
 
-        # Half glass, half surface: the tint takes only from the glass half.
-        half = self._glass(_socket("Base Color", (0.0, 0.0, 0.0, 1.0)), transmission=0.5)
-        self.assertEqual(u.surface_opacity(self._material_with_surface(half)), 1.0)
+        # Just under and just over the least that counts as seen through.
+        dark = self._glass(_socket("Base Color", (0.04, 0.04, 0.04, 1.0)))
+        self.assertEqual(u.exported_transmission(dark), 0.0)
+        smoked = self._glass(_socket("Base Color", (0.06, 0.06, 0.06, 1.0)))
+        self.assertEqual(u.exported_transmission(smoked), 1.0)
 
     def test_a_metal_with_transmission_is_not_glass(self) -> None:
         """Blender lays the metal over the glass: chrome whose Transmission was left at 1
-        (an imported car's, with its paint, tyres and plastics) is as opaque as any
-        chrome. At 10 % opacity the car was all but invisible."""
+        (an imported car's, with its paint, tyres and plastics) is as solid as any chrome."""
         white = _socket("Base Color", (1.0, 1.0, 1.0, 1.0))
         chrome = self._glass(white, metallic=_socket("Metallic", 1.0))
         self.assertEqual(u.principled_transmittance(chrome), (0.0, False))
-        self.assertEqual(u.surface_opacity(self._material_with_surface(chrome)), 1.0)
+        self.assertEqual(u.exported_transmission(chrome), 0.0)
 
         mostly_metal = self._glass(white, metallic=_socket("Metallic", 0.9))
         self.assertAlmostEqual(u.principled_transmittance(mostly_metal)[0], 0.1)
-        self.assertAlmostEqual(u.surface_opacity(self._material_with_surface(mostly_metal)), 1.0 - 0.1 * (1.0 - u.TRANSMISSION_OPACITY))
+        self.assertEqual(u.exported_transmission(mostly_metal), 1.0)
+        # That car's matte chrome: dark, a little rough and nine tenths metal.
+        matte_chrome = self._glass(_socket("Base Color", (0.223, 0.223, 0.223, 1.0)), metallic=_socket("Metallic", 0.9), roughness=_socket("Roughness", 0.2))
+        self.assertEqual(u.exported_transmission(matte_chrome), 0.0)
 
         # A metallic value that comes from a texture is not known here: the surface stays glass.
         masked = self._glass(white, metallic=_socket("Metallic", 1.0, linked_from=(_make_image_node("metal_mask"), "Color")))
-        self.assertAlmostEqual(u.surface_opacity(self._material_with_surface(masked)), u.TRANSMISSION_OPACITY)
+        self.assertEqual(u.exported_transmission(masked), 1.0)
 
-        # Rubber and dark plastics with the same stray transmission: opaque by their colour.
+        # Rubber and dark plastics with the same stray transmission: solid by their colour.
         tyre = self._glass(_socket("Base Color", (0.015, 0.017, 0.018, 1.0)), metallic=_socket("Metallic", 0.0))
-        self.assertGreater(u.surface_opacity(self._material_with_surface(tyre)), 0.98)
+        self.assertEqual(u.exported_transmission(tyre), 0.0)
 
     def test_frosted_glass_is_not_seen_through(self) -> None:
-        """A rough transmissive surface scatters the light that crosses it. The white
-        paint of that same car (Transmission 1, roughness 0.785) is milky in Blender; at
-        10 % opacity the body was a ghost."""
+        """A rough transmissive surface scatters the light that crosses it. The engine
+        blurs nothing, so polished glass is clear and frosted glass shows nothing. The
+        white paint of that same car (Transmission 1, roughness 0.785) is milky in
+        Blender, not a window."""
         white = _socket("Base Color", (1.0, 1.0, 1.0, 1.0))
         polished = self._glass(white, roughness=_socket("Roughness", 0.0))
-        self.assertAlmostEqual(u.surface_opacity(self._material_with_surface(polished)), u.TRANSMISSION_OPACITY)
+        self.assertEqual(u.roughness_sharpness(polished), 1.0)
+        self.assertEqual(u.exported_transmission(polished), 1.0)
+        # A window pane as it is authored: all but polished, and clear.
+        window = self._glass(white, roughness=_socket("Roughness", 0.04))
+        self.assertEqual(u.roughness_sharpness(window), 1.0)
 
-        frosted = self._glass(white, roughness=_socket("Roughness", 0.785))
-        self.assertAlmostEqual(u.principled_transmittance(frosted)[0], 0.215)
-        self.assertAlmostEqual(u.surface_opacity(self._material_with_surface(frosted)), 1.0 - 0.215 * (1.0 - u.TRANSMISSION_OPACITY))
+        # Half way from clear to frosted, half of it stays sharp.
+        half_way = self._glass(white, roughness=_socket("Roughness", 0.275))
+        self.assertAlmostEqual(u.roughness_sharpness(half_way), 0.5)
+        self.assertEqual(u.exported_transmission(half_way), 1.0)
+        channel_glass = self._glass(white, roughness=_socket("Roughness", 0.25))
+        self.assertAlmostEqual(u.roughness_sharpness(channel_glass), 0.583, places=3)
 
-        ground = self._glass(white, roughness=_socket("Roughness", 1.0))
-        self.assertEqual(u.surface_opacity(self._material_with_surface(ground)), 1.0)
+        frosted = self._glass(white, roughness=_socket("Roughness", 0.5))
+        self.assertEqual(u.roughness_sharpness(frosted), 0.0)
+        self.assertEqual(u.exported_transmission(frosted), 0.0)
+
+        paint = self._glass(white, roughness=_socket("Roughness", 0.785))
+        self.assertEqual(u.principled_transmittance(paint), (0.0, False))
+        self.assertEqual(u.exported_transmission(paint), 0.0)
 
         # A roughness that comes from a texture is not known here: the glass counts as polished.
         scratched = self._glass(white, roughness=_socket("Roughness", 0.9, linked_from=(_make_image_node("scratches"), "Color")))
-        self.assertAlmostEqual(u.surface_opacity(self._material_with_surface(scratched)), u.TRANSMISSION_OPACITY)
+        self.assertEqual(u.roughness_sharpness(scratched), 1.0)
+        self.assertEqual(u.exported_transmission(scratched), 1.0)
 
     def test_glass_tinted_by_a_texture_or_by_nodes(self) -> None:
         stained = self._glass(_socket("Base Color", (1.0, 1.0, 1.0, 1.0), linked_from=(_make_image_node("stained"), "Color")))
-        self.assertAlmostEqual(u.surface_opacity(self._material_with_surface(stained)), u.TRANSMISSION_OPACITY)
+        self.assertEqual(u.exported_transmission(stained), 1.0)
 
         rgb = FakeNode("ShaderNodeRGB")
         rgb.outputs = [_socket("Color", (0.0, 0.0, 0.0, 1.0))]
         dark = self._glass(_socket("Base Color", (1.0, 1.0, 1.0, 1.0), linked_from=(rgb, "Color")))
-        self.assertEqual(u.surface_opacity(self._material_with_surface(dark)), 1.0)
+        self.assertEqual(u.exported_transmission(dark), 0.0)
 
-    def test_black_glass_is_exported_opaque_and_reported(self) -> None:
-        black = self._glass(_socket("Base Color", (0.0, 0.0, 0.0, 1.0)))
-        black.name = "GLASS BASE"
-        output = FakeNode("ShaderNodeOutputMaterial", inputs={"Surface": _socket("Surface", linked_from=(black, "BSDF"))})
-        material = _make_material("TEMPERED GLASS", [output, black])
-        findings = u.analyze_material(material).findings
-        self.assertTrue(any("exported as an opaque surface" in finding.reason for finding in findings), [finding.reason for finding in findings])
-        self.assertFalse(any("blended surface" in finding.reason for finding in findings))
+    def _transmission_findings(self, name: str, glass: FakeNode) -> list[str]:
+        glass.name = "Principled BSDF"
+        output = FakeNode("ShaderNodeOutputMaterial", inputs={"Surface": _socket("Surface", linked_from=(glass, "BSDF"))})
+        findings = u.analyze_material(_make_material(name, [output, glass])).findings
+        return [finding.reason for finding in findings if finding.node_name == "Principled BSDF"]
 
-        clear = self._glass(_socket("Base Color", (1.0, 1.0, 1.0, 1.0)))
-        clear.name = "Principled BSDF"
-        output = FakeNode("ShaderNodeOutputMaterial", inputs={"Surface": _socket("Surface", linked_from=(clear, "BSDF"))})
-        findings = u.analyze_material(_make_material("window", [output, clear])).findings
-        self.assertTrue(any("blended surface at 10% opacity" in finding.reason for finding in findings), [finding.reason for finding in findings])
+    def test_the_report_names_what_comes_out_differently_and_not_plain_glass(self) -> None:
+        white = _socket("Base Color", (1.0, 1.0, 1.0, 1.0))
+        self.assertEqual(self._transmission_findings("window", self._glass(white)), [])
+
+        black = self._transmission_findings("TEMPERED GLASS", self._glass(_socket("Base Color", (0.0, 0.0, 0.0, 1.0))))
+        self.assertEqual(len(black), 1)
+        self.assertIn("exported as a solid surface", black[0])
+
+        frosted = self._transmission_findings("U-glass", self._glass(white, roughness=_socket("Roughness", 0.25)))
+        self.assertEqual(len(frosted), 1)
+        self.assertIn("does not blur", frosted[0])
+        self.assertIn("58% of the glass shows it sharp", frosted[0])
+
+        # A little roughness is no news.
+        self.assertEqual(self._transmission_findings("window", self._glass(white, roughness=_socket("Roughness", 0.04))), [])
 
     def test_the_report_follows_a_transmission_once(self) -> None:
         """The report needs the transmission and what is seen through it, which starts
         from the transmission: it followed the same socket twice."""
+        for base_color, kept_solid in (((1.0, 1.0, 1.0, 1.0), False), ((0.0, 0.0, 0.0, 1.0), True)):
+            with self.subTest(base_color=base_color):
+                glass = self._glass(_socket("Base Color", base_color))
+                glass.name = "Principled BSDF"
+                output = FakeNode("ShaderNodeOutputMaterial", inputs={"Surface": _socket("Surface", linked_from=(glass, "BSDF"))})
+                with mock.patch.object(u, "principled_transmission", wraps=u.principled_transmission) as followed:
+                    findings = u.analyze_material(_make_material("window", [output, glass])).findings
+                self.assertEqual(followed.call_count, 1)
+                self.assertEqual(any("exported as a solid surface" in finding.reason for finding in findings), kept_solid)
+
         clear = self._glass(_socket("Base Color", (1.0, 1.0, 1.0, 1.0)))
-        clear.name = "Principled BSDF"
-        output = FakeNode("ShaderNodeOutputMaterial", inputs={"Surface": _socket("Surface", linked_from=(clear, "BSDF"))})
-        with mock.patch.object(u, "principled_transmission", wraps=u.principled_transmission) as followed:
-            findings = u.analyze_material(_make_material("window", [output, clear])).findings
-        self.assertEqual(followed.call_count, 1)
-        self.assertTrue(any("blended surface at 10% opacity" in finding.reason for finding in findings))
         self.assertEqual(u.principled_transmittance(clear, (0.5, True)), (0.5, True))
+        self.assertEqual(u.exported_transmission(clear, (0.5, False)), 0.5)
 
     def test_a_linked_transmission_is_not_mistaken_for_none(self) -> None:
         """A Transmission Weight driven by a texture (frosted or masked glass) used to
@@ -2128,19 +2167,17 @@ class MaterialAlphaTests(unittest.TestCase):
         mask = _make_image_node("frost_mask")
         glass = FakeNode("ShaderNodeBsdfPrincipled", inputs={"Transmission Weight": _socket("Transmission Weight", 1.0, linked_from=(mask, "Color"))})
         self.assertEqual(u.principled_transmission(glass), (1.0, True))
-        self.assertAlmostEqual(u.surface_opacity(self._material_with_surface(glass)), u.TRANSMISSION_OPACITY)
+        self.assertEqual(u.exported_transmission(glass), 1.0)
 
-        output = FakeNode("ShaderNodeOutputMaterial", inputs={"Surface": _socket("Surface", linked_from=(glass, "BSDF"))})
-        glass.name = "Principled BSDF"
-        findings = u.analyze_material(_make_material("frosted", [output, glass])).findings
-        self.assertTrue(any("cannot follow" in finding.reason and "slider value 1.00" in finding.reason for finding in findings))
+        findings = self._transmission_findings("frosted", glass)
+        self.assertTrue(any("cannot follow" in reason and "slider value 1.00 is used for the whole surface" in reason for reason in findings), findings)
 
     def test_a_transmission_from_constant_node_math_is_evaluated(self) -> None:
         value = FakeNode("ShaderNodeValue")
         value.outputs = [_socket("Value", 0.5)]
         glass = FakeNode("ShaderNodeBsdfPrincipled", inputs={"Transmission Weight": _socket("Transmission Weight", 0.0, linked_from=(value, "Value"))})
         self.assertEqual(u.principled_transmission(glass), (0.5, False))
-        self.assertAlmostEqual(u.surface_opacity(self._material_with_surface(glass)), 1.0 - 0.5 * (1.0 - u.TRANSMISSION_OPACITY))
+        self.assertEqual(u.exported_transmission(glass), 0.5)
 
     def test_the_pre_4_0_transmission_socket_is_still_read(self) -> None:
         legacy = FakeNode("ShaderNodeBsdfPrincipled", inputs={"Transmission": _socket("Transmission", 1.0)})
@@ -2192,6 +2229,48 @@ class MaterialAlphaTests(unittest.TestCase):
             occlusion_strength=1.0, alpha_cutoff=0.5, base_color_texture_index=u.INVALID_INDEX,
         ))
         self.assertEqual(struct.unpack_from("<I", writer.data, 4)[0], u.MATERIAL_ALPHA_MODE_BLEND)
+
+    def _written_material(self, **values) -> bytes:
+        writer = u.BinaryWriter()
+        u.write_material_record(writer, u.MaterialRecord(
+            name_offset=0, flags=0, base_color_factor=(1.0, 1.0, 1.0, 1.0),
+            emissive_factor=(0.0, 0.0, 0.0), normal_scale=1.0, metallic_factor=0.0, roughness_factor=0.0,
+            occlusion_strength=1.0, alpha_cutoff=0.5, base_color_texture_index=u.INVALID_INDEX, **values,
+        ))
+        return bytes(writer.data)
+
+    def test_the_transmission_is_written_in_the_records_last_word(self) -> None:
+        glass = self._written_material(transmission_factor=0.75)
+        self.assertEqual(len(glass), 108)
+        self.assertEqual(struct.unpack_from("<f", glass, 104)[0], 0.75)
+        # No transmission leaves the word as every earlier file has it: zero.
+        solid = self._written_material()
+        self.assertEqual(solid[104:108], b"\x00\x00\x00\x00")
+        self.assertEqual(glass[:104], solid[:104])
+        # Out of range values are brought back into it.
+        self.assertEqual(struct.unpack_from("<f", self._written_material(transmission_factor=3.0), 104)[0], 1.0)
+        self.assertEqual(self._written_material(transmission_factor=-1.0)[104:108], b"\x00\x00\x00\x00")
+
+    def test_a_material_is_extracted_with_its_transmission(self) -> None:
+        def extracted(base_color, roughness: float) -> u.ExportedMaterial:
+            principled, output = _make_principled_output(None)
+            principled.inputs["Base Color"].default_value = base_color
+            principled.inputs["Transmission Weight"] = _socket("Transmission Weight", 1.0)
+            principled.inputs["Roughness"] = _socket("Roughness", roughness)
+            principled.inputs["Metallic"] = _socket("Metallic", 0.0)
+            mesh_object = FakeSceneObject("Pane", "MESH", FakeData(materials=[_make_material("glass", [output, principled])]))
+            with tempfile.TemporaryDirectory() as tmpdir:
+                return u.extract_material(mesh_object, Path(tmpdir) / "asset.blend")
+
+        window = extracted((0.911, 0.966, 0.96, 1.0), 0.04)
+        self.assertEqual(window.transmission, 1.0)
+        # Glass is there, whole: what shows through it is not a matter of alpha.
+        self.assertEqual(window.base_color_factor[3], 1.0)
+        self.assertEqual(window.alpha_mode, u.MATERIAL_ALPHA_MODE_OPAQUE)
+
+        paint = extracted((1.0, 1.0, 1.0, 1.0), 0.785)
+        self.assertEqual(paint.transmission, 0.0)
+        self.assertEqual(paint.alpha_mode, u.MATERIAL_ALPHA_MODE_OPAQUE)
 
 
 class TextureBitDepthDetectionTests(unittest.TestCase):
