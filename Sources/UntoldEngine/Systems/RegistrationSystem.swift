@@ -2476,7 +2476,7 @@ final class UntoldBuildCache: Sendable {
     private typealias Waiter = CheckedContinuation<UntoldBuild?, Never>
 
     /// Where the build of one file stands.
-    private enum State: Sendable {
+    private enum State {
         /// A caller is building it; these callers wait for the result.
         case building(waiters: [Waiter])
         /// Built, or failed twice (nil).
@@ -2484,14 +2484,14 @@ final class UntoldBuildCache: Sendable {
     }
 
     /// What a caller that asks for a file has to do.
-    private enum Claim: Sendable {
+    private enum Claim {
         case take(UntoldBuild?)
         case wait
         case build
     }
 
     /// What became of a caller that went to wait for a build.
-    private enum Arrival: Sendable {
+    private enum Arrival {
         /// It is queued, and will be resumed with the result.
         case queued
         /// The build finished before it could queue.
