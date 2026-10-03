@@ -897,6 +897,7 @@ public enum RenderPasses {
         materialParameters.heightMidlevel = material.heightMidlevel
         materialParameters.heightRemapMin = material.heightRemapMin
         materialParameters.heightRemapMax = material.heightRemapMax
+        materialParameters.normalScale = material.normalScale
     }
 
     /// Builds the GPU-side POM quality uniform from the current global `POMQualitySettings`

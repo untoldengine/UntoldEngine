@@ -637,6 +637,9 @@ typedef struct{
     // contrast to work with unless that slice is remapped back out first. Identity is (0,1).
     float heightRemapMin;
     float heightRemapMax;
+    // How much of the normal map the surface takes: 1 as authored, 0 none (the surface's
+    // own normal). Blender's Normal Map "Strength", which a native asset's material carries.
+    float normalScale;
 }MaterialParametersUniform;
 
 // Runtime-tunable Parallax Occlusion Mapping cost controls (global, not per-material — see

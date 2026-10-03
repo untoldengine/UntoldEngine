@@ -90,6 +90,11 @@ float mod(float x, float y);
 
 float selectTextureChannel(float4 sample, int channel);
 
+/// A tangent-space normal with the material's normal strength applied: mixed with the
+/// surface's own normal (0, 0, 1) by `strength`, as Blender's Normal Map node does, and
+/// brought back to unit length. 1 is the map as authored, 0 the flat surface.
+float3 applyNormalStrength(float3 tangentSpaceNormal, float strength);
+
 void transformToLogDepth(thread simd_float4 &position, float far);
 
 //BRDF - Great intro: https://boksajak.github.io/files/CrashCourseBRDF.pdf 

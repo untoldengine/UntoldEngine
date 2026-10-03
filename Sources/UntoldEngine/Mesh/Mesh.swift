@@ -784,6 +784,9 @@ public struct Material {
     public var metallicValue: Float = 0.0
     public var roughnessChannel: UntoldTextureChannel = .r
     public var metallicChannel: UntoldTextureChannel = .r
+    /// How much of the normal map the surface takes: 1 as authored, 0 none. A native
+    /// asset's material carries its normal strength here (Blender's Normal Map "Strength").
+    public var normalScale: Float = 1.0
 
     // Disney material properties
     public var specular: Float = 0.0
@@ -995,6 +998,7 @@ public struct Material {
         metallicValue = runtimeMaterial.metallicFactor
         roughnessChannel = runtimeMaterial.roughnessTextureChannel
         metallicChannel = runtimeMaterial.metallicTextureChannel
+        normalScale = runtimeMaterial.normalScale
         alphaCutoff = runtimeMaterial.alphaCutoff
         heightScale = runtimeMaterial.heightScale
         heightMidlevel = runtimeMaterial.heightMidlevel

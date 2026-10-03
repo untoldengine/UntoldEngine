@@ -62,13 +62,13 @@ fragment float4 fragmentTransparencyShader(
 
     // See modelShader.metal's fragmentModelShader for the packed-XY encoding rationale.
     float4 normalSample = normalTexture.sample(normalSampler, st);
-    float3 normalMapStandard = normalize(normalSample.rgb);
-    normalMapStandard = normalMapStandard * 2.0 - 1.0;
+    float3 normalMapStandard = normalSample.rgb * 2.0 - 1.0;
 
     float2 packedXY = normalSample.ga * 2.0 - 1.0;
     float3 normalMapPackedXY = float3(packedXY, sqrt(saturate(1.0 - dot(packedXY, packedXY))));
 
     float3 normalMap = normalIsPackedXY ? normalMapPackedXY : normalMapStandard;
+    normalMap = applyNormalStrength(normalMap, materialParameter.normalScale);
 
     simd_float3 N = normalize(in.tbNormal);
     simd_float3 T = normalize(in.tangent.xyz);

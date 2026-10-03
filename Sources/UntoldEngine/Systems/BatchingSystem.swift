@@ -2810,6 +2810,7 @@ public class BatchingSystem: @unchecked Sendable {
         components.append(String(format: "%.2f", material.specular))
         components.append(String(format: "%.2f", material.ior))
         components.append(String(format: "%.2f", material.stScale))
+        components.append(String(format: "%.2f", material.normalScale))
         components.append("\(material.alphaMode.rawValue)")
         components.append(String(format: "%.2f", material.alphaCutoff))
 

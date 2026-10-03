@@ -147,6 +147,13 @@ float artistFriendlyF0(float r, float g,float theta){
     return 0.5*(rs+rp);
 }
 
+float3 applyNormalStrength(float3 tangentSpaceNormal, float strength){
+    float3 mixed = float3(tangentSpaceNormal.xy * strength, 1.0 + (tangentSpaceNormal.z - 1.0) * strength);
+    // Beyond 1 the mix can push z through the surface; keep the normal on its own side.
+    mixed.z = max(mixed.z, 0.001);
+    return normalize(mixed);
+}
+
 // BRDF - If you are new to BRDF implementation, this article provides a great intro: https://boksajak.github.io/files/CrashCourseBRDF.pdf
 
 float3 fresnelSchlick(float cosTheta,float3 F0){

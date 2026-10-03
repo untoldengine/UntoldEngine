@@ -401,13 +401,16 @@ fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
     // [-1,1]), or astcenc's `-normal` packing (RGB=X, A=Y) used by texbake.py to get a
     // better error metric for vector data — see NativeTexFlags.normalPackedXY. Z is
     // reconstructed from the unit-length constraint for the packed case.
-    float3 normalMapStandard = normalize(normalSample.rgb);
-    normalMapStandard = normalMapStandard * 2.0 - 1.0;
+    // [0,1] -> [-1,1] first, unit length after: normalizing the stored color instead
+    // shortens it before the remap and leaves every normal tilted (a flat texel, (0.5,
+    // 0.5, 1), came out 22 degrees off).
+    float3 normalMapStandard = normalSample.rgb * 2.0 - 1.0;
 
     float2 packedXY = normalSample.ga * 2.0 - 1.0;
     float3 normalMapPackedXY = float3(packedXY, sqrt(saturate(1.0 - dot(packedXY, packedXY))));
 
     float3 normalMap = normalIsPackedXY ? normalMapPackedXY : normalMapStandard;
+    normalMap = applyNormalStrength(normalMap, materialParameter.normalScale);
 
     //convert to normal map to world space???
     normalMap=(hasNormal==false)?normalize(normalVectorInWorldSpace):normalize(TBN*normalMap);

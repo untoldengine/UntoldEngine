@@ -1736,6 +1736,40 @@ final class StaticBatchingTest: BaseRenderSetup {
         return entity
     }
 
+    func testNormalStrengthDifferencePreventsBatching() {
+        /// A batch draws all of its geometry with one material. Two materials that share
+        /// a normal map and differ in how much of it they take are two materials.
+        func makeMaterial(normalScale: Float) -> Material {
+            Material(
+                runtimeMaterial: RuntimeMaterialSource(
+                    baseColorFactor: simd_float4(1, 1, 1, 1),
+                    normalScale: normalScale,
+                    metallicFactor: 0.0,
+                    roughnessFactor: 1.0
+                ),
+                device: renderInfo.device
+            )
+        }
+
+        let entityFullA = addCubeEntity(material: makeMaterial(normalScale: 1.0), position: simd_float3(0, 6, 0))
+        let entityFullB = addCubeEntity(material: makeMaterial(normalScale: 1.0), position: simd_float3(2, 6, 0))
+        let entityFaintA = addCubeEntity(material: makeMaterial(normalScale: 0.1), position: simd_float3(4, 6, 0))
+        let entityFaintB = addCubeEntity(material: makeMaterial(normalScale: 0.1), position: simd_float3(6, 6, 0))
+
+        generateBatches()
+
+        let batchFullA = BatchingSystem.shared.getBatchInfo(for: entityFullA)?.batchId
+        let batchFullB = BatchingSystem.shared.getBatchInfo(for: entityFullB)?.batchId
+        let batchFaintA = BatchingSystem.shared.getBatchInfo(for: entityFaintA)?.batchId
+        let batchFaintB = BatchingSystem.shared.getBatchInfo(for: entityFaintB)?.batchId
+
+        XCTAssertNotNil(batchFullA, "❌ Full-strength entity should be batched")
+        XCTAssertNotNil(batchFaintA, "❌ Faint-strength entity should be batched")
+        XCTAssertEqual(batchFullA, batchFullB, "❌ Entities with the same normal strength should share a batch")
+        XCTAssertEqual(batchFaintA, batchFaintB, "❌ Entities with the same normal strength should share a batch")
+        XCTAssertNotEqual(batchFullA, batchFaintA, "❌ Materials differing only in normal strength must not share a batch")
+    }
+
     func testHeightMaterialDifferencesPreventBatching() {
         /// Regression test: getMaterialHash() previously had no awareness of height/POM
         /// parameters at all, so two materials differing only in heightScale (or
