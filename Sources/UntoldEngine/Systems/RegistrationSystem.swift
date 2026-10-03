@@ -2452,8 +2452,10 @@ final class UntoldBuild: @unchecked Sendable {
 /// edits and skins stay per entity.
 ///
 /// Single-flight: the first caller for a file builds it; callers arriving meanwhile
-/// suspend until it is ready instead of building it again. A failed build is
-/// remembered, so the other placements fall back without retrying.
+/// suspend until it is ready instead of building it again. A build that fails is tried
+/// a second time at once, so that a passing read error does not cost every placement
+/// of the file its model; a file that fails twice is remembered as failed, and its
+/// other placements fall back without reading it again.
 final class UntoldBuildCache: @unchecked Sendable {
     private let lock = NSLock()
     private var builds: [String: UntoldBuild?] = [:]
@@ -2471,7 +2473,7 @@ final class UntoldBuildCache: @unchecked Sendable {
                 }
             }
         case .yours:
-            let result = make()
+            let result = make() ?? make()
             for continuation in finish(key, result) {
                 continuation.resume(returning: result)
             }
