@@ -246,6 +246,7 @@ fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
                                   texture2d<float> metallicTexture [[texture(modelPassMetallicTextureIndex)]],
                                   texture2d<float> normalTexture [[texture(modelPassNormalTextureIndex)]],
                                   texture2d<float> heightTexture [[texture(modelPassHeightTextureIndex)]],
+                                  texture2d<float> emissiveTexture [[texture(modelPassEmissiveTextureIndex)]],
                                         constant bool &hasNormal[[buffer(modelPassFragmentHasNormalTextureIndex)]],
                                         constant MaterialParametersUniform &materialParameter [[buffer(modelPassFragmentMaterialParameterIndex)]],
                                   sampler baseColorSampler [[sampler(modelPassBaseSamplerIndex)]],
@@ -430,6 +431,16 @@ fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
         : materialParameter.metallic;
     metallic=clamp(metallic, 0.0, 1.0);
 
+    // The light the surface gives off: the emissive color, times the emissive texture when
+    // the material has one (the texture carries the color, the factor its strength). It
+    // shares the base color's sampler: both wrap the same way over the same coordinates.
+    float4 emissiveSample = hasHeight
+        ? emissiveTexture.sample(baseColorSampler, sampleUV, gradient2d(stDx, stDy))
+        : emissiveTexture.sample(baseColorSampler, st, bias(0.25f));
+    float3 emissive = (materialParameter.hasEmissiveTexture == 1)
+        ? materialParameter.emmissive * emissiveSample.rgb
+        : materialParameter.emmissive;
+
     float4 color=inBaseColor;
 
     gBufferOut.color = float4(color.rgb, passthroughAlpha);
@@ -438,7 +449,7 @@ fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
     // .b/.a carry POM debug data (raw height sample, uv-offset magnitude) for
     // RenderDebugViewMode.heightDebug / .pomOffsetDebug — see RenderingSystem.swift.
     gBufferOut.material=float4(roughness, metallic, pomHeightSample, pomOffsetMagnitude);
-    gBufferOut.emmisive = float4(materialParameter.emmissive, 1.0);
+    gBufferOut.emmisive = float4(emissive, 1.0);
     return gBufferOut;
 
 

@@ -91,6 +91,10 @@ To apply the same emissive value to an entity and all of its scenegraph descenda
 updateMaterialEmmisive(entityId: rootEntity, emmissive: simd_float3(1.0, 0.5, 0.0), recursive: true)
 ```
 
+> When the material has an emissive texture, the value multiplies it: the texture gives the color of the glow and the value its strength. A material loaded with an emissive texture and no value of its own starts at white, so the texture shows as painted.
+
+> On a material with the blend alpha mode the glow fades with the surface: at half opacity it gives off half the light.
+
 > **Spelling note:** The API currently uses `getMaterialEmmissive` / `updateMaterialEmmisive` (with double-m). Use these exact names when calling the functions.
 
 ---

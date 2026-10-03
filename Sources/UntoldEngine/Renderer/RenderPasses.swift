@@ -898,6 +898,7 @@ public enum RenderPasses {
         materialParameters.heightRemapMin = material.heightRemapMin
         materialParameters.heightRemapMax = material.heightRemapMax
         materialParameters.normalScale = material.normalScale
+        materialParameters.hasEmissiveTexture = material.hasEmissiveMap ? 1 : 0
     }
 
     /// Builds the GPU-side POM quality uniform from the current global `POMQualitySettings`
@@ -1979,6 +1980,7 @@ public enum RenderPasses {
                         )
 
                         renderEncoder.setFragmentSamplerState(material.height.sampler, index: Int(modelPassHeightSamplerIndex.rawValue))
+                        renderEncoder.setFragmentTexture(material.emissive.texture, index: Int(modelPassEmissiveTextureIndex.rawValue))
 
                         renderEncoder.drawIndexedPrimitivesTracked(
                             type: subMesh.metalKitSubmesh.primitiveType,
@@ -2205,6 +2207,7 @@ public enum RenderPasses {
             renderEncoder.setFragmentSamplerState(material.normal.sampler, index: Int(modelPassNormalSamplerIndex.rawValue))
             renderEncoder.setFragmentTexture(material.height.texture, index: Int(modelPassHeightTextureIndex.rawValue))
             renderEncoder.setFragmentSamplerState(material.height.sampler, index: Int(modelPassHeightSamplerIndex.rawValue))
+            renderEncoder.setFragmentTexture(material.emissive.texture, index: Int(modelPassEmissiveTextureIndex.rawValue))
 
             // SINGLE DRAW CALL FOR ENTIRE BATCH
             // Logger.log(message: "✅ Drawing batch \(batchGroup.id): \(batchGroup.indexCount) indices, \(batchGroup.vertexCount) vertices")
@@ -2388,6 +2391,7 @@ public enum RenderPasses {
                         renderEncoder.setFragmentSamplerState(material.normal.sampler, index: Int(modelPassNormalSamplerIndex.rawValue))
                         renderEncoder.setFragmentTexture(material.height.texture, index: Int(modelPassHeightTextureIndex.rawValue))
                         renderEncoder.setFragmentSamplerState(material.height.sampler, index: Int(modelPassHeightSamplerIndex.rawValue))
+                        renderEncoder.setFragmentTexture(material.emissive.texture, index: Int(modelPassEmissiveTextureIndex.rawValue))
 
                         renderEncoder.drawIndexedPrimitivesTracked(
                             type: subMesh.metalKitSubmesh.primitiveType,
@@ -2485,6 +2489,7 @@ public enum RenderPasses {
                     renderEncoder.setFragmentSamplerState(material.normal.sampler, index: Int(modelPassNormalSamplerIndex.rawValue))
                     renderEncoder.setFragmentTexture(material.height.texture, index: Int(modelPassHeightTextureIndex.rawValue))
                     renderEncoder.setFragmentSamplerState(material.height.sampler, index: Int(modelPassHeightSamplerIndex.rawValue))
+                    renderEncoder.setFragmentTexture(material.emissive.texture, index: Int(modelPassEmissiveTextureIndex.rawValue))
 
                     renderEncoder.drawIndexedPrimitivesTracked(
                         type: .triangle,
@@ -3836,6 +3841,10 @@ public enum RenderPasses {
                     renderEncoder.setFragmentSamplerState(
                         material.normal.sampler,
                         index: Int(transparencyPassNormalSamplerIndex.rawValue)
+                    )
+                    renderEncoder.setFragmentTexture(
+                        material.emissive.texture,
+                        index: Int(transparencyPassEmissiveTextureIndex.rawValue)
                     )
 
                     renderEncoder.drawIndexedPrimitivesTracked(

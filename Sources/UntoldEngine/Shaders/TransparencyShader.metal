@@ -22,6 +22,7 @@ fragment float4 fragmentTransparencyShader(
     texture2d<float> roughnessTexture [[texture(transparencyPassRoughnessTextureIndex)]],
     texture2d<float> metallicTexture [[texture(transparencyPassMetallicTextureIndex)]],
     texture2d<float> normalTexture [[texture(transparencyPassNormalTextureIndex)]],
+    texture2d<float> emissiveTexture [[texture(transparencyPassEmissiveTextureIndex)]],
     constant bool &hasNormal [[buffer(transparencyPassFragmentHasNormalTextureIndex)]],
     constant bool &normalIsPackedXY [[buffer(transparencyPassFragmentNormalIsPackedXYIndex)]],
     constant MaterialParametersUniform &materialParameter [[buffer(transparencyPassFragmentMaterialParameterIndex)]],
@@ -172,8 +173,15 @@ fragment float4 fragmentTransparencyShader(
     );
 
     indirectLighting *= iblParam.ambientIntensity;
-    float3 finalColor = float3(totalLight.diff) + totalLight.spec + indirectLighting;
 
-    // blendEnabled uses premultiplied-alpha blend factors.
+    // See fragmentModelShader: the emissive color, times the emissive texture when there is one.
+    float3 emissive = (materialParameter.hasEmissiveTexture == 1)
+        ? materialParameter.emmissive * emissiveTexture.sample(baseColorSampler, st).rgb
+        : materialParameter.emmissive;
+
+    float3 finalColor = float3(totalLight.diff) + totalLight.spec + indirectLighting + emissive;
+
+    // blendEnabled uses premultiplied-alpha blend factors. The glow fades with the
+    // surface like the rest of it: a material half there gives off half the light.
     return float4(finalColor * inBaseColor.a, inBaseColor.a);
 }

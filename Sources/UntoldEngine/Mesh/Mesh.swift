@@ -1068,6 +1068,11 @@ public struct Material {
             mapType: "Emissive map"
         )
         emissive = createTextureDescriptor(device: renderInfo.device, texture: emissiveTex, wrapMode: .repeat)
+        // The surface gives off its emissive color times its emissive texture. A source
+        // material with the texture alone means the texture as painted, so its color is white.
+        if emissiveTex != nil {
+            emissiveValue = simd_float3(repeating: 1.0)
+        }
 
         let heightTex = textureLoader.loadTexture(
             from: mdlMaterial.property(with: .displacement),

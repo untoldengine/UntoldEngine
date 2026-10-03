@@ -1847,6 +1847,41 @@ final class StaticBatchingTest: BaseRenderSetup {
         XCTAssertNotEqual(batchOnA, batchOffA, "❌ heightEnabled true/false must not share a batch")
     }
 
+    func testEmissiveDifferencePreventsBatching() {
+        /// A batch draws all of its geometry with one material. The emissive color was
+        /// not part of what tells two materials apart, so two lamps alike in all but
+        /// their glow could share a batch, and both took the glow of the first.
+        func makeMaterial(emissive: simd_float3) -> Material {
+            Material(
+                runtimeMaterial: RuntimeMaterialSource(
+                    baseColorFactor: simd_float4(1, 1, 1, 1),
+                    emissiveFactor: emissive,
+                    metallicFactor: 0.0,
+                    roughnessFactor: 1.0
+                ),
+                device: renderInfo.device
+            )
+        }
+
+        let entityRedA = addCubeEntity(material: makeMaterial(emissive: simd_float3(1, 0, 0)), position: simd_float3(0, 4, 0))
+        let entityRedB = addCubeEntity(material: makeMaterial(emissive: simd_float3(1, 0, 0)), position: simd_float3(2, 4, 0))
+        let entityBlueA = addCubeEntity(material: makeMaterial(emissive: simd_float3(0, 0, 1)), position: simd_float3(4, 4, 0))
+        let entityBlueB = addCubeEntity(material: makeMaterial(emissive: simd_float3(0, 0, 1)), position: simd_float3(6, 4, 0))
+
+        generateBatches()
+
+        let batchRedA = BatchingSystem.shared.getBatchInfo(for: entityRedA)?.batchId
+        let batchRedB = BatchingSystem.shared.getBatchInfo(for: entityRedB)?.batchId
+        let batchBlueA = BatchingSystem.shared.getBatchInfo(for: entityBlueA)?.batchId
+        let batchBlueB = BatchingSystem.shared.getBatchInfo(for: entityBlueB)?.batchId
+
+        XCTAssertNotNil(batchRedA, "❌ Red-glow entity should be batched")
+        XCTAssertNotNil(batchBlueA, "❌ Blue-glow entity should be batched")
+        XCTAssertEqual(batchRedA, batchRedB, "❌ Entities with the same emissive color should share a batch")
+        XCTAssertEqual(batchBlueA, batchBlueB, "❌ Entities with the same emissive color should share a batch")
+        XCTAssertNotEqual(batchRedA, batchBlueA, "❌ Materials differing only in emissive color must not share a batch")
+    }
+
     func testRuntimeOpacityChangeRemovesBatchedEntity() {
         // Verify that calling updateMaterialOpacity on a batched entity correctly
         // removes it from the batch so the transparency pass can render it.
