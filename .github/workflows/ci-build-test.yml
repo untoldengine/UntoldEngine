@@ -1,10 +1,22 @@
 name: CI Build and Test
 
+# Changes that only touch the documentation skip this workflow: the docs folder,
+# mkdocs.yml and the Markdown files at the repository root. Markdown files elsewhere
+# (for example template resources under Sources) still run it. The MkDocs build has
+# its own workflow.
 on:
   push:
     branches: [master, develop]
+    paths-ignore:
+      - 'docs/**'
+      - 'mkdocs.yml'
+      - '*.md'
   pull_request:
     branches: [master, develop]
+    paths-ignore:
+      - 'docs/**'
+      - 'mkdocs.yml'
+      - '*.md'
 
 jobs:
   python-script-tests:
