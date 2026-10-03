@@ -219,7 +219,8 @@ class UNTOLD_OT_export_asset(bpy.types.Operator, ExportHelper):
             # .untold per model were written instead of a single output_path.
             destination = f"{result['pack_path'].name} ({result['model_count']} model(s))"
         else:
-            destination = output_path.name
+            # The file written: a .untold even when the output names a pack.
+            destination = result["output_path"].name
         message = (
             f"Exported {result['mesh_count']} mesh(es), "
             f"{result['vertex_count']} vertices to {destination}"
