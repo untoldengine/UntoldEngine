@@ -502,10 +502,22 @@ float4 BRDFIntegrationMap(float roughness, float NoV){
 // https://cdn2.unrealengine.com/Resources/files/2013SiggraphPresentationsNotes-26915738.pdf
 float3 specularIBL(float3 F0 , float roughness, float3 N, float3 V, texture2d<float> specularMap, texture2d<float> brdfMap, float3 rotationAxis, float rotationAngle) {
 
+    // The lookup table is read right at its edges (a surface seen head on, a roughness
+    // of 1), so it clamps: wrapping there reads the far edge and leaves a white spot.
     constexpr sampler s(coord::normalized,
                         filter::linear,
                         mip_filter::none,
                         address::clamp_to_edge);
+
+    // The environment holds one level per roughness, from a mirror image (level 0) to
+    // the widest blur (the last level): the mip filter is what reads the level asked
+    // for. Without it every surface reflects level 0, as sharp as a mirror. The map
+    // goes once around the horizon, so it wraps sideways, and stops at the poles.
+    constexpr sampler environmentSampler(coord::normalized,
+                                         filter::linear,
+                                         mip_filter::linear,
+                                         s_address::repeat,
+                                         t_address::clamp_to_edge);
 
     int mipCount=6;
     float NoV = clamp(dot(N, V), 0.0, 1.0);
@@ -516,7 +528,7 @@ float3 specularIBL(float3 F0 , float roughness, float3 N, float3 V, texture2d<fl
 
     float2 uv = equirectUVFromCubeDirection(rotatedR);
     float mipLevel = roughness * float(mipCount - 1);
-    float3 prefilteredColor = specularMap.sample(s, uv, level(mipLevel)).rgb;
+    float3 prefilteredColor = specularMap.sample(environmentSampler, uv, level(mipLevel)).rgb;
 
 
     float4 brdfIntegration=brdfMap.sample(s,float2(NoV,roughness));
