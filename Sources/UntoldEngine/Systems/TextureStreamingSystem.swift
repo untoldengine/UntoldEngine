@@ -1074,10 +1074,10 @@ public class TextureStreamingSystem: @unchecked Sendable {
         case let .mdl(mdlTexture):
             return try? loader.newTexture(texture: mdlTexture, options: options)
         case let .url(url):
-            // Grayscale PNGs produce an r8Unorm Metal texture.  The shader samples
-            // it as RGBA where G=B=0, making the mesh appear solid red.
-            // Detect and expand to RGBA before handing to MTKTextureLoader.
-            if let expanded = expandGrayscaleToRGBA(url: url, isSRGB: isSRGB, loader: loader, options: options) {
+            // A grayscale image loads as a texture of one channel, which a shader reading
+            // a color from it shows as solid red: load it with that channel in red, green
+            // and blue (see loadGrayscaleTextureAsRGBA).
+            if let expanded = loadGrayscaleTextureAsRGBA(url: url, isSRGB: isSRGB, loader: loader, options: options) {
                 return expanded
             }
             return try? loader.newTexture(URL: url, options: options)
@@ -1086,43 +1086,6 @@ public class TextureStreamingSystem: @unchecked Sendable {
             // is unreachable in practice but required for exhaustiveness.
             return nil
         }
-    }
-
-    /// If `url` points to a grayscale image, redraws it into an RGBA CGContext and
-    /// loads the result so Metal gets an rgba8Unorm texture instead of r8Unorm.
-    /// Returns nil for non-grayscale images so the caller falls back to the normal path.
-    private func expandGrayscaleToRGBA(
-        url: URL,
-        isSRGB: Bool,
-        loader: MTKTextureLoader,
-        options: [MTKTextureLoader.Option: Any]
-    ) -> MTLTexture? {
-        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
-              let cgImage = CGImageSourceCreateImageAtIndex(source, 0, nil),
-              cgImage.colorSpace?.model == .monochrome
-        else { return nil }
-
-        let width = cgImage.width
-        let height = cgImage.height
-        let colorSpace = isSRGB
-            ? CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()
-            : CGColorSpaceCreateDeviceRGB()
-        let bitmapInfo = CGBitmapInfo(rawValue: CGImageAlphaInfo.noneSkipLast.rawValue)
-
-        guard let ctx = CGContext(
-            data: nil,
-            width: width,
-            height: height,
-            bitsPerComponent: 8,
-            bytesPerRow: width * 4,
-            space: colorSpace,
-            bitmapInfo: bitmapInfo.rawValue
-        ) else { return nil }
-
-        ctx.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
-
-        guard let rgbaImage = ctx.makeImage() else { return nil }
-        return try? loader.newTexture(cgImage: rgbaImage, options: options)
     }
 
     private func resampleTextureIfNeeded(_ texture: MTLTexture, targetMaxDimension: Int?, commandQueue: MTLCommandQueue) async -> MTLTexture? {

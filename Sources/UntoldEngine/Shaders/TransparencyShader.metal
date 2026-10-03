@@ -22,6 +22,7 @@ fragment float4 fragmentTransparencyShader(
     texture2d<float> roughnessTexture [[texture(transparencyPassRoughnessTextureIndex)]],
     texture2d<float> metallicTexture [[texture(transparencyPassMetallicTextureIndex)]],
     texture2d<float> normalTexture [[texture(transparencyPassNormalTextureIndex)]],
+    texture2d<float> emissiveTexture [[texture(transparencyPassEmissiveTextureIndex)]],
     constant bool &hasNormal [[buffer(transparencyPassFragmentHasNormalTextureIndex)]],
     constant bool &normalIsPackedXY [[buffer(transparencyPassFragmentNormalIsPackedXYIndex)]],
     constant MaterialParametersUniform &materialParameter [[buffer(transparencyPassFragmentMaterialParameterIndex)]],
@@ -48,9 +49,9 @@ fragment float4 fragmentTransparencyShader(
     st.y = 1.0 - st.y;
 
     float4 sampledColor = baseColor.sample(baseColorSampler, st);
-    float3 tint = all(materialParameter.baseColor.rgb < 0.001)
-        ? float3(1.0)
-        : materialParameter.baseColor.rgb;
+    // See fragmentModelShader: zeros mean "untinted" only for a textured material.
+    bool isBaseColorUnset = materialParameter.hasTexture.x == 1 && all(materialParameter.baseColor.rgb < 0.001);
+    float3 tint = isBaseColorUnset ? float3(1.0) : materialParameter.baseColor.rgb;
 
     float4 inBaseColor = (materialParameter.hasTexture.x == 1)
         ? float4(sampledColor.rgb * tint, sampledColor.a * materialParameter.baseColor.a)
@@ -62,13 +63,13 @@ fragment float4 fragmentTransparencyShader(
 
     // See modelShader.metal's fragmentModelShader for the packed-XY encoding rationale.
     float4 normalSample = normalTexture.sample(normalSampler, st);
-    float3 normalMapStandard = normalize(normalSample.rgb);
-    normalMapStandard = normalMapStandard * 2.0 - 1.0;
+    float3 normalMapStandard = normalSample.rgb * 2.0 - 1.0;
 
     float2 packedXY = normalSample.ga * 2.0 - 1.0;
     float3 normalMapPackedXY = float3(packedXY, sqrt(saturate(1.0 - dot(packedXY, packedXY))));
 
     float3 normalMap = normalIsPackedXY ? normalMapPackedXY : normalMapStandard;
+    normalMap = applyNormalStrength(normalMap, materialParameter.normalScale);
 
     simd_float3 N = normalize(in.tbNormal);
     simd_float3 T = normalize(in.tangent.xyz);
@@ -172,8 +173,15 @@ fragment float4 fragmentTransparencyShader(
     );
 
     indirectLighting *= iblParam.ambientIntensity;
-    float3 finalColor = float3(totalLight.diff) + totalLight.spec + indirectLighting;
 
-    // blendEnabled uses premultiplied-alpha blend factors.
+    // See fragmentModelShader: the emissive color, times the emissive texture when there is one.
+    float3 emissive = (materialParameter.hasEmissiveTexture == 1)
+        ? materialParameter.emmissive * emissiveTexture.sample(baseColorSampler, st).rgb
+        : materialParameter.emmissive;
+
+    float3 finalColor = float3(totalLight.diff) + totalLight.spec + indirectLighting + emissive;
+
+    // blendEnabled uses premultiplied-alpha blend factors. The glow fades with the
+    // surface like the rest of it: a material half there gives off half the light.
     return float4(finalColor * inBaseColor.a, inBaseColor.a);
 }

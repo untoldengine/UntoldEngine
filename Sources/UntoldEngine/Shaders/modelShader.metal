@@ -246,6 +246,7 @@ fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
                                   texture2d<float> metallicTexture [[texture(modelPassMetallicTextureIndex)]],
                                   texture2d<float> normalTexture [[texture(modelPassNormalTextureIndex)]],
                                   texture2d<float> heightTexture [[texture(modelPassHeightTextureIndex)]],
+                                  texture2d<float> emissiveTexture [[texture(modelPassEmissiveTextureIndex)]],
                                         constant bool &hasNormal[[buffer(modelPassFragmentHasNormalTextureIndex)]],
                                         constant MaterialParametersUniform &materialParameter [[buffer(modelPassFragmentMaterialParameterIndex)]],
                                   sampler baseColorSampler [[sampler(modelPassBaseSamplerIndex)]],
@@ -357,11 +358,10 @@ fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
         ? baseColor.sample(baseColorSampler, sampleUV, gradient2d(stDx, stDy))
         : baseColor.sample(baseColorSampler, st, bias(0.25f));
 
-    // Detect if basecolor is all zeros
-    bool isBaseColorZero = all(materialParameter.baseColor.rgb < 0.001);
-
-    // Fallback to white if base color is zero
-    float3 tint = isBaseColorZero ? float3(1.0) : materialParameter.baseColor.rgb;
+    // A textured material whose base color factor was never set (all zeros) shows its
+    // texture untinted. Without a texture, zero is a color like any other: black.
+    bool isBaseColorUnset = materialParameter.hasTexture.x == 1 && all(materialParameter.baseColor.rgb < 0.001);
+    float3 tint = isBaseColorUnset ? float3(1.0) : materialParameter.baseColor.rgb;
 
     float4 inBaseColor = (materialParameter.hasTexture.x == 1)
         ? float4(sampledColor.rgb * tint, sampledColor.a * materialParameter.baseColor.a)
@@ -401,13 +401,16 @@ fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
     // [-1,1]), or astcenc's `-normal` packing (RGB=X, A=Y) used by texbake.py to get a
     // better error metric for vector data — see NativeTexFlags.normalPackedXY. Z is
     // reconstructed from the unit-length constraint for the packed case.
-    float3 normalMapStandard = normalize(normalSample.rgb);
-    normalMapStandard = normalMapStandard * 2.0 - 1.0;
+    // [0,1] -> [-1,1] first, unit length after: normalizing the stored color instead
+    // shortens it before the remap and leaves every normal tilted (a flat texel, (0.5,
+    // 0.5, 1), came out 22 degrees off).
+    float3 normalMapStandard = normalSample.rgb * 2.0 - 1.0;
 
     float2 packedXY = normalSample.ga * 2.0 - 1.0;
     float3 normalMapPackedXY = float3(packedXY, sqrt(saturate(1.0 - dot(packedXY, packedXY))));
 
     float3 normalMap = normalIsPackedXY ? normalMapPackedXY : normalMapStandard;
+    normalMap = applyNormalStrength(normalMap, materialParameter.normalScale);
 
     //convert to normal map to world space???
     normalMap=(hasNormal==false)?normalize(normalVectorInWorldSpace):normalize(TBN*normalMap);
@@ -428,6 +431,16 @@ fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
         : materialParameter.metallic;
     metallic=clamp(metallic, 0.0, 1.0);
 
+    // The light the surface gives off: the emissive color, times the emissive texture when
+    // the material has one (the texture carries the color, the factor its strength). It
+    // shares the base color's sampler: both wrap the same way over the same coordinates.
+    float4 emissiveSample = hasHeight
+        ? emissiveTexture.sample(baseColorSampler, sampleUV, gradient2d(stDx, stDy))
+        : emissiveTexture.sample(baseColorSampler, st, bias(0.25f));
+    float3 emissive = (materialParameter.hasEmissiveTexture == 1)
+        ? materialParameter.emmissive * emissiveSample.rgb
+        : materialParameter.emmissive;
+
     float4 color=inBaseColor;
 
     gBufferOut.color = float4(color.rgb, passthroughAlpha);
@@ -436,7 +449,7 @@ fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
     // .b/.a carry POM debug data (raw height sample, uv-offset magnitude) for
     // RenderDebugViewMode.heightDebug / .pomOffsetDebug — see RenderingSystem.swift.
     gBufferOut.material=float4(roughness, metallic, pomHeightSample, pomOffsetMagnitude);
-    gBufferOut.emmisive = float4(materialParameter.emmissive, 1.0);
+    gBufferOut.emmisive = float4(emissive, 1.0);
     return gBufferOut;
 
 

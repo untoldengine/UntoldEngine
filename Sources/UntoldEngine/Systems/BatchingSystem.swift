@@ -2794,6 +2794,7 @@ public class BatchingSystem: @unchecked Sendable {
         components.append(textureIdentity(material.metallic.texture, material.metallicURL))
         components.append(textureIdentity(material.normal.texture, material.normalURL))
         components.append(textureIdentity(material.height.texture, material.heightURL))
+        components.append(textureIdentity(material.emissive.texture, material.emissiveURL))
 
         // Base color value (important for meshes without textures)
         components.append(String(format: "%.2f,%.2f,%.2f,%.2f",
@@ -2810,6 +2811,12 @@ public class BatchingSystem: @unchecked Sendable {
         components.append(String(format: "%.2f", material.specular))
         components.append(String(format: "%.2f", material.ior))
         components.append(String(format: "%.2f", material.stScale))
+        components.append(String(format: "%.2f", material.normalScale))
+        // What the material gives off: two lamps alike in all but their glow are two materials.
+        components.append(String(format: "%.2f,%.2f,%.2f",
+                                 material.emissiveValue.x,
+                                 material.emissiveValue.y,
+                                 material.emissiveValue.z))
         components.append("\(material.alphaMode.rawValue)")
         components.append(String(format: "%.2f", material.alphaCutoff))
 
@@ -2829,6 +2836,7 @@ public class BatchingSystem: @unchecked Sendable {
         components.append("\(material.hasMetalMap)")
         components.append("\(material.hasNormalMap)")
         components.append("\(material.hasHeightMap)")
+        components.append("\(material.hasEmissiveMap)")
 
         // Flags
         components.append("\(material.interactWithLight)")
