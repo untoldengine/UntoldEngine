@@ -186,7 +186,7 @@ final class UntoldPackTests: XCTestCase {
         XCTAssertEqual(url.pathExtension, "untold")
     }
 
-    func testResolveProbedAssetURLReturnsNilWhenNoCandidateExists() throws {
+    func testResolveProbedAssetURLReturnsNilWhenNoCandidateExists() {
         XCTAssertNil(resolveProbedAssetURL(filename: "Missing", ext: "", probeExtensions: ["untoldpack", "untold"]))
     }
 

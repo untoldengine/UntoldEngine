@@ -4121,7 +4121,6 @@ func computeGaussianSplatBoundingBox(_ splats: [GaussianSplat]) -> (min: simd_fl
     )
 }
 
-
 func buildGaussianLoadResultFromPLY(url: URL, sourceDescription: String) throws -> GaussianLoadResult? {
     let asset = try PLYReader.readGaussianAsset(from: url)
     let encodedSplats = asset.splats.map(encodeGaussianSplatForTBDR)
