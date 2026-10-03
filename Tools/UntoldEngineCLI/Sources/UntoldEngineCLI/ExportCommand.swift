@@ -280,7 +280,7 @@ struct ExportCommand: ParsableCommand {
                 }
                 let sharedTextures = (assetsURL ?? packURL.deletingLastPathComponent()).appendingPathComponent("Textures")
                 if validateDirectory(sharedTextures) {
-                    try optimizeSharedTextures(texturesDir: sharedTextures, modelURLs: modelURLs)
+                    try optimizeSharedTextures(texturesDir: sharedTextures, packURL: packURL, modelURLs: modelURLs)
                 } else {
                     // An exporter that predates the shared Textures/ folder gives each model its own.
                     for modelURL in modelURLs {
@@ -528,15 +528,17 @@ struct ExportCommand: ParsableCommand {
         printSuccess("Optimized textures: \(texturesDir.path)")
     }
 
-    /// A pack's Textures/ folder, shared by its models: baked once, with every model
-    /// file under the same folder read for slot hints, then each model's references patched.
-    private func optimizeSharedTextures(texturesDir: URL, modelURLs: [URL]) throws {
+    /// A pack's Textures/ folder, shared by its models: baked once, with the pack's
+    /// model files read for slot hints, then each model's references patched.
+    private func optimizeSharedTextures(texturesDir: URL, packURL: URL, modelURLs: [URL]) throws {
         let python3URL = try resolvePython3()
         let texbakeScriptURL = try resolveTexbakeScript()
 
         printInfo("Baking textures: \(texturesDir.path)")
-        // The models' folder, not each file: a large pack would overflow the command line.
-        try runPython(python3URL, [texbakeScriptURL.path, "--dir", texturesDir.path, "--untold", texturesDir.deletingLastPathComponent().path])
+        // The pack's manifest, from which texbake takes the models it lists: naming each
+        // file would overflow the command line on a large pack, and naming their folder
+        // would bring in whatever else an assets folder holds.
+        try runPython(python3URL, [texbakeScriptURL.path, "--dir", texturesDir.path, "--untold", packURL.path])
 
         for modelURL in modelURLs {
             printInfo("Patching texture references: \(modelURL.path)")
