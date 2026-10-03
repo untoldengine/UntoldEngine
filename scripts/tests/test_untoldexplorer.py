@@ -1014,12 +1014,12 @@ class MaterialGraphAnalysisTests(unittest.TestCase):
         analysis = u.analyze_material(material)
         self.assertEqual(analysis.classification, u.MATERIAL_GRAPH_SUPPORTED)
 
-    def _make_displacement_material(self, *, midlevel: float, name: str = "disp_mat") -> FakeData:
+    def _make_displacement_material(self, *, midlevel: float, name: str = "disp_mat", scale: float = 0.02) -> FakeData:
         height_tex = _make_image_node("height_map")
         height_input = FakeSocket("Height")
         height_input.link_from(height_tex, "Color")
         scale_socket = FakeSocket("Scale")
-        scale_socket.default_value = 0.02
+        scale_socket.default_value = scale
         midlevel_socket = FakeSocket("Midlevel")
         midlevel_socket.default_value = midlevel
         displacement_node = FakeNode(
@@ -1095,6 +1095,76 @@ class MaterialGraphAnalysisTests(unittest.TestCase):
         self.assertAlmostEqual(exported.height_midlevel, 0.5)
         self.assertAlmostEqual(exported.height_remap_min, 0.0)
         self.assertAlmostEqual(exported.height_remap_max, 1.0)
+
+    def _make_bump_material(self, *, distance: float, name: str = "bump_mat") -> FakeData:
+        height_tex = _make_image_node("bump_height")
+        height_input = FakeSocket("Height")
+        height_input.link_from(height_tex, "Color")
+        distance_socket = FakeSocket("Distance")
+        distance_socket.default_value = distance
+        bump_node = FakeNode("ShaderNodeBump", inputs={"Height": height_input, "Distance": distance_socket})
+        bump_node.name = "Bump"
+
+        normal_socket = FakeSocket("Normal")
+        normal_socket.link_from(bump_node, "Normal")
+        base_color_socket = FakeSocket("Base Color")
+        base_color_socket.default_value = (1.0, 1.0, 1.0, 1.0)
+        principled = FakeNode("ShaderNodeBsdfPrincipled", inputs={"Base Color": base_color_socket, "Normal": normal_socket})
+        principled.name = "Principled BSDF"
+        surface = FakeSocket("Surface")
+        surface.link_from(principled, "BSDF")
+        output = FakeNode("ShaderNodeOutputMaterial", inputs={"Surface": surface})
+        output.name = "Material Output"
+        return _make_material(name, [output, principled, bump_node, height_tex])
+
+    def _extract(self, material: FakeData) -> "u.ExportedMaterial":
+        mesh_object = FakeSceneObject("Wall", "MESH", FakeData(materials=[material]))
+        with tempfile.TemporaryDirectory() as tmpdir:
+            return u.extract_material(mesh_object, Path(tmpdir) / "asset.untold")
+
+    def test_a_displacement_left_at_blenders_default_scale_is_not_a_parallax_depth(self) -> None:
+        """Blender leaves a Displacement Scale at 1, a metre, and with its default "Bump
+        Only" displacement draws the shading of a bump from it. Copied as the engine's
+        parallax depth, a share of the texture's width, it smeared the leather of a chair
+        across its seat."""
+        material = self._make_displacement_material(midlevel=0.5, scale=1.0, name="West_Elm_tex")
+        exported = self._extract(material)
+
+        self.assertIsNone(exported.height_texture)
+        self.assertEqual(exported.height_scale, 0.05)
+        self.assertEqual(exported.height_remap_max, 1.0)
+
+        findings = u.analyze_material(material).findings
+        self.assertTrue(
+            any(finding.node_type == "ShaderNodeDisplacement" and "too deep to be a parallax depth" in finding.reason for finding in findings),
+            [finding.reason for finding in findings],
+        )
+
+    def test_a_bump_left_at_blenders_default_distance_is_not_a_parallax_depth(self) -> None:
+        material = self._make_bump_material(distance=1.0, name="Plant_Banan")
+        exported = self._extract(material)
+
+        self.assertIsNone(exported.height_texture)
+        self.assertEqual(exported.height_scale, 0.05)
+
+        findings = u.analyze_material(material).findings
+        self.assertTrue(
+            any(finding.node_type == "ShaderNodeBump" and "height of 1 is the shading of a bump" in finding.reason for finding in findings),
+            [finding.reason for finding in findings],
+        )
+
+    def test_a_height_within_what_parallax_can_show_is_kept(self) -> None:
+        for scale in (0.004, 0.05, u.MAX_PARALLAX_HEIGHT_SCALE):
+            with self.subTest(scale=scale):
+                material = self._make_displacement_material(midlevel=0.5, scale=scale)
+                exported = self._extract(material)
+                self.assertIsNotNone(exported.height_texture)
+                self.assertAlmostEqual(exported.height_scale, scale)
+                self.assertFalse(any("parallax depth" in finding.reason for finding in u.analyze_material(material).findings))
+
+        bump = self._extract(self._make_bump_material(distance=0.03))
+        self.assertIsNotNone(bump.height_texture)
+        self.assertAlmostEqual(bump.height_scale, 0.03)
 
     def test_extract_material_without_displacement_or_bump_has_no_height(self) -> None:
         tex = _make_image_node("original")

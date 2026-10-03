@@ -154,6 +154,13 @@ MATERIAL_ALPHA_MODE_BLEND = 2
 # or frosted glass comes out more opaque, by what its colour and its roughness take from
 # what is seen through it, and a metal opaque (see principled_transmittance).
 TRANSMISSION_OPACITY = 0.1
+# The deepest relief the engine's parallax occlusion mapping can show, as a share of the
+# texture's width (the engine's heightScale; its own default is 0.05). Blender leaves a
+# Displacement Scale and a Bump Distance at 1, a metre, and what it draws from them
+# under its default "Bump Only" displacement is the shading of a bump, not a hollow a
+# metre deep. Carried over as a parallax depth, such a value smears the texture across
+# the surface, so a height with a scale above this is left out of the export.
+MAX_PARALLAX_HEIGHT_SCALE = 0.2
 # Samples per channel of the lookup tables that carry RGB Curves and ColorRamp nodes.
 CURVE_LUT_SIZE = 256
 # Rec. 709 luminance, which Blender uses to turn a colour into a value (a Color output
@@ -3269,6 +3276,44 @@ def _walk_material_graph(
             )
 
 
+def _heights_too_deep_for_parallax(material: object) -> list[tuple[object, float]]:
+    """The Displacement and Bump nodes extract_material reads a height from, whose Scale
+    or Distance is above MAX_PARALLAX_HEIGHT_SCALE, each with that value."""
+    node_tree = getattr(material, "node_tree", None)
+    if node_tree is None:
+        return []
+
+    def too_deep(node: object, scale_name: str) -> Optional[float]:
+        inputs = getattr(node, "inputs", None)
+        height_input = inputs.get("Height") if inputs is not None else None
+        scale_input = inputs.get(scale_name) if inputs is not None else None
+        if height_input is None or not getattr(height_input, "is_linked", False):
+            return None
+        if scale_input is None or getattr(scale_input, "is_linked", False):
+            return None
+        scale = float(scale_input.default_value)
+        return scale if scale > MAX_PARALLAX_HEIGHT_SCALE else None
+
+    found: list[tuple[object, float]] = []
+    output = _material_output_node(node_tree)
+    displacement_input = output.inputs.get("Displacement") if output is not None else None
+    if displacement_input is not None and getattr(displacement_input, "is_linked", False):
+        node = displacement_input.links[0].from_node
+        if node.bl_idname == "ShaderNodeDisplacement":
+            scale = too_deep(node, "Scale")
+            if scale is not None:
+                found.append((node, scale))
+    principled = _principled_bsdf_node(node_tree)
+    normal_input = principled.inputs.get("Normal") if principled is not None else None
+    if normal_input is not None and getattr(normal_input, "is_linked", False):
+        node = normal_input.links[0].from_node
+        if node.bl_idname == "ShaderNodeBump":
+            scale = too_deep(node, "Distance")
+            if scale is not None:
+                found.append((node, scale))
+    return found
+
+
 def analyze_material(material: object) -> MaterialGraphAnalysis:
     """Classify how faithfully the exporter can represent a material's node graph.
 
@@ -3319,6 +3364,17 @@ def analyze_material(material: object) -> MaterialGraphAnalysis:
                     reason,
                 )
             )
+
+    for height_node, height_scale in _heights_too_deep_for_parallax(material):
+        findings.append(
+            MaterialGraphFinding(
+                getattr(height_node, "name", "") or height_node.bl_idname,
+                height_node.bl_idname,
+                MATERIAL_GRAPH_BAKEABLE,
+                f"its height of {height_scale:g} is the shading of a bump, too deep to be a parallax depth; "
+                "the relief it gives is not exported",
+            )
+        )
 
     distinct_uv_transforms = {_uv_transform_key(transform) for transform in _material_image_uv_transforms(material)}
     if len(distinct_uv_transforms) > 1:
@@ -5464,7 +5520,11 @@ def extract_material(mesh_object: object, asset_path: Path) -> ExportedMaterial:
                 midlevel_input = displacement_source.inputs.get("Midlevel")
                 if scale_input is not None and not scale_input.is_linked:
                     height_scale = float(scale_input.default_value)
-                if midlevel_input is not None and not midlevel_input.is_linked:
+                if height_scale > MAX_PARALLAX_HEIGHT_SCALE:
+                    # The shading of a bump, not a depth (see MAX_PARALLAX_HEIGHT_SCALE).
+                    height_texture = None
+                    height_scale = 0.05
+                elif midlevel_input is not None and not midlevel_input.is_linked:
                     # The engine's POM is unidirectional (ray-marches INTO the surface from an
                     # apparent flat top; it cannot bulge outward past the true polygon surface
                     # the way Blender's signed displacement-around-Midlevel can). Copying
@@ -5491,6 +5551,10 @@ def extract_material(mesh_object: object, asset_path: Path) -> ExportedMaterial:
                 distance_input = normal_source.inputs.get("Distance")
                 if distance_input is not None and not distance_input.is_linked:
                     height_scale = float(distance_input.default_value)
+                if height_scale > MAX_PARALLAX_HEIGHT_SCALE:
+                    # The shading of a bump, not a depth (see MAX_PARALLAX_HEIGHT_SCALE).
+                    height_texture = None
+                    height_scale = 0.05
                 # Bump has no Midlevel-equivalent input; height_midlevel/height_remap_max stay
                 # at their neutral defaults.
 

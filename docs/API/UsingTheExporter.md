@@ -185,6 +185,18 @@ Transparency becomes the engine's blended alpha mode:
   share. A mix driven by Geometry > Backfacing takes its front-face side. The
   material fidelity report lists these approximations.
 
+A height texture drives the engine's parallax occlusion mapping:
+
+- The image on a Displacement node's Height input exports as the height texture,
+  with the node's Scale as its depth, and failing that the image on the Height
+  input of a Bump node that feeds the Normal input, with its Distance.
+- The engine's depth is a share of the texture's width, not a distance, so a
+  small Scale (0.02 to 0.1) carries over well and may need tuning after import.
+- A Scale or Distance above 0.2 is not a depth parallax can show. Blender leaves
+  both at 1, a metre, and with its default "Bump Only" displacement draws the
+  shading of a bump from them. Such a height is left out of the export, and the
+  material fidelity report says so; the surface keeps its normal map.
+
 Lights and cameras follow the same rules as objects: never from collections
 excluded from the view layer, and hidden ones only with `--include-hidden`.
 
