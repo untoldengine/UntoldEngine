@@ -21,7 +21,7 @@ import Metal
 import MetalKit
 import simd
 
-/// Mesh.metalKitMesh.vertexBuffers is laid out in model-descriptor order
+/// Mesh.vertexBuffers (the buffers of metalKitMesh.vertexBuffers) is laid out in model-descriptor order
 /// (ModelPassBufferIndices 0-5) regardless of which pass consumes it; the
 /// shadow pass sources from that same array but binds to its own slots.
 /// When the deformation compute pass has produced deformed streams for the
@@ -32,32 +32,32 @@ extension MTLRenderCommandEncoder {
         let deformed = deformedStreams(mesh: mesh, entityId: entityId)
 
         setVertexBuffer(
-            deformed?.positions ?? mesh.metalKitMesh.vertexBuffers[Int(modelPassVerticesIndex.rawValue)].buffer,
+            deformed?.positions ?? mesh.vertexBuffers[Int(modelPassVerticesIndex.rawValue)],
             offset: 0,
             index: Int(modelPassVerticesIndex.rawValue)
         )
         setVertexBuffer(
-            deformed?.normals ?? mesh.metalKitMesh.vertexBuffers[Int(modelPassNormalIndex.rawValue)].buffer,
+            deformed?.normals ?? mesh.vertexBuffers[Int(modelPassNormalIndex.rawValue)],
             offset: 0,
             index: Int(modelPassNormalIndex.rawValue)
         )
         setVertexBuffer(
-            mesh.metalKitMesh.vertexBuffers[Int(modelPassUVIndex.rawValue)].buffer,
+            mesh.vertexBuffers[Int(modelPassUVIndex.rawValue)],
             offset: 0,
             index: Int(modelPassUVIndex.rawValue)
         )
         setVertexBuffer(
-            deformed?.tangents ?? mesh.metalKitMesh.vertexBuffers[Int(modelPassTangentIndex.rawValue)].buffer,
+            deformed?.tangents ?? mesh.vertexBuffers[Int(modelPassTangentIndex.rawValue)],
             offset: 0,
             index: Int(modelPassTangentIndex.rawValue)
         )
         setVertexBuffer(
-            mesh.metalKitMesh.vertexBuffers[Int(modelPassJointIdIndex.rawValue)].buffer,
+            mesh.vertexBuffers[Int(modelPassJointIdIndex.rawValue)],
             offset: 0,
             index: Int(modelPassJointIdIndex.rawValue)
         )
         setVertexBuffer(
-            mesh.metalKitMesh.vertexBuffers[Int(modelPassJointWeightsIndex.rawValue)].buffer,
+            mesh.vertexBuffers[Int(modelPassJointWeightsIndex.rawValue)],
             offset: 0,
             index: Int(modelPassJointWeightsIndex.rawValue)
         )
@@ -74,17 +74,17 @@ extension MTLRenderCommandEncoder {
         let deformed = deformedStreams(mesh: mesh, entityId: entityId)
 
         setVertexBuffer(
-            deformed?.positions ?? mesh.metalKitMesh.vertexBuffers[Int(modelPassVerticesIndex.rawValue)].buffer,
+            deformed?.positions ?? mesh.vertexBuffers[Int(modelPassVerticesIndex.rawValue)],
             offset: 0,
             index: Int(shadowPassModelPositionIndex.rawValue)
         )
         setVertexBuffer(
-            mesh.metalKitMesh.vertexBuffers[Int(modelPassJointIdIndex.rawValue)].buffer,
+            mesh.vertexBuffers[Int(modelPassJointIdIndex.rawValue)],
             offset: 0,
             index: Int(shadowPassJointIdIndex.rawValue)
         )
         setVertexBuffer(
-            mesh.metalKitMesh.vertexBuffers[Int(modelPassJointWeightsIndex.rawValue)].buffer,
+            mesh.vertexBuffers[Int(modelPassJointWeightsIndex.rawValue)],
             offset: 0,
             index: Int(shadowPassJointWeightsIndex.rawValue)
         )
