@@ -113,4 +113,95 @@ final class EnvironmentReflectionShadingTests: MaterialShadingTestCase {
         XCTAssertGreaterThan(rough.x, all.x * 0.9, "the channel the metal reflects in full keeps its light")
         XCTAssertLessThan(rough.z / rough.x, polished.z / polished.x, "the color deepens with the bounces")
     }
+
+    /// The mean brightness of the middle of the sphere, where it faces the camera.
+    private static func facingBrightness(of frame: Frame) -> Float {
+        brightness(meanColor(of: frame, aroundX: frame.width / 2, y: frame.height / 2, window: 32))
+    }
+
+    /// The mean brightness near the sphere's outline, where it is seen at a slant: four
+    /// spots at nine tenths of the way out, to the left, the right, above and below.
+    private static func slantedBrightness(of frame: Frame) -> Float {
+        // The sphere is 2 across and 5 away, under a 65 degree lens.
+        let radius = Float(frame.height) / (2.0 * 5.0 * tan(65.0 / 2.0 * .pi / 180.0)) * 1.02
+        let offset = Int(radius * 0.9)
+        let spots = [(-offset, 0), (offset, 0), (0, -offset), (0, offset)]
+        return spots.reduce(Float(0)) { sum, spot in
+            sum + brightness(meanColor(of: frame, aroundX: frame.width / 2 + spot.0, y: frame.height / 2 + spot.1, window: 8))
+        } / Float(spots.count)
+    }
+
+    /// Only metals reflected the environment: polished plastic, glass and lacquer came
+    /// out matte, and a black one came out with no light on it at all.
+    func testAPolishedNonMetalReflectsTheEnvironment() throws {
+        try buildScene(.sphere, towardsLight: nil)
+        try lightWithAnEvenEnvironment()
+        let all = try shade(material(metallic: 0.0, roughness: 1.0)).y
+        let lacquer = try shadeFrame(material(base: .zero, metallic: 0.0, roughness: 0.05))
+
+        // Head on, a non-metal reflects 4 % of the light; at a slant, much more: the
+        // bright rim of a polished ball.
+        let facing = Self.facingBrightness(of: lacquer)
+        let slanted = Self.slantedBrightness(of: lacquer)
+        XCTAssertEqual(facing, all * 0.04, accuracy: all * 0.005)
+        XCTAssertGreaterThan(slanted, facing * 2.0)
+        XCTAssertLessThan(slanted, all * 0.5)
+    }
+
+    func testANonMetalReflectsAnImageOfTheRoom() throws {
+        try buildEnvironmentScene()
+        let polished = try Self.detail(of: shadeFrame(material(base: .zero, metallic: 0.0, roughness: 0.05)))
+        let rough = try Self.detail(of: shadeFrame(material(base: .zero, metallic: 0.0, roughness: 0.9)))
+
+        XCTAssertGreaterThan(polished, 0.02, "a polished black surface shows the room in detail")
+        XCTAssertLessThan(rough, polished * 0.25, "and a rough one a blur of it")
+    }
+
+    /// What a surface reflects, it does not also scatter: a white one gives back all the
+    /// light around it and no more, whatever its finish, metal or not.
+    func testAWhiteSurfaceGivesBackAllTheLightWhateverItsFinish() throws {
+        try buildScene(.sphere, towardsLight: nil)
+        try lightWithAnEvenEnvironment()
+        let all = try shade(material(metallic: 1.0, roughness: 0.05)).y
+        XCTAssertGreaterThan(all, 0.05, "a polished white metal gives back the light of the environment")
+
+        for metallic: Float in [0.0, 1.0] {
+            for roughness: Float in [0.05, 0.5, 1.0] {
+                let frame = try shadeFrame(material(metallic: metallic, roughness: roughness))
+                XCTAssertEqual(Self.facingBrightness(of: frame), all, accuracy: all * 0.05, "metallic \(metallic), roughness \(roughness), head on")
+                XCTAssertEqual(Self.slantedBrightness(of: frame), all, accuracy: all * 0.05, "metallic \(metallic), roughness \(roughness), at a slant")
+            }
+        }
+    }
+
+    /// A see-through cube shows the far side of its back face through its front. Seen
+    /// from behind, a surface reflects as its front does at that angle. It used to count
+    /// as seen edge on, where a smooth surface reflects nearly all the light.
+    func testASurfaceSeenFromBehindReflectsLikeItsFront() throws {
+        try buildScene(.cube, towardsLight: nil)
+        try lightWithAnEvenEnvironment()
+        let all = try shade(material(metallic: 0.0, roughness: 1.0)).y
+        let pane = try shade(RuntimeMaterialSource(
+            baseColorFactor: simd_float4(0, 0, 0, 0.5),
+            metallicFactor: 0.0,
+            roughnessFactor: 0.05,
+            flags: 2
+        )).y
+
+        // Half there: the front face shows half of its 4 %, and the back face half of
+        // that again through the front.
+        XCTAssertGreaterThan(all, 0.05)
+        XCTAssertEqual(pane, all * 0.04 * 0.75, accuracy: all * 0.01)
+    }
+
+    /// A gray non-metal scatters its share of what it does not reflect.
+    func testAGrayNonMetalScattersWhatItDoesNotReflect() throws {
+        try buildScene(.sphere, towardsLight: nil)
+        try lightWithAnEvenEnvironment()
+        let all = try shade(material(metallic: 0.0, roughness: 1.0)).y
+        let gray = try Self.facingBrightness(of: shadeFrame(material(base: simd_float3(0.5, 0.5, 0.5), metallic: 0.0, roughness: 0.05)))
+
+        // 4 % reflected, and half of the other 96 % scattered.
+        XCTAssertEqual(gray, all * (0.04 + 0.96 * 0.5), accuracy: all * 0.01)
+    }
 }

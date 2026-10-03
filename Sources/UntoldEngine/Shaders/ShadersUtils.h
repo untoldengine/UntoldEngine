@@ -158,6 +158,8 @@ float4 specularImportanceMap(float2 texCoords, texture2d<float> environmentTextu
 
 float4 BRDFIntegrationMap(float roughness, float NoV);
 
+float3 environmentReflectance(float3 F0, float roughness, float NoV, texture2d<float> brdfMap);
+
 // adapted from "Real Shading in Unreal Engine 4", Brian Karis, Epic Games
 // https://cdn2.unrealengine.com/Resources/files/2013SiggraphPresentationsNotes-26915738.pdf
 float3 specularIBL(float3 F0 , float roughness, float3 N, float3 V, texture2d<float> specularMap, texture2d<float> brdfMap, float3 rotationAxis, float rotationAngle);

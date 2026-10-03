@@ -498,9 +498,9 @@ float4 BRDFIntegrationMap(float roughness, float NoV){
 
 }
 
-// adapted from "Real Shading in Unreal Engine 4", Brian Karis, Epic Games
-// https://cdn2.unrealengine.com/Resources/files/2013SiggraphPresentationsNotes-26915738.pdf
-float3 specularIBL(float3 F0 , float roughness, float3 N, float3 V, texture2d<float> specularMap, texture2d<float> brdfMap, float3 rotationAxis, float rotationAngle) {
+// The share of the light around it that a surface reflects: F0 head on (4 % for a
+// non-metal, its own color for a metal), more when it is seen at a slant.
+float3 environmentReflectance(float3 F0, float roughness, float NoV, texture2d<float> brdfMap) {
 
     // The lookup table is read right at its edges (a surface seen head on, a roughness
     // of 1), so it clamps: wrapping there reads the far edge and leaves a white spot.
@@ -508,28 +508,6 @@ float3 specularIBL(float3 F0 , float roughness, float3 N, float3 V, texture2d<fl
                         filter::linear,
                         mip_filter::none,
                         address::clamp_to_edge);
-
-    // The environment holds one level per roughness, from a mirror image (level 0) to
-    // the widest blur (the last level): the mip filter is what reads the level asked
-    // for. Without it every surface reflects level 0, as sharp as a mirror. The map
-    // goes once around the horizon, so it wraps sideways, and stops at the poles.
-    constexpr sampler environmentSampler(coord::normalized,
-                                         filter::linear,
-                                         mip_filter::linear,
-                                         s_address::repeat,
-                                         t_address::clamp_to_edge);
-
-    int mipCount=6;
-    float NoV = clamp(dot(N, V), 0.0, 1.0);
-    float3 R = reflect(-V, N);
-
-    //Rotate the reflection vector
-    float3 rotatedR=normalize(rotateDirection(R, rotationAxis, rotationAngle));
-
-    float2 uv = equirectUVFromCubeDirection(rotatedR);
-    float mipLevel = roughness * float(mipCount - 1);
-    float3 prefilteredColor = specularMap.sample(environmentSampler, uv, level(mipLevel)).rgb;
-
 
     float4 brdfIntegration=brdfMap.sample(s,float2(NoV,roughness));
 
@@ -544,7 +522,37 @@ float3 specularIBL(float3 F0 , float roughness, float3 N, float3 V, texture2d<fl
     float whiteInOneBounce = float(brdfIntegration.x) + float(brdfIntegration.y);
     float3 laterBounces = 1.0 + F0 * (1.0 / max(whiteInOneBounce, 0.05) - 1.0);
 
-    return prefilteredColor * reflectedInOneBounce * laterBounces;
+    return reflectedInOneBounce * laterBounces;
+}
+
+// adapted from "Real Shading in Unreal Engine 4", Brian Karis, Epic Games
+// https://cdn2.unrealengine.com/Resources/files/2013SiggraphPresentationsNotes-26915738.pdf
+float3 specularIBL(float3 F0 , float roughness, float3 N, float3 V, texture2d<float> specularMap, texture2d<float> brdfMap, float3 rotationAxis, float rotationAngle) {
+
+    // The environment holds one level per roughness, from a mirror image (level 0) to
+    // the widest blur (the last level): the mip filter is what reads the level asked
+    // for. Without it every surface reflects level 0, as sharp as a mirror. The map
+    // goes once around the horizon, so it wraps sideways, and stops at the poles.
+    constexpr sampler environmentSampler(coord::normalized,
+                                         filter::linear,
+                                         mip_filter::linear,
+                                         s_address::repeat,
+                                         t_address::clamp_to_edge);
+
+    int mipCount=6;
+    // The angle to the surface, whichever side of it is seen: a pane seen from behind
+    // reflects as its front does at that angle, not like a surface seen edge on.
+    float NoV = min(abs(dot(N, V)), 1.0);
+    float3 R = reflect(-V, N);
+
+    //Rotate the reflection vector
+    float3 rotatedR=normalize(rotateDirection(R, rotationAxis, rotationAngle));
+
+    float2 uv = equirectUVFromCubeDirection(rotatedR);
+    float mipLevel = roughness * float(mipCount - 1);
+    float3 prefilteredColor = specularMap.sample(environmentSampler, uv, level(mipLevel)).rgb;
+
+    return prefilteredColor * environmentReflectance(F0, roughness, NoV, brdfMap);
 
 }
 

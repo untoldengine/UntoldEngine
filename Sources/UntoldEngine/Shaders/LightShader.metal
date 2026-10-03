@@ -285,18 +285,25 @@ float3 computeIBLContribution(texture2d<float> irradianceTexture,
                               ){
     
     //compute ibl ambient contribution
-    float NoV = max(dot(normalMap.xyz, viewVector), 0.001);
+    // The angle to the surface, whichever side of it is seen (see specularIBL).
+    float NoV = min(abs(dot(normalMap.xyz, viewVector)), 1.0);
     
     float3 irradiance=diffuseIBL(normalMap.xyz, irradianceTexture, float3(0.0,1.0,0.0),degreesToRadians(iblRotationAngle));
     
     float3 diffuse = irradiance*inBaseColor.rgb;
 
+    // What the surface reflects head on: 4 % for a non-metal, its own color for a metal.
+    // The reflection takes this value as it is: the lookup table already holds how it
+    // grows when the surface is seen at a slant.
     float3 f0 = mix(0.04, inBaseColor.rgb, metallic);
-    float3 F=fresnelSchlick(NoV,f0);
 
-    float3 specular=specularIBL(F, roughness, normalMap.xyz, viewVector, specularTexture, iblBRDFTexture,float3(0.0,1.0,0.0),degreesToRadians(iblRotationAngle));
+    float3 specular=specularIBL(f0, roughness, normalMap.xyz, viewVector, specularTexture, iblBRDFTexture,float3(0.0,1.0,0.0),degreesToRadians(iblRotationAngle));
 
-    float3 ambient=mix(diffuse,specular,metallic);
+    // Every surface reflects the environment, a non-metal too: that is the sheen of
+    // polished plastic, glass or lacquer. What it reflects it does not scatter, so the
+    // diffuse light gives up that share, and a metal scatters none at all.
+    float3 reflected = environmentReflectance(f0, roughness, NoV, iblBRDFTexture);
+    float3 ambient = max(1.0 - reflected, 0.0) * (1.0 - metallic) * diffuse + specular;
     
     if(iblParam.applyIBL==false){
         ambient=diffuse.rgb;
