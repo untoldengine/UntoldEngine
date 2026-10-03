@@ -46,6 +46,9 @@ public struct Scene {
         }
 
         let componentId = getComponentId(for: T.self)
+        if e.mask.test(componentId) {
+            quarantineComponent(componentId, at: Int(entityIndex))
+        }
         entities[Int(entityIndex)].mask.reset(componentId)
         componentIndex[componentId]?.remove(entityId)
     }
@@ -65,6 +68,7 @@ public struct Scene {
         }
 
         for componentId in e.mask.activeComponentIds() {
+            quarantineComponent(componentId, at: Int(entityIndex))
             componentIndex[componentId]?.remove(entityId)
         }
         entities[Int(entityIndex)].mask.resetAll()
@@ -109,6 +113,7 @@ public struct Scene {
         EntityLifecycleEvents.shared.dispatchEntityDestroyed(oldId)
 
         for componentId in entities[entityIndexInt].mask.activeComponentIds() {
+            quarantineComponent(componentId, at: entityIndexInt)
             componentIndex[componentId]?.remove(oldId)
         }
 
@@ -158,9 +163,15 @@ public struct Scene {
 
         // Ensure the pool for this component type exists and has room for this entity
         if componentPool[componentId] == nil {
-            componentPool[componentId] = ComponentPool(MemoryLayout<T>.stride)
+            componentPool[componentId] = ComponentPool(for: T.self)
         }
         componentPool[componentId]?.reserve(upTo: Int(entityIndex))
+
+        // An entity that already has the component gets a new one, and the one it had
+        // leaves the scene as a removed one does.
+        if e.mask.test(componentId) {
+            quarantineComponent(componentId, at: Int(entityIndex))
+        }
 
         // Retrieve the specific component pool
         guard let pool = componentPool[componentId] else {
@@ -214,12 +225,30 @@ public struct Scene {
         }
 
         // Get the component from the pool
-        if let componentPointer = pool.get(Int(entityIndex)) {
-            let typedPointer = componentPointer.bindMemory(to: T.self, capacity: 1)
-            return typedPointer.pointee
-        }
+        return pool.component(at: Int(entityIndex), as: T.self)
+    }
 
-        return nil
+    /// Moves the component in the slot of the entity at `entityIndex` to its pool's
+    /// quarantine. For a component the entity's mask says the entity has: the mask is
+    /// the record of which slots hold a component, so each one leaves once.
+    private mutating func quarantineComponent(_ componentId: Int, at entityIndex: Int) {
+        componentPool[componentId]?.quarantineComponent(at: entityIndex)
+    }
+
+    /// Takes out of quarantine the components that no copy of the scene can read any
+    /// more, for the caller to release once the scene is no longer being changed: a
+    /// component's deinit may read the scene. What a copy still holds back stays for
+    /// the next call (see ComponentQuarantine).
+    mutating func takeReleasableComponents() -> [AnyObject] {
+        var released: [AnyObject] = []
+        // Each pool is asked in place: a copy of it made for the asking would count
+        // as a reader.
+        var position = componentPool.startIndex
+        while position != componentPool.endIndex {
+            componentPool.values[position].takeQuarantinedComponents(into: &released)
+            componentPool.formIndex(after: &position)
+        }
+        return released
     }
 
     public func getAllEntities() -> [EntityID] {

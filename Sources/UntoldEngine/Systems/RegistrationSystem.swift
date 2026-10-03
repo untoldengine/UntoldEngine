@@ -318,6 +318,19 @@ public func destroyAllEntities(completion: (() -> Void)? = nil) {
     }
 }
 
+/// Releases the components that left the scene and that nothing can read any more.
+///
+/// A component that is removed or replaced, or whose entity is destroyed, is not
+/// released on the spot: a copy of the scene taken before may still read it, so it waits
+/// in its pool's quarantine (see ComponentQuarantine). This runs once per frame and
+/// after entities are destroyed; what a copy still holds back is left for the next run.
+func releaseQuarantinedComponents() {
+    // The scene hands the components over while it is locked. They are released after
+    // that, here, so that a component's deinit is free to read the scene.
+    let released = scene.takeReleasableComponents()
+    withExtendedLifetime(released) {}
+}
+
 func finalizePendingDestroys() {
     enforceRegistrationMainActor()
     ensureComponentCleanupHandlersRegistered()
@@ -347,6 +360,7 @@ func finalizePendingDestroys() {
     }
 
     scene.finalizePendingDestroys()
+    releaseQuarantinedComponents()
     runPendingDestroyCompletions()
 
     // Prune destroyed entity IDs from the render-visible lists so the renderer does

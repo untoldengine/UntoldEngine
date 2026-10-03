@@ -490,6 +490,10 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
             }
         }
 
+        // Components that left the scene without their entity being destroyed (a fade
+        // that ended, a component given again) are released here, between two frames.
+        releaseQuarantinedComponents()
+
         MemoryBudgetManager.shared.beginFrame()
 
         // must have a valid camera

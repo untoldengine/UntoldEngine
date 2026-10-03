@@ -99,6 +99,14 @@ destroyEntity(entityId: entity)
 
 This ensures the entity is properly removed from all systems.
 
+The entity's component objects are released when the destroy is finalized, or soon
+after. A component that leaves the scene (its entity is destroyed, the component is
+removed with `scene.remove`, or it is registered again on an entity that already has
+it) first waits until nothing that reads the scene can still reach it, a render pass
+that is running for example, and is then released: when entities are finalized, or at
+the start of a following frame. Code that holds a component keeps it alive and may go
+on using it, though the scene no longer has it.
+
 ---
 
 ### Step 4: Destroy All Entities Safely
