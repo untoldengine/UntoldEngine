@@ -153,6 +153,58 @@ final class UntoldPackRenderTests: BaseRenderSetup {
         XCTAssertEqual(scene.get(component: RenderComponent.self, for: treeB)?.mesh.first?.submeshes.first?.material?.roughnessValue, before)
     }
 
+    // MARK: - Memory budget
+
+    /// The vertex and index buffers behind an entity's meshes, each once.
+    private func bufferBytes(_ entityIds: [EntityID]) throws -> Int {
+        var seen = Set<ObjectIdentifier>()
+        var bytes = 0
+        for entityId in entityIds {
+            let render = try XCTUnwrap(scene.get(component: RenderComponent.self, for: entityId))
+            for allocation in meshBufferAllocations(of: render.mesh) where seen.insert(ObjectIdentifier(allocation.object)).inserted {
+                bytes += allocation.bytes
+            }
+        }
+        return bytes
+    }
+
+    func testPlacementsOfOneFileAreInTheMemoryBudgetOnce() async throws {
+        // Start from an empty ledger: entities of earlier tests leave it only when their
+        // destruction is finalized.
+        MemoryBudgetManager.shared.clear()
+        let packURL = try writePack(models: [
+            (displayName: "Tree A", path: "Tree/Tree.untold", translationX: 0.0),
+            (displayName: "Tree B", path: "Tree/Tree.untold", translationX: 5.0),
+            (displayName: "Tree C", path: "Tree/Tree.untold", translationX: 10.0),
+            (displayName: "Rock", path: "Rock/Rock.untold", translationX: 15.0),
+        ])
+
+        let children = try await loadPack(packURL)
+
+        let trees = try ["Tree A", "Tree B", "Tree C"].map { try XCTUnwrap(children[$0]) }
+        let rock = try XCTUnwrap(children["Rock"])
+        let treeBytes = try bufferBytes(trees)
+        let rockBytes = try bufferBytes([rock])
+        XCTAssertGreaterThan(treeBytes, 0)
+        XCTAssertEqual(treeBytes, try bufferBytes([trees[0]]), "the three placements hold one set of buffers")
+        func tracked() -> Int {
+            MemoryBudgetManager.shared.getStats().meshMemoryUsed
+        }
+        XCTAssertEqual(tracked(), treeBytes + rockBytes, "the budget holds the tree's buffers once, not once per placement")
+        XCTAssertEqual(MemoryBudgetManager.shared.getMemorySize(for: trees[0]), 0, "evicting one of three placements frees nothing")
+
+        // The buffers stay in the budget while a placement holds them, and leave with the last.
+        destroyEntity(entityId: trees[0])
+        destroyEntity(entityId: trees[1])
+        finalizePendingDestroys()
+        XCTAssertEqual(tracked(), treeBytes + rockBytes)
+        XCTAssertEqual(MemoryBudgetManager.shared.getMemorySize(for: trees[2]), treeBytes)
+
+        destroyEntity(entityId: trees[2])
+        finalizePendingDestroys()
+        XCTAssertEqual(tracked(), rockBytes)
+    }
+
     func testLoadedImageTexturesAreSharedWhileInUseAndReleasedAfter() throws {
         let device = try XCTUnwrap(renderInfo.device)
         let key = LoadedTextureCache.key(url: tempRoot.appendingPathComponent("shared.png"), isSRGB: true)

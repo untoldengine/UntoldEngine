@@ -525,4 +525,176 @@ final class MemoryBudgetManagerTests: XCTestCase {
                       "clear() must reset inFlightTextureReservation to zero")
         manager.releaseTextureReservation(sizeBytes: halfBudget) // cleanup
     }
+
+    // MARK: - Allocations several entities hold
+
+    private func allocation(_ object: AnyObject, _ bytes: Int) -> GPUAllocation {
+        GPUAllocation(object: object, bytes: bytes)
+    }
+
+    func testABufferSeveralEntitiesHoldIsCountedOnce() {
+        // 500 placements of one model: one set of buffers, one texture.
+        let vertices = NSObject(), indices = NSObject(), texture = NSObject()
+        for entity in 1 ... 500 {
+            manager.registerMesh(
+                entityId: EntityID(entity),
+                meshAllocations: [allocation(vertices, 3000), allocation(indices, 1000)],
+                textureAllocations: [allocation(texture, 8000)]
+            )
+        }
+
+        let stats = manager.getStats()
+        XCTAssertEqual(stats.meshMemoryUsed, 4000)
+        XCTAssertEqual(stats.textureMemoryUsed, 8000)
+        XCTAssertEqual(stats.trackedEntityCount, 500)
+    }
+
+    func testAnEntitysOwnBuffersAddToTheOnesItShares() {
+        let shared = NSObject(), ownA = NSObject(), ownB = NSObject()
+        manager.registerMesh(entityId: 1, meshAllocations: [allocation(shared, 1000), allocation(ownA, 200)], textureAllocations: [])
+        manager.registerMesh(entityId: 2, meshAllocations: [allocation(shared, 1000), allocation(ownB, 50)], textureAllocations: [])
+
+        XCTAssertEqual(manager.getStats().meshMemoryUsed, 1250)
+    }
+
+    func testABufferAnEntityUsesTwiceIsCountedOnce() {
+        // The submeshes of a mesh can draw from one index buffer.
+        let indices = NSObject()
+        manager.registerMesh(entityId: 1, meshAllocations: [allocation(indices, 600), allocation(indices, 600)], textureAllocations: [])
+
+        XCTAssertEqual(manager.getStats().meshMemoryUsed, 600)
+    }
+
+    func testASharedBufferStaysInTheTotalUntilItsLastHolderLeaves() {
+        let buffer = NSObject(), texture = NSObject()
+        for entity in 1 ... 3 {
+            manager.registerMesh(entityId: EntityID(entity), meshAllocations: [allocation(buffer, 1000)], textureAllocations: [allocation(texture, 500)])
+        }
+
+        manager.unregisterMesh(entityId: 1)
+        manager.unregisterMesh(entityId: 2)
+        XCTAssertEqual(manager.getStats().meshMemoryUsed, 1000)
+        XCTAssertEqual(manager.getStats().textureMemoryUsed, 500)
+
+        manager.unregisterMesh(entityId: 3)
+        XCTAssertEqual(manager.getStats().meshMemoryUsed, 0)
+        XCTAssertEqual(manager.getStats().textureMemoryUsed, 0)
+    }
+
+    func testRegisteringAnEntityAgainReplacesWhatItHeld() {
+        let first = NSObject(), second = NSObject()
+        manager.registerMesh(entityId: 1, meshAllocations: [allocation(first, 1000)], textureAllocations: [])
+        manager.registerMesh(entityId: 2, meshAllocations: [allocation(first, 1000)], textureAllocations: [])
+
+        manager.registerMesh(entityId: 1, meshAllocations: [allocation(second, 300)], textureAllocations: [])
+        XCTAssertEqual(manager.getStats().meshMemoryUsed, 1300, "entity 2 still holds the first buffer")
+
+        manager.registerMesh(entityId: 2, meshAllocations: [allocation(second, 300)], textureAllocations: [])
+        XCTAssertEqual(manager.getStats().meshMemoryUsed, 300)
+    }
+
+    func testASizeRegisteredAsANumberReplacesTheAllocations() {
+        // The streaming paths register an entity's render component and then its size.
+        let buffer = NSObject()
+        manager.registerMesh(entityId: 1, meshAllocations: [allocation(buffer, 1000)], textureAllocations: [])
+        manager.registerMesh(entityId: 2, meshAllocations: [allocation(buffer, 1000)], textureAllocations: [])
+
+        manager.registerMesh(entityId: 2, meshSizeBytes: 700)
+
+        XCTAssertEqual(manager.getStats().meshMemoryUsed, 1700, "a number is the entity's own")
+        manager.unregisterMesh(entityId: 1)
+        XCTAssertEqual(manager.getStats().meshMemoryUsed, 700)
+    }
+
+    func testEvictingAnEntityFreesOnlyWhatNoOtherEntityHolds() {
+        let shared = NSObject(), own = NSObject()
+        manager.registerMesh(entityId: 1, meshAllocations: [allocation(shared, 1000), allocation(own, 200)], textureAllocations: [])
+        manager.registerMesh(entityId: 2, meshAllocations: [allocation(shared, 1000)], textureAllocations: [])
+
+        XCTAssertEqual(manager.getMemorySize(for: 1), 200)
+        XCTAssertEqual(manager.getMemorySize(for: 2), 0)
+
+        manager.unregisterMesh(entityId: 1)
+        XCTAssertEqual(manager.getMemorySize(for: 2), 1000, "the last holder frees the buffer")
+        XCTAssertEqual(manager.getEvictionCandidatesWithSizes(count: 1).first?.sizeBytes, 1000)
+    }
+
+    func testEvictionToATargetCountsASharedBufferWithItsLastHolder() {
+        manager.meshBudget = 100 * 1024
+        manager.lowWaterMark = 0.50
+        let budget = manager.geometryBudget + manager.textureBudget
+        let shared = NSObject()
+        let sharedBytes = budget * 6 / 10
+
+        // Three old placements of one model, then an entity of its own, the most recent.
+        for entity in 1 ... 3 {
+            manager.beginFrame()
+            manager.registerMesh(entityId: EntityID(entity), meshAllocations: [allocation(shared, sharedBytes)], textureAllocations: [])
+        }
+        manager.beginFrame()
+        manager.registerMesh(entityId: 4, meshSizeBytes: budget * 3 / 10)
+
+        // 90 % of the budget is in use and 40 % has to go. The first two placements free
+        // nothing; the model goes with the third.
+        XCTAssertEqual(manager.getEvictionCandidatesToTarget(), [1, 2, 3])
+    }
+
+    func testATextureSizeUpdateLetsGoOfTheTexturesTheEntityShared() {
+        let texture = NSObject()
+        manager.registerMesh(entityId: 1, meshAllocations: [], textureAllocations: [allocation(texture, 8000)])
+        manager.registerMesh(entityId: 2, meshAllocations: [], textureAllocations: [allocation(texture, 8000)])
+
+        // Texture streaming gave entity 2 textures of its own.
+        manager.updateTextureSizeBytes(entityId: 2, newSizeBytes: 2000)
+        XCTAssertEqual(manager.getStats().textureMemoryUsed, 10000)
+
+        manager.unregisterMesh(entityId: 1)
+        XCTAssertEqual(manager.getStats().textureMemoryUsed, 2000)
+        manager.updateTextureSizeBytes(entityId: 2, newSizeBytes: 500)
+        XCTAssertEqual(manager.getStats().textureMemoryUsed, 500)
+    }
+
+    func testAnAllocationThatDiedIsNotMistakenForTheOneAtItsAddress() throws {
+        // Entity 1 stays registered with a buffer that is then released, as when its
+        // meshes are replaced behind the ledger's back. Whatever is allocated at that
+        // address next is another buffer.
+        var first: NSObject? = NSObject()
+        let address = try ObjectIdentifier(XCTUnwrap(first))
+        try manager.registerMesh(entityId: 1, meshAllocations: [allocation(XCTUnwrap(first), 1000)], textureAllocations: [])
+        first = nil
+
+        var kept: [NSObject] = []
+        var second: NSObject?
+        for _ in 0 ..< 10000 {
+            let candidate = NSObject()
+            if ObjectIdentifier(candidate) == address {
+                second = candidate
+                break
+            }
+            kept.append(candidate)
+        }
+        guard let reused = second else {
+            throw XCTSkip("the allocator did not hand the address out again in 10,000 tries")
+        }
+        _ = kept
+
+        manager.registerMesh(entityId: 2, meshAllocations: [allocation(reused, 300)], textureAllocations: [])
+        XCTAssertEqual(manager.getStats().meshMemoryUsed, 1300)
+
+        manager.unregisterMesh(entityId: 1)
+        XCTAssertEqual(manager.getStats().meshMemoryUsed, 300, "entity 1 lets go of its own record, not of entity 2's buffer")
+        manager.unregisterMesh(entityId: 2)
+        XCTAssertEqual(manager.getStats().meshMemoryUsed, 0)
+    }
+
+    func testClearForgetsTheAllocations() {
+        let buffer = NSObject()
+        manager.registerMesh(entityId: 1, meshAllocations: [allocation(buffer, 1000)], textureAllocations: [])
+
+        manager.clear()
+        manager.registerMesh(entityId: 2, meshAllocations: [allocation(buffer, 1000)], textureAllocations: [])
+
+        XCTAssertEqual(manager.getStats().meshMemoryUsed, 1000)
+        XCTAssertEqual(manager.getMemorySize(for: 2), 1000)
+    }
 }
