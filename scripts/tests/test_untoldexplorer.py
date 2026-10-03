@@ -8,6 +8,7 @@ import tempfile
 import unittest
 import zlib
 from pathlib import Path
+from unittest import mock
 
 
 SCRIPT_DIR = Path(__file__).resolve().parents[1]
@@ -2055,6 +2056,18 @@ class MaterialAlphaTests(unittest.TestCase):
         output = FakeNode("ShaderNodeOutputMaterial", inputs={"Surface": _socket("Surface", linked_from=(clear, "BSDF"))})
         findings = u.analyze_material(_make_material("window", [output, clear])).findings
         self.assertTrue(any("blended surface at 10% opacity" in finding.reason for finding in findings), [finding.reason for finding in findings])
+
+    def test_the_report_follows_a_transmission_once(self) -> None:
+        """The report needs the transmission and what is seen through it, which starts
+        from the transmission: it followed the same socket twice."""
+        clear = self._glass(_socket("Base Color", (1.0, 1.0, 1.0, 1.0)))
+        clear.name = "Principled BSDF"
+        output = FakeNode("ShaderNodeOutputMaterial", inputs={"Surface": _socket("Surface", linked_from=(clear, "BSDF"))})
+        with mock.patch.object(u, "principled_transmission", wraps=u.principled_transmission) as followed:
+            findings = u.analyze_material(_make_material("window", [output, clear])).findings
+        self.assertEqual(followed.call_count, 1)
+        self.assertTrue(any("blended surface at 10% opacity" in finding.reason for finding in findings))
+        self.assertEqual(u.principled_transmittance(clear, (0.5, True)), (0.5, True))
 
     def test_a_linked_transmission_is_not_mistaken_for_none(self) -> None:
         """A Transmission Weight driven by a texture (frosted or masked glass) used to

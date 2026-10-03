@@ -3311,7 +3311,7 @@ def analyze_material(material: object) -> MaterialGraphAnalysis:
     if principled is not None:
         transmission, unfollowed = principled_transmission(principled)
         if transmission or unfollowed:
-            opacity = transmission_opacity(principled_transmittance(principled)[0])
+            opacity = transmission_opacity(principled_transmittance(principled, (transmission, unfollowed))[0])
             if opacity >= 0.995:
                 reason = "nothing is seen through its transmission (a black base colour, a metal, or a fully rough surface), so it is exported as an opaque surface"
             else:
@@ -5190,9 +5190,10 @@ def principled_transmission(node: object) -> tuple[float, bool]:
     return min(max(transmission, 0.0), 1.0), unfollowed
 
 
-def principled_transmittance(node: object) -> tuple[float, bool]:
+def principled_transmittance(node: object, followed: Optional[tuple[float, bool]] = None) -> tuple[float, bool]:
     """How much of what is behind it a Principled BSDF lets one see, in [0, 1], and
-    whether its transmission could not be followed (see principled_transmission).
+    whether its transmission could not be followed (see principled_transmission, whose
+    answer for the node a caller that already has it passes as `followed`).
 
     Transmission says how much of the surface is glass. Three things then take from
     what is seen through it:
@@ -5208,7 +5209,7 @@ def principled_transmittance(node: object) -> tuple[float, bool]:
     A base colour, a metallic value or a roughness the exporter cannot follow to a
     constant (a texture) counts as clear, as no metal and as polished.
     """
-    transmission, unfollowed = principled_transmission(node)
+    transmission, unfollowed = followed if followed is not None else principled_transmission(node)
     if transmission <= 0.0:
         return 0.0, unfollowed
     inputs = getattr(node, "inputs", None)
