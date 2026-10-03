@@ -80,4 +80,37 @@ final class EnvironmentReflectionShadingTests: MaterialShadingTestCase {
         XCTAssertGreaterThan(all, 0.05, "a matte white gives back the light of the environment")
         XCTAssertEqual(polished, all, accuracy: all * 0.05)
     }
+
+    /// A rough surface bounces part of the light between its own bumps before it lets it
+    /// go. The table counts one bounce, so it took that part for lost: the roughest white
+    /// metal gave back a third of the light around it.
+    func testARoughMetalGivesBackTheLightItReflects() throws {
+        try buildScene(.sphere, towardsLight: nil)
+        try lightWithAnEvenEnvironment()
+        let all = try shade(material(metallic: 0.0, roughness: 1.0)).y
+        let satin = try shade(material(metallic: 1.0, roughness: 0.5)).y
+        let rough = try shade(material(metallic: 1.0, roughness: 1.0)).y
+
+        XCTAssertGreaterThan(all, 0.05)
+        XCTAssertEqual(satin, all, accuracy: all * 0.05)
+        XCTAssertEqual(rough, all, accuracy: all * 0.05)
+    }
+
+    /// A colored metal tints every bounce: the light that leaves a rough one after
+    /// several is deeper in color, never brighter than its own color allows.
+    func testARoughColoredMetalStaysWithinItsColor() throws {
+        try buildScene(.sphere, towardsLight: nil)
+        try lightWithAnEvenEnvironment()
+        let all = try shade(material(metallic: 0.0, roughness: 1.0))
+        let gold = simd_float3(1.0, 0.77, 0.34)
+        let polished = try shade(material(base: gold, metallic: 1.0, roughness: 0.05))
+        let rough = try shade(material(base: gold, metallic: 1.0, roughness: 1.0))
+
+        for channel in 0 ..< 3 {
+            XCTAssertEqual(polished[channel], all[channel] * gold[channel], accuracy: all[channel] * 0.05)
+            XCTAssertLessThanOrEqual(rough[channel], all[channel] * gold[channel] * 1.02)
+        }
+        XCTAssertGreaterThan(rough.x, all.x * 0.9, "the channel the metal reflects in full keeps its light")
+        XCTAssertLessThan(rough.z / rough.x, polished.z / polished.x, "the color deepens with the bounces")
+    }
 }

@@ -533,7 +533,18 @@ float3 specularIBL(float3 F0 , float roughness, float3 N, float3 V, texture2d<fl
 
     float4 brdfIntegration=brdfMap.sample(s,float2(NoV,roughness));
 
-    return prefilteredColor * ( F0 * float(brdfIntegration.x) + float(brdfIntegration.y) );
+    float3 reflectedInOneBounce = F0 * float(brdfIntegration.x) + float(brdfIntegration.y);
+
+    // A rough surface bounces part of the light between its own bumps before it lets it
+    // go. The table counts a single bounce and takes the rest for lost: up to two thirds
+    // on the roughest metal, which then comes out too dark. The sum of its two values is
+    // what a white mirror of this roughness reflects in one bounce; what is missing from
+    // 1 left on a later bounce, tinted again by the surface each time (Kulla and Conty's
+    // approximation, in the form Filament uses). An empty table stays an empty result.
+    float whiteInOneBounce = float(brdfIntegration.x) + float(brdfIntegration.y);
+    float3 laterBounces = 1.0 + F0 * (1.0 / max(whiteInOneBounce, 0.05) - 1.0);
+
+    return prefilteredColor * reflectedInOneBounce * laterBounces;
 
 }
 
