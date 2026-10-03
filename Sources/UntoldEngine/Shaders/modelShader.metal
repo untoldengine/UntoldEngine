@@ -357,11 +357,10 @@ fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
         ? baseColor.sample(baseColorSampler, sampleUV, gradient2d(stDx, stDy))
         : baseColor.sample(baseColorSampler, st, bias(0.25f));
 
-    // Detect if basecolor is all zeros
-    bool isBaseColorZero = all(materialParameter.baseColor.rgb < 0.001);
-
-    // Fallback to white if base color is zero
-    float3 tint = isBaseColorZero ? float3(1.0) : materialParameter.baseColor.rgb;
+    // A textured material whose base color factor was never set (all zeros) shows its
+    // texture untinted. Without a texture, zero is a color like any other: black.
+    bool isBaseColorUnset = materialParameter.hasTexture.x == 1 && all(materialParameter.baseColor.rgb < 0.001);
+    float3 tint = isBaseColorUnset ? float3(1.0) : materialParameter.baseColor.rgb;
 
     float4 inBaseColor = (materialParameter.hasTexture.x == 1)
         ? float4(sampledColor.rgb * tint, sampledColor.a * materialParameter.baseColor.a)

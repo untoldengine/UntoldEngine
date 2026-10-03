@@ -48,9 +48,9 @@ fragment float4 fragmentTransparencyShader(
     st.y = 1.0 - st.y;
 
     float4 sampledColor = baseColor.sample(baseColorSampler, st);
-    float3 tint = all(materialParameter.baseColor.rgb < 0.001)
-        ? float3(1.0)
-        : materialParameter.baseColor.rgb;
+    // See fragmentModelShader: zeros mean "untinted" only for a textured material.
+    bool isBaseColorUnset = materialParameter.hasTexture.x == 1 && all(materialParameter.baseColor.rgb < 0.001);
+    float3 tint = isBaseColorUnset ? float3(1.0) : materialParameter.baseColor.rgb;
 
     float4 inBaseColor = (materialParameter.hasTexture.x == 1)
         ? float4(sampledColor.rgb * tint, sampledColor.a * materialParameter.baseColor.a)
