@@ -24,7 +24,10 @@ public extension EntityID {
 }
 
 let MAX_COMPONENTS = 128
-let MAX_ENTITIES = 20000
+/// The number of entities the per-entity buffers start with. Not a limit: component
+/// pools add storage as the scene grows (see ComponentPool) and the culling buffers
+/// grow with the number of bounding boxes they test.
+let INITIAL_ENTITY_CAPACITY = 20000
 
 let maxNumPointLights: Int = 100
 let maxNumSpotLights: Int = 100
@@ -1993,7 +1996,7 @@ var currentFrameFrustum: Frustum? {
     set { RuntimeGlobalsStore.shared.currentFrameFrustum = newValue }
 }
 
-public let tripleVisibleEntities = TripleCPUBuffer<EntityID>(inFlight: 3, initialCapacity: MAX_ENTITIES)
+public let tripleVisibleEntities = TripleCPUBuffer<EntityID>(inFlight: 3, initialCapacity: INITIAL_ENTITY_CAPACITY)
 public var cullFrameIndex: Int {
     get { RuntimeGlobalsStore.shared.cullFrameIndex }
     set { RuntimeGlobalsStore.shared.cullFrameIndex = newValue }

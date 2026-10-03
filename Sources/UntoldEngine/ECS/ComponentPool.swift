@@ -95,34 +95,58 @@ public protocol Component {
     init() // Requires a default initializer
 }
 
+/// Storage for one component type, indexed by entity index.
+///
+/// Memory comes in fixed-size chunks added as the scene grows (see reserve), so the
+/// number of entities is not capped. A chunk is never moved or freed before
+/// deallocate(): the scene is handed out by value under a lock, and a copy taken on
+/// another thread keeps reading through its own chunk list while this one grows.
+/// An index past the chunks reserved so far reads as no component.
 public struct ComponentPool {
-    private var data: UnsafeMutableRawPointer?
+    /// Entities per chunk.
+    static let chunkCapacity = 4096
+
+    private var chunks: [UnsafeMutableRawPointer] = []
     private let elementSize: Int
 
     init(_ elementSize: Int) {
         self.elementSize = elementSize
-        // allocate memory
-        data = UnsafeMutableRawPointer.allocate(
-            byteCount: elementSize * MAX_ENTITIES, alignment: MemoryLayout<UInt8>.alignment
-        )
+    }
+
+    /// The number of entity indices the pool can hold without adding a chunk.
+    var capacity: Int {
+        chunks.count * Self.chunkCapacity
     }
 
     public mutating func deallocate() {
-        data?.deallocate()
-        data = nil
+        for chunk in chunks {
+            chunk.deallocate()
+        }
+        chunks = []
+    }
+
+    /// Adds chunks until `index` has storage.
+    mutating func reserve(upTo index: Int) {
+        precondition(index >= 0, "Negative entity index \(index).")
+        while capacity <= index {
+            chunks.append(
+                UnsafeMutableRawPointer.allocate(
+                    byteCount: elementSize * Self.chunkCapacity, alignment: MemoryLayout<UInt8>.alignment
+                )
+            )
+        }
     }
 
     public func get(_ index: Int) -> UnsafeMutableRawPointer? {
-        guard let data else { return nil }
-        // get component at desired index
-        return data.advanced(by: index * elementSize)
+        guard index >= 0, index < capacity else { return nil }
+        return chunks[index / Self.chunkCapacity].advanced(by: (index % Self.chunkCapacity) * elementSize)
     }
 
     /// Add a new component to the pool at a specified index
     public mutating func add<T: Component>(component: T, at index: Int) {
-        guard let data else { fatalError("Data in ComponentPool is nil.") }
-        let componentPointer = data.advanced(by: index * elementSize).assumingMemoryBound(to: T.self)
-        componentPointer.initialize(to: component)
+        reserve(upTo: index)
+        guard let pointer = get(index) else { fatalError("No storage for entity index \(index) in ComponentPool.") }
+        pointer.assumingMemoryBound(to: T.self).initialize(to: component)
     }
 }
 

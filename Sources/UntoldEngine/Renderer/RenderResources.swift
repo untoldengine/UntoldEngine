@@ -147,6 +147,11 @@ public struct BufferResources {
     var reduceScanIndices: MTLBuffer?
     var reduceScanBlockSums: MTLBuffer?
     var reduceScanBlockOffsets: MTLBuffer?
+
+    /// Bounding boxes the reduce-scan buffers hold (see ensureReduceScanCapacity).
+    var reduceScanCapacity: Int = 0
+    /// Whether a frame with more bounding boxes than the scan takes was reported.
+    var reportedReduceScanOverflow: Bool = false
 }
 
 public struct TripleBufferResources {
