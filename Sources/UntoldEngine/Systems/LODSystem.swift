@@ -29,7 +29,11 @@ public class LODSystem: @unchecked Sendable {
     public func update(deltaTime: Float) {
         frameCounter &+= 1
 
-        if LODConfig.shared.enableFadeTransitions {
+        // One copy for the whole pass: reading the shared configuration takes a lock,
+        // and a scene can hold tens of thousands of LOD entities.
+        let config = LODConfig.shared
+
+        if config.enableFadeTransitions {
             advanceActiveTransitions(deltaTime: deltaTime)
         }
 
@@ -43,10 +47,10 @@ public class LODSystem: @unchecked Sendable {
         guard lodShouldRunThisFrame(
             frameCounter: frameCounter,
             hasRunOnce: hasRunOnce,
-            interval: LODConfig.shared.lodUpdateFrameInterval,
+            interval: config.lodUpdateFrameInterval,
             cameraPosition: cameraPosition,
             lastCameraPosition: lastCameraPosition,
-            displacementThreshold: LODConfig.shared.minimumCameraDisplacementForLODUpdate
+            displacementThreshold: config.minimumCameraDisplacementForLODUpdate
         ) else { return }
 
         hasRunOnce = true
@@ -58,7 +62,7 @@ public class LODSystem: @unchecked Sendable {
         let entities = queryEntitiesWithComponentIds([lodId, transformId], in: scene)
 
         for entityId in entities {
-            updateEntityLOD(entityId: entityId, cameraPosition: cameraPosition, deltaTime: deltaTime)
+            updateEntityLOD(entityId: entityId, cameraPosition: cameraPosition, config: config)
         }
     }
 
@@ -101,14 +105,14 @@ public class LODSystem: @unchecked Sendable {
         }
     }
 
-    private func updateEntityLOD(entityId: EntityID, cameraPosition: simd_float3, deltaTime: Float) {
+    private func updateEntityLOD(entityId: EntityID, cameraPosition: simd_float3, config: LODConfig) {
         guard let lodComponent = scene.get(component: LODComponent.self, for: entityId) else { return }
 
         // Skip if no LOD levels loaded yet (async loading may still be in progress)
         guard !lodComponent.lodLevels.isEmpty else { return }
 
         if shouldDeferLODSelectionDuringTransition(
-            fadeTransitionsEnabled: LODConfig.shared.enableFadeTransitions,
+            fadeTransitionsEnabled: config.enableFadeTransitions,
             previousLOD: lodComponent.previousLOD
         ) {
             return
@@ -121,7 +125,8 @@ public class LODSystem: @unchecked Sendable {
         let desiredLOD = selectLODLevel(
             distance: distance,
             lodComponent: lodComponent,
-            currentLOD: lodComponent.desiredLOD
+            currentLOD: lodComponent.desiredLOD,
+            config: config
         )
 
         lodComponent.desiredLOD = desiredLOD
@@ -134,7 +139,7 @@ public class LODSystem: @unchecked Sendable {
         )
 
         // Apply the LOD (handles transitions, updates render component)
-        applyLOD(entityId: entityId, newLOD: actualLOD, deltaTime: deltaTime)
+        applyLOD(entityId: entityId, lodComponent: lodComponent, newLOD: actualLOD, config: config)
     }
 
     /// Resolve desired LOD to actual LOD, falling back if mesh not resident
@@ -161,33 +166,31 @@ public class LODSystem: @unchecked Sendable {
         return lodComponent.currentLOD
     }
 
-    private func selectLODLevel(distance: Float, lodComponent: LODComponent, currentLOD: Int) -> Int {
+    private func selectLODLevel(distance: Float, lodComponent: LODComponent, currentLOD: Int, config: LODConfig) -> Int {
         selectLODIndex(
             levels: lodComponent.lodLevels,
             distance: distance,
             currentLOD: currentLOD,
             forcedLOD: lodComponent.forcedLOD,
-            lodBias: LODConfig.shared.lodBias,
-            hysteresis: LODConfig.shared.hysteresis,
-            globalDistances: LODConfig.shared.lodDistances
+            lodBias: config.lodBias,
+            hysteresis: config.hysteresis,
+            globalDistances: config.lodDistances
         )
     }
 
-    private func applyLOD(entityId: EntityID, newLOD: Int, deltaTime _: Float) {
-        guard let lodComponent = scene.get(component: LODComponent.self, for: entityId),
-              let renderComponent = scene.get(component: RenderComponent.self, for: entityId)
-        else { return }
-
+    private func applyLOD(entityId: EntityID, lodComponent: LODComponent, newLOD: Int, config: LODConfig) {
         let previousLODIndex = lodComponent.currentLOD
 
-        // No change needed
+        // No change needed: the usual case, so it comes before any other lookup.
         if newLOD == previousLODIndex, lodComponent.previousLOD == nil {
             return
         }
 
+        guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else { return }
+
         withWorldMutationGate {
             // Handle fade transitions
-            if LODConfig.shared.enableFadeTransitions {
+            if config.enableFadeTransitions {
                 if newLOD != previousLODIndex {
                     // Start transition
                     lodComponent.previousLOD = previousLODIndex
@@ -203,6 +206,15 @@ public class LODSystem: @unchecked Sendable {
 
             // Update render component with new LOD meshes
             if newLOD >= 0, newLOD < lodComponent.lodLevels.count {
+                if lodComponent.levelsShareMaterials, !lodComponent.lodLevels[newLOD].mesh.isEmpty {
+                    // The materials are the entity's: the level that leaves keeps those it
+                    // was drawn with (a fade still draws it) and the one that arrives takes them.
+                    let drawnMeshes = renderComponent.mesh
+                    if previousLODIndex != newLOD, previousLODIndex >= 0, previousLODIndex < lodComponent.lodLevels.count {
+                        carryLODMaterials(from: drawnMeshes, to: &lodComponent.lodLevels[previousLODIndex].mesh)
+                    }
+                    carryLODMaterials(from: drawnMeshes, to: &lodComponent.lodLevels[newLOD].mesh)
+                }
                 let lodLevel = lodComponent.lodLevels[newLOD]
                 // Skip placeholder LODs (empty mesh arrays)
                 if !lodLevel.mesh.isEmpty {
@@ -297,12 +309,30 @@ func entityDistanceToCamera(entityId: EntityID, cameraPosition: simd_float3) -> 
     return simd_distance(cameraPosition, simd_float3(worldCenter.x, worldCenter.y, worldCenter.z))
 }
 
+/// The share of a level's switch distance that `selectLODIndex` lets the hysteresis reach.
+let lodHysteresisDistanceShare: Float = 0.1
+
+/// Copies the materials of `source` onto `destination`, mesh for mesh and submesh for
+/// submesh. Does nothing unless the two have the same layout.
+func carryLODMaterials(from source: [Mesh], to destination: inout [Mesh]) {
+    guard source.count == destination.count,
+          zip(source, destination).allSatisfy({ $0.submeshes.count == $1.submeshes.count })
+    else { return }
+    for meshIndex in destination.indices {
+        for submeshIndex in destination[meshIndex].submeshes.indices {
+            destination[meshIndex].submeshes[submeshIndex].material = source[meshIndex].submeshes[submeshIndex].material
+        }
+    }
+}
+
 /// Shared by `LODSystem.selectLODLevel` and `GaussianLODSystem.selectDesiredLOD` — walks
 /// `levels` in distance order and returns the first whose threshold isn't yet exceeded by
 /// `distance * lodBias`. Applies `hysteresis` when a candidate level would mean switching to
 /// higher detail (lower index) than `currentLOD`, so a distance oscillating right at a
-/// threshold doesn't flip the selection every re-evaluation. Falls back to
-/// `globalDistances[index]` when a level's own `maxDistance` is unset (0).
+/// threshold doesn't flip the selection every re-evaluation. The hysteresis never takes more
+/// than `lodHysteresisDistanceShare` of a threshold: a fixed distance larger than a level's
+/// own switch distance would otherwise keep a small object from ever returning to that level.
+/// Falls back to `globalDistances[index]` when a level's own `maxDistance` is unset (0).
 func selectLODIndex(
     levels: [some LODDistanceLevel],
     distance: Float,
@@ -328,7 +358,9 @@ func selectLODIndex(
             continue
         }
 
-        let threshold = index < currentLOD ? baseThreshold - hysteresis : baseThreshold
+        let threshold = index < currentLOD
+            ? baseThreshold - min(hysteresis, baseThreshold * lodHysteresisDistanceShare)
+            : baseThreshold
         if adjustedDistance <= threshold {
             return index
         }

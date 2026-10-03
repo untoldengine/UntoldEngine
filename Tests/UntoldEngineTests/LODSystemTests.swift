@@ -331,6 +331,41 @@ final class LODSystemTests: XCTestCase {
         XCTAssertEqual(adjustedDownward, 95.0, "Downward threshold should include hysteresis")
     }
 
+    private struct DistanceLevel: LODDistanceLevel {
+        var maxDistance: Float
+    }
+
+    private func selectedLOD(distance: Float, current: Int, thresholds: [Float], hysteresis: Float = 5) -> Int {
+        selectLODIndex(
+            levels: thresholds.map(DistanceLevel.init),
+            distance: distance,
+            currentLOD: current,
+            forcedLOD: nil,
+            lodBias: 1,
+            hysteresis: hysteresis,
+            globalDistances: []
+        )
+    }
+
+    func testHysteresisHoldsACoarserLevelJustInsideAThreshold() {
+        // Switching at 100 with a hysteresis of 5: going away the level changes at 100,
+        // coming back it changes at 95.
+        XCTAssertEqual(selectedLOD(distance: 99, current: 0, thresholds: [100, 200]), 0)
+        XCTAssertEqual(selectedLOD(distance: 101, current: 0, thresholds: [100, 200]), 1)
+        XCTAssertEqual(selectedLOD(distance: 97, current: 1, thresholds: [100, 200]), 1)
+        XCTAssertEqual(selectedLOD(distance: 94, current: 1, thresholds: [100, 200]), 0)
+    }
+
+    func testHysteresisNeverSwallowsALevelsSwitchDistance() {
+        // A small object switches at 3; a hysteresis of 5 would put the way back to
+        // level 0 at a negative distance and leave it on level 1 for good.
+        XCTAssertEqual(selectedLOD(distance: 4, current: 0, thresholds: [3, 8]), 1)
+        XCTAssertEqual(selectedLOD(distance: 2.9, current: 1, thresholds: [3, 8]), 1, "still inside the band")
+        XCTAssertEqual(selectedLOD(distance: 2.6, current: 1, thresholds: [3, 8]), 0, "a tenth of the switch distance is the most it holds")
+        XCTAssertEqual(selectedLOD(distance: 0.5, current: 2, thresholds: [3, 8]), 0)
+        XCTAssertEqual(lodHysteresisDistanceShare, 0.1)
+    }
+
     // MARK: - LOD Bias Tests
 
     func testLODBias() {
