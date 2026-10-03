@@ -16,7 +16,7 @@ import MetalKit
 
 public enum RenderPasses {
     /// Count of unbatched shadow-caster entities from the most recent frame.
-    /// Updated by shadowCasterEntityIds (main thread); read by the streaming heartbeat (main thread).
+    /// Updated by shadowCasters(for:in:) (main thread); read by the streaming heartbeat (main thread).
     public nonisolated(unsafe) static var lastShadowCasterCount: Int = 0
     public typealias RenderPassExecution = @Sendable (MTLCommandBuffer) -> Void
 
@@ -353,6 +353,9 @@ public enum RenderPasses {
             || scene.get(component: MeshFadeComponent.self, for: entityId) != nil
     }
 
+    /// The traits of an entity that `isEntityInMeshOccluderOrFade` is true for.
+    private static let meshOccluderOrFade: RenderEntityTraits = [.meshOccluder, .meshFade]
+
     /// A mesh whose occluder shell has taken over draws no colour: depth comes from the shell
     /// (`meshOccluderShellExecution`); shadows, physics and picking stay on because
     /// `RenderComponent.isVisible` is untouched.
@@ -485,14 +488,10 @@ public enum RenderPasses {
         }
     }
 
-    @inline(__always)
-    private static func shouldSkipShadowEntity(_ entityId: EntityID) -> Bool {
-        if scene.mask(for: entityId) == nil { return true }
-        if scene.get(component: SceneCameraComponent.self, for: entityId) != nil { return true }
-        if scene.get(component: CameraComponent.self, for: entityId) != nil { return true }
-        if scene.get(component: LightComponent.self, for: entityId) != nil { return true }
-        if scene.get(component: GizmoComponent.self, for: entityId) != nil { return true }
-        return false
+    /// A shadow caster chosen for a light, with the components its draws read.
+    private struct ShadowCaster {
+        let entity: RenderSceneSnapshot.Entity
+        let components: RenderSceneSnapshot.DrawComponents
     }
 
     private static func shadowFrustum(for cascadeIdx: Int) -> Frustum? {
@@ -554,31 +553,28 @@ public enum RenderPasses {
     ///
     /// Only filters by stable properties (component presence). Per-frame culls — isVisible,
     /// scene-channel visibility, distance, cascade frustum — are applied per-cascade in
-    /// shadowCasterEntityIds so this scan runs at most once per dirty event, not every frame.
+    /// shadowCasters(for:in:) so this scan runs at most once per dirty event, not every frame.
     private static func rebuildShadowEntityCache() {
-        let transformId = getComponentId(for: WorldTransformComponent.self)
-        let localTransformId = getComponentId(for: LocalTransformComponent.self)
-        let renderId = getComponentId(for: RenderComponent.self)
-        let entities = queryEntitiesWithComponentIds([transformId, localTransformId, renderId], in: scene)
+        let sceneSnapshot = RenderSceneSnapshot()
 
         var candidates: [EntityID] = []
-        candidates.reserveCapacity(entities.count / 4)
+        candidates.reserveCapacity(sceneSnapshot.entityCapacity / 4)
 
         let batchingEnabled = BatchingSystem.shared.isEnabled()
-        for entityId in entities {
-            if shouldSkipShadowEntity(entityId) { continue }
-            guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId),
+        sceneSnapshot.forEachEntity(with: .drawable) { entity in
+            if !entity.traits.isDisjoint(with: [.sceneCamera, .camera, .light, .gizmo]) { return }
+            guard let renderComponent = sceneSnapshot.render(of: entity),
                   renderComponent.castsShadow
-            else { continue }
+            else { return }
             // Batch-eligible entities always cast shadows via shadowCasterBatchGroups.
             // Excluding them here prevents O(n_loaded_tiles) individual shadow draw calls.
             // A mesh carrying an occluder shell or fade is out of its batch and casts on its
             // own (the system that adds or removes those components invalidates this cache).
             if batchingEnabled,
-               scene.get(component: StaticBatchComponent.self, for: entityId) != nil,
-               !isEntityInMeshOccluderOrFade(entityId)
-            { continue }
-            candidates.append(entityId)
+               entity.traits.contains(.staticBatch),
+               entity.traits.isDisjoint(with: meshOccluderOrFade)
+            { return }
+            candidates.append(entity.entityId)
         }
 
         runtimeState.lock.lock()
@@ -612,7 +608,7 @@ public enum RenderPasses {
         return runtimeState.shadowEntityCandidates
     }
 
-    private static func shadowCasterEntityIds(for cascadeIdx: Int) -> [EntityID] {
+    private static func shadowCasters(for cascadeIdx: Int, in sceneSnapshot: RenderSceneSnapshot) -> [ShadowCaster] {
         ensureShadowCacheConfigured()
         guard let frustum = shadowFrustum(for: cascadeIdx) else { return [] }
 
@@ -638,17 +634,20 @@ public enum RenderPasses {
         let candidates = runtimeState.shadowEntityCandidates
         runtimeState.lock.unlock()
 
-        var result: [EntityID] = []
+        var result: [ShadowCaster] = []
         result.reserveCapacity(candidates.count / 4)
 
         // An object too small to be drawn casts a shadow about as small.
         let smallObjectCulling = SmallObjectCulling.forCurrentFrame()
+        let batchingEnabled = BatchingSystem.shared.isEnabled()
+        let sceneRootMatrix = SceneRootTransform.shared.matrix
+        var renderModes = SceneChannelRenderModeMemo()
 
         for entityId in candidates {
-            guard scene.mask(for: entityId) != nil else { continue }
-            if shouldHideSceneEntity(entityId: entityId) { continue }
-            if shouldRenderSceneEntityAsWireframe(entityId: entityId) { continue }
-            if BatchingSystem.shared.isEnabled() {
+            guard let entity = sceneSnapshot.entity(entityId) else { continue }
+            let renderMode = renderModes.mode(of: sceneSnapshot.sceneChannels(of: entity))
+            if renderMode == .hidden || renderMode == .wireframe { continue }
+            if batchingEnabled {
                 // Batch-eligible entities (StaticBatchComponent present) are always drawn
                 // via shadowCasterBatchGroups — whether or not the batch rebuild has landed
                 // yet.  Skipping them here prevents O(n_loaded_tiles) shadow draw calls that
@@ -657,17 +656,17 @@ public enum RenderPasses {
                 // preferable to the alternative of the app freezing at ~300+ loaded tiles.
                 // The exception is a mesh carrying an occluder shell or fade: it stays out of
                 // its batch for as long as the component is there, so it casts on its own.
-                if scene.get(component: StaticBatchComponent.self, for: entityId) != nil,
-                   !isEntityInMeshOccluderOrFade(entityId)
+                if entity.traits.contains(.staticBatch),
+                   entity.traits.isDisjoint(with: meshOccluderOrFade)
                 { continue }
                 if BatchingSystem.shared.isBatched(entityId: entityId) { continue }
             }
 
-            guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId),
-                  renderComponent.isVisible,
-                  let worldTransformComponent = scene.get(component: WorldTransformComponent.self, for: entityId),
-                  let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId)
+            guard let components = sceneSnapshot.drawComponents(of: entity),
+                  components.render.isVisible
             else { continue }
+            let worldTransformComponent = components.world
+            let localTransformComponent = components.local
 
             let (worldMin, worldMax) = worldAABB_MinMax(
                 localMin: localTransformComponent.boundingBox.min,
@@ -690,7 +689,7 @@ public enum RenderPasses {
             let (visualWorldMin, visualWorldMax) = worldAABB_MinMax(
                 localMin: localTransformComponent.boundingBox.min,
                 localMax: localTransformComponent.boundingBox.max,
-                worldMatrix: simd_mul(SceneRootTransform.shared.matrix, worldTransformComponent.space)
+                worldMatrix: simd_mul(sceneRootMatrix, worldTransformComponent.space)
             )
             if shadowEntityBeyondMaxDistance(
                 worldMin: visualWorldMin, worldMax: visualWorldMax,
@@ -698,7 +697,7 @@ public enum RenderPasses {
                 maxDistance: cascadeReach
             ) { continue }
             if isAABBInFrustum(frustum, min: worldMin, max: worldMax) {
-                result.append(entityId)
+                result.append(ShadowCaster(entity: entity, components: components))
             }
         }
 
@@ -715,7 +714,7 @@ public enum RenderPasses {
         }
     }
 
-    private static func spotShadowCasterEntityIds() -> [EntityID] {
+    private static func spotShadowCasters(in sceneSnapshot: RenderSceneSnapshot) -> [ShadowCaster] {
         ensureShadowCacheConfigured()
         guard spotShadowState.isActive,
               let shadowLight = spotShadowState.light,
@@ -736,28 +735,29 @@ public enum RenderPasses {
         let lightPosition = shadowLight.light.position
         let maxDistance = max(shadowLight.light.attenuation.w, minimumSpotShadowDistance)
         let smallObjectCulling = SmallObjectCulling.forCurrentFrame()
-        var result: [EntityID] = []
+        var result: [ShadowCaster] = []
         result.reserveCapacity(candidates.count / 4)
 
+        let batchingEnabled = BatchingSystem.shared.isEnabled()
+        var renderModes = SceneChannelRenderModeMemo()
+
         for entityId in candidates {
-            guard scene.mask(for: entityId) != nil else { continue }
-            if shouldHideSceneEntity(entityId: entityId) { continue }
-            if shouldRenderSceneEntityAsWireframe(entityId: entityId) { continue }
-            if BatchingSystem.shared.isEnabled() {
-                if scene.get(component: StaticBatchComponent.self, for: entityId) != nil { continue }
+            guard let entity = sceneSnapshot.entity(entityId) else { continue }
+            let renderMode = renderModes.mode(of: sceneSnapshot.sceneChannels(of: entity))
+            if renderMode == .hidden || renderMode == .wireframe { continue }
+            if batchingEnabled {
+                if entity.traits.contains(.staticBatch) { continue }
                 if BatchingSystem.shared.isBatched(entityId: entityId) { continue }
             }
 
-            guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId),
-                  renderComponent.isVisible,
-                  let worldTransformComponent = scene.get(component: WorldTransformComponent.self, for: entityId),
-                  let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId)
+            guard let components = sceneSnapshot.drawComponents(of: entity),
+                  components.render.isVisible
             else { continue }
 
             let (worldMin, worldMax) = worldAABB_MinMax(
-                localMin: localTransformComponent.boundingBox.min,
-                localMax: localTransformComponent.boundingBox.max,
-                worldMatrix: worldTransformComponent.space
+                localMin: components.local.boundingBox.min,
+                localMax: components.local.boundingBox.max,
+                worldMatrix: components.world.space
             )
             if let smallObjectCulling, smallObjectCulling.culls(worldMin: worldMin, worldMax: worldMax) { continue }
             if shadowEntityBeyondMaxDistance(
@@ -767,14 +767,14 @@ public enum RenderPasses {
                 maxDistance: maxDistance
             ) { continue }
             if isAABBInFrustum(frustum, min: worldMin, max: worldMax) {
-                result.append(entityId)
+                result.append(ShadowCaster(entity: entity, components: components))
             }
         }
 
         return result
     }
 
-    private static func pointShadowCasterEntityIds() -> [EntityID] {
+    private static func pointShadowCasters(in sceneSnapshot: RenderSceneSnapshot) -> [ShadowCaster] {
         ensureShadowCacheConfigured()
         guard pointShadowState.isActive,
               let shadowLight = pointShadowState.light
@@ -794,29 +794,30 @@ public enum RenderPasses {
         let lightPosition = shadowLight.light.position
         let maxDistance = max(shadowLight.light.radius, minimumPointShadowDistance)
         let smallObjectCulling = SmallObjectCulling.forCurrentFrame()
-        var result: [EntityID] = []
+        var result: [ShadowCaster] = []
         result.reserveCapacity(candidates.count / 4)
+
+        let batchingEnabled = BatchingSystem.shared.isEnabled()
+        var renderModes = SceneChannelRenderModeMemo()
 
         for entityId in candidates {
             if entityId == shadowLight.entityId { continue }
-            guard scene.mask(for: entityId) != nil else { continue }
-            if shouldHideSceneEntity(entityId: entityId) { continue }
-            if shouldRenderSceneEntityAsWireframe(entityId: entityId) { continue }
-            if BatchingSystem.shared.isEnabled() {
-                if scene.get(component: StaticBatchComponent.self, for: entityId) != nil { continue }
+            guard let entity = sceneSnapshot.entity(entityId) else { continue }
+            let renderMode = renderModes.mode(of: sceneSnapshot.sceneChannels(of: entity))
+            if renderMode == .hidden || renderMode == .wireframe { continue }
+            if batchingEnabled {
+                if entity.traits.contains(.staticBatch) { continue }
                 if BatchingSystem.shared.isBatched(entityId: entityId) { continue }
             }
 
-            guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId),
-                  renderComponent.isVisible,
-                  let worldTransformComponent = scene.get(component: WorldTransformComponent.self, for: entityId),
-                  let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId)
+            guard let components = sceneSnapshot.drawComponents(of: entity),
+                  components.render.isVisible
             else { continue }
 
             let (worldMin, worldMax) = worldAABB_MinMax(
-                localMin: localTransformComponent.boundingBox.min,
-                localMax: localTransformComponent.boundingBox.max,
-                worldMatrix: worldTransformComponent.space
+                localMin: components.local.boundingBox.min,
+                localMax: components.local.boundingBox.max,
+                worldMatrix: components.world.space
             )
             if let smallObjectCulling, smallObjectCulling.culls(worldMin: worldMin, worldMax: worldMax) { continue }
             if shadowEntityBeyondMaxDistance(
@@ -826,7 +827,7 @@ public enum RenderPasses {
                 maxDistance: maxDistance
             ) { continue }
 
-            result.append(entityId)
+            result.append(ShadowCaster(entity: entity, components: components))
         }
 
         return result
@@ -1310,6 +1311,10 @@ public enum RenderPasses {
         }
 
         let viewMatrix = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
+        // What every draw of the pass shares, read once.
+        let sceneSnapshot = RenderSceneSnapshot()
+        let cameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
+        let projectionMatrix = renderInfo.perspectiveSpace
 
         // Render each cascade into its own depth array slice.
         for cascadeIdx in 0 ..< csmCascadeCount {
@@ -1344,13 +1349,12 @@ public enum RenderPasses {
                 index: Int(shadowPassLightMatrixUniform.rawValue)
             )
 
-            let shadowCasterIds = shadowCasterEntityIds(for: cascadeIdx)
-            for entityId in shadowCasterIds {
-                guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else { continue }
-                guard let transformComponent = scene.get(component: WorldTransformComponent.self, for: entityId) else { continue }
-                guard scene.get(component: LocalTransformComponent.self, for: entityId) != nil else { continue }
+            for caster in shadowCasters(for: cascadeIdx, in: sceneSnapshot) {
+                let transformComponent = caster.components.world
+                let deformation = sceneSnapshot.deformation(of: caster.entity)
+                let hasSkeleton = caster.entity.traits.contains(.skeleton)
 
-                for mesh in renderComponent.mesh {
+                for mesh in caster.components.render.mesh {
                     var modelUniforms = Uniforms()
                     var modelMatrix = simd_mul(transformComponent.space, mesh.localSpace)
                     let modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
@@ -1361,14 +1365,14 @@ public enum RenderPasses {
                     modelUniforms.normalMatrix = normalMatrix
                     modelUniforms.viewMatrix = viewMatrix
                     modelUniforms.modelMatrix = modelMatrix
-                    modelUniforms.cameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
-                    modelUniforms.projectionMatrix = renderInfo.perspectiveSpace
+                    modelUniforms.cameraPosition = cameraPosition
+                    modelUniforms.projectionMatrix = projectionMatrix
 
                     renderEncoder.setVertexBytes(
                         &modelUniforms, length: MemoryLayout<Uniforms>.stride,
                         index: Int(shadowPassModelUniform.rawValue)
                     )
-                    renderEncoder.bindShadowVertexStreams(mesh: mesh, entityId: entityId)
+                    renderEncoder.bindShadowVertexStreams(mesh: mesh, deformation: deformation, hasSkeleton: hasSkeleton)
 
                     // Glass casts no shadow: the light crosses it.
                     for subMesh in mesh.submeshes where subMesh.material?.transmitsLight != true {
@@ -1545,24 +1549,27 @@ public enum RenderPasses {
         )
 
         let viewMatrix = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
-        for entityId in spotShadowCasterEntityIds() {
-            guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId),
-                  let transformComponent = scene.get(component: WorldTransformComponent.self, for: entityId),
-                  scene.get(component: LocalTransformComponent.self, for: entityId) != nil
-            else { continue }
+        // What every draw of the pass shares, read once.
+        let sceneSnapshot = RenderSceneSnapshot()
+        let cameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
+        let projectionMatrix = renderInfo.perspectiveSpace
+        for caster in spotShadowCasters(in: sceneSnapshot) {
+            let transformComponent = caster.components.world
+            let deformation = sceneSnapshot.deformation(of: caster.entity)
+            let hasSkeleton = caster.entity.traits.contains(.skeleton)
 
-            for mesh in renderComponent.mesh {
+            for mesh in caster.components.render.mesh {
                 var modelUniforms = Uniforms()
                 let modelMatrix = simd_mul(transformComponent.space, mesh.localSpace)
                 modelUniforms.modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
                 modelUniforms.normalMatrix = matrix3x3_upper_left(modelMatrix).inverse.transpose
                 modelUniforms.viewMatrix = viewMatrix
                 modelUniforms.modelMatrix = modelMatrix
-                modelUniforms.cameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
-                modelUniforms.projectionMatrix = renderInfo.perspectiveSpace
+                modelUniforms.cameraPosition = cameraPosition
+                modelUniforms.projectionMatrix = projectionMatrix
 
                 renderEncoder.setVertexBytes(&modelUniforms, length: MemoryLayout<Uniforms>.stride, index: Int(shadowPassModelUniform.rawValue))
-                renderEncoder.bindShadowVertexStreams(mesh: mesh, entityId: entityId)
+                renderEncoder.bindShadowVertexStreams(mesh: mesh, deformation: deformation, hasSkeleton: hasSkeleton)
 
                 // Glass casts no shadow: the light crosses it.
                 for subMesh in mesh.submeshes where subMesh.material?.transmitsLight != true {
@@ -1642,7 +1649,11 @@ public enum RenderPasses {
         }
 
         let viewMatrix = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
-        let casterEntityIds = pointShadowCasterEntityIds()
+        // What every draw of the pass shares, read once.
+        let sceneSnapshot = RenderSceneSnapshot()
+        let cameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
+        let projectionMatrix = renderInfo.perspectiveSpace
+        let casters = pointShadowCasters(in: sceneSnapshot)
         let batchGroups = BatchingSystem.shared.isEnabled() ? pointShadowCasterBatchGroups() : []
 
         for face in 0 ..< min(renderInfo.pointShadowRenderPassDescriptors.count, pointShadowState.lightSpaceMatrices.count) {
@@ -1676,24 +1687,23 @@ public enum RenderPasses {
                 index: Int(shadowPassLightMatrixUniform.rawValue)
             )
 
-            for entityId in casterEntityIds {
-                guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId),
-                      let transformComponent = scene.get(component: WorldTransformComponent.self, for: entityId),
-                      scene.get(component: LocalTransformComponent.self, for: entityId) != nil
-                else { continue }
+            for caster in casters {
+                let transformComponent = caster.components.world
+                let deformation = sceneSnapshot.deformation(of: caster.entity)
+                let hasSkeleton = caster.entity.traits.contains(.skeleton)
 
-                for mesh in renderComponent.mesh {
+                for mesh in caster.components.render.mesh {
                     var modelUniforms = Uniforms()
                     let modelMatrix = simd_mul(transformComponent.space, mesh.localSpace)
                     modelUniforms.modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
                     modelUniforms.normalMatrix = matrix3x3_upper_left(modelMatrix).inverse.transpose
                     modelUniforms.viewMatrix = viewMatrix
                     modelUniforms.modelMatrix = modelMatrix
-                    modelUniforms.cameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
-                    modelUniforms.projectionMatrix = renderInfo.perspectiveSpace
+                    modelUniforms.cameraPosition = cameraPosition
+                    modelUniforms.projectionMatrix = projectionMatrix
 
                     renderEncoder.setVertexBytes(&modelUniforms, length: MemoryLayout<Uniforms>.stride, index: Int(shadowPassModelUniform.rawValue))
-                    renderEncoder.bindShadowVertexStreams(mesh: mesh, entityId: entityId)
+                    renderEncoder.bindShadowVertexStreams(mesh: mesh, deformation: deformation, hasSkeleton: hasSkeleton)
 
                     // Glass casts no shadow: the light crosses it.
                     for subMesh in mesh.submeshes where subMesh.material?.transmitsLight != true {

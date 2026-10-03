@@ -12,7 +12,7 @@ import simd
 @testable import UntoldEngine
 import XCTest
 
-/// Tests for the shadow distance culling helper used in RenderPasses.shadowCasterEntityIds.
+/// Tests for the shadow distance culling helper used in RenderPasses.shadowCasters(for:in:).
 /// All tests exercise shadowEntityBeyondMaxDistance() directly — no Metal or scene state required.
 @MainActor
 final class ShadowDistanceCullingTests: XCTestCase {

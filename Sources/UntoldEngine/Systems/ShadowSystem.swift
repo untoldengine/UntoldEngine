@@ -263,7 +263,7 @@ struct ShadowSystem {
     /// slice. Used by the renderer to reject shadow casters that are farther than the
     /// engine's own shadow-distance horizon from anything this cascade could possibly
     /// receive — a cull that stays correct for any light direction, unlike a camera-depth
-    /// cutoff (see RenderPasses.shadowCasterEntityIds).
+    /// cutoff (see RenderPasses.shadowCasters(for:in:)).
     var cascadeWorldCenters: [simd_float3] = Array(repeating: .zero, count: csmCascadeCount)
     var cascadeWorldRadii: [Float] = Array(repeating: 0, count: csmCascadeCount)
     /// Camera-depth distance at which each cascade begins cross-fading into the next.
@@ -590,41 +590,34 @@ struct ShadowSystem {
     }
 
     private func collectShadowCasterBounds() -> [ShadowCasterBounds] {
-        let transformId = getComponentId(for: WorldTransformComponent.self)
-        let localTransformId = getComponentId(for: LocalTransformComponent.self)
-        let renderId = getComponentId(for: RenderComponent.self)
-        let entities = queryEntitiesWithComponentIds([transformId, localTransformId, renderId], in: scene)
+        let sceneSnapshot = RenderSceneSnapshot()
         let batchingEnabled = BatchingSystem.shared.isEnabled()
+        let sceneRootMatrix = SceneRootTransform.shared.matrix
+        var renderModes = SceneChannelRenderModeMemo()
 
         var bounds: [ShadowCasterBounds] = []
-        bounds.reserveCapacity(entities.count)
+        bounds.reserveCapacity(sceneSnapshot.entityCapacity)
 
-        for entityId in entities {
-            guard scene.mask(for: entityId) != nil else { continue }
-            if scene.get(component: SceneCameraComponent.self, for: entityId) != nil { continue }
-            if scene.get(component: CameraComponent.self, for: entityId) != nil { continue }
-            if scene.get(component: LightComponent.self, for: entityId) != nil { continue }
-            if scene.get(component: GizmoComponent.self, for: entityId) != nil { continue }
-            if shouldHideSceneEntity(entityId: entityId) { continue }
-            if shouldRenderSceneEntityAsWireframe(entityId: entityId) { continue }
-            if batchingEnabled, scene.get(component: StaticBatchComponent.self, for: entityId) != nil { continue }
-            if batchingEnabled, BatchingSystem.shared.isBatched(entityId: entityId) { continue }
+        sceneSnapshot.forEachEntity(with: .drawable) { entity in
+            if !entity.traits.isDisjoint(with: [.sceneCamera, .camera, .light, .gizmo]) { return }
+            let renderMode = renderModes.mode(of: sceneSnapshot.sceneChannels(of: entity))
+            if renderMode == .hidden || renderMode == .wireframe { return }
+            if batchingEnabled, entity.traits.contains(.staticBatch) { return }
+            if batchingEnabled, BatchingSystem.shared.isBatched(entityId: entity.entityId) { return }
 
-            guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId),
-                  renderComponent.isVisible,
-                  let worldTransformComponent = scene.get(component: WorldTransformComponent.self, for: entityId),
-                  let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId)
+            guard let components = sceneSnapshot.drawComponents(of: entity),
+                  components.render.isVisible
             else {
-                continue
+                return
             }
 
             // Fold the scene-root transform into the caster's world matrix so these bounds land in
             // the same visual-world space as the cascade corners above -- see the comment on
             // `invView` in updateCascades().
-            let combinedMatrix = simd_mul(SceneRootTransform.shared.matrix, worldTransformComponent.space)
+            let combinedMatrix = simd_mul(sceneRootMatrix, components.world.space)
             let (worldMin, worldMax) = worldAABB_MinMax(
-                localMin: localTransformComponent.boundingBox.min,
-                localMax: localTransformComponent.boundingBox.max,
+                localMin: components.local.boundingBox.min,
+                localMax: components.local.boundingBox.max,
                 worldMatrix: combinedMatrix
             )
             bounds.append(ShadowCasterBounds(min: worldMin, max: worldMax))

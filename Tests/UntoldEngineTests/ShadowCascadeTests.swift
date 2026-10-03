@@ -50,7 +50,7 @@ final class MaxShadowCastingDistanceAPITests: XCTestCase {
 
     func testValueIsClampedToAPositiveMinimum() {
         // A zero or negative distance would make the shadow-distance reject in
-        // RenderPasses.shadowCasterEntityIds degenerate (shadowEntityBeyondMaxDistance treats
+        // RenderPasses.shadowCasters(for:in:) degenerate (shadowEntityBeyondMaxDistance treats
         // maxDistance <= 0 as "cull nothing", so this guards against accidentally disabling the
         // cull entirely rather than tightening it).
         setRendering(.maxShadowCastingDistance(-5.0))
@@ -356,7 +356,7 @@ final class ShadowSystemCascadeNearDistanceTests: XCTestCase {
 
 // MARK: - Cascade world-space caster reach
 
-/// Tests for the direction-agnostic distance reject in RenderPasses.shadowCasterEntityIds:
+/// Tests for the direction-agnostic distance reject in RenderPasses.shadowCasters(for:in:):
 /// a caster farther than `cascadeWorldRadii[i] + maxShadowCastingDistance` from
 /// `cascadeWorldCenters[i]` cannot matter to that cascade regardless of light direction,
 /// so it is safe to drop before the more expensive light-space frustum test.
