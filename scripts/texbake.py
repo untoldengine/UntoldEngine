@@ -69,6 +69,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import json
 import math
 import os
 import shutil
@@ -582,11 +583,36 @@ def bake_texture(
 # Flags map: read sibling .untold files to get authoritative slot info
 # ──────────────────────────────────────────────
 
+def _untold_files_named(paths: list[Path]) -> list[Path]:
+    """The .untold files that `--untold` names, each once and in the order given.
+
+    A .untoldpack stands for the models it lists and for nothing else around it. Its
+    folder is not searched: an assets folder can hold other exports, and a texture of
+    theirs that is named like one of the pack's (wall, diffuse, normal) is another
+    texture, whose flags would be taken for this one's.
+    """
+    files: list[Path] = []
+    for path in paths:
+        path = Path(path)
+        if path.suffix.lower() != ".untoldpack":
+            files.append(path)
+            continue
+        try:
+            manifest = json.loads(path.read_text(encoding="utf-8"))
+            models = [path.parent / str(model["path"]) for model in manifest["models"]]
+        except (OSError, ValueError, KeyError, TypeError) as error:
+            print(f"warning: could not read the models of {path}: {error}; its textures are told apart by their names",
+                  file=sys.stderr)
+            continue
+        files.extend(models)
+    return list(dict.fromkeys(files))
+
+
 def _build_flags_map_from_untold_dir(textures_dir: Path, untold_files: list[Path] | None = None) -> dict[str, int]:
     """Scan .untold files in the parent directory of `textures_dir` (or the given
     `untold_files`, for a .untold kept outside that folder, see the exporter's
-    --assets-dir) and build a mapping of {texture_stem_lower → flags} from their
-    texture records.
+    --assets-dir, or a .untoldpack for the models of a pack) and build a mapping of
+    {texture_stem_lower → flags} from their texture records.
 
     Used by bake_directory so that textures with opaque names (no slot keywords)
     are encoded with the correct sRGB/LDR block format.
@@ -596,6 +622,8 @@ def _build_flags_map_from_untold_dir(textures_dir: Path, untold_files: list[Path
     result: dict[str, int] = {}
     if untold_files is None:
         untold_files = list(textures_dir.parent.glob("*.untold"))
+    else:
+        untold_files = _untold_files_named(untold_files)
     if not untold_files:
         return result
 
@@ -1177,9 +1205,10 @@ def main(argv: list[str] | None = None) -> int:
         action="append",
         metavar="UNTOLD_FILE",
         help=(
-            "With --dir: read texture slot hints from this .untold instead of the .untold files "
-            "beside the directory (repeatable). Use it when the .untold lives elsewhere, as with "
-            "the exporter's --assets-dir."
+            "With --dir: read texture slot hints from this .untold, or from the models a "
+            ".untoldpack lists, instead of the .untold files beside the directory (repeatable). "
+            "Use it when the .untold lives elsewhere, as with the exporter's --assets-dir, or "
+            "for a pack's shared Textures folder."
         ),
     )
     parser.add_argument(
@@ -1233,6 +1262,11 @@ def main(argv: list[str] | None = None) -> int:
         if not args.dir.is_dir():
             print(f"error: --dir '{args.dir}' is not a directory", file=sys.stderr)
             return 1
+        for hint in args.untold or []:
+            # A folder would mean every .untold under it, the pack's or not.
+            if hint.is_dir():
+                print(f"error: --untold takes a .untold file or a .untoldpack, not a folder: '{hint}'", file=sys.stderr)
+                return 1
         bake_directory(args.dir, args.quality, args.keep_temp, untold_files=args.untold)
         return 0
 

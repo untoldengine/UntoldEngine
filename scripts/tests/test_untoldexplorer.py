@@ -2217,6 +2217,107 @@ def _make_node_with_normal_map(
     )
 
 
+def _triangle_node(name: str, *, root_x: float = 0.0, scale: float = 1.0, material_name: str = "paint", parent: str | None = None) -> "u.ExportedNode":
+    """A one-triangle node; vertices go through pack_normal etc. like a real export."""
+    positions = [(0.0, 0.0, 0.0), (scale, 0.0, 0.0), (0.0, scale, 0.0)]
+    vertices = b"".join(
+        struct.pack("<3fII", *position, u.pack_normal((0.0, 0.0, 1.0)), u.pack_tangent((1.0, 0.0, 0.0), 1.0))
+        + b"\x00" * (u.VERTEX_STRIDE - 20)
+        for position in positions
+    )
+    indices = u.pack_index_data([0, 1, 2], u.INDEX_TYPE_UINT16)
+    bounds = u.aabb_from_points(positions)
+    material = u.ExportedMaterial(
+        name=material_name, base_color_factor=(1.0, 1.0, 1.0, 1.0), emissive_factor=(0.0, 0.0, 0.0),
+        normal_scale=1.0, metallic_factor=0.0, roughness_factor=0.5, occlusion_strength=1.0,
+        alpha_cutoff=0.5, base_color_texture=None,
+    )
+    rows = u.identity_matrix_rows()
+    rows[0][3] = root_x
+    mesh = u.ExportedMesh(
+        entity_name=name, parent_entity_name=parent, mesh_name=name, local_transform_rows=rows,
+        local_bounds=bounds, world_bounds=bounds, vertices=vertices, indices=indices, edge_indices=b"",
+        vertex_count=3, index_count=3, edge_index_count=0, index_type=u.INDEX_TYPE_UINT16,
+        material=material, skin_binding=None,
+        validation_mesh=u.ValidationMesh(name=name, vertex_count=3, index_count=3, positions=positions,
+                                         normals=[], tangents=[], uv0=[], indices=[0, 1, 2], edge_indices=[]),
+    )
+    return u.ExportedNode(entity_name=name, parent_entity_name=parent, local_transform_rows=rows,
+                          local_bounds=bounds, world_bounds=bounds, mesh=mesh)
+
+
+class PackSharedModelTests(unittest.TestCase):
+    """Copies of a model in a pack are written once; textures are shared."""
+
+    def test_copies_have_the_same_signature_wherever_they_stand_and_whatever_their_name(self) -> None:
+        digests: dict[int, tuple[bytes, str]] = {}
+        first = u.model_content_signature([_triangle_node("Tree.001", root_x=0.0)], digests)
+        copy = u.model_content_signature([_triangle_node("Tree.174", root_x=40.0)], digests)
+        self.assertIsNotNone(first)
+        self.assertEqual(first, copy)
+
+    def test_copies_of_a_mesh_with_no_material_are_copies_too(self) -> None:
+        """A mesh with no material got one named after its object, and the material is
+        part of the signature: Tree.001 and Tree.174, the same prop with no material,
+        were two models, each written in full."""
+        def node(name: str, root_x: float) -> "u.ExportedNode":
+            mesh_object = FakeSceneObject(name, "MESH", FakeData(materials=[]))
+            with tempfile.TemporaryDirectory() as tmpdir:
+                material = u.extract_material(mesh_object, Path(tmpdir) / "asset.untold")
+            self.assertNotIn(name, material.name)
+            triangle = _triangle_node(name, root_x=root_x)
+            return u.replace(triangle, mesh=u.replace(triangle.mesh, material=material))
+
+        digests: dict[int, tuple[bytes, str]] = {}
+        first = u.model_content_signature([node("Tree.001", 0.0)], digests)
+        copy = u.model_content_signature([node("Tree.174", 40.0)], digests)
+        self.assertIsNotNone(first)
+        self.assertEqual(first, copy)
+
+        groups = {name: [node(name, root_x)] for name, root_x in (("Tree.001", 0.0), ("Tree.002", 10.0), ("Tree.174", 40.0))}
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output = Path(tmpdir) / "Park.untold"
+            result = u.write_untold_pack_from_groups(
+                groups, source_asset_name="Park.blend", output_path=output, file_type_name="tile",
+                compress_geometry=False, validate=False, progress_callback=None,
+            )
+        self.assertEqual((result["written_model_count"], result["shared_model_count"]), (1, 2))
+
+    def test_different_geometry_material_or_child_placement_differ(self) -> None:
+        digests: dict[int, tuple[bytes, str]] = {}
+        base = u.model_content_signature([_triangle_node("A")], digests)
+        self.assertNotEqual(base, u.model_content_signature([_triangle_node("A", scale=2.0)], digests))
+        self.assertNotEqual(base, u.model_content_signature([_triangle_node("A", material_name="metal")], digests))
+        child_here = u.model_content_signature([_triangle_node("Root"), _triangle_node("Leaf", root_x=1.0, parent="Root")], digests)
+        child_there = u.model_content_signature([_triangle_node("Root"), _triangle_node("Leaf", root_x=2.0, parent="Root")], digests)
+        self.assertNotEqual(child_here, child_there)
+
+    def test_skinned_models_are_not_compared(self) -> None:
+        node = _triangle_node("Hero")
+        skinned = u.replace(node, mesh=u.replace(node.mesh, skin_binding=object()))
+        self.assertIsNone(u.model_content_signature([skinned], {}))
+
+    def test_a_pack_writes_each_model_once_and_places_every_copy(self) -> None:
+        groups = {
+            "Tree.001": [_triangle_node("Tree.001", root_x=0.0)],
+            "Tree.002": [_triangle_node("Tree.002", root_x=10.0)],
+            "Bench": [_triangle_node("Bench", scale=3.0)],
+        }
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output = Path(tmpdir) / "Models" / "Park.untold"
+            result = u.write_untold_pack_from_groups(
+                groups, source_asset_name="Park.blend", output_path=output, file_type_name="tile",
+                compress_geometry=False, validate=False, progress_callback=None, assets_dir=Path(tmpdir) / "Models" / "Park",
+            )
+            manifest = json.loads(output.with_suffix(".untoldpack").read_text())
+            by_name = {entry["displayName"]: entry for entry in manifest["models"]}
+            self.assertEqual((result["written_model_count"], result["shared_model_count"]), (2, 1))
+            self.assertEqual(by_name["Tree.002"]["path"], by_name["Tree.001"]["path"])
+            self.assertEqual(by_name["Tree.002"]["transform"][0][3], 10.0)
+            self.assertFalse((Path(tmpdir) / "Models" / "Park" / "Tree_002").exists())
+            self.assertTrue((output.parent / by_name["Tree.001"]["path"]).is_file())
+
+
 class TextureWriteFailureTests(unittest.TestCase):
     """Regression coverage for an export that stopped half-way and left a 33-byte PNG behind.
 

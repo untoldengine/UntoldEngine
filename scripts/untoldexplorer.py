@@ -138,6 +138,11 @@ TEXTURE_CHANNEL_G = 1
 TEXTURE_CHANNEL_B = 2
 TEXTURE_CHANNEL_A = 3
 UNTOLD_EXPORT_TEMP_OBJECT_PROP = "_untold_export_temp_object"
+# The name of the material a mesh with no material of its own is given. It is one name
+# for all of them, and not one made from the object's name: the material is part of what
+# tells two models apart (see model_content_signature), so a name taken from the object
+# made every copy of a prop with no material a model of its own.
+DEFAULT_MATERIAL_NAME = "default_material"
 # Material alpha modes, the low two bits of a material record's flags (the engine's
 # MaterialAlphaMode).
 MATERIAL_ALPHA_MODE_OPAQUE = 0
@@ -4860,8 +4865,13 @@ def stage_nodes_for_output(
     skipped_textures: Optional[list[str]] = None,
     write_failures: Optional[TextureWriteFailures] = None,
     assets_dir: Optional[Path] = None,
+    context: Optional[TextureStagingContext] = None,
 ) -> list[ExportedNode]:
     """Stage every node's textures next to output_path, or in assets_dir when given.
+
+    context: staging shared with other files of the same export (the models of a
+    pack), so a texture they have in common is staged once; it then also decides where
+    Textures/ goes, in place of skipped_textures, write_failures and assets_dir.
 
     skipped_textures: a list that receives one line per texture that had to be left
     out, so the caller can report them together once the export is done.
@@ -4869,7 +4879,8 @@ def stage_nodes_for_output(
     write_failures: what the export already knows about textures Blender cannot write.
     An export that stages several models or tiles hands the same one to each of them.
     """
-    context = TextureStagingContext(skipped_textures, write_failures, assets_dir)
+    if context is None:
+        context = TextureStagingContext(skipped_textures, write_failures, assets_dir)
     staged_nodes: list[ExportedNode] = []
     total = len(exported_nodes)
     for i, exported_node in enumerate(exported_nodes, 1):
@@ -5229,7 +5240,7 @@ def extract_material(mesh_object: object, asset_path: Path) -> ExportedMaterial:
     material = mesh_object_material(mesh_object)
     if material is None:
         return ExportedMaterial(
-            name=f"{mesh_object.name}_material",
+            name=DEFAULT_MATERIAL_NAME,
             base_color_factor=(1.0, 1.0, 1.0, 1.0),
             emissive_factor=(0.0, 0.0, 0.0),
             normal_scale=1.0,
@@ -6016,6 +6027,25 @@ def extract_meshes(
     ]
 
 
+def mesh_share_key(obj: object) -> Optional[tuple]:
+    """Identifies mesh objects whose exported mesh is the same: linked duplicates (one
+    mesh datablock, Alt+D in Blender) with the same materials and nothing that changes
+    the mesh per object. Their geometry is then split and extracted once and reused.
+
+    None for anything that can differ per object: modifiers (a Mirror or Array can
+    depend on the object), skinning or shape keys (see _is_rigged_object).
+    """
+    if getattr(obj, "type", None) != "MESH" or getattr(obj, "data", None) is None:
+        return None
+    if getattr(obj, "modifiers", None) or _is_rigged_object(obj):
+        return None
+    materials = tuple(
+        slot.material.as_pointer() if getattr(slot, "material", None) is not None else 0
+        for slot in getattr(obj, "material_slots", [])
+    )
+    return (obj.data.as_pointer(), materials)
+
+
 def _is_rigged_object(obj: object) -> bool:
     """Whether a mesh object carries skinning or morph targets: an Armature modifier,
     or shape keys."""
@@ -6094,6 +6124,10 @@ def split_blender_objects_by_material(objects: list[object]) -> list[object]:
     # scene, which invalidates the depsgraph.
     evaluated_meshes: dict[int, object] = {}
     depsgraph = None
+    # Copies of one mesh (see mesh_share_key) are cut once: the first one's fragment
+    # meshes are linked into the others' fragment objects.
+    fragments_by_share_key: dict[tuple, list[tuple[int, object]]] = {}
+    keys_to_cut: set[tuple] = set()
     for obj in objects:
         if getattr(obj, "type", None) != "MESH" or obj.data is None:
             continue
@@ -6101,6 +6135,11 @@ def split_blender_objects_by_material(objects: list[object]) -> list[object]:
             continue
         if _is_rigged_object(obj):
             continue
+        share_key = mesh_share_key(obj)
+        if share_key is not None:
+            if share_key in keys_to_cut:
+                continue
+            keys_to_cut.add(share_key)
         if depsgraph is None:
             depsgraph = bpy.context.evaluated_depsgraph_get()
         evaluated_meshes[obj.as_pointer()] = bpy.data.meshes.new_from_object(
@@ -6112,6 +6151,12 @@ def split_blender_objects_by_material(objects: list[object]) -> list[object]:
     for obj in objects:
         if getattr(obj, "type", None) != "MESH" or obj.data is None:
             result.append(obj)
+            continue
+        share_key = mesh_share_key(obj)
+        shared_fragments = fragments_by_share_key.get(share_key) if share_key is not None else None
+        if shared_fragments is not None:
+            for mat_idx, fragment_mesh in shared_fragments:
+                result.append(_material_fragment_object(obj, mat_idx, fragment_mesh))
             continue
         evaluated_mesh = evaluated_meshes.pop(obj.as_pointer(), None)
         mesh = evaluated_mesh if evaluated_mesh is not None else obj.data
@@ -6126,6 +6171,7 @@ def split_blender_objects_by_material(objects: list[object]) -> list[object]:
         if _is_rigged_object(obj):
             result.extend(_separate_rigged_object_by_material(obj))
             continue
+        fragments: list[tuple[int, object]] = []
         for mat_idx in sorted(used_indices):
             bm = _bmesh.new()
             try:
@@ -6149,28 +6195,36 @@ def split_blender_objects_by_material(objects: list[object]) -> list[object]:
                     new_mesh.materials.append(mat)
                     for p in new_mesh.polygons:
                         p.material_index = 0
-                new_obj = bpy.data.objects.new(f"{obj.name}_mat{mat_idx}", new_mesh)
-                # Preserve the source object's parent link (if any) so nodes that
-                # already sit under a real Blender hierarchy still group correctly;
-                # UNTOLD_MATERIAL_SPLIT_SOURCE_PROP below is what reunites fragments
-                # of a *parentless* multi-material object, which parent-chain
-                # walking alone can't do since these fragments aren't parented to
-                # each other.
-                new_obj.parent = obj.parent
-                if obj.parent is not None:
-                    new_obj.matrix_parent_inverse = obj.matrix_parent_inverse.copy()
-                new_obj.matrix_world = obj.matrix_world.copy()
-                new_obj[UNTOLD_EXPORT_TEMP_OBJECT_PROP] = True
-                # A stand-in being split (a converted curve) passes on the object it
-                # already stands in for.
-                new_obj[UNTOLD_MATERIAL_SPLIT_SOURCE_PROP] = obj.get(UNTOLD_MATERIAL_SPLIT_SOURCE_PROP) or obj.name
-                bpy.context.scene.collection.objects.link(new_obj)
-                result.append(new_obj)
+                fragments.append((mat_idx, new_mesh))
+                result.append(_material_fragment_object(obj, mat_idx, new_mesh))
             finally:
                 bm.free()
+        if share_key is not None:
+            fragments_by_share_key[share_key] = fragments
         if evaluated_mesh is not None:
             bpy.data.meshes.remove(evaluated_mesh)
     return result
+
+
+def _material_fragment_object(obj: object, mat_idx: int, mesh: object) -> object:
+    """A temporary object for one material's fragment of obj, placed like obj."""
+    import bpy
+    new_obj = bpy.data.objects.new(f"{obj.name}_mat{mat_idx}", mesh)
+    # Preserve the source object's parent link (if any) so nodes that already sit
+    # under a real Blender hierarchy still group correctly;
+    # UNTOLD_MATERIAL_SPLIT_SOURCE_PROP below is what reunites fragments of a
+    # *parentless* multi-material object, which parent-chain walking alone can't do
+    # since these fragments aren't parented to each other.
+    new_obj.parent = obj.parent
+    if obj.parent is not None:
+        new_obj.matrix_parent_inverse = obj.matrix_parent_inverse.copy()
+    new_obj.matrix_world = obj.matrix_world.copy()
+    new_obj[UNTOLD_EXPORT_TEMP_OBJECT_PROP] = True
+    # A stand-in being split (a converted curve) passes on the object it already
+    # stands in for.
+    new_obj[UNTOLD_MATERIAL_SPLIT_SOURCE_PROP] = obj.get(UNTOLD_MATERIAL_SPLIT_SOURCE_PROP) or obj.name
+    bpy.context.scene.collection.objects.link(new_obj)
+    return new_obj
 
 
 def cleanup_temporary_export_objects(objects: Iterable[object]) -> None:
@@ -6259,6 +6313,27 @@ def extract_scene_payload_from_current_scene(
     )
 
 
+def placed_mesh_copy(mesh: ExportedMesh, obj: object, conversion_matrix: Optional[object]) -> ExportedMesh:
+    """An extracted mesh for another object that copies its mesh (see mesh_share_key):
+    the same vertices, indices and material, with the object's own name, parent and
+    transform. Its world bounds are the local bounds' corners through the object's
+    world transform (a box around the exact bounds, which only empty nodes' bounds use
+    before normalize_export_nodes recomputes them from the vertices)."""
+    local_rows = matrix_rows_from_blender(obj.matrix_local)
+    world_rows = matrix_rows_from_blender(obj.matrix_world)
+    if conversion_matrix is not None:
+        local_rows = transform_matrix_rows(local_rows, conversion_matrix)
+        world_rows = transform_matrix_rows(world_rows, conversion_matrix)
+    corners = [transform_point_rows(world_rows, corner) for corner in aabb_corners(mesh.local_bounds)]
+    return replace(
+        mesh,
+        entity_name=obj.get("mesh_original_name") or obj.name,
+        parent_entity_name=getattr(getattr(obj, "parent", None), "name", None),
+        local_transform_rows=local_rows,
+        world_bounds=aabb_from_points(corners),
+    )
+
+
 def extract_nodes_from_objects(
     export_objects: list[object],
     asset_path: Path,
@@ -6280,27 +6355,45 @@ def extract_nodes_from_objects(
     total = len(mesh_objects)
     print(f"  Processing {total} mesh(es) ...", flush=True)
     exported_meshes_by_name: dict[str, ExportedMesh] = {}
+    # Copies of one mesh (see mesh_share_key) are extracted once; each copy takes the
+    # result with its own placement. An extraction that failed fails for every copy.
+    extracted_by_share_key: dict[tuple, object] = {}
+    reused = 0
     skipped = 0
     for i, obj in enumerate(mesh_objects, 1):
         percent = (100.0 * i) / max(total, 1)
         print(f"  [{i}/{total} | {percent:6.2f}%] {obj.name}", flush=True)
+        share_key = mesh_share_key(obj)
         try:
-            exported_meshes_by_name[obj.name] = extract_mesh_object(
-                obj,
-                asset_path,
-                convert_orientation=convert_orientation,
-                source_orientation=source_orientation,
-                _cached_conversion_matrix=conversion_matrix,
-                _depsgraph=depsgraph,
-                _validate=validate,
-            )
+            earlier = extracted_by_share_key.get(share_key) if share_key is not None else None
+            if isinstance(earlier, ExportedMesh):
+                exported_meshes_by_name[obj.name] = placed_mesh_copy(earlier, obj, conversion_matrix)
+                reused += 1
+            elif isinstance(earlier, RuntimeError):
+                raise earlier
+            else:
+                exported_meshes_by_name[obj.name] = extract_mesh_object(
+                    obj,
+                    asset_path,
+                    convert_orientation=convert_orientation,
+                    source_orientation=source_orientation,
+                    _cached_conversion_matrix=conversion_matrix,
+                    _depsgraph=depsgraph,
+                    _validate=validate,
+                )
+                if share_key is not None:
+                    extracted_by_share_key[share_key] = exported_meshes_by_name[obj.name]
         except RuntimeError as exc:
+            if share_key is not None:
+                extracted_by_share_key.setdefault(share_key, exc)
             print(f"    Skipped: {exc}", flush=True)
             skipped += 1
         if progress_callback is not None:
             progress_callback("Extract meshes", i, total, obj.name)
     if skipped:
         print(f"  Skipped {skipped} mesh(es) with errors", flush=True)
+    if reused:
+        print(f"  Reused the geometry of {reused} mesh(es) that copy another one", flush=True)
 
     for report_line in material_fidelity_report_lines(mesh_objects):
         print(f"  {report_line}", flush=True)
@@ -7619,6 +7712,46 @@ def write_single_untold_from_nodes(
     }
 
 
+def model_content_signature(nodes: list[ExportedNode], digests: dict[int, tuple[bytes, str]]) -> Optional[str]:
+    """A fingerprint of what a pack model's .untold would hold, independent of where the
+    model stands (its root transform goes in the manifest) and of its objects' names:
+    geometry, materials (a mesh with none has the same one as any other, see
+    DEFAULT_MATERIAL_NAME) and hierarchy.
+    Two models with the same fingerprint are the same model placed twice, and are
+    written once. None for a model that is not compared: skinned or with morph targets.
+
+    digests caches the hash of each geometry buffer by object identity, since copies
+    of a mesh share their buffers (see placed_mesh_copy).
+    """
+    def digest(data: bytes) -> str:
+        # Keyed by identity, holding the buffer so its identity cannot be reused.
+        cached = digests.get(id(data))
+        if cached is None or cached[0] is not data:
+            cached = (data, hashlib.sha1(data).hexdigest())
+            digests[id(data)] = cached
+        return cached[1]
+
+    position = {node.entity_name: index for index, node in enumerate(nodes)}
+    parts = []
+    for node in nodes:
+        if node.skeleton is not None:
+            return None
+        mesh = node.mesh
+        if mesh is not None and (mesh.skin_binding is not None or mesh.morph_targets):
+            return None
+        is_root = node.parent_entity_name is None or node.parent_entity_name not in position
+        rows = identity_matrix_rows() if is_root else node.local_transform_rows
+        mesh_part = None
+        if mesh is not None:
+            mesh_part = (digest(mesh.vertices), digest(mesh.indices), mesh.index_type, repr(mesh.material))
+        parts.append((
+            None if is_root else position[node.parent_entity_name],
+            tuple(tuple(round(float(value), 6) for value in row) for row in rows),
+            mesh_part,
+        ))
+    return hashlib.sha1(repr(parts).encode("utf-8")).hexdigest()
+
+
 def write_untold_pack_from_groups(
     model_groups: dict[str, list[ExportedNode]],
     *,
@@ -7638,6 +7771,11 @@ def write_untold_pack_from_groups(
     The per-model folders go in assets_dir when one is given (see --assets-dir),
     else beside the manifest; the manifest's model paths are relative to its own
     folder either way.
+
+    A model that is a copy of one already written (see model_content_signature) is not
+    written again: its manifest entry points at the first one's .untold with its own
+    transform. Textures go in one Textures/ folder beside the model folders, shared by
+    every model, instead of a copy in each.
     """
     pack_path = output_path.with_suffix(".untoldpack")
     models_root = assets_dir or output_path.parent
@@ -7656,7 +7794,13 @@ def write_untold_pack_from_groups(
     total_bytes = 0
     skipped_textures: list[str] = []
     write_failures = TextureWriteFailures()
+    # One staging for the whole pack: Textures/ beside the model folders, each texture
+    # written once and referenced from every model that uses it (../Textures/...).
+    texture_context = TextureStagingContext(skipped_textures, write_failures, assets_dir=models_root)
     used_model_dir_names: set[str] = set()
+    written_by_signature: dict[str, Path] = {}
+    geometry_digests: dict[int, tuple[bytes, str]] = {}
+    shared_model_count = 0
     for root_name, raw_group_nodes in model_groups.items():
         # The root's own placement is captured here, from the un-baked node, and
         # carried in the manifest instead of being baked into the geometry
@@ -7665,18 +7809,36 @@ def write_untold_pack_from_groups(
         original_root_transform = next(
             node.local_transform_rows for node in raw_group_nodes if node.parent_entity_name is None
         )
+        signature = model_content_signature(raw_group_nodes, geometry_digests)
+        written = written_by_signature.get(signature) if signature is not None else None
+        if written is not None:
+            manifest_models.append(
+                {
+                    "displayName": root_name,
+                    "path": relative_asset_uri(written, pack_path.parent),
+                    "transform": original_root_transform,
+                }
+            )
+            shared_model_count += 1
+            if progress_callback is not None:
+                progress_callback("Share models", 0, 1, f"{root_name} -> {written.name}")
+            continue
+
         group_nodes = normalize_export_nodes(zero_root_transform(raw_group_nodes))
 
         model_dir_name = unique_pack_model_dir_name(root_name, used_model_dir_names)
         model_output_path = models_root / model_dir_name / f"{model_dir_name}.untold"
         model_output_path.parent.mkdir(parents=True, exist_ok=True)
+        # A Textures/ folder of the model's own from an earlier export is no longer used.
+        own_textures = model_output_path.parent / "Textures"
+        if own_textures.is_dir():
+            shutil.rmtree(own_textures)
 
         staged_group_nodes = stage_nodes_for_output(
             group_nodes,
             model_output_path,
             progress_callback=progress_callback,
-            skipped_textures=skipped_textures,
-            write_failures=write_failures,
+            context=texture_context,
         )
         model_bytes = build_untold_file(
             staged_group_nodes,
@@ -7708,6 +7870,8 @@ def write_untold_pack_from_groups(
             }
         )
         new_model_dirs.append(model_output_path.parent.resolve())
+        if signature is not None:
+            written_by_signature[signature] = model_output_path
 
     write_untoldpack_manifest(pack_path, source_asset_name, manifest_models)
 
@@ -7735,6 +7899,8 @@ def write_untold_pack_from_groups(
         "models": manifest_models,
         "model_paths": model_paths,
         "model_count": len(manifest_models),
+        "written_model_count": len(model_paths),
+        "shared_model_count": shared_model_count,
         "mesh_count": total_meshes,
         "vertex_count": total_vertices,
         "index_count": total_indices,
@@ -8035,6 +8201,12 @@ def main(argv: list[str]) -> int:
             )
             progress.advance("Build file", result["pack_path"].name)
             print(f"Wrote {result['pack_path']} ({result['model_count']} model(s))")
+            if result["shared_model_count"]:
+                print(
+                    f"{result['written_model_count']} model file(s) written; {result['shared_model_count']} "
+                    "placement(s) reuse a model already written",
+                    flush=True,
+                )
             print(f"Nodes: {len(exported_nodes)}, Meshes: {result['mesh_count']}")
             if staged_hdr_assets:
                 print(f"HDR environments: {len(staged_hdr_assets)}")

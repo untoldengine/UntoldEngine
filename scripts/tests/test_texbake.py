@@ -1,3 +1,6 @@
+import contextlib
+import io
+import json
 import struct
 import sys
 import tempfile
@@ -134,6 +137,54 @@ def _build_minimal_untold_file(tmpdir: Path) -> Path:
     return output_path
 
 
+def _write_untold_with_texture(path: Path, uri: str, flags: int) -> Path:
+    """A .untold that holds one texture record and the strings it needs: what
+    _build_flags_map_from_untold_dir reads from a model file."""
+    strings = u.StringTableBuilder()
+    name_offset = strings.add(Path(uri).stem)
+    uri_offset = strings.add(uri)
+    texture_writer = u.BinaryWriter()
+    u.write_texture_record(
+        texture_writer,
+        u.TextureRecord(
+            name_offset=name_offset, uri_offset=uri_offset,
+            texture_format=0, flags=flags, width=64, height=64, mip_count=1,
+        ),
+    )
+    chunk_payloads = [
+        (u.CHUNK_TYPES["string_table"], strings.data, 0),
+        (u.CHUNK_TYPES["texture_table"], texture_writer.data, 1),
+    ]
+    header_writer = u.BinaryWriter()
+    u.write_header(
+        header_writer,
+        file_type=u.FILE_TYPES["tile"],
+        chunk_count=len(chunk_payloads),
+        mesh_count=0, material_count=0, texture_count=1, entity_count=0,
+        world_bounds=u.AABB((0.0, 0.0, 0.0), (0.0, 0.0, 0.0)),
+        root_transform_rows=IDENTITY_ROWS,
+        content_hash=b"\x00" * 32,
+    )
+    body_start = u.align(len(header_writer.data) + len(chunk_payloads) * u.CHUNK_ENTRY_SIZE, u.FILE_ALIGNMENT)
+    body = bytearray()
+    chunk_table_writer = u.BinaryWriter()
+    for chunk_type, payload, count in chunk_payloads:
+        while len(body) % u.FILE_ALIGNMENT:
+            body.append(0)
+        u.write_chunk_entry(
+            chunk_table_writer, chunk_type=chunk_type, compression_type=u.COMPRESSION_NONE,
+            file_offset=body_start + len(body), compressed_size=len(payload), uncompressed_size=len(payload),
+            element_count=count,
+        )
+        body += payload
+    file_bytes = bytearray(header_writer.data) + chunk_table_writer.data
+    file_bytes += b"\x00" * (body_start - len(file_bytes))
+    file_bytes += body
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(bytes(file_bytes))
+    return path
+
+
 def _read_string_at(data: bytes, string_table: bytes, offset: int) -> str:
     end = string_table.index(b"\x00", offset)
     return string_table[offset:end].decode("utf-8")
@@ -191,6 +242,66 @@ class TexbakePatchRefsTests(unittest.TestCase):
         self.assertEqual(config.encoding, "r16")
         self.assertEqual(config.pixel_format, t.MTL_R16_UNORM)
         self.assertEqual(t._untold_format_for_config(config), t._UNTOLD_FORMAT_R16_UNORM)
+
+
+class TexbakePackHintTests(unittest.TestCase):
+    """A pack's shared Textures folder is baked with the flags its own models give each
+    texture. An assets folder can hold other exports beside the pack: a texture of
+    theirs with the same name is not the same texture."""
+
+    def setUp(self) -> None:
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmpdir.name)
+        self.textures = self.root / "Textures"
+        self.textures.mkdir()
+        # The pack: a shelf placed twice, whose "wall" is a color texture.
+        self.shelf = _write_untold_with_texture(self.root / "Shelf" / "Shelf.untold", "../Textures/wall.png", u.TEXTURE_FLAG_SRGB)
+        self.pack = self.root / "Warehouse.untoldpack"
+        self.pack.write_text(json.dumps({
+            "formatVersion": 1,
+            "sourceAsset": "Warehouse.blend",
+            "models": [
+                {"displayName": "Shelf", "path": "Shelf/Shelf.untold", "transform": IDENTITY_ROWS},
+                {"displayName": "Shelf.001", "path": "Shelf/Shelf.untold", "transform": IDENTITY_ROWS},
+            ],
+        }))
+        # Another export kept in the same assets folder, whose own "wall" is a normal map.
+        # Its folder comes first by name, and the first file to name a texture wins.
+        self.other = _write_untold_with_texture(self.root / "Annex" / "Annex.untold", "Textures/wall.png", u.TEXTURE_FLAG_NORMAL_MAP)
+
+    def tearDown(self) -> None:
+        self.tmpdir.cleanup()
+
+    def test_a_pack_stands_for_the_models_it_lists_each_once(self) -> None:
+        self.assertEqual(t._untold_files_named([self.pack]), [self.shelf])
+        self.assertEqual(t._untold_files_named([self.other, self.pack, self.other]), [self.other, self.shelf])
+
+    def test_hints_come_from_the_packs_own_models(self) -> None:
+        # Every .untold under the folder, as a folder was read: the other export's flags win.
+        every_file = sorted(self.root.rglob("*.untold"))
+        self.assertEqual(
+            t._build_flags_map_from_untold_dir(self.textures, every_file), {"wall": u.TEXTURE_FLAG_NORMAL_MAP}
+        )
+        self.assertEqual(
+            t._build_flags_map_from_untold_dir(self.textures, [self.pack]), {"wall": u.TEXTURE_FLAG_SRGB}
+        )
+
+    def test_a_folder_is_not_taken_for_its_models(self) -> None:
+        self.assertEqual(t._build_flags_map_from_untold_dir(self.textures, [self.root]), {})
+        with contextlib.redirect_stderr(io.StringIO()) as errors:
+            status = t.main(["--dir", str(self.textures), "--untold", str(self.root)])
+        self.assertEqual(status, 1)
+        self.assertIn("not a folder", errors.getvalue())
+
+    def test_a_pack_that_cannot_be_read_is_reported(self) -> None:
+        broken = self.root / "Broken.untoldpack"
+        broken.write_text("{ not json")
+        half_written = self.root / "HalfWritten.untoldpack"
+        half_written.write_text(json.dumps({"models": [{"path": "Shelf/Shelf.untold"}, {"displayName": "no path"}]}))
+        missing = self.root / "Missing.untoldpack"
+        with contextlib.redirect_stderr(io.StringIO()) as errors:
+            self.assertEqual(t._untold_files_named([broken, half_written, missing]), [])
+        self.assertEqual(errors.getvalue().count("warning: could not read the models of"), 3)
 
 
 class TexbakeSlotDetectionTests(unittest.TestCase):
