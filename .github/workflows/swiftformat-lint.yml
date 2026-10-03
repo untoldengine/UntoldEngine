@@ -3,6 +3,11 @@ name: Formatting Validation
 on:
   pull_request:
     branches: [master, develop]
+    # Documentation-only changes have no Swift to lint.
+    paths-ignore:
+      - 'docs/**'
+      - 'mkdocs.yml'
+      - '*.md'
 
 jobs:
   lint:
