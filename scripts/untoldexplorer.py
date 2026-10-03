@@ -148,9 +148,11 @@ DEFAULT_MATERIAL_NAME = "default_material"
 MATERIAL_ALPHA_MODE_OPAQUE = 0
 MATERIAL_ALPHA_MODE_MASK = 1
 MATERIAL_ALPHA_MODE_BLEND = 2
-# The opacity a fully transmissive surface (Principled Transmission Weight 1) keeps
-# when exported: the engine has no transmission, so glass becomes a blended surface
-# this opaque, enough to keep its tint and reflections visible.
+# The opacity a fully transmissive, clear surface (Principled Transmission Weight 1 with
+# a white base colour) keeps when exported: the engine has no transmission, so glass
+# becomes a blended surface this opaque, enough to keep its reflections visible. Tinted
+# or frosted glass comes out more opaque, by what its colour and its roughness take from
+# what is seen through it, and a metal opaque (see principled_transmittance).
 TRANSMISSION_OPACITY = 0.1
 # Samples per channel of the lookup tables that carry RGB Curves and ColorRamp nodes.
 CURVE_LUT_SIZE = 256
@@ -3289,8 +3291,11 @@ def analyze_material(material: object) -> MaterialGraphAnalysis:
     if principled is not None:
         transmission, unfollowed = principled_transmission(principled)
         if transmission or unfollowed:
-            opacity = 1.0 - transmission * (1.0 - TRANSMISSION_OPACITY)
-            reason = f"transmission is approximated as a blended surface at {opacity:.0%} opacity"
+            opacity = transmission_opacity(principled_transmittance(principled)[0])
+            if opacity >= 0.995:
+                reason = "nothing is seen through its transmission (a black base colour, a metal, or a fully rough surface), so it is exported as an opaque surface"
+            else:
+                reason = f"transmission is approximated as a blended surface at {opacity:.0%} opacity"
             if unfollowed:
                 reason = (
                     "Transmission is driven by a texture or node math the exporter cannot follow; "
@@ -5152,19 +5157,58 @@ def principled_transmission(node: object) -> tuple[float, bool]:
     return min(max(transmission, 0.0), 1.0), unfollowed
 
 
+def principled_transmittance(node: object) -> tuple[float, bool]:
+    """How much of what is behind it a Principled BSDF lets one see, in [0, 1], and
+    whether its transmission could not be followed (see principled_transmission).
+
+    Transmission says how much of the surface is glass. Three things then take from
+    what is seen through it:
+
+    - The base colour tints the light that crosses it: clear glass (a white base
+      colour) lets all of it through and black glass none, which is why black glass
+      looks like a black mirror and not like a window. The tint counts by its brightness.
+    - Blender lays the metal over the glass, so the metallic share of a surface lets
+      nothing through whatever its transmission says.
+    - A rough surface scatters what crosses it: frosted glass glows with the light
+      behind it and shows nothing of what is there.
+
+    A base colour, a metallic value or a roughness the exporter cannot follow to a
+    constant (a texture) counts as clear, as no metal and as polished.
+    """
+    transmission, unfollowed = principled_transmission(node)
+    if transmission <= 0.0:
+        return 0.0, unfollowed
+    inputs = getattr(node, "inputs", None)
+
+    def constant(name: str, default: float) -> float:
+        socket = inputs.get(name) if inputs is not None else None
+        value = evaluate_socket_facing(socket) if socket is not None else None
+        return default if value is None else min(max(_as_scalar(value), 0.0), 1.0)
+
+    tint = constant("Base Color", 1.0)
+    metallic = constant("Metallic", 0.0)
+    roughness = constant("Roughness", 0.0)
+    return transmission * (1.0 - metallic) * tint * (1.0 - roughness), unfollowed
+
+
+def transmission_opacity(transmittance: float) -> float:
+    """The opacity of the blended surface that stands in for a transmissive one."""
+    return 1.0 - transmittance * (1.0 - TRANSMISSION_OPACITY)
+
+
 def _shader_opacity(node: Optional[object]) -> Optional[float]:
     """How much of the surface a shader covers: 1 for a BSDF, 0 for Transparent BSDF,
-    less for a transmissive Principled BSDF (see TRANSMISSION_OPACITY), mixed by a Mix
-    Shader's factor. A Mix Shader driven by Geometry > Backfacing takes the front-face
-    side. None for anything else (a linked factor, Add Shader, ...)."""
+    less for a transmissive Principled BSDF (see principled_transmittance), mixed by a
+    Mix Shader's factor. A Mix Shader driven by Geometry > Backfacing takes the
+    front-face side. None for anything else (a linked factor, Add Shader, ...)."""
     if node is None:
         return None
     node_id = node.bl_idname
     if node_id == "ShaderNodeBsdfTransparent":
         return 0.0
     if node_id == "ShaderNodeBsdfPrincipled":
-        transmission, _ = principled_transmission(node)
-        return 1.0 - transmission * (1.0 - TRANSMISSION_OPACITY)
+        transmittance, _ = principled_transmittance(node)
+        return transmission_opacity(transmittance)
     if node_id in {"ShaderNodeBsdfDiffuse", "ShaderNodeBsdfGlossy", "ShaderNodeEmission"}:
         return 1.0
     if node_id == "ShaderNodeMixShader":

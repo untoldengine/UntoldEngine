@@ -173,10 +173,17 @@ Transparency becomes the engine's blended alpha mode:
   alpha channel of the base color texture (a white one when the base color is a
   constant), since the engine reads alpha from the base color texture.
 - Glass is approximated, since the engine has no transmission: a Principled BSDF
-  with Transmission keeps 10 % opacity at full transmission, and Transparent BSDFs
-  mixed in by a Mix Shader lower the opacity by their share. A mix driven by
-  Geometry > Backfacing takes its front-face side. The material fidelity report
-  lists these approximations.
+  with Transmission becomes a blended surface. Clear glass (a white base color)
+  keeps 10 % opacity at full transmission. The base color tints the light that
+  crosses glass, so tinted glass is more opaque by the light its color takes
+  (counted by its brightness), and black glass is exported opaque: the black
+  mirror it is in Blender. The metallic share of a surface lets no light
+  through, so a metal with Transmission left on is opaque as well. A rough
+  surface scatters what crosses it, so frosted glass is more opaque the rougher
+  it is. A base color, a metallic value or a roughness that comes from a texture
+  counts as clear, as no metal and as polished. Transparent BSDFs mixed in by a Mix Shader lower the opacity by their
+  share. A mix driven by Geometry > Backfacing takes its front-face side. The
+  material fidelity report lists these approximations.
 
 Lights and cameras follow the same rules as objects: never from collections
 excluded from the view layer, and hidden ones only with `--include-hidden`.
