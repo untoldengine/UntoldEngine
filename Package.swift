@@ -88,6 +88,14 @@ let package = Package(
                 .headerSearchPath("include"),
             ]
         ),
+        // meshoptimizer (MIT), unmodified: the mesh simplifier behind the cook's automatic
+        // LOD chains. UntoldEngineMeshCook calls it from Swift through its C API.
+        .target(
+            name: "CMeshOptimizer",
+            path: "Sources/CMeshOptimizer",
+            exclude: ["LICENSE.md", "README.md"],
+            publicHeadersPath: "include"
+        ),
         .target(
             name: "UntoldEngine",
             dependencies: ["CShaderTypes"],
