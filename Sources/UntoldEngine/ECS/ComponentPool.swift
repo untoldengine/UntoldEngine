@@ -95,6 +95,60 @@ public protocol Component {
     init() // Requires a default initializer
 }
 
+/// How a component gets into its slot and out of it.
+///
+/// A slot is read without the scene's lock: the scene is handed out by value under the
+/// lock and the copy is read after it, and a render pass may keep a copy for as long as
+/// it runs. While a copy says a slot holds a component, another thread may put a new
+/// one there: the entity is given the component again, or it lost the component and
+/// gets it back, or it was destroyed and a new entity took its index.
+///
+/// So a component that is an object, as the engine's are, goes into its slot with an
+/// atomic store that comes after everything its initializer wrote, and comes out with
+/// an atomic load that takes that order. A reader gets the component the slot had or
+/// the new one, and either one whole.
+///
+/// A component that is a value is not one reference and cannot be swapped in one step.
+/// It is written and read in place: do not give one again to an entity that another
+/// thread may be reading.
+enum ComponentSlot {
+    /// Whether a slot of `T` holds one reference to an object.
+    static func holdsReference<T>(_: T.Type) -> Bool {
+        T.self is AnyObject.Type
+    }
+
+    /// Puts `component` in `slot`, which owns it from here on. What the slot held is
+    /// written over, not released.
+    @inline(__always)
+    static func store<T>(_ component: T, in slot: UnsafeMutableRawPointer, asReference: Bool) {
+        guard asReference else {
+            slot.bindMemory(to: T.self, capacity: 1).initialize(to: component)
+            return
+        }
+        let reference = unsafeBitCast(component, to: UnsafeRawPointer.self)
+        // The slot's own reference to the object.
+        _ = Unmanaged<AnyObject>.fromOpaque(reference).retain()
+        // Before macOS 15 and iOS 18 (Synchronization) the standard library has an atomic
+        // compare and exchange of a pointer and no plain atomic store. A scene is
+        // written under its lock, so the exchange has nobody to lose to.
+        var held = slot.load(as: UnsafeRawPointer?.self)
+        let word = slot.assumingMemoryBound(to: UnsafeRawPointer?.self)
+        while !_stdlib_atomicCompareExchangeStrongPtr(object: word, expected: &held, desired: reference) {}
+    }
+
+    /// The component in `slot`, read as a `T`. Only for a slot that holds one.
+    @inline(__always)
+    static func load<T>(from slot: UnsafeMutableRawPointer, as _: T.Type, asReference: Bool) -> T? {
+        guard asReference else {
+            return slot.assumingMemoryBound(to: T.self).pointee
+        }
+        guard let reference = _stdlib_atomicAcquiringLoadARCRef(object: slot.assumingMemoryBound(to: AnyObject?.self)) else {
+            return nil
+        }
+        return unsafeBitCast(reference.toOpaque(), to: T.self)
+    }
+}
+
 /// The components that left a pool and are not released yet.
 ///
 /// A component leaves its slot when it is removed from its entity, when its entity is
@@ -147,6 +201,8 @@ public struct ComponentPool {
     private struct Header {
         let chunkCount: Int
         let elementSize: Int
+        /// Whether a slot holds one reference to an object (see ComponentSlot).
+        let holdsReferences: Bool
         var quarantine: ComponentQuarantine
     }
 
@@ -160,17 +216,24 @@ public struct ComponentPool {
     private var departures: UInt64 = 0
 
     init<T: Component>(for type: T.Type) {
-        storage = Self.makeStorage(chunks: [], elementSize: MemoryLayout<T>.stride, quarantine: ComponentQuarantine(of: type))
+        storage = Self.makeStorage(
+            chunks: [], elementSize: MemoryLayout<T>.stride, holdsReferences: ComponentSlot.holdsReference(T.self),
+            quarantine: ComponentQuarantine(of: type)
+        )
     }
 
     private static func makeStorage(
-        chunks: [UnsafeMutableRawPointer], elementSize: Int, quarantine: ComponentQuarantine
+        chunks: [UnsafeMutableRawPointer], elementSize: Int, holdsReferences: Bool, quarantine: ComponentQuarantine
     ) -> Storage {
         let storage = Storage.create(minimumCapacity: chunks.count) { _ in
-            Header(chunkCount: chunks.count, elementSize: elementSize, quarantine: quarantine)
+            Header(chunkCount: chunks.count, elementSize: elementSize, holdsReferences: holdsReferences, quarantine: quarantine)
         }
         storage.withUnsafeMutablePointerToElements { $0.initialize(from: chunks, count: chunks.count) }
         return storage
+    }
+
+    private var holdsReferences: Bool {
+        storage.withUnsafeMutablePointerToHeader { $0.pointee.holdsReferences }
     }
 
     private var chunks: [UnsafeMutableRawPointer] {
@@ -196,7 +259,7 @@ public struct ComponentPool {
         for chunk in chunks {
             chunk.deallocate()
         }
-        storage = Self.makeStorage(chunks: [], elementSize: elementSize, quarantine: quarantine)
+        storage = Self.makeStorage(chunks: [], elementSize: elementSize, holdsReferences: holdsReferences, quarantine: quarantine)
     }
 
     /// Adds chunks until `index` has storage.
@@ -211,7 +274,7 @@ public struct ComponentPool {
                 )
             )
         }
-        storage = Self.makeStorage(chunks: chunks, elementSize: elementSize, quarantine: quarantine)
+        storage = Self.makeStorage(chunks: chunks, elementSize: elementSize, holdsReferences: holdsReferences, quarantine: quarantine)
     }
 
     public func get(_ index: Int) -> UnsafeMutableRawPointer? {
@@ -221,16 +284,30 @@ public struct ComponentPool {
         }
     }
 
+    /// Where the slot at `index` is, and whether it holds one reference to an object:
+    /// what ComponentSlot needs to read it or write it. Read and write a component
+    /// through ComponentSlot, not through the pointer `get` returns.
+    @inline(__always)
+    func slot(at index: Int) -> (address: UnsafeMutableRawPointer, holdsReference: Bool)? {
+        storage.withUnsafeMutablePointers { header, chunks in
+            guard index >= 0, index < header.pointee.chunkCount * Self.chunkCapacity else { return nil }
+            let address = chunks[index / Self.chunkCapacity].advanced(by: (index % Self.chunkCapacity) * header.pointee.elementSize)
+            return (address, header.pointee.holdsReferences)
+        }
+    }
+
     /// The component in the slot at `index`, read as a `T`. Only for a slot the entity's
     /// mask says holds one.
     ///
-    /// Read a slot through this: the pool is kept until the component is in the caller's
-    /// hands, and a pool that is kept holds back the release of what left it.
+    /// For a reader that holds a pool on its own: the pool is kept until the component is
+    /// in the caller's hands, and a pool that is kept holds back the release of what left
+    /// it. A reader that holds the scene (Scene.get) asks for the slot and reads it: the
+    /// scene it holds keeps the pool.
     @inline(__always)
     func component<T>(at index: Int, as _: T.Type) -> T? {
-        guard let slot = get(index) else { return nil }
+        guard let slot = slot(at: index) else { return nil }
         return withExtendedLifetime(storage) {
-            slot.bindMemory(to: T.self, capacity: 1).pointee
+            ComponentSlot.load(from: slot.address, as: T.self, asReference: slot.holdsReference)
         }
     }
 
@@ -274,10 +351,10 @@ public struct ComponentPool {
     }
 
     /// Add a new component to the pool at a specified index
-    public mutating func add<T: Component>(component: T, at index: Int) {
+    public mutating func add(component: some Component, at index: Int) {
         reserve(upTo: index)
-        guard let pointer = get(index) else { fatalError("No storage for entity index \(index) in ComponentPool.") }
-        pointer.assumingMemoryBound(to: T.self).initialize(to: component)
+        guard let slot = slot(at: index) else { fatalError("No storage for entity index \(index) in ComponentPool.") }
+        ComponentSlot.store(component, in: slot.address, asReference: slot.holdsReference)
     }
 }
 
