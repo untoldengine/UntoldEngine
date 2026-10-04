@@ -9,6 +9,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import Foundation
+import simd
 @testable import UntoldEngine
 import XCTest
 
@@ -100,8 +101,8 @@ final class UntoldPackRenderTests: BaseRenderSetup {
     }
 
     /// Loads a pack and returns its children by display name.
-    private func loadPack(_ packURL: URL) async throws -> [String: EntityID] {
-        let rootId = createEntity()
+    private func loadPack(_ packURL: URL, into root: EntityID? = nil) async throws -> [String: EntityID] {
+        let rootId = root ?? createEntity()
         let expectation = expectation(description: "pack load completes")
         setEntityMeshAsync(entityId: rootId, filename: packURL.deletingPathExtension().path, withExtension: "untoldpack") { success in
             XCTAssertTrue(success)
@@ -110,6 +111,28 @@ final class UntoldPackRenderTests: BaseRenderSetup {
         await fulfillment(of: [expectation], timeout: 10.0)
         let scenegraph = try XCTUnwrap(scene.get(component: ScenegraphComponent.self, for: rootId))
         return Dictionary(uniqueKeysWithValues: scenegraph.children.map { (getEntityName(entityId: $0) ?? "", $0) })
+    }
+
+    /// A model of a pack is created spatial and placed with the transform calls, which
+    /// update the world matrix at once. Registering its transform again in between asked
+    /// for a walk over every entity of the scene on the next frame, once per model.
+    func testModelsUnderAPlacedRootAreInPlaceWithoutATraversal() async throws {
+        let packURL = try writePack(models: [
+            (displayName: "Body", path: "Body/Body.untold", translationX: 0.0),
+            (displayName: "Arm", path: "Arm/Arm.untold", translationX: 2.5),
+        ])
+        let rootId = createEntity()
+        translateTo(entityId: rootId, position: simd_float3(10.0, 0.0, -4.0))
+        anyTransformDirty = false
+
+        let children = try await loadPack(packURL, into: rootId)
+
+        let armId = try XCTUnwrap(children["Arm"])
+        XCTAssertEqual(getLocalPosition(entityId: armId).x, 2.5, accuracy: 0.0001)
+        XCTAssertEqual(getPosition(entityId: armId).x, 12.5, accuracy: 0.0001)
+        XCTAssertEqual(getPosition(entityId: armId).z, -4.0, accuracy: 0.0001)
+        XCTAssertEqual(getEntityParent(entityId: armId), rootId)
+        XCTAssertFalse(anyTransformDirty, "loading a pack moved nothing that a traversal has to derive")
     }
 
     private func meshIdentity(_ entityId: EntityID) throws -> ObjectIdentifier {
