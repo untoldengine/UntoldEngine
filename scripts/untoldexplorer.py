@@ -3332,14 +3332,13 @@ def analyze_material(material: object) -> MaterialGraphAnalysis:
 
     # Where the images are does not matter here, only which heights the export leaves out.
     _, heights_left_out = material_height(material, Path())
-    for height in heights_left_out:
+    for height, why in heights_left_out:
         findings.append(
             MaterialGraphFinding(
                 getattr(height.node, "name", "") or height.node.bl_idname,
                 height.node.bl_idname,
                 MATERIAL_GRAPH_BAKEABLE,
-                f"its height of {height.scale:g} is the shading of a bump, too deep to be a parallax depth; "
-                "the relief it gives is not exported",
+                f"{why}; the relief it gives is not exported",
             )
         )
 
@@ -5372,11 +5371,10 @@ def _node_height(node: object, depth_input_name: str, asset_path: Path, remap_ma
     return MaterialHeight(node, texture, scale, remap_max)
 
 
-def _material_height_candidates(node_tree: object, asset_path: Path) -> Iterable[MaterialHeight]:
-    """The heights of a Principled BSDF material, in the order the export tries them."""
-    principled = _principled_bsdf_node(node_tree)
-    if principled is None:
-        return
+def _material_height_candidates(node_tree: object, principled: Optional[object], asset_path: Path) -> Iterable[MaterialHeight]:
+    """The heights a material holds, in the order the export tries them: the one of the
+    Displacement on the Material Output, then the one of the Bump on the Normal input
+    of its Principled BSDF, if it has one."""
     output = _material_output_node(node_tree)
     displacement_input = output.inputs.get("Displacement") if output is not None else None
     if displacement_input is not None and displacement_input.is_linked:
@@ -5385,7 +5383,7 @@ def _material_height_candidates(node_tree: object, asset_path: Path) -> Iterable
             height = _node_height(node, "Scale", asset_path, _displacement_remap_max(node))
             if height is not None:
                 yield height
-    normal_input = principled.inputs.get("Normal")
+    normal_input = principled.inputs.get("Normal") if principled is not None else None
     if normal_input is not None and normal_input.is_linked:
         node = normal_input.links[0].from_node
         if node.bl_idname == "ShaderNodeBump":
@@ -5395,29 +5393,41 @@ def _material_height_candidates(node_tree: object, asset_path: Path) -> Iterable
                 yield height
 
 
-def material_height(material: object, asset_path: Path) -> tuple[Optional[MaterialHeight], list[MaterialHeight]]:
+def material_height(material: object, asset_path: Path) -> tuple[Optional[MaterialHeight], list[tuple[MaterialHeight, str]]]:
     """The height a material is exported with, and the heights read on the way to it
-    that are left out as too deep to be a parallax depth.
+    that are left out, each with why.
 
     The Material Output's Displacement input comes first (the standard ArchViz/Poliigon
     authoring pattern: an Image Texture feeding a Displacement node's Height socket),
     then a Bump node feeding the Principled BSDF's Normal input directly (common in
     materials authored without a separate Displacement setup). A node counts only with
-    an image behind its Height input, the Bump node is read only when the Displacement
-    gives no height, and only a Principled BSDF surface has a height at all. See
-    docs/proposals/HeightMapParallaxOcclusionMapping.md for the domain rationale.
+    an image behind its Height input, and the Bump node is read only when the
+    Displacement gives no height. See docs/proposals/HeightMapParallaxOcclusionMapping.md
+    for the domain rationale.
+
+    Two things leave a height out:
+
+    - Its depth: above MAX_PARALLAX_HEIGHT_SCALE it is the shading of a bump.
+    - Its surface: only a material with a Principled BSDF is exported with a height
+      (extract_material returns before it asks for one of any other). A Displacement
+      on a Diffuse, a Glass or an Emission surface is left out whatever its depth, and
+      says that and not its depth: a smaller Scale would not bring its relief back.
 
     extract_material exports the first and analyze_material reports the second, so the
     material fidelity report cannot say something else than the export does.
     """
     node_tree = getattr(material, "node_tree", None)
-    left_out: list[MaterialHeight] = []
+    left_out: list[tuple[MaterialHeight, str]] = []
     if node_tree is None:
         return None, left_out
-    for height in _material_height_candidates(node_tree, asset_path):
-        if not height.too_deep:
+    principled = _principled_bsdf_node(node_tree)
+    for height in _material_height_candidates(node_tree, principled, asset_path):
+        if principled is None:
+            left_out.append((height, "a height is exported only with a Principled BSDF surface"))
+        elif height.too_deep:
+            left_out.append((height, f"its height of {height.scale:g} is the shading of a bump, too deep to be a parallax depth"))
+        else:
             return height, left_out
-        left_out.append(height)
     return None, left_out
 
 

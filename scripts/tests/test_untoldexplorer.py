@@ -1215,6 +1215,59 @@ class MaterialGraphAnalysisTests(unittest.TestCase):
         self.assertEqual(exported.height_remap_max, 1.0)
         self.assertEqual(self._too_deep_findings(material), ["ShaderNodeDisplacement"])
 
+    def _displacement_on(self, surface: FakeNode, *, scale: float) -> FakeData:
+        """A material whose surface is the given shader, with an image as the height of
+        a Displacement on its Material Output."""
+        material = self._make_displacement_material(midlevel=0.5, scale=scale, name="relief")
+        nodes = material.node_tree.nodes
+        output = next(node for node in nodes if node.bl_idname == "ShaderNodeOutputMaterial")
+        nodes.remove(next(node for node in nodes if node.bl_idname == "ShaderNodeBsdfPrincipled"))
+        surface.name = "Surface shader"
+        output.inputs["Surface"].link_from(surface, "BSDF")
+        nodes.append(surface)
+        material.diffuse_color = (0.8, 0.8, 0.8, 1.0)
+        return material
+
+    def test_a_displacement_on_a_surface_that_is_not_principled_is_reported_whatever_its_depth(self) -> None:
+        """Only a material with a Principled BSDF is exported with a height. On any other
+        surface a Displacement is left out at any depth, and the report says that: at
+        Blender's default Scale it gave the depth as the reason, which a smaller Scale
+        would not have cured, and at a smaller Scale it said nothing."""
+        def emission() -> FakeNode:
+            color = FakeSocket("Color")
+            color.default_value = (1.0, 1.0, 1.0, 1.0)
+            strength = FakeSocket("Strength")
+            strength.default_value = 2.0
+            return FakeNode("ShaderNodeEmission", inputs={"Color": color, "Strength": strength})
+
+        surfaces = {
+            "ShaderNodeBsdfDiffuse": lambda: FakeNode("ShaderNodeBsdfDiffuse"),
+            "ShaderNodeBsdfGlass": lambda: FakeNode("ShaderNodeBsdfGlass"),
+            "ShaderNodeEmission": emission,
+        }
+        for surface_id, make_surface in surfaces.items():
+            for scale in (1.0, 0.02):
+                with self.subTest(surface=surface_id, scale=scale):
+                    material = self._displacement_on(make_surface(), scale=scale)
+                    self.assertIsNone(self._extract(material).height_texture)
+
+                    findings = [finding for finding in u.analyze_material(material).findings if finding.node_type == "ShaderNodeDisplacement"]
+                    self.assertEqual(
+                        [finding.reason for finding in findings],
+                        ["a height is exported only with a Principled BSDF surface; the relief it gives is not exported"],
+                    )
+                    self.assertEqual(findings[0].category, u.MATERIAL_GRAPH_BAKEABLE)
+                    self.assertEqual(self._too_deep_findings(material), [])
+
+    def test_a_surface_that_is_not_principled_has_no_height_to_report_without_a_displacement(self) -> None:
+        principled, output = _make_principled_output(None)
+        diffuse = FakeNode("ShaderNodeBsdfDiffuse")
+        diffuse.name = "Diffuse BSDF"
+        output.inputs["Surface"].link_from(diffuse, "BSDF")
+        material = _make_material("matte", [output, diffuse])
+        self.assertEqual(u.material_height(material, Path()), (None, []))
+        self.assertFalse(any("relief" in finding.reason for finding in u.analyze_material(material).findings))
+
     def test_a_height_whose_depth_is_linked_takes_the_engines_default_depth(self) -> None:
         material = self._make_displacement_material(midlevel=0.5, scale=1.0, name="driven")
         displacement = next(node for node in material.node_tree.nodes if node.bl_idname == "ShaderNodeDisplacement")
