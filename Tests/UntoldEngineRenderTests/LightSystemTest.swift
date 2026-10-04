@@ -31,12 +31,52 @@ final class LightSystemTest: BaseRenderSetup {
         _ value: simd_float3,
         equals expected: simd_float3,
         accuracy: Float = 0.001,
+        _ message: String = "",
         file: StaticString = #filePath,
         line: UInt = #line
     ) {
-        XCTAssertEqual(value.x, expected.x, accuracy: accuracy, file: file, line: line)
-        XCTAssertEqual(value.y, expected.y, accuracy: accuracy, file: file, line: line)
-        XCTAssertEqual(value.z, expected.z, accuracy: accuracy, file: file, line: line)
+        XCTAssertEqual(value.x, expected.x, accuracy: accuracy, message, file: file, line: line)
+        XCTAssertEqual(value.y, expected.y, accuracy: accuracy, message, file: file, line: line)
+        XCTAssertEqual(value.z, expected.z, accuracy: accuracy, message, file: file, line: line)
+    }
+
+    /// The four functions that make a light, with the name a failure reports.
+    private let lightKinds: [(name: String, create: (EntityID) -> Void)] = [
+        ("directional", { createDirLight(entityId: $0) }),
+        ("point", { createPointLight(entityId: $0) }),
+        ("spot", { createSpotLight(entityId: $0) }),
+        ("area", { createAreaLight(entityId: $0) }),
+    ]
+
+    /// A light is made without asking for a scene graph traversal, so the matrices of the
+    /// entities have to be the ones a traversal computes already: run one over them and
+    /// check that it moves nothing.
+    private func assertTraversalChangesNothing(
+        _ entities: [EntityID],
+        _ message: String,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        let worldBefore = entities.map { scene.get(component: WorldTransformComponent.self, for: $0)?.space }
+
+        for entityId in entities {
+            scene.get(component: LocalTransformComponent.self, for: entityId)?.transformDirty = true
+        }
+        anyTransformDirty = true
+        traverseSceneGraph()
+
+        for (entityId, before) in zip(entities, worldBefore) {
+            guard let before, let after = scene.get(component: WorldTransformComponent.self, for: entityId)?.space else {
+                XCTFail("\(message): entity \(entityId) has no world transform", file: file, line: line)
+                continue
+            }
+            for column in 0 ..< 4 {
+                XCTAssertLessThan(
+                    simd_length(after[column] - before[column]), 0.0001,
+                    "\(message): the traversal moved column \(column) of entity \(entityId)", file: file, line: line
+                )
+            }
+        }
     }
 
     private func assertMatrixNotApproximatelyEqual(
@@ -788,5 +828,143 @@ final class LightSystemTest: BaseRenderSetup {
 
         XCTAssertEqual(lightComponent.intensity, 1.0, "Intensity should be all 1's")
         destroyEntity(entityId: entityId)
+    }
+
+    // MARK: - Lights and the transform of their entity
+
+    func testLightKeepsThePlaceOfItsEntityInTheScene() {
+        for kind in lightKinds {
+            let parent = createEntity()
+            let entity = createEntity()
+            let child = createEntity()
+            translateTo(entityId: parent, position: simd_float3(10.0, 0.0, 0.0))
+            setParent(childId: entity, parentId: parent)
+            setParent(childId: child, parentId: entity)
+            translateTo(entityId: entity, position: simd_float3(1.0, 2.0, 3.0))
+            scaleTo(entityId: entity, scale: simd_float3(2.0, 2.0, 2.0))
+            translateTo(entityId: child, position: simd_float3(0.0, 0.0, 1.0))
+
+            kind.create(entity)
+
+            assertVector(getLocalPosition(entityId: entity), equals: simd_float3(1.0, 2.0, 3.0), "\(kind.name): local position")
+            assertVector(getScale(entityId: entity), equals: simd_float3(2.0, 2.0, 2.0), "\(kind.name): scale")
+            assertVector(getPosition(entityId: entity), equals: simd_float3(11.0, 2.0, 3.0), "\(kind.name): world position")
+
+            XCTAssertEqual(getEntityParent(entityId: entity), parent, "\(kind.name): the entity keeps its parent")
+            XCTAssertEqual(getEntityChildren(parentId: parent), [entity], "\(kind.name): the parent lists the entity once")
+            XCTAssertEqual(getEntityChildren(parentId: entity), [child], "\(kind.name): the entity keeps its child")
+            XCTAssertEqual(getEntityParent(entityId: child), entity, "\(kind.name): the child keeps its parent")
+            XCTAssertEqual(scene.get(component: ScenegraphComponent.self, for: entity)?.level, 1, "\(kind.name): level of the entity")
+            XCTAssertEqual(scene.get(component: ScenegraphComponent.self, for: child)?.level, 2, "\(kind.name): level of the child")
+
+            // Nothing rotated the entity, so the light gets its default direction: down.
+            assertVector(getLightEmissionDirection(entityId: entity), equals: simd_float3(0.0, -1.0, 0.0), "\(kind.name): emission direction")
+
+            assertTraversalChangesNothing([parent, entity, child], kind.name)
+
+            destroyEntity(entityId: parent)
+            destroyEntity(entityId: entity)
+            destroyEntity(entityId: child)
+        }
+    }
+
+    func testLightKeepsTheRotationOfAnEntityThatWasRotated() {
+        for kind in lightKinds {
+            let entity = createEntity()
+            let child = createEntity()
+            setParent(childId: child, parentId: entity)
+            translateTo(entityId: child, position: simd_float3(0.0, 0.0, 1.0))
+            rotateTo(entityId: entity, angle: 90.0, axis: simd_float3(0.0, 1.0, 0.0))
+            let rotation = getRotationQuaternion(entityId: entity)
+
+            kind.create(entity)
+
+            XCTAssertEqual(
+                abs(simd_dot(getRotationQuaternion(entityId: entity), rotation)), 1.0, accuracy: 0.0001,
+                "\(kind.name): the rotation set before the light was made"
+            )
+            // Lights emit along local -Z, which a quarter turn around +Y points along -X.
+            assertVector(getLightEmissionDirection(entityId: entity), equals: simd_float3(-1.0, 0.0, 0.0), "\(kind.name): emission direction")
+            // The child stays where the rotation of its parent put it.
+            assertVector(getPosition(entityId: child), equals: simd_float3(1.0, 0.0, 0.0), "\(kind.name): world position of the child")
+
+            assertTraversalChangesNothing([entity, child], kind.name)
+
+            destroyEntity(entityId: entity)
+            destroyEntity(entityId: child)
+        }
+    }
+
+    func testLightOnAFreshEntityReachesTheRendererWhereItIsMoved() throws {
+        destroyAllEntities()
+        // The renderer's own directional light stays the active one until it is gone.
+        finalizePendingDestroys()
+
+        let position = simd_float3(4.0, 5.0, 6.0)
+        var lights: [String: EntityID] = [:]
+        for kind in lightKinds {
+            let entity = createEntity()
+            kind.create(entity)
+            translateTo(entityId: entity, position: position)
+            lights[kind.name] = entity
+
+            XCTAssertTrue(hasComponent(entityId: entity, componentType: LightComponent.self), "\(kind.name): light component")
+            XCTAssertTrue(hasComponent(entityId: entity, componentType: RenderComponent.self), "\(kind.name): the handle the editor draws")
+            assertVector(getPosition(entityId: entity), equals: position, "\(kind.name): world position")
+            assertVector(getLightEmissionDirection(entityId: entity), equals: simd_float3(0.0, -1.0, 0.0), "\(kind.name): emission direction")
+        }
+
+        XCTAssertEqual(LightingSystem.shared.activeDirectionalLight, lights["directional"])
+        let sun = getDirectionalLightParameters()
+        assertVector(sun.direction, equals: simd_float3(0.0, 1.0, 0.0), "directional: towards the light")
+        XCTAssertEqual(sun.intensity, 1.0, accuracy: 0.0001)
+
+        let point = try XCTUnwrap(getPointLights().first)
+        XCTAssertEqual(getPointLights().count, 1)
+        assertVector(point.position, equals: position, "point: position in the renderer's list")
+
+        let spot = try XCTUnwrap(getSpotLights().first)
+        XCTAssertEqual(getSpotLights().count, 1)
+        assertVector(spot.position, equals: position, "spot: position in the renderer's list")
+        assertVector(spot.direction, equals: simd_float3(0.0, -1.0, 0.0), "spot: direction in the renderer's list")
+
+        let area = try XCTUnwrap(getAreaLights().first)
+        XCTAssertEqual(getAreaLights().count, 1)
+        assertVector(area.position, equals: position, "area: position in the renderer's list")
+        assertVector(area.forward, equals: simd_float3(0.0, 1.0, 0.0), "area: front normal in the renderer's list")
+    }
+
+    func testLightOnAFreshEntityAsksForNoSceneGraphTraversal() {
+        for kind in lightKinds {
+            // Settle what the scene asked for before, the renderer's own camera included.
+            traverseSceneGraph()
+            XCTAssertFalse(anyTransformDirty)
+
+            let entity = createEntity()
+            kind.create(entity)
+            translateTo(entityId: entity, position: simd_float3(4.0, 5.0, 6.0))
+
+            XCTAssertFalse(anyTransformDirty, "\(kind.name): making a light asks for no traversal")
+            assertTraversalChangesNothing([entity], kind.name)
+
+            destroyEntity(entityId: entity)
+        }
+    }
+
+    func testLightGivesATransformToAnEntityThatHasNone() {
+        for kind in lightKinds {
+            // As entities were before createEntity() attached the components itself.
+            let entity = scene.newEntity()
+            XCTAssertFalse(hasComponent(entityId: entity, componentType: LocalTransformComponent.self))
+
+            kind.create(entity)
+
+            XCTAssertTrue(hasComponent(entityId: entity, componentType: LocalTransformComponent.self), "\(kind.name): local transform")
+            XCTAssertTrue(hasComponent(entityId: entity, componentType: WorldTransformComponent.self), "\(kind.name): world transform")
+            XCTAssertTrue(hasComponent(entityId: entity, componentType: ScenegraphComponent.self), "\(kind.name): scene graph")
+            assertVector(getLightEmissionDirection(entityId: entity), equals: simd_float3(0.0, -1.0, 0.0), "\(kind.name): emission direction")
+
+            destroyEntity(entityId: entity)
+        }
     }
 }

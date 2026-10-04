@@ -62,6 +62,20 @@ let panel = createEntity()
 createAreaLight(entityId: panel)
 ```
 
+### A Light on an Entity That Is Already Placed
+
+A light takes the transform of the entity it is created on. The entity keeps its position, its scale, its parent and its children, so it can be placed before or after it becomes a light:
+
+```swift
+let lamp = createEntity()
+setParent(childId: lamp, parentId: room)
+translateTo(entityId: lamp, position: simd_float3(0, 2.5, 0))
+
+createPointLight(entityId: lamp) // stays at (0, 2.5, 0) under `room`
+```
+
+An entity that has not been rotated gets the default orientation of the light: a sun straight overhead for a directional light, pointing down for the others. An entity that was rotated before keeps its rotation, and the light emits along its local `-Z`.
+
 ---
 
 ## Configuring Light Properties

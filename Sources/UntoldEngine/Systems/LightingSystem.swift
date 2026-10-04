@@ -212,9 +212,37 @@ public func resetLightPortalAreaLightCache() {
     LightingSystem.shared.resetLightPortalAreaLightCache()
 }
 
+/// A light takes the transform and the place in the scene graph of the entity it is made on.
+/// `createEntity()` attaches both, and registering them again would replace them: the entity
+/// would go back to the origin at scale one and drop out of its hierarchy, with its parent
+/// still listing it and its children still pointing to it. Register them only for an entity
+/// that has none.
+private func ensureLightTransformComponents(entityId: EntityID) {
+    if hasComponent(entityId: entityId, componentType: LocalTransformComponent.self) == false {
+        registerTransformComponent(entityId: entityId)
+    }
+
+    if hasComponent(entityId: entityId, componentType: ScenegraphComponent.self) == false {
+        registerSceneGraphComponent(entityId: entityId)
+    }
+}
+
+/// True when the rotation of the entity is the identity: nothing has rotated it. A new light
+/// gets its default orientation only then; an entity that was rotated before it became a
+/// light keeps that rotation.
+private func hasIdentityRotation(entityId: EntityID) -> Bool {
+    guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
+        return true
+    }
+
+    // The vector part of a unit quaternion is zero for the identity, whatever the sign of q.
+    return simd_length_squared(localTransformComponent.rotation.imag) <= 1.0e-12
+}
+
 private func applyDefaultLightOrientation(entityId: EntityID) {
     // Engine light emission is defined as local -Z transformed into world space.
     // Rotate identity lights so the default emission direction points along -Y.
+    guard hasIdentityRotation(entityId: entityId) else { return }
     rotateTo(entityId: entityId, angle: -90.0, axis: simd_float3(1.0, 0.0, 0.0))
 }
 
@@ -373,16 +401,22 @@ public func setSunElevationAzimuth(entityId: EntityID, elevation: Float, azimuth
     rotateTo(entityId: entityId, rotation: rotation)
 }
 
+/// Makes the entity a directional light, and the active one when the scene has none.
+///
+/// The entity keeps its position, scale, parent and children. One that has not been rotated
+/// becomes a sun straight overhead; one that was rotated keeps its rotation and shines along
+/// its local -Z.
 public func createDirLight(entityId: EntityID) {
     registerComponent(entityId: entityId, componentType: LightComponent.self)
     registerComponent(entityId: entityId, componentType: DirectionalLightComponent.self)
-    registerTransformComponent(entityId: entityId)
-    registerSceneGraphComponent(entityId: entityId)
+    ensureLightTransformComponents(entityId: entityId)
 
     assignDefaultProceduralLightMesh(entityId: entityId)
     // Default sun position/brightness for newly-created directional lights, tuned for the
     // procedural sky background (see getSunElevationAzimuth/setSunElevationAzimuth).
-    setSunElevationAzimuth(entityId: entityId, elevation: 90.0, azimuth: 0.0)
+    if hasIdentityRotation(entityId: entityId) {
+        setSunElevationAzimuth(entityId: entityId, elevation: 90.0, azimuth: 0.0)
+    }
 
     guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
         handleError(.noLightComponent)
@@ -405,11 +439,15 @@ public func createDirLight(entityId: EntityID) {
     }
 }
 
+/// Makes the entity a point light.
+///
+/// The entity keeps its position, scale, parent and children. One that has not been rotated
+/// gets the orientation the other lights start with, local -Z pointing down; one that was
+/// rotated keeps its rotation.
 public func createPointLight(entityId: EntityID) {
     registerComponent(entityId: entityId, componentType: LightComponent.self)
     registerComponent(entityId: entityId, componentType: PointLightComponent.self)
-    registerTransformComponent(entityId: entityId)
-    registerSceneGraphComponent(entityId: entityId)
+    ensureLightTransformComponents(entityId: entityId)
 
     assignDefaultProceduralLightMesh(entityId: entityId)
     applyDefaultLightOrientation(entityId: entityId)
@@ -431,11 +469,15 @@ public func createPointLight(entityId: EntityID) {
     }
 }
 
+/// Makes the entity a spot light.
+///
+/// The entity keeps its position, scale, parent and children. One that has not been rotated
+/// is turned to shine down; one that was rotated keeps its rotation and shines along its
+/// local -Z.
 public func createSpotLight(entityId: EntityID) {
     registerComponent(entityId: entityId, componentType: LightComponent.self)
     registerComponent(entityId: entityId, componentType: SpotLightComponent.self)
-    registerTransformComponent(entityId: entityId)
-    registerSceneGraphComponent(entityId: entityId)
+    ensureLightTransformComponents(entityId: entityId)
 
     assignDefaultProceduralLightMesh(entityId: entityId)
     applyDefaultLightOrientation(entityId: entityId)
@@ -461,11 +503,15 @@ public func createSpotLight(entityId: EntityID) {
     }
 }
 
+/// Makes the entity an area light: its scale gives the size of the emitting rectangle.
+///
+/// The entity keeps its position, scale, parent and children. One that has not been rotated
+/// is turned to shine down; one that was rotated keeps its rotation and shines along its
+/// local -Z.
 public func createAreaLight(entityId: EntityID) {
     registerComponent(entityId: entityId, componentType: LightComponent.self)
     registerComponent(entityId: entityId, componentType: AreaLightComponent.self)
-    registerTransformComponent(entityId: entityId)
-    registerSceneGraphComponent(entityId: entityId)
+    ensureLightTransformComponents(entityId: entityId)
 
     assignDefaultProceduralLightMesh(entityId: entityId)
     applyDefaultLightOrientation(entityId: entityId)
