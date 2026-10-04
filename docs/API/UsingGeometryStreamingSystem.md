@@ -44,6 +44,24 @@ if let url = URL(string: "https://cdn.example.com/city/city.json") {
 
 Remote manifests are downloaded and cached locally. Tile, HLOD, and per-tile LOD URLs are resolved relative to the manifest URL and fetched on demand.
 
+### The root entity
+
+The root is your entity. Tile stubs are parented under it, and destroying it tears the streamed scene down.
+
+- **It keeps its place in the scene graph.** A root that has a parent stays under it, and entities already parented under the root stay there.
+- **Its own position, rotation and scale are reset to identity** when the stubs are registered. Tile bounds in the manifest are world-space values and do not follow the root. A warning is logged when this discards a transform.
+- **Its ancestors should be at identity too.** If they are not, the scene is drawn where they put it while streaming and culling still use the manifest bounds: tiles can fail to load or be culled wrongly. A warning says so.
+
+To place, turn or scale a streamed scene, use the scene-root functions, which the streaming system accounts for:
+
+```swift
+translateSceneTo(position: simd_float3(0.0, 0.0, -2.0))
+rotateSceneToYaw(.pi / 2.0)
+scaleSceneTo(0.1)
+```
+
+See [Using the Transform System](UsingTransformSystem.md) for these functions.
+
 ## What Streams
 
 The engine uses multiple geometry layers:

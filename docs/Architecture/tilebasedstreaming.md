@@ -167,7 +167,7 @@ unloaded → parsing → parsed → unloading → unloaded
 
 1. Locates and decodes the manifest JSON (no geometry parsed). If the manifest URL is HTTP/HTTPS, it is downloaded and cached via `RemoteAssetDownloader` before decoding. Tile asset URLs in the manifest are resolved relative to the manifest's base URL, so remote manifests produce remote tile URLs (e.g. `https://cdn.example.com/scene/tiles/tile_0_0.untold`). See [`asset_remote_streaming.md`](asset_remote_streaming.md) for the full download lifecycle.
 2. Resets `interiorZone` and `firstRangeTimestamps` on `GeometryStreamingSystem` so stale scene-level state from a previous scene does not bleed into the new one.
-3. Registers the supplied root entity with `TiledSceneComponent`, `LocalTransformComponent`, and `ScenegraphComponent`.
+3. Marks the supplied root entity with `TiledSceneComponent`. The root keeps the `LocalTransformComponent` and `ScenegraphComponent` that `createEntity()` gave it (they are registered only when missing), so it stays under its parent and keeps its existing children. Its own transform is reset to identity, because tile bounds are world-space values; a warning is logged when that discards a transform or when an ancestor still keeps the root away from identity.
 4. Registers one lightweight stub entity per tile inside a single `withWorldMutationGate`, parented under the root entity. Each stub receives:
    - Identity world transform
    - `LocalTransformComponent.boundingBox` set to the tile's world-space AABB

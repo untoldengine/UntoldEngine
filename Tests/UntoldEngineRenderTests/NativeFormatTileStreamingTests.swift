@@ -807,6 +807,380 @@ final class NativeFormatTileStreamingTests: BaseRenderSetup {
         tileComp.parseStartTime = 0
     }
 
+    // MARK: - The root entity of a streamed scene
+
+    /// The root keeps the transform and scene graph components `createEntity()` gave it, so
+    /// it stays under its parent and keeps the children it already has.
+    func testStreamSceneRoot_keepsItsParentAndTheChildrenItHad() async throws {
+        let fixture = try makeUntoldTileSceneFixture(includeHLOD: false, includeLOD: false)
+        let (parent, root, child) = makePlacedRoot()
+        let localBefore = try XCTUnwrap(scene.get(component: LocalTransformComponent.self, for: root))
+        let worldBefore = try XCTUnwrap(scene.get(component: WorldTransformComponent.self, for: root))
+        let graphBefore = try XCTUnwrap(scene.get(component: ScenegraphComponent.self, for: root))
+
+        let didSucceed = await attachStreamScene(to: root, url: fixture.manifestURL)
+        XCTAssertTrue(didSucceed)
+        let stub = try XCTUnwrap(findEntity(named: fixture.tileID))
+
+        XCTAssertTrue(scene.get(component: LocalTransformComponent.self, for: root) === localBefore, "The local transform is the one the root had")
+        XCTAssertTrue(scene.get(component: WorldTransformComponent.self, for: root) === worldBefore, "The world transform is the one the root had")
+        XCTAssertTrue(scene.get(component: ScenegraphComponent.self, for: root) === graphBefore, "The scene graph node is the one the root had")
+
+        XCTAssertEqual(getEntityParent(entityId: root), parent, "The root keeps its parent")
+        XCTAssertEqual(getEntityChildren(parentId: parent), [root], "The parent lists the root once")
+        XCTAssertEqual(getEntityParent(entityId: child), root, "The earlier child keeps its parent")
+        XCTAssertEqual(getEntityChildren(parentId: root), [child, stub], "The root lists its earlier child and the tile stub")
+        XCTAssertEqual(getEntityParent(entityId: stub), root, "The tile stub is parented under the root")
+        XCTAssertEqual(scene.get(component: ScenegraphComponent.self, for: root)?.level, 1)
+        XCTAssertEqual(scene.get(component: ScenegraphComponent.self, for: child)?.level, 2)
+        XCTAssertEqual(scene.get(component: ScenegraphComponent.self, for: stub)?.level, 2)
+        assertSceneGraphIsConsistent([parent, root, child, stub])
+        XCTAssertNotNil(scene.get(component: TiledSceneComponent.self, for: root))
+    }
+
+    /// Tile bounds are world-space values that do not follow the root, so its own transform
+    /// goes back to identity. What its parent adds stays, and the entities under the root
+    /// are where that puts them without waiting for a scene graph traversal.
+    func testStreamSceneRoot_isPutBackAtTheIdentityOfItsParentSpace() async throws {
+        let fixture = try makeUntoldTileSceneFixture(includeHLOD: false, includeLOD: false)
+        let (parent, root, child) = makePlacedRoot()
+        assertVector(getPosition(entityId: child), equals: simd_float3(11.0, 4.0, 3.0))
+
+        let didSucceed = await attachStreamScene(to: root, url: fixture.manifestURL)
+        XCTAssertTrue(didSucceed)
+        let stub = try XCTUnwrap(findEntity(named: fixture.tileID))
+
+        assertVector(getLocalPosition(entityId: root), equals: .zero)
+        assertVector(getScale(entityId: root), equals: .one)
+        XCTAssertEqual(abs(getRotationQuaternion(entityId: root).real), 1.0, accuracy: 0.0001, "The root is no longer rotated")
+        assertVector(getAxisRotations(entityId: root), equals: .zero)
+
+        assertVector(getPosition(entityId: root), equals: simd_float3(10.0, 0.0, 0.0))
+        assertVector(getPosition(entityId: child), equals: simd_float3(10.0, 1.0, 0.0))
+        assertVector(getPosition(entityId: stub), equals: simd_float3(10.0, 0.0, 0.0))
+        assertTraversalChangesNothing([parent, root, child, stub])
+    }
+
+    func testStreamSceneRoot_destroyTakesTheChildrenItHad() async throws {
+        let fixture = try makeUntoldTileSceneFixture(includeHLOD: false, includeLOD: false)
+        let (parent, root, child) = makePlacedRoot()
+
+        let didSucceed = await attachStreamScene(to: root, url: fixture.manifestURL)
+        XCTAssertTrue(didSucceed)
+        let stub = try XCTUnwrap(findEntity(named: fixture.tileID))
+
+        destroyEntity(entityId: root)
+        finalizePendingDestroys()
+
+        XCTAssertFalse(scene.exists(root))
+        XCTAssertFalse(scene.exists(stub), "The tile stub goes with the root")
+        XCTAssertFalse(scene.exists(child), "An entity parented under the root before the scene was attached goes with it")
+        XCTAssertTrue(scene.exists(parent))
+        XCTAssertTrue(getEntityChildren(parentId: parent).isEmpty, "The parent no longer lists the destroyed root")
+    }
+
+    /// A root that was placed streams from where the manifest puts the tiles, like a fresh one.
+    func testStreamSceneRoot_placedRootStreamsFromTheAuthoredPlace() async throws {
+        let fixture = try makeUntoldTileSceneFixture(includeHLOD: false, includeLOD: false)
+        let root = createEntity()
+        translateTo(entityId: root, position: simd_float3(1000.0, 0.0, 0.0))
+        scaleTo(entityId: root, scale: simd_float3(2.0, 2.0, 2.0))
+
+        let didSucceed = await attachStreamScene(to: root, url: fixture.manifestURL)
+        XCTAssertTrue(didSucceed)
+        let stub = try XCTUnwrap(findEntity(named: fixture.tileID))
+        XCTAssertEqual(getEntityParent(entityId: stub), root)
+        assertVector(getPosition(entityId: stub), equals: .zero)
+
+        // The tile spans -1...1 around the origin. A camera 10 m away that looks at it has
+        // it in range and in view: the streaming tick dispatches it, and nothing else here
+        // loads it.
+        let camera = try XCTUnwrap(CameraSystem.shared.activeCamera)
+        cameraLookAt(entityId: camera, eye: simd_float3(0.0, 0.0, 10.0), target: .zero, up: simd_float3(0.0, 1.0, 0.0))
+        GeometryStreamingSystem.shared.update(cameraPosition: simd_float3(0.0, 0.0, 10.0), deltaTime: 0.016)
+
+        let tileParsed = await waitUntil(timeout: 5.0) {
+            scene.get(component: TileComponent.self, for: stub)?.state == .parsed
+        }
+        XCTAssertTrue(tileParsed, "The streaming tick should dispatch the tile under a root that was placed")
+
+        let meshRoot = try XCTUnwrap(getEntityChildren(parentId: stub).first)
+        XCTAssertFalse(GeometryStreamingSystem.shared.collectRenderDescendantIds(meshRoot).isEmpty)
+        assertSceneGraphIsConsistent([root, stub, meshRoot])
+    }
+
+    func testStreamSceneRoot_freshRootIsLeftAsItIs() async throws {
+        let fixture = try makeUntoldTileSceneFixture(includeHLOD: false, includeLOD: false)
+        let rootName = "Root \(UUID().uuidString)"
+        let root = createEntity()
+        setEntityName(entityId: root, name: rootName)
+        let localBefore = try XCTUnwrap(scene.get(component: LocalTransformComponent.self, for: root))
+        let worldBefore = try XCTUnwrap(scene.get(component: WorldTransformComponent.self, for: root))
+        let graphBefore = try XCTUnwrap(scene.get(component: ScenegraphComponent.self, for: root))
+
+        let warnings = await warningsLogged(mentioning: rootName) {
+            let didSucceed = await attachStreamScene(to: root, url: fixture.manifestURL)
+            XCTAssertTrue(didSucceed)
+        }
+        let stub = try XCTUnwrap(findEntity(named: fixture.tileID))
+
+        XCTAssertTrue(scene.get(component: LocalTransformComponent.self, for: root) === localBefore)
+        XCTAssertTrue(scene.get(component: WorldTransformComponent.self, for: root) === worldBefore)
+        XCTAssertTrue(scene.get(component: ScenegraphComponent.self, for: root) === graphBefore)
+        XCTAssertEqual(getEntityChildren(parentId: root), [stub])
+        XCTAssertNil(getEntityParent(entityId: root))
+        assertSceneGraphIsConsistent([root, stub])
+        XCTAssertEqual(warnings, [], "A root from createEntity() is at identity: there is nothing to report")
+    }
+
+    /// A parent at identity, such as a group that only organizes the hierarchy, does not
+    /// move the tiles: the root stays in it and nothing is reported.
+    func testStreamSceneRoot_inAGroupAtIdentityStaysInTheGroup() async throws {
+        let fixture = try makeUntoldTileSceneFixture(includeHLOD: false, includeLOD: false)
+        let rootName = "Root \(UUID().uuidString)"
+        let group = createEntity()
+        let root = createEntity()
+        setEntityName(entityId: root, name: rootName)
+        setParent(childId: root, parentId: group)
+
+        let warnings = await warningsLogged(mentioning: rootName) {
+            let didSucceed = await attachStreamScene(to: root, url: fixture.manifestURL)
+            XCTAssertTrue(didSucceed)
+        }
+        let stub = try XCTUnwrap(findEntity(named: fixture.tileID))
+
+        XCTAssertEqual(getEntityParent(entityId: root), group)
+        XCTAssertEqual(getEntityChildren(parentId: group), [root])
+        assertVector(getPosition(entityId: stub), equals: .zero)
+        assertSceneGraphIsConsistent([group, root, stub])
+        XCTAssertEqual(warnings, [])
+    }
+
+    /// An entity that does not come from `createEntity()` may have no transform or scene
+    /// graph node; the root gets them then, as before.
+    func testStreamSceneRoot_withoutTransformComponentsGetsThem() async throws {
+        let fixture = try makeUntoldTileSceneFixture(includeHLOD: false, includeLOD: false)
+        let root = createEntity()
+        removeEntityTransforms(entityId: root)
+        scene.remove(component: ScenegraphComponent.self, from: root)
+
+        let didSucceed = await attachStreamScene(to: root, url: fixture.manifestURL)
+        XCTAssertTrue(didSucceed)
+        let stub = try XCTUnwrap(findEntity(named: fixture.tileID))
+
+        XCTAssertTrue(hasComponent(entityId: root, componentType: LocalTransformComponent.self))
+        XCTAssertTrue(hasComponent(entityId: root, componentType: WorldTransformComponent.self))
+        XCTAssertTrue(hasComponent(entityId: root, componentType: ScenegraphComponent.self))
+        XCTAssertEqual(getEntityChildren(parentId: root), [stub])
+        assertSceneGraphIsConsistent([root, stub])
+    }
+
+    func testStreamSceneRoot_warnsWhenItsTransformIsDiscarded() async throws {
+        let fixture = try makeUntoldTileSceneFixture(includeHLOD: false, includeLOD: false)
+        let rootName = "Root \(UUID().uuidString)"
+        let root = createEntity()
+        setEntityName(entityId: root, name: rootName)
+        translateTo(entityId: root, position: simd_float3(1.0, 2.0, 3.0))
+
+        let warnings = await warningsLogged(mentioning: rootName) {
+            let didSucceed = await attachStreamScene(to: root, url: fixture.manifestURL)
+            XCTAssertTrue(didSucceed)
+        }
+
+        XCTAssertEqual(warnings.count, 1, "\(warnings)")
+        XCTAssertTrue(warnings.first?.contains("reset to identity") == true, "\(warnings)")
+        assertVector(getPosition(entityId: root), equals: .zero)
+    }
+
+    func testStreamSceneRoot_warnsWhenAnAncestorKeepsItAwayFromIdentity() async throws {
+        let fixture = try makeUntoldTileSceneFixture(includeHLOD: false, includeLOD: false)
+        let rootName = "Root \(UUID().uuidString)"
+        let grandparent = createEntity()
+        let parent = createEntity()
+        let root = createEntity()
+        setEntityName(entityId: root, name: rootName)
+        setParent(childId: parent, parentId: grandparent)
+        setParent(childId: root, parentId: parent)
+        translateTo(entityId: grandparent, position: simd_float3(10.0, 0.0, 0.0))
+
+        let warnings = await warningsLogged(mentioning: rootName) {
+            let didSucceed = await attachStreamScene(to: root, url: fixture.manifestURL)
+            XCTAssertTrue(didSucceed)
+        }
+
+        XCTAssertEqual(warnings.count, 1, "\(warnings)")
+        XCTAssertTrue(warnings.first?.contains("because of its ancestors") == true, "\(warnings)")
+        // The hierarchy is the caller's: the root stays where its ancestors put it.
+        XCTAssertEqual(getEntityParent(entityId: root), parent)
+        assertVector(getPosition(entityId: root), equals: simd_float3(10.0, 0.0, 0.0))
+    }
+
+    /// A scene saved with a stream root that was moved and parented after it was loaded,
+    /// which the editor allows. The deserializer attaches the stream scene to an entity it
+    /// then places and parents from the file.
+    func testStreamSceneRoot_savedSceneLoadsWithAConsistentSceneGraph() async throws {
+        let fixture = try makeUntoldTileSceneFixture(includeHLOD: false, includeLOD: false)
+        // The serializer stores the manifest of a project by its path inside the project.
+        let previousAssetBasePath = assetBasePath
+        assetBasePath = fixture.manifestURL.deletingLastPathComponent()
+        defer { assetBasePath = previousAssetBasePath }
+
+        let parent = createEntity()
+        setEntityName(entityId: parent, name: "Saved Parent")
+        let root = createEntity()
+        setEntityName(entityId: root, name: "Saved Root")
+        let didSucceed = await attachStreamScene(to: root, url: fixture.manifestURL)
+        XCTAssertTrue(didSucceed)
+
+        setParent(childId: root, parentId: parent)
+        translateTo(entityId: root, position: simd_float3(1.0, 2.0, 3.0))
+        let child = createEntity()
+        setEntityName(entityId: child, name: "Saved Child")
+        setParent(childId: child, parentId: root)
+        translateTo(entityId: child, position: simd_float3(0.0, 1.0, 0.0))
+
+        let sceneData = serializeScene()
+        XCTAssertEqual(sceneData.entities.first(where: { $0.name == "Saved Root" })?.asset?.kind, .streamModel)
+
+        destroyAllEntities()
+        finalizePendingDestroys()
+        GeometryStreamingSystem.shared.reset()
+        GeometryStreamingSystem.shared.enabled = true
+
+        let sceneLoaded = expectation(description: "Scene deserialized")
+        deserializeScene(sceneData: sceneData, completion: { sceneLoaded.fulfill() })
+        await fulfillment(of: [sceneLoaded], timeout: 10.0)
+
+        let loadedParent = try XCTUnwrap(findEntity(named: "Saved Parent"))
+        let loadedRoot = try XCTUnwrap(findEntity(named: "Saved Root"))
+        let loadedChild = try XCTUnwrap(findEntity(named: "Saved Child"))
+        let loadedStub = try XCTUnwrap(findEntity(named: fixture.tileID))
+
+        XCTAssertEqual(getEntityParent(entityId: loadedRoot), loadedParent)
+        XCTAssertEqual(getEntityChildren(parentId: loadedParent), [loadedRoot])
+        XCTAssertEqual(getEntityParent(entityId: loadedChild), loadedRoot)
+        XCTAssertEqual(Set(getEntityChildren(parentId: loadedRoot)), [loadedChild, loadedStub])
+        XCTAssertEqual(getEntityParent(entityId: loadedStub), loadedRoot)
+        assertSceneGraphIsConsistent([loadedParent, loadedRoot, loadedChild, loadedStub])
+
+        // The deserializer holds the world mutation gate until it has restored the saved
+        // transform and parent of the root; the root is prepared under the same gate, so
+        // the saved transform is always the one that is reset.
+        assertVector(getLocalPosition(entityId: loadedRoot), equals: .zero)
+        assertVector(getPosition(entityId: loadedChild), equals: simd_float3(0.0, 1.0, 0.0))
+        assertVector(getPosition(entityId: loadedStub), equals: .zero)
+        assertTraversalChangesNothing([loadedParent, loadedRoot, loadedChild, loadedStub])
+    }
+
+    /// A root at (1, 2, 3), turned and at twice its size, under a parent at (10, 0, 0), with
+    /// a child of its own one metre above it.
+    private func makePlacedRoot() -> (parent: EntityID, root: EntityID, child: EntityID) {
+        let parent = createEntity()
+        let root = createEntity()
+        let child = createEntity()
+        translateTo(entityId: parent, position: simd_float3(10.0, 0.0, 0.0))
+        setParent(childId: root, parentId: parent)
+        setParent(childId: child, parentId: root)
+        translateTo(entityId: root, position: simd_float3(1.0, 2.0, 3.0))
+        applyAxisRotations(entityId: root, axis: simd_float3(0.0, 90.0, 0.0))
+        scaleTo(entityId: root, scale: simd_float3(2.0, 2.0, 2.0))
+        translateTo(entityId: child, position: simd_float3(0.0, 1.0, 0.0))
+        return (parent, root, child)
+    }
+
+    private func attachStreamScene(to rootEntityId: EntityID, url: URL) async -> Bool {
+        await withCheckedContinuation { continuation in
+            setEntityStreamScene(entityId: rootEntityId, url: url) { @Sendable success in
+                continuation.resume(returning: success)
+            }
+        }
+    }
+
+    /// Every link of the scene graph has to be stated by both of its ends: an entity is in
+    /// the list of the parent it names, once, one level below it, and the children it lists
+    /// name it as their parent.
+    private func assertSceneGraphIsConsistent(
+        _ entities: [EntityID],
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        for entityId in entities {
+            guard let graph = scene.get(component: ScenegraphComponent.self, for: entityId) else {
+                XCTFail("Entity \(entityId) has no scene graph node", file: file, line: line)
+                continue
+            }
+
+            if graph.parent == .invalid {
+                XCTAssertEqual(graph.level, 0, "Entity \(entityId) has no parent", file: file, line: line)
+            } else if let parentGraph = scene.get(component: ScenegraphComponent.self, for: graph.parent) {
+                XCTAssertEqual(
+                    parentGraph.children.filter { $0 == entityId }.count, 1,
+                    "Entity \(entityId) names a parent that should list it once", file: file, line: line
+                )
+                XCTAssertEqual(graph.level, parentGraph.level + 1, "Entity \(entityId) is one level below its parent", file: file, line: line)
+            } else {
+                XCTFail("Entity \(entityId) names a parent that is not in the scene graph", file: file, line: line)
+            }
+
+            for childId in graph.children {
+                XCTAssertEqual(
+                    scene.get(component: ScenegraphComponent.self, for: childId)?.parent, entityId,
+                    "Entity \(entityId) lists a child that should name it as its parent", file: file, line: line
+                )
+            }
+        }
+    }
+
+    /// The transform API keeps world matrices current, so they have to be the ones a scene
+    /// graph traversal computes already: run one over the entities and check that it moves
+    /// nothing.
+    private func assertTraversalChangesNothing(
+        _ entities: [EntityID],
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        let worldBefore = entities.map { scene.get(component: WorldTransformComponent.self, for: $0)?.space }
+
+        for entityId in entities {
+            scene.get(component: LocalTransformComponent.self, for: entityId)?.transformDirty = true
+        }
+        anyTransformDirty = true
+        traverseSceneGraph()
+
+        for (entityId, before) in zip(entities, worldBefore) {
+            guard let before, let after = scene.get(component: WorldTransformComponent.self, for: entityId)?.space else {
+                XCTFail("Entity \(entityId) has no world transform", file: file, line: line)
+                continue
+            }
+            for column in 0 ..< 4 {
+                XCTAssertLessThan(
+                    simd_length(after[column] - before[column]), 0.0001,
+                    "The traversal moved column \(column) of entity \(entityId)", file: file, line: line
+                )
+            }
+        }
+    }
+
+    /// Runs `body` and returns the warnings logged during it that mention `text`.
+    private func warningsLogged(mentioning text: String, during body: () async -> Void) async -> [String] {
+        let recorder = LogRecorder()
+        let previousLogLevel = Logger.logLevel
+        Logger.logLevel = .debug
+        defer { Logger.logLevel = previousLogLevel }
+        Logger.addSink(recorder)
+
+        await body()
+
+        // Sinks are served in order on a queue of their own: once this marker has arrived,
+        // so has everything logged before it.
+        let marker = "End of recording \(UUID().uuidString)"
+        Logger.log(message: marker)
+        let markerArrived = await waitUntil(timeout: 5.0) { recorder.hasLogged(marker) }
+        XCTAssertTrue(markerArrived, "The log sink should have been served")
+
+        return recorder.warnings().filter { $0.contains(text) }
+    }
+
     private func loadSceneManifest(at manifestURL: URL) async throws {
         let expectation = XCTestExpectation(description: "Manifest loaded")
         let manifestStem = manifestURL.deletingPathExtension().path
@@ -845,6 +1219,30 @@ final class NativeFormatTileStreamingTests: BaseRenderSetup {
             try? await Task.sleep(nanoseconds: pollIntervalNanoseconds)
         }
         return condition()
+    }
+}
+
+/// Keeps what the engine logs. A sink is called on the logger's queue.
+private final class LogRecorder: LoggerSink, @unchecked Sendable {
+    private let lock = NSLock()
+    private var events: [LogEvent] = []
+
+    func didLog(_ event: LogEvent) {
+        lock.lock()
+        events.append(event)
+        lock.unlock()
+    }
+
+    func hasLogged(_ message: String) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return events.contains { $0.message == message }
+    }
+
+    func warnings() -> [String] {
+        lock.lock()
+        defer { lock.unlock() }
+        return events.filter { $0.level == .warning }.map(\.message)
     }
 }
 
