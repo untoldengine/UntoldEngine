@@ -95,8 +95,12 @@ public var scene: Scene {
     set {
         let state = CoreRuntimeGlobals.shared
         state.lock.lock()
+        let replaced = state.scene
         state.scene = newValue
         state.lock.unlock()
+        // The scene that was replaced is let go here, after the lock: the components it
+        // had in quarantine are released with it, and their deinit may read the scene.
+        withExtendedLifetime(replaced) {}
     }
     _modify {
         let state = CoreRuntimeGlobals.shared
