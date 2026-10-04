@@ -3166,6 +3166,14 @@ private func manifestColorGradeLUT(
 /// The caller is responsible for creating `rootEntityId` via `createEntity()` before
 /// calling this function, and for managing its lifetime.  To replace a streamed scene,
 /// destroy the old root (cascades to all tile stubs), then call this with a new root.
+///
+/// The root keeps its place in the scene graph: its parent, and the entities already
+/// parented under it.  Its own position, rotation and scale are reset to identity when
+/// the stubs are registered, because the manifest's tile bounds are world-space values
+/// that do not follow the root; a warning is logged when that discards a transform, and
+/// when an ancestor still keeps the root away from identity.  To place a streamed scene,
+/// use `translateSceneTo`, `rotateSceneToYaw` and `scaleSceneTo`.
+///
 /// A manifest `colorLUT` is installed automatically because it is scene-wide.
 /// Scene-authored lights/cameras remain opt-in; call `loadSceneAuthored(url:)`
 /// explicitly when you want those entities in the current scene.
@@ -3313,7 +3321,9 @@ public func loadTiledScene(
 /// streaming system as the camera approaches each tile.
 ///
 /// The caller is responsible for creating `rootEntityId` via `createEntity()` before
-/// calling this function, and for managing its lifetime. A manifest `colorLUT`
+/// calling this function, and for managing its lifetime. The root keeps its parent and
+/// the entities already parented under it; its own transform is reset to identity, as
+/// described on `setEntityStreamScene(entityId:manifest:)`. A manifest `colorLUT`
 /// is installed automatically. Scene-authored lights/cameras remain opt-in
 /// through `loadSceneAuthored(url:)`.
 ///
@@ -3451,6 +3461,53 @@ public func loadTiledScene(
     }
 }
 
+/// Puts the root of a tiled scene back at the identity of its parent's space, and says
+/// so when that discards a transform or cannot make the world transform the identity.
+///
+/// The streaming and culling checks read the manifest's tile bounds as world-space values,
+/// so a tiled scene only streams correctly while the world transform of its root is the
+/// identity.  The root's own position, rotation and scale are reset through the transform
+/// API, which moves the entities already parented under it at once.  A transform that
+/// comes from an ancestor is not the root's to change and can only be reported.
+private func resetTiledSceneRootTransform(rootEntityId: EntityID) {
+    guard let local = scene.get(component: LocalTransformComponent.self, for: rootEntityId) else {
+        return
+    }
+
+    let isMoved = local.position != .zero
+    // The vector part of a quaternion is zero for the identity, whatever the sign of q.
+    let isRotated = simd_length_squared(local.rotation.imag) > 1.0e-12
+    let isScaled = local.scale != .one
+
+    // These warnings go to the general category: TileStreaming is off by default, and a
+    // caller whose placement is dropped or whose scene shows displaced has to see why.
+    if isMoved || isRotated || isScaled {
+        Logger.logWarning(
+            message: "[setEntityStreamScene] Root '\(getEntityName(entityId: rootEntityId))' had a transform of its own (position \(local.position), scale \(local.scale)\(isRotated ? ", rotated" : "")), which was reset to identity: tile bounds are world-space values and do not follow the root. Place a streamed scene with translateSceneTo / rotateSceneToYaw / scaleSceneTo."
+        )
+        if isMoved {
+            translateTo(entityId: rootEntityId, position: .zero)
+        }
+        if isRotated {
+            applyAxisRotations(entityId: rootEntityId, axis: .zero)
+        }
+        if isScaled {
+            scaleTo(entityId: rootEntityId, scale: .one)
+        }
+    }
+
+    guard let world = scene.get(component: WorldTransformComponent.self, for: rootEntityId),
+          transformsApproximatelyEqual(world.space, .identity) == false
+    else {
+        return
+    }
+
+    let parentName = getEntityParent(entityId: rootEntityId).map { getEntityName(entityId: $0) } ?? "none"
+    Logger.logWarning(
+        message: "[setEntityStreamScene] Root '\(getEntityName(entityId: rootEntityId))' is not at identity in world space because of its ancestors (parent '\(parentName)'). Tile bounds are world-space values and do not follow them: the scene is drawn displaced and tiles can be streamed or culled wrongly. Keep the ancestors of a tiled scene root at identity, or place the scene with translateSceneTo / rotateSceneToYaw / scaleSceneTo."
+    )
+}
+
 /// Canonical scene-loading runtime.
 ///
 /// Registers one TileComponent stub per manifest entry, parents all stubs under
@@ -3494,15 +3551,27 @@ private func registerTiledScene(
     GeometryStreamingSystem.shared.firstRangeTimestamps.removeAll()
 
     // ── 2. Set up root entity ──────────────────────────────────────────────
-    // The root receives a transform (identity) and a scenegraph node so tile
-    // stubs can be parented under it.  TiledSceneComponent marks it as a tiled
-    // scene root for inspection and future editor workflows.
+    // Tile stubs are parented under the root, so it needs a transform and a
+    // scenegraph node.  createEntity() gave it both, and registering them again
+    // would replace them: the root would drop out of its hierarchy on its own
+    // side only, with its parent still listing it and its children still
+    // pointing to it.  They are registered only for an entity that has none.
+    // TiledSceneComponent marks it as a tiled scene root for inspection and
+    // future editor workflows.
     //
     // Root transforms are NOT propagated to streaming/culling bounds in this
-    // release.  The manifest tile bounds are world-space values; keep the root
-    // at identity transform to avoid incorrect streaming/culling decisions.
-    registerTransformComponent(entityId: rootEntityId)
-    registerSceneGraphComponent(entityId: rootEntityId)
+    // release.  The manifest tile bounds are world-space values, so the root's
+    // own transform is put back to identity to avoid incorrect streaming/culling
+    // decisions.  Its parent and its children are the caller's and stay.
+    //
+    // Under the world mutation gate, like the stub batches below: the reset
+    // moves the entities under the root, and a scene being deserialized holds
+    // the gate until it has restored the root's saved transform and parent, so
+    // the root is always prepared after them.
+    withWorldMutationGate {
+        ensureUntoldNodeComponents(entityId: rootEntityId)
+        resetTiledSceneRootTransform(rootEntityId: rootEntityId)
+    }
     registerComponent(entityId: rootEntityId, componentType: TiledSceneComponent.self)
     if let sceneComp = scene.get(component: TiledSceneComponent.self, for: rootEntityId) {
         sceneComp.manifestLabel = label

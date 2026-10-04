@@ -1156,7 +1156,8 @@ public enum TileVisualState {
 /// entire tiled scene as a single logical object.
 ///
 /// - Note: Root-entity transforms are not propagated to streaming/culling
-///   bounds in this release.  Keep the root at identity transform.
+///   bounds in this release.  `setEntityStreamScene` resets the root's own
+///   transform to identity; keep it, and the root's ancestors, there.
 public class TiledSceneComponent: Component {
     /// Human-readable label derived from the manifest filename.
     public var manifestLabel: String = ""
