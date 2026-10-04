@@ -180,19 +180,20 @@ public struct Scene {
         }
 
         // Allocate and initialize a new component in the pool
-        guard let componentPointer = pool.get(Int(entityIndex)) else {
+        guard let slot = pool.slot(at: Int(entityIndex)) else {
             handleError(.failedToGetComponentPointer)
             return nil
         }
 
-        let typedPointer = componentPointer.bindMemory(to: T.self, capacity: 1)
-        typedPointer.initialize(to: T())
+        // A copy of the scene taken before this may be reading the slot (see ComponentSlot).
+        let component = T()
+        ComponentSlot.store(component, in: slot.address, asReference: slot.holdsReference)
 
         // Set the bit for this component to true
         entities[Int(entityIndex)].mask.set(componentId)
         componentIndex[componentId, default: []].insert(entityId)
 
-        return typedPointer.pointee
+        return component
     }
 
     public func get<T: Component>(component _: T.Type, for entityId: EntityID) -> T? {
@@ -219,13 +220,15 @@ public struct Scene {
             return nil
         }
 
-        // Retrieve the specific component pool
-        guard let pool = componentPool[componentId] else {
+        // Ask the specific component pool where the component is. The pool is let go
+        // before the slot is read: kept across the read, it is retained and released
+        // on every call. This scene, which the caller holds, keeps the pool's storage.
+        guard let slot = componentPool[componentId]?.slot(at: Int(entityIndex)) else {
             return nil
         }
 
-        // Get the component from the pool
-        return pool.component(at: Int(entityIndex), as: T.self)
+        // Get the component from its slot
+        return ComponentSlot.load(from: slot.address, as: T.self, asReference: slot.holdsReference)
     }
 
     /// Moves the component in the slot of the entity at `entityIndex` to its pool's
