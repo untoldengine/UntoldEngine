@@ -226,8 +226,6 @@ extension GeometryStreamingSystem {
         var hlodEntityId: EntityID = .invalid
         withWorldMutationGate {
             let id = createEntity()
-            registerTransformComponent(entityId: id)
-            registerSceneGraphComponent(entityId: id)
             setParent(childId: id, parentId: entityId)
             hlodEntityId = id
         }
@@ -410,8 +408,6 @@ extension GeometryStreamingSystem {
         var lodEntityId: EntityID = .invalid
         withWorldMutationGate {
             let id = createEntity()
-            registerTransformComponent(entityId: id)
-            registerSceneGraphComponent(entityId: id)
             setParent(childId: id, parentId: entityId)
             lodEntityId = id
         }
@@ -637,8 +633,6 @@ extension GeometryStreamingSystem {
         var meshEntityId: EntityID = .invalid
         withWorldMutationGate {
             let id = createEntity()
-            registerTransformComponent(entityId: id)
-            registerSceneGraphComponent(entityId: id)
             setParent(childId: id, parentId: entityId)
             meshEntityId = id
         }

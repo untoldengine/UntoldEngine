@@ -149,6 +149,62 @@ final class NativeFormatTileStreamingTests: BaseRenderSetup {
         XCTAssertEqual(scene.get(component: TileComponent.self, for: tileEntityId)?.lodLevels.first?.entityId, .invalid)
     }
 
+    /// The entities a tile load creates (the stub, and the mesh roots of the tile, its
+    /// HLOD and its LOD levels) keep the components createEntity() gave them. Registering
+    /// the transform again asked for a walk over every entity on the next frame, for each
+    /// tile that streams in.
+    func testTileEntitiesAreCreatedWithoutAskingForATraversal() async throws {
+        let fixture = try makeUntoldTileSceneFixture(includeHLOD: true, includeLOD: true)
+        try await loadSceneManifest(at: fixture.manifestURL)
+
+        let tileEntityId = try XCTUnwrap(findEntity(named: fixture.tileID))
+        let rootEntityId = try XCTUnwrap(getEntityParent(entityId: tileEntityId), "the stub is parented under the scene root")
+        let stubTransform = try XCTUnwrap(scene.get(component: LocalTransformComponent.self, for: tileEntityId))
+        assertVector(stubTransform.boundingBox.min, equals: simd_float3(-1.0, -1.0, -1.0))
+        assertVector(stubTransform.boundingBox.max, equals: simd_float3(1.0, 1.0, 1.0))
+        XCTAssertTrue(hasComponent(entityId: tileEntityId, componentType: WorldTransformComponent.self))
+        XCTAssertTrue(getEntityChildren(parentId: rootEntityId).contains(tileEntityId))
+
+        // The scene root's own registration asks for one traversal; let it run.
+        traverseSceneGraph()
+        XCTAssertFalse(anyTransformDirty)
+
+        GeometryStreamingSystem.shared.loadTile(entityId: tileEntityId)
+        let tileParsed = await waitUntil(timeout: 5.0) {
+            scene.get(component: TileComponent.self, for: tileEntityId)?.state == .parsed
+        }
+        XCTAssertTrue(tileParsed)
+        let meshRootId = try XCTUnwrap(getEntityChildren(parentId: tileEntityId).first, "the tile owns its mesh root")
+        XCTAssertEqual(getEntityParent(entityId: meshRootId), tileEntityId)
+        XCTAssertTrue(hasComponent(entityId: meshRootId, componentType: LocalTransformComponent.self))
+        XCTAssertTrue(hasComponent(entityId: meshRootId, componentType: WorldTransformComponent.self))
+        XCTAssertFalse(anyTransformDirty, "the mesh root of the tile is at the identity transform under its tile")
+        GeometryStreamingSystem.shared.unloadTile(entityId: tileEntityId)
+
+        GeometryStreamingSystem.shared.loadHLOD(entityId: tileEntityId)
+        let hlodLoaded = await waitUntil(timeout: 5.0) {
+            scene.get(component: TileComponent.self, for: tileEntityId)?.hlodState == .loaded
+        }
+        XCTAssertTrue(hlodLoaded)
+        let hlodEntityId = try XCTUnwrap(scene.get(component: TileComponent.self, for: tileEntityId)?.hlodEntityId)
+        XCTAssertEqual(getEntityParent(entityId: hlodEntityId), tileEntityId)
+        XCTAssertTrue(hasComponent(entityId: hlodEntityId, componentType: LocalTransformComponent.self))
+        XCTAssertTrue(hasComponent(entityId: hlodEntityId, componentType: WorldTransformComponent.self))
+        XCTAssertFalse(anyTransformDirty, "the HLOD entity is at the identity transform under its tile")
+        GeometryStreamingSystem.shared.unloadHLOD(entityId: tileEntityId)
+
+        GeometryStreamingSystem.shared.loadLODLevel(entityId: tileEntityId, levelIndex: 0)
+        let lodLoaded = await waitUntil(timeout: 5.0) {
+            scene.get(component: TileComponent.self, for: tileEntityId)?.lodLevels.first?.state == .loaded
+        }
+        XCTAssertTrue(lodLoaded)
+        let lodEntityId = try XCTUnwrap(scene.get(component: TileComponent.self, for: tileEntityId)?.lodLevels.first?.entityId)
+        XCTAssertEqual(getEntityParent(entityId: lodEntityId), tileEntityId)
+        XCTAssertTrue(hasComponent(entityId: lodEntityId, componentType: LocalTransformComponent.self))
+        XCTAssertTrue(hasComponent(entityId: lodEntityId, componentType: WorldTransformComponent.self))
+        XCTAssertFalse(anyTransformDirty, "the LOD entity is at the identity transform under its tile")
+    }
+
     // MARK: - loadTiledScene(url:) — URL overload parity
 
     /// Verifies that passing a local `file://` URL to `loadTiledScene(url:)`

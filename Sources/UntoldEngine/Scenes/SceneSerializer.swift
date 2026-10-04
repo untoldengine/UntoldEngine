@@ -1709,8 +1709,6 @@ public func deserializeScene(
             uuidToEntityMap[sceneDataEntity.uuid] = entityId
 
             setEntityName(entityId: entityId, name: sceneDataEntity.name)
-            registerTransformComponent(entityId: entityId)
-            registerSceneGraphComponent(entityId: entityId)
             if let pickParticipation = sceneDataEntity.pickParticipation {
                 setEntityPickParticipation(entityId: entityId, enabled: pickParticipation)
             }

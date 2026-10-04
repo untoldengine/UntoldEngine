@@ -253,6 +253,8 @@ private func registerComponentCleanupHandlers() {
     }
 }
 
+/// Creates an entity that already has its transform (local and world) and scene graph
+/// components. Registering them again replaces them with new ones at their defaults.
 public func createEntity() -> EntityID {
     enforceRegistrationMainActor()
     globalEntityCounter += 1
@@ -2897,8 +2899,6 @@ private final class PackLoadDispatcher: @unchecked Sendable {
                 lodChain = PackLODChain(levels: lodLevels, placementScale: simd_reduce_max(simd_abs(scale)) * rootScale)
             }
             let childId = createEntity()
-            registerTransformComponent(entityId: childId)
-            registerSceneGraphComponent(entityId: childId)
             setEntityName(entityId: childId, name: displayName)
             setParent(childId: childId, parentId: rootEntityId)
 
@@ -3570,14 +3570,12 @@ private func registerTiledScene(
                 withWorldMutationGate {
                     let entityId = createEntity()
                     setEntityName(entityId: entityId, name: shared.tileId)
-                    registerTransformComponent(entityId: entityId)
                     if let local = scene.get(component: LocalTransformComponent.self, for: entityId) {
                         local.boundingBox = (
                             min: simd_float3(shared.bounds.min[0], shared.bounds.min[1], shared.bounds.min[2]),
                             max: simd_float3(shared.bounds.max[0], shared.bounds.max[1], shared.bounds.max[2])
                         )
                     }
-                    registerSceneGraphComponent(entityId: entityId)
                     registerComponent(entityId: entityId, componentType: TileComponent.self)
                     if let tileComp = scene.get(component: TileComponent.self, for: entityId) {
                         tileComp.tileURL = sharedURL
@@ -3649,14 +3647,12 @@ private func registerTiledScene(
                 // world space in the exported USDC).  The local bounding box is set to
                 // the tile's world-space AABB — valid because identity world transform
                 // means local space == world space.
-                registerTransformComponent(entityId: entityId)
                 if let local = scene.get(component: LocalTransformComponent.self, for: entityId) {
                     local.boundingBox = (
                         min: simd_float3(tile.bounds.min[0], tile.bounds.min[1], tile.bounds.min[2]),
                         max: simd_float3(tile.bounds.max[0], tile.bounds.max[1], tile.bounds.max[2])
                     )
                 }
-                registerSceneGraphComponent(entityId: entityId)
                 registerComponent(entityId: entityId, componentType: TileComponent.self)
                 if let tileComp = scene.get(component: TileComponent.self, for: entityId) {
                     if let cb = tile.cellBounds, cb.min.count >= 3, cb.max.count >= 3 {
@@ -6590,8 +6586,6 @@ public func createStreamingEntity(
         let entityId = createEntity()
 
         // Register required components
-        registerTransformComponent(entityId: entityId)
-        registerSceneGraphComponent(entityId: entityId)
         registerComponent(entityId: entityId, componentType: StreamingComponent.self)
 
         guard let streaming = scene.get(component: StreamingComponent.self, for: entityId) else {
