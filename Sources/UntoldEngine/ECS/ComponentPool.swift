@@ -136,7 +136,8 @@ enum ComponentSlot {
         while !_stdlib_atomicCompareExchangeStrongPtr(object: word, expected: &held, desired: reference) {}
     }
 
-    /// The component in `slot`, read as a `T`. Only for a slot that holds one.
+    /// The component in `slot`, read as a `T`. Nil for a slot of references that never
+    /// held one; a slot of values is only read when it holds one.
     @inline(__always)
     static func load<T>(from slot: UnsafeMutableRawPointer, as _: T.Type, asReference: Bool) -> T? {
         guard asReference else {
@@ -268,13 +269,23 @@ public struct ComponentPool {
         guard capacity <= index else { return }
         var chunks = chunks
         while chunks.count * Self.chunkCapacity <= index {
-            chunks.append(
-                UnsafeMutableRawPointer.allocate(
-                    byteCount: elementSize * Self.chunkCapacity, alignment: MemoryLayout<UInt8>.alignment
-                )
-            )
+            chunks.append(Self.makeChunk(elementSize: elementSize, holdsReferences: holdsReferences))
         }
         storage = Self.makeStorage(chunks: chunks, elementSize: elementSize, holdsReferences: holdsReferences, quarantine: quarantine)
+    }
+
+    /// The memory of one chunk. Slots of references start as no reference: a slot is
+    /// read before it is first written (ComponentSlot.store exchanges what the slot
+    /// holds), and one that never held a component then reads as none.
+    private static func makeChunk(elementSize: Int, holdsReferences: Bool) -> UnsafeMutableRawPointer {
+        guard holdsReferences else {
+            return .allocate(byteCount: elementSize * chunkCapacity, alignment: MemoryLayout<UInt8>.alignment)
+        }
+        let chunk = UnsafeMutableRawPointer.allocate(
+            byteCount: elementSize * chunkCapacity, alignment: MemoryLayout<UnsafeRawPointer?>.alignment
+        )
+        chunk.initializeMemory(as: UnsafeRawPointer?.self, repeating: nil, count: chunkCapacity)
+        return chunk
     }
 
     public func get(_ index: Int) -> UnsafeMutableRawPointer? {
