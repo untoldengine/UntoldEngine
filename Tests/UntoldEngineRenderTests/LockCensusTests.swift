@@ -36,6 +36,9 @@ enum LockCensus {
 
     private typealias LockIMP = @convention(c) (AnyObject, Selector) -> Void
 
+    /// Replaces `-[NSLock lock]` and `-[NSRecursiveLock lock]` for the rest of the process. There is
+    /// no uninstall on purpose: with `enabled` false the hook costs one flag check per lock, and the
+    /// test that installs it is opt-in.
     static func install() {
         guard !installed else { return }
         installed = true
@@ -84,12 +87,13 @@ enum LockCensus {
         for (frames, count) in snapshot.counts {
             // Skip the hook itself, its block thunk (`...TR`) and the Foundation `withLock`
             // helpers: the first two engine symbols are the function taking the lock and
-            // the one that called it.
+            // the one that called it. The thunk suffix is a detail of Swift's name mangling,
+            // so the test checks this attribution on a known lock before it reports.
             let names = frames.compactMap(symbol).filter {
                 !$0.contains("LockCensus") && !$0.contains("NSLocking") && !$0.hasPrefix("__") && !$0.hasSuffix("TR")
             }
             let owner = names.first ?? "?"
-            let caller = names.dropFirst().first { $0 != owner } ?? "?"
+            let caller = names.dropFirst().first ?? "?"
             merged[owner + "\t" + caller, default: 0] += count
         }
         let rows = merged.map { key, count -> (owner: String, caller: String, count: Int) in
@@ -118,9 +122,37 @@ enum LockCensus {
     }
 }
 
+/// A lock taken a known number of times from `censusProbeOwner`, itself called from
+/// `censusProbeCaller`: the census checks its owner and caller attribution against them before it
+/// reports. Neither name may contain "LockCensus", which the report filters out as the hook's own.
+private let censusProbeLock = NSLock()
+
+@inline(never)
+private func censusProbeOwner(times: Int) -> Int {
+    var taken = 0
+    for _ in 0 ..< times {
+        censusProbeLock.lock()
+        taken += 1
+        censusProbeLock.unlock()
+    }
+    return taken
+}
+
+@inline(never)
+private func censusProbeCaller(times: Int) -> Int {
+    // The addition keeps the call out of tail position, so this frame stays on the stack in an
+    // optimised build.
+    censusProbeOwner(times: times) &+ 1
+}
+
 final class LockCensusTests: BaseRenderSetup {
+    /// Same rule as the other benchmarks' helper: a missing, malformed, zero or negative value
+    /// falls back to the default.
     private func intEnv(_ name: String, default defaultValue: Int) -> Int {
-        ProcessInfo.processInfo.environment[name].flatMap(Int.init) ?? defaultValue
+        guard let raw = ProcessInfo.processInfo.environment[name], let value = Int(raw), value > 0 else {
+            return defaultValue
+        }
+        return value
     }
 
     func test_lockCensus_perFrame() throws {
@@ -155,6 +187,24 @@ final class LockCensusTests: BaseRenderSetup {
         let plainMs = Double(DispatchTime.now().uptimeNanoseconds - start) / 1e6 / Double(frames)
 
         LockCensus.install()
+
+        // 0. Self-check. A lock taken a known number of times from a known function must come back
+        // attributed to that function and to its caller. If a toolchain changed how the hook's own
+        // frames are named, the report would otherwise blame the wrong functions without a sign.
+        let probeCount = 100
+        LockCensus.reset()
+        LockCensus.enabled = true
+        _ = censusProbeCaller(times: probeCount)
+        LockCensus.enabled = false
+        let probeRows = LockCensus.report().rows.filter { $0.owner.contains("censusProbeOwner") }
+        XCTAssertEqual(
+            probeRows.reduce(0) { $0 + $1.count }, probeCount,
+            "the census did not attribute the probe's lock to the function that took it"
+        )
+        XCTAssertTrue(
+            !probeRows.isEmpty && probeRows.allSatisfy { $0.caller.contains("censusProbeCaller") },
+            "the census did not attribute the probe's lock to its caller: \(probeRows.map(\.caller))"
+        )
 
         // 1. The frame itself.
         LockCensus.reset()

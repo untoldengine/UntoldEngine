@@ -7,7 +7,7 @@ Two questions:
 1. May engine code use Swift actors, or are they too slow next to locks?
 2. Does the per-frame path use the best lock mechanism?
 
-Everything below can be re-run: the benchmark is `Examples/ConcurrencyBench`, the census is `Tests/UntoldEngineRenderTests/LockCensusTests.swift` (section 6).
+Everything below can be re-run with the commands in section 7: the benchmark is `Examples/ConcurrencyBench` (section 2), the census is `Tests/UntoldEngineRenderTests/LockCensusTests.swift` (section 4).
 
 ## TL;DR
 
