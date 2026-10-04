@@ -441,7 +441,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
                     if material.alphaMode == .blend { continue }
 
                     draws += 1
-                    triangles += max(0, submesh.metalKitSubmesh.indexCount / 3)
+                    triangles += max(0, submesh.indexCount / 3)
                 }
             }
 

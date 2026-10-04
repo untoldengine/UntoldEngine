@@ -40,6 +40,10 @@ public enum CoordinateSystemConversion: Sendable {
 
 public struct Mesh {
     public let metalKitMesh: MTKMesh
+    /// The Metal buffers of `metalKitMesh.vertexBuffers`, in the same order, read once
+    /// when the mesh is made. The passes bind them for every draw, and MetalKit builds a
+    /// new array, whose elements answer through Objective-C, each time it is asked.
+    let vertexBuffers: [MTLBuffer]
     public var submeshes: [SubMesh] = []
     public var localSpace: simd_float4x4 = .identity
     public var worldSpace: simd_float4x4 = .identity
@@ -91,6 +95,7 @@ public struct Mesh {
             return nil
         }
         metalKitMesh = localMetalKitMesh
+        vertexBuffers = localMetalKitMesh.vertexBuffers.map(\.buffer)
 
         submeshes = modelIOMesh.submeshes?.enumerated().compactMap { index, element in
             guard let mdlSubmesh = element as? MDLSubmesh else { return nil }
@@ -484,12 +489,26 @@ public struct SubMesh {
     public let metalKitSubmesh: MTKSubmesh
     public var material: Material?
 
+    // What a draw of the submesh hands to Metal, read from `metalKitSubmesh` once when
+    // the submesh is made: asking MetalKit for them costs half a dozen Objective-C calls
+    // per draw.
+    let primitiveType: MTLPrimitiveType
+    let indexCount: Int
+    let indexType: MTLIndexType
+    let indexBuffer: MTLBuffer
+    let indexBufferOffset: Int
+
     init(metalKitSubmesh: MTKSubmesh) {
         self.metalKitSubmesh = metalKitSubmesh
+        primitiveType = metalKitSubmesh.primitiveType
+        indexCount = metalKitSubmesh.indexCount
+        indexType = metalKitSubmesh.indexType
+        indexBuffer = metalKitSubmesh.indexBuffer.buffer
+        indexBufferOffset = metalKitSubmesh.indexBuffer.offset
     }
 
     init(modelIOSubmesh: MDLSubmesh, metalKitSubmesh: MTKSubmesh, textureLoader: TextureLoader) {
-        self.metalKitSubmesh = metalKitSubmesh
+        self.init(metalKitSubmesh: metalKitSubmesh)
 
         // Fallback to an empty material if none is provided
         if let mdlMaterial = modelIOSubmesh.material {
