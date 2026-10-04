@@ -181,4 +181,19 @@ final class SceneBuilderNodesTest: BaseRenderSetup {
         XCTAssertEqual(getLightIntensity(entityId: entity), 7,
                        "Wrapping an existing point light must not recreate the component")
     }
+
+    func testLightNodeKeepsThePlaceOfAnExistingEntity() {
+        let parent = createEntity()
+        let entity = createEntity()
+        setParent(childId: entity, parentId: parent)
+        translateTo(entityId: entity, position: simd_float3(1.0, 2.0, 3.0))
+
+        let light = SpotLightNode(entityID: entity)
+
+        XCTAssertEqual(light.entityID, entity)
+        XCTAssertEqual(getLocalPosition(entityId: entity), simd_float3(1.0, 2.0, 3.0),
+                       "Declaring a light on an entity that is already placed must not move it")
+        XCTAssertEqual(getEntityParent(entityId: entity), parent)
+        XCTAssertEqual(getEntityChildren(parentId: parent), [entity])
+    }
 }
