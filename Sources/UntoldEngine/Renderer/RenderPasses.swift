@@ -641,6 +641,9 @@ public enum RenderPasses {
         var result: [EntityID] = []
         result.reserveCapacity(candidates.count / 4)
 
+        // An object too small to be drawn casts a shadow about as small.
+        let smallObjectCulling = SmallObjectCulling.forCurrentFrame()
+
         for entityId in candidates {
             guard scene.mask(for: entityId) != nil else { continue }
             if shouldHideSceneEntity(entityId: entityId) { continue }
@@ -671,6 +674,7 @@ public enum RenderPasses {
                 localMax: localTransformComponent.boundingBox.max,
                 worldMatrix: worldTransformComponent.space
             )
+            if let smallObjectCulling, smallObjectCulling.culls(worldMin: worldMin, worldMax: worldMax) { continue }
             // Directional-light caster relevance cannot be determined from camera
             // distance or the cascade receiver split — a caster outside a cascade's
             // camera-depth interval can still project a shadow into that interval.
@@ -731,6 +735,7 @@ public enum RenderPasses {
 
         let lightPosition = shadowLight.light.position
         let maxDistance = max(shadowLight.light.attenuation.w, minimumSpotShadowDistance)
+        let smallObjectCulling = SmallObjectCulling.forCurrentFrame()
         var result: [EntityID] = []
         result.reserveCapacity(candidates.count / 4)
 
@@ -754,6 +759,7 @@ public enum RenderPasses {
                 localMax: localTransformComponent.boundingBox.max,
                 worldMatrix: worldTransformComponent.space
             )
+            if let smallObjectCulling, smallObjectCulling.culls(worldMin: worldMin, worldMax: worldMax) { continue }
             if shadowEntityBeyondMaxDistance(
                 worldMin: worldMin,
                 worldMax: worldMax,
@@ -787,6 +793,7 @@ public enum RenderPasses {
 
         let lightPosition = shadowLight.light.position
         let maxDistance = max(shadowLight.light.radius, minimumPointShadowDistance)
+        let smallObjectCulling = SmallObjectCulling.forCurrentFrame()
         var result: [EntityID] = []
         result.reserveCapacity(candidates.count / 4)
 
@@ -811,6 +818,7 @@ public enum RenderPasses {
                 localMax: localTransformComponent.boundingBox.max,
                 worldMatrix: worldTransformComponent.space
             )
+            if let smallObjectCulling, smallObjectCulling.culls(worldMin: worldMin, worldMax: worldMax) { continue }
             if shadowEntityBeyondMaxDistance(
                 worldMin: worldMin,
                 worldMax: worldMax,
