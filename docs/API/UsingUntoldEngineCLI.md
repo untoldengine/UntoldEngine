@@ -198,6 +198,48 @@ file, so it has nothing to do for a pack — recreate those lights/cameras by
 hand in the scene you build from the pack's models, or keep the source
 `.blend` to a single root model if you need them carried automatically.
 
+The export also builds a LOD chain for every model of the pack that is detailed
+enough to need one, so a large scene stays drawable from a distance without
+hand-made LODs. See [LOD chains for packs](#lod-chains-for-packs); pass
+`--no-lods` to leave them out.
+
+### LOD chains for packs
+
+`untoldengine bake-lods` writes simplified copies of a model next to it
+(`<name>_LOD1.untold`, `<name>_LOD2.untold`, ...) and, for a pack, records them
+in the manifest. The engine loads the levels with the pack and switches each
+placement between them by its size on screen (see [Automatic LOD chains for
+packs](UsingLODSystem.md#automatic-lod-chains-for-packs)).
+
+`untoldengine export` runs this step for the packs it writes. Use the command
+on its own for a pack cooked earlier, or to cook with other settings; it works
+from the cooked files, so neither the source asset nor Blender is needed, and
+running it again replaces the levels of the run before:
+
+```bash
+untoldengine bake-lods --input GameData/Models/site.untoldpack
+
+# Four levels instead of three, and chains for smaller models too
+untoldengine bake-lods --input site.untoldpack --ratios 0.5,0.25,0.1,0.02 --min-triangles 500
+
+# The levels of one model, without a pack
+untoldengine bake-lods --input Models/tree/tree.untold
+```
+
+| Flag | Description |
+|---|---|
+| `--input <path>` | The `.untoldpack` manifest, or one `.untold` model |
+| `--ratios <list>` | Share of the triangles each level aims for, finest first (default `0.5,0.15,0.03`) |
+| `--min-triangles <n>` | Models with fewer triangles get no chain (default `2000`) |
+| `--pixels-per-triangle <n>` | Screen pixels a triangle of a level covers when the level takes over, on a viewport 1080 pixels high (default `4`); higher values switch to the simpler levels sooner |
+
+A model placed many times is simplified once. A level the simplifier cannot
+reduce by a worthwhile amount is left out, and skinned, morphing and
+animation-only models keep their full meshes. Vegetation and similar models
+made of thousands of small separate pieces are thinned evenly, with the
+remaining pieces enlarged so that a canopy keeps its density. The simplifier is
+[meshoptimizer](https://github.com/zeux/meshoptimizer).
+
 ### Animation-only exports → `.untoldanim`
 
 `--animation` exports clip data only (no mesh geometry) and requires a
@@ -244,6 +286,7 @@ re-export from the source tool as v2/v3, or convert through `.ply` instead.
 | `--compress-geometry` | LZ4-compress vertex/index chunks |
 | `--assets-dir <path>` | Folder for the textures and per-model folders the result references (default: the `--output` folder) |
 | `--include-hidden` | Also export objects hidden in the viewport or disabled in renders |
+| `--no-lods` | Do not build the [LOD chains](#lod-chains-for-packs) of a pack's models |
 | `--validate` | Write a companion validation JSON file |
 | `--color-grade-lut <path>` | Stage an externally-authored `.cube` 3D LUT and apply it as a post-tonemap creative grade (no Blender render, no conversion) — see [Using Color Management](UsingColorManagement.md) |
 

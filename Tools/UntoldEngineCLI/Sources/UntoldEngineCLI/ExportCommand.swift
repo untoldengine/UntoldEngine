@@ -12,6 +12,7 @@ import ArgumentParser
 import Foundation
 import simd
 import UntoldEngine
+import UntoldEngineMeshCook
 
 struct ExportCommand: ParsableCommand {
     static let configuration = CommandConfiguration(
@@ -47,6 +48,9 @@ struct ExportCommand: ParsableCommand {
         of a single .untold file, plus one .untold per model under its own
         subfolder; copies of a model share one file, and the models share one
         Textures folder. --optimize bakes those textures for the whole pack.
+        Each model of a pack that is detailed enough also gets its LOD chain
+        (simplified copies the engine switches to with distance, see
+        `untoldengine bake-lods`); --no-lods leaves them out.
 
         Example:
           untoldengine export --input model.usdz --output model.untold --convert-orientation --optimize
@@ -98,6 +102,9 @@ struct ExportCommand: ParsableCommand {
 
     @Flag(name: .long, help: "Compress geometry and bake/patch textures after export (implies --compress-geometry)")
     var optimize = false
+
+    @Flag(name: .customLong("no-lods"), help: "Do not build the LOD chains of a pack's models (see `untoldengine bake-lods`)")
+    var noLODs = false
 
     @Option(name: .customLong("color-grade-lut"), help: "Path to an externally-authored standard .cube 3D LUT to stage and apply as a post-tonemap creative grade. Nothing is rendered from Blender -- the .cube is copied as-is and loaded directly by the engine")
     var colorGradeLUT: String?
@@ -288,6 +295,11 @@ struct ExportCommand: ParsableCommand {
                     }
                 }
             }
+
+            // Last, so that the levels copy the materials the models end up with.
+            if !noLODs {
+                bakeLODChains(packURL: packURL)
+            }
         } else {
             // Mirror image of the above: an old pack manifest from a previous
             // multi-model export at this stem may still be sitting here, left by
@@ -312,6 +324,17 @@ struct ExportCommand: ParsableCommand {
             if optimize {
                 try optimizeTextures(outputURL: outputURL, assetsURL: assetsURL)
             }
+        }
+    }
+
+    /// Builds the LOD chain of every model of the pack, as `untoldengine bake-lods` does.
+    /// The pack is complete without them, so a failure is reported and the export stands.
+    private func bakeLODChains(packURL: URL) {
+        do {
+            let report = try BakeLODsCommand.bakePack(at: packURL, options: UntoldMeshLODOptions())
+            BakeLODsCommand.printReport(report, packURL: packURL)
+        } catch {
+            printWarning("The LOD chains of \(packURL.lastPathComponent) were not built: \(error)")
         }
     }
 

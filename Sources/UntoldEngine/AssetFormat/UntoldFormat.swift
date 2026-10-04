@@ -88,6 +88,14 @@ public enum UntoldFileType: UInt32, Sendable {
     case animation = 5
 }
 
+/// Bits of `UntoldFileHeaderV1.flags`.
+public enum UntoldFileFlags {
+    /// The file is a level of a model's automatic LOD chain, written by
+    /// `UntoldMeshLODCooker` (module UntoldEngineMeshCook). A cook replaces the files
+    /// that carry it and leaves any other file alone, whatever its name.
+    public static let generatedLODLevel: UInt32 = 1 << 0
+}
+
 public struct UntoldChunkType: RawRepresentable, Hashable, Sendable, Equatable {
     public let rawValue: UInt32
 

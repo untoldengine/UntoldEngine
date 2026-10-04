@@ -7,7 +7,7 @@ UntoldEngine has two separate LOD mechanisms that operate at different granulari
 | Unit | Individual mesh entity (`LODComponent`) | Whole tile `.untold` file (`TileLODLevel`) |
 | Control | `LODSystem` — called every frame, but the full entity pass is throttled to every `lodUpdateFrameInterval` frames (default 4) unless the camera moved past `minimumCameraDisplacementForLODUpdate` (default 0.5 units) | `GeometryStreamingSystem.update()` — runs per tick |
 | Switch trigger | Camera distance vs `LODLevel.maxDistance` | Camera distance vs `TileLODLevel.switchDistance` (with hysteresis) |
-| Hysteresis | 5-unit inner band on finer-LOD transitions only | `lodHysteresisFactor` (default 0.90 = 10% band) on active level |
+| Hysteresis | 5-unit inner band on finer-LOD transitions only, at most a tenth of the level's switch distance | `lodHysteresisFactor` (default 0.90 = 10% band) on active level |
 | Meshes in memory | All LOD levels GPU-resident simultaneously | Only the active LOD level is loaded |
 | Use case | Individual detailed objects (buildings, props) | Tile-granularity intermediate representations for large scenes |
 | Content pipeline | Separate `.untold` files per LOD level, wired via `LODComponent` | Separate `.untold` files per tile LOD, listed in manifest `lod_levels` array |
@@ -80,7 +80,7 @@ If adjustedDistance ≤ 200  → desiredLOD = 2  (low)
 Beyond all thresholds      → desiredLOD = 2  (lowest available)
 ```
 
-**Hysteresis:** When switching to a *finer* LOD (e.g. camera approaching, LOD2→LOD1), the threshold is tightened by `5.0` units. This prevents flickering when the camera hovers right at a boundary. Switching to *coarser* LODs has no penalty — it happens immediately.
+**Hysteresis:** When switching to a *finer* LOD (e.g. camera approaching, LOD2→LOD1), the threshold is tightened by `5.0` units, and never by more than a tenth of the threshold itself (`lodHysteresisDistanceShare`): a level that switches a few units from the camera would otherwise never be returned to. This prevents flickering when the camera hovers right at a boundary. Switching to *coarser* LODs has no penalty — it happens immediately.
 
 ---
 

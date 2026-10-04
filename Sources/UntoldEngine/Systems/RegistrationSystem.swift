@@ -584,8 +584,14 @@ private func ensureUntoldNodeComponents(entityId: EntityID) {
     }
 }
 
-func makeMeshes(from node: RuntimeAssetNode) -> [Mesh] {
+/// `withMaterials: false` builds the geometry alone, for meshes that take their
+/// materials from elsewhere (the levels of a LOD chain use the model's).
+func makeMeshes(from node: RuntimeAssetNode, withMaterials: Bool = true) -> [Mesh] {
     node.primitives.compactMap { primitive -> Mesh? in
+        var primitive = primitive
+        if !withMaterials {
+            primitive.material = nil
+        }
         guard var mesh = Mesh.makeMesh(from: primitive, device: renderInfo.device) else {
             return nil
         }
@@ -598,10 +604,10 @@ func makeMeshes(from node: RuntimeAssetNode) -> [Mesh] {
 /// Pre-build Metal meshes for all renderable nodes in a runtime asset.
 /// Returns a map of nodeID → [Mesh] built via makeMeshes() — pure MTLBuffer allocation,
 /// no ECS access. Safe to call outside withWorldMutationGate.
-func prebuildNodeMeshes(from nodes: [RuntimeAssetNode]) -> [UInt32: [Mesh]] {
+func prebuildNodeMeshes(from nodes: [RuntimeAssetNode], withMaterials: Bool = true) -> [UInt32: [Mesh]] {
     var result: [UInt32: [Mesh]] = [:]
     for node in nodes where !node.primitives.isEmpty {
-        let meshes = makeMeshes(from: node)
+        let meshes = makeMeshes(from: node, withMaterials: withMaterials)
         if !meshes.isEmpty {
             result[node.id] = meshes
         }
@@ -897,7 +903,9 @@ private func registerUntoldRuntimeAsset(
     filename: String,
     withExtension: String,
     assetName: String? = nil,
-    prebuiltMeshes: [UInt32: [Mesh]] = [:]
+    prebuiltMeshes: [UInt32: [Mesh]] = [:],
+    lodLevels: [PackLODLevelMeshes] = [],
+    lodPlacementScale: Float = 1
 ) -> Bool {
     guard !runtimeAsset.nodes.isEmpty else {
         handleError(.assetDataMissing, filename)
@@ -1066,13 +1074,22 @@ private func registerUntoldRuntimeAsset(
             continue
         }
 
-        _ = registerUntoldNodePayload(
+        let didRegisterPayload = registerUntoldNodePayload(
             entityId: targetEntityId,
             node: node,
             nodesByID: nodesByID,
             url: url,
             prebuiltMeshes: prebuiltMeshes[node.id]
         )
+        if didRegisterPayload, !lodLevels.isEmpty {
+            registerPackLODLevels(
+                entityId: targetEntityId,
+                node: node,
+                modelURL: url,
+                worldRadius: boundingRadius(of: runtimeAsset.worldBounds) * lodPlacementScale,
+                levels: lodLevels
+            )
+        }
     }
 
     // Register animation clips embedded in the asset (e.g. redplayer.untold walk/run cycles).
@@ -1630,7 +1647,8 @@ public func setEntityMeshAsync(
 /// `.untoldpack` that point at the same `.untold` parse it and build its GPU meshes
 /// once (see UntoldBuildCache). It applies to whole files loaded at once, as the pack
 /// loader asks for them: with an `assetName` or a streaming policy other than
-/// `.immediate` the load is not shared.
+/// `.immediate` the load is not shared. `lodChain` is the model's LOD chain, whose
+/// levels are built the same way and registered on the entities the model creates.
 func loadEntityMeshAsync(
     entityId: EntityID,
     filename: String,
@@ -1639,6 +1657,7 @@ func loadEntityMeshAsync(
     streamingPolicy: MeshStreamingPolicy,
     blockRenderLoop: Bool,
     sharedBuilds: UntoldBuildCache?,
+    lodChain: PackLODChain? = nil,
     completion: ((Bool) -> Void)?
 ) {
     let (filename, withExtension) = resolveAssetFilenameExtension(filename, withExtension)
@@ -1732,6 +1751,25 @@ func loadEntityMeshAsync(
                 return
             }
 
+            // The levels of the model's LOD chain: geometry alone, since every level is
+            // drawn with the model's materials. A level that fails to load is left out
+            // and the others still switch at their own sizes.
+            var lodLevels: [PackLODLevelMeshes] = []
+            if usesSharedBuild, let sharedBuilds, let lodChain {
+                for level in lodChain.levels {
+                    let build = await sharedBuilds.build(for: level.url) {
+                        guard let levelAsset = loadUntoldRuntimeAsset(url: level.url) else { return nil }
+                        return UntoldBuild(
+                            runtimeAsset: levelAsset,
+                            prebuiltMeshes: prebuildNodeMeshes(from: levelAsset.nodes, withMaterials: false)
+                        )
+                    }
+                    if let build {
+                        lodLevels.append(PackLODLevelMeshes(url: level.url, screenSize: level.screenSize, meshesByNode: build.prebuiltMeshes))
+                    }
+                }
+            }
+
             // OCC is only valid for whole-asset loads. Named-node loads always full-load.
             let useOCC: Bool
             if assetName != nil {
@@ -1789,7 +1827,9 @@ func loadEntityMeshAsync(
                         filename: filename,
                         withExtension: withExtension,
                         assetName: assetName,
-                        prebuiltMeshes: prebuiltMeshes
+                        prebuiltMeshes: prebuiltMeshes,
+                        lodLevels: lodLevels,
+                        lodPlacementScale: lodChain?.placementScale ?? 1
                     )
                 }
 
@@ -2405,6 +2445,23 @@ public struct UntoldPackData: Decodable {
     public let formatVersion: Int
     public let sourceAsset: String?
     public let models: [UntoldPackModelEntry]
+    /// The LOD chain of each model that has one, by the model's `path`: its simplified
+    /// levels from the finest (see `UntoldMeshLODCooker` in the UntoldEngineMeshCook
+    /// module). Nil in a pack cooked without them.
+    public let lodChains: [String: [UntoldPackLODLevelEntry]]?
+}
+
+/// One simplified level of a pack model: a `.untold` with the model's entities and
+/// materials and fewer triangles, next to the model.
+public struct UntoldPackLODLevelEntry: Decodable, Sendable {
+    /// The level's file, relative to the manifest like the model's.
+    public let path: String
+    /// The level is detailed enough once the model's bounding sphere covers at most
+    /// this share of the viewport height (1 is the whole height).
+    public let screenSize: Float
+    public let triangles: Int?
+    /// The largest deviation from the model, in model units.
+    public let error: Float?
 }
 
 /// Reads and decodes a `.untoldpack` manifest from a local file URL.
@@ -2418,6 +2475,15 @@ public func loadUntoldPack(url: URL) -> UntoldPackData? {
         return nil
     }
     return pack
+}
+
+/// The largest of the scales `matrix` applies along its three axes.
+func largestAxisScale(of matrix: simd_float4x4) -> Float {
+    max(
+        simd_length(simd_make_float3(matrix.columns.0)),
+        simd_length(simd_make_float3(matrix.columns.1)),
+        simd_length(simd_make_float3(matrix.columns.2))
+    )
 }
 
 private func decomposeTRS(_ matrix: simd_float4x4) -> (position: simd_float3, rotation: simd_quatf, scale: simd_float3) {
@@ -2502,6 +2568,106 @@ public func createUntoldScene(fromPackAt packURL: URL, savingTo sceneURL: URL) -
         Logger.logWarning(message: "[createUntoldScene] Failed to write scene file \(sceneURL.lastPathComponent): \(error.localizedDescription)")
         return false
     }
+}
+
+/// The LOD chain of a pack model, as one placement of it needs it.
+struct PackLODChain {
+    struct Level {
+        let url: URL
+        let screenSize: Float
+    }
+
+    /// The simplified levels, finest first.
+    let levels: [Level]
+    /// The largest scale the placement gives the model, the pack's root included.
+    let placementScale: Float
+}
+
+/// One level of a chain built into GPU meshes, by the node of the model they belong to.
+struct PackLODLevelMeshes {
+    let url: URL
+    let screenSize: Float
+    let meshesByNode: [UInt32: [Mesh]]
+}
+
+/// Half the diagonal of `bounds`: the radius of the sphere around a model.
+func boundingRadius(of bounds: RuntimeAABB) -> Float {
+    let radius = simd_length(bounds.max - bounds.min) * 0.5
+    return radius.isFinite ? radius : 0
+}
+
+/// The distance at which a sphere of `radius` covers `screenSize` of the viewport
+/// height (1 is the whole height) under a vertical field of view of `fovYDegrees`.
+func lodSwitchDistance(radius: Float, screenSize: Float, fovYDegrees: Float) -> Float {
+    let halfHeightPerUnitDistance = tan(degreesToRadians(degrees: fovYDegrees) * 0.5)
+    guard radius > 0, screenSize > 0, halfHeightPerUnitDistance > 0 else {
+        return .greatestFiniteMagnitude
+    }
+    return min(radius / (screenSize * halfHeightPerUnitDistance), .greatestFiniteMagnitude)
+}
+
+/// Gives the entity of a pack model's node the levels of the model's LOD chain, after
+/// its own meshes (level 0). The meshes of a level pair with the node's by position
+/// and take their materials, so a level is the same surface with fewer triangles.
+///
+/// Each level's screen size becomes a switch distance for this placement: the distance
+/// at which the model's bounding sphere (`worldRadius`) covers that share of the
+/// viewport under the engine's field of view. A small prop and a large tree with the
+/// same chain therefore switch at distances that suit each.
+private func registerPackLODLevels(
+    entityId: EntityID,
+    node: RuntimeAssetNode,
+    modelURL: URL,
+    worldRadius: Float,
+    levels: [PackLODLevelMeshes]
+) {
+    guard worldRadius > 0, let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
+        return
+    }
+    let modelMeshes = renderComponent.mesh
+
+    var usable: [(screenSize: Float, url: URL, meshes: [Mesh])] = []
+    for level in levels {
+        guard var meshes = level.meshesByNode[node.id],
+              meshes.count == modelMeshes.count,
+              zip(meshes, modelMeshes).allSatisfy({ $0.submeshes.count == $1.submeshes.count })
+        else { continue }
+        for meshIndex in meshes.indices {
+            for submeshIndex in meshes[meshIndex].submeshes.indices {
+                meshes[meshIndex].submeshes[submeshIndex].material = modelMeshes[meshIndex].submeshes[submeshIndex].material
+            }
+            meshes[meshIndex].localSpace = modelMeshes[meshIndex].localSpace
+            meshes[meshIndex].worldSpace = modelMeshes[meshIndex].worldSpace
+        }
+        usable.append((level.screenSize, level.url, meshes))
+    }
+    guard let first = usable.first else { return }
+
+    // A level's maxDistance is where the next one takes over; the last has no end.
+    var lodLevels: [LODLevel] = []
+    var previousDistance = lodSwitchDistance(radius: worldRadius, screenSize: first.screenSize, fovYDegrees: fov)
+    lodLevels.append(LODLevel(mesh: modelMeshes, maxDistance: previousDistance, url: modelURL, assetName: node.name))
+    for (index, level) in usable.enumerated() {
+        var maxDistance = Float.greatestFiniteMagnitude
+        if index + 1 < usable.count {
+            // Never closer than the level before, whatever the manifest says.
+            maxDistance = max(
+                lodSwitchDistance(radius: worldRadius, screenSize: usable[index + 1].screenSize, fovYDegrees: fov),
+                previousDistance
+            )
+            previousDistance = maxDistance
+        }
+        lodLevels.append(LODLevel(
+            mesh: level.meshes,
+            maxDistance: maxDistance,
+            screenPercentage: level.screenSize,
+            url: level.url,
+            assetName: node.name
+        ))
+    }
+
+    configureLODComponent(entityId: entityId, lodLevels: lodLevels, activeLODIndex: 0)
+    scene.get(component: LODComponent.self, for: entityId)?.levelsShareMaterials = true
 }
 
 /// A `.untold` parsed and built into GPU meshes, ready for any number of entities to
@@ -2652,6 +2818,7 @@ final class UntoldBuildCache: Sendable {
 private final class PackLoadDispatcher: @unchecked Sendable {
     private let lock = NSLock()
     private let models: [UntoldPackModelEntry]
+    private let lodChains: [String: [UntoldPackLODLevelEntry]]
     private let packDir: URL
     private let rootEntityId: EntityID
     private let completionBox: BoolCompletionBox?
@@ -2665,8 +2832,15 @@ private final class PackLoadDispatcher: @unchecked Sendable {
 
     private static let maxConcurrentLoads = 8
 
-    init(models: [UntoldPackModelEntry], packDir: URL, rootEntityId: EntityID, completionBox: BoolCompletionBox?) {
+    init(
+        models: [UntoldPackModelEntry],
+        lodChains: [String: [UntoldPackLODLevelEntry]],
+        packDir: URL,
+        rootEntityId: EntityID,
+        completionBox: BoolCompletionBox?
+    ) {
         self.models = models
+        self.lodChains = lodChains
         self.packDir = packDir
         self.rootEntityId = rootEntityId
         self.completionBox = completionBox
@@ -2697,8 +2871,17 @@ private final class PackLoadDispatcher: @unchecked Sendable {
         let withExtension = modelURL.pathExtension
         let (position, rotation, scale) = decomposeTRS(model.transform)
         let rootEntityId = rootEntityId
+        let lodLevels = (lodChains[model.path] ?? []).map {
+            PackLODChain.Level(url: packDir.appendingPathComponent($0.path), screenSize: $0.screenSize)
+        }
 
         withWorldMutationGate {
+            var lodChain: PackLODChain?
+            if !lodLevels.isEmpty {
+                // The size of the placement in the world decides where its levels switch.
+                let rootScale = scene.get(component: WorldTransformComponent.self, for: rootEntityId).map { largestAxisScale(of: $0.space) } ?? 1
+                lodChain = PackLODChain(levels: lodLevels, placementScale: simd_reduce_max(simd_abs(scale)) * rootScale)
+            }
             let childId = createEntity()
             registerTransformComponent(entityId: childId)
             registerSceneGraphComponent(entityId: childId)
@@ -2712,7 +2895,8 @@ private final class PackLoadDispatcher: @unchecked Sendable {
                 assetName: nil,
                 streamingPolicy: .immediate,
                 blockRenderLoop: true,
-                sharedBuilds: builds
+                sharedBuilds: builds,
+                lodChain: lodChain
             ) { success in
                 withWorldMutationGate {
                     translateTo(entityId: childId, position: position)
@@ -2788,7 +2972,13 @@ private func loadEntityFromPack(
     }
 
     let packDir = packURL.deletingLastPathComponent()
-    let dispatcher = PackLoadDispatcher(models: pack.models, packDir: packDir, rootEntityId: rootEntityId, completionBox: completionBox)
+    let dispatcher = PackLoadDispatcher(
+        models: pack.models,
+        lodChains: pack.lodChains ?? [:],
+        packDir: packDir,
+        rootEntityId: rootEntityId,
+        completionBox: completionBox
+    )
     dispatcher.start()
 }
 

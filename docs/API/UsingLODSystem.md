@@ -206,6 +206,76 @@ print("Entity has \(count) LOD levels")
 
 ---
 
+## Automatic LOD Chains for Packs
+
+A `.untoldpack` can carry a LOD chain for each of its models, so a scene exported
+from Blender gets its levels without anybody authoring them. `untoldengine
+export` builds the chains when it writes a pack, and `untoldengine bake-lods`
+builds them for a pack that is already cooked (see [Using the UntoldEngine
+CLI](UsingUntoldEngineCLI.md#lod-chains-for-packs)).
+
+Nothing changes in how the pack is loaded:
+
+```swift
+let site = createEntity()
+setEntityMeshAsync(entityId: site, filename: "site", withExtension: "untoldpack")
+```
+
+For every model that has a chain, each entity the model creates gets an
+`LODComponent` whose level 0 is the model itself, followed by the levels of the
+chain:
+
+- **The levels are built once.** Placements of the same model share the GPU
+  buffers of every level, as they share those of the model.
+- **Each placement switches at its own distances.** The manifest gives every
+  level a screen size: the share of the viewport height the model's bounding
+  sphere covers when the level becomes detailed enough. On load that size becomes
+  a distance for the placement, from the model's bounds, the placement's scale and
+  the engine's field of view. A small prop and a large tree therefore both switch
+  where their triangles are a few pixels each, although their distances differ
+  by orders of magnitude. The distances are computed when the pack loads; scaling
+  a placement afterwards does not move them.
+- **The materials belong to the entity.** The levels are drawn with the model's
+  materials, and a material that is edited or streamed while one level is on
+  screen stays when another takes its place (`LODComponent.levelsShareMaterials`).
+
+`setLOD(.distanceBias(...))` moves all switch distances together, and
+`forcedLOD` pins a level, as for any other LOD entity.
+
+The manifest records the chains under `lodChains`, by model path:
+
+```json
+"lodChains": {
+  "site/Tree/Tree.untold": [
+    { "path": "site/Tree/Tree_LOD1.untold", "triangles": 926291, "screenSize": 1.7823, "error": 0.037319 },
+    { "path": "site/Tree/Tree_LOD2.untold", "triangles": 299523, "screenSize": 1.0135, "error": 0.068814 },
+    { "path": "site/Tree/Tree_LOD3.untold", "triangles": 83611, "screenSize": 0.53547, "error": 0.155 }
+  ]
+}
+```
+
+`screenSize` is measured on a viewport 1080 pixels high, and `error` is the
+largest deviation from the model in model units.
+
+To build chains from your own tools, add the `UntoldEngineMeshCook` product of the
+engine package to the tool and call the cooker:
+
+```swift
+// Package.swift of the tool
+.product(name: "UntoldEngineMeshCook", package: "UntoldEngine")
+```
+
+```swift
+import UntoldEngineMeshCook
+
+let report = try UntoldMeshLODCooker.cookChains(forPackAt: packURL)
+```
+
+The cook is a module of its own because it brings a C++ mesh simplifier
+(meshoptimizer) that an app which only loads the pack does not need.
+
+---
+
 ## Advanced Usage
 
 ### Custom Distance Thresholds
@@ -232,7 +302,9 @@ Configure global LOD behavior:
 setLOD(.distanceBias(1.5))  // Performance mode
 setLOD(.distanceBias(0.75)) // Quality mode
 
-// Adjust hysteresis to prevent flickering
+// Adjust hysteresis to prevent flickering. It never takes more than a tenth of
+// a level's own switch distance, so levels that switch close to the camera
+// still switch back.
 setLOD(.hysteresis(10.0))
 
 // Enable dithered cross-fade transitions between LOD representations
