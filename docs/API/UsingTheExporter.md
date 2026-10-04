@@ -73,7 +73,7 @@ untoldengine export \
 Common options:
 
 - `--input <path>`: required source `.usd`, `.usda`, `.usdc`, `.usdz`, or `.blend`
-- `--output <path>`: required destination `.untold` (or `.untoldanim` with `--animation`)
+- `--output <path>`: required destination `.untold` (or `.untoldanim` with `--animation`). A scene with several models is written as a `.untoldpack` of the same name; that name may be given as well
 - `--file-type <tile|lod|hlod|shared|animation>`: optional, defaults to `tile`
 - `--mesh-name <name>`: optional, export only one mesh from a multi-mesh asset
 - `--convert-orientation`: optional, convert the export into engine space
@@ -173,10 +173,29 @@ Transparency becomes the engine's blended alpha mode:
   alpha channel of the base color texture (a white one when the base color is a
   constant), since the engine reads alpha from the base color texture.
 - Glass is approximated, since the engine has no transmission: a Principled BSDF
-  with Transmission keeps 10 % opacity at full transmission, and Transparent BSDFs
-  mixed in by a Mix Shader lower the opacity by their share. A mix driven by
-  Geometry > Backfacing takes its front-face side. The material fidelity report
-  lists these approximations.
+  with Transmission becomes a blended surface. Clear glass (a white base color)
+  keeps 10 % opacity at full transmission. The base color tints the light that
+  crosses glass, so tinted glass is more opaque by the light its color takes
+  (counted by its brightness), and black glass is exported opaque: the black
+  mirror it is in Blender. The metallic share of a surface lets no light
+  through, so a metal with Transmission left on is opaque as well. A rough
+  surface scatters what crosses it, so frosted glass is more opaque the rougher
+  it is. A base color, a metallic value or a roughness that comes from a texture
+  counts as clear, as no metal and as polished. Transparent BSDFs mixed in by a Mix Shader lower the opacity by their
+  share. A mix driven by Geometry > Backfacing takes its front-face side. The
+  material fidelity report lists these approximations.
+
+A height texture drives the engine's parallax occlusion mapping:
+
+- The image on a Displacement node's Height input exports as the height texture,
+  with the node's Scale as its depth, and failing that the image on the Height
+  input of a Bump node that feeds the Normal input, with its Distance.
+- The engine's depth is a share of the texture's width, not a distance, so a
+  small Scale (0.02 to 0.1) carries over well and may need tuning after import.
+- A Scale or Distance above 0.2 is not a depth parallax can show. Blender leaves
+  both at 1, a metre, and with its default "Bump Only" displacement draws the
+  shading of a bump from them. Such a height is left out of the export, and the
+  material fidelity report says so; the surface keeps its normal map.
 
 Lights and cameras follow the same rules as objects: never from collections
 excluded from the view layer, and hidden ones only with `--include-hidden`.

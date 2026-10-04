@@ -12,6 +12,10 @@ Current scope:
   tile bounds, coordinate space conversion, mesh classification, output helpers,
   and argument parsing. `bpy`/`bmesh`/`mathutils` are stubbed with `MagicMock`
   so these tests run without Blender installed.
+- `test_addon_bridge.py`: what the Blender add-on does with the result of an
+  export (`untold-blender-addon/untold_exporter/bridge.py`): which files its
+  texture bake bakes and patches. `bpy` is stubbed while the bridge loads, and
+  the files are written by the exporter's own writers.
 
 Run locally from the repo root:
 
