@@ -1,4 +1,14 @@
 # Changelog
+## v0.22.0 - 2026-10-04
+### 🐞 Fixes
+- [Patch] Remember failed texture writes per export, not per Blender session (#1263) (fa706bf…)
+### 📚 Docs
+- [Docs] Updated engine architecture docs (#1286) (3ff79c0…)
+- [Docs] Actors and locks: benchmark, lock census of the frame and rules (#1294) (0e652b3…)
+### 🚀 Features
+- [Feature] Keep an export's assets in a folder of their own (#1268) (3c006f5…)
+- [Feature] Animation foundation and character deformation stack: pose layers, physics pose, compute skinning, DQS/DDM, morph targets, pose drivers, XPBD muscles, ML deformer, motion-capture seams (#1259) (ae6df3e…)
+- [Feature] Reach IK: a target per chain, in world, model, shoulder or ground space (#1283) (7f63272…)
 ## v0.21.0 - 2026-09-26
 ### 🐞 Fixes
 - [Bugfix] Restore StarterDemo keyboard input (014a559…)
