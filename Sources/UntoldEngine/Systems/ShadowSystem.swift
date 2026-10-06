@@ -253,7 +253,7 @@ struct ShadowSystem {
         var max: simd_float3
     }
 
-    // Per-frame cascade outputs
+    /// Per-frame cascade outputs
     var cascadeLightSpaceMatrices: [simd_float4x4] = Array(repeating: matrix_identity_float4x4, count: csmCascadeCount)
     /// Radius (in world units, and in true Euclidean distance from the camera) of each
     /// cascade's coverage sphere, centered on the camera position. Cascades are
