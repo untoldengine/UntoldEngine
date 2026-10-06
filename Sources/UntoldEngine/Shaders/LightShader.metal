@@ -80,8 +80,7 @@ float computeCSMShadow(
     constant CSMUniforms &csm,
     float3 worldPos,
     float3 normal,
-    float3 lightDir,
-    float3 cameraPosition
+    float3 lightDir
 ) {
     // Pick cascade using true distance from the camera, not forward-axis-projected view
     // depth. Projected depth isn't rotation-invariant for a fixed world point -- as the
@@ -91,6 +90,17 @@ float computeCSMShadow(
     // cascades' independently texel-snapped shadow maps. True distance stays constant
     // under pure rotation, so cascade selection (and splits/blend-start on the CPU side)
     // is stable regardless of head orientation.
+    //
+    // Read the camera position from csm itself (ShadowSystem.makeUniforms(), sourced from
+    // cascadeWorldCenters -- the exact point cascadeSplits/cascadeWorldRadii were fit
+    // around) rather than taking it as a caller-supplied parameter. A caller-supplied
+    // value can be sourced from a different space by accident (e.g.
+    // SceneRootTransform.shared.effectiveCameraPosition, which is a different point than
+    // the cascade-fitting camera position whenever the scene root has non-identity scale)
+    // without anything at the call site signaling the mismatch.
+    float3 cameraPosition = float3(
+        csm.cameraPositionVisualWorld[0], csm.cameraPositionVisualWorld[1], csm.cameraPositionVisualWorld[2]
+    );
     float viewDepth = length(worldPos - cameraPosition);
     int cascade = csm.cascadeCount - 1;
     for (int i = 0; i < csm.cascadeCount - 1; i++) {
@@ -603,7 +613,7 @@ fragment float4 fragmentLightShader(VertexCompositeOutput vertexOut [[stage_in]]
     color.spec = brdf.spec*lights.color*lights.intensity;
     
     // Compute shadow using cascaded shadow maps
-    float shadow = computeCSMShadow(csmShadowArray, csmUniforms, verticesInWorldSpace.xyz, surfaceNormal, lightRayDirection, cameraPosition);
+    float shadow = computeCSMShadow(csmShadowArray, csmUniforms, verticesInWorldSpace.xyz, surfaceNormal, lightRayDirection);
 
     // shadows affect directional light for now
     color.diff = color.diff*(half)shadow;
@@ -768,7 +778,7 @@ fragment TBDRLightOutput fragmentLightShaderTBDR(
     color.diff = brdf.diff * (half3)lights.color * (half)lights.intensity;
     color.spec = brdf.spec * lights.color * lights.intensity;
 
-    float shadow = computeCSMShadow(csmShadowArray, csmUniforms, verticesInWorldSpace.xyz, surfaceNormal, lightRayDirection, cameraPosition);
+    float shadow = computeCSMShadow(csmShadowArray, csmUniforms, verticesInWorldSpace.xyz, surfaceNormal, lightRayDirection);
     color.diff *= (half)shadow;
     color.spec *= shadow;
 

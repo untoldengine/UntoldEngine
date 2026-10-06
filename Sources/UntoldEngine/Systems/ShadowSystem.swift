@@ -63,6 +63,9 @@ struct CSMUniforms {
         matrix_identity_float4x4, matrix_identity_float4x4, matrix_identity_float4x4
     )
     var cascadeSplits: (Float, Float, Float) = (0, 0, 0)
+    /// Camera position in the same visual-world space cascadeSplits/cascadeWorldCenters were
+    /// fit in -- see the doc comment on the Metal struct in ShaderStructs.h.
+    var cameraPositionVisualWorld: (Float, Float, Float) = (0, 0, 0)
     var cascadeCount: Int32 = .init(csmCascadeCount)
     var cascadeWorldTexelSizes: (Float, Float, Float) = (1, 1, 1)
     var cascadeDepthSpans: (Float, Float, Float) = (1, 1, 1)
@@ -323,6 +326,14 @@ struct ShadowSystem {
         var u = CSMUniforms()
         u.lightSpaceMatrices = Self.pack3(cascadeLightSpaceMatrices, fallback: matrix_identity_float4x4)
         u.cascadeSplits = Self.pack3(cascadeSplitDistances, fallback: 0)
+        // cascadeWorldCenters is the same camera position for every cascade (see
+        // updateCascades()) -- the exact point cascadeSplits/cascadeWorldRadii were fit
+        // around. Feeding the shader this instead of a separately-sourced camera position
+        // guarantees computeCSMShadow's cascade-selection distance can never drift into a
+        // different space (e.g. SceneRootTransform.shared.effectiveCameraPosition, which
+        // diverges from this point under a non-identity scene-root scale).
+        let fittingCameraPosition = cascadeWorldCenters[0]
+        u.cameraPositionVisualWorld = (fittingCameraPosition.x, fittingCameraPosition.y, fittingCameraPosition.z)
         u.cascadeCount = Int32(csmCascadeCount)
         u.cascadeWorldTexelSizes = Self.pack3(cascadeWorldTexelSizes, fallback: cascadeWorldTexelSizes[0])
         u.cascadeDepthSpans = Self.pack3(cascadeDepthSpans, fallback: cascadeDepthSpans[0])

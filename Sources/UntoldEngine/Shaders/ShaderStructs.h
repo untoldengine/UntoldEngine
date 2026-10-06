@@ -199,6 +199,13 @@ typedef struct{
 struct CSMUniforms {
     float4x4 lightSpaceMatrices[CSM_CASCADE_COUNT];
     float    cascadeSplits[CSM_CASCADE_COUNT]; // world-space camera distances (far edge of each cascade)
+    // Camera position in the same visual-world space cascadeSplits/cascadeWorldCenters were
+    // fit in (ShadowSystem.updateCascades' raw, root-uncorrected camera position) -- NOT
+    // SceneRootTransform.shared.effectiveCameraPosition, which is a different point whenever
+    // the scene root is non-identity scale. computeCSMShadow's cascade-selection distance must
+    // be measured from this exact point, not re-derived per call site, so it can never drift
+    // out of the space cascadeSplits was computed in.
+    float    cameraPositionVisualWorld[3];
     int      cascadeCount;
     float    cascadeWorldTexelSizes[CSM_CASCADE_COUNT];
     float    cascadeDepthSpans[CSM_CASCADE_COUNT];

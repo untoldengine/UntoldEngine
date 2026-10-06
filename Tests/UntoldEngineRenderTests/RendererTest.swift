@@ -348,6 +348,47 @@ final class RendererTests: BaseRenderSetup {
         }
     }
 
+    func testCSMUniformsCameraPositionMatchesCascadeFittingSpaceUnderSceneRootScale() {
+        guard CameraSystem.shared.activeCamera != nil else {
+            XCTFail("Test precondition failed: expected an active camera")
+            return
+        }
+
+        SceneRootTransform.shared.reset()
+        shadowSystem.updateCascades()
+        XCTAssertTrue(shadowSystem.isActive, "Test precondition failed: CSM should be active at the identity scene root")
+
+        let baselineCameraPosition = shadowSystem.cascadeWorldCenters[0]
+
+        // Regression guard: computeCSMShadow (LightShader.metal) picks a cascade by comparing
+        // length(worldPos - cameraPosition) against csm.cascadeSplits. Both must live in the same
+        // space cascadeWorldCenters/cascadeWorldRadii were fit in on the CPU (the camera's raw,
+        // root-uncorrected position -- see the long comment on `invView` in updateCascades() and
+        // on CSMUniforms.cameraPositionVisualWorld in ShaderStructs.h). A prior version fed the
+        // shader SceneRootTransform.shared.effectiveCameraPosition instead -- a *different* point
+        // whenever the scene root has non-identity scale, which silently broke cascade selection
+        // under scene-root scale (e.g. AR tabletop placement) even though nothing in the scene
+        // actually moved.
+        SceneRootTransform.shared.scale = simd_float3(repeating: 7.0)
+        SceneRootTransform.shared.updateIfNeeded()
+        defer { SceneRootTransform.shared.reset() }
+
+        shadowSystem.updateCascades()
+        XCTAssertTrue(shadowSystem.isActive, "CSM should remain active under a scaled scene root")
+
+        let uniforms = shadowSystem.makeUniforms()
+        let shaderCameraPosition = simd_float3(
+            uniforms.cameraPositionVisualWorld.0, uniforms.cameraPositionVisualWorld.1, uniforms.cameraPositionVisualWorld.2
+        )
+
+        XCTAssertEqual(
+            simd_distance(shaderCameraPosition, baselineCameraPosition), 0.0, accuracy: 0.01,
+            "CSMUniforms.cameraPositionVisualWorld (\(shaderCameraPosition)) must stay the camera's raw " +
+                "position (\(baselineCameraPosition)) regardless of SceneRootTransform.shared.scale, matching " +
+                "the space cascadeSplits/cascadeWorldCenters were fit in"
+        )
+    }
+
     func testCascadeLightDirectionRespondsToSceneRootRotation() {
         func matrixIsFinite(_ matrix: simd_float4x4) -> Bool {
             let values = [
