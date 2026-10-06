@@ -421,6 +421,24 @@ struct ShadowSystem {
         let invView = cameraComponent.viewSpace.inverse
         let cameraPosition = simd_float3(invView.columns.3.x, invView.columns.3.y, invView.columns.3.z)
 
+        // Coverage-radius safety factor: a point visible at the edge of the camera's FOV, at
+        // forward distance d, is at *true* (Euclidean) distance d * sqrt(1 + tan^2(halfFovX) +
+        // tan^2(halfFovY)) from the camera -- up to ~1.5x d at a typical 65 deg vertical FOV /
+        // widescreen aspect. Cascade *selection* (below, and in computeCSMShadow) is correctly
+        // true-distance-based so it stays rotation-invariant, but sizing each cascade's coverage
+        // sphere to exactly `splits[i]` would then under-cover wide/off-axis content relative to
+        // the old view-frustum-fitted wedge, which always reached this far in the look direction.
+        // That showed up as a hard, FOV-shaped shadow horizon sweeping across large scenes (e.g.
+        // a stadium's stands/roof) well within the camera's view but off-axis enough to exceed a
+        // same-radius sphere. Inflating the sphere's radius (not the selection distance) by this
+        // factor restores the old wedge's forward/off-axis reach without reintroducing any
+        // view-direction dependence -- it's a function of the camera's own (fixed) FOV only, so
+        // it stays exactly as rotation-invariant as a same-radius sphere would be.
+        let proj = renderInfo.perspectiveSpace
+        let tanHalfFovY: Float = 1.0 / proj[1][1]
+        let tanHalfFovX: Float = 1.0 / proj[0][0]
+        let coverageSafetyFactor = sqrt(1.0 + tanHalfFovX * tanHalfFovX + tanHalfFovY * tanHalfFovY)
+
         // Keep cascades within the same effective distance used to cull shadow casters.
         // This gives small/editor scenes more texel density in the near cascade.
         let shadowFar = min(far, RenderPasses.maxShadowCastingDistance)
@@ -445,14 +463,16 @@ struct ShadowSystem {
         }
 
         for i in 0 ..< csmCascadeCount {
-            // Each cascade is a sphere of radius `splits[i]` centered on the camera
-            // position -- not a wedge fitted to the current view cone -- so its
-            // world-space footprint (and therefore its texel grid) depends only on
-            // where the camera *is*, never on which way it's currently facing. Cascades
-            // are concentric (nested), which is exactly what the shader's distance-based
-            // selection (`computeCSMShadow` in LightShader.metal) expects: the smallest
-            // cascade a point's distance from the camera fits inside.
-            let radius = max(splits[i], 0.001)
+            // Each cascade is a sphere centered on the camera position -- not a wedge fitted to
+            // the current view cone -- so its world-space footprint (and therefore its texel
+            // grid) depends only on where the camera *is*, never on which way it's currently
+            // facing. Cascades are concentric (nested), which is exactly what the shader's
+            // distance-based selection (`computeCSMShadow` in LightShader.metal) expects: the
+            // smallest cascade a point's distance from the camera fits inside. The radius is
+            // `splits[i]` inflated by `coverageSafetyFactor` (see above) so it comfortably
+            // covers every point this cascade's selection criterion can choose, including ones
+            // at the edge of the camera's FOV.
+            let radius = max(splits[i] * coverageSafetyFactor, 0.001)
 
             let diameter = max(ceil(radius * 2.0), 0.001)
             let texelSize = diameter / Float(shadowResolution.x)

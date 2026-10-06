@@ -503,6 +503,39 @@ final class RendererTests: BaseRenderSetup {
         }
     }
 
+    func testCascadeCoverageRadiusExceedsSplitByFOVSafetyFactor() {
+        XCTAssertNotNil(CameraSystem.shared.activeCamera, "Test precondition failed: expected an active camera")
+
+        shadowSystem.updateCascades()
+        XCTAssertTrue(shadowSystem.isActive, "Test precondition failed: CSM should be active")
+
+        // Regression guard: a cascade sized to exactly cascadeSplitDistances[i] (its selection
+        // distance) under-covers content at the edge of the camera's FOV relative to the old
+        // view-frustum-fitted wedge, which always reached that far in the look direction. For
+        // wide/large scenes (e.g. a stadium) this showed up as a hard, FOV-shaped shadow horizon
+        // sweeping across the ground well within the visible frustum. The coverage radius must be
+        // inflated by sqrt(1 + tan^2(halfFovX) + tan^2(halfFovY)) -- the ratio between a FOV-edge
+        // point's true distance and its forward distance -- while cascadeSplitDistances itself
+        // (used for rotation-invariant cascade *selection*) stays uninflated.
+        let proj = renderInfo.perspectiveSpace
+        let tanHalfFovY: Float = 1.0 / proj[1][1]
+        let tanHalfFovX: Float = 1.0 / proj[0][0]
+        let expectedFactor = sqrt(1.0 + tanHalfFovX * tanHalfFovX + tanHalfFovY * tanHalfFovY)
+
+        for i in 0 ..< csmCascadeCount {
+            let split = shadowSystem.cascadeSplitDistances[i]
+            XCTAssertEqual(
+                shadowSystem.cascadeWorldRadii[i], split * expectedFactor, accuracy: max(split * 0.01, 0.01),
+                "Cascade \(i) coverage radius must be its selection split inflated by the FOV safety factor"
+            )
+            XCTAssertGreaterThan(
+                shadowSystem.cascadeWorldRadii[i], split,
+                "Cascade \(i) coverage radius must exceed its own selection split, or FOV-edge content at " +
+                    "exactly that distance would fall outside the shadow map"
+            )
+        }
+    }
+
     func testTransparencyTarget() {
         XCTAssertNotNil(renderer, "Renderer should be initialized")
         XCTAssertNotNil(renderer.metalView, "MetalView should be initialized")
