@@ -44,7 +44,8 @@ struct ClipSampler {
         bind(clip)
         pose.resize(jointCount: clip.jointCount)
 
-        let channelTime = fmod(time, duration) * speed
+        let repeats = clip.channels.contains { $0.animated && $0.repeats }
+        let channelTime = (repeats ? fmod(time, duration) : min(max(time, 0), duration)) * speed
 
         for index in 0 ..< clip.jointCount {
             let channel = clip.channels[index]
