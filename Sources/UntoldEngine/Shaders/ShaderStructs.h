@@ -198,7 +198,6 @@ typedef struct{
 
 struct CSMUniforms {
     float4x4 lightSpaceMatrices[CSM_CASCADE_COUNT];
-    float4x4 cameraViewMatrix;
     float    cascadeSplits[CSM_CASCADE_COUNT]; // world-space camera distances (far edge of each cascade)
     int      cascadeCount;
     float    cascadeWorldTexelSizes[CSM_CASCADE_COUNT];

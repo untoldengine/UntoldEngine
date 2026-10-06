@@ -62,7 +62,6 @@ struct CSMUniforms {
     var lightSpaceMatrices: (simd_float4x4, simd_float4x4, simd_float4x4) = (
         matrix_identity_float4x4, matrix_identity_float4x4, matrix_identity_float4x4
     )
-    var cameraViewMatrix: simd_float4x4 = matrix_identity_float4x4
     var cascadeSplits: (Float, Float, Float) = (0, 0, 0)
     var cascadeCount: Int32 = .init(csmCascadeCount)
     var cascadeWorldTexelSizes: (Float, Float, Float) = (1, 1, 1)
@@ -256,11 +255,18 @@ struct ShadowSystem {
 
     // Per-frame cascade outputs
     var cascadeLightSpaceMatrices: [simd_float4x4] = Array(repeating: matrix_identity_float4x4, count: csmCascadeCount)
+    /// Radius (in world units, and in true Euclidean distance from the camera) of each
+    /// cascade's coverage sphere, centered on the camera position. Cascades are
+    /// concentric, and the shader (`computeCSMShadow` in LightShader.metal) picks the
+    /// smallest cascade whose `distance(worldPos, cameraPosition) <= cascadeSplits[i]` —
+    /// deliberately camera-position-only, not view-direction-fitted, so rotating the
+    /// camera never changes which cascade a static point falls into or that cascade's
+    /// coverage. See the long comment on `invView` in `updateCascades()`.
     var cascadeSplitDistances: [Float] = Array(repeating: 0, count: csmCascadeCount)
     var cascadeWorldTexelSizes: [Float] = Array(repeating: 1, count: csmCascadeCount)
     var cascadeDepthSpans: [Float] = Array(repeating: 1, count: csmCascadeCount)
-    /// World-space centroid and bounding-sphere radius of each cascade's camera-frustum
-    /// slice. Used by the renderer to reject shadow casters that are farther than the
+    /// World-space center (== camera position) and radius of each cascade's coverage
+    /// sphere. Used by the renderer to reject shadow casters that are farther than the
     /// engine's own shadow-distance horizon from anything this cascade could possibly
     /// receive — a cull that stays correct for any light direction, unlike a camera-depth
     /// cutoff (see RenderPasses.shadowCasterEntityIds).
@@ -279,13 +285,12 @@ struct ShadowSystem {
         isActive ? cascadeLightSpaceMatrices[0] : nil
     }
 
-    /// Camera-depth distance at which cascade `cascadeIdx` begins cross-fading its
-    /// visibility into the next cascade. This is the single source of truth for the
-    /// blend boundary: it is computed once per frame here on the CPU, used directly to
-    /// widen the *next* cascade's frustum-fitting near plane (`cascadeNearDistance`
-    /// below), and uploaded via `makeUniforms()` so the shader reads the same value
-    /// instead of re-deriving it from `cascadeSplits` — eliminating the CPU/GPU-duplicated
-    /// formula that previously had to be kept in sync by hand.
+    /// Camera-distance at which cascade `cascadeIdx` begins cross-fading its visibility
+    /// into the next cascade. This is the single source of truth for the blend boundary:
+    /// it is computed once per frame here on the CPU and uploaded via `makeUniforms()` so
+    /// the shader reads the same value instead of re-deriving it from `cascadeSplits` —
+    /// eliminating the CPU/GPU-duplicated formula that previously had to be kept in sync
+    /// by hand.
     /// Internal — exposed for testing via @testable import.
     static func cascadeBlendStart(
         cascadeIdx: Int,
@@ -298,21 +303,6 @@ struct ShadowSystem {
         let intervalLength = max(splits[cascadeIdx] - intervalNear, 0.001)
         let blendWidth = intervalLength * simd_clamp(blendFraction, 0.0, 0.5)
         return splits[cascadeIdx] - blendWidth
-    }
-
-    /// Near-plane distance for cascade `cascadeIdx`'s frustum-fitting sub-frustum.
-    /// Cascades after the first begin at the preceding cascade's blend-start distance,
-    /// so both cascades' fitted frustums cover the receiver positions the shader
-    /// cross-fades over.
-    /// Internal — exposed for testing via @testable import.
-    static func cascadeNearDistance(
-        cascadeIdx: Int,
-        splits: [Float],
-        cameraNear: Float,
-        blendFraction: Float
-    ) -> Float {
-        guard cascadeIdx > 0 else { return cameraNear }
-        return max(cameraNear, cascadeBlendStart(cascadeIdx: cascadeIdx - 1, splits: splits, blendFraction: blendFraction))
     }
 
     /// Fills the 3 fixed GPU slots from a per-cascade array, padding unused slots
@@ -398,26 +388,27 @@ struct ShadowSystem {
               let cameraComponent = scene.get(component: CameraComponent.self, for: camEntity)
         else { return }
 
-        // Corners are derived from the raw (root-uncorrected) camera view so they land in
+        // Position is derived from the raw (root-uncorrected) camera view so it lands in
         // real/visual-world space. `cascadeLightSpaceMatrices` is consumed everywhere through
         // `SceneRootTransform.shared.effectiveLightMatrix(...)`, which right-multiplies by the
         // scene-root matrix to map scene-local model/G-buffer positions into this same visual-world
         // space before projecting into light space. Using the root-corrected view here instead would
-        // put these corners in scene-local space, and every consumer would apply the root transform
+        // put this position in scene-local space, and every consumer would apply the root transform
         // a second time -- harmless when the root is at unit scale, but collapsing shadows to
         // sub-texel size under a shrunk root scale (e.g. AR tabletop placement).
+        //
+        // Deliberately position-only, not orientation-aware: an earlier version fitted each
+        // cascade to the camera's current view cone (classic CSM frustum-fitting). That makes
+        // every cascade continuously re-center and reshape as the camera rotates -- imperceptible
+        // for a slowly-turning desktop/gamepad camera, but visible as shadows crawling on fine
+        // geometry (cable lattices, railings) with a headset, where the view direction changes
+        // constantly and can swing close to the light's own direction (e.g. tilting the head up
+        // toward an overhead sun), which is exactly when a view-cone-fitted box is most sensitive
+        // to small rotations. Centering each cascade on camera *position* alone, with a
+        // fixed-radius sphere instead of a view-fitted wedge, removes the view-direction term
+        // entirely: rotating in place never moves a cascade's coverage, only translating does.
         let invView = cameraComponent.viewSpace.inverse
-
-        // Extract tangent-of-half-FOV from the current perspective projection matrix.
-        // proj[0][0] = f/aspect  → tanHalfFovX = 1/proj[0][0]
-        // proj[1][1] = f         → tanHalfFovY = 1/proj[1][1]
-        let proj = renderInfo.perspectiveSpace
-        let tanHalfFovY: Float = 1.0 / proj[1][1]
-        let tanHalfFovX: Float = 1.0 / proj[0][0]
-
-        // Vision Pro IPD expansion: widen the cascade sub-frustum horizontally by half the
-        // typical max IPD so the cascade AABB envelopes both eye frustums.
-        let xrExpansion: Float = renderInfo.isXRStereoMode ? 0.04 : 0.0
+        let cameraPosition = simd_float3(invView.columns.3.x, invView.columns.3.y, invView.columns.3.z)
 
         // Keep cascades within the same effective distance used to cull shadow casters.
         // This gives small/editor scenes more texel density in the near cascade.
@@ -443,49 +434,26 @@ struct ShadowSystem {
         }
 
         for i in 0 ..< csmCascadeCount {
-            let cascadeFar = splits[i]
-            let cascadeNear = Self.cascadeNearDistance(
-                cascadeIdx: i,
-                splits: splits,
-                cameraNear: near,
-                blendFraction: csmCascadeBlendFraction
-            )
-
-            // 8 corners of the cascade sub-frustum in world space.
-            // Farther cascades begin inside the preceding cascade so both maps
-            // cover the receiver positions used by the transition blend.
-            let corners = cascadeFrustumCornersWorldSpace(
-                invViewMatrix: invView,
-                tanHalfFovX: tanHalfFovX,
-                tanHalfFovY: tanHalfFovY,
-                nearDist: cascadeNear,
-                farDist: cascadeFar,
-                xrIPDExpansion: xrExpansion
-            )
-
-            // Centroid of the frustum slice.
-            var center = simd_float3(0, 0, 0)
-            for c in corners {
-                center += c
-            }
-            center /= Float(corners.count)
-
-            // Stable CSM: use a light view with fixed orientation, then snap the cascade
-            // center to the shadow texel grid in light space. Re-centering the light view
-            // directly on the frustum every frame causes sub-texel shadow-map movement
-            // during camera rotation.
-            var radius: Float = 0
-            for corner in corners {
-                radius = max(radius, simd_length(corner - center))
-            }
+            // Each cascade is a sphere of radius `splits[i]` centered on the camera
+            // position -- not a wedge fitted to the current view cone -- so its
+            // world-space footprint (and therefore its texel grid) depends only on
+            // where the camera *is*, never on which way it's currently facing. Cascades
+            // are concentric (nested), which is exactly what the shader's distance-based
+            // selection (`computeCSMShadow` in LightShader.metal) expects: the smallest
+            // cascade a point's distance from the camera fits inside.
+            let radius = max(splits[i], 0.001)
 
             let diameter = max(ceil(radius * 2.0), 0.001)
             let texelSize = diameter / Float(shadowResolution.x)
             cascadeWorldTexelSizes[i] = texelSize
-            cascadeWorldCenters[i] = center
+            cascadeWorldCenters[i] = cameraPosition
             cascadeWorldRadii[i] = radius
 
-            var centerLS = lightView * simd_float4(center, 1.0)
+            // Stable CSM: use a light view with fixed orientation, then snap the cascade
+            // center to the shadow texel grid in light space. Re-centering the light view
+            // directly on the camera every frame causes sub-texel shadow-map movement
+            // during camera translation.
+            var centerLS = lightView * simd_float4(cameraPosition, 1.0)
             centerLS.x = floor(centerLS.x / texelSize) * texelSize
             centerLS.y = floor(centerLS.y / texelSize) * texelSize
 
@@ -495,16 +463,13 @@ struct ShadowSystem {
             let minY = centerLS.y - halfDiameter
             let maxY = centerLS.y + halfDiameter
 
-            // Start from the receiver cascade corners, then expand light-space Z
-            // using caster AABBs whose light-space XY overlaps this cascade. Indoor
-            // occluders such as ceilings can sit outside the receiver slice depth
-            // while still blocking light from visible floors/walls.
-            var minZ = Float.infinity, maxZ = -Float.infinity
-
-            for corner in corners {
-                let lc = lightView * simd_float4(corner, 1.0)
-                minZ = min(minZ, lc.z); maxZ = max(maxZ, lc.z)
-            }
+            // A sphere of `radius` centered at centerLS projects to exactly
+            // [centerLS.z - radius, centerLS.z + radius] along the light's view axis.
+            // Then expand light-space Z using caster AABBs whose light-space XY overlaps
+            // this cascade. Indoor occluders such as ceilings can sit outside the
+            // receiver sphere's depth while still blocking light from visible floors/walls.
+            var minZ = centerLS.z - radius
+            var maxZ = centerLS.z + radius
 
             let casterXYMargin = max(texelSize * 4.0, diameter * 0.03)
             for boundsLS in casterLightSpaceBounds {
@@ -551,35 +516,6 @@ struct ShadowSystem {
             splits.append(lambda * logSplit + (1.0 - lambda) * uniformSplit)
         }
         return splits
-    }
-
-    /// Returns the 8 world-space corners of the camera frustum slice [nearDist, farDist].
-    /// xrIPDExpansion widens each half-extent in X to envelope the second eye frustum.
-    private func cascadeFrustumCornersWorldSpace(
-        invViewMatrix: simd_float4x4,
-        tanHalfFovX: Float,
-        tanHalfFovY: Float,
-        nearDist: Float,
-        farDist: Float,
-        xrIPDExpansion: Float
-    ) -> [simd_float3] {
-        var corners: [simd_float3] = []
-        for dist in [nearDist, farDist] {
-            let halfX = tanHalfFovX * dist + xrIPDExpansion
-            let halfY = tanHalfFovY * dist
-            // Camera looks along -Z in right-hand view space.
-            let viewCorners: [simd_float4] = [
-                simd_float4(-halfX, -halfY, -dist, 1),
-                simd_float4(halfX, -halfY, -dist, 1),
-                simd_float4(-halfX, halfY, -dist, 1),
-                simd_float4(halfX, halfY, -dist, 1),
-            ]
-            for vc in viewCorners {
-                let w = invViewMatrix * vc
-                corners.append(simd_float3(w.x, w.y, w.z))
-            }
-        }
-        return corners
     }
 
     /// Internal — exposed for testing via @testable import. Lets tests check caster bounds

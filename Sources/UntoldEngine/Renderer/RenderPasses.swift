@@ -2573,7 +2573,6 @@ public enum RenderPasses {
         lightQuadEncoder.setFragmentBytes(&effectiveCamPos, length: MemoryLayout<simd_float3>.stride, index: Int(lightPassCameraPositionIndex.rawValue))
 
         var csmUniforms = shadowSystem.makeUniforms()
-        csmUniforms.cameraViewMatrix = viewMatrix
         csmUniforms.lightSpaceMatrices.0 = SceneRootTransform.shared.effectiveLightMatrix(csmUniforms.lightSpaceMatrices.0)
         csmUniforms.lightSpaceMatrices.1 = SceneRootTransform.shared.effectiveLightMatrix(csmUniforms.lightSpaceMatrices.1)
         csmUniforms.lightSpaceMatrices.2 = SceneRootTransform.shared.effectiveLightMatrix(csmUniforms.lightSpaceMatrices.2)
@@ -3235,7 +3234,6 @@ public enum RenderPasses {
 
         // CSM uniforms: pack all cascade matrices + split distances into one struct.
         var csmUniforms = shadowSystem.makeUniforms()
-        csmUniforms.cameraViewMatrix = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
         // Apply SceneRootTransform to each cascade matrix.
         csmUniforms.lightSpaceMatrices.0 = SceneRootTransform.shared.effectiveLightMatrix(csmUniforms.lightSpaceMatrices.0)
         csmUniforms.lightSpaceMatrices.1 = SceneRootTransform.shared.effectiveLightMatrix(csmUniforms.lightSpaceMatrices.1)
@@ -3579,7 +3577,6 @@ public enum RenderPasses {
         renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
 
         var transpCSM = shadowSystem.makeUniforms()
-        transpCSM.cameraViewMatrix = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
         transpCSM.lightSpaceMatrices.0 = SceneRootTransform.shared.effectiveLightMatrix(transpCSM.lightSpaceMatrices.0)
         transpCSM.lightSpaceMatrices.1 = SceneRootTransform.shared.effectiveLightMatrix(transpCSM.lightSpaceMatrices.1)
         transpCSM.lightSpaceMatrices.2 = SceneRootTransform.shared.effectiveLightMatrix(transpCSM.lightSpaceMatrices.2)

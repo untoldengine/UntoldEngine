@@ -7,9 +7,8 @@
 //    2. ShadowSystem.makeUniforms() handles variable cascade counts safely —
 //       unused GPU uniform slots are filled with identity / zero so the shader
 //       reads only the cascades indicated by the cascadeCount field.
-//    3. ShadowSystem.cascadeNearDistance() widens each non-first cascade's
-//       frustum-fitting near plane to overlap the tail of the preceding cascade,
-//       matching the shader's cross-fade blend region.
+//    3. ShadowSystem.cascadeBlendStart() computes the camera-distance at which each
+//       cascade begins cross-fading into the next, shared by the CPU and the shader.
 //
 // Copyright (C) Untold Engine Studios
 //
@@ -283,74 +282,6 @@ final class ShadowSystemCascadeBlendStartTests: XCTestCase {
     func testOutOfBoundsCascadeIndexReturnsZeroInsteadOfCrashing() {
         let result = ShadowSystem.cascadeBlendStart(cascadeIdx: 5, splits: splits, blendFraction: 0.1)
         XCTAssertEqual(result, 0.0, accuracy: 1e-6)
-    }
-}
-
-// MARK: - ShadowSystem.cascadeNearDistance
-
-/// Tests for the cascade cross-fade near-plane widening: cascades after the first
-/// must begin their frustum-fitting sub-frustum inside the tail of the preceding
-/// cascade's interval, by `blendFraction` of that interval's length, so the fitted
-/// frustum covers the receiver positions the shader's cross-fade blends over.
-final class ShadowSystemCascadeNearDistanceTests: XCTestCase {
-    private let splits: [Float] = [20.0, 60.0, 150.0]
-
-    func testMatchesCascadeBlendStartOfPrecedingCascade() {
-        // Documents the unification: the near-plane widening for cascade i is exactly
-        // the blend-start distance of cascade i-1, clamped to the camera's near plane —
-        // the same value the shader reads directly from cascadeBlendStarts[i-1].
-        for cascadeIdx in 1 ..< splits.count {
-            let near = ShadowSystem.cascadeNearDistance(
-                cascadeIdx: cascadeIdx, splits: splits, cameraNear: 0.1, blendFraction: 0.1
-            )
-            let blendStart = ShadowSystem.cascadeBlendStart(
-                cascadeIdx: cascadeIdx - 1, splits: splits, blendFraction: 0.1
-            )
-            XCTAssertEqual(near, max(0.1, blendStart), accuracy: 1e-6)
-        }
-    }
-
-    func testCascadeZeroStartsAtCameraNear() {
-        let result = ShadowSystem.cascadeNearDistance(
-            cascadeIdx: 0, splits: splits, cameraNear: 0.1, blendFraction: 0.1
-        )
-        XCTAssertEqual(result, 0.1, accuracy: 1e-6,
-                       "The first cascade must start exactly at the camera's near plane")
-    }
-
-    func testSecondCascadeOverlapsTailOfFirstIntervalByBlendFraction() {
-        // Cascade 1's own interval is [0, 20]; blend width = 20 * 0.1 = 2.
-        let result = ShadowSystem.cascadeNearDistance(
-            cascadeIdx: 1, splits: splits, cameraNear: 0.1, blendFraction: 0.1
-        )
-        XCTAssertEqual(result, 18.0, accuracy: 1e-6,
-                       "Cascade 1 must start 10% of cascade 0's interval length before cascade 0's split")
-    }
-
-    func testThirdCascadeOverlapsTailOfSecondIntervalByBlendFraction() {
-        // Cascade 1's interval is [20, 60], length 40; blend width = 40 * 0.1 = 4.
-        let result = ShadowSystem.cascadeNearDistance(
-            cascadeIdx: 2, splits: splits, cameraNear: 0.1, blendFraction: 0.1
-        )
-        XCTAssertEqual(result, 56.0, accuracy: 1e-6,
-                       "Cascade 2 must start 10% of cascade 1's interval length before cascade 1's split")
-    }
-
-    func testResultNeverGoesBelowCameraNear() {
-        // A large blend fraction on a tiny first interval must still clamp to cameraNear.
-        let result = ShadowSystem.cascadeNearDistance(
-            cascadeIdx: 1, splits: [0.2, 60.0], cameraNear: 0.1, blendFraction: 0.5
-        )
-        XCTAssertGreaterThanOrEqual(result, 0.1,
-                                    "Widened near plane must never project in front of the camera's own near plane")
-    }
-
-    func testZeroBlendFractionDisablesOverlap() {
-        let result = ShadowSystem.cascadeNearDistance(
-            cascadeIdx: 1, splits: splits, cameraNear: 0.1, blendFraction: 0.0
-        )
-        XCTAssertEqual(result, splits[0], accuracy: 1e-6,
-                       "With no blending, cascade 1 must start exactly at cascade 0's far split")
     }
 }
 

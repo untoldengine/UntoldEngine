@@ -170,7 +170,8 @@ float computeCSMShadow(depth2d_array<float> shadowArray,
                        constant CSMUniforms &csm,
                        float3 worldPos,
                        float3 normal,
-                       float3 lightDir);
+                       float3 lightDir,
+                       float3 cameraPosition);
 
 float3 computeIBLContribution(texture2d<float> irradianceTexture,
                               texture2d<float> specularTexture,
