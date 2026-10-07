@@ -446,6 +446,24 @@ public struct UntoldMaterialRecordV1: Sendable, Equatable {
         return UntoldTextureChannel.decoded(from: word >> Self.metallicChannelShift)
     }
 
+    /// How much of the surface is glass: 0 for a solid surface, 1 for one that lets
+    /// through what is behind it, tinted by its base color (Blender's Transmission
+    /// Weight). It is kept in the second reserved word, which every file written
+    /// before it leaves at zero: those files read as no transmission.
+    public var transmissionFactor: Float {
+        get {
+            let value = Float(bitPattern: reserved0.count > 1 ? reserved0[1] : 0)
+            return value.isFinite ? min(max(value, 0.0), 1.0) : 0.0
+        }
+        set {
+            while reserved0.count < 2 {
+                reserved0.append(0)
+            }
+            let factor = newValue.isFinite ? min(max(newValue, 0.0), 1.0) : 0.0
+            reserved0[1] = factor > 0.0 ? factor.bitPattern : 0
+        }
+    }
+
     public static func packTextureChannels(
         roughness: UntoldTextureChannel = .r,
         metallic: UntoldTextureChannel = .r
@@ -476,7 +494,8 @@ public struct UntoldMaterialRecordV1: Sendable, Equatable {
         heightRemapMin: Float = 0.0,
         heightRemapMax: Float = 1.0,
         roughnessTextureChannel: UntoldTextureChannel = .r,
-        metallicTextureChannel: UntoldTextureChannel = .r
+        metallicTextureChannel: UntoldTextureChannel = .r,
+        transmissionFactor: Float = 0.0
     ) {
         self.nameOffset = nameOffset
         self.flags = flags
@@ -505,6 +524,7 @@ public struct UntoldMaterialRecordV1: Sendable, Equatable {
             ),
             0,
         ]
+        self.transmissionFactor = transmissionFactor
     }
 }
 

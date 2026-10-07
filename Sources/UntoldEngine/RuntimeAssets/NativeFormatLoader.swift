@@ -663,7 +663,8 @@ public struct NativeFormatLoader: NamedRuntimeAssetLoading {
             heightScale: material.heightScale,
             heightMidlevel: material.heightMidlevel,
             heightRemapMin: material.heightRemapMin,
-            heightRemapMax: material.heightRemapMax
+            heightRemapMax: material.heightRemapMax,
+            transmissionFactor: material.transmissionFactor
         )
     }
 

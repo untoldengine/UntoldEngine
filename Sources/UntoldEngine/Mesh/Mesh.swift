@@ -817,6 +817,18 @@ public struct Material {
     public var clearCoat: Float = 0.0
     public var clearCoatGloss: Float = 0.0
     public var ior: Float = 1.5
+    /// How much of the surface is glass: 0 for a solid surface, 1 for one that lets
+    /// through what is behind it, tinted by its base color (Blender's Transmission
+    /// Weight). The base color is the tint of a pane seen through its two faces: each
+    /// face takes the square root of it. Glass keeps its reflections and its glow
+    /// whole and scatters none of the light that falls on it. Nothing is bent or
+    /// blurred behind it: rough glass shows less of what is behind it and glows with
+    /// the light that comes from behind it instead (polished glass is clear, up to a
+    /// roughness of 0.05; from 0.5 the surface is drawn solid), and a metal lets
+    /// nothing through. A material that lets light through is drawn with the blended
+    /// ones, whatever its alpha mode, its far faces before its near ones, and casts no
+    /// shadow (see `transmitsLight`).
+    public var transmission: Float = 0.0
     public var emit: Bool = false
     public var interactWithLight: Bool = true
     public var alphaMode: MaterialAlphaMode = .opaque
@@ -865,8 +877,22 @@ public struct Material {
         height.texture != nil
     }
 
+    /// Whether anything shows through the surface by its transmission. A surface that
+    /// is all metal, or too rough to see through, lets nothing through whatever its
+    /// transmission says, and stays a solid one: it keeps its place among the solid
+    /// surfaces, with their depth, their shadows and their batches. A metallic or
+    /// roughness texture can leave parts of it clear, so it counts as letting light
+    /// through.
+    public var transmitsLight: Bool {
+        transmission > 0.0
+            && (hasMetalMap || metallicValue < 1.0)
+            && (hasRoughMap || roughnessValue < GLASS_FROSTED_FROM_ROUGHNESS)
+    }
+
+    /// Whether the material is drawn over the lit scene, after the solid surfaces: a
+    /// blended material, or one that lets through what is behind it.
     public var hasTransparency: Bool {
-        alphaMode == .blend
+        alphaMode == .blend || transmitsLight
     }
 
     public var stScale: Float = 1.0
@@ -1016,6 +1042,7 @@ public struct Material {
 
         let alphaModeBits = runtimeMaterial.flags & 0b11
         alphaMode = MaterialAlphaMode(rawValue: Int32(alphaModeBits)) ?? .opaque
+        transmission = min(max(runtimeMaterial.transmissionFactor, 0.0), 1.0)
     }
 
     init(mdlMaterial: MDLMaterial, textureLoader: TextureLoader) {

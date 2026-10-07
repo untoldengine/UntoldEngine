@@ -306,10 +306,14 @@ Rules:
 
 - texture indices point into `TEXTURE_TABLE`
 - any texture index may be `UInt32.max`
-- `flags` holds alpha mode, double-sided, transparent, and similar runtime bits — not yet
-  populated by the exporter as of this writing; the whole 32-bit field is currently `0`
+- `flags`: the low two bits hold the alpha mode (`0` opaque, `1` mask, `2` blend); the
+  other bits are `0`
 - of the two `reserved0` words, the first packs the roughness/metallic texture-channel
-  selector (`UntoldMaterialRecordV1.packTextureChannels`); only the second is genuinely spare
+  selector (`UntoldMaterialRecordV1.packTextureChannels`). The second holds the
+  transmission factor as a `Float32` from `0` to `1`
+  (`UntoldMaterialRecordV1.transmissionFactor`): how much of the surface is glass. A file
+  written before the factor existed has zero bits there, which read as no transmission, so
+  it needs no new format version; a reader that does not know it draws the surface solid
 
 ## Texture Reference Encoding
 

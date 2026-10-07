@@ -907,6 +907,7 @@ public enum RenderPasses {
         materialParameters.heightRemapMax = material.heightRemapMax
         materialParameters.normalScale = material.normalScale
         materialParameters.hasEmissiveTexture = material.hasEmissiveMap ? 1 : 0
+        materialParameters.transmission = material.transmission
     }
 
     /// Builds the GPU-side POM quality uniform from the current global `POMQualitySettings`
@@ -1369,7 +1370,8 @@ public enum RenderPasses {
                     )
                     renderEncoder.bindShadowVertexStreams(mesh: mesh, entityId: entityId)
 
-                    for subMesh in mesh.submeshes {
+                    // Glass casts no shadow: the light crosses it.
+                    for subMesh in mesh.submeshes where subMesh.material?.transmitsLight != true {
                         renderEncoder.drawIndexedPrimitivesTracked(
                             type: subMesh.primitiveType,
                             indexCount: subMesh.indexCount,
@@ -1562,7 +1564,8 @@ public enum RenderPasses {
                 renderEncoder.setVertexBytes(&modelUniforms, length: MemoryLayout<Uniforms>.stride, index: Int(shadowPassModelUniform.rawValue))
                 renderEncoder.bindShadowVertexStreams(mesh: mesh, entityId: entityId)
 
-                for subMesh in mesh.submeshes {
+                // Glass casts no shadow: the light crosses it.
+                for subMesh in mesh.submeshes where subMesh.material?.transmitsLight != true {
                     renderEncoder.drawIndexedPrimitivesTracked(
                         type: subMesh.primitiveType,
                         indexCount: subMesh.indexCount,
@@ -1692,7 +1695,8 @@ public enum RenderPasses {
                     renderEncoder.setVertexBytes(&modelUniforms, length: MemoryLayout<Uniforms>.stride, index: Int(shadowPassModelUniform.rawValue))
                     renderEncoder.bindShadowVertexStreams(mesh: mesh, entityId: entityId)
 
-                    for subMesh in mesh.submeshes {
+                    // Glass casts no shadow: the light crosses it.
+                    for subMesh in mesh.submeshes where subMesh.material?.transmitsLight != true {
                         renderEncoder.drawIndexedPrimitivesTracked(
                             type: subMesh.primitiveType,
                             indexCount: subMesh.indexCount,
@@ -1902,8 +1906,8 @@ public enum RenderPasses {
                     for subMesh in mesh.submeshes {
                         guard let material = subMesh.material else { continue }
 
-                        // Blend-mode submeshes are rendered in the transparency pass.
-                        if material.alphaMode == .blend {
+                        // Blended and transmissive submeshes are rendered in the transparency pass.
+                        if material.hasTransparency {
                             continue
                         }
 
@@ -2351,7 +2355,7 @@ public enum RenderPasses {
 
                     for subMesh in mesh.submeshes {
                         guard let material = subMesh.material else { continue }
-                        if material.alphaMode == .blend { continue }
+                        if material.hasTransparency { continue }
 
                         var stScale: Float = material.stScale
                         renderEncoder.setFragmentBytes(&stScale, length: MemoryLayout<Float>.stride, index: Int(modelPassFragmentSTScaleIndex.rawValue))
@@ -3706,7 +3710,7 @@ public enum RenderPasses {
 
             let hasTransparentSubmesh = renderComponent.mesh.contains { mesh in
                 mesh.submeshes.contains { submesh in
-                    submesh.material?.alphaMode == .blend
+                    submesh.material?.hasTransparency ?? false
                 }
             }
 
@@ -3768,7 +3772,7 @@ public enum RenderPasses {
 
                 for subMesh in mesh.submeshes {
                     guard let material = subMesh.material else { continue }
-                    if material.alphaMode != .blend { continue }
+                    if !material.hasTransparency { continue }
 
                     var stScale: Float = material.stScale
                     renderEncoder.setFragmentBytes(
@@ -3855,14 +3859,29 @@ public enum RenderPasses {
                         index: Int(transparencyPassEmissiveTextureIndex.rawValue)
                     )
 
-                    renderEncoder.drawIndexedPrimitivesTracked(
-                        type: subMesh.primitiveType,
-                        indexCount: subMesh.indexCount,
-                        indexType: subMesh.indexType,
-                        indexBuffer: subMesh.indexBuffer,
-                        indexBufferOffset: subMesh.indexBufferOffset,
-                        category: .transparent
-                    )
+                    // Glass is drawn in two goes, its faces turned away from the viewer and then
+                    // the ones turned towards the viewer over them: the triangles of a mesh come
+                    // in no order, and the far side of a pane must not come out over its near
+                    // side. The other materials are drawn in one go, as before.
+                    let isGlass = material.transmitsLight
+                    let firstGo = isGlass ? transparencyPassFarFaces : transparencyPassEveryFace
+                    for go in 0 ..< (isGlass ? 2 : 1) {
+                        var faces = Int32((go == 0 ? firstGo : transparencyPassNearFaces).rawValue)
+                        renderEncoder.setFragmentBytes(
+                            &faces,
+                            length: MemoryLayout<Int32>.stride,
+                            index: Int(transparencyPassFacesIndex.rawValue)
+                        )
+
+                        renderEncoder.drawIndexedPrimitivesTracked(
+                            type: subMesh.primitiveType,
+                            indexCount: subMesh.indexCount,
+                            indexType: subMesh.indexType,
+                            indexBuffer: subMesh.indexBuffer,
+                            indexBufferOffset: subMesh.indexBufferOffset,
+                            category: .transparent
+                        )
+                    }
                 }
             }
         }
@@ -3974,7 +3993,7 @@ public enum RenderPasses {
 
                 renderEncoder.bindModelVertexStreams(mesh: mesh, entityId: entityId)
 
-                for subMesh in mesh.submeshes where subMesh.material?.alphaMode != .blend {
+                for subMesh in mesh.submeshes where subMesh.material?.hasTransparency != true {
                     renderEncoder.drawIndexedPrimitivesTracked(
                         type: subMesh.primitiveType,
                         indexCount: subMesh.indexCount,

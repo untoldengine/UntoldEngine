@@ -149,12 +149,19 @@ DEFAULT_MATERIAL_NAME = "default_material"
 MATERIAL_ALPHA_MODE_OPAQUE = 0
 MATERIAL_ALPHA_MODE_MASK = 1
 MATERIAL_ALPHA_MODE_BLEND = 2
-# The opacity a fully transmissive, clear surface (Principled Transmission Weight 1 with
-# a white base colour) keeps when exported: the engine has no transmission, so glass
-# becomes a blended surface this opaque, enough to keep its reflections visible. Tinted
-# or frosted glass comes out more opaque, by what its colour and its roughness take from
-# what is seen through it, and a metal opaque (see principled_transmittance).
-TRANSMISSION_OPACITY = 0.1
+# The least a transmissive surface must show of what is behind it, seen straight on, to
+# be exported as glass (see principled_transmittance). Below it the eye takes the
+# surface for a solid one, and as a solid one it keeps what glass gives up in the
+# engine: its place in the depth of the scene, its shadow and its batch. A car body
+# left with a Transmission of 1 on its dark or rough paints is such a surface.
+MIN_TRANSMITTANCE = 0.05
+# Glass and roughness, as the engine draws them (GLASS_CLEAR_UP_TO_ROUGHNESS and
+# GLASS_FROSTED_FROM_ROUGHNESS in ShaderTypes.h): it blurs nothing behind glass, so
+# all of what is behind it shows up to the first roughness, none of it from the second,
+# where the surface is drawn solid, and a smooth step leads from one to the other
+# (see roughness_sharpness).
+GLASS_CLEAR_UP_TO_ROUGHNESS = 0.05
+GLASS_FROSTED_FROM_ROUGHNESS = 0.5
 # The engine's own parallax depth (the default of its heightScale), for a material with
 # no height and for a height whose depth is linked and so has no single value.
 DEFAULT_HEIGHT_SCALE = 0.05
@@ -595,6 +602,8 @@ class MaterialRecord:
     height_remap_max: float = 1.0
     roughness_texture_channel: int = TEXTURE_CHANNEL_R
     metallic_texture_channel: int = TEXTURE_CHANNEL_R
+    # How much of the surface is glass, from 0 to 1 (the engine's Material.transmission).
+    transmission_factor: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -957,6 +966,9 @@ class ExportedMaterial:
     metallic_texture_channel: int = TEXTURE_CHANNEL_R
     # MATERIAL_ALPHA_MODE_*: blended when the surface is not fully opaque in Blender.
     alpha_mode: int = MATERIAL_ALPHA_MODE_OPAQUE
+    # How much of the surface is glass (Principled Transmission Weight), or 0 when next
+    # to nothing would be seen through it (see exported_transmission).
+    transmission: float = 0.0
     # A texture feeding the Principled Alpha input that is not the base colour
     # texture's own alpha. The engine reads alpha from the base colour texture only,
     # so staging writes it into that texture's alpha channel (see compose_alpha_texture).
@@ -1597,7 +1609,9 @@ def write_material_record(writer: BinaryWriter, material: MaterialRecord) -> Non
     writer.write_f32(material.height_remap_min)
     writer.write_f32(material.height_remap_max)
     writer.write_u32(pack_material_texture_channels(material.roughness_texture_channel, material.metallic_texture_channel))
-    writer.write_u32(0)
+    # The record's last word, zero in every file written before it held the transmission:
+    # no transmission is written as those zero bits.
+    writer.write_f32(min(max(material.transmission_factor, 0.0), 1.0))
 
 
 def write_texture_record(writer: BinaryWriter, texture: TextureRecord) -> None:
@@ -3312,24 +3326,34 @@ def analyze_material(material: object) -> MaterialGraphAnalysis:
     if principled is not None:
         transmission, unfollowed = principled_transmission(principled)
         if transmission or unfollowed:
-            opacity = transmission_opacity(principled_transmittance(principled, (transmission, unfollowed))[0])
-            if opacity >= 0.995:
-                reason = "nothing is seen through its transmission (a black base colour, a metal, or a fully rough surface), so it is exported as an opaque surface"
+            # Glass is exported as glass. What is reported is what comes out
+            # differently: a surface kept solid, glass the engine cannot blur, and a
+            # transmission the exporter could not follow.
+            reason = None
+            if exported_transmission(principled, (transmission, unfollowed)) <= 0.0:
+                reason = "next to nothing is seen through its transmission (a dark base colour, a metal, or a rough surface), so it is exported as a solid surface"
             else:
-                reason = f"transmission is approximated as a blended surface at {opacity:.0%} opacity"
+                sharp = roughness_sharpness(principled)
+                if sharp < 0.9:
+                    reason = (
+                        "the engine does not blur what is seen through rough glass: "
+                        f"{sharp:.0%} of the glass shows it sharp and the rest glows with the light behind it"
+                    )
             if unfollowed:
                 reason = (
                     "Transmission is driven by a texture or node math the exporter cannot follow; "
-                    f"its slider value {transmission:.2f} is used, so {reason}"
+                    f"its slider value {transmission:.2f} is used for the whole surface"
+                    + (f", and {reason}" if reason is not None else "")
                 )
-            findings.append(
-                MaterialGraphFinding(
-                    getattr(principled, "name", "") or principled.bl_idname,
-                    principled.bl_idname,
-                    MATERIAL_GRAPH_BAKEABLE,
-                    reason,
+            if reason is not None:
+                findings.append(
+                    MaterialGraphFinding(
+                        getattr(principled, "name", "") or principled.bl_idname,
+                        principled.bl_idname,
+                        MATERIAL_GRAPH_BAKEABLE,
+                        reason,
+                    )
                 )
-            )
 
     # Where the images are does not matter here, only which heights the export leaves out.
     _, heights_left_out = material_height(material, Path())
@@ -5234,7 +5258,8 @@ def principled_transmittance(node: object, followed: Optional[tuple[float, bool]
     - Blender lays the metal over the glass, so the metallic share of a surface lets
       nothing through whatever its transmission says.
     - A rough surface scatters what crosses it: frosted glass glows with the light
-      behind it and shows nothing of what is there.
+      behind it and shows nothing of what is there. The engine blurs nothing: it
+      shows less of what is behind rough glass (see roughness_sharpness).
 
     A base colour, a metallic value or a roughness the exporter cannot follow to a
     constant (a texture) counts as clear, as no metal and as polished.
@@ -5242,38 +5267,58 @@ def principled_transmittance(node: object, followed: Optional[tuple[float, bool]
     transmission, unfollowed = followed if followed is not None else principled_transmission(node)
     if transmission <= 0.0:
         return 0.0, unfollowed
+    tint = _principled_constant(node, "Base Color", 1.0)
+    metallic = _principled_constant(node, "Metallic", 0.0)
+    return transmission * (1.0 - metallic) * tint * roughness_sharpness(node), unfollowed
+
+
+def _principled_constant(node: object, name: str, default: float) -> float:
+    """A Principled BSDF input as one value in [0, 1] (a colour by its brightness), or
+    the default when the exporter cannot follow it to a constant (a texture)."""
     inputs = getattr(node, "inputs", None)
-
-    def constant(name: str, default: float) -> float:
-        socket = inputs.get(name) if inputs is not None else None
-        value = evaluate_socket_facing(socket) if socket is not None else None
-        return default if value is None else min(max(_as_scalar(value), 0.0), 1.0)
-
-    tint = constant("Base Color", 1.0)
-    metallic = constant("Metallic", 0.0)
-    roughness = constant("Roughness", 0.0)
-    return transmission * (1.0 - metallic) * tint * (1.0 - roughness), unfollowed
+    socket = inputs.get(name) if inputs is not None else None
+    value = evaluate_socket_facing(socket) if socket is not None else None
+    return default if value is None else min(max(_as_scalar(value), 0.0), 1.0)
 
 
-def transmission_opacity(transmittance: float) -> float:
-    """The opacity of the blended surface that stands in for a transmissive one."""
-    return 1.0 - transmittance * (1.0 - TRANSMISSION_OPACITY)
+def roughness_sharpness(node: object) -> float:
+    """The share of what crosses a Principled BSDF's surface that stays sharp in the
+    engine: all of it for polished glass, none of it for frosted glass, a smooth step in
+    between (see GLASS_CLEAR_UP_TO_ROUGHNESS), and all of it for a roughness that is
+    not a constant."""
+    roughness = _principled_constant(node, "Roughness", 0.0)
+    step = (roughness - GLASS_CLEAR_UP_TO_ROUGHNESS) / (GLASS_FROSTED_FROM_ROUGHNESS - GLASS_CLEAR_UP_TO_ROUGHNESS)
+    step = min(max(step, 0.0), 1.0)
+    return 1.0 - step * step * (3.0 - 2.0 * step)
+
+
+def exported_transmission(node: object, followed: Optional[tuple[float, bool]] = None) -> float:
+    """The transmission a Principled BSDF's material is exported with: its own (see
+    principled_transmission, whose answer for the node a caller that already has it
+    passes as `followed`), or none when next to nothing would be seen through it (see
+    MIN_TRANSMITTANCE), so that the surface stays a solid one in the engine.
+
+    The engine takes the base colour, the metal and the roughness into account itself,
+    texel by texel, so the value written is the transmission as it stands.
+    """
+    followed = followed if followed is not None else principled_transmission(node)
+    transmittance, _ = principled_transmittance(node, followed)
+    return followed[0] if transmittance >= MIN_TRANSMITTANCE else 0.0
 
 
 def _shader_opacity(node: Optional[object]) -> Optional[float]:
     """How much of the surface a shader covers: 1 for a BSDF, 0 for Transparent BSDF,
-    less for a transmissive Principled BSDF (see principled_transmittance), mixed by a
-    Mix Shader's factor. A Mix Shader driven by Geometry > Backfacing takes the
-    front-face side. None for anything else (a linked factor, Add Shader, ...)."""
+    mixed by a Mix Shader's factor. A Principled BSDF covers its surface whatever its
+    transmission: glass is there, and what shows through it is the material's
+    transmission (see exported_transmission), not a hole in it. A Mix Shader driven by
+    Geometry > Backfacing takes the front-face side. None for anything else (a linked
+    factor, Add Shader, ...)."""
     if node is None:
         return None
     node_id = node.bl_idname
     if node_id == "ShaderNodeBsdfTransparent":
         return 0.0
-    if node_id == "ShaderNodeBsdfPrincipled":
-        transmittance, _ = principled_transmittance(node)
-        return transmission_opacity(transmittance)
-    if node_id in {"ShaderNodeBsdfDiffuse", "ShaderNodeBsdfGlossy", "ShaderNodeEmission"}:
+    if node_id in {"ShaderNodeBsdfPrincipled", "ShaderNodeBsdfDiffuse", "ShaderNodeBsdfGlossy", "ShaderNodeEmission"}:
         return 1.0
     if node_id == "ShaderNodeMixShader":
         inputs = list(getattr(node, "inputs", []))
@@ -5323,7 +5368,8 @@ def _material_alpha(
 
     The engine multiplies the base colour texture's alpha by the factor's alpha, and
     blends only materials flagged MATERIAL_ALPHA_MODE_BLEND: before this every
-    material was flagged opaque, so Alpha and glass rendered solid.
+    material was flagged opaque, so Alpha rendered solid. Glass is not a matter of
+    alpha: it goes by the material's transmission (see exported_transmission).
     """
     opacity = surface_opacity(material)
     alpha_texture = None
@@ -5636,6 +5682,7 @@ def extract_material(mesh_object: object, asset_path: Path) -> ExportedMaterial:
         metallic_texture_channel=metallic_texture.channel if metallic_texture is not None else TEXTURE_CHANNEL_R,
         alpha_mode=alpha_mode,
         alpha_texture=alpha_texture,
+        transmission=exported_transmission(principled),
     )
     bake = material_bake_for(material)
     return apply_material_bake(exported, bake) if bake is not None else exported
@@ -8038,6 +8085,7 @@ def build_untold_file(
             material.roughness_texture_channel,
             material.metallic_texture_channel,
             material.alpha_mode,
+            material.transmission,
         )
         existing = material_indices.get(key)
         if existing is not None:
@@ -8069,6 +8117,7 @@ def build_untold_file(
                 height_remap_max=material.height_remap_max,
                 roughness_texture_channel=material.roughness_texture_channel,
                 metallic_texture_channel=material.metallic_texture_channel,
+                transmission_factor=material.transmission,
             )
         )
         return index

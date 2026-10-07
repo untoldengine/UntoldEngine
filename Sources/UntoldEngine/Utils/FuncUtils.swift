@@ -1124,6 +1124,22 @@ public func updateMaterialMetallic(entityId: EntityID, metallic: Float, meshInde
     refreshStaticBatchingForMaterialChange(entityId: entityId)
 }
 
+/// How much of the material is glass, from 0 (a solid surface) to 1 (see `Material.transmission`).
+public func getMaterialTransmission(entityId: EntityID, meshIndex: Int = 0, submeshIndex: Int = 0) -> Float {
+    getMaterial(entityId: entityId, meshIndex: meshIndex, submeshIndex: submeshIndex)?.transmission ?? .zero
+}
+
+/// Makes a material let through what is behind it, tinted by its base color: 0 for a
+/// solid surface, 1 for glass. Glass keeps its reflections and its glow whole. Rough
+/// glass shows less of what is behind it, and a metal lets nothing through.
+public func updateMaterialTransmission(entityId: EntityID, transmission: Float, meshIndex: Int = 0, submeshIndex: Int = 0) {
+    let clampedTransmission = max(0.0, min(1.0, transmission))
+    guard updateMaterial(entityId: entityId, meshIndex: meshIndex, submeshIndex: submeshIndex, mutate: { $0.transmission = clampedTransmission }) else {
+        return
+    }
+    refreshStaticBatchingForMaterialChange(entityId: entityId)
+}
+
 public func getMaterialEmmissive(entityId: EntityID, meshIndex: Int = 0, submeshIndex: Int = 0) -> simd_float3 {
     getMaterial(entityId: entityId, meshIndex: meshIndex, submeshIndex: submeshIndex)?.emissiveValue ?? .zero
 }

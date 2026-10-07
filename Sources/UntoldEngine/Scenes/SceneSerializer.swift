@@ -188,6 +188,7 @@ struct MaterialData: Codable {
     var heightEnabled: Bool? = nil
     var heightRemapMin: Float? = nil
     var heightRemapMax: Float? = nil
+    var transmission: Float? = nil
 }
 
 // MARK: - Asset Instance Data
@@ -739,6 +740,9 @@ private func applyDeserializedMaterialData(entityId: EntityID, entityData: Entit
     {
         updateMaterialAlphaMode(entityId: entityId, mode: alphaMode)
     }
+    if let transmission = materialData.transmission {
+        updateMaterialTransmission(entityId: entityId, transmission: transmission)
+    }
 
     if let baseColorURL = materialData.baseColorURL {
         updateMaterialTexture(entityId: entityId, textureType: .baseColor, path: baseColorURL)
@@ -880,6 +884,7 @@ public func serializeScene() -> SceneData {
             let opacity: Float = getMaterialOpacity(entityId: entityId)
             let alphaCutoff: Float = getMaterialAlphaCutoff(entityId: entityId)
             let alphaModeRawValue: Int32 = getMaterialAlphaMode(entityId: entityId).rawValue
+            let transmission: Float = getMaterialTransmission(entityId: entityId)
 
             var baseColorURL: URL?
             var roughnessURL: URL?
@@ -942,7 +947,8 @@ public func serializeScene() -> SceneData {
                 heightMidlevel: heightMidlevel,
                 heightEnabled: heightEnabled,
                 heightRemapMin: heightRemapMin,
-                heightRemapMax: heightRemapMax
+                heightRemapMax: heightRemapMax,
+                transmission: transmission
             )
         }
 
@@ -1212,6 +1218,7 @@ public func serializeScene() -> SceneData {
                             let opacity = getMaterialOpacity(entityId: childId)
                             let alphaCutoff = getMaterialAlphaCutoff(entityId: childId)
                             let alphaModeRawValue = getMaterialAlphaMode(entityId: childId).rawValue
+                            let transmission = getMaterialTransmission(entityId: childId)
                             let stScale = getMaterialSTScale(entityId: childId)
                             let heightScale = getMaterialHeightScale(entityId: childId)
                             let heightMidlevel = getMaterialHeightMidlevel(entityId: childId)
@@ -1251,7 +1258,8 @@ public func serializeScene() -> SceneData {
                                 heightMidlevel: heightMidlevel,
                                 heightEnabled: heightEnabled,
                                 heightRemapMin: heightRemapMin,
-                                heightRemapMax: heightRemapMax
+                                heightRemapMax: heightRemapMax,
+                                transmission: transmission
                             )
                         }
 
@@ -2361,6 +2369,9 @@ private func applyAssetInstanceOverrides(entityId: EntityID, overrides: [AssetOv
                    let alphaMode = MaterialAlphaMode(rawValue: alphaModeRawValue)
                 {
                     updateMaterialAlphaMode(entityId: derivedEntityId, mode: alphaMode)
+                }
+                if let transmission = material.transmission {
+                    updateMaterialTransmission(entityId: derivedEntityId, transmission: transmission)
                 }
 
                 if let baseColorURL = material.baseColorURL {

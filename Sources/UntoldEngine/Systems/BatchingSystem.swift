@@ -2818,6 +2818,7 @@ public class BatchingSystem: @unchecked Sendable {
                                  material.emissiveValue.y,
                                  material.emissiveValue.z))
         components.append("\(material.alphaMode.rawValue)")
+        components.append(String(format: "%.2f", material.transmission))
         components.append(String(format: "%.2f", material.alphaCutoff))
 
         // Height / Parallax Occlusion Mapping parameters. Without these, two materials

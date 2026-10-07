@@ -272,17 +272,17 @@ float computePointShadow(
     return shadow / 16.0;
 }
 
-float3 computeIBLContribution(texture2d<float> irradianceTexture,
-                              texture2d<float> specularTexture,
-                              texture2d<float> iblBRDFTexture,
-                              constant float &iblRotationAngle,
-                              constant IBLParamsUniform &iblParam,
-                              float4 inBaseColor,
-                              float3 normalMap,
-                              float3 viewVector,
-                              float roughness,
-                              float metallic
-                              ){
+EnvironmentLight computeIBLParts(texture2d<float> irradianceTexture,
+                                 texture2d<float> specularTexture,
+                                 texture2d<float> iblBRDFTexture,
+                                 constant float &iblRotationAngle,
+                                 constant IBLParamsUniform &iblParam,
+                                 float4 inBaseColor,
+                                 float3 normalMap,
+                                 float3 viewVector,
+                                 float roughness,
+                                 float metallic
+                                 ){
     
     //compute ibl ambient contribution
     // The angle to the surface, whichever side of it is seen (see specularIBL).
@@ -303,13 +303,34 @@ float3 computeIBLContribution(texture2d<float> irradianceTexture,
     // polished plastic, glass or lacquer. What it reflects it does not scatter, so the
     // diffuse light gives up that share, and a metal scatters none at all.
     float3 reflected = environmentReflectance(f0, roughness, NoV, iblBRDFTexture);
-    float3 ambient = max(1.0 - reflected, 0.0) * (1.0 - metallic) * diffuse + specular;
-    
+
+    EnvironmentLight light;
+    light.diff = max(1.0 - reflected, 0.0) * (1.0 - metallic) * diffuse;
+    light.spec = specular;
+
     if(iblParam.applyIBL==false){
-        ambient=diffuse.rgb;
+        light.diff=diffuse.rgb;
+        light.spec=float3(0.0);
     }
-    
-    return ambient;
+
+    return light;
+}
+
+float3 computeIBLContribution(texture2d<float> irradianceTexture,
+                              texture2d<float> specularTexture,
+                              texture2d<float> iblBRDFTexture,
+                              constant float &iblRotationAngle,
+                              constant IBLParamsUniform &iblParam,
+                              float4 inBaseColor,
+                              float3 normalMap,
+                              float3 viewVector,
+                              float roughness,
+                              float metallic
+                              ){
+
+    EnvironmentLight light = computeIBLParts(irradianceTexture, specularTexture, iblBRDFTexture, iblRotationAngle, iblParam,
+                                             inBaseColor, normalMap, viewVector, roughness, metallic);
+    return light.diff + light.spec;
 }
 
 LightContribution computePointLightContribution(constant PointLightUniform &light,
