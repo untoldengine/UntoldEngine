@@ -187,26 +187,6 @@
                 }
 
                 HStack(alignment: .center, spacing: 8) {
-                    Picker("Remote Scene", selection: $state.selectedRemoteSceneID) {
-                        ForEach(state.remoteScenes) { scene in
-                            Text(scene.title).tag(scene.id)
-                        }
-                    }
-                    .pickerStyle(.menu)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .disabled(state.isLoading || state.remoteScenes.isEmpty)
-                    Button("Load", action: loadSelectedRemoteScene)
-                        .buttonStyle(.borderedProminent)
-                        .tint(.blue)
-                        .disabled(state.isLoading || state.selectedRemoteScene?.manifestURL == nil)
-                    if state.isLoading {
-                        ProgressView()
-                            .scaleEffect(0.6)
-                            .frame(width: 16, height: 16)
-                    }
-                }
-
-                HStack(alignment: .center, spacing: 8) {
                     Text("Local Scene")
                         .foregroundStyle(.secondary)
                         .frame(width: 92, alignment: .leading)
@@ -495,30 +475,6 @@
             .disabled(!enabled)
         }
 
-        private func loadSelectedRemoteScene() {
-            guard let scene = state.selectedRemoteScene,
-                  let manifestURL = scene.manifestURL,
-                  let onLoadTiledScene = state.onLoadTiledScene
-            else { return }
-
-            state.batchingEnabled = false
-            state.streamingEnabled = false
-            state.isLoading = true
-
-            let sceneID = scene.id
-            onLoadTiledScene(sceneID, manifestURL) { success in
-                Task { @MainActor in
-                    state.isLoading = false
-                    state.hasLoadedEntity = success
-                    state.streamingEnabled = success
-                    if success {
-                        state.selectedPostFXPreset = Self.postFXPreset(for: sceneID)
-                        state.applySelectedPostFXPreset()
-                    }
-                }
-            }
-        }
-
         private func openLocalAssetPicker() {
             localImportMode = .asset
             showFilePicker = true
@@ -587,13 +543,6 @@
                     }
                     finishLocalImport(url: url, accessing: accessing, success: success, streamingEnabled: success)
                 }
-            }
-        }
-
-        private static func postFXPreset(for sceneID: String) -> DemoState.PostFXPreset {
-            switch sceneID {
-            case "f1car", "airplane", "porsche964": .cinematic
-            default: .neutral
             }
         }
 

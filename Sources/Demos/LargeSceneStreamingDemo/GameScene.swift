@@ -21,28 +21,8 @@
     import UntoldEngine
 
     final class GameScene: @unchecked Sendable {
-        enum RemoteScenePreset: String, CaseIterable {
-            case dungeon = "Dungeon"
-            case city = "City"
-
-            var manifestURL: URL {
-                switch self {
-                case .dungeon:
-                    URL(string: "https://d8pyi1c08k1w.cloudfront.net/dungeon3/dungeon3.json")!
-                case .city:
-                    URL(string: "https://d8pyi1c08k1w.cloudfront.net/city/city.json")!
-                }
-            }
-
-            var cameraEye: simd_float3 {
-                switch self {
-                case .dungeon: simd_float3(0.0, 4.0, 18.0)
-                case .city: simd_float3(0.0, 18.35, 73.56)
-                }
-            }
-        }
-
         private enum Constants {
+            static let defaultCameraEye = simd_float3(0.0, 4.0, 18.0)
             static let cameraMoveSpeed: Float = 9.0
             static let cameraInputDeltaTime: Float = 1.0 / 60.0
             static let orbitTargetOffset: Float = 25.0
@@ -62,11 +42,6 @@
             createCamera()
             createLight()
             setSceneReady(false)
-        }
-
-        func loadPreset(_ preset: RemoteScenePreset) {
-            placeCamera(eye: preset.cameraEye)
-            loadManifest(url: preset.manifestURL, label: preset.rawValue)
         }
 
         func loadManifest(url: URL, label: String) {
@@ -206,7 +181,7 @@
         }
 
         private func createCamera() {
-            makeDemoCamera(name: "Streaming Camera", eye: RemoteScenePreset.dungeon.cameraEye, orbitOffset: Constants.orbitTargetOffset)
+            makeDemoCamera(name: "Streaming Camera", eye: Constants.defaultCameraEye, orbitOffset: Constants.orbitTargetOffset)
         }
 
         private func createLight() {

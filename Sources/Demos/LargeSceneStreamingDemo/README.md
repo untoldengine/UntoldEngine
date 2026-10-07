@@ -17,8 +17,7 @@ What it demonstrates:
 - tile bounds, LOD debug, and texture tier debug overlays
 - live engine stats for streaming, batching, draw calls, and memory
 
-The default remote scenes reuse the same public manifests as `ShowcaseDemo`. The
-`Field` button loads a procedural offline reference field so the executable still
+The `Field` button loads a procedural offline reference field so the executable
 runs without network access, but that mode is not tile streaming.
 
 To test your own exported world, paste a full `https://.../scene.json` or
