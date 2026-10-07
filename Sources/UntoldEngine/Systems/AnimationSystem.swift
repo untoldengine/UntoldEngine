@@ -1032,7 +1032,14 @@ public func removeAnimationClip(entityId: EntityID, animationClip: String) {
 /// Call on the engine update thread. Applies to every animated descendant.
 /// No-op (reports `.noAnimationClip`) if `entityId` and its animated descendants have no clip
 /// registered under `name`.
-public func restartAnimation(entityId: EntityID, name: String, repeats: Bool = false, withPause: Bool = false) {
+///
+/// `repeats`, when non-nil, overwrites the clip's own looping configuration
+/// for every future playback, not just this restart — `AnimationClip`
+/// instances are shared by reference from `animationComponent.animationClips`,
+/// so this is a persistent change to the asset, not a one-shot playback flag.
+/// Pass `nil` (the default) to restart without touching the clip's current
+/// looping behavior.
+public func restartAnimation(entityId: EntityID, name: String, repeats: Bool? = nil, withPause: Bool = false) {
     let components = animationComponentsContainingClip(entityId: entityId, name: name)
     guard !components.isEmpty else {
         handleError(.noAnimationClip, name, entityId)
@@ -1041,7 +1048,7 @@ public func restartAnimation(entityId: EntityID, name: String, repeats: Bool = f
     for (_, component, clip) in components {
         // Restarting playback does not change compiled channels. Invalidate only
         // this clip when its looping setting changes; preserve warmed caches.
-        if clip.jointAnimation.values.contains(where: { $0.repeatAnimation != repeats }) {
+        if let repeats, clip.jointAnimation.values.contains(where: { $0.repeatAnimation != repeats }) {
             for path in clip.jointAnimation.keys {
                 clip.jointAnimation[path]?.repeatAnimation = repeats
             }

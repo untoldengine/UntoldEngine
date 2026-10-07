@@ -484,11 +484,35 @@ extension AnimationCompiledSamplerTests {
         restartAnimation(entityId: entity, name: "strike")
         XCTAssertEqual(getAnimationPlaybackTime(entityId: entity), 0)
         XCTAssertFalse(isAnimationComponentPaused(entityId: entity))
-        XCTAssertTrue(clip.jointAnimation.values.allSatisfy { !$0.repeatAnimation })
+        // repeats defaults to nil: a restart with no explicit looping change
+        // must not touch the clip's existing (default-true) repeat flags.
+        XCTAssertTrue(clip.jointAnimation.values.allSatisfy(\.repeatAnimation))
         component.currentTime = 0.7
         restartAnimation(entityId: entity, name: "strike", withPause: true)
         XCTAssertEqual(getAnimationPlaybackTime(entityId: entity), 0)
         XCTAssertTrue(isAnimationComponentPaused(entityId: entity))
+    }
+
+    /// `AnimationClip` instances are shared by reference from
+    /// `animationComponent.animationClips`, so a restart that defaulted to
+    /// overwriting the loop flag would permanently convert a looping clip to
+    /// one-shot the first time a caller restarted it without passing
+    /// `repeats: true`. `repeats: nil` (the default) must leave it alone.
+    func testRestartWithoutRepeatsArgumentPreservesLoopingClip() {
+        let entity = createEntity()
+        defer { destroyEntity(entityId: entity) }
+        registerComponent(entityId: entity, componentType: AnimationComponent.self)
+        guard let component = scene.get(component: AnimationComponent.self, for: entity) else {
+            XCTFail("Missing animation component"); return
+        }
+        let clip = makeWalkClip()
+        XCTAssertTrue(clip.jointAnimation.values.allSatisfy(\.repeatAnimation))
+        component.animationClips["walk"] = clip
+        component.currentAnimation = clip
+        component.currentTime = 1.3
+        restartAnimation(entityId: entity, name: "walk")
+        XCTAssertEqual(getAnimationPlaybackTime(entityId: entity), 0)
+        XCTAssertTrue(clip.jointAnimation.values.allSatisfy(\.repeatAnimation))
     }
 }
 
