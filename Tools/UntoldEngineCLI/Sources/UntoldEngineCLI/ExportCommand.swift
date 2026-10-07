@@ -91,6 +91,15 @@ struct ExportCommand: ParsableCommand {
     @Option(name: .customLong("assets-dir"), help: "Folder for the textures and per-model folders the result references (default: the --output folder)")
     var assetsDir: String?
 
+    @Flag(name: .customLong("no-material-bake"), help: "Do not bake procedural materials (noise, bricks, node math with no image texture behind it) into textures and values")
+    var noMaterialBake = false
+
+    @Option(name: .customLong("material-bake-size"), help: "Texels along a baked material texture (default: 1024; smooth patterns are written smaller)")
+    var materialBakeSize: Int?
+
+    @Option(name: .customLong("material-bake-tile"), help: "The longest stretch of surface, in metres, one repeat of a baked material texture covers (default: 2)")
+    var materialBakeTile: Double?
+
     @Flag(name: .long, help: "Write a companion validation JSON file")
     var validate = false
 
@@ -197,6 +206,9 @@ struct ExportCommand: ParsableCommand {
         if includeHidden { exporterArguments.append("--include-hidden") }
         let assetsURL = assetsDir.map { resolvePath($0).standardizedFileURL }
         if let assetsURL { exporterArguments += ["--assets-dir", assetsURL.path] }
+        if noMaterialBake { exporterArguments.append("--no-material-bake") }
+        if let materialBakeSize { exporterArguments += ["--material-bake-size", String(materialBakeSize)] }
+        if let materialBakeTile { exporterArguments += ["--material-bake-tile", String(materialBakeTile)] }
         if validate { exporterArguments.append("--validate") }
         if compressGeometry || optimize { exporterArguments.append("--compress-geometry") }
         if animation { exporterArguments.append("--animation") }

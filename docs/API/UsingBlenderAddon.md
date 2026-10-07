@@ -332,11 +332,18 @@ Restart Blender after installing.
 
 The exporter reads a fixed set of material inputs: base color, roughness,
 metallic, normal, and emissive. It does not evaluate arbitrary Blender
-shader nodes — a `Mix` node blending two textures, a `Math` node adjusting a
-value, a procedural `Noise Texture`, and similar setups will look different
-in the engine than in Blender unless you bake them to flat textures with a
-third-party tool (e.g. Blender's own Cycles bake, Substance, or similar)
-before export.
+shader nodes at run time. A `Mix` node blending two textures, a `Math` node
+adjusting a value, a procedural `Noise Texture`, and similar setups will
+look different in the engine than in Blender unless they are baked to flat
+textures.
+
+The command-line export (`untoldengine export`, which the editor's Cook
+also runs) bakes one kind by itself: inputs driven by procedural nodes with
+no image behind them, into textures that repeat or into the value they
+average to; see [Procedural
+materials](UsingTheExporter.md#procedural-materials). The add-on's own
+export does not do this yet. Everything else needs a bake with a third-party
+tool (e.g. Blender's own Cycles bake, Substance, or similar) before export.
 
 Before exporting, open the `Untold Materials` tab in the 3D viewport
 sidebar (press `N` if the sidebar is hidden) and click `Scan Materials`. It
