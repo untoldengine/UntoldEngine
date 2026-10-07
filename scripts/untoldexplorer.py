@@ -7488,17 +7488,32 @@ def _separate_rigged_object_by_material(obj: object) -> list[object]:
         piece_used = {p.material_index for p in piece.data.polygons}
         if piece_used:
             used_index = piece_used.pop()
-            material = (
-                piece.data.materials[used_index]
-                if used_index < len(piece.data.materials)
-                else None
-            )
+            material = slot_material(piece, piece.data, used_index)
             piece.data.materials.clear()
             if material is not None:
                 piece.data.materials.append(material)
+            # The piece keeps the object's slot links of its source; its one material
+            # now sits in the mesh data, so the slot must read from there.
+            for slot in getattr(piece, "material_slots", []):
+                if getattr(slot, "link", "DATA") != "DATA":
+                    slot.link = "DATA"
             for polygon in piece.data.polygons:
                 polygon.material_index = 0
     return pieces
+
+
+def slot_material(obj: object, mesh: object, index: int) -> Optional[object]:
+    """The material of slot `index` as the object shows it. A slot linked to the object
+    overrides the material the mesh data holds in that slot (an IFC import links a
+    material to each object over a mesh shared by hundreds of them), so the object's
+    slots are asked first and the mesh data only answers for what they do not cover."""
+    slots = getattr(obj, "material_slots", None)
+    if slots is not None and index < len(slots):
+        material = getattr(slots[index], "material", None)
+        if material is not None:
+            return material
+    materials = getattr(mesh, "materials", None) or []
+    return materials[index] if index < len(materials) else None
 
 
 def split_blender_objects_by_material(objects: list[object]) -> list[object]:
@@ -7592,7 +7607,7 @@ def split_blender_objects_by_material(objects: list[object]) -> list[object]:
                 new_mesh = bpy.data.meshes.new(f"{obj.data.name}_mat{mat_idx}")
                 bm.to_mesh(new_mesh)
                 new_mesh.update()
-                mat = mesh.materials[mat_idx] if mat_idx < len(mesh.materials) else None
+                mat = slot_material(obj, mesh, mat_idx)
                 if mat:
                     new_mesh.materials.append(mat)
                     for p in new_mesh.polygons:

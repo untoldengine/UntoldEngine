@@ -138,6 +138,10 @@ A whole-scene export (no `--mesh-name`) follows what Blender itself shows:
 - Modifiers, Geometry Nodes and shape keys are applied, including on objects
   split into one mesh per material. Objects deformed by an Armature modifier keep
   their rest pose and skinning.
+- A material slot linked to the object (Blender's slot link set to Object rather
+  than Data) exports the object's material, as the viewport shows it. An IFC import
+  gives hundreds of objects one shared mesh and links each one's own material over
+  it; the cook follows the object, not the mesh's default.
 - An object whose parent is not exported (skipped, or split into one mesh per
   material) keeps its place in the scene.
 
