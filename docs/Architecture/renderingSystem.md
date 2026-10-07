@@ -386,6 +386,8 @@ After the render graph finishes, the stored opaque depth source captured by `hzb
 
 This is intentionally scheduled here, after the render graph and before `commit()`, so the HZB is built from the freshest depth available and ready for the next frame's culling compute dispatch.
 
+**The camera of the pyramid.** The build records the camera the depth was rendered from (`renderInfo.hzbFrame`: the view-projection with the scene root, and the camera's position; in stereo the eye rendered last). The next frame's occlusion test (`executeHZBOcclusionCulling`, `hzbCullVisibleEntities`) projects the entities with that camera, not with its own: an entity seen from both places is tested where the pyramid holds its own depth, however the camera moved in between, and an entity the old camera could not see at all is kept. What a step uncovers from behind a near surface shows one frame late. When the camera moved more than `HZBOcclusionCulling.maxCameraStep` since the build (0.5 units by default, `setRendering(.occlusionCullingMaxCameraStep(_:))`), the pyramid says too little about the frame and the test is skipped: the frame draws what the frustum keeps. Tested with the frame's own camera, as before, a step that uncovers something near, such as rising above the ground or backing away from a wall, put far entities over texels that still held the near depth and dropped them until the view settled.
+
 ---
 
 ## Step 7: Present and Commit
