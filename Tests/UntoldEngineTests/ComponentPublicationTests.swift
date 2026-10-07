@@ -99,6 +99,32 @@ final class ComponentPublicationTests: XCTestCase {
         XCTAssertNil(watched)
     }
 
+    func testASlotOfObjectsThatNeverHeldOneReadsAsNone() throws {
+        // Leave a block of a chunk's size full of ones for the allocator to hand back:
+        // a chunk that is not cleared would then show them.
+        let chunkSize = MemoryLayout<UnsafeRawPointer?>.stride * ComponentPool.chunkCapacity
+        let used = UnsafeMutableRawPointer.allocate(byteCount: chunkSize, alignment: MemoryLayout<UnsafeRawPointer?>.alignment)
+        used.initializeMemory(as: UInt8.self, repeating: 0xFF, count: chunkSize)
+        used.deallocate()
+
+        var pool = ComponentPool(for: PublishedComponent.self)
+        pool.reserve(upTo: 0)
+        defer { pool.deallocate() }
+
+        var holdingSomething = 0
+        for index in 0 ..< ComponentPool.chunkCapacity {
+            let slot = try XCTUnwrap(pool.slot(at: index))
+            if slot.address.load(as: UnsafeRawPointer?.self) != nil {
+                holdingSomething += 1
+            }
+        }
+        XCTAssertEqual(holdingSomething, 0, "slots of a new chunk that do not read as none")
+
+        let first = try XCTUnwrap(pool.slot(at: 0))
+        XCTAssertTrue(first.holdsReference)
+        XCTAssertNil(ComponentSlot.load(from: first.address, as: PublishedComponent.self, asReference: first.holdsReference))
+    }
+
     func testOnlyAComponentThatIsAnObjectIsKeptAsOneReference() {
         XCTAssertTrue(ComponentSlot.holdsReference(PublishedComponent.self))
         XCTAssertFalse(ComponentSlot.holdsReference(ValueComponent.self))
