@@ -10,6 +10,27 @@
 
 import simd
 
+/// Scales `time` by `speed` and either wraps it by `duration` (repeating
+/// clips) or clamps it to `[0, duration]` (one-shot clips), so a completed
+/// one-shot holds its last pose instead of jumping back to pose zero on the
+/// next clip-duration boundary. Shared by `ClipSampler.sample` and
+/// `applyRootMotion` so the two stay in lockstep.
+///
+/// Classifies the whole clip from its first animated channel's `repeats`
+/// flag. `Animation.repeatAnimation` is never set per-channel anywhere in
+/// the engine — `restartAnimation` is the only mutator and it always writes
+/// every joint of a clip to the same value — so every animated channel is
+/// expected to agree; a debug-build assert catches the invariant breaking
+/// rather than silently mis-sampling the channels that disagree.
+func clipLevelChannelTime(time: Float, duration: Float, speed: Float, channels: [CompiledAnimationClip.Channel]) -> Float {
+    let repeats = channels.first(where: \.animated)?.repeats ?? true
+    assert(
+        channels.allSatisfy { !$0.animated || $0.repeats == repeats },
+        "clipLevelChannelTime assumes every animated channel in a clip shares the same repeat flag"
+    )
+    return (repeats ? fmod(time, duration) : min(max(time, 0), duration)) * speed
+}
+
 /// Samples a `CompiledAnimationClip` into a `PoseBuffer` without allocating.
 ///
 /// Keyframe intervals are located with a binary search seeded by a per-joint
@@ -44,7 +65,7 @@ struct ClipSampler {
         bind(clip)
         pose.resize(jointCount: clip.jointCount)
 
-        let channelTime = fmod(time, duration) * speed
+        let channelTime = clipLevelChannelTime(time: time, duration: duration, speed: speed, channels: clip.channels)
 
         for index in 0 ..< clip.jointCount {
             let channel = clip.channels[index]

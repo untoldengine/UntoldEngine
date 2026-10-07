@@ -265,6 +265,38 @@ final class AnimationRootMotionTests: XCTestCase {
         )
     }
 
+    func testNonRepeatingClipHoldsPositionPastClipDurationWithoutLoopJump() {
+        animationComponent.animationClips["lunge"] = makeOneShotClip()
+
+        setRootMotionEnabled(entityId: entityId, enabled: true)
+        changeAnimation(entityId: entityId, name: "lunge", transitionHalflife: 0)
+
+        // 3 s: past the clip's own 2 s duration, not just the root channel's 1 s
+        // last key. Before the fix, applyRootMotion's own
+        // fmod(animationComponent.currentTime, clipDuration) wrapped unconditionally
+        // at the 2 s mark regardless of repeatAnimation, handing wrappedChannelTime
+        // a small post-wrap time it misread as a fresh loop and injecting a full
+        // loop's root displacement right at that instant — distinct from
+        // testNonRepeatingChannelDoesNotInjectLoopJump above, which only runs up to
+        // 1.89 s and so never reaches the clip's own duration.
+        var previousZ = getLocalPosition(entityId: entityId).z
+        var maxStep: Float = 0
+        run(frames: 270) { _ in
+            let z = getLocalPosition(entityId: self.entityId).z
+            maxStep = max(maxStep, abs(z - previousZ))
+            previousZ = z
+        }
+
+        XCTAssertEqual(
+            getLocalPosition(entityId: entityId).z, 1.0 - deltaTime, accuracy: 1e-3,
+            "Entity holds the authored 1 m travel; the clip's own duration elapsing must not add displacement"
+        )
+        XCTAssertLessThan(
+            maxStep, deltaTime * 1.5,
+            "currentTime crossing the clip's own duration must not be misread as a loop wrap"
+        )
+    }
+
     // MARK: - Pitch and roll preservation
 
     /// The swing–twist split must remove only yaw. A body-frame lean —

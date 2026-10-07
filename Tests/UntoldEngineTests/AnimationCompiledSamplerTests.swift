@@ -452,3 +452,128 @@ final class AnimationCompiledSamplerTests: XCTestCase {
         }
     }
 }
+
+extension AnimationCompiledSamplerTests {
+    func testNonRepeatingClipHoldsFinalPoseAfterItsDuration() {
+        let skeleton = makeSkeleton()
+        let clip = makeWalkClip()
+        for path in clip.jointAnimation.keys {
+            clip.jointAnimation[path]?.repeatAnimation = false
+        }
+        let compiled = CompiledAnimationClip(clip: clip, skeleton: skeleton)
+        var sampler = ClipSampler()
+        var pose = PoseBuffer()
+        sampler.sample(compiled, time: 2.1, duration: clip.duration, speed: 1, into: &pose)
+        XCTAssertEqual(pose.translations[0].z, 2, accuracy: 0.0001)
+        sampler.sample(compiled, time: 4.1, duration: clip.duration, speed: 1, into: &pose)
+        XCTAssertEqual(pose.translations[0].z, 2, accuracy: 0.0001)
+    }
+
+    func testRestartSameClipResetsTimeAndRearmsPlayback() {
+        let entity = createEntity()
+        defer { destroyEntity(entityId: entity) }
+        registerComponent(entityId: entity, componentType: AnimationComponent.self)
+        guard let component = scene.get(component: AnimationComponent.self, for: entity) else {
+            XCTFail("Missing animation component"); return
+        }
+        let clip = makeWalkClip()
+        component.animationClips["strike"] = clip
+        component.currentAnimation = clip
+        component.currentTime = 0.8
+        component.pause = true
+        restartAnimation(entityId: entity, name: "strike")
+        XCTAssertEqual(getAnimationPlaybackTime(entityId: entity), 0)
+        XCTAssertFalse(isAnimationComponentPaused(entityId: entity))
+        // repeats defaults to nil: a restart with no explicit looping change
+        // must not touch the clip's existing (default-true) repeat flags.
+        XCTAssertTrue(clip.jointAnimation.values.allSatisfy(\.repeatAnimation))
+        component.currentTime = 0.7
+        restartAnimation(entityId: entity, name: "strike", withPause: true)
+        XCTAssertEqual(getAnimationPlaybackTime(entityId: entity), 0)
+        XCTAssertTrue(isAnimationComponentPaused(entityId: entity))
+    }
+
+    /// `AnimationClip` instances are shared by reference from
+    /// `animationComponent.animationClips`, so a restart that defaulted to
+    /// overwriting the loop flag would permanently convert a looping clip to
+    /// one-shot the first time a caller restarted it without passing
+    /// `repeats: true`. `repeats: nil` (the default) must leave it alone.
+    func testRestartWithoutRepeatsArgumentPreservesLoopingClip() {
+        let entity = createEntity()
+        defer { destroyEntity(entityId: entity) }
+        registerComponent(entityId: entity, componentType: AnimationComponent.self)
+        guard let component = scene.get(component: AnimationComponent.self, for: entity) else {
+            XCTFail("Missing animation component"); return
+        }
+        let clip = makeWalkClip()
+        XCTAssertTrue(clip.jointAnimation.values.allSatisfy(\.repeatAnimation))
+        component.animationClips["walk"] = clip
+        component.currentAnimation = clip
+        component.currentTime = 1.3
+        restartAnimation(entityId: entity, name: "walk")
+        XCTAssertEqual(getAnimationPlaybackTime(entityId: entity), 0)
+        XCTAssertTrue(clip.jointAnimation.values.allSatisfy(\.repeatAnimation))
+    }
+}
+
+extension AnimationCompiledSamplerTests {
+    func testContactJointSamplingUsesWorldTransformWithoutChangingPlayback() {
+        let entity = createEntity()
+        defer { destroyEntity(entityId: entity) }
+        registerComponent(entityId: entity, componentType: SkeletonComponent.self)
+        registerComponent(entityId: entity, componentType: AnimationComponent.self)
+        guard let skeletonComponent = scene.get(component: SkeletonComponent.self, for: entity),
+              let component = scene.get(component: AnimationComponent.self, for: entity)
+        else {
+            XCTFail("Missing components"); return
+        }
+        skeletonComponent.skeleton = makeSkeleton()
+        let clip = makeWalkClip()
+        component.animationClips["strike"] = clip
+        component.currentAnimation = clip
+        component.currentTime = 0.2
+        component.pause = true
+        translateTo(entityId: entity, position: SIMD3<Float>(5, 2, -3))
+        rotateTo(entityId: entity, rotation: simd_quatf(angle: .pi / 2, axis: SIMD3<Float>(0, 1, 0)))
+        scaleTo(entityId: entity, scale: SIMD3<Float>(repeating: 2))
+        let reference = makeSkeleton()
+        reference.updateWorldPose(at: 0.5, animationClip: clip)
+        guard let world = scene.get(component: WorldTransformComponent.self, for: entity),
+              let sampled = sampleAnimationJointPosition(entityId: entity, name: "strike", jointName: "leg", time: 0.5)
+        else {
+            XCTFail("Missing sampled joint"); return
+        }
+        let expected = world.space * reference.currentPose[3] * reference.bindTransform[3] * SIMD4<Float>(0, 0, 0, 1)
+        XCTAssertEqual(sampled.x, expected.x, accuracy: 0.0001)
+        XCTAssertEqual(sampled.y, expected.y, accuracy: 0.0001)
+        XCTAssertEqual(sampled.z, expected.z, accuracy: 0.0001)
+        XCTAssertEqual(getAnimationPlaybackTime(entityId: entity), 0.2)
+        XCTAssertTrue(isAnimationComponentPaused(entityId: entity))
+        XCTAssertNil(sampleAnimationJointPosition(entityId: entity, name: "strike", jointName: "missing", time: 0.5))
+    }
+}
+
+extension AnimationCompiledSamplerTests {
+    func testRestartPreservesCompiledClipUntilLoopingChanges() {
+        let entity = createEntity()
+        defer { destroyEntity(entityId: entity) }
+        registerComponent(entityId: entity, componentType: AnimationComponent.self)
+        guard let component = scene.get(component: AnimationComponent.self, for: entity) else {
+            XCTFail("Missing component"); return
+        }
+        let clip = makeWalkClip()
+        component.animationClips["strike"] = clip
+        let skeleton = makeSkeleton()
+        _ = component.compiledClip(for: clip, skeleton: skeleton)
+        let key = ObjectIdentifier(clip)
+        restartAnimation(entityId: entity, name: "strike", repeats: true)
+        XCTAssertEqual(component.compiledClips.count, 1)
+        XCTAssertNotNil(component.compiledClips[key])
+        restartAnimation(entityId: entity, name: "strike", repeats: false)
+        XCTAssertNil(component.compiledClips[key])
+        _ = component.compiledClip(for: clip, skeleton: skeleton)
+        restartAnimation(entityId: entity, name: "strike", repeats: false)
+        XCTAssertNotNil(component.compiledClips[key])
+        XCTAssertEqual(getAnimationPlaybackTime(entityId: entity), 0)
+    }
+}
