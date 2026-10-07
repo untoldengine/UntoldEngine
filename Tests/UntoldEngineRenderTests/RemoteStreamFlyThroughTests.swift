@@ -55,7 +55,7 @@ final class RemoteStreamFlyThroughTests: BaseRenderSetup {
 
     /// Remote (or local file://) URL of your tile manifest.
     /// Override at runtime with the UNTOLD_STREAM_MANIFEST_URL env var.
-    private let manifestURLString = "https://d8pyi1c08k1w.cloudfront.net/city/city.json"
+    private let manifestURLString = "https://cdn.example.com/dungeon/dungeon.json"
 
     /// Waypoints the camera visits.  At each stop a screenshot is taken.
     /// Adjust positions and look-at targets to match your dungeon layout.
@@ -147,7 +147,10 @@ final class RemoteStreamFlyThroughTests: BaseRenderSetup {
 
     // -------------------------------------------------------------------------
 
-    func testGenerateFlythroughReferenceImages() async throws {
+    // Disabled: no remote manifest URL is configured (the AWS/CloudFront URL
+    // used previously was removed). Re-enable by restoring `test` as the
+    // method-name prefix once a replacement manifest host is available.
+    func disabled_testGenerateFlythroughReferenceImages() async throws {
         guard ProcessInfo.processInfo.environment["UNTOLD_REGENERATE_REFERENCES"] == "1" else {
             throw XCTSkip("Reference generation is opt-in. Set UNTOLD_REGENERATE_REFERENCES=1 to run.")
         }
@@ -178,7 +181,10 @@ final class RemoteStreamFlyThroughTests: BaseRenderSetup {
 
     // -------------------------------------------------------------------------
 
-    func testRemoteStreamFlythrough_psnr() async throws {
+    // Disabled: no remote manifest URL is configured (the AWS/CloudFront URL
+    // used previously was removed). Re-enable by restoring `test` as the
+    // method-name prefix once a replacement manifest host is available.
+    func disabled_testRemoteStreamFlythrough_psnr() async throws {
         let sceneRoot = try await loadRemoteScene()
         await hydrateFlythroughRoute(sceneRoot: sceneRoot)
 

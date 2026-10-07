@@ -23,7 +23,6 @@
         private enum Defaults {
             static let streamingRadius: Double = 200.0
             static let unloadRadius: Double = 350.0
-            static let selectedRemoteSceneID = "dungeon"
         }
 
         enum PostFXPreset: String, CaseIterable, Identifiable {
@@ -70,48 +69,10 @@
 
         @ObservationIgnored private var isApplyingPostFXPreset = false
 
-        struct RemoteSceneOption: Identifiable, Hashable {
-            let id: String
-            let title: String
-            let manifestURL: URL?
-        }
-
         // MARK: - File Loading
 
         var hasLoadedEntity: Bool = false
         var isLoading: Bool = false
-        let remoteScenes: [RemoteSceneOption] = [
-            .init(
-                id: "dungeon",
-                title: "Game Dungeon",
-                manifestURL: URL(string: "https://d8pyi1c08k1w.cloudfront.net/dungeon3/dungeon3.json")!
-            ),
-            .init(
-                id: "city",
-                title: "Cartoon City",
-                manifestURL: URL(string: "https://d8pyi1c08k1w.cloudfront.net/city/city.json")!
-            ),
-            .init(
-                id: "f1car",
-                title: "Formula 1",
-                manifestURL: URL(string: "https://d8pyi1c08k1w.cloudfront.net/F1Car/F1Car.json")!
-            ),
-            .init(
-                id: "airplane",
-                title: "Skyhawk",
-                manifestURL: URL(string: "https://d8pyi1c08k1w.cloudfront.net/Shyhawk_stream/Skyhawks.json")!
-            ),
-            .init(
-                id: "porsche964",
-                title: "Porsche 964",
-                manifestURL: URL(string: "https://d8pyi1c08k1w.cloudfront.net/Porsche964-stream/Porsche964-stream.json")!
-            ),
-        ]
-        var selectedRemoteSceneID: String = Defaults.selectedRemoteSceneID
-
-        var selectedRemoteScene: RemoteSceneOption? {
-            remoteScenes.first { $0.id == selectedRemoteSceneID }
-        }
 
         var localSceneAuthoredEnabled: Bool = false
 

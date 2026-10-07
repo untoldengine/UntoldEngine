@@ -22,7 +22,7 @@
     @MainActor
     @Observable
     final class LargeSceneStreamingState {
-        var status = "Loading default remote scene..."
+        var status = "Loading offline reference field..."
         var customManifestURL = ""
         var isLoading = false
         var tileBoundsEnabled = true
@@ -47,7 +47,7 @@
             setupWindow()
             setupRendererAndScene()
             presentSceneView()
-            gameScene.loadPreset(.dungeon)
+            gameScene.loadFallbackField()
         }
 
         func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool {
@@ -99,7 +99,6 @@
                 renderer: renderer,
                 state: state,
                 actions: .init(
-                    loadPreset: { [weak self] preset in self?.gameScene.loadPreset(preset) },
                     loadCustomURL: { [weak self] url in self?.gameScene.loadManifest(url: url, label: "Custom Manifest") },
                     loadFallbackField: { [weak self] in self?.gameScene.loadFallbackField() },
                     setTileBounds: { [weak self] enabled in self?.gameScene.setTileBoundsDebug(enabled) },
@@ -116,7 +115,6 @@
     }
 
     private struct LargeSceneStreamingActions {
-        let loadPreset: (GameScene.RemoteScenePreset) -> Void
         let loadCustomURL: (URL) -> Void
         let loadFallbackField: () -> Void
         let setTileBounds: (Bool) -> Void
@@ -155,8 +153,6 @@
                 }
 
                 HStack {
-                    Button("Dungeon") { actions.loadPreset(.dungeon) }
-                    Button("City") { actions.loadPreset(.city) }
                     Button("Field") { actions.loadFallbackField() }
                 }
 
