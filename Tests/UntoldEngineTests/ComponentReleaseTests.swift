@@ -392,32 +392,60 @@ final class ComponentReleaseTests: XCTestCase {
 
     func testAReaderOnAnotherThreadNeverGetsAReleasedComponent() {
         // The render thread of an XR app reads the scene while the main thread changes
-        // it. Here one thread reads through `scene`, and this one removes, replaces and
-        // destroys what it reads and releases what left.
+        // it. Here one thread reads the entities of the moment, pass after pass, and
+        // this one removes, replaces and destroys what it reads and releases what left.
         var entities = (0 ..< 64).map { _ in createEntity() }
         for entity in entities {
             _ = scene.assign(to: entity, component: ProbeComponent.self)
         }
-        let readerEntities = entities
+        // The reader is told which entities there are now: every one it starts with is
+        // destroyed within three rounds.
+        let current = RoundEntities(entities)
         let state = ReaderState()
+        let readerIsReading = DispatchSemaphore(value: 0)
         let finished = expectation(description: "the reader stopped")
 
         Thread.detachNewThread {
             var reads = 0
             var released = 0
+            /// An entity destroyed since the list was made is not in the copy: it is
+            /// skipped, where asking the scene for it would log an error.
+            func read(_ entity: EntityID, through copy: Scene) {
+                guard copy.exists(entity), let probe = copy.get(component: ProbeComponent.self, for: entity) else { return }
+                reads += 1
+                if probe.canary != ProbeComponent.intact {
+                    released += 1
+                }
+            }
+
+            var passes = 0
             while !state.isStopped {
-                for entity in readerEntities {
-                    guard let probe = scene.get(component: ProbeComponent.self, for: entity) else { continue }
-                    reads += 1
-                    if probe.canary != ProbeComponent.intact {
-                        released += 1
+                let entities = current.entities
+                if passes.isMultiple(of: 2) {
+                    // As a render pass reads: one copy of the scene, kept for the pass. A
+                    // component that leaves meanwhile is still in its slot for this copy.
+                    let copy = scene
+                    for entity in entities {
+                        read(entity, through: copy)
                     }
+                } else {
+                    // As a call through `scene` reads: a copy of the moment for each read.
+                    for entity in entities {
+                        read(entity, through: scene)
+                    }
+                }
+                passes += 1
+                if passes == 1 {
+                    readerIsReading.signal()
                 }
             }
             state.record(reads: reads, released: released)
             finished.fulfill()
         }
 
+        // The changes start once the reader has read every entity: a thread that is slow
+        // to start would otherwise find nothing it knows.
+        readerIsReading.wait()
         let rounds = 2000
         for round in 0 ..< rounds {
             for slot in entities.indices {
@@ -425,6 +453,8 @@ final class ComponentReleaseTests: XCTestCase {
                 switch (round + slot) % 3 {
                 case 0:
                     scene.remove(component: ProbeComponent.self, from: entity)
+                    // Asked for at once, while the slot still shows the component that left.
+                    releaseQuarantinedComponents()
                     _ = scene.assign(to: entity, component: ProbeComponent.self)
                 case 1:
                     _ = scene.assign(to: entity, component: ProbeComponent.self)
@@ -433,6 +463,7 @@ final class ComponentReleaseTests: XCTestCase {
                     finalizePendingDestroys()
                     entities[slot] = createEntity()
                     _ = scene.assign(to: entities[slot], component: ProbeComponent.self)
+                    current.entities = entities
                 }
             }
             releaseQuarantinedComponents()
