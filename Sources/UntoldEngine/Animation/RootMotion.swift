@@ -204,7 +204,12 @@ func applyRootMotion(
     // wrap, to detect when the clip looped between frames. Non-repeating
     // channels clamp at their last key (like the sampler), so a one-shot
     // clip never fakes a wrap and never injects a per-loop correction.
-    let channelTime = fmod(animationComponent.currentTime, clipDuration) * clipSpeed
+    // Match ClipSampler: a one-shot's clock must not wrap at completion,
+    // otherwise wrap detection injects an extra loop's root displacement.
+    let repeats = compiledClip.channels.contains { $0.animated && $0.repeats }
+    let sampleTime = repeats ? fmod(animationComponent.currentTime, clipDuration)
+        : min(max(animationComponent.currentTime, 0), clipDuration)
+    let channelTime = sampleTime * clipSpeed
     let translationTime = wrappedChannelTime(channelTime, lastKeyTime: channel.translationTimes.last, repeats: channel.repeats)
     let rotationTime = wrappedChannelTime(channelTime, lastKeyTime: channel.rotationTimes.last, repeats: channel.repeats)
 
