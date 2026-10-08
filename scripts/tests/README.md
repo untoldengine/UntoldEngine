@@ -47,10 +47,14 @@ temporary folder.
 - `blender/material_bake_checks.py`: the procedural material bake. Tiles cut
   at whole bricks, noise that repeats without a seam, and the projected UVs:
   what Blender shows on a mesh through them is what the baked texture holds.
+- `blender/material_slot_checks.py`: a multi-material object split for export
+  keeps the material each slot shows, including a slot linked to the object over
+  a shared mesh, for linked duplicates and for a rigged object.
 
 Run from the repo root:
 
 ```sh
 blender --background --factory-startup --python-exit-code 1 --python scripts/tests/blender/texture_write_checks.py
 blender --background --factory-startup --python-exit-code 1 --python scripts/tests/blender/material_bake_checks.py
+blender --background --factory-startup --python-exit-code 1 --python scripts/tests/blender/material_slot_checks.py
 ```
