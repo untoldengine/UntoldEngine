@@ -298,6 +298,119 @@ final class UntoldPackLODRenderTests: BaseRenderSetup {
         }
     }
 
+    // MARK: - Switching by the size on screen
+
+    /// The projection the tests draw with, for another field of view.
+    private func projection(fovYDegrees: Float) -> simd_float4x4 {
+        matrixPerspectiveRightHandReverseZ(
+            fovyRadians: degreesToRadians(degrees: fovYDegrees),
+            aspectRatio: Float(windowWidth) / Float(windowHeight),
+            nearZ: near,
+            farZ: far
+        )
+    }
+
+    func testAPlacementSelectsItsLevelsByItsSizeOnScreen() async throws {
+        let packURL = try writePack([
+            Placement(name: "Ball", asset: "ball", path: "Ball/Ball.untold"),
+            Placement(name: "Stadium", asset: "stadium", path: "Stadium/Stadium.untold", position: SIMD3<Float>(300, 0, 0), scale: 2),
+        ])
+        let (_, children) = try await loadPack(packURL)
+        traverseSceneGraph()
+
+        // A model of one node is measured by its own bounds.
+        let ball = try lod(XCTUnwrap(children["Ball"]))
+        XCTAssertTrue(ball.selectsByScreenSize)
+        XCTAssertEqual(ball.screenSizeRadius, 0)
+
+        // The parts of a model carry the radius of the whole model.
+        let model = try NativeFormatLoader().loadAssetSync(from: tempRoot.appendingPathComponent("Stadium/Stadium.untold"))
+        let stadium = try XCTUnwrap(children["Stadium"])
+        let nodes = try XCTUnwrap(scene.get(component: ScenegraphComponent.self, for: stadium)).children
+            .filter { hasComponent(entityId: $0, componentType: RenderComponent.self) }
+        XCTAssertEqual(nodes.count, 7)
+        for node in nodes {
+            let component = try lod(node)
+            XCTAssertTrue(component.selectsByScreenSize)
+            let measured = entityDistanceAndRadius(entityId: node, cameraPosition: .zero, localRadius: component.screenSizeRadius)
+            let expected = boundingRadius(of: model.worldBounds) * 2
+            XCTAssertEqual(measured.radius, expected, accuracy: expected * 1e-3, getEntityName(entityId: node))
+        }
+    }
+
+    func testAPlacementScaledAfterTheLoadSwitchesAtItsNewSize() async throws {
+        let packURL = try writePack([Placement(name: "Ball", asset: "ball", path: "Ball/Ball.untold")])
+        let (_, children) = try await loadPack(packURL)
+        let ball = try XCTUnwrap(children["Ball"])
+        let component = try lod(ball)
+        let camera = makeCamera()
+        let firstSwitch = component.lodLevels[0].maxDistance
+
+        selectLOD(for: ball, cameraAt: firstSwitch * 1.4, camera: camera)
+        XCTAssertEqual(component.currentLOD, 1, "past the first switch")
+
+        // Three times as large, the ball covers from there more than it did at the switch.
+        scaleTo(entityId: ball, scale: simd_float3(repeating: 3))
+        selectLOD(for: ball, cameraAt: firstSwitch * 1.4, camera: camera)
+        XCTAssertEqual(component.currentLOD, 0)
+
+        selectLOD(for: ball, cameraAt: firstSwitch * 3.2, camera: camera)
+        XCTAssertEqual(component.currentLOD, 1, "the switch moved out three times")
+        XCTAssertEqual(component.lodLevels[0].maxDistance, firstSwitch, "the distance of the load stays as it was written")
+    }
+
+    func testTheFieldOfViewMovesTheSwitchesAndTheResolutionDoesNot() async throws {
+        let packURL = try writePack([Placement(name: "Ball", asset: "ball", path: "Ball/Ball.untold")])
+        let (_, children) = try await loadPack(packURL)
+        let ball = try XCTUnwrap(children["Ball"])
+        let component = try lod(ball)
+        let camera = makeCamera()
+        let firstSwitch = component.lodLevels[0].maxDistance
+        let savedProjection = renderInfo.perspectiveSpace
+        let savedViewPort = renderInfo.viewPort
+        defer {
+            renderInfo.perspectiveSpace = savedProjection
+            renderInfo.viewPort = savedViewPort
+        }
+
+        // Half the field of view magnifies by tan(fov / 2) / tan(fov / 4), a little over two.
+        renderInfo.perspectiveSpace = projection(fovYDegrees: fov / 2)
+        let zoom = tan(degreesToRadians(degrees: fov) / 2) / tan(degreesToRadians(degrees: fov) / 4)
+        selectLOD(for: ball, cameraAt: firstSwitch * zoom * 0.95, camera: camera)
+        XCTAssertEqual(component.currentLOD, 0)
+        selectLOD(for: ball, cameraAt: firstSwitch * zoom * 1.15, camera: camera)
+        XCTAssertEqual(component.currentLOD, 1)
+
+        // Twice the lines under the field of view of the load: the ball covers the same
+        // share of the viewport, and switches where it did.
+        renderInfo.perspectiveSpace = savedProjection
+        renderInfo.viewPort = simd_float2(Float(windowWidth) * 2, Float(windowHeight) * 2)
+        selectLOD(for: ball, cameraAt: firstSwitch * 0.9, camera: camera)
+        XCTAssertEqual(component.currentLOD, 0)
+        selectLOD(for: ball, cameraAt: firstSwitch * 1.2, camera: camera)
+        XCTAssertEqual(component.currentLOD, 1)
+    }
+
+    func testAViewWithoutPerspectiveSwitchesAtTheDistancesOfTheLoad() async throws {
+        let packURL = try writePack([Placement(name: "Ball", asset: "ball", path: "Ball/Ball.untold")])
+        let (_, children) = try await loadPack(packURL)
+        let ball = try XCTUnwrap(children["Ball"])
+        let component = try lod(ball)
+        let camera = makeCamera()
+        let firstSwitch = component.lodLevels[0].maxDistance
+        let savedProjection = renderInfo.perspectiveSpace
+        defer { renderInfo.perspectiveSpace = savedProjection }
+
+        // Scaled, the ball would keep its model three times as far by its size on screen.
+        scaleTo(entityId: ball, scale: simd_float3(repeating: 3))
+        renderInfo.perspectiveSpace = simd_float4x4(diagonal: simd_float4(0.1, 0.1, 0.01, 1))
+
+        selectLOD(for: ball, cameraAt: firstSwitch * 0.9, camera: camera)
+        XCTAssertEqual(component.currentLOD, 0)
+        selectLOD(for: ball, cameraAt: firstSwitch * 1.2, camera: camera)
+        XCTAssertEqual(component.currentLOD, 1)
+    }
+
     func testAMaterialEditStaysWithThePlacementThroughItsLevels() async throws {
         let packURL = try writePack([
             Placement(name: "Ball A", asset: "ball", path: "Ball/Ball.untold"),
