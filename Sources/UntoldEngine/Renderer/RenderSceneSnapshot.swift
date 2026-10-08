@@ -18,7 +18,7 @@ import Foundation
 ///
 /// Taken from the entity's component mask, so that a pass reads the mask once and
 /// tests bits where it used to ask the scene about each component in turn.
-struct RenderEntityTraits: OptionSet, Sendable {
+struct RenderEntityTraits: OptionSet {
     let rawValue: UInt32
 
     // What a pass needs to draw the entity.
