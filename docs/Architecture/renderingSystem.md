@@ -51,7 +51,7 @@ These four compute dispatches run **before any render encoder is opened**. They 
 
 ### 3a. Frustum Culling → `performFrustumCulling(commandBuffer:)`
 
-A compute shader tests every entity's axis-aligned bounding box (`EntityAABB`) against the camera's 6 frustum planes. Entities outside the frustum are excluded.
+A compute shader tests every entity's axis-aligned bounding box (`EntityAABB`) against the camera's 6 frustum planes. Entities outside the frustum are excluded. The boxes are gathered on the CPU from the entities that have a render component and a world transform, walked in the order of their indices (see [How a Pass Reads the Scene](#how-a-pass-reads-the-scene)).
 
 The result is written into `tripleVisibleEntities` — **for the next frame**. So culling is always one frame behind rendering. This is an intentional latency trade-off: GPU-driven culling is far faster than CPU culling, and one frame of lag is imperceptible.
 
@@ -208,7 +208,7 @@ Inside `combinedModelLightExecution`, the unbatched model phase iterates `visibl
 - Uploads the model matrix, normal matrix, and camera uniforms into the current in-flight frame slot
 - Issues a draw call per mesh submesh
 
-Before encoding each draw, the renderer checks scene-channel visibility. Individual entities use `shouldHideSceneEntity(entityId:)`; batch groups use their stored channel mask. Hidden channels are skipped entirely rather than rendered transparently.
+Before encoding an entity's draws, the renderer checks scene-channel visibility. Individual entities take the render mode of their channels through the pass's scene snapshot (see [How a Pass Reads the Scene](#how-a-pass-reads-the-scene)); batch groups use their stored channel mask. Hidden channels are skipped entirely rather than rendered transparently.
 
 The batched opaque phase uses **cluster-level frustum culling**: it calls `visibleBatchGroupsSnapshot()` which tests each `BatchGroup`'s precomputed world-space AABB against `currentFrameFrustum` using `isAABBInFrustum`, then filters by scene-channel visibility. The result — groups whose AABB intersects the frustum and whose channels are visible — is cached for the frame and shared with later batch-aware passes. Opaque groups are submitted as a single draw call with their merged vertex and index buffers.
 
@@ -358,6 +358,36 @@ RenderPass(id: "outputTransform", dependencies: [antiAliasingPassId])
 ```
 
 Tone maps the HDR scene color into the display's color space (SDR or EDR depending on the target). This is the **terminal node** of the graph. Its source texture is `antiAliasingTexture` when AA is active, or `lookTexture` when `antiAliasingMode == .none`.
+
+---
+
+## How a Pass Reads the Scene
+
+The culling gather and the geometry passes (shadow, model, transparency, wireframe, occluder shell) ask the same few things about thousands of entities: is the entity still there, which components does it have, where are its render and transform components. Asking `scene` each time costs a lock, a copy of the scene and a component-id lookup per question, and with tens of thousands of entities that was most of the frame.
+
+A pass therefore builds a `RenderSceneSnapshot` when it starts and reads entities through it:
+
+```swift
+let sceneSnapshot = RenderSceneSnapshot()
+var renderModes = SceneChannelRenderModeMemo()
+
+for entityId in visibleEntityIds {
+    guard let entity = sceneSnapshot.entity(entityId) else { continue }   // gone or waiting to be destroyed
+    let renderMode = renderModes.mode(of: sceneSnapshot.sceneChannels(of: entity))
+    if renderMode == .hidden || renderMode == .wireframe { continue }
+    if !entity.traits.isDisjoint(with: [.camera, .light, .gizmo]) { continue }
+    guard let components = sceneSnapshot.drawComponents(of: entity) else { continue }
+    // components.render, components.world, components.local
+}
+```
+
+- **One read of the scene.** The snapshot takes the entity list and the storage of the components the passes use, and looks their ids up once. `entity(_:)` checks the id against that list; `entity.traits` (`RenderEntityTraits`) says which components the entity has, from its component mask.
+- **The scene's own objects.** `drawComponents(of:)`, `lod(of:)`, `meshFade(of:)` and the rest hand out the component objects of the scene, so their values are always current. Only which entities exist and which components they have is fixed for the life of the snapshot: a snapshot is built per pass and dropped when the pass ends.
+- **Walks follow the entity indices.** `forEachEntity(with:)` visits the entities that have a set of components in the order of their indices. The culling gather uses it, so the list sent to the GPU cull, and with it the draw order, is the same from one run to the next.
+- **Channel modes are asked once per channel set.** `SceneChannelRenderModeMemo` asks for the render mode of a channel set only when it differs from the one of the entity before.
+- **What every draw shares is read when the pass starts**: camera position, projection, quality settings and debug switches (`OpaquePassState` for the model passes). What every draw of an entity shares (its fades, its deformation buffers, its ghost opacity) is read once per entity.
+
+When a pass needs another component, add it to the snapshot instead of calling `scene.get` inside the loop.
 
 ---
 
