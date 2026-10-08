@@ -334,11 +334,13 @@ final class CullingTest: BaseRenderSetup {
         let originalHZBTexture = textureResources.hzbDepthPyramid
         let originalHZBMipCount = renderInfo.hzbMipCount
         let originalHZBValid = renderInfo.hzbIsValid
+        let originalHZBFrame = renderInfo.hzbFrame
         let originalViewport = renderInfo.viewPort
         defer {
             textureResources.hzbDepthPyramid = originalHZBTexture
             renderInfo.hzbMipCount = originalHZBMipCount
             renderInfo.hzbIsValid = originalHZBValid
+            renderInfo.hzbFrame = originalHZBFrame
             renderInfo.viewPort = originalViewport
         }
 
@@ -348,6 +350,8 @@ final class CullingTest: BaseRenderSetup {
         textureResources.hzbDepthPyramid = makeHZBTestTexture(depthValue: clearDepth)
         renderInfo.hzbMipCount = 1
         renderInfo.hzbIsValid = true
+        // The pyramid as seen from the origin, with no projection: the test projects with it.
+        renderInfo.hzbFrame = HZBPyramidFrame(viewProjection: matrix_identity_float4x4, cameraPosition: .zero)
         renderInfo.viewPort = simd_float2(1920, 1080)
 
         var candidateCount: UInt32 = 1
@@ -361,7 +365,7 @@ final class CullingTest: BaseRenderSetup {
         let commandBuffer = try XCTUnwrap(renderInfo.commandQueue.makeCommandBuffer())
         let didRun = executeHZBOcclusionCulling(
             commandBuffer,
-            viewProjection: matrix_identity_float4x4,
+            cameraPosition: .zero,
             dispatchCount: 1,
             inputVisibilityBuffer: inputVisibilityBuffer,
             inputVisibleCountBuffer: inputCountBuffer,
@@ -384,11 +388,13 @@ final class CullingTest: BaseRenderSetup {
         let originalHZBTexture = textureResources.hzbDepthPyramid
         let originalHZBMipCount = renderInfo.hzbMipCount
         let originalHZBValid = renderInfo.hzbIsValid
+        let originalHZBFrame = renderInfo.hzbFrame
         let originalViewport = renderInfo.viewPort
         defer {
             textureResources.hzbDepthPyramid = originalHZBTexture
             renderInfo.hzbMipCount = originalHZBMipCount
             renderInfo.hzbIsValid = originalHZBValid
+            renderInfo.hzbFrame = originalHZBFrame
             renderInfo.viewPort = originalViewport
         }
 
@@ -398,6 +404,8 @@ final class CullingTest: BaseRenderSetup {
         textureResources.hzbDepthPyramid = makeHZBTestTexture(depthValue: occluderDepth)
         renderInfo.hzbMipCount = 1
         renderInfo.hzbIsValid = true
+        // The pyramid as seen from the origin, with no projection: the test projects with it.
+        renderInfo.hzbFrame = HZBPyramidFrame(viewProjection: matrix_identity_float4x4, cameraPosition: .zero)
         renderInfo.viewPort = simd_float2(1920, 1080)
 
         var candidateCount: UInt32 = 1
@@ -411,7 +419,7 @@ final class CullingTest: BaseRenderSetup {
         let commandBuffer = try XCTUnwrap(renderInfo.commandQueue.makeCommandBuffer())
         let didRun = executeHZBOcclusionCulling(
             commandBuffer,
-            viewProjection: matrix_identity_float4x4,
+            cameraPosition: .zero,
             dispatchCount: 1,
             inputVisibilityBuffer: inputVisibilityBuffer,
             inputVisibleCountBuffer: inputCountBuffer,
@@ -430,11 +438,13 @@ final class CullingTest: BaseRenderSetup {
         let originalHZBTexture = textureResources.hzbDepthPyramid
         let originalHZBMipCount = renderInfo.hzbMipCount
         let originalHZBValid = renderInfo.hzbIsValid
+        let originalHZBFrame = renderInfo.hzbFrame
         let originalViewport = renderInfo.viewPort
         defer {
             textureResources.hzbDepthPyramid = originalHZBTexture
             renderInfo.hzbMipCount = originalHZBMipCount
             renderInfo.hzbIsValid = originalHZBValid
+            renderInfo.hzbFrame = originalHZBFrame
             renderInfo.viewPort = originalViewport
         }
 
@@ -455,7 +465,7 @@ final class CullingTest: BaseRenderSetup {
         let commandBuffer = try XCTUnwrap(renderInfo.commandQueue.makeCommandBuffer())
         let didRun = executeHZBOcclusionCulling(
             commandBuffer,
-            viewProjection: matrix_identity_float4x4,
+            cameraPosition: .zero,
             dispatchCount: 1,
             inputVisibilityBuffer: inputVisibilityBuffer,
             inputVisibleCountBuffer: inputCountBuffer,
@@ -474,17 +484,21 @@ final class CullingTest: BaseRenderSetup {
         let originalHZBTexture = textureResources.hzbDepthPyramid
         let originalHZBMipCount = renderInfo.hzbMipCount
         let originalHZBValid = renderInfo.hzbIsValid
+        let originalHZBFrame = renderInfo.hzbFrame
         let originalViewport = renderInfo.viewPort
         defer {
             textureResources.hzbDepthPyramid = originalHZBTexture
             renderInfo.hzbMipCount = originalHZBMipCount
             renderInfo.hzbIsValid = originalHZBValid
+            renderInfo.hzbFrame = originalHZBFrame
             renderInfo.viewPort = originalViewport
         }
 
         textureResources.hzbDepthPyramid = makeHZBTestTexture(depthValue: 1.0)
         renderInfo.hzbMipCount = 1
         renderInfo.hzbIsValid = true
+        // The pyramid as seen from the origin, with no projection: the test projects with it.
+        renderInfo.hzbFrame = HZBPyramidFrame(viewProjection: matrix_identity_float4x4, cameraPosition: .zero)
         renderInfo.viewPort = simd_float2(1920, 1080)
 
         let localCenter = simd_float3(0, 0, 0.6)
@@ -507,10 +521,11 @@ final class CullingTest: BaseRenderSetup {
             let outputVisibilityBuffer = try XCTUnwrap(renderInfo.device.makeBuffer(length: MemoryLayout<VisibleEntity>.stride))
             memset(outputCountBuffer.contents(), 0, MemoryLayout<UInt32>.stride)
 
+            renderInfo.hzbFrame = HZBPyramidFrame(viewProjection: viewProjection, cameraPosition: .zero)
             let commandBuffer = try XCTUnwrap(renderInfo.commandQueue.makeCommandBuffer())
             let didRun = executeHZBOcclusionCulling(
                 commandBuffer,
-                viewProjection: viewProjection,
+                cameraPosition: .zero,
                 dispatchCount: 1,
                 inputVisibilityBuffer: inputVisibilityBuffer,
                 inputVisibleCountBuffer: inputCountBuffer,

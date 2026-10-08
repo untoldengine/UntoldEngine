@@ -72,6 +72,16 @@ setRendering(.smallObjectCulling(pixels: 2.0))
 getSmallObjectCullingPixels()
 ```
 
+Occlusion culling tests each frame's objects against the depth of the frame before, seen from
+that frame's camera, so a moving camera costs nothing by itself. After a jump, or a flight
+faster than this many scene units a frame, the previous frame says too little and the test is
+skipped for that frame:
+
+```swift
+setRendering(.occlusionCullingMaxCameraStep(0.5))
+getOcclusionCullingMaxCameraStep()
+```
+
 ## PostFX
 
 Use `setPostFX` for individual post-processing and SSAO settings:

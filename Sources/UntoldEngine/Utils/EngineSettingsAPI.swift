@@ -78,6 +78,14 @@ public enum RenderingProperty: Sendable {
     /// long thin object goes only once its whole length is that small. The default is 1;
     /// 0 draws everything. See `getSmallObjectCullingPixels()` to read the current value.
     case smallObjectCulling(pixels: Float)
+    /// The farthest the camera may have moved since the depth pyramid of the previous
+    /// frame was built for the occlusion test to run on this frame. The test projects
+    /// objects with the pyramid's own camera, so the motion itself costs nothing; what a
+    /// step uncovers from behind a near surface shows one frame late, and past this
+    /// distance (a jump, a fast flight) the frame skips the test and draws what the
+    /// frustum keeps. In scene units; the default is 0.5. See
+    /// `getOcclusionCullingMaxCameraStep()` to read the current value.
+    case occlusionCullingMaxCameraStep(Float)
 }
 
 public enum RenderingToggle: Sendable {
@@ -138,6 +146,8 @@ public func setRendering(_ property: RenderingProperty) {
         RenderPasses.maxShadowCastingDistance = max(distance, 0.001)
     case let .smallObjectCulling(pixels):
         SmallObjectCulling.minimumPixels = pixels.isFinite ? max(pixels, 0) : 0
+    case let .occlusionCullingMaxCameraStep(step):
+        HZBOcclusionCulling.maxCameraStep = step.isFinite ? max(step, 0) : 0
     }
 }
 

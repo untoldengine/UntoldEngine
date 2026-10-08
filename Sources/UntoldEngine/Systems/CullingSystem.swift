@@ -468,6 +468,7 @@ public func buildHZBDepthPyramid(_ commandBuffer: MTLCommandBuffer, eyeIndex: In
     }
 
     renderInfo.hzbIsValid = true
+    renderInfo.hzbFrame = HZBPyramidFrame.current()
 
     let selectedMipLevel = min(max(renderInfo.hzbDebugMipLevel, 0), textureResources.hzbMipViews.count - 1)
     renderInfo.hzbDebugMipLevel = selectedMipLevel
@@ -482,23 +483,35 @@ public func buildHZBDepthPyramid(_ commandBuffer: MTLCommandBuffer, eyeIndex: In
     )
 }
 
+/// Drops from the frustum's candidates the entities the depth pyramid of the previous frame
+/// hides. The pyramid is seen from that frame's camera (`renderInfo.hzbFrame`), and so are
+/// the candidates: an entity seen in both frames is tested where the pyramid holds its own
+/// depth, however the camera moved in between; what a step uncovers from behind a near
+/// surface shows one frame late; an entity the old camera did not see is kept. After a step
+/// beyond `HZBOcclusionCulling.maxCameraStep` the pyramid says too little about this frame
+/// and the test is skipped. Returns whether it ran.
 @discardableResult
 func executeHZBOcclusionCulling(
     _ commandBuffer: MTLCommandBuffer,
-    viewProjection: simd_float4x4,
+    cameraPosition: simd_float3,
     dispatchCount: Int,
     inputVisibilityBuffer: MTLBuffer,
     inputVisibleCountBuffer: MTLBuffer,
     outputVisibilityBuffer: MTLBuffer,
-    outputVisibleCountBuffer: MTLBuffer,
-    hzbPyramidOverride: MTLTexture? = nil
+    outputVisibleCountBuffer: MTLBuffer
 ) -> Bool {
-    if hzbPyramidOverride == nil && renderInfo.hzbIsValid == false {
+    if renderInfo.hzbIsValid == false {
         return false
     }
 
-    guard let hzbDepthPyramid = hzbPyramidOverride ?? textureResources.hzbDepthPyramid else {
-        if hzbPyramidOverride == nil { renderInfo.hzbIsValid = false }
+    guard let hzbDepthPyramid = textureResources.hzbDepthPyramid else {
+        renderInfo.hzbIsValid = false
+        return false
+    }
+
+    guard let pyramidFrame = renderInfo.hzbFrame,
+          simd_distance(cameraPosition, pyramidFrame.cameraPosition) <= HZBOcclusionCulling.maxCameraStep
+    else {
         return false
     }
 
@@ -518,9 +531,9 @@ func executeHZBOcclusionCulling(
     var viewport = simd_float2(renderInfo.viewPort.x, renderInfo.viewPort.y)
     var mipCount = UInt32(max(0, renderInfo.hzbMipCount))
     var reverseZFlag: UInt32 = renderInfo.reverseZEnabled ? 1 : 0
-    var viewProjectionMatrix = viewProjection
-    // HZB is temporal, so use a conservative bias to tolerate one-frame camera
-    // and projection drift before declaring an object fully occluded.
+    var viewProjectionMatrix = pyramidFrame.viewProjection
+    // The pyramid and the test see the scene from the same camera; the bias covers the
+    // drift of the depths themselves before an object is called occluded.
     var occlusionBias: Float = 0.02
 
     let computeEncoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()!
@@ -777,18 +790,14 @@ public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         let eye1CountBuf = eye1CountTriple.bufferForWrite(frame: submitFrameIndex)
         let eye1VisBuf = eye1VisTriple.bufferForWrite(frame: submitFrameIndex)
 
-        // Use the shared mono HZB pyramid for both eyes.
-        // The per-eye pyramids (hzbDepthPyramidEye) are allocated but never built because
-        // buildHZBDepthPyramid is called without eyeIndex in executeXRSystemPass, which
-        // means only the mono pyramid (textureResources.hzbDepthPyramid) is populated each
-        // frame.  Passing hzbDepthPyramidEye as an override bypasses the hzbIsValid guard
-        // and runs the GPU shader against an uninitialized texture, producing no real
-        // occlusion.  Omitting the override lets executeHZBOcclusionCulling fall back to
-        // the mono pyramid gated by renderInfo.hzbIsValid, which is the intended behaviour
-        // described in the comment above buildHZBDepthPyramid in UntoldEngineXR.swift.
+        // Both eyes are tested against the one pyramid, built from the last eye rendered and
+        // seen from that eye's camera (buildHZBDepthPyramid records it): the eyes stand a
+        // few centimetres apart, the frames a camera step. The per-eye pyramids
+        // (hzbDepthPyramidEye) are allocated, but nothing renders the per-eye depth they
+        // would be built from.
         let ran0 = executeHZBOcclusionCulling(
             commandBuffer,
-            viewProjection: renderInfo.xrEye0ViewProjection,
+            cameraPosition: eyePosition(ofView: SceneRootTransform.shared.effectiveViewMatrix(renderInfo.xrEye0View)),
             dispatchCount: count,
             inputVisibilityBuffer: candidateVisibilityBuffer,
             inputVisibleCountBuffer: candidateVisibleCountBuffer,
@@ -798,7 +807,7 @@ public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
 
         let ran1 = executeHZBOcclusionCulling(
             commandBuffer,
-            viewProjection: renderInfo.xrEye1ViewProjection,
+            cameraPosition: eyePosition(ofView: SceneRootTransform.shared.effectiveViewMatrix(renderInfo.xrEye1View)),
             dispatchCount: count,
             inputVisibilityBuffer: candidateVisibilityBuffer,
             inputVisibleCountBuffer: candidateVisibleCountBuffer,
@@ -844,7 +853,7 @@ public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         // Mono path (macOS / non-stereo)
         let didRunOcclusion = executeHZBOcclusionCulling(
             commandBuffer,
-            viewProjection: viewProjection,
+            cameraPosition: eyePosition(ofView: effectiveViewMatrix),
             dispatchCount: count,
             inputVisibilityBuffer: candidateVisibilityBuffer,
             inputVisibleCountBuffer: candidateVisibleCountBuffer,
@@ -1165,7 +1174,7 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
 
     let didRunOcclusion = executeHZBOcclusionCulling(
         commandBuffer,
-        viewProjection: viewProjection,
+        cameraPosition: eyePosition(ofView: effectiveViewMatrix),
         dispatchCount: count,
         inputVisibilityBuffer: candidateVisibilityBuffer,
         inputVisibleCountBuffer: candidateVisibleCountBuffer,
@@ -1225,4 +1234,45 @@ func isAABBInFrustum(_ frustum: Frustum, min aabbMin: simd_float3, max aabbMax: 
 @inline(__always)
 func isAABBInFrustum(center: simd_float3, halfExtent: simd_float3, frustum: Frustum) -> Bool {
     isAABBInFrustum(frustum, min: center - halfExtent, max: center + halfExtent)
+}
+
+// MARK: - The occlusion test's camera
+
+/// The occlusion test against the depth pyramid of the previous frame.
+public enum HZBOcclusionCulling {
+    /// The farthest the camera may have moved since the pyramid was built for the test to
+    /// run. The test projects this frame's entities with the pyramid's own camera, so the
+    /// motion itself costs nothing: an entity seen in both frames is tested where the
+    /// pyramid saw it. What a step uncovers from behind a near surface shows one frame
+    /// late, and past this distance (a jump, a fast flight) the frame skips the test and
+    /// draws what the frustum keeps. In scene units; 0.5 by default. Set it with
+    /// `setRendering(.occlusionCullingMaxCameraStep(_:))`.
+    nonisolated(unsafe) static var maxCameraStep: Float = 0.5
+}
+
+/// The farthest the camera may move between two frames for the occlusion test to run.
+public func getOcclusionCullingMaxCameraStep() -> Float {
+    HZBOcclusionCulling.maxCameraStep
+}
+
+/// Where the camera of a view matrix stands, in the space the matrix views from.
+func eyePosition(ofView view: simd_float4x4) -> simd_float3 {
+    simd_make_float3(simd_inverse(view).columns.3)
+}
+
+extension HZBPyramidFrame {
+    /// The camera of the frame being drawn, which the depth just rendered was projected
+    /// with: the active camera with the scene root, and the projection in use. In stereo
+    /// it is the eye rendered last, whose view and projection `renderXR` left in the camera
+    /// component and in `renderInfo.perspectiveSpace`.
+    static func current() -> HZBPyramidFrame? {
+        guard let camera = CameraSystem.shared.activeCamera,
+              let cameraComponent = scene.get(component: CameraComponent.self, for: camera)
+        else { return nil }
+        let view = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
+        return HZBPyramidFrame(
+            viewProjection: simd_mul(renderInfo.perspectiveSpace, view),
+            cameraPosition: eyePosition(ofView: view)
+        )
+    }
 }

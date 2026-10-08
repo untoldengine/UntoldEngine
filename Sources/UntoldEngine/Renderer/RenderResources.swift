@@ -55,6 +55,10 @@ public struct RenderInfo {
     public var colorPipeline: ColorPipelineConfig = .standard(presentFormat: .bgra8Unorm_srgb)
     public var hzbMipCount: Int = 0
     public var hzbIsValid: Bool = false
+    /// The camera the HZB pyramid was built from: the view-projection of the frame whose
+    /// depth it holds and where that camera stood. The occlusion test of the next frame
+    /// projects with it (see `executeHZBOcclusionCulling`). Nil until a pyramid is built.
+    public var hzbFrame: HZBPyramidFrame?
     /// Whether the Gaussian pass encoded this frame, so `gaussianColorMap` holds this frame's
     /// coverage: false on the simulator and on a frame the pass skipped, when the anti-aliasing
     /// passes must not read the map.
@@ -295,5 +299,18 @@ public struct ScenePickingGeometryMetadata {
     public init(meshIndex: Int, submeshIndex: Int) {
         self.meshIndex = meshIndex
         self.submeshIndex = submeshIndex
+    }
+}
+
+/// The camera a depth pyramid was built from.
+public struct HZBPyramidFrame: Sendable {
+    /// The view-projection of the frame whose depth the pyramid holds, scene root included.
+    public var viewProjection: simd_float4x4
+    /// Where that frame's camera stood, in world space.
+    public var cameraPosition: simd_float3
+
+    public init(viewProjection: simd_float4x4, cameraPosition: simd_float3) {
+        self.viewProjection = viewProjection
+        self.cameraPosition = cameraPosition
     }
 }
