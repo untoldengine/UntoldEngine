@@ -137,6 +137,9 @@ public enum UntoldMeshLODCooker {
     /// level's triangle count). Vertices that two meshes of the model share stay in
     /// place, so material boundaries do not open. The texture seams of a textured mesh
     /// keep their texture coordinates, unless they hold a level well above its target.
+    /// A part hidden a short way behind another (a car's headliner under its roof) is
+    /// sunk behind it before each level, so that the two do not cross
+    /// (`UntoldMeshLODHiddenParts`).
     @discardableResult
     public static func cookChain(forModelAt modelURL: URL, options: UntoldMeshLODOptions = UntoldMeshLODOptions()) throws -> UntoldMeshLODChain {
         try options.validate()
@@ -177,20 +180,16 @@ public enum UntoldMeshLODCooker {
             return skip(.belowMinimumTriangles)
         }
 
-        var unpacked: [UntoldLODMesh]
-        let transforms: [simd_float4x4]
-        do {
-            let vertexChunk = try reader.readChunkData(.vertexData, from: fileData, entries: decoded.chunks)
-            let indexChunk = try reader.readChunkData(.indexData, from: fileData, entries: decoded.chunks)
-            unpacked = try decoded.meshes.map { try unpack($0, vertexChunk: vertexChunk, indexChunk: indexChunk) }
-            transforms = try meshTransforms(decoded)
-        } catch {
-            throw UntoldMeshLODError.unreadableModel(path: modelURL.path, reason: String(describing: error))
-        }
-        applyVertexFlags(to: &unpacked, transforms: transforms, textured: decoded.meshes.map { usesTextures($0, in: decoded) })
-        let meshes = unpacked
+        let (meshes, transforms, diameter) = try unpackGeometry(of: decoded, fileData: fileData, path: modelURL.path)
         let parts = meshes.map(UntoldLODMeshParts.init)
-        let diameter = modelDiameter(meshes: meshes, transforms: transforms)
+        // The vertices hidden a short way behind another mesh (a headliner under its
+        // roof): each level sinks them behind it by its allowance before it simplifies.
+        let coarsestTriangles = max(Float(triangleCount) * (options.ratios.min() ?? 1), 1)
+        let hiddenParts = UntoldMeshLODHiddenParts(
+            meshes: meshes, parts: parts, transforms: transforms,
+            glass: decoded.meshes.map { isGlass($0, in: decoded) },
+            diameter: diameter, coarsestAllowance: diameter / coarsestTriangles.squareRoot()
+        )
         let scales = transforms.map(largestAxisScale)
 
         var levels: [UntoldMeshLODLevel] = []
@@ -201,6 +200,8 @@ public enum UntoldMeshLODCooker {
             // triangles are when it takes over.
             let plannedTriangles = max(Float(triangleCount) * ratio, 1)
             let errorLimit = diameter / plannedTriangles.squareRoot()
+            let levelMeshes = hiddenParts.sunk(meshes, allowance: errorLimit)
+            let sunkPieces = hiddenParts.hiddenPieces
 
             var meshLevels = [UntoldLODMeshLevel?](repeating: nil, count: meshes.count)
             meshLevels.withUnsafeMutableBufferPointer { results in
@@ -209,10 +210,11 @@ public enum UntoldMeshLODCooker {
                 DispatchQueue.concurrentPerform(iterations: meshes.count) { index in
                     let scale = scales[index]
                     results[index] = UntoldMeshLODSimplifier.level(
-                        of: meshes[index],
+                        of: levelMeshes[index],
                         parts: parts[index],
                         ratio: ratio,
-                        errorLimit: scale > 0 ? errorLimit / scale : errorLimit
+                        errorLimit: scale > 0 ? errorLimit / scale : errorLimit,
+                        sunkPieces: sunkPieces[index]
                     )
                 }
             }
@@ -243,6 +245,37 @@ public enum UntoldMeshLODCooker {
             levels: levels,
             skipped: levels.isEmpty ? .irreducible : nil
         )
+    }
+
+    /// The meshes of a decoded model with their simplifier flags, the transform that takes
+    /// each to model space, and the model's diameter.
+    private static func unpackGeometry(of decoded: UntoldDecodedAsset, fileData: Data, path: String) throws -> ([UntoldLODMesh], [simd_float4x4], Float) {
+        var unpacked: [UntoldLODMesh]
+        let transforms: [simd_float4x4]
+        do {
+            let reader = UntoldReader()
+            let vertexChunk = try reader.readChunkData(.vertexData, from: fileData, entries: decoded.chunks)
+            let indexChunk = try reader.readChunkData(.indexData, from: fileData, entries: decoded.chunks)
+            unpacked = try decoded.meshes.map { try unpack($0, vertexChunk: vertexChunk, indexChunk: indexChunk) }
+            transforms = try meshTransforms(decoded)
+        } catch {
+            throw UntoldMeshLODError.unreadableModel(path: path, reason: String(describing: error))
+        }
+        applyVertexFlags(to: &unpacked, transforms: transforms, textured: decoded.meshes.map { usesTextures($0, in: decoded) })
+        return (unpacked, transforms, modelDiameter(meshes: unpacked, transforms: transforms))
+    }
+
+    /// The meshes of the model at `modelURL` as the cook sees them (for the tests).
+    static func unpackedMeshes(ofModelAt modelURL: URL) throws -> ([UntoldLODMesh], [simd_float4x4], Float) {
+        let fileData: Data
+        let decoded: UntoldDecodedAsset
+        do {
+            fileData = try Data(contentsOf: modelURL, options: .mappedIfSafe)
+            decoded = try UntoldReader().readAsset(from: fileData)
+        } catch {
+            throw UntoldMeshLODError.unreadableModel(path: modelURL.path, reason: String(describing: error))
+        }
+        return try unpackGeometry(of: decoded, fileData: fileData, path: modelURL.path)
     }
 
     /// The screen size at which `triangleCount` triangles are about `pixelsPerTriangle`
@@ -385,6 +418,16 @@ public enum UntoldMeshLODCooker {
             material.occlusionTextureIndex,
             material.heightTextureIndex,
         ].contains { $0 != UntoldFormat.invalidIndex }
+    }
+
+    /// Whether the material of `mesh` lets through what is behind it: it transmits, or its
+    /// base colour is not opaque.
+    private static func isGlass(_ mesh: UntoldMeshRecordV1, in decoded: UntoldDecodedAsset) -> Bool {
+        guard mesh.materialIndex != UntoldFormat.invalidIndex, Int(mesh.materialIndex) < decoded.materials.count else {
+            return false
+        }
+        let material = decoded.materials[Int(mesh.materialIndex)]
+        return material.transmissionFactor > 0 || material.baseColorFactor.w < 1
     }
 
     /// Sets the simplifier flags of every mesh: a vertex whose position another mesh of

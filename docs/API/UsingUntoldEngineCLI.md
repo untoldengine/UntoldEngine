@@ -237,7 +237,14 @@ A model placed many times is simplified once. A level the simplifier cannot
 reduce by a worthwhile amount is left out, and skinned, morphing and
 animation-only models keep their full meshes. Vegetation and similar models
 made of thousands of small separate pieces are thinned evenly, with the
-remaining pieces enlarged so that a canopy keeps its density. The simplifier is
+remaining pieces enlarged so that a canopy keeps its density. A vertex kept from
+a groove or a crease that a level has simplified away takes the normal of the
+faces around it, so that it does not shade a flat span dark. A part hidden a
+short way behind another (a car's headliner under its roof, a door panel behind
+its door) is sunk behind the surface in front of it by the level's allowance
+before it is simplified, so that the two do not cross at the coarse levels and
+the dark part does not show through; what is seen from outside is never moved,
+and what is seen through glass stays where it is. The simplifier is
 [meshoptimizer](https://github.com/zeux/meshoptimizer).
 
 ### Animation-only exports → `.untoldanim`

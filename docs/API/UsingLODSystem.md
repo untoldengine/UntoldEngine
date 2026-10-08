@@ -260,7 +260,17 @@ The manifest records the chains under `lodChains`, by model path:
 
 `screenSize` is a share of the viewport height: the cook chooses it so that the
 level's triangles are about four pixels each on a viewport 1080 pixels high.
-`error` is the largest deviation from the model in model units.
+`error` is the largest deviation from the model in model units. A level keeps
+the model's vertex normals where they still describe its surface; a vertex kept
+from a groove or a crease that is gone at that level takes the normal of the
+faces around it, so that it does not shade a flat span dark. A part hidden a
+short way behind another, like a car's headliner under its roof or a door panel
+behind its door, is sunk behind the surface in front of it by the level's
+allowance before it is simplified, so that the coarse triangles of the two do
+not cross and the dark part does not show through the paint. What is seen from
+outside is never moved, a part that is seen through glass is not sunk away from
+the glass, and a piece that is hidden in one part and seen in another bends
+gradually between the two; `error` does not count the sinking.
 
 To build chains from your own tools, add the `UntoldEngineMeshCook` product of the
 engine package to the tool and call the cooker:
