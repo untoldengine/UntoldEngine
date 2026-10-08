@@ -94,6 +94,22 @@ final class LODScreenSizeTests: XCTestCase {
 
     // MARK: - Selection
 
+    func testAStereoFrameTakesTheLargerOfTheEyesReaches() throws {
+        // The eye that sees an entity largest decides its level.
+        let wide = perspective(fovYDegrees: 90), narrow = perspective(fovYDegrees: 60)
+        let reach = try XCTUnwrap(lodScreenSizeReach(eyeProjections: [wide, narrow]))
+        XCTAssertEqual(reach, try XCTUnwrap(lodScreenSizeReach(projection: narrow)), accuracy: 1e-6)
+        XCTAssertEqual(reach, try XCTUnwrap(lodScreenSizeReach(eyeProjections: [narrow, wide])), accuracy: 1e-6, "whichever eye comes first")
+        XCTAssertEqual(try XCTUnwrap(lodScreenSizeReach(eyeProjections: [wide, matrix_identity_float4x4])), try XCTUnwrap(lodScreenSizeReach(projection: wide)), accuracy: 1e-6, "an eye not yet rendered does not count")
+    }
+
+    func testBeforeAnyEyeIsRenderedAStereoFrameHasNoReach() {
+        // Until `renderXR` has run, the eye projections are the identity: the stored
+        // distances serve, not a reach from the window's projection.
+        XCTAssertNil(lodScreenSizeReach(eyeProjections: [matrix_identity_float4x4, matrix_identity_float4x4]))
+        XCTAssertNil(lodScreenSizeReach(eyeProjections: []))
+    }
+
     func testALevelTakesOverWhereTheEntityCoversItsScreenSize() {
         // With a reach of 10 the entity covers 0.5 at 20, 0.25 at 40 and 0.1 at 100.
         XCTAssertEqual(selected(distance: 19, reach: 10), 0)

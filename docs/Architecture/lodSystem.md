@@ -90,7 +90,7 @@ reach          = projection[1][1]                                (once per pass,
 switchDistance = worldRadius × reach / nextLevel.screenPercentage
 ```
 
-`projection[1][1]` is `1 / tan(fovY / 2)` of the projection in use (`renderInfo.perspectiveSpace`), so the switch follows the entity's scale and the field of view. A screen size is a share of the viewport height whatever its resolution, so a denser display draws the same levels. The walk, the bias and the hysteresis are those above, applied to these distances. Under an orthographic projection, and for a level whose successor has no screen size, the stored `maxDistance` applies.
+`projection[1][1]` is `1 / tan(fovY / 2)` of the projection in use (`renderInfo.perspectiveSpace`), so the switch follows the entity's scale and the field of view. A screen size is a share of the viewport height whatever its resolution, so a denser display draws the same levels. The walk, the bias and the hysteresis are those above, applied to these distances. Under an orthographic projection, and for a level whose successor has no screen size, the stored `maxDistance` applies. In stereo (`renderInfo.isXRStereoMode`) the eyes are rendered after the update, so the reach is the larger of the two eyes' reaches from the frame rendered last (`xrEye0Projection`, `xrEye1Projection`, `lodScreenSizeReach(eyeProjections:)`); a headset's field of view does not change between frames, and until an eye has been rendered the projections are the identity and the stored distances apply.
 
 ---
 

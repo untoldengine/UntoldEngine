@@ -354,6 +354,9 @@ runs, so it follows the entity's scale and the field of view:
   `setLOD(.hysteresis(...))` acts as it does on distances.
 - A level whose `screenPercentage` is 0 takes over at the `maxDistance` of the
   level before it, and so does every level under an orthographic projection.
+- In stereo the size is measured with the eye that sees the entity largest,
+  from the frame rendered last; until the first frame has been rendered the
+  `maxDistance` values apply.
 - `LODComponent.screenSizeRadius` replaces the sphere around the bounding box
   with one of that radius, in the entity's own space. The parts of a model
   loaded from a pack carry the radius of the whole model.

@@ -56,8 +56,12 @@ public class LODSystem: @unchecked Sendable {
         hasRunOnce = true
         lastCameraPosition = cameraPosition
 
-        // What a size on screen is worth in distance, for the view being drawn.
-        let screenSizeReach = lodScreenSizeReach(projection: renderInfo.perspectiveSpace)
+        // What a size on screen is worth in distance, for the view being drawn. In
+        // stereo the eyes are rendered after this update, so their projections are the
+        // last frame's; the field of view of a headset does not change between frames.
+        let screenSizeReach = renderInfo.isXRStereoMode
+            ? lodScreenSizeReach(eyeProjections: [renderInfo.xrEye0Projection, renderInfo.xrEye1Projection])
+            : lodScreenSizeReach(projection: renderInfo.perspectiveSpace)
 
         // Query entities with LOD components
         let lodId = getComponentId(for: LODComponent.self)
@@ -364,6 +368,13 @@ func lodScreenSizeReach(projection: simd_float4x4) -> Float? {
     let perspectiveScale = projection.columns.1.y
     guard projection.columns.3.w == 0, perspectiveScale > 0, perspectiveScale.isFinite else { return nil }
     return perspectiveScale
+}
+
+/// The reach for a stereo frame: the larger of the eyes' reaches, so that an entity is
+/// drawn at the level the eye that sees it largest asks for. Nil until an eye has been
+/// rendered (the projections are still the identity), when the stored distances serve.
+func lodScreenSizeReach(eyeProjections: [simd_float4x4]) -> Float? {
+    eyeProjections.compactMap(lodScreenSizeReach(projection:)).max()
 }
 
 /// The share of a level's switch distance that `selectLODIndex` lets the hysteresis reach.
