@@ -3004,21 +3004,17 @@ def mesh_object_material(mesh_object: object) -> Optional[object]:
     """The material the mesh's faces use. Each exported mesh has one (multi-material
     objects are split first), but it need not sit in the first slot: an object can use
     only its second material, which used to export as the first one. Object-linked
-    slots are honoured through material_slots."""
+    slots are honoured through _slot_material, the one place that resolves a slot."""
     data = getattr(mesh_object, "data", None)
     polygons = getattr(data, "polygons", None)
     try:
         index = int(polygons[0].material_index) if polygons is not None and len(polygons) > 0 else 0
     except (TypeError, IndexError, AttributeError):
         index = 0
-    slots = getattr(mesh_object, "material_slots", None)
-    if slots is not None and index < len(slots):
-        material = getattr(slots[index], "material", None)
-        if material is not None:
-            return material
-    materials = getattr(data, "materials", [])
-    if materials and index < len(materials) and materials[index] is not None:
-        return materials[index]
+    material = _slot_material(mesh_object, data, index)
+    if material is not None:
+        return material
+    materials = getattr(data, "materials", None) or []
     return materials[0] if materials and materials[0] is not None else None
 
 
@@ -7488,7 +7484,7 @@ def _separate_rigged_object_by_material(obj: object) -> list[object]:
         piece_used = {p.material_index for p in piece.data.polygons}
         if piece_used:
             used_index = piece_used.pop()
-            material = slot_material(piece, piece.data, used_index)
+            material = _slot_material(piece, piece.data, used_index)
             piece.data.materials.clear()
             if material is not None:
                 piece.data.materials.append(material)
@@ -7502,7 +7498,7 @@ def _separate_rigged_object_by_material(obj: object) -> list[object]:
     return pieces
 
 
-def slot_material(obj: object, mesh: object, index: int) -> Optional[object]:
+def _slot_material(obj: object, mesh: object, index: int) -> Optional[object]:
     """The material of slot `index` as the object shows it. A slot linked to the object
     overrides the material the mesh data holds in that slot (an IFC import links a
     material to each object over a mesh shared by hundreds of them), so the object's
@@ -7607,7 +7603,7 @@ def split_blender_objects_by_material(objects: list[object]) -> list[object]:
                 new_mesh = bpy.data.meshes.new(f"{obj.data.name}_mat{mat_idx}")
                 bm.to_mesh(new_mesh)
                 new_mesh.update()
-                mat = slot_material(obj, mesh, mat_idx)
+                mat = _slot_material(obj, mesh, mat_idx)
                 if mat:
                     new_mesh.materials.append(mat)
                     for p in new_mesh.polygons:
