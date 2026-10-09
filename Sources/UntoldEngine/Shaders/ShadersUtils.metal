@@ -498,12 +498,28 @@ float4 BRDFIntegrationMap(float roughness, float NoV){
 
 }
 
+// The share of the light around it that a surface reflects in a single bounce off its
+// microfacets: F0 head on (4 % for a non-metal, its own color for a metal), more when it
+// is seen at a slant. This is the share diffuse scattering gives up to specular, before
+// any later-bounce energy compensation.
+float3 singleBounceReflectance(float3 F0, float roughness, float NoV, texture2d<float> brdfMap) {
+
+    // The lookup table is read right at its edges (a surface seen head on, a roughness
+    // of 1), so it clamps: wrapping there reads the far edge and leaves a white spot.
+    constexpr sampler s(coord::normalized,
+                        filter::linear,
+                        mip_filter::none,
+                        address::clamp_to_edge);
+
+    float4 brdfIntegration=brdfMap.sample(s,float2(NoV,roughness));
+
+    return F0 * float(brdfIntegration.x) + float(brdfIntegration.y);
+}
+
 // The share of the light around it that a surface reflects: F0 head on (4 % for a
 // non-metal, its own color for a metal), more when it is seen at a slant.
 float3 environmentReflectance(float3 F0, float roughness, float NoV, texture2d<float> brdfMap) {
 
-    // The lookup table is read right at its edges (a surface seen head on, a roughness
-    // of 1), so it clamps: wrapping there reads the far edge and leaves a white spot.
     constexpr sampler s(coord::normalized,
                         filter::linear,
                         mip_filter::none,

@@ -167,6 +167,8 @@ float4 BRDFIntegrationMap(float roughness, float NoV);
 
 float3 environmentReflectance(float3 F0, float roughness, float NoV, texture2d<float> brdfMap);
 
+float3 singleBounceReflectance(float3 F0, float roughness, float NoV, texture2d<float> brdfMap);
+
 float3 blurredEnvironment(float3 direction, float roughness, texture2d<float> specularMap, float3 rotationAxis, float rotationAngle);
 
 // adapted from "Real Shading in Unreal Engine 4", Brian Karis, Epic Games

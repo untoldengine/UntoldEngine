@@ -204,4 +204,41 @@ final class EnvironmentReflectionShadingTests: MaterialShadingTestCase {
         // 4 % reflected, and half of the other 96 % scattered.
         XCTAssertEqual(gray, all * (0.04 + 0.96 * 0.5), accuracy: all * 0.01)
     }
+
+    /// The share diffuse gives up to specular is the single bounce off the microfacets,
+    /// not the multi-bounce-compensated total specular reflects back. At the low F0 of a
+    /// true dielectric the two nearly coincide (see `testAGrayNonMetalScattersWhatItDoesNotReflect`
+    /// above), so a mix-up between them hides there; a material blended half metallic
+    /// carries a high enough F0, while still keeping a diffuse term, to pull them apart.
+    func testARoughHighF0SurfaceDiffuseGivesUpOnlyTheSingleBounceShare() throws {
+        try buildScene(.sphere, towardsLight: nil)
+        try lightWithAnEvenEnvironment()
+        let roughness: Float = 1.0
+        let f0: Float = 0.5
+
+        // A white non-metal gives back all the light it is lit with, whatever its
+        // finish: the baseline irradiance, by the Furnace-test identity.
+        let irradiance = try shade(material(metallic: 0.0, roughness: roughness)).y
+
+        // A fully metallic surface of this same color scatters nothing: what comes back
+        // head on is specular alone, F0 equal to its base color, which totals the full
+        // multi-bounce-compensated reflectance under even light.
+        let compensatedShare = try Self.facingBrightness(of: shadeFrame(
+            material(base: simd_float3(repeating: f0), metallic: 1.0, roughness: roughness)
+        )) / irradiance
+
+        // Blended half metallic with a base color chosen so F0 lands on that same 0.5,
+        // this surface still scatters half of what it does not reflect (1 - metallic).
+        // Solving its rendered brightness for that diffuse-energy share, with the exact
+        // same F0 as the measurement above, tells us which reflectance the shader used.
+        let metallic: Float = 0.5
+        let base: Float = (f0 - 0.04 * (1 - metallic)) / metallic
+        let facing = try Self.facingBrightness(of: shadeFrame(
+            material(base: simd_float3(repeating: base), metallic: metallic, roughness: roughness)
+        ))
+        let diffuseGivesUpShare = 1.0 - (facing / irradiance - compensatedShare) / ((1 - metallic) * base)
+
+        XCTAssertLessThan(diffuseGivesUpShare, compensatedShare - 0.03,
+                           "at roughness 1.0 and F0 0.5 the single-bounce share diffuse gives up should be noticeably smaller than the multi-bounce-compensated total specular reflects")
+    }
 }
