@@ -126,7 +126,7 @@ final class UntoldMeshLODHiddenParts {
     /// the meshes whose material lets through what is behind it.
     init(meshes: [UntoldLODMesh], parts: [UntoldLODMeshParts], transforms: [simd_float4x4], glass: [Bool], diameter: Float, coarsestAllowance: Float) {
         self.transforms = transforms
-        inverseTransforms = transforms.map { $0.inverse }
+        inverseTransforms = transforms.map(\.inverse)
         let reach = Self.reachShare * coarsestAllowance
         let eligible = meshes.indices.filter { index in
             meshes[index].vertexCount > 0 && meshes[index].triangleCount > 0 && parts[index].clutterIndices.isEmpty
@@ -178,13 +178,11 @@ final class UntoldMeshLODHiddenParts {
             let mesh = meshes[meshIndex]
             // A vertex other meshes have too is sunk only when it is hidden in each of
             // them, so that it moves the same way in all and their border stays closed.
-            var covered: [Int] = []
-            for vertex in 0 ..< mesh.vertexCount where Int(mesh.positionRemap[vertex]) == vertex {
-                guard let global = grid.globalVertex(mesh: meshIndex, vertex: vertex), near[global], seen[global] == false else { continue }
-                if let copies = shared[Self.key(grid.position(global))] {
-                    guard copies.allSatisfy({ seen[$0] == false }) else { continue }
-                }
-                covered.append(vertex)
+            let covered = (0 ..< mesh.vertexCount).filter { vertex in
+                guard Int(mesh.positionRemap[vertex]) == vertex else { return false }
+                guard let global = grid.globalVertex(mesh: meshIndex, vertex: vertex), near[global], seen[global] == false else { return false }
+                guard let copies = shared[Self.key(grid.position(global))] else { return true }
+                return copies.allSatisfy { seen[$0] == false }
             }
             guard !covered.isEmpty else { continue }
             var references = [[Reference]](repeating: [], count: covered.count)
@@ -574,7 +572,7 @@ final class UntoldMeshLODHiddenParts {
             for (mesh, isWanted) in meshes.enumerated() where isWanted {
                 wanted |= UInt64(1) << UInt64(mesh % 64)
             }
-            let rings = self.rings(for: reach)
+            let rings = cellRings(for: reach)
             // The meshes within `rings` cells of each cell, by a separable dilation.
             var dilated = cellMeshes
             for axis in 0 ..< 3 where rings[axis] > 0 {
@@ -671,7 +669,7 @@ final class UntoldMeshLODHiddenParts {
             ofTriangles: [Bool], limit: Int, distinctCosine: Float
         ) -> [Reference] {
             guard let home = cell(of: point) else { return [] }
-            let rings = self.rings(for: reach)
+            let rings = cellRings(for: reach)
             var candidates: [(distance: Float, normal: SIMD3<Float>)] = []
             for z in max(home.z - rings.z, 0) ... min(home.z + rings.z, cells.z - 1) {
                 for y in max(home.y - rings.y, 0) ... min(home.y + rings.y, cells.y - 1) {
@@ -824,7 +822,7 @@ final class UntoldMeshLODHiddenParts {
         // MARK: Cells
 
         /// How many cells each way cover `reach`.
-        private func rings(for reach: Float) -> SIMD3<Int> {
+        private func cellRings(for reach: Float) -> SIMD3<Int> {
             SIMD3<Int>(
                 Int((reach / cellStep.x).rounded(.up)), Int((reach / cellStep.y).rounded(.up)), Int((reach / cellStep.z).rounded(.up))
             )
