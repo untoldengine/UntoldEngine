@@ -43,9 +43,20 @@ testcore:
 # machine has less RAM/GPU headroom.
 WORKERS ?= 4
 
+# Honor UNTOLD_PYTHON so the interpreter we install into matches the one
+# BaseRenderSetup actually shells out to at test time (default: python3).
+TESTRENDERER_PYTHON ?= $(if $(UNTOLD_PYTHON),$(UNTOLD_PYTHON),python3)
+
+# --break-system-packages only exists in pip 23.0.1+. Xcode's bundled Python
+# (pip 21.2.4 as of this writing) rejects it as an unknown option, which aborts
+# the target before it can even upgrade pip. Detect support instead of
+# hardcoding the flag so Homebrew/python.org pips (which need it under PEP 668)
+# keep working while older pips fall back to an unflagged install.
+PIP_BREAK_FLAG := $(shell $(TESTRENDERER_PYTHON) -m pip install --help 2>/dev/null | grep -q -- --break-system-packages && echo --break-system-packages)
+
 testrenderer:
-	python3 -m pip install --user --break-system-packages --upgrade pip wheel setuptools
-	python3 -m pip install --user --break-system-packages opencv-python-headless scikit-image
+	$(TESTRENDERER_PYTHON) -m pip install --user $(PIP_BREAK_FLAG) --upgrade pip wheel setuptools
+	$(TESTRENDERER_PYTHON) -m pip install --user $(PIP_BREAK_FLAG) opencv-python-headless scikit-image
 	UNTOLD_KEEP_ARTIFACTS=$(KEEP) swift test --parallel --num-workers $(WORKERS) --filter UntoldEngineRenderTests
 
 # AsyncMeshLoadingTest/AssetLoadingGateRenderingTests only — the two classes CI runs
