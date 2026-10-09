@@ -239,6 +239,6 @@ final class EnvironmentReflectionShadingTests: MaterialShadingTestCase {
         let diffuseGivesUpShare = 1.0 - (facing / irradiance - compensatedShare) / ((1 - metallic) * base)
 
         XCTAssertLessThan(diffuseGivesUpShare, compensatedShare - 0.03,
-                           "at roughness 1.0 and F0 0.5 the single-bounce share diffuse gives up should be noticeably smaller than the multi-bounce-compensated total specular reflects")
+                          "at roughness 1.0 and F0 0.5 the single-bounce share diffuse gives up should be noticeably smaller than the multi-bounce-compensated total specular reflects")
     }
 }
