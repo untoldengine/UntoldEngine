@@ -366,6 +366,33 @@ public func isAnimationComponentPaused(entityId: EntityID) -> Bool {
     }
 }
 
+/// Reports `.animationClipNoMatchingJoints` if none of `clip`'s channels
+/// target a joint path present in `skeleton` — e.g. a namespace prefix
+/// (`"skel:LeftArm"` vs `"LeftArm"`) or hierarchy mismatch between the
+/// exported clip and the skeleton it's bound to. Every joint would otherwise
+/// silently sample its rest pose: the clip still registers and plays
+/// (`currentTime` advances) with no visible motion and no error. This is a
+/// diagnostic only — it does not block registration or playback, so
+/// intentional no-op/placeholder clips still work.
+///
+/// Checked directly against `clip.jointAnimation`'s keys rather than through
+/// `AnimationComponent.compiledClip(for:skeleton:)`: that cache is keyed by
+/// clip identity and considers a cache hit valid whenever `jointCount`
+/// matches, so compiling here against a skeleton that is later swapped out
+/// for another of the same joint count (same clip, different rig) would
+/// pollute the cache with a stale compilation.
+func warnIfClipHasNoMatchingJoints(
+    entityId: EntityID,
+    name: String,
+    clip: AnimationClip,
+    skeleton: Skeleton
+) {
+    guard clip.jointAnimation.isEmpty == false else { return }
+    let jointPaths = Set(skeleton.jointPaths)
+    guard clip.jointAnimation.keys.contains(where: { jointPaths.contains($0) }) == false else { return }
+    handleError(.animationClipNoMatchingJoints, name, entityId)
+}
+
 /// Default halflife for inertialized clip switches, shared by every public
 /// entry point (`changeAnimation`, the node builder, USC `.playAnimation`).
 public let defaultAnimationTransitionHalflife: Float = 0.1
@@ -405,6 +432,14 @@ public func changeAnimation(entityId: EntityID, name: String, transitionHalflife
             to: animationClip,
             halflife: transitionHalflife
         )
+        if let skeleton = scene.get(component: SkeletonComponent.self, for: targetEntityId)?.skeleton {
+            warnIfClipHasNoMatchingJoints(
+                entityId: targetEntityId,
+                name: name,
+                clip: animationClip,
+                skeleton: skeleton
+            )
+        }
         animationComponent.currentAnimation = animationClip
         animationComponent.currentTime = 0
         animationComponent.pause = withPause
@@ -1045,7 +1080,7 @@ public func restartAnimation(entityId: EntityID, name: String, repeats: Bool? = 
         handleError(.noAnimationClip, name, entityId)
         return
     }
-    for (_, component, clip) in components {
+    for (targetEntityId, component, clip) in components {
         // Restarting playback does not change compiled channels. Invalidate only
         // this clip when its looping setting changes; preserve warmed caches.
         if let repeats, clip.jointAnimation.values.contains(where: { $0.repeatAnimation != repeats }) {
@@ -1053,6 +1088,14 @@ public func restartAnimation(entityId: EntityID, name: String, repeats: Bool? = 
                 clip.jointAnimation[path]?.repeatAnimation = repeats
             }
             component.compiledClips.removeValue(forKey: ObjectIdentifier(clip))
+        }
+        if let skeleton = scene.get(component: SkeletonComponent.self, for: targetEntityId)?.skeleton {
+            warnIfClipHasNoMatchingJoints(
+                entityId: targetEntityId,
+                name: name,
+                clip: clip,
+                skeleton: skeleton
+            )
         }
         component.transition.cancel()
         component.currentAnimation = clip
