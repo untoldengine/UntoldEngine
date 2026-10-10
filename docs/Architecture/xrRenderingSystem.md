@@ -100,6 +100,8 @@ defer { frame.endSubmission() }
 
 The `defer` is important: `endSubmission()` **must** be called even if rendering fails partway through. If it isn't called, the compositor stalls. The `defer` guarantees this regardless of how the function exits.
 
+**Drawables.** On visionOS 26 the frame is queried with `frame.queryDrawables()`, which returns one drawable per target: the built-in display, plus a capture target while the view is being recorded or streamed. A layer configured with foveation or a render quality aborts the app ("BUG IN CLIENT: called cp_frame_query_drawable() which does not support setting render quality or fovea") if the older single-drawable `queryDrawable()` is used, which the engine still calls on visionOS 2. An empty array means the compositor cancelled the frame: it is left without `endSubmission()`. Every drawable is presented; the scene is drawn into the built-in one and into a capture drawable only while its textures are the size the frame's resources are allocated at — otherwise it is presented cleared, since every sizeable resource is sized to one viewport and a second size would reallocate them twice a frame.
+
 ### 2e. Device Anchor Acquisition
 
 ```swift
@@ -229,7 +231,7 @@ Selection rays update from interaction events, not continuously as the user look
         ├─ frame.endUpdate()
         ├─ wait(until: optimalInputTime)       (sleep until compositor deadline)
         ├─ frame.startSubmission()
-        ├─ queryDrawable()                     (get per-eye textures)
+        ├─ queryDrawables()                    (one drawable per target; the old single query aborts a foveated layer)
         ├─ queryDeviceAnchor() → fallback chain → drawable.deviceAnchor = anchor
         │
         └─ executeXRSystemPass()
