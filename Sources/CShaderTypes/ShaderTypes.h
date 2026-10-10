@@ -1378,9 +1378,9 @@ typedef struct {
     float historyWeight;                 // share of the clipped history in the output (0.9)
     uint32_t historyValid;               // 0 on the first frame, after a resize or a mode change: the output is the current frame
     uint32_t reverseZ;
+    float clipGamma;                     // the clip box is the 3×3 mean ± clipGamma × standard deviation (1.25)
     uint32_t pad0;
     uint32_t pad1;
-    uint32_t pad2;
 } TAAConstants;  // 176 bytes
 
 typedef enum{

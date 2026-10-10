@@ -29,12 +29,22 @@ public final class TAAParams: @unchecked Sendable {
     public static let shared = TAAParams()
     private let lock = NSLock()
     private var historyWeightValue: Float = 0.9
+    private var clipGammaValue: Float = 1.25
 
     /// The share of the (clipped) history in each resolved pixel: higher converges further
     /// and reacts slower. Clamped to [0, 0.98]; the default is 0.9.
     public var historyWeight: Float {
         get { lock.withLock { historyWeightValue } }
         set { lock.withLock { historyWeightValue = min(max(newValue, 0), 0.98) } }
+    }
+
+    /// How far the history may stray from a pixel's 3×3 neighbourhood: the clip box is the
+    /// neighbourhood's mean ± this many standard deviations. Lower rejects ghosting sooner,
+    /// higher keeps pixel-thin features (wires, text) through the frames that miss them.
+    /// Clamped to [0.5, 3]; the default is 1.25.
+    public var clipGamma: Float {
+        get { lock.withLock { clipGammaValue } }
+        set { lock.withLock { clipGammaValue = min(max(newValue, 0.5), 3) } }
     }
 }
 
@@ -204,6 +214,7 @@ final class TemporalAntiAliasing: @unchecked Sendable {
         constants.prevRateMapSizes = rateMapSizes(eyes[eye].rateMapData)
         constants.physicalSize = simd_float2(Float(source.width), Float(source.height))
         constants.historyWeight = TAAParams.shared.historyWeight
+        constants.clipGamma = TAAParams.shared.clipGamma
         constants.historyValid = eyes[eye].valid ? 1 : 0
         constants.reverseZ = renderInfo.reverseZEnabled ? 1 : 0
 
