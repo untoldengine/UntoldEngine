@@ -102,15 +102,39 @@ public struct XRFoveationFrame {
 /// graph is built, since a rebuild may have recreated the descriptors.
 func applyXRFoveationToSceneRenderPassDescriptors() {
     let rateMap = renderInfo.xrFoveation?.rateMap
-    renderInfo.offscreenRenderPassDescriptor?.rasterizationRateMap = rateMap
-    renderInfo.deferredRenderPassDescriptor?.rasterizationRateMap = rateMap
-    renderInfo.environmentRenderPassDescriptor?.rasterizationRateMap = rateMap
-    renderInfo.gaussianRenderPassDescriptor?.rasterizationRateMap = rateMap
-    renderInfo.gizmoRenderPassDescriptor?.rasterizationRateMap = rateMap
+    for descriptor in [
+        renderInfo.offscreenRenderPassDescriptor,
+        renderInfo.deferredRenderPassDescriptor,
+        renderInfo.environmentRenderPassDescriptor,
+        renderInfo.gaussianRenderPassDescriptor,
+        renderInfo.gizmoRenderPassDescriptor,
+    ] {
+        guard let descriptor else { continue }
+        attachXRFoveation(rateMap, to: descriptor)
+    }
+}
+
+/// Attaches a rate map to a descriptor whose attachments are physical-size textures, or
+/// detaches it. A descriptor's render target size is read in *screen* pixels while a map is
+/// attached (measured: a target size equal to the physical size clips the scene to the
+/// top-left physical-size corner of the screen), so the size is left at 0 — Metal then takes
+/// the attachments' own size — and put back to the texture size without a map, which is what
+/// `createRenderPassDescriptor` sets and the memoryless attachments rely on.
+func attachXRFoveation(_ rateMap: MTLRasterizationRateMap?, to descriptor: MTLRenderPassDescriptor) {
+    descriptor.rasterizationRateMap = rateMap
+    if rateMap != nil {
+        descriptor.renderTargetWidth = 0
+        descriptor.renderTargetHeight = 0
+    } else if let viewPort = renderInfo.viewPort, descriptor.renderTargetWidth == 0 {
+        descriptor.renderTargetWidth = Int(viewPort.x)
+        descriptor.renderTargetHeight = Int(viewPort.y)
+    }
 }
 
 /// Sets the eye's screen-space viewport on an encoder that draws through the rate map; nothing
 /// outside foveated XR, where the default viewport, the texture's own size, is the right one.
+/// (Measured: a viewport of the physical size under a map clips the scene the same way a
+/// physical-size render target does; the map's screen size covers the whole texture.)
 @inline(__always)
 func applyXRFoveationViewport(_ encoder: MTLRenderCommandEncoder) {
     guard let foveation = renderInfo.xrFoveation else { return }
