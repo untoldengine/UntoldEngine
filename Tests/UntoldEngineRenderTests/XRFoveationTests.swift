@@ -92,10 +92,18 @@ final class XRFoveationTests: BaseRenderSetup {
         XCTAssertNil(renderInfo.sceneCompositeRenderPassDescriptor.rasterizationRateMap, "the composite copies physical pixels one to one")
         XCTAssertNil(renderInfo.ssaoRenderPassDescriptor.rasterizationRateMap, "SSAO reads the physical depth one to one")
         XCTAssertNil(renderInfo.postProcessRenderPassDescriptor?.rasterizationRateMap, "post-processing copies physical pixels one to one")
+        // A render target size is read in screen pixels under a map: the physical size would
+        // clip the scene to the top-left corner of the screen, so the size is left to the
+        // attachments while the map is attached.
+        XCTAssertEqual(renderInfo.offscreenRenderPassDescriptor.renderTargetWidth, 0)
+        XCTAssertEqual(renderInfo.deferredRenderPassDescriptor.renderTargetHeight, 0)
+        XCTAssertEqual(renderInfo.sceneCompositeRenderPassDescriptor.renderTargetWidth, Int(renderInfo.viewPort.x), "a screen pass keeps its texture-size target")
 
         renderInfo.xrFoveation = nil
         applyXRFoveationToSceneRenderPassDescriptors()
         XCTAssertNil(renderInfo.offscreenRenderPassDescriptor.rasterizationRateMap, "a uniform frame detaches the map")
+        XCTAssertEqual(renderInfo.offscreenRenderPassDescriptor.renderTargetWidth, Int(renderInfo.viewPort.x), "and puts the texture-size target back")
+        XCTAssertEqual(renderInfo.deferredRenderPassDescriptor.renderTargetHeight, Int(renderInfo.viewPort.y))
         XCTAssertNil(renderInfo.deferredRenderPassDescriptor.rasterizationRateMap)
         XCTAssertNil(renderInfo.environmentRenderPassDescriptor.rasterizationRateMap)
         XCTAssertNil(renderInfo.gaussianRenderPassDescriptor.rasterizationRateMap)

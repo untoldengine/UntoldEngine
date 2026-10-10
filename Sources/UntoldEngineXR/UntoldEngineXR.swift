@@ -845,7 +845,7 @@
                     let rateMap = rateMaps[viewIndex]
                     let screen = rateMap.screenSize
                     let physical = rateMap.physicalSize(layer: 0)
-                    print("✓ XR foveation: drawing through the compositor's rasterization rate maps, screen \(screen.width)×\(screen.height), textures \(physical.width)×\(physical.height) per eye")
+                    print("✓ XR foveation: drawing through the compositor's rasterization rate maps, screen \(screen.width)×\(screen.height), textures \(physical.width)×\(physical.height) per eye; view texture map viewport \(viewport.originX),\(viewport.originY) \(viewport.width)×\(viewport.height)")
                 } else if rateMaps.isEmpty {
                     print("XR foveation off: the layer provides no rasterization rate maps (isFoveationEnabled is false, or the simulator); drawing uniformly")
                 } else {
@@ -874,7 +874,15 @@
             {
                 Logger.logWarning(message: "XR foveation: eye \(viewIndex) rate map physical size \(data.physicalSize) differs from its texture \(texture.width)×\(texture.height)")
             }
-            return XRFoveationFrame(rateMap: rateMap, viewport: viewport, rateMapData: data)
+            // The eye's viewport in the map's screen space. In the dedicated layout the view
+            // is the whole texture, so it is the map's screen size at the origin; the view's own
+            // texture map viewport is logged above for the day another layout needs it.
+            let screenViewport = MTLViewport(
+                originX: 0, originY: 0,
+                width: Double(data.screenSize.x), height: Double(data.screenSize.y),
+                znear: 0, zfar: 1
+            )
+            return XRFoveationFrame(rateMap: rateMap, viewport: screenViewport, rateMapData: data)
         }
 
         func executeXRSystemPass(frame _: LayerRenderer.Frame, drawable: LayerRenderer.Drawable, loading: Bool) {

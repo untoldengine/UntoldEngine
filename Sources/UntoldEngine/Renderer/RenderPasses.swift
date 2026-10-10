@@ -4062,7 +4062,7 @@ public enum RenderPasses {
         descriptor.depthAttachment.storeAction = .store
         // The depth was drawn through the eye's rasterization rate map when there is one
         // (XR foveation); so is what this pass adds to it.
-        descriptor.rasterizationRateMap = renderInfo.xrFoveation?.rateMap
+        attachXRFoveation(renderInfo.xrFoveation?.rateMap, to: descriptor)
 
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor) else {
             handleError(.renderPassCreationFailed, "Mesh Occluder Shell Pass")
@@ -4204,7 +4204,7 @@ public enum RenderPasses {
         descriptor.depthAttachment.storeAction = .store
         // The depth was drawn through the eye's rasterization rate map when there is one
         // (XR foveation); so is what this pass adds to it.
-        descriptor.rasterizationRateMap = renderInfo.xrFoveation?.rateMap
+        attachXRFoveation(renderInfo.xrFoveation?.rateMap, to: descriptor)
 
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor) else {
             handleError(.renderPassCreationFailed, "Wireframe Occlusion Depth Pass")
