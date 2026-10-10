@@ -83,6 +83,64 @@ final class UntoldPackTests: XCTestCase {
         XCTAssertEqual(pack.models[1].transform.columns.3.x, 2.5, accuracy: 0.0001)
     }
 
+    func testResolvedSourceAssetURLHandlesABareFilenameBesideThePack() throws {
+        // The exporter's original convention, still written for a pack whose source
+        // sits in the same folder: a bare filename is a relative path with zero
+        // intermediate directories, so it resolves the same way as any other.
+        let packURL = try writePack(named: "Robot", models: [
+            (displayName: "Body", path: "Body/Body.untold", translationX: 0.0),
+        ])
+        let pack = try XCTUnwrap(loadUntoldPack(url: packURL))
+
+        let resolved = try XCTUnwrap(pack.resolvedSourceAssetURL(packURL: packURL))
+        XCTAssertEqual(resolved, tempRoot.appendingPathComponent("Robot.blend").standardizedFileURL)
+    }
+
+    func testResolvedSourceAssetURLHandlesARelativePathIntoASeparateResourcesTree() throws {
+        // A pack at GameData/Models/Tower/Tower.untoldpack whose source lives at
+        // Resources/Models/Tower/Tower.blend under the same project root.
+        let packDir = tempRoot
+            .appendingPathComponent("GameData").appendingPathComponent("Models").appendingPathComponent("Tower")
+        try FileManager.default.createDirectory(at: packDir, withIntermediateDirectories: true)
+        let json = """
+        {
+          "formatVersion": 1,
+          "sourceAsset": "../../../Resources/Models/Tower/Tower.blend",
+          "models": [
+            {
+              "displayName": "Tower",
+              "path": "Tower.untold",
+              "transform": [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]]
+            }
+          ]
+        }
+        """
+        let packURL = packDir.appendingPathComponent("Tower.untoldpack")
+        try Data(json.utf8).write(to: packURL)
+
+        let pack = try XCTUnwrap(loadUntoldPack(url: packURL))
+        let resolved = try XCTUnwrap(pack.resolvedSourceAssetURL(packURL: packURL))
+        XCTAssertEqual(
+            resolved,
+            tempRoot.appendingPathComponent("Resources").appendingPathComponent("Models")
+                .appendingPathComponent("Tower").appendingPathComponent("Tower.blend").standardizedFileURL
+        )
+    }
+
+    func testResolvedSourceAssetURLIsNilWhenSourceAssetIsAbsent() throws {
+        let json = """
+        {
+          "formatVersion": 1,
+          "models": []
+        }
+        """
+        let packURL = tempRoot.appendingPathComponent("NoSource.untoldpack")
+        try Data(json.utf8).write(to: packURL)
+
+        let pack = try XCTUnwrap(loadUntoldPack(url: packURL))
+        XCTAssertNil(pack.resolvedSourceAssetURL(packURL: packURL))
+    }
+
     func testCreateUntoldSceneWritesOneEntityPerModelWithResolvedTransform() throws {
         let packURL = try writePack(named: "Robot", models: [
             (displayName: "Body", path: "Body/Body.untold", translationX: 0.0),

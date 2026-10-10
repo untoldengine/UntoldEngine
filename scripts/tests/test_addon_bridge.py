@@ -144,7 +144,7 @@ class AddonTextureBakeTests(unittest.TestCase):
                     validate=validate, progress_callback=progress_callback,
                 )
             return u.write_untold_pack_from_groups(
-                models, source_asset_name="scene.blend", output_path=output_path, file_type_name=file_type_name,
+                models, source_asset_path=output_path.parent / "scene.blend", output_path=output_path, file_type_name=file_type_name,
                 compress_geometry=compress_geometry, validate=validate, progress_callback=progress_callback,
             )
 

@@ -9192,7 +9192,7 @@ def model_content_signature(nodes: list[ExportedNode], digests: dict[int, tuple[
 def write_untold_pack_from_groups(
     model_groups: dict[str, list[ExportedNode]],
     *,
-    source_asset_name: str,
+    source_asset_path: Path,
     output_path: Path,
     file_type_name: str,
     compress_geometry: bool,
@@ -9311,6 +9311,11 @@ def write_untold_pack_from_groups(
         if signature is not None:
             written_by_signature[signature] = model_output_path
 
+    # Relative to the manifest's own folder, like each model's path -- resolves the same
+    # way whether the source sits beside the pack (today's convention: a bare filename,
+    # no "/" needed) or in a separate Resources/ tree the pack's GameData/ doesn't share
+    # (then e.g. "../../../Resources/Models/Tower/Tower.blend").
+    source_asset_name = relative_asset_uri(source_asset_path, pack_path.parent)
     write_untoldpack_manifest(pack_path, source_asset_name, manifest_models)
 
     # A previous export at this same --output stem may have been a single
@@ -9423,7 +9428,7 @@ def export_objects_to_untold_or_pack(
 
     result = write_untold_pack_from_groups(
         model_groups,
-        source_asset_name=source_asset_path.name,
+        source_asset_path=source_asset_path,
         output_path=output_path,
         file_type_name=file_type_name,
         compress_geometry=compress_geometry,
@@ -9660,7 +9665,7 @@ def main(argv: list[str]) -> int:
 
             result = write_untold_pack_from_groups(
                 model_groups,
-                source_asset_name=input_path.name,
+                source_asset_path=input_path,
                 output_path=output_path,
                 file_type_name=args.file_type,
                 compress_geometry=args.compress_geometry,
