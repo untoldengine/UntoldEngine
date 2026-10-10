@@ -423,6 +423,22 @@ fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
         : materialParameter.roughness;
     roughness=clamp(roughness, 0.045, 1.0);
 
+    // Specular anti-aliasing. Normal detail finer than a pixel (a dart's knurl,
+    // sisal fibres, a thin wire's curvature) gives a tight specular lobe a
+    // different peak every frame as the view moves, which reads as sparkle;
+    // multisampling resolves coverage, not this. Widen the lobe by the
+    // screen-space variance of the shading normal (Kaplanyan 2016, Tokuyoshi &
+    // Kaplanyan 2019) so the G-buffer carries a roughness the light pass can
+    // shade stably. sigma^2 = 0.25 and a 0.18 kernel clamp are the values
+    // Unreal and Frostbite ship; a flat surface sees no change.
+    {
+        float3 dndx = dfdx(normalMap);
+        float3 dndy = dfdy(normalMap);
+        float normalVariance = 0.25 * (dot(dndx, dndx) + dot(dndy, dndy));
+        float kernelRoughness2 = min(2.0 * normalVariance, 0.18);
+        roughness = sqrt(roughness * roughness + kernelRoughness2);
+    }
+
     float4 metallicSample = hasHeight
         ? metallicTexture.sample(materialSampler, sampleUV, gradient2d(stDx, stDy))
         : metallicTexture.sample(materialSampler, st, bias(0.25f));
