@@ -272,12 +272,9 @@ import Foundation
         /// Validate that an existing project has the expected structure
         public func isValidProjectStructure(settings: BuildSettings) -> Bool {
             let projectDir = settings.outputPath.appendingPathComponent(settings.projectName)
-            let gameDataDir = projectDir
-                .appendingPathComponent("Sources")
-                .appendingPathComponent(settings.projectName)
-                .appendingPathComponent("GameData")
+            let layout = ProjectLayout.detect(projectRoot: projectDir, projectName: settings.projectName)
 
-            return FileManager.default.fileExists(atPath: gameDataDir.path)
+            return FileManager.default.fileExists(atPath: layout.gameDataDirectory.path)
         }
 
         /// Update only game data in an existing project (preserves custom code)
@@ -293,10 +290,8 @@ import Foundation
 
             // 2. Validate project structure
             let projectDir = settings.outputPath.appendingPathComponent(settings.projectName)
-            let gameDataDir = projectDir
-                .appendingPathComponent("Sources")
-                .appendingPathComponent(settings.projectName)
-                .appendingPathComponent("GameData")
+            let layout = ProjectLayout.detect(projectRoot: projectDir, projectName: settings.projectName)
+            let gameDataDir = layout.gameDataDirectory
 
             // If GameData doesn't exist, create the directory structure
             if !FileManager.default.fileExists(atPath: gameDataDir.path) {
@@ -437,12 +432,10 @@ import Foundation
                 try content.write(to: fileURL, atomically: true, encoding: .utf8)
             }
 
-            // Create GameData directory structure
-            // Both single-platform and multi-platform use Sources/{ProjectName}/GameData
-            let gameDataDir = projectDir
-                .appendingPathComponent("Sources")
-                .appendingPathComponent(settings.projectName)
-                .appendingPathComponent("GameData")
+            // Create GameData directory structure. New projects are created on the
+            // legacy layout today; #1335 switches this to ProjectLayout(kind: .rootLevel, ...).
+            let layout = ProjectLayout(kind: .legacy, projectRoot: projectDir, projectName: settings.projectName)
+            let gameDataDir = layout.gameDataDirectory
 
             try createGameDataDirectories(at: gameDataDir)
 
@@ -457,11 +450,8 @@ import Foundation
         private func bundleGameData(to projectDir: URL, settings: BuildSettings) async throws -> [String] {
             var bundledAssets: [String] = []
 
-            // Both single-platform and multi-platform use Sources/{ProjectName}/GameData
-            let gameDataDir = projectDir
-                .appendingPathComponent("Sources")
-                .appendingPathComponent(settings.projectName)
-                .appendingPathComponent("GameData")
+            let layout = ProjectLayout.detect(projectRoot: projectDir, projectName: settings.projectName)
+            let gameDataDir = layout.gameDataDirectory
 
             // Create subdirectories
             try createGameDataDirectories(at: gameDataDir)
@@ -730,9 +720,7 @@ import Foundation
         // MARK: - Asset Bundling Helpers
 
         private func createGameDataDirectories(at gameDataDir: URL) throws {
-            let subdirs = ["Scenes", "Scripts", "Models", "StreamModels", "Animations", "Gaussians", "Textures", "Shaders", "LUT"]
-
-            for subdir in subdirs {
+            for subdir in ProjectLayout.gameDataCategories {
                 let dirURL = gameDataDir.appendingPathComponent(subdir)
                 try FileManager.default.createDirectory(at: dirURL, withIntermediateDirectories: true)
             }
@@ -988,9 +976,8 @@ import Foundation
         /// Clear contents of GameData directory while preserving the directory structure
         private func clearGameDataDirectory(at gameDataDir: URL) throws {
             let fileManager = FileManager.default
-            let subdirs = ["Scenes", "Scripts", "Models", "StreamModels", "Animations", "Gaussians", "Textures", "Shaders", "LUT"]
 
-            for subdir in subdirs {
+            for subdir in ProjectLayout.gameDataCategories {
                 let dirURL = gameDataDir.appendingPathComponent(subdir)
 
                 // Remove directory if it exists

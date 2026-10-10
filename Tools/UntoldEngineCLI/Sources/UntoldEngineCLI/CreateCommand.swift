@@ -96,10 +96,8 @@ struct CreateCommand: AsyncParsableCommand {
         )
 
         let projectDir = outputURL.appendingPathComponent(projectName)
-        let gameDataPath = projectDir
-            .appendingPathComponent("Sources")
-            .appendingPathComponent(projectName)
-            .appendingPathComponent("GameData")
+        let layout = ProjectLayout(kind: .legacy, projectRoot: projectDir, projectName: projectName)
+        let gameDataPath = layout.gameDataDirectory
 
         assetBasePath = gameDataPath
 
