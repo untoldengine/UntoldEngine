@@ -332,9 +332,12 @@ After the look pass, the graph inserts an anti-aliasing pass whose topology depe
 |---|---|---|
 | `.fxaa` | `fxaa` | `look → fxaa → outputTransform` |
 | `.smaa` | `smaaEdges`, `smaaBlendWeights`, `smaaNeighborhood` | `look → smaaEdges → smaaBlendWeights → smaaNeighborhood → outputTransform` |
-| `.none` | *(none)* | `look → outputTransform` |
+| `.taa`, `.msaaTaa` | `taa` | `look → taa → outputTransform` (`.msaaTaa` also draws the G-buffer at 4 samples, like `.msaa`) |
+| `.none`, `.msaa` | *(none)* | `look → outputTransform` |
 
 **FXAA** is a single-pass screen-space filter that attenuates aliased edges using local luma contrast.
+
+**TAA** (temporal anti-aliasing, `TemporalAntiAliasing.swift`, `TAAShader.metal`) jitters the projection by a sub-pixel Halton offset before each frame's graph is built (`applyJitter`, in the projection's third column, so the offset is a constant NDC shift; the previous frame's offset is taken out first) and, after the look pass, blends the frame with the eye's history: each pixel is reprojected through the depth buffer and the unjittered view-projections of this frame and the history's, the history colour is clipped to the YCoCg box of the pixel's 3×3 neighbourhood (so what moved or was uncovered does not ghost), and the two are mixed with `TAAParams.shared.historyWeight` (0.9). The resolve writes the anti-aliasing texture and the eye's next history texture in one pass (two colour targets); the history is per eye, ping-ponged, and invalidated by a resize or a mode change. Under a foveated XR frame the textures are in physical space and each frame's rate map differs, so the reprojection goes physical → screen → world → previous screen → previous physical through both maps, and the jitter is measured in screen pixels. Camera motion is handled; objects moving on their own rely on the clip, since there are no motion vectors yet.
 
 **SMAA** (Subpixel Morphological Anti-Aliasing) is a three-pass chain:
 1. **Edge detection** (`smaaEdges`) — identifies aliased edges from the look texture using luma and chroma gradients. Also detects diagonal patterns.

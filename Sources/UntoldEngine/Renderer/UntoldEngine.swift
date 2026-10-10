@@ -727,6 +727,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
             : matrixPerspectiveRightHand(fovyRadians: degreesToRadians(degrees: fov), aspectRatio: aspect, nearZ: near, farZ: far)
 
         renderInfo.perspectiveSpace = projectionMatrix
+        TemporalAntiAliasing.shared.projectionDidChange()
 
         let viewPortSize: simd_float2 = simd_make_float2(Float(size.width), Float(size.height))
         renderInfo.viewPort = viewPortSize
@@ -830,6 +831,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         eyeIndex: Int
     ) {
         renderInfo.perspectiveSpace = projectionMatrix
+        TemporalAntiAliasing.shared.projectionDidChange()
 
         guard let camera = CameraSystem.shared.activeCamera, let cameraComponent = scene.get(component: CameraComponent.self, for: camera) else {
             handleError(.noActiveCamera)

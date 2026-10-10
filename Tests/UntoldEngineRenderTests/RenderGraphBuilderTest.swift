@@ -1530,7 +1530,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
 
         for environmentEnabled in [false, true] {
             renderEnvironment = environmentEnabled
-            for mode in [AntiAliasingMode.none, .fxaa, .smaa, .msaa] {
+            for mode in [AntiAliasingMode.none, .fxaa, .smaa, .msaa, .taa, .msaaTaa] {
                 antiAliasingMode = mode
                 try captureGraphPassIDs()
             }
