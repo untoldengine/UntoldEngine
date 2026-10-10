@@ -18,7 +18,11 @@ Existing direct APIs such as `LODConfig.shared`, `SSAOParams.shared`, `antiAlias
 setRendering(.antiAliasing(.fxaa))
 setRendering(.antiAliasing(.smaa))
 setRendering(.antiAliasing(.msaa))
+setRendering(.antiAliasing(.taa))      // temporal: jittered frames blended with their reprojected history
+setRendering(.antiAliasing(.msaaTaa))  // 4× MSAA on the G-buffer plus the temporal resolve
 setRendering(.antiAliasing(.none))
+TAAParams.shared.historyWeight = 0.9   // share of the history in each resolved pixel (0…0.98)
+TAAParams.shared.clipGamma = 1.25      // clip box = 3×3 mean ± γσ: lower rejects ghosts sooner, higher keeps pixel-thin features
 
 setRendering(.debugView(.lit))
 setRendering(.debugView(.depth))
@@ -80,6 +84,17 @@ skipped for that frame:
 ```swift
 setRendering(.occlusionCullingMaxCameraStep(0.5))
 getOcclusionCullingMaxCameraStep()
+```
+
+On visionOS, a layer configured with `isFoveationEnabled` hands the engine a rasterization
+rate map per eye, and the engine draws through it by default: dense where the eyes look,
+coarse in the periphery, and the only configuration in which the compositor accepts a
+`maxRenderQuality` above the platform default. Disabling it in such a layer is a diagnostic
+(the frame is drawn uniformly into textures the compositor still unwarps):
+
+```swift
+setRendering(.foveatedRendering(.disabled))
+getFoveatedRenderingEnabled()
 ```
 
 ## PostFX

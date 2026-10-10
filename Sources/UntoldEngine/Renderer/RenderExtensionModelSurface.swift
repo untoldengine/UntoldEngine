@@ -258,6 +258,7 @@ public extension RenderPassContext {
 
         renderEncoder.label = label
         renderEncoder.pushDebugGroup(label)
+        applyXRFoveationViewport(renderEncoder)
         renderEncoder.setRenderPipelineState(pipelineState)
         renderEncoder.setDepthStencilState(pipeline.depthState)
 

@@ -87,6 +87,10 @@ public struct RenderInfo {
     /// shadingCameraPosition so each eye gets its own view vector (specular highlights,
     /// Fresnel), while streaming, LOD and culling keep the head-centre camera position.
     public var xrEyeCameraPosition: simd_float3?
+    /// The rasterization rate map of the eye being drawn (visionOS foveation), with the
+    /// viewport and the decoder data that go with it; nil when the frame is drawn uniformly.
+    /// `viewPort` stays the size of the textures, the map's physical size. See XRFoveation.swift.
+    public var xrFoveation: XRFoveationFrame?
 }
 
 /// Where an eye is, from its view matrix (the inverse of the eye's camera transform).
@@ -176,6 +180,9 @@ public struct BufferResources {
     var reduceScanCapacity: Int = 0
     /// Whether a frame with more bounding boxes than the scan takes was reported.
     var reportedReduceScanOverflow: Bool = false
+
+    /// Bound where a shader declares a rasterization rate map it will not read (XRFoveation.swift).
+    var rateMapPlaceholder: MTLBuffer?
 }
 
 public struct TripleBufferResources {
@@ -328,9 +335,14 @@ public struct HZBPyramidFrame: Sendable {
     public var viewProjection: simd_float4x4
     /// Where that frame's camera stood, in world space.
     public var cameraPosition: simd_float3
+    /// The rasterization rate map that frame was drawn through (XR foveation), nil when it was
+    /// drawn uniformly: the pyramid is laid out in the map's physical space, so a screen rect or
+    /// point the test projects must go through the map before the pyramid is sampled there.
+    public var rateMapData: XRRasterizationRateMapData?
 
-    public init(viewProjection: simd_float4x4, cameraPosition: simd_float3) {
+    public init(viewProjection: simd_float4x4, cameraPosition: simd_float3, rateMapData: XRRasterizationRateMapData? = nil) {
         self.viewProjection = viewProjection
         self.cameraPosition = cameraPosition
+        self.rateMapData = rateMapData
     }
 }

@@ -60,16 +60,17 @@ inline bool gaussianChunkSplatPassesCull(
     float3 position,
     constant Uniforms &uniforms,
     constant GaussianChunkCullConstants &params,
-    texture2d<float, access::sample> hzbDepthPyramid)
+    texture2d<float, access::sample> hzbDepthPyramid,
+    constant rasterization_rate_map_data *hzbRateMap)
 {
     if (params.viewCount <= 1u) {
-        return gaussianSplatPassesCull(position, uniforms, params.clipGuardBand, params.hzbReverseZ, params.hzbOcclusionBias, params.hzbValid, hzbDepthPyramid);
+        return gaussianSplatPassesCull(position, uniforms, params.clipGuardBand, params.hzbReverseZ, params.hzbOcclusionBias, params.hzbValid, hzbDepthPyramid, hzbRateMap, params.hzbRateMapSizes);
     }
     const float4 local = float4(position, 1.0f);
-    if (gaussianClipCentrePassesCull(params.viewProjection0 * local, params.clipGuardBand, params.hzbReverseZ, params.hzbOcclusionBias, 0u, hzbDepthPyramid)) {
+    if (gaussianClipCentrePassesCull(params.viewProjection0 * local, params.clipGuardBand, params.hzbReverseZ, params.hzbOcclusionBias, 0u, hzbDepthPyramid, hzbRateMap, params.hzbRateMapSizes)) {
         return true;
     }
-    return gaussianClipCentrePassesCull(params.viewProjection1 * local, params.clipGuardBand, params.hzbReverseZ, params.hzbOcclusionBias, params.hzbValid, hzbDepthPyramid);
+    return gaussianClipCentrePassesCull(params.viewProjection1 * local, params.clipGuardBand, params.hzbReverseZ, params.hzbOcclusionBias, params.hzbValid, hzbDepthPyramid, hzbRateMap, params.hzbRateMapSizes);
 }
 
 kernel void gaussianChunkDecodePreprocess(
@@ -93,6 +94,7 @@ kernel void gaussianChunkDecodePreprocess(
     const device GaussianChunkDecodeConstants *coarseTable   [[buffer(gaussianChunkPreprocessCoarseTableIndex)]],
     const device GaussianChunkLevelState      *levelState    [[buffer(gaussianChunkPreprocessLevelStateIndex)]],
     constant GaussianChunkLevelConstants      &lvl           [[buffer(gaussianChunkPreprocessLevelConstantsIndex)]],
+    constant rasterization_rate_map_data      *hzbRateMap    [[buffer(gaussianChunkPreprocessRateMapDataIndex)]],
     texture2d<float, access::sample>          hzbDepthPyramid [[texture(gaussianChunkPreprocessHZBDepthPyramidTextureIndex)]],
     uint chunkSlot                                           [[threadgroup_position_in_grid]],
     uint localIndex                                          [[thread_position_in_threadgroup]],
@@ -161,7 +163,7 @@ kernel void gaussianChunkDecodePreprocess(
         // bit-identical to what the whole-buffer path loaded, and the covariance and colour
         // pass through half precision the way EncodedGaussianSplat stores them.
         const float3 centerLocal = mix(aabbMin, aabbMax, gaussianUnpack11_10_11(record.x));
-        if (!gaussianChunkSplatPassesCull(centerLocal, uniforms, cull, hzbDepthPyramid)) {
+        if (!gaussianChunkSplatPassesCull(centerLocal, uniforms, cull, hzbDepthPyramid, hzbRateMap)) {
             continue;
         }
 

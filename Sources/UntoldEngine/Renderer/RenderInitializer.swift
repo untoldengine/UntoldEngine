@@ -118,11 +118,11 @@ func requestedOpaqueSampleCount() -> Int {
         return 1
     #else
         switch antiAliasingMode {
-        case .msaa:
+        case .msaa, .msaaTaa:
             let preferredSampleCount = 4
             guard let device = renderInfo.device else { return 1 }
             return device.supportsTextureSampleCount(preferredSampleCount) ? preferredSampleCount : 1
-        case .none, .fxaa, .smaa:
+        case .none, .fxaa, .smaa, .taa:
             return 1
         }
     #endif

@@ -57,10 +57,13 @@ struct SmallObjectCulling {
         guard let viewPort, viewPort.y > 0, projection.columns.3.w == 0, projection.columns.1.y > 0 else {
             return nil
         }
+        // Pixels of the screen the eye sees: under a rasterization rate map (XR foveation) the
+        // textures are smaller than that screen, and a size in their pixels would cull early.
+        let screenHeight = renderInfo.xrFoveation?.screenSize.y ?? viewPort.y
         return SmallObjectCulling(
             cameraPosition: SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition),
             minimumPixels: pixels,
-            viewportHeight: viewPort.y,
+            viewportHeight: screenHeight,
             tanHalfFovY: 1 / projection.columns.1.y
         )
     }

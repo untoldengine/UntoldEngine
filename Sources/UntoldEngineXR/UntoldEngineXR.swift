@@ -69,6 +69,16 @@
         // Reuse render pass descriptors to avoid allocation churn (2 eyes × 90 FPS = 180 allocs/sec)
         private let passDescriptorLeft = MTLRenderPassDescriptor()
         private let passDescriptorRight = MTLRenderPassDescriptor()
+
+        // Foveation: the parameter data of each eye's rasterization rate map, copied every frame
+        // (the maps follow the gaze) into a ring one slot deeper than the frames in flight —
+        // the depth pyramid built on a frame carries its last eye's data into the culls of the
+        // frame after (HZBPyramidFrame.rateMapData), which may still run when this frame's
+        // slot comes round again with only the usual in-flight depth.
+        private var rateMapParameterBuffers: [[MTLBuffer?]] = Array(repeating: [nil, nil], count: maxInFlightCommandBuffers + 1)
+        private var rateMapFrameCounter = 0
+        private var loggedFoveationState: Bool?
+        private var loggedCaptureTargetSkip = false
         private let spatialGestureRecognizer = XRSpatialGestureRecognizer()
         private let xrEnvironmentLightingSystem = XREnvironmentLightingSystem()
         private var runtimeLightingModeObserverId: UUID?
@@ -616,69 +626,129 @@
                 }
             }
 
-            // 9. Encode any drawing commands that depend on the device position or orientation
-            guard let drawable = frame.queryDrawable() else {
+            // 9. Encode any drawing commands that depend on the device position or orientation.
+            // visionOS 26 hands a frame one drawable per target (the built-in display, and a
+            // capture target while the view is recorded or streamed); a layer with foveation
+            // or a render quality set aborts the app if the single-drawable query is used.
+            let drawables: [LayerRenderer.Drawable]
+            if #available(visionOS 26.0, *) {
+                drawables = frame.queryDrawables()
+            } else {
+                drawables = frame.queryDrawable().map { [$0] } ?? []
+            }
+            guard !drawables.isEmpty else {
                 #if ENGINE_STATS_ENABLED
                     renderer.finalizeXRStatsAndMonitors(frameStartTime: xrFrameStartTime)
                 #else
                     renderer.finalizeXRStatsAndMonitors(frameStartTime: 0.0)
                 #endif
-                // queryDrawable() can fail during shutdown/teardown; in that case the
+                // No drawables (shutdown/teardown, or the compositor cancelled the frame): the
                 // frame is already invalid and endSubmission() must not be called.
                 shouldEndSubmission = false
                 return
             }
-
-            // 10. Fetch the predicted device anchor from ARKit using the frameTiming information, and
-            // apply the anchor to your frame
-            let presentationInstant = drawable.frameTiming.presentationTime
-            let presentationTimeCA: TimeInterval = compositorInstantToCATime(presentationInstant)
-            var deviceAnchor = queryDeviceAnchorIfTrackingRunning(atTimestamp: presentationTimeCA)
-
-            // If predicted-time query misses, retry at "now" to reduce one-frame anchor gaps.
-            if deviceAnchor == nil {
-                let nowTimestamp = CACurrentMediaTime()
-                if let retryAnchor = queryDeviceAnchorIfTrackingRunning(atTimestamp: nowTimestamp) {
-                    deviceAnchor = retryAnchor
-                }
-            }
-
-            // Use current anchor if valid, otherwise fall back to last valid anchor.
-            // This prevents "Presenting a drawable without a device anchor" while maintaining
-            // stable rendering. We must always present the drawable once we have it.
-            if let anchor = deviceAnchor {
-                if missingAnchorFrameCount > 0 {
-                    print("✓ XR device anchor recovered after \(missingAnchorFrameCount) missing frame(s)")
-                }
-                missingAnchorFrameCount = 0
-                lastValidDeviceAnchor = anchor
-                drawable.deviceAnchor = anchor
-            } else if let cachedAnchor = lastValidDeviceAnchor {
-                missingAnchorFrameCount += 1
-                if shouldLogAnchorDiagnostics() {
-                    printXRAnchorDiagnostics(message: "XR device anchor missing; using cached anchor")
-                }
-                drawable.deviceAnchor = cachedAnchor
-            } else {
-                missingAnchorFrameCount += 1
-                if shouldLogAnchorDiagnostics() {
-                    printXRAnchorDiagnostics(message: "XR device anchor missing; no cached anchor available")
-                }
-            }
-            // Note: If we have no cached anchor either, drawable.deviceAnchor remains nil
-            // and the render loop will skip rendering but still present (required by compositor)
 
             // Re-check loading state right before render pass to catch any mutations that started
             // after our initial snapshot. This provides a second layer of protection against races.
             let loadingNow = AssetLoadingGate.shared.isLoadingAny
             let effectiveLoading = loading || loadingNow
 
-            executeXRSystemPass(frame: frame, drawable: drawable, loading: effectiveLoading)
+            for drawable in drawables {
+                // 10. Fetch the predicted device anchor from ARKit using the frameTiming information, and
+                // apply the anchor to your frame
+                let presentationInstant = drawable.frameTiming.presentationTime
+                let presentationTimeCA: TimeInterval = compositorInstantToCATime(presentationInstant)
+                var deviceAnchor = queryDeviceAnchorIfTrackingRunning(atTimestamp: presentationTimeCA)
+
+                // If predicted-time query misses, retry at "now" to reduce one-frame anchor gaps.
+                if deviceAnchor == nil {
+                    let nowTimestamp = CACurrentMediaTime()
+                    if let retryAnchor = queryDeviceAnchorIfTrackingRunning(atTimestamp: nowTimestamp) {
+                        deviceAnchor = retryAnchor
+                    }
+                }
+
+                // Use current anchor if valid, otherwise fall back to last valid anchor.
+                // This prevents "Presenting a drawable without a device anchor" while maintaining
+                // stable rendering. We must always present the drawable once we have it.
+                if let anchor = deviceAnchor {
+                    if missingAnchorFrameCount > 0 {
+                        print("✓ XR device anchor recovered after \(missingAnchorFrameCount) missing frame(s)")
+                    }
+                    missingAnchorFrameCount = 0
+                    lastValidDeviceAnchor = anchor
+                    drawable.deviceAnchor = anchor
+                } else if let cachedAnchor = lastValidDeviceAnchor {
+                    missingAnchorFrameCount += 1
+                    if shouldLogAnchorDiagnostics() {
+                        printXRAnchorDiagnostics(message: "XR device anchor missing; using cached anchor")
+                    }
+                    drawable.deviceAnchor = cachedAnchor
+                } else {
+                    missingAnchorFrameCount += 1
+                    if shouldLogAnchorDiagnostics() {
+                        printXRAnchorDiagnostics(message: "XR device anchor missing; no cached anchor available")
+                    }
+                }
+                // Note: If we have no cached anchor either, drawable.deviceAnchor remains nil
+                // and the render loop will skip rendering but still present (required by compositor)
+
+                if drawsScene(into: drawable) {
+                    executeXRSystemPass(frame: frame, drawable: drawable, loading: effectiveLoading)
+                } else {
+                    presentCleared(drawable)
+                }
+            }
             #if ENGINE_STATS_ENABLED
                 renderer.finalizeXRStatsAndMonitors(frameStartTime: xrFrameStartTime)
             #else
                 renderer.finalizeXRStatsAndMonitors(frameStartTime: 0.0)
             #endif
+        }
+
+        /// Whether the scene is drawn into a drawable. The built-in display always; another
+        /// target (a capture of the view for recording or streaming) only while its textures are
+        /// the size the frame's resources are allocated at — every sizeable resource is sized
+        /// to one viewport, and a second size would reallocate them twice a frame.
+        private func drawsScene(into drawable: LayerRenderer.Drawable) -> Bool {
+            if #available(visionOS 26.0, *), drawable.target != .builtIn,
+               let texture = drawable.colorTextures.first,
+               renderInfo.viewPort != simd_float2(Float(texture.width), Float(texture.height))
+            {
+                if !loggedCaptureTargetSkip {
+                    loggedCaptureTargetSkip = true
+                    print("XR: a \(texture.width)×\(texture.height) capture drawable differs from the \(Int(renderInfo.viewPort.x))×\(Int(renderInfo.viewPort.y)) frame resources; presenting it cleared")
+                }
+                return false
+            }
+            return true
+        }
+
+        /// Presents a drawable with its colour cleared (the immersion mode's alpha) and its depth
+        /// cleared, without drawing the scene: the compositor wants every drawable it handed out
+        /// presented.
+        private func presentCleared(_ drawable: LayerRenderer.Drawable) {
+            guard let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() else { return }
+            commandBuffer.label = "XR Cleared Drawable"
+            for viewIndex in drawable.views.indices
+                where viewIndex < drawable.colorTextures.count && viewIndex < drawable.depthTextures.count
+            {
+                let descriptor = MTLRenderPassDescriptor()
+                descriptor.colorAttachments[0].texture = drawable.colorTextures[viewIndex]
+                descriptor.colorAttachments[0].loadAction = .clear
+                descriptor.colorAttachments[0].storeAction = .store
+                descriptor.colorAttachments[0].clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: Double(getAlphaForImmersionMode()))
+                descriptor.depthAttachment.texture = drawable.depthTextures[viewIndex]
+                descriptor.depthAttachment.loadAction = .clear
+                descriptor.depthAttachment.storeAction = .store
+                descriptor.depthAttachment.clearDepth = 0.0
+                if viewIndex < drawable.rasterizationRateMaps.count {
+                    descriptor.rasterizationRateMap = drawable.rasterizationRateMaps[viewIndex]
+                }
+                commandBuffer.makeRenderCommandEncoder(descriptor: descriptor)?.endEncoding()
+            }
+            drawable.encodePresent(commandBuffer: commandBuffer)
+            commandBuffer.commit()
         }
 
         private func updateSpatialInputState() {
@@ -756,6 +826,65 @@
             spatialGestureRecognizer.resetAllSpatialInteractionTracking()
         }
 
+        /// The rasterization rate map the compositor made for a view, as the renderer draws
+        /// through it, or nil when the frame is drawn uniformly: the layer configured without
+        /// foveation (no maps; also the simulator) or `setRendering(.foveatedRendering(.disabled))`.
+        /// The map's parameters go into this frame's slot of the ring for the shaders that decode
+        /// them; the viewport is the view's in the map's screen space.
+        private func makeFoveationFrame(
+            drawable: LayerRenderer.Drawable,
+            viewport: MTLViewport,
+            viewIndex: Int,
+            slot: Int
+        ) -> XRFoveationFrame? {
+            let rateMaps = drawable.rasterizationRateMaps
+            let available = xrFoveatedRenderingEnabled && viewIndex < rateMaps.count && viewIndex < stereoEyeCount
+            if loggedFoveationState != available {
+                loggedFoveationState = available
+                if available {
+                    let rateMap = rateMaps[viewIndex]
+                    let screen = rateMap.screenSize
+                    let physical = rateMap.physicalSize(layer: 0)
+                    print("✓ XR foveation: drawing through the compositor's rasterization rate maps, screen \(screen.width)×\(screen.height), textures \(physical.width)×\(physical.height) per eye; view texture map viewport \(viewport.originX),\(viewport.originY) \(viewport.width)×\(viewport.height)")
+                } else if rateMaps.isEmpty {
+                    print("XR foveation off: the layer provides no rasterization rate maps (isFoveationEnabled is false, or the simulator); drawing uniformly")
+                } else {
+                    print("XR foveation off by setting (.foveatedRendering(.disabled)); the layer's rate maps are ignored and the picture will be warped")
+                }
+            }
+            guard available else { return nil }
+
+            let rateMap = rateMaps[viewIndex]
+            let sizeAndAlign = rateMap.parameterDataSizeAndAlign
+            let align = max(1, sizeAndAlign.align)
+            let length = max(16, (sizeAndAlign.size + align - 1) / align * align)
+            if rateMapParameterBuffers[slot][viewIndex].map({ $0.length < length }) ?? true {
+                let buffer = renderInfo.device.makeBuffer(length: length, options: .storageModeShared)
+                buffer?.label = "XR Rate Map Parameters eye \(viewIndex) slot \(slot)"
+                rateMapParameterBuffers[slot][viewIndex] = buffer
+            }
+            guard let buffer = rateMapParameterBuffers[slot][viewIndex],
+                  let data = XRRasterizationRateMapData(rateMap: rateMap, buffer: buffer)
+            else {
+                Logger.logWarning(message: "XR foveation: could not copy the rate map parameters for eye \(viewIndex); drawing this eye uniformly")
+                return nil
+            }
+            if let texture = drawable.colorTextures.indices.contains(viewIndex) ? drawable.colorTextures[viewIndex] : nil,
+               Int(data.physicalSize.x) != texture.width || Int(data.physicalSize.y) != texture.height
+            {
+                Logger.logWarning(message: "XR foveation: eye \(viewIndex) rate map physical size \(data.physicalSize) differs from its texture \(texture.width)×\(texture.height)")
+            }
+            // The eye's viewport in the map's screen space. In the dedicated layout the view
+            // is the whole texture, so it is the map's screen size at the origin; the view's own
+            // texture map viewport is logged above for the day another layout needs it.
+            let screenViewport = MTLViewport(
+                originX: 0, originY: 0,
+                width: Double(data.screenSize.x), height: Double(data.screenSize.y),
+                znear: 0, zfar: 1
+            )
+            return XRFoveationFrame(rateMap: rateMap, viewport: screenViewport, rateMapData: data)
+        }
+
         func executeXRSystemPass(frame _: LayerRenderer.Frame, drawable: LayerRenderer.Drawable, loading: Bool) {
             // Wait for available command buffer slot to prevent unbounded memory growth
             let semaphoreWaitStart = CACurrentMediaTime()
@@ -781,8 +910,12 @@
                 let renderTotalStart = CACurrentMediaTime()
             #endif
             renderInfo.currentInFlightFrameSlot = acquireUniformFrameSlot()
+            let rateMapSlot = rateMapFrameCounter % rateMapParameterBuffers.count
+            rateMapFrameCounter += 1
 
-            // Update viewport to match actual drawable size (per-eye texture dimensions)
+            // Update viewport to match actual drawable size (per-eye texture dimensions). With
+            // foveation on, that is the rate map's physical size: every texture of the frame is
+            // allocated at it, while viewports and clip space live in the map's screen size.
             if let firstColorTexture = drawable.colorTextures.first {
                 let actualViewPort = simd_float2(Float(firstColorTexture.width), Float(firstColorTexture.height))
                 if renderInfo.viewPort != actualViewPort {
@@ -867,6 +1000,15 @@
                 }
 
                 renderInfo.currentEye = viewIndex
+                // The eye's rasterization rate map (foveation), for the passes that draw the
+                // scene; the final pass into the compositor's textures copies physical pixels
+                // one to one and keeps passDescriptor without it.
+                renderInfo.xrFoveation = makeFoveationFrame(
+                    drawable: drawable,
+                    viewport: view.textureMap.viewport,
+                    viewIndex: viewIndex,
+                    slot: rateMapSlot
+                )
 
                 #if ENGINE_STATS_ENABLED
                     let encodeStart = CACurrentMediaTime()

@@ -1103,6 +1103,7 @@ private final class RuntimeGlobalsStore: @unchecked Sendable {
     private var activeEntityValue: EntityID = .invalid
     private var enableEngineMetricsValue: Bool = false
     private var bypassPostProcessingValue: Bool = false
+    private var xrFoveatedRenderingEnabledValue: Bool = true
     private var antiAliasingModeValue: AntiAliasingMode = .fxaa
     private var renderDebugViewModeValue: RenderDebugViewMode = .lit
     private var pomQualitySettingsValue: POMQualitySettings = .platformDefault
@@ -1590,6 +1591,20 @@ private final class RuntimeGlobalsStore: @unchecked Sendable {
         set {
             lock.lock()
             bypassPostProcessingValue = newValue
+            lock.unlock()
+        }
+    }
+
+    var xrFoveatedRenderingEnabled: Bool {
+        get {
+            lock.lock()
+            let value = xrFoveatedRenderingEnabledValue
+            lock.unlock()
+            return value
+        }
+        set {
+            lock.lock()
+            xrFoveatedRenderingEnabledValue = newValue
             lock.unlock()
         }
     }
@@ -2093,16 +2108,30 @@ public var bypassPostProcessing: Bool {
     set { RuntimeGlobalsStore.shared.bypassPostProcessing = newValue }
 }
 
+/// Whether the XR frame draws through the rasterization rate maps the compositor provides
+/// (visionOS foveation), the default. See `RenderingProperty.foveatedRendering`.
+public var xrFoveatedRenderingEnabled: Bool {
+    get { RuntimeGlobalsStore.shared.xrFoveatedRenderingEnabled }
+    set { RuntimeGlobalsStore.shared.xrFoveatedRenderingEnabled = newValue }
+}
+
 /// Selects the active anti-aliasing pass inserted after the look pass.
 public enum AntiAliasingMode: Sendable {
     case none
     case fxaa
     case smaa
     case msaa
+    /// Temporal: the projection jittered by a sub-pixel amount each frame and the frame
+    /// blended with its reprojected history after the look pass (TemporalAntiAliasing.swift).
+    /// Averages the sub-pixel detail a single sample flickers on; moving objects rely on the
+    /// neighbourhood clip, not on motion vectors.
+    case taa
+    /// 4× MSAA on the G-buffer and the temporal resolve on top.
+    case msaaTaa
 
     var usesPostLookPass: Bool {
         switch self {
-        case .fxaa, .smaa:
+        case .fxaa, .smaa, .taa, .msaaTaa:
             return true
         case .none, .msaa:
             return false

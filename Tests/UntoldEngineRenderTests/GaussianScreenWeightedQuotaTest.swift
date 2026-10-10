@@ -320,7 +320,8 @@ final class GaussianScreenWeightedQuotaTest: BaseRenderSetup {
 
     /// The shared layouts the kernels and the readbacks depend on.
     func testLayoutsArePinned() {
-        XCTAssertEqual(MemoryLayout<GaussianChunkCullConstants>.stride, 192)
+        XCTAssertEqual(MemoryLayout<GaussianChunkCullConstants>.stride, 208)
+        XCTAssertEqual(MemoryLayout<GaussianChunkCullConstants>.offset(of: \.hzbRateMapSizes), 192)
         XCTAssertEqual(MemoryLayout<GaussianVisibleChunk>.stride, 16)
         XCTAssertEqual(MemoryLayout<GaussianBudgetState>.stride, 48)
         XCTAssertEqual(MemoryLayout<GaussianBudgetScaleConstants>.stride, 48)

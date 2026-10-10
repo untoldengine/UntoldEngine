@@ -94,7 +94,12 @@ func UpdateRenderingSystem(in view: MTKView) {
             commandBuffer.label = "Rendering Command Buffer"
 
             do {
+                // This frame's sub-pixel jitter (temporal anti-aliasing), before anything reads the projection.
+                TemporalAntiAliasing.shared.applyJitter()
                 let graph = try buildExecutableGameModeGraph()
+                // A rasterization rate map set on renderInfo.xrFoveation (the foveation tests
+                // draw through one on the Mac) goes on the scene passes here as in XR.
+                applyXRFoveationToSceneRenderPassDescriptors()
 
                 #if ENGINE_STATS_ENABLED
                     let encodeStart = CACurrentMediaTime()
@@ -168,7 +173,13 @@ func UpdateXRRenderingSystem(commandBuffer: MTLCommandBuffer, passDescriptor: MT
     commandBuffer.label = "XR Rendering Command Buffer"
 
     do {
+        // This eye's sub-pixel jitter (temporal anti-aliasing), before anything reads the projection.
+        TemporalAntiAliasing.shared.applyJitter()
         let graph = try buildExecutableGameModeGraph()
+
+        // The eye's rasterization rate map (visionOS foveation) on the passes that draw the
+        // scene, after the build: a rebuild may have recreated their descriptors.
+        applyXRFoveationToSceneRenderPassDescriptors()
 
         #if ENGINE_STATS_ENABLED
             let encodeStart = shouldRecordStatsInThisCallback ? CACurrentMediaTime() : 0.0
@@ -256,6 +267,7 @@ let gameModeReservedPassIDs: Set<String> = [
     "look",
     "fxaa",
     "fxaaEdgeDebug",
+    "taa",
     "smaaEdges",
     "smaaBlendWeights",
     "smaaNeighborhood",
@@ -526,6 +538,10 @@ private func buildGameModeGraphWithCompilation() throws -> CompiledRenderGraphRe
             let fxaaPass = RenderPass(id: "fxaa", dependencies: [lookPass.id], execute: fxaaRenderPass)
             builder.addPass(fxaaPass)
             outputDependency = fxaaPass.id
+        case .taa, .msaaTaa:
+            let taaPass = RenderPass(id: "taa", dependencies: [lookPass.id], execute: taaRenderPass)
+            builder.addPass(taaPass)
+            outputDependency = taaPass.id
         case .smaa:
             let smaaEdgesPass = RenderPass(id: "smaaEdges", dependencies: [lookPass.id], execute: smaaEdgesRenderPass)
             builder.addPass(smaaEdgesPass)

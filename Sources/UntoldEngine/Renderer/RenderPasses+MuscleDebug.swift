@@ -155,6 +155,7 @@ public extension RenderPasses {
         }
         renderEncoder.label = "Muscle Debug Pass"
         renderEncoder.pushDebugGroup("Muscle Debug Pass")
+        applyXRFoveationViewport(renderEncoder)
         renderEncoder.setRenderPipelineState(pipelineState)
         // The cages live under the skin, so never depth-test them. In visionOS
         // mixed immersion the compositor drops pixels that wrote no depth, so

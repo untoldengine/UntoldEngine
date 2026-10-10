@@ -128,6 +128,14 @@ private func bindGaussianSplatCullInputs(
     encoder.setBytes(&inputs.hzbReverseZ, length: MemoryLayout<UInt32>.stride, index: Int(gaussianCullHZBReverseZIndex.rawValue))
     encoder.setBytes(&inputs.hzbOcclusionBias, length: MemoryLayout<Float>.stride, index: Int(gaussianCullHZBOcclusionBiasIndex.rawValue))
     encoder.setBytes(&inputs.hzbValid, length: MemoryLayout<UInt32>.stride, index: Int(gaussianCullHZBValidIndex.rawValue))
+    // The rasterization rate map the pyramid was drawn through (XR foveation), with a pyramid
+    // to sample; the "no map" word otherwise.
+    bindRateMap(
+        inputs.hzbValid != 0 ? hzbPyramidRateMapData() : nil,
+        to: encoder,
+        dataIndex: Int(gaussianCullHZBRateMapDataIndex.rawValue),
+        sizesIndex: Int(gaussianCullHZBRateMapSizesIndex.rawValue)
+    )
     encoder.setTexture(hzbTexture, index: Int(gaussianCullHZBDepthPyramidTextureIndex.rawValue))
 }
 

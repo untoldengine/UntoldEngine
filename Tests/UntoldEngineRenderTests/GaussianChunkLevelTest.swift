@@ -1888,7 +1888,7 @@ final class GaussianChunkLevelTest: BaseRenderSetup {
         XCTAssertEqual(MemoryLayout<GaussianChunkResidency>.stride, 16)
         XCTAssertEqual(MemoryLayout<GaussianChunkResidency>.offset(of: \.coarseAvailable), 12)
         XCTAssertEqual(MemoryLayout<GaussianChunkPagingConstants>.stride, 32)
-        XCTAssertEqual(MemoryLayout<GaussianChunkCullConstants>.stride, 192)
+        XCTAssertEqual(MemoryLayout<GaussianChunkCullConstants>.stride, 208)
         XCTAssertEqual(MemoryLayout<GaussianChunkDecodeConstants>.stride, 48)
         XCTAssertEqual(MemoryLayout<GaussianWorkingSetSplat>.stride, 64)
         XCTAssertEqual(MemoryLayout<GaussianBudgetState>.stride, 48)
