@@ -105,6 +105,91 @@ final class GlassShadingTests: MaterialShadingTestCase {
     /// near one: what is behind it crosses both.
     private static let throughBothFaces: Float = (1.0 - reflectedHeadOn) * (1.0 - reflectedHeadOn)
 
+    /// A solid, glowing block whose near face lies in the same plane as the shape's near
+    /// face, over the middle of the frame: the way a pane is modelled into its frame.
+    @discardableResult
+    private func putASolidBlockInThePlaneOfTheNearFace(glowing color: simd_float3) throws -> EntityID {
+        let block = createEntity()
+        var meshes = BasicPrimitives.createCube(extent: 1.0)
+        let glow = Material(
+            runtimeMaterial: RuntimeMaterialSource(
+                baseColorFactor: simd_float4(0, 0, 0, 1),
+                emissiveFactor: color,
+                metallicFactor: 0.0,
+                roughnessFactor: 1.0
+            ),
+            device: renderInfo.device
+        )
+        for meshIndex in meshes.indices {
+            for submeshIndex in meshes[meshIndex].submeshes.indices {
+                meshes[meshIndex].submeshes[submeshIndex].material = glow
+            }
+        }
+        let renderComponent = try XCTUnwrap(scene.assign(to: block, component: RenderComponent.self))
+        renderComponent.mesh = meshes
+        renderComponent.assetURL = URL(fileURLWithPath: "/dev/null/glass-shading-block.untold")
+        if let local = scene.get(component: LocalTransformComponent.self, for: block) {
+            local.boundingBox = Mesh.computeMeshBoundingBox(for: meshes)
+        }
+        // The shape is a cube of extent 3 at the origin: its near face is at z = 1.5. The
+        // block, of extent 1, is centred at z = 1 so that its near face is at z = 1.5 too.
+        translateTo(entityId: block, position: simd_float3(0, 0, 1))
+        setVisibleEntities()
+        return block
+    }
+
+    // MARK: - A pane in its frame
+
+    /// A pane modelled into its frame shares a plane with the frame. The two used to
+    /// fight for depth there, pixel by pixel and frame by frame, and the pane's edge
+    /// flickered at every move of the camera. Glass now draws a hair behind where it is,
+    /// so where the two coincide the frame wins, everywhere and every time.
+    func testAPaneInThePlaneOfASolidSurfaceShowsTheSolidSurface() throws {
+        try buildScene(.cube, towardsLight: nil)
+        let glow = simd_float3(0.2, 0.6, 0.2)
+        try putASolidBlockInThePlaneOfTheNearFace(glowing: glow)
+        try putAWallBehind(glowing: simd_float3(1, 1, 1))
+
+        let frame = try shadeFrame(material(transmission: 1.0))
+        let window = 24
+        let middle = Self.meanColor(of: frame, aroundX: frame.width / 2, y: frame.height / 2, window: window)
+        XCTAssertEqual(middle.x, glow.x, accuracy: 0.02, "the block, not the pane over it: red")
+        XCTAssertEqual(middle.y, glow.y, accuracy: 0.02, "the block, not the pane over it: green")
+        XCTAssertEqual(middle.z, glow.z, accuracy: 0.02, "the block, not the pane over it: blue")
+
+        // Not one pixel of the window shows the pane instead of the block.
+        var furthest: Float = 0
+        for row in (frame.height / 2 - window / 2) ..< (frame.height / 2 + window / 2) {
+            for column in (frame.width / 2 - window / 2) ..< (frame.width / 2 + window / 2) {
+                let pixel = frame.pixels[row * frame.width + column]
+                furthest = max(furthest, simd_length(pixel - glow))
+            }
+        }
+        XCTAssertLessThan(furthest, 0.02, "every pixel of the block's face is the block's own")
+    }
+
+    // MARK: - Depth in a headset
+
+    /// A headset's compositor reprojects every pixel by the depth it finds. A pane that
+    /// mostly shows itself writes its own depth, so its tint and reflections stay on the
+    /// pane; a clear pane leaves the depth of what is seen through it, which is what the
+    /// eye follows. The line is drawn at half the light crossing the pane.
+    func testAPaneWritesItsDepthInAHeadsetWhenItMostlyShowsItself() {
+        func showsItself(_ source: RuntimeMaterialSource) -> Bool {
+            Material(runtimeMaterial: source, device: renderInfo.device).paneShowsItself
+        }
+        // Clear window glass: nearly all the light crosses it.
+        XCTAssertFalse(showsItself(material(color: simd_float3(0.91, 0.97, 0.96), transmission: 1.0, roughness: 0.035)))
+        // Smoked car glass: a dark base colour lets little through.
+        XCTAssertTrue(showsItself(material(color: simd_float3(0.03, 0.05, 0.06), transmission: 1.0, roughness: 0.09, metallic: 0.5)))
+        // Frosted glass: too rough to see through, it glows instead.
+        XCTAssertTrue(showsItself(material(color: simd_float3(0.9, 0.9, 0.9), transmission: 1.0, roughness: 0.6)))
+        // A pane half there by its alpha lets at least half through whatever its tint.
+        XCTAssertFalse(showsItself(material(color: simd_float3(0.03, 0.05, 0.06), transmission: 1.0, roughness: 0.09, alpha: 0.5)))
+        // Light grey glass with a transmission of a half: half of what crosses is kept.
+        XCTAssertTrue(showsItself(material(color: simd_float3(0.5, 0.5, 0.5), transmission: 0.5, roughness: 0.0)))
+    }
+
     // MARK: - What shows through
 
     /// Glass was drawn as a blended surface 10 % opaque. A transmissive material now

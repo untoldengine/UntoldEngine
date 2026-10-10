@@ -101,7 +101,16 @@ public enum RenderPasses {
         return shouldLog
     }
 
+    /// The depth bias of a glass draw. A pane modelled into its frame shares a plane with
+    /// the frame and fights it for depth along its edges at every move of the camera, so
+    /// glass draws a few units of depth resolution behind where it is, and two more per
+    /// unit of slope, and the frame wins wherever the two coincide. The sign follows the
+    /// depth convention: with reverse Z the near plane is 1 and away is down.
+    private static let glassDepthBias: Float = 4
+    private static let glassDepthSlopeScale: Float = 2
+
     @inline(__always)
+
     private static func getOrCreateTransparencyXRDepthWriteState(device: MTLDevice) -> MTLDepthStencilState? {
         runtimeState.lock.lock()
         if let cached = runtimeState.transparencyXRDepthWriteState {
@@ -3927,6 +3936,27 @@ public enum RenderPasses {
                     // in no order, and the far side of a pane must not come out over its near
                     // side. The other materials are drawn in one go, as before.
                     let isGlass = material.transmitsLight
+                    // Glass draws a hair behind where it is (glassDepthBias): a pane modelled
+                    // into its frame shares a plane with the frame, and the frame must win
+                    // wherever the two coincide, or the edge flickers at every move of the camera.
+                    if isGlass {
+                        let away: Float = renderInfo.reverseZEnabled ? -1 : 1
+                        renderEncoder.setDepthBias(away * glassDepthBias, slopeScale: away * glassDepthSlopeScale, clamp: 0)
+                    } else {
+                        renderEncoder.setDepthBias(0, slopeScale: 0, clamp: 0)
+                    }
+                    // A headset's compositor reprojects every pixel by the depth it finds. A pane
+                    // that mostly shows itself (dark, frosted) writes its depth, so its tint and
+                    // reflections stay on the pane; a clear pane leaves the depth of what is seen
+                    // through it, which is what the eye follows. The other blended materials keep
+                    // the pass's state; passthrough already writes depth for every transparent draw.
+                    if renderInfo.isXRStereoMode, renderInfo.immersionStyle != .mixed {
+                        if isGlass, material.paneShowsItself, let writeState = getOrCreateTransparencyXRDepthWriteState(device: renderInfo.device) {
+                            renderEncoder.setDepthStencilState(writeState)
+                        } else {
+                            renderEncoder.setDepthStencilState(transparencyPipeline.depthState)
+                        }
+                    }
                     let firstGo = isGlass ? transparencyPassFarFaces : transparencyPassEveryFace
                     for go in 0 ..< (isGlass ? 2 : 1) {
                         var faces = Int32((go == 0 ? firstGo : transparencyPassNearFaces).rawValue)
