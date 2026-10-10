@@ -22,6 +22,7 @@ setRendering(.antiAliasing(.taa))      // temporal: jittered frames blended with
 setRendering(.antiAliasing(.msaaTaa))  // 4× MSAA on the G-buffer plus the temporal resolve
 setRendering(.antiAliasing(.none))
 TAAParams.shared.historyWeight = 0.9   // share of the history in each resolved pixel (0…0.98)
+TAAParams.shared.clipGamma = 1.25      // clip box = 3×3 mean ± γσ: lower rejects ghosts sooner, higher keeps pixel-thin features
 
 setRendering(.debugView(.lit))
 setRendering(.debugView(.depth))

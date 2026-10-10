@@ -102,16 +102,24 @@ fragment TAAFragmentOut fragmentTAAShader(
         return out;
     }
 
-    // The colour range of the 3×3 neighbourhood, in YCoCg.
-    float3 lo = float3(1e9);
-    float3 hi = float3(-1e9);
+    // The colour box of the 3×3 neighbourhood, in YCoCg: the mean ± γ·σ (variance clipping,
+    // Salvi 2016) rather than the hard min/max. A feature a pixel wide — a wire, a line of
+    // text — is rasterized in some jittered frames and not others; a min/max box of a frame
+    // that missed it excludes its colour and the clip wipes it from the history, so it flickers.
+    // The statistical box still reaches towards it through the frames that miss it.
+    float3 m1 = float3(0.0);
+    float3 m2 = float3(0.0);
     for (int y = -1; y <= 1; ++y) {
         for (int x = -1; x <= 1; ++x) {
             const float3 c = taaRGBToYCoCg(colorTexture.sample(pointSampler, uv + float2(x, y) * texel).rgb);
-            lo = min(lo, c);
-            hi = max(hi, c);
+            m1 += c;
+            m2 += c * c;
         }
     }
+    const float3 mean = m1 / 9.0;
+    const float3 sigma = sqrt(max(m2 / 9.0 - mean * mean, 0.0));
+    const float3 lo = mean - taa.clipGamma * sigma;
+    const float3 hi = mean + taa.clipGamma * sigma;
 
     // This pixel's position in space, from its depth. A background texel (the clear value)
     // is pushed just off the clear plane so an infinite-far projection still inverts.
@@ -147,10 +155,24 @@ fragment TAAFragmentOut fragmentTAAShader(
         return out;
     }
 
+    // Under foveation the history may be coarser here than this frame: the spot was in the
+    // periphery of the previous map (one texel spanning several screen pixels) and the gaze
+    // has moved onto it. Trusting such a history at full weight shows the sharp frame with a
+    // blurry shadow that fades over twenty frames; its weight is cut by how much coarser it
+    // was, measured from the two maps' local rates (texels per screen pixel).
+    float weight = taa.historyWeight;
+    if (taa.rateMapSizes.x > 0.0 || taa.prevRateMapSizes.x > 0.0) {
+        const float2 screenStep = taaScreenFromPhysical(physical + float2(1.0, 1.0), taa.rateMapSizes, rateMap) - screen;
+        const float currentRate = 1.0 / max(max(abs(screenStep.x), abs(screenStep.y)), 1e-3);
+        const float2 prevStep = taaPhysicalFromScreen(prevScreen + float2(1.0, 1.0), taa.prevRateMapSizes, prevRateMap) - prevPhysical;
+        const float prevRate = max(max(abs(prevStep.x), abs(prevStep.y)), 1e-3);
+        weight *= saturate(prevRate / currentRate);
+    }
+
     const float4 history = historyTexture.sample(linearSampler, historyUV);
     const float3 clipped = taaYCoCgToRGB(taaClipToBox(lo, hi, taaRGBToYCoCg(current.rgb), taaRGBToYCoCg(history.rgb)));
-    const float3 blended = mix(current.rgb, clipped, taa.historyWeight);
-    const float alpha = mix(current.a, history.a, taa.historyWeight);
+    const float3 blended = mix(current.rgb, clipped, weight);
+    const float alpha = mix(current.a, history.a, weight);
     out.color = float4(blended, alpha);
     out.history = out.color;
     return out;
