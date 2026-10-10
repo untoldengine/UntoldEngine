@@ -18,7 +18,10 @@ Existing direct APIs such as `LODConfig.shared`, `SSAOParams.shared`, `antiAlias
 setRendering(.antiAliasing(.fxaa))
 setRendering(.antiAliasing(.smaa))
 setRendering(.antiAliasing(.msaa))
+setRendering(.antiAliasing(.taa))      // temporal: jittered frames blended with their reprojected history
+setRendering(.antiAliasing(.msaaTaa))  // 4× MSAA on the G-buffer plus the temporal resolve
 setRendering(.antiAliasing(.none))
+TAAParams.shared.historyWeight = 0.9   // share of the history in each resolved pixel (0…0.98)
 
 setRendering(.debugView(.lit))
 setRendering(.debugView(.depth))

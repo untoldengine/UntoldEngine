@@ -2121,10 +2121,17 @@ public enum AntiAliasingMode: Sendable {
     case fxaa
     case smaa
     case msaa
+    /// Temporal: the projection jittered by a sub-pixel amount each frame and the frame
+    /// blended with its reprojected history after the look pass (TemporalAntiAliasing.swift).
+    /// Averages the sub-pixel detail a single sample flickers on; moving objects rely on the
+    /// neighbourhood clip, not on motion vectors.
+    case taa
+    /// 4× MSAA on the G-buffer and the temporal resolve on top.
+    case msaaTaa
 
     var usesPostLookPass: Bool {
         switch self {
-        case .fxaa, .smaa:
+        case .fxaa, .smaa, .taa, .msaaTaa:
             return true
         case .none, .msaa:
             return false

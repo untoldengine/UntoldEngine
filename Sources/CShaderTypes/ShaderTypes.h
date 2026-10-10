@@ -1363,6 +1363,38 @@ typedef enum{
     fxaaPassSplatCoverageTextureIndex = 1
 }FXAATextureIndices;
 
+// MARK: - Temporal anti-aliasing (TAAShader.metal)
+
+/// The resolve's inputs: the eye's unjittered matrices for this frame and the frame its
+/// history holds, and the rasterization rate maps of both when the frames were foveated
+/// (XR): the history is laid out in its own frame's physical space, so a pixel goes
+/// physical → screen → world → previous screen → previous physical before the history is read.
+typedef struct {
+    matrix_float4x4 invViewProjection;   // this frame, unjittered, scene root included
+    matrix_float4x4 prevViewProjection;  // the history's frame, unjittered, scene root included
+    simd_float4 rateMapSizes;            // this frame's map: screen size xy, physical size zw; x <= 0 when drawn uniformly
+    simd_float4 prevRateMapSizes;        // the history frame's map, same layout
+    simd_float2 physicalSize;            // the colour, depth and history textures' size in pixels
+    float historyWeight;                 // share of the clipped history in the output (0.9)
+    uint32_t historyValid;               // 0 on the first frame, after a resize or a mode change: the output is the current frame
+    uint32_t reverseZ;
+    uint32_t pad0;
+    uint32_t pad1;
+    uint32_t pad2;
+} TAAConstants;  // 176 bytes
+
+typedef enum{
+    taaPassConstantsIndex = 0,      // TAAConstants
+    taaPassRateMapDataIndex,        // rasterization_rate_map_data of this frame (read only when rateMapSizes.x > 0; a placeholder otherwise)
+    taaPassPrevRateMapDataIndex     // rasterization_rate_map_data of the history's frame (read only when prevRateMapSizes.x > 0)
+}TAABufferIndices;
+
+typedef enum{
+    taaPassColorTextureIndex = 0,   // this frame's look output
+    taaPassHistoryTextureIndex,     // the previous resolve of this eye
+    taaPassDepthTextureIndex        // this frame's opaque depth
+}TAATextureIndices;
+
 typedef enum{
     smaaPassTexelSizeIndex,
     smaaPassEdgeThresholdIndex,

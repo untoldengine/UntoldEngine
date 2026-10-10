@@ -170,7 +170,7 @@ func bindRateMap(_ data: XRRasterizationRateMapData?, toFragmentsOf encoder: MTL
 }
 
 /// A small shared buffer bound wherever a shader declares a rate map it will not read.
-private func rateMapPlaceholderBuffer() -> MTLBuffer? {
+func rateMapPlaceholderBuffer() -> MTLBuffer? {
     if let buffer = bufferResources.rateMapPlaceholder {
         return buffer
     }
