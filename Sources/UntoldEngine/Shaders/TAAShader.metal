@@ -79,6 +79,37 @@ static inline float2 taaPhysicalFromScreen(float2 screen, float4 sizes, constant
     return decoder.map_screen_to_physical_coordinates(screen);
 }
 
+// The history at a fractional position, Catmull-Rom filtered with nine bilinear taps (Jimenez
+// 2016): resampling the history every frame with a bilinear filter smears it a little more
+// each time, which under a moving head or a moving rate map shows as a soft halo that settles
+// only when everything stands still; the cubic keeps it sharp.
+static inline float4 taaSampleHistory(texture2d<float> history, sampler linearSampler, float2 uv, float2 size) {
+    const float2 texel = 1.0 / size;
+    const float2 position = uv * size;
+    const float2 center = floor(position - 0.5) + 0.5;
+    const float2 f = position - center;
+    const float2 w0 = f * (-0.5 + f * (1.0 - 0.5 * f));
+    const float2 w1 = 1.0 + f * f * (-2.5 + 1.5 * f);
+    const float2 w2 = f * (0.5 + f * (2.0 - 1.5 * f));
+    const float2 w3 = f * f * (-0.5 + 0.5 * f);
+    const float2 w12 = w1 + w2;
+    const float2 offset12 = w2 / w12;
+    const float2 uv0 = (center - 1.0) * texel;
+    const float2 uv3 = (center + 2.0) * texel;
+    const float2 uv12 = (center + offset12) * texel;
+    float4 result = float4(0.0);
+    result += history.sample(linearSampler, float2(uv0.x, uv0.y)) * w0.x * w0.y;
+    result += history.sample(linearSampler, float2(uv12.x, uv0.y)) * w12.x * w0.y;
+    result += history.sample(linearSampler, float2(uv3.x, uv0.y)) * w3.x * w0.y;
+    result += history.sample(linearSampler, float2(uv0.x, uv12.y)) * w0.x * w12.y;
+    result += history.sample(linearSampler, float2(uv12.x, uv12.y)) * w12.x * w12.y;
+    result += history.sample(linearSampler, float2(uv3.x, uv12.y)) * w3.x * w12.y;
+    result += history.sample(linearSampler, float2(uv0.x, uv3.y)) * w0.x * w3.y;
+    result += history.sample(linearSampler, float2(uv12.x, uv3.y)) * w12.x * w3.y;
+    result += history.sample(linearSampler, float2(uv3.x, uv3.y)) * w3.x * w3.y;
+    return max(result, 0.0);
+}
+
 fragment TAAFragmentOut fragmentTAAShader(
     VertexCompositeOutput in [[stage_in]],
     texture2d<float> colorTexture [[texture(taaPassColorTextureIndex)]],
@@ -121,10 +152,17 @@ fragment TAAFragmentOut fragmentTAAShader(
     const float3 lo = mean - taa.clipGamma * sigma;
     const float3 hi = mean + taa.clipGamma * sigma;
 
-    // This pixel's position in space, from its depth. A background texel (the clear value)
-    // is pushed just off the clear plane so an infinite-far projection still inverts.
-    float depth = depthTexture.sample(pointSampler, uv);
-    depth = (taa.reverseZ != 0u) ? max(depth, 1e-5) : min(depth, 1.0 - 1e-5);
+    // This pixel's position in space, from its depth. A texel at the clear depth has none:
+    // nothing opaque was drawn there — the background, or a transparent quad over it — and
+    // reprojecting it from the far plane would fetch the wrong history and ghost or wipe it
+    // under a moving camera; such a pixel keeps its own frame.
+    const float depth = depthTexture.sample(pointSampler, uv);
+    const bool cleared = (taa.reverseZ != 0u) ? (depth <= 1e-6) : (depth >= 1.0 - 1e-6);
+    if (cleared) {
+        out.color = current;
+        out.history = current;
+        return out;
+    }
     const float2 physical = in.position.xy;
     const float2 screen = taaScreenFromPhysical(physical, taa.rateMapSizes, rateMap);
     const float2 screenSize = taa.rateMapSizes.x > 0.0 ? taa.rateMapSizes.xy : taa.physicalSize;
@@ -169,7 +207,7 @@ fragment TAAFragmentOut fragmentTAAShader(
         weight *= saturate(prevRate / currentRate);
     }
 
-    const float4 history = historyTexture.sample(linearSampler, historyUV);
+    const float4 history = taaSampleHistory(historyTexture, linearSampler, historyUV, taa.physicalSize);
     const float3 clipped = taaYCoCgToRGB(taaClipToBox(lo, hi, taaRGBToYCoCg(current.rgb), taaRGBToYCoCg(history.rgb)));
     const float3 blended = mix(current.rgb, clipped, weight);
     const float alpha = mix(current.a, history.a, weight);

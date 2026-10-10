@@ -97,6 +97,9 @@ func UpdateRenderingSystem(in view: MTKView) {
                 // This frame's sub-pixel jitter (temporal anti-aliasing), before anything reads the projection.
                 TemporalAntiAliasing.shared.applyJitter()
                 let graph = try buildExecutableGameModeGraph()
+                // A rasterization rate map set on renderInfo.xrFoveation (the foveation tests
+                // draw through one on the Mac) goes on the scene passes here as in XR.
+                applyXRFoveationToSceneRenderPassDescriptors()
 
                 #if ENGINE_STATS_ENABLED
                     let encodeStart = CACurrentMediaTime()
