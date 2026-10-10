@@ -292,6 +292,17 @@ fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
     simd_float3 N=normalize(in.tbNormal);
     simd_float3 T=normalize(in.tangent.xyz);
 
+    // The model pass does not cull, so an open mesh shows its back faces — a dart's flight, a
+    // leaf, a sheet seen from behind. Those arrive with the front side's normal, pointing away
+    // from the viewer, and shade as if unlit (one wing of a flight dark, the next one lit).
+    // A face whose normal points away from the viewer is lit with it turned around. The test
+    // is geometric rather than [[front_facing]]: the pass sets no winding, and assets arrive
+    // wound either way.
+    if (dot(N, uniforms.cameraPosition - verticesInWorldSpace.xyz) < 0.0) {
+        normalVectorInWorldSpace = -normalVectorInWorldSpace;
+        N = -N;
+    }
+
     //B = (N x T) * T.w
     simd_float3 B=cross(N, T)*in.tangent.w;
     simd_float3x3 TBN=simd_float3x3(T,B,N);
