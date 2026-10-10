@@ -636,6 +636,118 @@ import Foundation
             )
         }
 
+        // MARK: - Project Layout Conversion
+
+        /// What `convertProjectLayout` did, in order.
+        public struct ProjectConversionResult {
+            public let projectRoot: URL
+            public let log: [String]
+        }
+
+        /// Moves a project from the legacy layout (`GameData` nested under
+        /// `Sources/<Project>/GameData`) to the root-level one (`GameData`, `Resources` and
+        /// `Docs` at the project root, next to `Sources`): moves `GameData` itself, creates
+        /// empty `Resources`/`Docs` folders, writes a `.gitignore` if the project doesn't have
+        /// one yet, rewrites `project.yml` and regenerates the Xcode project, and checks that
+        /// every pack's `sourceAsset` still resolves afterwards.
+        ///
+        /// That last check is not a rewrite: `sourceAsset` is relative to the pack's own
+        /// folder (see `UntoldPackData.resolvedSourceAssetURL`), and moving `GameData` moves
+        /// every pack inside it together with whatever source sits beside it, so the
+        /// relationship between a pack and its source survives the move unchanged. Sources
+        /// that happen to sit inside `GameData` today are not relocated into `Resources` here
+        /// -- that is a separate, judgment-heavy migration (shared sources, naming collisions)
+        /// better done deliberately than as a side effect of a layout move.
+        ///
+        /// Refuses to run if the project is already on the root-level layout, or if the
+        /// legacy `GameData` doesn't exist where expected.
+        @discardableResult
+        public func convertProjectLayout(
+            projectRoot: URL,
+            projectName: String,
+            progress: ((String) -> Void)? = nil
+        ) throws -> ProjectConversionResult {
+            let fileManager = FileManager.default
+            var log: [String] = []
+            func note(_ message: String) {
+                log.append(message)
+                progress?(message)
+            }
+
+            guard fileManager.fileExists(atPath: projectRoot.path) else {
+                throw BuildError.projectNotFound("Project not found at \(projectRoot.path)")
+            }
+
+            let layout = ProjectLayout.detect(projectRoot: projectRoot, projectName: projectName)
+            guard layout.kind == .legacy else {
+                throw BuildError.invalidProjectStructure("\(projectRoot.path) is already on the root-level layout")
+            }
+            guard fileManager.fileExists(atPath: layout.gameDataDirectory.path) else {
+                throw BuildError.invalidProjectStructure("No GameData folder found at \(layout.gameDataDirectory.path)")
+            }
+
+            let rootLayout = ProjectLayout(kind: .rootLevel, projectRoot: projectRoot, projectName: projectName)
+
+            try fileManager.moveItem(at: layout.gameDataDirectory, to: rootLayout.gameDataDirectory)
+            note("📦 Moved GameData: \(layout.gameDataDirectory.path) -> \(rootLayout.gameDataDirectory.path)")
+
+            if let resourcesDirectory = rootLayout.resourcesDirectory, !fileManager.fileExists(atPath: resourcesDirectory.path) {
+                try fileManager.createDirectory(at: resourcesDirectory, withIntermediateDirectories: true)
+                note("📁 Created \(resourcesDirectory.path)")
+            }
+            if let docsDirectory = rootLayout.docsDirectory, !fileManager.fileExists(atPath: docsDirectory.path) {
+                try fileManager.createDirectory(at: docsDirectory, withIntermediateDirectories: true)
+                note("📁 Created \(docsDirectory.path)")
+            }
+
+            let gitignorePath = projectRoot.appendingPathComponent(".gitignore")
+            if !fileManager.fileExists(atPath: gitignorePath.path) {
+                try BuildTemplates.gitignore.write(to: gitignorePath, atomically: true, encoding: .utf8)
+                note("📝 Wrote .gitignore")
+            }
+
+            let projectYMLPath = projectRoot.appendingPathComponent("project.yml")
+            if let yaml = try? String(contentsOf: projectYMLPath, encoding: .utf8) {
+                let converted = XcodeGenProjectSpec.convertingToRootLevelGameData(inYAML: yaml, projectName: projectName)
+                if converted != yaml {
+                    try converted.write(to: projectYMLPath, atomically: true, encoding: .utf8)
+                    note("📝 Rewrote project.yml")
+                    if Self.xcodeGenPath() != nil {
+                        try runXcodeGen(in: projectRoot)
+                        note("⚙️ Regenerated Xcode project")
+                    } else {
+                        note("⚠️ xcodegen not found; run `xcodegen generate` in the project folder to finish regenerating the Xcode project")
+                    }
+                } else {
+                    note("ℹ️ project.yml already matched the root-level layout")
+                }
+            } else {
+                note("⚠️ No project.yml found; skipped Xcode project regeneration")
+            }
+
+            let packURLs = (fileManager.enumerator(at: rootLayout.gameDataDirectory, includingPropertiesForKeys: nil)?
+                .compactMap { $0 as? URL } ?? [])
+                .filter { $0.pathExtension.lowercased() == "untoldpack" }
+            var unresolvedSources = 0
+            for packURL in packURLs {
+                guard let pack = loadUntoldPack(url: packURL), pack.sourceAsset != nil else { continue }
+                if let resolved = pack.resolvedSourceAssetURL(packURL: packURL), fileManager.fileExists(atPath: resolved.path) {
+                    continue
+                }
+                unresolvedSources += 1
+                note("⚠️ \(packURL.lastPathComponent): sourceAsset \"\(pack.sourceAsset ?? "")\" does not resolve to an existing file")
+            }
+            if packURLs.isEmpty {
+                note("ℹ️ No .untoldpack manifests found under GameData")
+            } else if unresolvedSources == 0 {
+                note("✅ \(packURLs.count) pack manifest(s) checked; sourceAsset still resolves for all of them")
+            } else {
+                note("⚠️ \(unresolvedSources) of \(packURLs.count) pack manifest(s) have a sourceAsset that no longer resolves")
+            }
+
+            return ProjectConversionResult(projectRoot: projectRoot, log: log)
+        }
+
         // MARK: - Template Processing
 
         private func copyDirectory(from source: URL, to destination: URL) throws {
