@@ -308,25 +308,32 @@ func generateBundleIdentifier(projectName: String) -> String {
 
 // MARK: - GameData Discovery
 
-/// Searches `startingAt` and up to `depth` levels of subdirectories for a `GameData` folder.
+/// Searches `startingAt` and up to `depth` levels of subdirectories for `GameData` folders.
 /// Skips hidden directories and `.build` to avoid slow traversal of tooling artifacts.
+///
+/// Collects every match rather than stopping at the first one: a project mid-conversion
+/// (see `untoldengine convert`) can briefly have both a root-level `GameData` and the old
+/// `Sources/<Project>/GameData`, and callers (e.g. `assets install`) need to see both to
+/// raise a clear ambiguity error instead of silently picking one.
 func findGameDataDirectory(startingAt url: URL, depth: Int = 3) -> [URL] {
     let fm = FileManager.default
+    var results: [URL] = []
 
     let candidate = url.appendingPathComponent("GameData")
     var isDir: ObjCBool = false
     if fm.fileExists(atPath: candidate.path, isDirectory: &isDir), isDir.boolValue {
-        return [candidate]
+        results.append(candidate)
     }
 
     guard depth > 0,
           let contents = try? fm.contentsOfDirectory(at: url, includingPropertiesForKeys: [.isDirectoryKey])
-    else { return [] }
+    else { return results }
 
-    var results: [URL] = []
     for item in contents {
         let name = item.lastPathComponent
-        guard !name.hasPrefix("."), name != "build" else { continue }
+        // Skip recursing into a matched GameData itself -- its own subfolders (Scenes,
+        // Scripts, ...) are never going to contain another GameData worth reporting.
+        guard !name.hasPrefix("."), name != "build", name != "GameData" else { continue }
         var itemIsDir: ObjCBool = false
         fm.fileExists(atPath: item.path, isDirectory: &itemIsDir)
         if itemIsDir.boolValue {

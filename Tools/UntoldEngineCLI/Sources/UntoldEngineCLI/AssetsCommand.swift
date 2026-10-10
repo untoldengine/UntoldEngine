@@ -62,7 +62,7 @@ struct AssetsCommand: AsyncParsableCommand {
               untoldengine assets install starter
 
               # Specify GameData path explicitly
-              untoldengine assets install soccer --output ~/Projects/MyGame/Sources/MyGame/GameData
+              untoldengine assets install soccer --output ~/Projects/MyGame/GameData
 
               # Overwrite existing files without prompting
               untoldengine assets install starter --force
