@@ -301,8 +301,11 @@ EnvironmentLight computeIBLParts(texture2d<float> irradianceTexture,
 
     // Every surface reflects the environment, a non-metal too: that is the sheen of
     // polished plastic, glass or lacquer. What it reflects it does not scatter, so the
-    // diffuse light gives up that share, and a metal scatters none at all.
-    float3 reflected = environmentReflectance(f0, roughness, NoV, iblBRDFTexture);
+    // diffuse light gives up that share, and a metal scatters none at all. This is the
+    // single-bounce share only: the multi-bounce energy compensation in
+    // environmentReflectance exists to correct the specular term's own approximation,
+    // not to measure how much the surface diverts away from diffuse scattering.
+    float3 reflected = singleBounceReflectance(f0, roughness, NoV, iblBRDFTexture);
 
     EnvironmentLight light;
     light.diff = max(1.0 - reflected, 0.0) * (1.0 - metallic) * diffuse;
