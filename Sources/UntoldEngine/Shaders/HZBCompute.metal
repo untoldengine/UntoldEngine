@@ -80,6 +80,8 @@ kernel void hzbCullVisibleEntities(
     constant uint &mipCount [[buffer(hzbCullPassMipCountIndex)]],
     constant uint &reverseZ [[buffer(hzbCullPassReverseZIndex)]],
     constant float &occlusionBias [[buffer(hzbCullPassOcclusionBiasIndex)]],
+    constant rasterization_rate_map_data *rateMap [[buffer(hzbCullPassRateMapDataIndex)]],
+    constant float4 &rateMapSizes [[buffer(hzbCullPassRateMapSizesIndex)]],
     texture2d<float, access::sample> hzbDepthPyramid [[texture(hzbCullPassDepthPyramidTextureIndex)]],
     uint tid [[thread_position_in_grid]]
 ) {
@@ -99,7 +101,9 @@ kernel void hzbCullVisibleEntities(
         return;
     }
 
-    // Shared with the Gaussian chunk cull — see HZBOcclusion.h.
+    // Shared with the Gaussian chunk cull — see HZBOcclusion.h. A pyramid drawn through a
+    // rasterization rate map (XR foveation) holds the rect elsewhere than its screen UV.
+    hzbRemapRectToPhysical(rateMap, rateMapSizes, uvMin, uvMax);
     bool isOccluded = hzbRectIsOccluded(hzbDepthPyramid, uvMin, uvMax, nearDepth, viewport, mipCount, reverseZ != 0u, occlusionBias);
     if (!isOccluded) {
         uint dst = atomic_fetch_add_explicit(outVisibleCount, 1u, memory_order_relaxed);

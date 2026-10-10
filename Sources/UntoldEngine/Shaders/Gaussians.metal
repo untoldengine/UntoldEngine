@@ -621,15 +621,6 @@ inline float calcPowerFromConic(float3 conic, float2 d)
                     2.0f   * conic.y * d.x * d.y);
 }
 
-inline float2 calcScreenSpaceDelta(float2 pixelPos,
-                                   float2 centerPixel,
-                                   float  projYSign)
-{
-    float2 d = pixelPos - centerPixel;
-    d.y *= projYSign;
-    return d;
-}
-
 typedef struct
 {
     half4 color [[raster_order_group(0)]];
@@ -693,20 +684,20 @@ vertex GaussianOutData vertexGaussianTBDRShader(
         return out;
     }
 
-    const float projYSign = -1.0f;
-    float2 centerNDC = centerClip.xy / centerClip.w;
-    float2 centerUV = centerNDC * float2(0.5f, 0.5f * projYSign) + 0.5f;
-    out.coordxy = centerUV * viewport;
-
     out.conic = record.conicAndOpacity.xyz;
 
     // Tight, rotated quad along the ellipse's true principal axes (see
     // computeInverseCovarianceConic) instead of an axis-aligned bounding box. The axes live
-    // in the pixel frame of the conic (y down, as coordxy and the fragment's position), while
-    // NDC y points up: the y offset flips sign on the way, or a tilted splat's quad is the
-    // mirror image of its ellipse and the fragment falloff gets clipped to their overlap.
+    // in the pixel frame of the conic (y down), while NDC y points up: the y offset flips
+    // sign on the way, or a tilted splat's quad is the mirror image of its ellipse and the
+    // fragment falloff gets clipped to their overlap. The offset itself goes to the fragment
+    // as a varying: interpolated across the quad it is the fragment's own offset from the
+    // centre in the conic's frame, whatever the rasterizer did to the quad's pixels — under
+    // a rasterization rate map (XR foveation) the fragment's position is in the physical
+    // texture, not on the screen the centre was projected to.
     float2 pixelOffset = quad.x * record.axes.xy + quad.y * record.axes.zw;
     float2 ndcOffset = pixelOffset * float2(2.0f, -2.0f) / viewport;
+    out.pixelDelta = pixelOffset;
     out.position = centerClip;
     out.position.xy += ndcOffset * centerClip.w;
     out.color = record.color.xyz;
@@ -745,8 +736,10 @@ fragment GaussianTBDRFragmentStore fragmentGaussianTBDRShader(
     // (gaussianAdaptiveSigma sigma out) — has negligible alpha. Rejecting those tail fragments
     // here means they never pay for the depth-texture read at all, on top of never reaching
     // the blend math below.
-    const float projYSign = 1.0f;
-    float2 d = calcScreenSpaceDelta(in.position.xy, in.coordxy, projYSign);
+    // The fragment's offset from the splat's centre in the conic's pixel frame, from the
+    // quad's corners (see vertexGaussianTBDRShader) rather than from in.position, which a
+    // rasterization rate map (XR foveation) places in the physical texture, not on screen.
+    float2 d = in.pixelDelta;
     float power = calcPowerFromConic(in.conic, d);
 
     float falloff = exp(power);

@@ -69,6 +69,15 @@
         // Reuse render pass descriptors to avoid allocation churn (2 eyes × 90 FPS = 180 allocs/sec)
         private let passDescriptorLeft = MTLRenderPassDescriptor()
         private let passDescriptorRight = MTLRenderPassDescriptor()
+
+        // Foveation: the parameter data of each eye's rasterization rate map, copied every frame
+        // (the maps follow the gaze) into a ring one slot deeper than the frames in flight —
+        // the depth pyramid built on a frame carries its last eye's data into the culls of the
+        // frame after (HZBPyramidFrame.rateMapData), which may still run when this frame's
+        // slot comes round again with only the usual in-flight depth.
+        private var rateMapParameterBuffers: [[MTLBuffer?]] = Array(repeating: [nil, nil], count: maxInFlightCommandBuffers + 1)
+        private var rateMapFrameCounter = 0
+        private var loggedFoveationState: Bool?
         private let spatialGestureRecognizer = XRSpatialGestureRecognizer()
         private let xrEnvironmentLightingSystem = XREnvironmentLightingSystem()
         private var runtimeLightingModeObserverId: UUID?
@@ -756,6 +765,57 @@
             spatialGestureRecognizer.resetAllSpatialInteractionTracking()
         }
 
+        /// The rasterization rate map the compositor made for a view, as the renderer draws
+        /// through it, or nil when the frame is drawn uniformly: the layer configured without
+        /// foveation (no maps; also the simulator) or `setRendering(.foveatedRendering(.disabled))`.
+        /// The map's parameters go into this frame's slot of the ring for the shaders that decode
+        /// them; the viewport is the view's in the map's screen space.
+        private func makeFoveationFrame(
+            drawable: LayerRenderer.Drawable,
+            viewport: MTLViewport,
+            viewIndex: Int,
+            slot: Int
+        ) -> XRFoveationFrame? {
+            let rateMaps = drawable.rasterizationRateMaps
+            let available = xrFoveatedRenderingEnabled && viewIndex < rateMaps.count && viewIndex < stereoEyeCount
+            if loggedFoveationState != available {
+                loggedFoveationState = available
+                if available {
+                    let rateMap = rateMaps[viewIndex]
+                    let screen = rateMap.screenSize
+                    let physical = rateMap.physicalSize(layer: 0)
+                    print("✓ XR foveation: drawing through the compositor's rasterization rate maps, screen \(screen.width)×\(screen.height), textures \(physical.width)×\(physical.height) per eye")
+                } else if rateMaps.isEmpty {
+                    print("XR foveation off: the layer provides no rasterization rate maps (isFoveationEnabled is false, or the simulator); drawing uniformly")
+                } else {
+                    print("XR foveation off by setting (.foveatedRendering(.disabled)); the layer's rate maps are ignored and the picture will be warped")
+                }
+            }
+            guard available else { return nil }
+
+            let rateMap = rateMaps[viewIndex]
+            let sizeAndAlign = rateMap.parameterDataSizeAndAlign
+            let align = max(1, sizeAndAlign.align)
+            let length = max(16, (sizeAndAlign.size + align - 1) / align * align)
+            if rateMapParameterBuffers[slot][viewIndex].map({ $0.length < length }) ?? true {
+                let buffer = renderInfo.device.makeBuffer(length: length, options: .storageModeShared)
+                buffer?.label = "XR Rate Map Parameters eye \(viewIndex) slot \(slot)"
+                rateMapParameterBuffers[slot][viewIndex] = buffer
+            }
+            guard let buffer = rateMapParameterBuffers[slot][viewIndex],
+                  let data = XRRasterizationRateMapData(rateMap: rateMap, buffer: buffer)
+            else {
+                Logger.logWarning(message: "XR foveation: could not copy the rate map parameters for eye \(viewIndex); drawing this eye uniformly")
+                return nil
+            }
+            if let texture = drawable.colorTextures.indices.contains(viewIndex) ? drawable.colorTextures[viewIndex] : nil,
+               Int(data.physicalSize.x) != texture.width || Int(data.physicalSize.y) != texture.height
+            {
+                Logger.logWarning(message: "XR foveation: eye \(viewIndex) rate map physical size \(data.physicalSize) differs from its texture \(texture.width)×\(texture.height)")
+            }
+            return XRFoveationFrame(rateMap: rateMap, viewport: viewport, rateMapData: data)
+        }
+
         func executeXRSystemPass(frame _: LayerRenderer.Frame, drawable: LayerRenderer.Drawable, loading: Bool) {
             // Wait for available command buffer slot to prevent unbounded memory growth
             let semaphoreWaitStart = CACurrentMediaTime()
@@ -781,8 +841,12 @@
                 let renderTotalStart = CACurrentMediaTime()
             #endif
             renderInfo.currentInFlightFrameSlot = acquireUniformFrameSlot()
+            let rateMapSlot = rateMapFrameCounter % rateMapParameterBuffers.count
+            rateMapFrameCounter += 1
 
-            // Update viewport to match actual drawable size (per-eye texture dimensions)
+            // Update viewport to match actual drawable size (per-eye texture dimensions). With
+            // foveation on, that is the rate map's physical size: every texture of the frame is
+            // allocated at it, while viewports and clip space live in the map's screen size.
             if let firstColorTexture = drawable.colorTextures.first {
                 let actualViewPort = simd_float2(Float(firstColorTexture.width), Float(firstColorTexture.height))
                 if renderInfo.viewPort != actualViewPort {
@@ -867,6 +931,15 @@
                 }
 
                 renderInfo.currentEye = viewIndex
+                // The eye's rasterization rate map (foveation), for the passes that draw the
+                // scene; the final pass into the compositor's textures copies physical pixels
+                // one to one and keeps passDescriptor without it.
+                renderInfo.xrFoveation = makeFoveationFrame(
+                    drawable: drawable,
+                    viewport: view.textureMap.viewport,
+                    viewIndex: viewIndex,
+                    slot: rateMapSlot
+                )
 
                 #if ENGINE_STATS_ENABLED
                     let encodeStart = CACurrentMediaTime()

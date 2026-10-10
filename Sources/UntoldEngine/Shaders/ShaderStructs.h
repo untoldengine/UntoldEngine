@@ -187,10 +187,10 @@ typedef struct{
     float3 cov2;
     float3 conic;
     float3 color;
-    float2 coordxy;
+    float2 pixelDelta; // the vertex's offset from the splat's centre in the conic's pixel frame (y down)
     float alpha;
     bool valid;
-    
+
 }GaussianOutData;
 
 // Cascaded Shadow Maps: 3 cascades shared between both eyes in XR.
