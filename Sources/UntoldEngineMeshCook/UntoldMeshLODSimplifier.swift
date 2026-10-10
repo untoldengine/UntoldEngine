@@ -271,12 +271,14 @@ enum UntoldMeshLODSimplifier {
     /// Reduces `mesh` towards `ratio` of its triangles, deviating from it by at most
     /// `errorLimit` (mesh units). The result can hold more triangles than asked for:
     /// the simplifier stops at the error limit and at what the topology allows.
-    static func level(of mesh: UntoldLODMesh, parts: UntoldLODMeshParts, ratio: Float, errorLimit: Float) -> UntoldLODMeshLevel {
+    /// `sunkPieces` flags the components of `parts` that the cook sank behind another
+    /// surface: they are simplified apart from the rest.
+    static func level(of mesh: UntoldLODMesh, parts: UntoldLODMeshParts, ratio: Float, errorLimit: Float, sunkPieces: [Bool] = []) -> UntoldLODMeshLevel {
         var positions = mesh.positions
         var movedVertices: [Int] = []
         var error: Float = 0
 
-        var indices = simplifyBody(mesh: mesh, parts: parts, ratio: ratio, errorLimit: errorLimit, error: &error)
+        var indices = simplifyBody(mesh: mesh, parts: parts, ratio: ratio, errorLimit: errorLimit, sunkPieces: sunkPieces, error: &error)
         if !parts.clutterIndices.isEmpty {
             indices += simplifyClutter(
                 mesh: mesh,
@@ -298,10 +300,42 @@ enum UntoldMeshLODSimplifier {
         parts: UntoldLODMeshParts,
         ratio: Float,
         errorLimit: Float,
+        sunkPieces: [Bool],
         error: inout Float
     ) -> [UInt32] {
         let source = parts.bodyIndices
         guard !source.isEmpty else { return [] }
+        // A piece the cook sank is bent by its sinking and gives up its triangles less
+        // readily than the surfaces beside it; simplified with them towards one target it
+        // would keep its own and take theirs. It is simplified on its own share.
+        if sunkPieces.contains(true) {
+            var sunk: [UInt32] = []
+            var kept: [UInt32] = []
+            for triangle in stride(from: 0, to: source.count, by: 3) {
+                let component = Int(parts.componentOfVertex[Int(source[triangle])])
+                if component >= 0, component < sunkPieces.count, sunkPieces[component] {
+                    sunk += source[triangle ..< triangle + 3]
+                } else {
+                    kept += source[triangle ..< triangle + 3]
+                }
+            }
+            if !sunk.isEmpty, !kept.isEmpty {
+                return simplifyBody(indices: sunk, mesh: mesh, parts: parts, ratio: ratio, errorLimit: errorLimit, error: &error)
+                    + simplifyBody(indices: kept, mesh: mesh, parts: parts, ratio: ratio, errorLimit: errorLimit, error: &error)
+            }
+        }
+        return simplifyBody(indices: source, mesh: mesh, parts: parts, ratio: ratio, errorLimit: errorLimit, error: &error)
+    }
+
+    /// Reduces the triangles `source` of `mesh` towards `ratio` of them.
+    private static func simplifyBody(
+        indices source: [UInt32],
+        mesh: UntoldLODMesh,
+        parts: UntoldLODMeshParts,
+        ratio: Float,
+        errorLimit: Float,
+        error: inout Float
+    ) -> [UInt32] {
         let target = targetIndexCount(source.count, ratio: ratio)
         guard target < source.count else { return source }
 
@@ -503,6 +537,74 @@ enum UntoldMeshLODSimplifier {
         return destination
     }
 
+    /// The cosine of the angle from which a kept vertex's normal is taken to belong to the
+    /// surface it was simplified away from, not to the one it now sits on: 30 degrees.
+    static let settledNormalCosine: Float = 0.866
+
+    /// Gives every vertex of a level whose normal is far from the faces around it the
+    /// normal of those faces. The simplifier keeps the vertices it does not collapse with
+    /// their normals as they were: a vertex that stood in a groove, on a crease or at the
+    /// foot of a ridge keeps a sideways normal when the groove is gone and it sits on a
+    /// span of flat triangles, and that shades the span dark. The faces are averaged per
+    /// vertex, not per position, so a hard edge (two vertices at one position, a normal
+    /// for each side) keeps both its normals; and the average is turned to the side of
+    /// the vertex's own normal, since a mesh wound the other way round (a mirrored part)
+    /// has its faces' cross products pointing in. The tangent follows the normal it is
+    /// paired with. Returns how many normals were replaced.
+    @discardableResult
+    static func settleNormals(of vertices: inout Data, vertexCount: Int, indices: [UInt32]) -> Int {
+        guard vertexCount > 0, !indices.isEmpty else { return 0 }
+        var faceSum = [SIMD3<Float>](repeating: .zero, count: vertexCount)
+        var replaced = 0
+        vertices.withUnsafeMutableBytes { raw in
+            func position(_ vertex: Int) -> SIMD3<Float> {
+                let record = vertex * UntoldLODMesh.vertexStride
+                return SIMD3<Float>(
+                    Float(bitPattern: UInt32(littleEndian: raw.loadUnaligned(fromByteOffset: record, as: UInt32.self))),
+                    Float(bitPattern: UInt32(littleEndian: raw.loadUnaligned(fromByteOffset: record + 4, as: UInt32.self))),
+                    Float(bitPattern: UInt32(littleEndian: raw.loadUnaligned(fromByteOffset: record + 8, as: UInt32.self)))
+                )
+            }
+            for triangle in stride(from: 0, to: indices.count, by: 3) {
+                let a = Int(indices[triangle]), b = Int(indices[triangle + 1]), c = Int(indices[triangle + 2])
+                guard a < vertexCount, b < vertexCount, c < vertexCount else { continue }
+                let pa = position(a)
+                // Twice the area, along the face's normal: the larger faces weigh more.
+                let weighted = simd_cross(position(b) - pa, position(c) - pa)
+                faceSum[a] += weighted
+                faceSum[b] += weighted
+                faceSum[c] += weighted
+            }
+            for vertex in 0 ..< vertexCount {
+                let length = simd_length(faceSum[vertex])
+                guard length > 0 else { continue }
+                var faces = faceSum[vertex] / length
+                let record = vertex * UntoldLODMesh.vertexStride
+                let packedNormal = UInt32(littleEndian: raw.loadUnaligned(fromByteOffset: record + 12, as: UInt32.self))
+                let normal = UntoldVertexPacking.unpackNormal(packedNormal)
+                if simd_dot(normal, faces) < 0 {
+                    faces = -faces
+                }
+                guard simd_dot(normal, faces) < settledNormalCosine else { continue }
+                raw.storeBytes(of: UntoldVertexPacking.packNormal(faces).littleEndian, toByteOffset: record + 12, as: UInt32.self)
+                // The tangent stays in the surface: its part along the new normal goes.
+                let packedTangent = UInt32(littleEndian: raw.loadUnaligned(fromByteOffset: record + 16, as: UInt32.self))
+                let tangent = UntoldVertexPacking.unpackTangent(packedTangent)
+                let inPlane = tangent.vector - faces * simd_dot(tangent.vector, faces)
+                let inPlaneLength = simd_length(inPlane)
+                if inPlaneLength > 1e-4 {
+                    raw.storeBytes(
+                        of: UntoldVertexPacking.packTangent(inPlane / inPlaneLength, handedness: tangent.handedness).littleEndian,
+                        toByteOffset: record + 16,
+                        as: UInt32.self
+                    )
+                }
+                replaced += 1
+            }
+        }
+        return replaced
+    }
+
     /// Orders the triangles for the GPU's vertex cache and keeps only the vertices they use.
     private static func compact(
         mesh: UntoldLODMesh,
@@ -544,6 +646,7 @@ enum UntoldMeshLODSimplifier {
             }
         }
         vertices.removeSubrange(vertexCount * UntoldLODMesh.vertexStride ..< vertices.count)
+        settleNormals(of: &vertices, vertexCount: vertexCount, indices: ordered)
 
         var lower = SIMD3<Float>(repeating: .greatestFiniteMagnitude)
         var upper = SIMD3<Float>(repeating: -.greatestFiniteMagnitude)
