@@ -78,6 +78,7 @@
         private var rateMapParameterBuffers: [[MTLBuffer?]] = Array(repeating: [nil, nil], count: maxInFlightCommandBuffers + 1)
         private var rateMapFrameCounter = 0
         private var loggedFoveationState: Bool?
+        private var loggedCaptureTargetSkip = false
         private let spatialGestureRecognizer = XRSpatialGestureRecognizer()
         private let xrEnvironmentLightingSystem = XREnvironmentLightingSystem()
         private var runtimeLightingModeObserverId: UUID?
@@ -625,69 +626,129 @@
                 }
             }
 
-            // 9. Encode any drawing commands that depend on the device position or orientation
-            guard let drawable = frame.queryDrawable() else {
+            // 9. Encode any drawing commands that depend on the device position or orientation.
+            // visionOS 26 hands a frame one drawable per target (the built-in display, and a
+            // capture target while the view is recorded or streamed); a layer with foveation
+            // or a render quality set aborts the app if the single-drawable query is used.
+            let drawables: [LayerRenderer.Drawable]
+            if #available(visionOS 26.0, *) {
+                drawables = frame.queryDrawables()
+            } else {
+                drawables = frame.queryDrawable().map { [$0] } ?? []
+            }
+            guard !drawables.isEmpty else {
                 #if ENGINE_STATS_ENABLED
                     renderer.finalizeXRStatsAndMonitors(frameStartTime: xrFrameStartTime)
                 #else
                     renderer.finalizeXRStatsAndMonitors(frameStartTime: 0.0)
                 #endif
-                // queryDrawable() can fail during shutdown/teardown; in that case the
+                // No drawables (shutdown/teardown, or the compositor cancelled the frame): the
                 // frame is already invalid and endSubmission() must not be called.
                 shouldEndSubmission = false
                 return
             }
-
-            // 10. Fetch the predicted device anchor from ARKit using the frameTiming information, and
-            // apply the anchor to your frame
-            let presentationInstant = drawable.frameTiming.presentationTime
-            let presentationTimeCA: TimeInterval = compositorInstantToCATime(presentationInstant)
-            var deviceAnchor = queryDeviceAnchorIfTrackingRunning(atTimestamp: presentationTimeCA)
-
-            // If predicted-time query misses, retry at "now" to reduce one-frame anchor gaps.
-            if deviceAnchor == nil {
-                let nowTimestamp = CACurrentMediaTime()
-                if let retryAnchor = queryDeviceAnchorIfTrackingRunning(atTimestamp: nowTimestamp) {
-                    deviceAnchor = retryAnchor
-                }
-            }
-
-            // Use current anchor if valid, otherwise fall back to last valid anchor.
-            // This prevents "Presenting a drawable without a device anchor" while maintaining
-            // stable rendering. We must always present the drawable once we have it.
-            if let anchor = deviceAnchor {
-                if missingAnchorFrameCount > 0 {
-                    print("✓ XR device anchor recovered after \(missingAnchorFrameCount) missing frame(s)")
-                }
-                missingAnchorFrameCount = 0
-                lastValidDeviceAnchor = anchor
-                drawable.deviceAnchor = anchor
-            } else if let cachedAnchor = lastValidDeviceAnchor {
-                missingAnchorFrameCount += 1
-                if shouldLogAnchorDiagnostics() {
-                    printXRAnchorDiagnostics(message: "XR device anchor missing; using cached anchor")
-                }
-                drawable.deviceAnchor = cachedAnchor
-            } else {
-                missingAnchorFrameCount += 1
-                if shouldLogAnchorDiagnostics() {
-                    printXRAnchorDiagnostics(message: "XR device anchor missing; no cached anchor available")
-                }
-            }
-            // Note: If we have no cached anchor either, drawable.deviceAnchor remains nil
-            // and the render loop will skip rendering but still present (required by compositor)
 
             // Re-check loading state right before render pass to catch any mutations that started
             // after our initial snapshot. This provides a second layer of protection against races.
             let loadingNow = AssetLoadingGate.shared.isLoadingAny
             let effectiveLoading = loading || loadingNow
 
-            executeXRSystemPass(frame: frame, drawable: drawable, loading: effectiveLoading)
+            for drawable in drawables {
+                // 10. Fetch the predicted device anchor from ARKit using the frameTiming information, and
+                // apply the anchor to your frame
+                let presentationInstant = drawable.frameTiming.presentationTime
+                let presentationTimeCA: TimeInterval = compositorInstantToCATime(presentationInstant)
+                var deviceAnchor = queryDeviceAnchorIfTrackingRunning(atTimestamp: presentationTimeCA)
+
+                // If predicted-time query misses, retry at "now" to reduce one-frame anchor gaps.
+                if deviceAnchor == nil {
+                    let nowTimestamp = CACurrentMediaTime()
+                    if let retryAnchor = queryDeviceAnchorIfTrackingRunning(atTimestamp: nowTimestamp) {
+                        deviceAnchor = retryAnchor
+                    }
+                }
+
+                // Use current anchor if valid, otherwise fall back to last valid anchor.
+                // This prevents "Presenting a drawable without a device anchor" while maintaining
+                // stable rendering. We must always present the drawable once we have it.
+                if let anchor = deviceAnchor {
+                    if missingAnchorFrameCount > 0 {
+                        print("✓ XR device anchor recovered after \(missingAnchorFrameCount) missing frame(s)")
+                    }
+                    missingAnchorFrameCount = 0
+                    lastValidDeviceAnchor = anchor
+                    drawable.deviceAnchor = anchor
+                } else if let cachedAnchor = lastValidDeviceAnchor {
+                    missingAnchorFrameCount += 1
+                    if shouldLogAnchorDiagnostics() {
+                        printXRAnchorDiagnostics(message: "XR device anchor missing; using cached anchor")
+                    }
+                    drawable.deviceAnchor = cachedAnchor
+                } else {
+                    missingAnchorFrameCount += 1
+                    if shouldLogAnchorDiagnostics() {
+                        printXRAnchorDiagnostics(message: "XR device anchor missing; no cached anchor available")
+                    }
+                }
+                // Note: If we have no cached anchor either, drawable.deviceAnchor remains nil
+                // and the render loop will skip rendering but still present (required by compositor)
+
+                if drawsScene(into: drawable) {
+                    executeXRSystemPass(frame: frame, drawable: drawable, loading: effectiveLoading)
+                } else {
+                    presentCleared(drawable)
+                }
+            }
             #if ENGINE_STATS_ENABLED
                 renderer.finalizeXRStatsAndMonitors(frameStartTime: xrFrameStartTime)
             #else
                 renderer.finalizeXRStatsAndMonitors(frameStartTime: 0.0)
             #endif
+        }
+
+        /// Whether the scene is drawn into a drawable. The built-in display always; another
+        /// target (a capture of the view for recording or streaming) only while its textures are
+        /// the size the frame's resources are allocated at — every sizeable resource is sized
+        /// to one viewport, and a second size would reallocate them twice a frame.
+        private func drawsScene(into drawable: LayerRenderer.Drawable) -> Bool {
+            if #available(visionOS 26.0, *), drawable.target != .builtIn,
+               let texture = drawable.colorTextures.first,
+               renderInfo.viewPort != simd_float2(Float(texture.width), Float(texture.height))
+            {
+                if !loggedCaptureTargetSkip {
+                    loggedCaptureTargetSkip = true
+                    print("XR: a \(texture.width)×\(texture.height) capture drawable differs from the \(Int(renderInfo.viewPort.x))×\(Int(renderInfo.viewPort.y)) frame resources; presenting it cleared")
+                }
+                return false
+            }
+            return true
+        }
+
+        /// Presents a drawable with its colour cleared (the immersion mode's alpha) and its depth
+        /// cleared, without drawing the scene: the compositor wants every drawable it handed out
+        /// presented.
+        private func presentCleared(_ drawable: LayerRenderer.Drawable) {
+            guard let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() else { return }
+            commandBuffer.label = "XR Cleared Drawable"
+            for viewIndex in drawable.views.indices
+                where viewIndex < drawable.colorTextures.count && viewIndex < drawable.depthTextures.count
+            {
+                let descriptor = MTLRenderPassDescriptor()
+                descriptor.colorAttachments[0].texture = drawable.colorTextures[viewIndex]
+                descriptor.colorAttachments[0].loadAction = .clear
+                descriptor.colorAttachments[0].storeAction = .store
+                descriptor.colorAttachments[0].clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: Double(getAlphaForImmersionMode()))
+                descriptor.depthAttachment.texture = drawable.depthTextures[viewIndex]
+                descriptor.depthAttachment.loadAction = .clear
+                descriptor.depthAttachment.storeAction = .store
+                descriptor.depthAttachment.clearDepth = 0.0
+                if viewIndex < drawable.rasterizationRateMaps.count {
+                    descriptor.rasterizationRateMap = drawable.rasterizationRateMaps[viewIndex]
+                }
+                commandBuffer.makeRenderCommandEncoder(descriptor: descriptor)?.endEncoding()
+            }
+            drawable.encodePresent(commandBuffer: commandBuffer)
+            commandBuffer.commit()
         }
 
         private func updateSpatialInputState() {
