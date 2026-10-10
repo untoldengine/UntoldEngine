@@ -98,6 +98,7 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
     case manifestDecodeFailed = 1086
     case assetIsAnimationOnly = 1087
     case physicsPoseJointCountMismatch = 1088
+    case animationClipNoMatchingJoints = 1089
 
     public var description: String {
         switch self {
@@ -275,6 +276,8 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
             return "This is a .untoldanim animation clip, not a mesh — use setEntityAnimations instead of setEntityMeshAsync"
         case .physicsPoseJointCountMismatch:
             return "Physics pose joint count does not match the skeleton"
+        case .animationClipNoMatchingJoints:
+            return "animation clip matches zero joints on the bound skeleton (check for a namespace prefix or hierarchy mismatch between the exported clip and the skeleton)"
         }
     }
 }

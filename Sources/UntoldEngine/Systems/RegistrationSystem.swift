@@ -1124,8 +1124,18 @@ private func registerUntoldRuntimeAsset(
             if let animComp = ensureAnimationComponent(entityId: animTarget, errorEntityId: entityId) {
                 let registeredNames = registerRuntimeAnimationClips(animClips, preferredName: animClips.first?.name ?? "", to: animComp)
                 appendAnimationSourceURLIfNeeded(url, to: animComp)
-                if animComp.currentAnimation == nil, let first = registeredNames.first {
-                    animComp.currentAnimation = animComp.animationClips[first]
+                if animComp.currentAnimation == nil, let first = registeredNames.first,
+                   let selectedClip = animComp.animationClips[first]
+                {
+                    if let skeleton = scene.get(component: SkeletonComponent.self, for: animTarget)?.skeleton {
+                        warnIfClipHasNoMatchingJoints(
+                            entityId: animTarget,
+                            name: first,
+                            clip: selectedClip,
+                            skeleton: skeleton
+                        )
+                    }
+                    animComp.currentAnimation = selectedClip
                 }
             }
         }
@@ -3950,9 +3960,18 @@ public func setEntityAnimations(entityId: EntityID, filename: String, withExtens
                 appendAnimationSourceURLIfNeeded(url, to: animationComponent)
 
                 if animationComponent.currentAnimation == nil,
-                   let selectedName = registeredNames.first(where: { $0 == name }) ?? registeredNames.first
+                   let selectedName = registeredNames.first(where: { $0 == name }) ?? registeredNames.first,
+                   let selectedClip = animationComponent.animationClips[selectedName]
                 {
-                    animationComponent.currentAnimation = animationComponent.animationClips[selectedName]
+                    if let skeleton = scene.get(component: SkeletonComponent.self, for: targetEntityId)?.skeleton {
+                        warnIfClipHasNoMatchingJoints(
+                            entityId: targetEntityId,
+                            name: selectedName,
+                            clip: selectedClip,
+                            skeleton: skeleton
+                        )
+                    }
+                    animationComponent.currentAnimation = selectedClip
                 }
             }
         }
