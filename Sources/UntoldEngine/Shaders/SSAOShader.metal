@@ -34,6 +34,19 @@ static float3 reconstructViewPos(float2 uv, float linearDepth, float2 projScale)
     return float3(xy, linearDepth);
 }
 
+// The screen UV a depth texel was projected to: its own UV, unless the eye was drawn through
+// a rasterization rate map (XR foveation, rateMapSizes.x > 0: the map's screen size in xy, the
+// depth texture's size in zw). Such a texture is dense where the eyes look and sparse in the
+// periphery, so a view position rebuilt from the texel's own UV would bend the geometry there
+// and shade false creases; the map's decoder says where the texel sits on screen.
+static float2 screenUVOfTexel(float2 uv, constant rasterization_rate_map_data *rateMap, float4 rateMapSizes) {
+    if (rateMapSizes.x <= 0.0 || rateMapSizes.z <= 0.0) {
+        return uv;
+    }
+    rasterization_rate_map_decoder decoder(*rateMap);
+    return decoder.map_physical_to_screen_coordinates(uv * rateMapSizes.zw) / rateMapSizes.xy;
+}
+
 fragment float4 fragmentSSAOShader(VertexCompositeOutput vertexOut [[stage_in]],
                                    depth2d<float> depthTexture [[texture(ssaoDepthTextureIndex)]],
                                    constant float &radius    [[buffer(ssaoPassRadiusIndex)]],
@@ -43,7 +56,9 @@ fragment float4 fragmentSSAOShader(VertexCompositeOutput vertexOut [[stage_in]],
                                    constant float2 &viewPort [[buffer(ssaoPassViewPortIndex)]],
                                    constant float2 &frustumPlanes [[buffer(ssaoPassFrustumIndex)]],
                                    constant bool &reverseZ [[buffer(ssaoPassReverseZIndex)]],
-                                   constant float2 &projScale [[buffer(ssaoPassProjScaleIndex)]]
+                                   constant float2 &projScale [[buffer(ssaoPassProjScaleIndex)]],
+                                   constant rasterization_rate_map_data *rateMap [[buffer(ssaoPassRateMapDataIndex)]],
+                                   constant float4 &rateMapSizes [[buffer(ssaoPassRateMapSizesIndex)]]
                                    )
 {
     if (!enabled){
@@ -62,7 +77,7 @@ fragment float4 fragmentSSAOShader(VertexCompositeOutput vertexOut [[stage_in]],
     float2 texelSize = 1.0 / max(viewPort, float2(1.0));
     float pixelRadius = clamp(radius * 220.0 / max(centerDepth, 0.001), 2.0, 48.0);
 
-    float3 centerPosition = reconstructViewPos(vertexOut.uvCoords, centerDepth, projScale);
+    float3 centerPosition = reconstructViewPos(screenUVOfTexel(vertexOut.uvCoords, rateMap, rateMapSizes), centerDepth, projScale);
     // No normal G-buffer is available here — normalMap/positionMap are memoryless
     // (TBDR tile-only) in normal rendering and can't be bound to a later, separate
     // pass. Derive the surface normal from the depth buffer itself via screen-space
@@ -94,7 +109,7 @@ fragment float4 fragmentSSAOShader(VertexCompositeOutput vertexOut [[stage_in]],
         }
 
         float sampleLinearDepth = linearizeDepth(sampleRawDepth, frustumPlanes.x, frustumPlanes.y, reverseZ);
-        float3 samplePosition = reconstructViewPos(sampleUV, sampleLinearDepth, projScale);
+        float3 samplePosition = reconstructViewPos(screenUVOfTexel(sampleUV, rateMap, rateMapSizes), sampleLinearDepth, projScale);
         float3 toSample = samplePosition - centerPosition;
         float sampleDistance = length(toSample);
         if (sampleDistance < 1e-5) {

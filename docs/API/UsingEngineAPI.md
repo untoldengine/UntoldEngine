@@ -82,6 +82,17 @@ setRendering(.occlusionCullingMaxCameraStep(0.5))
 getOcclusionCullingMaxCameraStep()
 ```
 
+On visionOS, a layer configured with `isFoveationEnabled` hands the engine a rasterization
+rate map per eye, and the engine draws through it by default: dense where the eyes look,
+coarse in the periphery, and the only configuration in which the compositor accepts a
+`maxRenderQuality` above the platform default. Disabling it in such a layer is a diagnostic
+(the frame is drawn uniformly into textures the compositor still unwarps):
+
+```swift
+setRendering(.foveatedRendering(.disabled))
+getFoveatedRenderingEnabled()
+```
+
 ## PostFX
 
 Use `setPostFX` for individual post-processing and SSAO settings:

@@ -548,6 +548,14 @@ func executeHZBOcclusionCulling(
     computeEncoder.setBytes(&mipCount, length: MemoryLayout<UInt32>.stride, index: Int(hzbCullPassMipCountIndex.rawValue))
     computeEncoder.setBytes(&reverseZFlag, length: MemoryLayout<UInt32>.stride, index: Int(hzbCullPassReverseZIndex.rawValue))
     computeEncoder.setBytes(&occlusionBias, length: MemoryLayout<Float>.stride, index: Int(hzbCullPassOcclusionBiasIndex.rawValue))
+    // The rasterization rate map the pyramid's frame was drawn through (XR foveation): the
+    // rects are moved into the pyramid's physical layout before it is sampled.
+    bindRateMap(
+        pyramidFrame.rateMapData,
+        to: computeEncoder,
+        dataIndex: Int(hzbCullPassRateMapDataIndex.rawValue),
+        sizesIndex: Int(hzbCullPassRateMapSizesIndex.rawValue)
+    )
     computeEncoder.setTexture(hzbDepthPyramid, index: Int(hzbCullPassDepthPyramidTextureIndex.rawValue))
 
     let tew = pipelineState.threadExecutionWidth
@@ -1257,9 +1265,11 @@ extension HZBPyramidFrame {
               let cameraComponent = scene.get(component: CameraComponent.self, for: camera)
         else { return nil }
         let view = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
+        // In stereo the last eye drawn: its view, projection and rate map alike.
         return HZBPyramidFrame(
             viewProjection: simd_mul(renderInfo.perspectiveSpace, view),
-            cameraPosition: eyePosition(ofView: view)
+            cameraPosition: eyePosition(ofView: view),
+            rateMapData: renderInfo.xrFoveation?.rateMapData
         )
     }
 }
