@@ -30,6 +30,15 @@ public final class TAAParams: @unchecked Sendable {
     private let lock = NSLock()
     private var historyWeightValue: Float = 0.9
     private var clipGammaValue: Float = 1.25
+    private var jitterScaleValue: Float = 1
+
+    /// Scales the sub-pixel jitter: 1 is the full half-pixel sequence, 0 draws every frame
+    /// from the pixel centre (the resolve still runs, as a diagnostic of what the jitter
+    /// itself changes). Clamped to [0, 1].
+    public var jitterScale: Float {
+        get { lock.withLock { jitterScaleValue } }
+        set { lock.withLock { jitterScaleValue = min(max(newValue, 0), 1) } }
+    }
 
     /// The share of the (clipped) history in each resolved pixel: higher converges further
     /// and reacts slower. Clamped to [0, 0.98]; the default is 0.9.
@@ -119,7 +128,7 @@ final class TemporalAntiAliasing: @unchecked Sendable {
         currentJitterPixels = .zero
 
         if antiAliasingMode.isTemporal, let screen = screenSize(), screen.x > 0, screen.y > 0 {
-            let pixels = taaJitterSequence[jitterIndex % taaJitterSequence.count]
+            let pixels = taaJitterSequence[jitterIndex % taaJitterSequence.count] * TAAParams.shared.jitterScale
             jitterIndex += 1
             let ndc = simd_float2(2 * pixels.x / screen.x, 2 * pixels.y / screen.y)
             projection.columns.2.x += ndc.x
