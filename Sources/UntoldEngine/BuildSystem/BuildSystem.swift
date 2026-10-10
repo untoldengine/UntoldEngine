@@ -432,12 +432,16 @@ import Foundation
                 try content.write(to: fileURL, atomically: true, encoding: .utf8)
             }
 
-            // Create GameData directory structure. New projects are created on the
-            // legacy layout today; #1335 switches this to ProjectLayout(kind: .rootLevel, ...).
-            let layout = ProjectLayout(kind: .legacy, projectRoot: projectDir, projectName: settings.projectName)
-            let gameDataDir = layout.gameDataDirectory
+            // Create GameData, Resources and Docs at the project root.
+            let layout = ProjectLayout(kind: .rootLevel, projectRoot: projectDir, projectName: settings.projectName)
 
-            try createGameDataDirectories(at: gameDataDir)
+            try createGameDataDirectories(at: layout.gameDataDirectory)
+            if let resourcesDirectory = layout.resourcesDirectory {
+                try fileManager.createDirectory(at: resourcesDirectory, withIntermediateDirectories: true)
+            }
+            if let docsDirectory = layout.docsDirectory {
+                try fileManager.createDirectory(at: docsDirectory, withIntermediateDirectories: true)
+            }
 
             Logger.log(message: "📄 Created \(filesToWrite.count) files from embedded templates")
 

@@ -154,12 +154,11 @@ import Foundation
             // Build sources section. Storyboards under Base.lproj are compiled
             // from the Sources tree; do not add Base.lproj as a raw folder
             // resource or the app bundle will contain an uncompiled storyboard.
+            // GameData lives at the project root, a sibling of Sources, not nested inside it.
             let sourcesSection = """
                 sources:
                   - path: Sources
-                    excludes:
-                      - "\(settings.projectName)/GameData"
-                  - path: Sources/\(settings.projectName)/GameData
+                  - path: GameData
                     type: folder
                     buildPhase: resources
             """
@@ -251,7 +250,7 @@ import Foundation
                     sources:
                       - path: \(settings.projectName) macOS
                       - path: Sources/\(settings.projectName)\(componentSourcesIfEnabled)
-                      - path: Sources/\(settings.projectName)/GameData
+                      - path: GameData
                         type: folder
                         buildPhase: resources
                 \(dependenciesWithKit)
@@ -280,7 +279,7 @@ import Foundation
                     sources:
                       - path: \(settings.projectName) iOS
                       - path: Sources/\(settings.projectName)\(componentSourcesIfEnabled)
-                      - path: Sources/\(settings.projectName)/GameData
+                      - path: GameData
                         type: folder
                         buildPhase: resources
                     dependencies:
@@ -314,7 +313,7 @@ import Foundation
                     sources:
                       - path: \(settings.projectName) iOS AR
                       - path: Sources/\(settings.projectName)\(componentSourcesIfEnabled)
-                      - path: Sources/\(settings.projectName)/GameData
+                      - path: GameData
                         type: folder
                         buildPhase: resources
                     dependencies:
@@ -344,7 +343,7 @@ import Foundation
                     sources:
                       - path: \(settings.projectName) visionOS
                       - path: Sources/\(settings.projectName)\(componentSourcesIfEnabled)
-                      - path: Sources/\(settings.projectName)/GameData
+                      - path: GameData
                         type: folder
                         buildPhase: resources
                     dependencies:

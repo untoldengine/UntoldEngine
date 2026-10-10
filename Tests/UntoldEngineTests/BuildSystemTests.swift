@@ -426,9 +426,11 @@ final class BuildSystemTests: XCTestCase {
         XCTAssertTrue(yamlContent.contains("PRODUCT_BUNDLE_IDENTIFIER: \(bundleID)"),
                       "XcodeGen spec should include bundle identifier")
 
-        // Verify GameData is also included as resources
-        XCTAssertTrue(yamlContent.contains("path: Sources/\(projectName)/GameData"),
+        // Verify GameData is also included as resources, at the project root
+        XCTAssertTrue(yamlContent.contains("path: GameData"),
                       "XcodeGen spec should include GameData path")
+        XCTAssertFalse(yamlContent.contains("path: Sources/\(projectName)/GameData"),
+                       "GameData should no longer be nested under Sources")
 
         // Verify project structure
         XCTAssertTrue(yamlContent.contains("name: \(projectName)"),
@@ -1212,11 +1214,16 @@ final class BuildSystemTests: XCTestCase {
                       "Should include visionOS source path")
 
         // All targets should share the same Sources folder
-        // Each target references it twice: once for the source path and once for GameData
         let sourcesPattern = "path: Sources/MyMultiPlatformGame"
         let occurrences = yamlContent.components(separatedBy: sourcesPattern).count - 1
-        XCTAssertEqual(occurrences, 8,
-                       "All 4 targets should reference shared Sources folder (2 refs per target)")
+        XCTAssertEqual(occurrences, 4,
+                       "All 4 targets should reference shared Sources folder")
+
+        // GameData lives at the project root, a sibling of Sources, referenced once per target
+        let gameDataPattern = "- path: GameData"
+        let gameDataOccurrences = yamlContent.components(separatedBy: gameDataPattern).count - 1
+        XCTAssertEqual(gameDataOccurrences, 4,
+                       "All 4 targets should reference the root-level GameData folder")
     }
 
     func testMultiPlatformWithTeamID() throws {

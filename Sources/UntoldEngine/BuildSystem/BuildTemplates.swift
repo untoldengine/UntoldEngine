@@ -53,6 +53,9 @@ import Foundation
                         {{CODE_COMPONENTS_PACKAGE_DEPENDENCIES}}
                         .product(name: "UntoldEngineShaderSupport", package: "UntoldEngine")
                     ],
+                    path: ".",
+                    exclude: ["Resources", "Docs", "README.md", "project.yml", ".gitignore", "{{PROJECT_NAME}}.xcodeproj"],
+                    sources: ["Sources/{{PROJECT_NAME}}"],
                     resources: [
                         .process("GameData")
                     ],
@@ -1460,41 +1463,29 @@ import Foundation
 
         ## 🎮 About
 
-        This is a macOS game project built with UntoldEngine. The project includes all your game data (scenes, scripts, assets) bundled and ready to run.
+        This is a game project built with UntoldEngine.
 
         ## 🚀 Quick Start
 
-        ### Build and Run
-
-        ```bash
-        swift build
-        swift run
-        ```
-
-        ### Open in Xcode
-
-        ```bash
-        open Package.swift
-        ```
-
-        Then press `Cmd+R` to build and run.
+        Open `{{PROJECT_NAME}}.xcodeproj` (macOS projects can also `swift build && swift run`, or `open Package.swift`), then press `Cmd+R` to build and run.
 
         ## 📁 Project Structure
 
         ```
         {{PROJECT_NAME}}/
-        ├── Package.swift              # Swift Package configuration
-        ├── README.md              
+        ├── .gitignore
+        ├── README.md
+        ├── project.yml                # xcodegen spec; regenerate with: xcodegen generate
+        ├── {{PROJECT_NAME}}.xcodeproj  # generated from project.yml -- do not edit directly
+        ├── GameData/                  # bundled at build time; everything the engine reads
+        │   ├── Scenes/                 # .untoldscene files
+        │   ├── Scripts/                 # USC scripts (.uscript)
+        │   ├── Models/                  # cooked models (.untoldpack)
+        │   ├── Textures/  Animations/  Gaussians/  StreamModels/  Shaders/  LUT/
+        ├── Resources/                 # artist sources (.blend, .usd, references) -- never bundled
+        ├── Docs/                      # design notes, decisions -- whatever you want written down
         └── Sources/
-            └── {{PROJECT_NAME}}/
-                ├── main.swift         # Entry point
-                ├── GameRuntime.swift  # Game loader
-                └── GameData/          # Bundled game content
-                    ├── Scenes/        # Scene files (.json)
-                    ├── Scripts/       # USC scripts (.uscript)
-                    ├── Models/        # 3D models
-                    ├── Textures/      # Texture files
-                    └── Shaders/       # Compiled Metal shaders
+            └── {{PROJECT_NAME}}/       # app code
         ```
 
         ## 🎯 Requirements
@@ -1505,9 +1496,9 @@ import Foundation
 
         ## 📝 Notes
 
-        - This project uses UntoldEngine as a Swift Package dependency from GitHub
-        - All game data is bundled as resources
-        - USC scripts are loaded and executed at runtime
+        - This project uses UntoldEngine as a Swift Package dependency from GitHub.
+        - `GameData` is bundled as a resource folder; nothing under `Resources/` or `Docs/` ships in the built app.
+        - USC scripts are loaded and executed at runtime.
 
         ## 🔗 UntoldEngine
 
@@ -1516,6 +1507,19 @@ import Foundation
         ---
 
         Built with ❤️ using UntoldEngine
+        """
+
+        // MARK: - .gitignore Template
+
+        static let gitignore = """
+        *.xcodeproj/
+        .build/
+        .swiftpm/
+        DerivedData/
+        xcuserdata/
+        .DS_Store
+        *.blend1
+
         """
 
         // MARK: - Multi-Platform Templates
@@ -1798,6 +1802,7 @@ import Foundation
             case .macOS:
                 return [
                     "Package.swift": packageSwift,
+                    ".gitignore": gitignore,
                     "README.md": readmeMd,
                     "Sources/{{PROJECT_NAME}}/AppDelegate.swift": appDelegateSwift,
                     "Sources/{{PROJECT_NAME}}/GameScene.swift": macOSGameSceneSwift,
@@ -1808,6 +1813,7 @@ import Foundation
                 ]
             case .iOS:
                 return [
+                    ".gitignore": gitignore,
                     "README.md": readmeMd,
                     "Sources/{{PROJECT_NAME}}/AppDelegate.swift": iOSAppDelegateSwift,
                     "Sources/{{PROJECT_NAME}}/GameScene.swift": iOSGameSceneSwift,
@@ -1819,6 +1825,7 @@ import Foundation
             case .visionOS:
                 // VisionOS uses SwiftUI App structure with CompositorLayer
                 return [
+                    ".gitignore": gitignore,
                     "README.md": readmeMd,
                     "Sources/{{PROJECT_NAME}}/GameScene.swift": visionOSGameSceneSwift,
                     "Sources/{{PROJECT_NAME}}/GameSceneUtils.swift": visionOSGameSceneUtilsSwift,
@@ -1916,6 +1923,7 @@ import Foundation
         /// Get template files for iOS AR specifically
         static func getTemplateFilesForIOSAR() -> [String: String] {
             [
+                ".gitignore": gitignore,
                 "README.md": readmeMd,
                 "Sources/{{PROJECT_NAME}}/AppDelegate.swift": iOSAppDelegateSwift,
                 "Sources/{{PROJECT_NAME}}/GameScene.swift": iOSARGameSceneSwift,
@@ -1930,6 +1938,7 @@ import Foundation
         /// Structure: Platform-specific folders + Sources/{ProjectName}/ for shared code
         static func getTemplateFilesForMultiPlatform() -> [String: String] {
             [
+                ".gitignore": gitignore,
                 "README.md": readmeMd,
 
                 // macOS target - platform-specific files
