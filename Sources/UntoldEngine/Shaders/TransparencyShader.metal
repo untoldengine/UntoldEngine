@@ -78,7 +78,18 @@ fragment TransparencyOutput fragmentTransparencyShader(
 
     // Glass is drawn in two goes (see TransparencyPassFaces): this one keeps the faces
     // turned away from the viewer, or the ones turned towards the viewer.
-    bool turnedAway = dot(normalize(uniforms.normalMatrix * in.normal), viewVector) < 0.0;
+    // Which side of the face is seen is decided by the face itself, not by the shading
+    // normal: a smooth normal bends towards the side faces at the edge of a pane, and
+    // from a little to the left or to the right (the two eyes of a headset) it would put
+    // the same edge pixels on the far side for one eye and on the near side for the
+    // other. The derivative normal's sign follows the winding on screen; the vertex
+    // normal picks the outward one of the two, so winding and mirrored transforms still
+    // do not matter. A degenerate face (no derivatives) falls back to the shading normal.
+    float3 shadingNormal = normalize(uniforms.normalMatrix * in.normal);
+    float3 faceNormal = cross(dfdx(verticesInWorldSpace.xyz), dfdy(verticesInWorldSpace.xyz));
+    faceNormal = dot(faceNormal, shadingNormal) < 0.0 ? -faceNormal : faceNormal;
+    float faceLength = length(faceNormal);
+    bool turnedAway = dot(faceLength > 0.0 ? faceNormal / faceLength : shadingNormal, viewVector) < 0.0;
     if ((faces == transparencyPassFarFaces && !turnedAway) || (faces == transparencyPassNearFaces && turnedAway)) {
         discard_fragment();
     }
@@ -103,7 +114,9 @@ fragment TransparencyOutput fragmentTransparencyShader(
         : normalize(uniforms.normalMatrix * in.normal);
     // A face of glass is lit on the side the viewer sees: the far face of a pane
     // reflects from inside it what its near face reflects from outside.
-    if (faces != transparencyPassEveryFace && turnedAway) {
+    // The shading normal of a pane faces the viewer whichever go draws the face: the
+    // face's side and the smooth normal can disagree at an edge.
+    if (faces != transparencyPassEveryFace && dot(normal, viewVector) < 0.0) {
         normal = -normal;
     }
 

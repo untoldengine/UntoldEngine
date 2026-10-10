@@ -895,6 +895,27 @@ public struct Material {
         alphaMode == .blend || transmitsLight
     }
 
+    /// What a polished non-metal lets cross at one face seen head on: one minus the
+    /// dielectric reflectance of 0.04 that TransparencyShader.metal takes as F0
+    /// (`environmentReflectance(float3(0.04), ...)`), collapsed to its head-on value since
+    /// there is no view angle or roughness per pixel here. Keep the two in step.
+    static let dielectricHeadOnTransmittance: Float = 1 - 0.04
+
+    /// Whether a pane is mostly itself (its tint, its frost, its reflections) rather than
+    /// what is behind it: less than half of the light crosses it. A headset's compositor
+    /// reprojects a pixel by the depth it finds, so such a pane writes its own depth there,
+    /// while a clear pane leaves the depth of what is seen through it. Mirrors the share of
+    /// light that crosses in TransparencyShader.metal.
+    public var paneShowsItself: Bool {
+        let coverage = baseColorValue.w
+        let t = min(max((roughnessValue - GLASS_CLEAR_UP_TO_ROUGHNESS) / (GLASS_FROSTED_FROM_ROUGHNESS - GLASS_CLEAR_UP_TO_ROUGHNESS), 0), 1)
+        let clearShare = 1 - t * t * (3 - 2 * t)
+        let brightness = max(baseColorValue.x, max(baseColorValue.y, baseColorValue.z)).squareRoot()
+        let crosses = (1 - metallicValue) * brightness * Self.dielectricHeadOnTransmittance
+        let through = (1 - coverage) + coverage * transmission * clearShare * crosses
+        return through < 0.5
+    }
+
     public var stScale: Float = 1.0
 
     @available(*, deprecated, message: "Material name is no longer used for initialization.")
