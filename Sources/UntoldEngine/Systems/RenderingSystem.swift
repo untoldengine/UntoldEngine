@@ -170,6 +170,10 @@ func UpdateXRRenderingSystem(commandBuffer: MTLCommandBuffer, passDescriptor: MT
     do {
         let graph = try buildExecutableGameModeGraph()
 
+        // The eye's rasterization rate map (visionOS foveation) on the passes that draw the
+        // scene, after the build: a rebuild may have recreated their descriptors.
+        applyXRFoveationToSceneRenderPassDescriptors()
+
         #if ENGINE_STATS_ENABLED
             let encodeStart = shouldRecordStatsInThisCallback ? CACurrentMediaTime() : 0.0
         #endif

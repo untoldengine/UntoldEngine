@@ -86,6 +86,16 @@ public enum RenderingProperty: Sendable {
     /// frustum keeps. In scene units; the default is 0.5. See
     /// `getOcclusionCullingMaxCameraStep()` to read the current value.
     case occlusionCullingMaxCameraStep(Float)
+    /// Whether the XR frame is drawn through the rasterization rate maps the visionOS
+    /// compositor provides when the layer is configured with foveation enabled
+    /// (`LayerRenderer.Configuration.isFoveationEnabled`): dense where the eyes look, coarse
+    /// in the periphery, and the only configuration in which the compositor accepts a render
+    /// quality above the platform default. Enabled by default; a layer configured without
+    /// foveation provides no maps and draws uniformly whatever this says. Disabling it in a
+    /// foveated layer is a diagnostic: the frame is then drawn uniformly into textures the
+    /// compositor still unwarps, so the picture is distorted. See
+    /// `getFoveatedRenderingEnabled()` to read the current value.
+    case foveatedRendering(RenderingToggle)
 }
 
 public enum RenderingToggle: Sendable {
@@ -148,7 +158,17 @@ public func setRendering(_ property: RenderingProperty) {
         SmallObjectCulling.minimumPixels = pixels.isFinite ? max(pixels, 0) : 0
     case let .occlusionCullingMaxCameraStep(step):
         HZBOcclusionCulling.maxCameraStep = step.isFinite ? max(step, 0) : 0
+    case .foveatedRendering(.enabled):
+        xrFoveatedRenderingEnabled = true
+    case .foveatedRendering(.disabled):
+        xrFoveatedRenderingEnabled = false
     }
+}
+
+/// Whether the XR frame draws through the compositor's rasterization rate maps when the layer
+/// provides them. See `RenderingProperty.foveatedRendering`.
+public func getFoveatedRenderingEnabled() -> Bool {
+    xrFoveatedRenderingEnabled
 }
 
 public enum RenderResourceQuery {

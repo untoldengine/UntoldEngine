@@ -100,6 +100,8 @@ defer { frame.endSubmission() }
 
 The `defer` is important: `endSubmission()` **must** be called even if rendering fails partway through. If it isn't called, the compositor stalls. The `defer` guarantees this regardless of how the function exits.
 
+**Drawables.** On visionOS 26 the frame is queried with `frame.queryDrawables()`, which returns one drawable per target: the built-in display, plus a capture target while the view is being recorded or streamed. A layer configured with foveation or a render quality aborts the app ("BUG IN CLIENT: called cp_frame_query_drawable() which does not support setting render quality or fovea") if the older single-drawable `queryDrawable()` is used, which the engine still calls on visionOS 2. An empty array means the compositor cancelled the frame: it is left without `endSubmission()`. Every drawable is presented; the scene is drawn into the built-in one and into a capture drawable only while its textures are the size the frame's resources are allocated at — otherwise it is presented cleared, since every sizeable resource is sized to one viewport and a second size would reallocate them twice a frame.
+
 ### 2e. Device Anchor Acquisition
 
 ```swift
@@ -167,6 +169,15 @@ The compositor provides the exact asymmetric projection for each eye. This accou
 - `renderInfo.currentEye = viewIndex` — tells uniform uploads which eye's matrices to use
 - The base pass mode: `.mixed` immersion omits the base pass (camera passthrough is the background), `.full` immersion renders the skybox
 
+**Foveation (rasterization rate maps).** With `isFoveationEnabled` in the app's `CompositorLayerConfiguration`, the compositor hands each eye a `MTLRasterizationRateMap` and colour/depth textures of the map's *physical* size, smaller than the *screen* the eye sees; the GPU draws through the map (dense where the eyes look, coarse in the periphery) and the compositor unwarps the texture for the display. It is also the only configuration in which the compositor accepts a `maxRenderQuality` above the platform default. The engine supports it as follows (`XRFoveation.swift`, on by default, `setRendering(.foveatedRendering(.disabled))` to ignore the maps for diagnosis):
+
+- `executeXRSystemPass` makes an `XRFoveationFrame` per eye (`renderInfo.xrFoveation`): the map, the eye's viewport in the map's screen space (`view.textureMap.viewport`), and the map's parameter data copied into a ring of shared buffers for the shaders. `renderInfo.viewPort` stays the texture size, the physical size, so every sizeable resource is allocated at it.
+- After the graph is built, `applyXRFoveationToSceneRenderPassDescriptors` attaches the map to the descriptors of the passes that rasterize the scene at drawable size (G-buffer + light, the deferred colour that transparency/wireframe/debug draw into, environment/sky/grid, splats, gizmos), and each of those encoders sets the eye's viewport (`applyXRFoveationViewport`) in the map's screen space. Under a map, Metal reads a descriptor's `renderTargetWidth/Height` and the viewport in *screen* pixels (measured on a Mac GPU, and seen on the headset as a screen-fixed rectangle outside which nothing was drawn), so the attached descriptors leave the target size at 0 — the attachments' own size — and get it back when the map is detached. The full-screen passes (SSAO, post-processing, anti-aliasing, the output transform into the compositor's texture) keep plain descriptors: they copy physical pixels one to one and the layout is already the map's.
+- Two kinds of shader decode the map (`rasterization_rate_map_decoder`): SSAO, which rebuilds view positions from a depth texel's UV and must use the texel's *screen* position; and the occlusion culls (`hzbCullVisibleEntities`, `gaussianChunkCull`, the per-splat test), which project boxes and splats to screen UV and sample a pyramid laid out in physical space — the rect or point goes through the map first (`HZBOcclusion.h`). The pyramid carries the map it was drawn through into the next frame's culls (`HZBPyramidFrame.rateMapData`).
+- The Gaussian fragment takes its offset from the splat centre from a varying rather than from `[[position]]`, which the rate map places in the physical texture. Fragment position is physical everywhere else too, which is what every one-to-one texture read wants; `SmallObjectCulling` measures its pixel threshold against the screen height.
+
+Without foveation (the layer configured without it, the simulator), `drawable.rasterizationRateMaps` is empty and the frame is drawn uniformly exactly as before.
+
 ### 3c. HZB Pyramid (built once after both eyes)
 
 ```swift
@@ -220,7 +231,7 @@ Selection rays update from interaction events, not continuously as the user look
         ├─ frame.endUpdate()
         ├─ wait(until: optimalInputTime)       (sleep until compositor deadline)
         ├─ frame.startSubmission()
-        ├─ queryDrawable()                     (get per-eye textures)
+        ├─ queryDrawables()                    (one drawable per target; the old single query aborts a foveated layer)
         ├─ queryDeviceAnchor() → fallback chain → drawable.deviceAnchor = anchor
         │
         └─ executeXRSystemPass()

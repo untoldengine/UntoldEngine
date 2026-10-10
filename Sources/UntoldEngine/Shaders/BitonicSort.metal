@@ -19,6 +19,7 @@
 #include "../../CShaderTypes/ShaderTypes.h"
 #include "ShaderStructs.h"
 #include "ShadersUtils.h"
+#include "HZBOcclusion.h"
 using namespace metal;
 
 
@@ -73,14 +74,18 @@ kernel void gaussianFinalizeVisibleSet(
 // (one thread per resident splat, head-centre view) and gaussianChunkDecodePreprocess
 // (GaussianChunkPreprocess.metal, one threadgroup per visible chunk, either eye) so the two
 // paths keep exactly the same splats: centre inside the guard-banded clip volume, then
-// optionally not behind the previous frame's HZB.
+// optionally not behind the previous frame's HZB. `hzbRateMap` and `hzbRateMapSizes` are the
+// rasterization rate map the pyramid was drawn through, if any (HZBOcclusion.h): the centre's
+// screen UV is moved into the pyramid's physical layout before the sample.
 inline bool gaussianClipCentrePassesCull(
     float4 centerClip,
     float clipGuardBand,
     uint hzbReverseZ,
     float hzbOcclusionBias,
     uint hzbValid,
-    texture2d<float, access::sample> hzbDepthPyramid)
+    texture2d<float, access::sample> hzbDepthPyramid,
+    constant rasterization_rate_map_data *hzbRateMap,
+    float4 hzbRateMapSizes)
 {
     if (centerClip.w <= 0.0f) return false;
 
@@ -100,6 +105,9 @@ inline bool gaussianClipCentrePassesCull(
     // source of truth for partial occlusion.
     if (hzbValid != 0u) {
         float2 uv = float2(ndc.x * 0.5f + 0.5f, 1.0f - (ndc.y * 0.5f + 0.5f));
+        if (hzbRateMapActive(hzbRateMapSizes)) {
+            uv = hzbScreenUVToPhysicalUV(hzbRateMap, hzbRateMapSizes, uv);
+        }
         float splatDepth = clamp(centerClip.z / centerClip.w, 0.0f, 1.0f);
         constexpr sampler pointSampler(coord::normalized, address::clamp_to_edge, filter::nearest);
         float hzbDepth = hzbDepthPyramid.sample(pointSampler, uv, level(0)).x;
@@ -120,12 +128,14 @@ inline bool gaussianSplatPassesCull(
     uint hzbReverseZ,
     float hzbOcclusionBias,
     uint hzbValid,
-    texture2d<float, access::sample> hzbDepthPyramid)
+    texture2d<float, access::sample> hzbDepthPyramid,
+    constant rasterization_rate_map_data *hzbRateMap,
+    float4 hzbRateMapSizes)
 {
     float4 centerClip = uniforms.projectionMatrix *
                         uniforms.modelViewMatrix *
                         float4(position, 1.0f);
-    return gaussianClipCentrePassesCull(centerClip, clipGuardBand, hzbReverseZ, hzbOcclusionBias, hzbValid, hzbDepthPyramid);
+    return gaussianClipCentrePassesCull(centerClip, clipGuardBand, hzbReverseZ, hzbOcclusionBias, hzbValid, hzbDepthPyramid, hzbRateMap, hzbRateMapSizes);
 }
 
 // One thread per resident splat: the whole-buffer cull for entities without a chunk table
@@ -141,11 +151,13 @@ kernel void gaussianFrustumCull(
     constant uint &hzbReverseZ [[buffer(gaussianCullHZBReverseZIndex)]],
     constant float &hzbOcclusionBias [[buffer(gaussianCullHZBOcclusionBiasIndex)]],
     constant uint &hzbValid [[buffer(gaussianCullHZBValidIndex)]],
+    constant rasterization_rate_map_data *hzbRateMap [[buffer(gaussianCullHZBRateMapDataIndex)]],
+    constant float4 &hzbRateMapSizes [[buffer(gaussianCullHZBRateMapSizesIndex)]],
     texture2d<float, access::sample> hzbDepthPyramid [[texture(gaussianCullHZBDepthPyramidTextureIndex)]],
     uint index [[thread_position_in_grid]])
 {
     if (index >= numOfSplats) return;
-    if (!gaussianSplatPassesCull(splats[index].position, uniforms, clipGuardBand, hzbReverseZ, hzbOcclusionBias, hzbValid, hzbDepthPyramid)) return;
+    if (!gaussianSplatPassesCull(splats[index].position, uniforms, clipGuardBand, hzbReverseZ, hzbOcclusionBias, hzbValid, hzbDepthPyramid, hzbRateMap, hzbRateMapSizes)) return;
 
     uint writeIndex = atomic_fetch_add_explicit(visibleCount, 1u, memory_order_relaxed);
     visibleIndices[writeIndex] = index;

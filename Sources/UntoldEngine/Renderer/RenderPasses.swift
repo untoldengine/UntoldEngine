@@ -1076,6 +1076,7 @@ public enum RenderPasses {
         }
 
         renderEncoder.label = "Grid Pass"
+        applyXRFoveationViewport(renderEncoder)
 
         renderEncoder.pushDebugGroup("Grid Pass")
 
@@ -1167,6 +1168,7 @@ public enum RenderPasses {
         }
 
         renderEncoder.label = "Sky Pass"
+        applyXRFoveationViewport(renderEncoder)
 
         renderEncoder.pushDebugGroup("Sky Pass")
 
@@ -1237,6 +1239,7 @@ public enum RenderPasses {
         }
 
         renderEncoder.label = "Environment Pass"
+        applyXRFoveationViewport(renderEncoder)
 
         renderEncoder.pushDebugGroup("Environment Pass")
 
@@ -1835,6 +1838,7 @@ public enum RenderPasses {
         }
 
         renderEncoder.label = "Model Pass"
+        applyXRFoveationViewport(renderEncoder)
 
         renderEncoder.pushDebugGroup("Model Pass")
 
@@ -2102,6 +2106,7 @@ public enum RenderPasses {
         }
 
         renderEncoder.label = "Batched Model Pass"
+        applyXRFoveationViewport(renderEncoder)
         renderEncoder.pushDebugGroup("Batched Model Pass")
 
         renderEncoder.setRenderPipelineState(modelPipeline.pipelineState!)
@@ -2342,6 +2347,10 @@ public enum RenderPasses {
 
         renderEncoder.label = "G-Buffer + Light Pass (TBDR)"
         renderEncoder.pushDebugGroup("G-Buffer + Light Pass (TBDR)")
+        // Through the eye's rasterization rate map when there is one (XR foveation): the
+        // geometry in the map's screen space, the light quad over the whole of it, the
+        // G-buffer read back from the tile under each fragment either way.
+        applyXRFoveationViewport(renderEncoder)
 
         // What every draw of the pass shares, read once.
         let pass = OpaquePassState(cameraComponent: cameraComponent)
@@ -2800,6 +2809,14 @@ public enum RenderPasses {
 
         var projScale = simd_float2(renderInfo.perspectiveSpace.columns.0.x, renderInfo.perspectiveSpace.columns.1.y)
         renderEncoder.setFragmentBytes(&projScale, length: MemoryLayout<simd_float2>.stride, index: Int(ssaoPassProjScaleIndex.rawValue))
+        // The eye's rasterization rate map (XR foveation): the depth was drawn through it, so
+        // the view positions are rebuilt from where its texels sit on screen, not in the texture.
+        bindRateMap(
+            renderInfo.xrFoveation?.rateMapData,
+            toFragmentsOf: renderEncoder,
+            dataIndex: Int(ssaoPassRateMapDataIndex.rawValue),
+            sizesIndex: Int(ssaoPassRateMapSizesIndex.rawValue)
+        )
         // set the draw command
 
         renderEncoder.drawIndexedPrimitivesTracked(
@@ -3000,6 +3017,14 @@ public enum RenderPasses {
 
         var projScale = simd_float2(renderInfo.perspectiveSpace.columns.0.x, renderInfo.perspectiveSpace.columns.1.y)
         renderEncoder.setFragmentBytes(&projScale, length: MemoryLayout<simd_float2>.stride, index: Int(ssaoPassProjScaleIndex.rawValue))
+        // The eye's rasterization rate map (XR foveation): the depth was drawn through it, so
+        // the view positions are rebuilt from where its texels sit on screen, not in the texture.
+        bindRateMap(
+            renderInfo.xrFoveation?.rateMapData,
+            toFragmentsOf: renderEncoder,
+            dataIndex: Int(ssaoPassRateMapDataIndex.rawValue),
+            sizesIndex: Int(ssaoPassRateMapSizesIndex.rawValue)
+        )
 
         // SSAO properties
         renderEncoder.setFragmentBytes(&SSAOParams.shared.radius, length: MemoryLayout<Float>.stride, index: Int(ssaoPassRadiusIndex.rawValue))
@@ -3619,6 +3644,7 @@ public enum RenderPasses {
         }
 
         renderEncoder.label = "Transparency Pass"
+        applyXRFoveationViewport(renderEncoder)
         renderEncoder.pushDebugGroup("Transparency Pass")
 
         renderEncoder.setRenderPipelineState(transparencyPipeline.pipelineState!)
@@ -4034,6 +4060,9 @@ public enum RenderPasses {
         descriptor.depthAttachment.texture = depthTexture
         descriptor.depthAttachment.loadAction = .load
         descriptor.depthAttachment.storeAction = .store
+        // The depth was drawn through the eye's rasterization rate map when there is one
+        // (XR foveation); so is what this pass adds to it.
+        attachXRFoveation(renderInfo.xrFoveation?.rateMap, to: descriptor)
 
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor) else {
             handleError(.renderPassCreationFailed, "Mesh Occluder Shell Pass")
@@ -4047,6 +4076,7 @@ public enum RenderPasses {
         }
 
         renderEncoder.label = "Mesh Occluder Shell Pass"
+        applyXRFoveationViewport(renderEncoder)
         renderEncoder.pushDebugGroup("Mesh Occluder Shell Pass")
         renderEncoder.setRenderPipelineState(pipelineState)
         renderEncoder.setDepthStencilState(pipeline.depthState)
@@ -4172,6 +4202,9 @@ public enum RenderPasses {
         descriptor.depthAttachment.texture = depthTexture
         descriptor.depthAttachment.loadAction = .load
         descriptor.depthAttachment.storeAction = .store
+        // The depth was drawn through the eye's rasterization rate map when there is one
+        // (XR foveation); so is what this pass adds to it.
+        attachXRFoveation(renderInfo.xrFoveation?.rateMap, to: descriptor)
 
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor) else {
             handleError(.renderPassCreationFailed, "Wireframe Occlusion Depth Pass")
@@ -4185,6 +4218,7 @@ public enum RenderPasses {
         }
 
         renderEncoder.label = "Wireframe Occlusion Depth Pass"
+        applyXRFoveationViewport(renderEncoder)
         renderEncoder.pushDebugGroup("Wireframe Occlusion Depth Pass")
         renderEncoder.setRenderPipelineState(pipelineState)
         renderEncoder.setDepthStencilState(pipeline.depthState)
@@ -4369,6 +4403,7 @@ public enum RenderPasses {
         }
 
         renderEncoder.label = "Wireframe Pass"
+        applyXRFoveationViewport(renderEncoder)
         renderEncoder.pushDebugGroup("Wireframe Pass")
 
         renderEncoder.setRenderPipelineState(wireframePipelineState)
@@ -4749,6 +4784,7 @@ public enum RenderPasses {
         }
 
         renderEncoder.label = "Spatial Debug Bounds Pass"
+        applyXRFoveationViewport(renderEncoder)
         renderEncoder.pushDebugGroup("Spatial Debug Bounds Pass")
 
         renderEncoder.setRenderPipelineState(spatialDebugPipeline.pipelineState!)
@@ -4897,6 +4933,7 @@ public enum RenderPasses {
             }
 
             renderEncoder.label = "Gaussian Pass"
+            applyXRFoveationViewport(renderEncoder)
             renderInfo.gaussianCoverageWritten = true
 
             renderEncoder.pushDebugGroup("Gaussian Pass")

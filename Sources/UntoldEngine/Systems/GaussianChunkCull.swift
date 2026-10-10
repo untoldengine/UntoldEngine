@@ -1033,6 +1033,9 @@ func gaussianChunkCullConstants(
     constants.hzbValid = hzbValid ? 1 : 0
     constants.hzbReverseZ = renderInfo.reverseZEnabled ? 1 : 0
     constants.hzbMipCount = UInt32(max(0, renderInfo.hzbMipCount))
+    // The rasterization rate map the pyramid was drawn through (XR foveation), only with a
+    // pyramid to sample: the "no map" word otherwise, and the kernels never touch the buffer.
+    constants.hzbRateMapSizes = hzbValid ? rateMapSizes(hzbPyramidRateMapData()) : .zero
     constants.forceAllVisible = forceAllVisible ? 1 : 0
     constants.uniformQuotas = uniformQuotas ? 1 : 0
     constants.paged = paged
@@ -1255,6 +1258,12 @@ private func encodeGaussianChunkCullDispatch(
     } else {
         encoder.setBytes(&gpuRanges, length: MemoryLayout<GaussianChunkCullRange>.stride * gpuRanges.count, index: Int(gaussianChunkCullRangesIndex.rawValue))
     }
+    // The pyramid's rate map (XR foveation), read only when the constants' hzbRateMapSizes say so.
+    encoder.setBuffer(
+        hzbPyramidRateMapData()?.buffer ?? chunkTable.constantsBuffer,
+        offset: 0,
+        index: Int(gaussianChunkCullRateMapDataIndex.rawValue)
+    )
     encoder.setTexture(hzbTexture, index: Int(gaussianChunkCullHZBDepthPyramidTextureIndex.rawValue))
     let tew = pipelines.cull.threadExecutionWidth
     let block = max(min(256, pipelines.cull.maxTotalThreadsPerThreadgroup) / tew * tew, tew)
@@ -1530,6 +1539,12 @@ func encodeGaussianChunkDecodePreprocess(
     encoder.setBuffer(inputs.levels?.coarseTable ?? inputs.chunkTable.constantsBuffer, offset: 0, index: Int(gaussianChunkPreprocessCoarseTableIndex.rawValue))
     encoder.setBuffer(inputs.levels?.levelState ?? inputs.chunkTable.constantsBuffer, offset: 0, index: Int(gaussianChunkPreprocessLevelStateIndex.rawValue))
     encoder.setBytes(&inputs.levelConstants, length: MemoryLayout<GaussianChunkLevelConstants>.stride, index: Int(gaussianChunkPreprocessLevelConstantsIndex.rawValue))
+    // The pyramid's rate map (XR foveation), read only when the cull constants' hzbRateMapSizes say so.
+    encoder.setBuffer(
+        hzbPyramidRateMapData()?.buffer ?? inputs.chunkTable.constantsBuffer,
+        offset: 0,
+        index: Int(gaussianChunkPreprocessRateMapDataIndex.rawValue)
+    )
     encoder.setTexture(inputs.hzbTexture, index: Int(gaussianChunkPreprocessHZBDepthPyramidTextureIndex.rawValue))
 
     let threads = threadsPerThreadgroup ?? gaussianChunkPreprocessThreadsPerThreadgroup(chunkTable: inputs.chunkTable, pipelineState: pipelineState)
