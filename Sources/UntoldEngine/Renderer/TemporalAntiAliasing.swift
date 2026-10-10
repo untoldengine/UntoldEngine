@@ -96,6 +96,7 @@ final class TemporalAntiAliasing: @unchecked Sendable {
     private(set) var appliedJitter = simd_float2.zero
     /// The jitter of this frame in pixels of the screen, for diagnostics and tests.
     private(set) var currentJitterPixels = simd_float2.zero
+    private var loggedResolve = false
 
     private var eyeIndex: Int {
         renderInfo.isXRStereoMode ? min(max(renderInfo.currentEye, 0), 1) : 0
@@ -200,6 +201,11 @@ final class TemporalAntiAliasing: @unchecked Sendable {
         guard let textures = historyTextures(for: eye) else {
             handleError(.renderPassCreationFailed, "TAA Pass: history textures")
             return
+        }
+        if !loggedResolve {
+            loggedResolve = true
+            let foveated = renderInfo.xrFoveation != nil ? "rate-map reprojection, rate-weighted history" : "uniform reprojection"
+            print("✓ TAA resolve: \(source.width)×\(source.height), history weight \(TAAParams.shared.historyWeight), clip gamma \(TAAParams.shared.clipGamma) (variance clip), \(foveated)")
         }
         let readTexture = textures[eyes[eye].readIndex]
         let writeTexture = textures[1 - eyes[eye].readIndex]
