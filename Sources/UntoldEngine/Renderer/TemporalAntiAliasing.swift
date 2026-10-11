@@ -86,8 +86,8 @@ extension AntiAliasingMode {
     }
 }
 
-final class TemporalAntiAliasing: @unchecked Sendable {
-    static let shared = TemporalAntiAliasing()
+public final class TemporalAntiAliasing: @unchecked Sendable {
+    public static let shared = TemporalAntiAliasing()
 
     /// What one eye carries from frame to frame.
     struct EyeHistory {
@@ -106,6 +106,10 @@ final class TemporalAntiAliasing: @unchecked Sendable {
     /// The jitter of this frame in pixels of the screen, for diagnostics and tests.
     private(set) var currentJitterPixels = simd_float2.zero
     private var loggedResolve = false
+    /// False while a secondary target is drawn (XR: a capture drawable of a recording or a
+    /// stream, seen from its own pose): the resolve outputs the frame as is and leaves the
+    /// eye's history, matrices and map untouched for the built-in display's next frame.
+    public var historyUpdatesEnabled = true
 
     private var eyeIndex: Int {
         renderInfo.isXRStereoMode ? min(max(renderInfo.currentEye, 0), 1) : 0
@@ -230,7 +234,7 @@ final class TemporalAntiAliasing: @unchecked Sendable {
         constants.physicalSize = simd_float2(Float(source.width), Float(source.height))
         constants.historyWeight = TAAParams.shared.historyWeight
         constants.clipGamma = TAAParams.shared.clipGamma
-        constants.historyValid = eyes[eye].valid ? 1 : 0
+        constants.historyValid = eyes[eye].valid && historyUpdatesEnabled ? 1 : 0
         constants.reverseZ = renderInfo.reverseZEnabled ? 1 : 0
 
         let descriptor = MTLRenderPassDescriptor()
@@ -271,6 +275,9 @@ final class TemporalAntiAliasing: @unchecked Sendable {
         encoder.popDebugGroup()
         encoder.endEncoding()
 
+        // A secondary target wrote the spare history texture, which the next primary resolve
+        // overwrites anyway; the one it reads, and the frame's matrices and map, are untouched.
+        guard historyUpdatesEnabled else { return }
         eyes[eye].readIndex = 1 - eyes[eye].readIndex
         eyes[eye].viewProjection = viewProjection
         eyes[eye].rateMapData = currentRateMap
