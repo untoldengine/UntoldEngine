@@ -200,11 +200,15 @@ fragment TAAFragmentOut fragmentTAAShader(
     // was, measured from the two maps' local rates (texels per screen pixel).
     float weight = taa.historyWeight;
     if (taa.rateMapSizes.x > 0.0 || taa.prevRateMapSizes.x > 0.0) {
-        const float2 screenStep = taaScreenFromPhysical(physical + float2(1.0, 1.0), taa.rateMapSizes, rateMap) - screen;
-        const float currentRate = 1.0 / max(max(abs(screenStep.x), abs(screenStep.y)), 1e-3);
-        const float2 prevStep = taaPhysicalFromScreen(prevScreen + float2(1.0, 1.0), taa.prevRateMapSizes, prevRateMap) - prevPhysical;
-        const float prevRate = max(max(abs(prevStep.x), abs(prevStep.y)), 1e-3);
-        weight *= saturate(prevRate / currentRate);
+        // Texels per screen pixel of each frame, per axis: a map is coarser in one axis than
+        // the other wherever its rows and columns differ, so the ratio is taken on the axis
+        // where the history is coarsest relative to this frame.
+        const float2 screenStep = abs(taaScreenFromPhysical(physical + float2(1.0, 1.0), taa.rateMapSizes, rateMap) - screen);
+        const float2 currentRate = 1.0 / max(screenStep, float2(1e-3));
+        const float2 prevStep = abs(taaPhysicalFromScreen(prevScreen + float2(1.0, 1.0), taa.prevRateMapSizes, prevRateMap) - prevPhysical);
+        const float2 prevRate = max(prevStep, float2(1e-3));
+        const float2 ratio = prevRate / currentRate;
+        weight *= saturate(min(ratio.x, ratio.y));
     }
 
     const float4 history = taaSampleHistory(historyTexture, linearSampler, historyUV, taa.physicalSize);

@@ -124,11 +124,13 @@ final class TemporalAntiAliasingTests: BaseRenderSetup {
             throw XCTSkip("this GPU has no rasterization rate maps")
         }
         let descriptor = MTLRasterizationRateMapDescriptor(screenSize: MTLSize(width: windowWidth, height: windowHeight, depth: 1))
-        let layer = MTLRasterizationRateLayerDescriptor(sampleCount: MTLSize(width: 4, height: 1, depth: 1))
-        for column in 0 ..< 4 {
-            layer.horizontal[column] = column == denseColumn ? 1.0 : 0.25
+        // Dense in one column and one row (a headset's map is dense around the gaze and coarse
+        // both ways in the periphery), a quarter of the rate elsewhere.
+        let layer = MTLRasterizationRateLayerDescriptor(sampleCount: MTLSize(width: 4, height: 4, depth: 1))
+        for index in 0 ..< 4 {
+            layer.horizontal[index] = index == denseColumn ? 1.0 : 0.25
+            layer.vertical[index] = index == denseColumn ? 1.0 : 0.25
         }
-        layer.vertical[0] = 1.0
         descriptor.setLayer(layer, at: 0)
         return try XCTUnwrap(device.makeRasterizationRateMap(descriptor: descriptor))
     }
@@ -191,12 +193,34 @@ final class TemporalAntiAliasingTests: BaseRenderSetup {
         let layoutDifference = meanAbsoluteDifference(single, singleOther)
         XCTAssertGreaterThan(layoutDifference, 0.002, "the two layouts place the scene differently in the texture")
 
-        // Temporal, with the dense zone jumping every frame, ending on the first layout.
+        // Temporal, with the dense zone jumping every frame, ending on the first layout. The
+        // jitter is off here so the frames are deterministic: what this checks is the history
+        // mapped through the maps, not the jitter's edge averaging.
         antiAliasingMode = .taa
         TemporalAntiAliasing.shared.invalidateHistory()
+        let savedJitterScale = TAAParams.shared.jitterScale
+        TAAParams.shared.jitterScale = 0
+        defer { TAAParams.shared.jitterScale = savedJitterScale }
         for frame in 0 ..< 12 {
-            renderInfo.xrFoveation = frames[(frame + 1) % 2]
+            let layout = (frame + 1) % 2
+            renderInfo.xrFoveation = frames[layout]
             drawFrame()
+            if frame >= 6 {
+                // Lit pixels that lost most of their colour against the single-sample frame of
+                // this layout: the thin bar's edge rows, where a history coarser than the frame
+                // on one axis overrode the frame until the rate ratio was taken per axis. A mean
+                // over the frame would not show it.
+                let frameResolved = try readFloats(XCTUnwrap(textureResources.antiAliasingTexture))
+                let reference = layout == 0 ? single : singleOther
+                var lost = 0
+                for i in stride(from: 0, to: min(frameResolved.count, reference.count), by: 4) where reference[i] + reference[i + 1] + reference[i + 2] > 0.6 {
+                    let sum = frameResolved[i] + frameResolved[i + 1] + frameResolved[i + 2]
+                    if sum < 0.4 * (reference[i] + reference[i + 1] + reference[i + 2]) {
+                        lost += 1
+                    }
+                }
+                XCTAssertEqual(lost, 0, "frame \(frame) in layout \(layout): no lit pixel loses most of its colour to a history drawn through the other map")
+            }
         }
         let resolved = try readFloats(XCTUnwrap(textureResources.antiAliasingTexture))
 
@@ -271,13 +295,6 @@ final class TemporalAntiAliasingTests: BaseRenderSetup {
         let stillResolved = try readAntiAliasingOutput()
         let floor = meanAbsoluteDifference(stillResolved, last)
         print("TAA moving-camera test: resolve differs from the final pose's frame by \(shadow), held still by \(floor), the first pose by \(motion)")
-        if let dump = ProcessInfo.processInfo.environment["UNTOLD_TAA_DUMP"] {
-            let texture = try XCTUnwrap(textureResources.antiAliasingTexture)
-            for (name, pixels) in [("single", last), ("moving", resolved), ("still", stillResolved)] {
-                let data = pixels.withUnsafeBufferPointer { Data(buffer: $0) }
-                try data.write(to: URL(fileURLWithPath: dump).appendingPathComponent("\(name)_\(texture.width)x\(texture.height).f32"))
-            }
-        }
         XCTAssertLessThan(shadow, floor + 0.1 * motion, "the resolve follows the camera: it differs from the final pose's frame by \(shadow), held still by \(floor), the first pose differs by \(motion)")
     }
 
