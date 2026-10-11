@@ -324,7 +324,7 @@ You can convert assets with either the Untold Engine Blender addon or the CLI.
 
 To convert a USDZ file into the `.untold` format using the add-on, follow the directions in [Using Blender Addon](UsingBlenderAddon.md).
 
-After the model has been converted to `.untold` format, copy it into your Xcode project under `Sources/<ProjectName>/GameData/Models/<assetname>/`.
+After the model has been converted to `.untold` format, copy it into your Xcode project under `GameData/Models/<assetname>/`.
 
 ### Option 2: CLI
 

@@ -65,8 +65,8 @@ generated game project:
 cd /path/to/MyGame
 
 untoldengine export \
-  --input Sources/MyGame/GameData/Models/robot/robot.usdz \
-  --output Sources/MyGame/GameData/Models/robot/robot.untold \
+  --input GameData/Models/robot/robot.usdz \
+  --output GameData/Models/robot/robot.untold \
   --convert-orientation
 ```
 

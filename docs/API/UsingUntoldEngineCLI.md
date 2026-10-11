@@ -111,6 +111,21 @@ untoldengine update ~/Projects/MyGame --asset-path ~/GameAssets
 
 ---
 
+## Converting an Existing Project
+
+Projects created before `GameData` moved to the project root still have it nested under `Sources/<Project>/GameData`. `convert` moves it to the root, creates empty `Resources/` and `Docs/` folders there, writes a `.gitignore` if the project doesn't have one yet, and rewrites `project.yml` (regenerating the Xcode project):
+
+```bash
+untoldengine convert MyGame
+
+# Or point to an absolute project path
+untoldengine convert ~/Projects/MyGame
+```
+
+It refuses to run if the project is already on the root-level layout, or if `GameData` isn't where the legacy layout expects it. Safe to run more than once — the second run is a no-op error, not a silent overwrite.
+
+---
+
 ## Bootstrapping Dependencies
 
 Some optimizations (ASTC texture compression) rely on external tools and
@@ -488,7 +503,7 @@ untoldengine assets list
 untoldengine assets install starter
 
 # Install into a specific GameData path, overwriting existing files
-untoldengine assets install soccer --output ~/Projects/MyGame/Sources/MyGame/GameData --force
+untoldengine assets install soccer --output ~/Projects/MyGame/GameData --force
 ```
 
 `assets install` auto-detects the `GameData` folder from the current
@@ -535,8 +550,21 @@ engine-repo maintenance tool, not something a game project needs to run.
 
 ```
 MyGame/
+├── .gitignore
 ├── Package.swift
 ├── README.md
+├── GameData/
+│   ├── Scenes/
+│   ├── Scripts/
+│   ├── Models/
+│   ├── StreamModels/
+│   ├── Animations/
+│   ├── Gaussians/
+│   ├── Textures/
+│   ├── Shaders/
+│   └── LUT/
+├── Resources/
+├── Docs/
 └── Sources/
     └── MyGame/
         ├── AppDelegate.swift
@@ -544,14 +572,10 @@ MyGame/
         ├── GameViewController.swift
         ├── Base.lproj/
         │   └── Main.storyboard
-        ├── Info.plist
-        └── GameData/
-            ├── Scenes/
-            ├── Scripts/
-            ├── Models/
-            ├── Textures/
-            └── Shaders/
+        └── Info.plist
 ```
+
+`GameData` is what the engine reads and is bundled into the shipped app. `Resources/` holds artist sources (`.blend`, `.usd`, reference images) and `Docs/` holds project documentation — neither is ever bundled.
 
 The starter `GameScene.swift` shows how to load `.untold` runtime assets, use `setEntityStreamScene(...)` for streamed scenes, and enable static batching.
 

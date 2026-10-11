@@ -6,21 +6,28 @@ Every mesh, animation, texture, and scene a game loads by name — `setEntityMes
 
 ## The `GameData` Folder
 
-A project created with the CLI (`untoldengine create`) or Xcode template ships with a `GameData` folder alongside your source:
+A project created with the CLI (`untoldengine create`) or Xcode template ships with a `GameData` folder at its root, alongside `Resources/`, `Docs/`, and `Sources/`:
 
 ```
-GameData/
-├── Scenes/
-├── Scripts/
-├── Models/
-├── StreamModels/
-├── Animations/
-├── Gaussians/
-├── Textures/
-└── Shaders/
+MyGame/
+├── GameData/      <- what the engine reads; bundled into the shipped app
+│   ├── Scenes/
+│   ├── Scripts/
+│   ├── Models/
+│   ├── StreamModels/
+│   ├── Animations/
+│   ├── Gaussians/
+│   ├── Textures/
+│   ├── Shaders/
+│   └── LUT/
+├── Resources/     <- artist sources (.blend, .usd, references); never bundled
+├── Docs/          <- project documentation
+└── Sources/       <- your app's code
 ```
 
-These are the **canonical asset directories** the engine's resource resolver knows about. The project generator creates them for you, and Xcode adds `GameData` as a folder reference — meaning it's copied into the built app **verbatim**, subfolders and all, on macOS, iOS, and visionOS. You don't need to worry about your directory structure surviving into a shipped build.
+`GameData` is the only one of these four the engine's resource resolver (and this page) cares about — `Resources/` and `Docs/` are for everything else your project needs a home for, and are never bundled into the app. A project created before this layout landed may still have `GameData` nested under `Sources/<Project>/GameData` instead; run `untoldengine convert` to move it to the root (see [Using the Untold Engine CLI](UsingUntoldEngineCLI.md#converting-an-existing-project)).
+
+Inside `GameData`, Xcode adds it as a folder reference — meaning it's copied into the built app **verbatim**, subfolders and all, on macOS, iOS, and visionOS. You don't need to worry about your directory structure surviving into a shipped build.
 
 Where each asset type belongs:
 
@@ -34,6 +41,7 @@ Where each asset type belongs:
 | `Gaussians/` | Gaussian splat assets |
 | `Textures/` | standalone textures loaded by name, outside of a material |
 | `Shaders/` | custom shader source |
+| `LUT/` | standalone `.cube` color-grade LUTs (see [Using Color Management](UsingColorManagement.md)) |
 
 Materials are the one exception: they resolve under `Materials/<subName>/...`, keyed by the material name passed alongside the resource name, rather than a fixed top-level folder.
 
