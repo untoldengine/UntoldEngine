@@ -95,6 +95,30 @@ final class ProjectLayoutTests: XCTestCase {
         XCTAssertEqual(layout.kind, .rootLevel)
     }
 
+    func testDetectFromGameDataDirectoryHandlesLegacyLayout() {
+        let gameData = tempDirectory
+            .appendingPathComponent("Sources")
+            .appendingPathComponent("MyGame")
+            .appendingPathComponent("GameData")
+
+        let layout = ProjectLayout.detect(gameDataDirectory: gameData)
+        XCTAssertEqual(layout.kind, .legacy)
+        XCTAssertEqual(layout.projectName, "MyGame")
+        XCTAssertEqual(layout.projectRoot.path, tempDirectory.path)
+        XCTAssertEqual(layout.gameDataDirectory.path, gameData.path, "round-tripping through gameDataDirectory should land back on the same path")
+    }
+
+    func testDetectFromGameDataDirectoryHandlesRootLevelLayout() {
+        let projectRoot = tempDirectory.appendingPathComponent("MyGame")
+        let gameData = projectRoot.appendingPathComponent("GameData")
+
+        let layout = ProjectLayout.detect(gameDataDirectory: gameData)
+        XCTAssertEqual(layout.kind, .rootLevel)
+        XCTAssertEqual(layout.projectName, "MyGame")
+        XCTAssertEqual(layout.projectRoot.path, projectRoot.path)
+        XCTAssertEqual(layout.gameDataDirectory.path, gameData.path, "round-tripping through gameDataDirectory should land back on the same path")
+    }
+
     func testGameDataCategoriesMatchesWhatBuildSystemCreates() {
         XCTAssertEqual(
             ProjectLayout.gameDataCategories,

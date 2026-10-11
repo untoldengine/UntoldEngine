@@ -78,14 +78,37 @@ import Foundation
 
         /// Detects which layout a project on disk is using by checking for a
         /// root-level `GameData` first, falling back to the legacy nested
-        /// location. Defaults to `.legacy` if neither exists yet, since that is
-        /// the layout new projects are created with today.
+        /// location. Defaults to `.legacy` if neither exists yet -- a project
+        /// about to be created explicitly chooses its own layout instead of
+        /// calling this (see `BuildSystem.createProjectFromEmbeddedTemplates`).
         public static func detect(projectRoot: URL, projectName: String) -> ProjectLayout {
             let rootGameData = projectRoot.appendingPathComponent("GameData")
             if FileManager.default.fileExists(atPath: rootGameData.path) {
                 return ProjectLayout(kind: .rootLevel, projectRoot: projectRoot, projectName: projectName)
             }
             return ProjectLayout(kind: .legacy, projectRoot: projectRoot, projectName: projectName)
+        }
+
+        /// Infers the project root, project name, and layout kind from a `GameData`
+        /// directory's own location -- the inverse of `gameDataDirectory`. For a caller
+        /// that only has `assetBasePath` (the `GameData` URL itself), not the project
+        /// folder it came from, e.g. the editor after it has opened a project.
+        ///
+        /// Distinguishes the two shapes structurally, not by checking disk: `GameData`
+        /// sitting directly inside a `Sources` folder is the legacy nested shape
+        /// (`<Root>/Sources/<Project>/GameData`); anywhere else, `GameData`'s own parent
+        /// is the project root (`<Root>/GameData`).
+        public static func detect(gameDataDirectory: URL) -> ProjectLayout {
+            let projectNameDirectory = gameDataDirectory.deletingLastPathComponent()
+            let sourcesDirectory = projectNameDirectory.deletingLastPathComponent()
+            if sourcesDirectory.lastPathComponent == "Sources" {
+                return ProjectLayout(
+                    kind: .legacy,
+                    projectRoot: sourcesDirectory.deletingLastPathComponent(),
+                    projectName: projectNameDirectory.lastPathComponent
+                )
+            }
+            return ProjectLayout(kind: .rootLevel, projectRoot: projectNameDirectory, projectName: projectNameDirectory.lastPathComponent)
         }
     }
 
