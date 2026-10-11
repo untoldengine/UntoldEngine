@@ -79,6 +79,7 @@
         private var rateMapFrameCounter = 0
         private var loggedFoveationState: Bool?
         private var loggedCaptureTargetSkip = false
+        private var loggedDrawableCount = 0
         private let spatialGestureRecognizer = XRSpatialGestureRecognizer()
         private let xrEnvironmentLightingSystem = XREnvironmentLightingSystem()
         private var runtimeLightingModeObserverId: UUID?
@@ -647,6 +648,16 @@
                 shouldEndSubmission = false
                 return
             }
+            if drawables.count != loggedDrawableCount {
+                loggedDrawableCount = drawables.count
+                let targets = drawables.map { drawable -> String in
+                    if #available(visionOS 26.0, *) {
+                        return drawable.target == .builtIn ? "built-in" : "capture"
+                    }
+                    return "built-in"
+                }
+                print("XR: \(drawables.count) drawable(s) per frame (\(targets.joined(separator: ", ")))")
+            }
 
             // Re-check loading state right before render pass to catch any mutations that started
             // after our initial snapshot. This provides a second layer of protection against races.
@@ -694,7 +705,14 @@
                 // and the render loop will skip rendering but still present (required by compositor)
 
                 if drawsScene(into: drawable) {
-                    executeXRSystemPass(frame: frame, drawable: drawable, loading: effectiveLoading)
+                    // A capture drawable (a recording or a stream of the view) is drawn from
+                    // its own pose, so it must not advance the frame-to-frame state the
+                    // built-in display relies on: the temporal history and the depth pyramid.
+                    var primary = true
+                    if #available(visionOS 26.0, *) {
+                        primary = drawable.target == .builtIn
+                    }
+                    executeXRSystemPass(frame: frame, drawable: drawable, loading: effectiveLoading, primary: primary)
                 } else {
                     presentCleared(drawable)
                 }
@@ -885,7 +903,9 @@
             return XRFoveationFrame(rateMap: rateMap, viewport: screenViewport, rateMapData: data)
         }
 
-        func executeXRSystemPass(frame _: LayerRenderer.Frame, drawable: LayerRenderer.Drawable, loading: Bool) {
+        func executeXRSystemPass(frame _: LayerRenderer.Frame, drawable: LayerRenderer.Drawable, loading: Bool, primary: Bool = true) {
+            TemporalAntiAliasing.shared.historyUpdatesEnabled = primary
+            defer { TemporalAntiAliasing.shared.historyUpdatesEnabled = true }
             // Wait for available command buffer slot to prevent unbounded memory growth
             let semaphoreWaitStart = CACurrentMediaTime()
             let firstWaitResult = commandBufferSemaphore.wait(timeout: .now() + .milliseconds(100))
@@ -1026,8 +1046,11 @@
 
             // Build the HZB depth pyramid once after both eyes are rendered.
             // In stereo mode the mono pyramid (from the last eye rendered) is used
-            // for both per-eye VP occlusion tests in executeFrustumCulling.
-            buildHZBDepthPyramid(commandBuffer)
+            // for both per-eye VP occlusion tests in executeFrustumCulling. A capture
+            // drawable's depth is seen from its own pose and does not replace it.
+            if primary {
+                buildHZBDepthPyramid(commandBuffer)
+            }
 
             drawable.encodePresent(commandBuffer: commandBuffer)
 
