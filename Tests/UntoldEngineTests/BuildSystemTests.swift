@@ -11,6 +11,9 @@
 import Foundation
 @testable import UntoldEngine
 import XCTest
+#if canImport(Darwin)
+    import Darwin
+#endif
 
 @MainActor
 final class BuildSystemTests: XCTestCase {
@@ -1648,5 +1651,57 @@ final class BuildSystemTests: XCTestCase {
             .appendingPathComponent("Tower.untoldpack")
         XCTAssertTrue(FileManager.default.fileExists(atPath: movedPack.path))
         XCTAssertTrue(result.log.contains { $0.contains("1 pack manifest(s) checked") })
+    }
+
+    func testConvertProjectLayoutWarnsInsteadOfClaimingSuccessOnAHandEditedProjectYML() throws {
+        let projectDir = try makeLegacyProject(named: "LegacyGameHandEdited")
+
+        // A project.yml that still points at the legacy GameData path, but not in the exact
+        // shape the generator produces (e.g. single quotes instead of double) -- the textual
+        // rewrite won't recognize this, and should say so rather than reporting the project
+        // as already on the root-level layout.
+        let projectYMLPath = projectDir.appendingPathComponent("project.yml")
+        let handEditedYAML = """
+        name: LegacyGameHandEdited
+        targets:
+          LegacyGameHandEdited:
+            sources:
+              - path: 'Sources/LegacyGameHandEdited/GameData'
+                type: folder
+        """
+        try handEditedYAML.write(to: projectYMLPath, atomically: true, encoding: .utf8)
+
+        let result = try buildSystem.convertProjectLayout(projectRoot: projectDir, projectName: "LegacyGameHandEdited")
+
+        XCTAssertFalse(result.log.contains { $0.contains("already matched the root-level layout") },
+                        "should not claim success when project.yml still references the legacy path")
+        XCTAssertTrue(result.log.contains { $0.contains("hand-edited project.yml?") },
+                      "should warn that project.yml needs manual attention")
+    }
+
+    func testConvertProjectLayoutRollsBackGameDataMoveOnFailure() throws {
+        let projectDir = try makeLegacyProject(named: "LegacyGameRollback")
+
+        // Make project.yml immutable so the rewrite step fails after GameData has already
+        // been moved to the root. Without a rollback, this would leave the project
+        // half-converted: GameData at the root, but project.yml still pointing at the legacy
+        // Sources/<Project>/GameData path.
+        let projectYMLPath = projectDir.appendingPathComponent("project.yml")
+        #if canImport(Darwin)
+            chflags(projectYMLPath.path, UInt32(UF_IMMUTABLE))
+            defer { chflags(projectYMLPath.path, 0) }
+        #endif
+
+        XCTAssertThrowsError(try buildSystem.convertProjectLayout(projectRoot: projectDir, projectName: "LegacyGameRollback"))
+
+        let fm = FileManager.default
+        XCTAssertTrue(
+            fm.fileExists(atPath: projectDir.appendingPathComponent("Sources/LegacyGameRollback/GameData/Scenes/Test.untoldscene").path),
+            "GameData should move back to the legacy location after the failure"
+        )
+        XCTAssertFalse(
+            fm.fileExists(atPath: projectDir.appendingPathComponent("GameData").path),
+            "GameData should not be left at the root-level location after a rolled-back conversion"
+        )
     }
 }

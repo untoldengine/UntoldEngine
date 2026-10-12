@@ -691,38 +691,55 @@ import Foundation
             try fileManager.moveItem(at: layout.gameDataDirectory, to: rootLayout.gameDataDirectory)
             note("📦 Moved GameData: \(layout.gameDataDirectory.path) -> \(rootLayout.gameDataDirectory.path)")
 
-            if let resourcesDirectory = rootLayout.resourcesDirectory, !fileManager.fileExists(atPath: resourcesDirectory.path) {
-                try fileManager.createDirectory(at: resourcesDirectory, withIntermediateDirectories: true)
-                note("📁 Created \(resourcesDirectory.path)")
-            }
-            if let docsDirectory = rootLayout.docsDirectory, !fileManager.fileExists(atPath: docsDirectory.path) {
-                try fileManager.createDirectory(at: docsDirectory, withIntermediateDirectories: true)
-                note("📁 Created \(docsDirectory.path)")
-            }
+            // Everything below here can fail (disk I/O, the xcodegen subprocess). If it does,
+            // move GameData back so the project is left in the same, retryable legacy state it
+            // started in rather than a half-converted one (GameData at the root, project.yml
+            // still pointing at the old path, or vice versa).
+            do {
+                if let resourcesDirectory = rootLayout.resourcesDirectory, !fileManager.fileExists(atPath: resourcesDirectory.path) {
+                    try fileManager.createDirectory(at: resourcesDirectory, withIntermediateDirectories: true)
+                    note("📁 Created \(resourcesDirectory.path)")
+                }
+                if let docsDirectory = rootLayout.docsDirectory, !fileManager.fileExists(atPath: docsDirectory.path) {
+                    try fileManager.createDirectory(at: docsDirectory, withIntermediateDirectories: true)
+                    note("📁 Created \(docsDirectory.path)")
+                }
 
-            let gitignorePath = projectRoot.appendingPathComponent(".gitignore")
-            if !fileManager.fileExists(atPath: gitignorePath.path) {
-                try BuildTemplates.gitignore.write(to: gitignorePath, atomically: true, encoding: .utf8)
-                note("📝 Wrote .gitignore")
-            }
+                let gitignorePath = projectRoot.appendingPathComponent(".gitignore")
+                if !fileManager.fileExists(atPath: gitignorePath.path) {
+                    try BuildTemplates.gitignore.write(to: gitignorePath, atomically: true, encoding: .utf8)
+                    note("📝 Wrote .gitignore")
+                }
 
-            let projectYMLPath = projectRoot.appendingPathComponent("project.yml")
-            if let yaml = try? String(contentsOf: projectYMLPath, encoding: .utf8) {
-                let converted = XcodeGenProjectSpec.convertingToRootLevelGameData(inYAML: yaml, projectName: projectName)
-                if converted != yaml {
-                    try converted.write(to: projectYMLPath, atomically: true, encoding: .utf8)
-                    note("📝 Rewrote project.yml")
-                    if Self.xcodeGenPath() != nil {
-                        try runXcodeGen(in: projectRoot)
-                        note("⚙️ Regenerated Xcode project")
+                let projectYMLPath = projectRoot.appendingPathComponent("project.yml")
+                let legacyGameDataPath = "Sources/\(projectName)/GameData"
+                if let yaml = try? String(contentsOf: projectYMLPath, encoding: .utf8) {
+                    let converted = XcodeGenProjectSpec.convertingToRootLevelGameData(inYAML: yaml, projectName: projectName)
+                    if converted != yaml {
+                        try converted.write(to: projectYMLPath, atomically: true, encoding: .utf8)
+                        note("📝 Rewrote project.yml")
+                        if Self.xcodeGenPath() != nil {
+                            try runXcodeGen(in: projectRoot)
+                            note("⚙️ Regenerated Xcode project")
+                        } else {
+                            note("⚠️ xcodegen not found; run `xcodegen generate` in the project folder to finish regenerating the Xcode project")
+                        }
+                    } else if yaml.contains(legacyGameDataPath) {
+                        // The rewrite is a textual match against exactly what the generator
+                        // produces; a hand-edited project.yml (different quoting, reordered
+                        // keys, ...) can still reference the legacy path without matching that
+                        // shape. Say so explicitly instead of reporting "already converted".
+                        note("⚠️ project.yml still references \(legacyGameDataPath) but didn't match the expected pattern (hand-edited project.yml?); update it to reference \"GameData\" and run `xcodegen generate` manually")
                     } else {
-                        note("⚠️ xcodegen not found; run `xcodegen generate` in the project folder to finish regenerating the Xcode project")
+                        note("ℹ️ project.yml already matched the root-level layout")
                     }
                 } else {
-                    note("ℹ️ project.yml already matched the root-level layout")
+                    note("⚠️ No project.yml found; skipped Xcode project regeneration")
                 }
-            } else {
-                note("⚠️ No project.yml found; skipped Xcode project regeneration")
+            } catch {
+                try? fileManager.moveItem(at: rootLayout.gameDataDirectory, to: layout.gameDataDirectory)
+                note("↩️ Rolled back: moved GameData back to \(layout.gameDataDirectory.path) after a failure converting project.yml")
+                throw error
             }
 
             let packURLs = (fileManager.enumerator(at: rootLayout.gameDataDirectory, includingPropertiesForKeys: nil)?
