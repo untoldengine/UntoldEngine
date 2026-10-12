@@ -1569,7 +1569,7 @@ final class BuildSystemTests: XCTestCase {
 
         let fm = FileManager.default
         XCTAssertFalse(fm.fileExists(atPath: projectDir.appendingPathComponent("Sources/LegacyGame/GameData").path),
-                        "the legacy GameData location should no longer exist")
+                       "the legacy GameData location should no longer exist")
         let rootGameData = projectDir.appendingPathComponent("GameData")
         XCTAssertTrue(fm.fileExists(atPath: rootGameData.appendingPathComponent("Scenes/Test.untoldscene").path),
                       "the moved GameData should keep its contents")

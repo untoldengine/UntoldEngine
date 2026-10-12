@@ -111,7 +111,8 @@ import Foundation
                 if trimmed == sourcesLine,
                    index + 2 < lines.count,
                    lines[index + 1].trimmingCharacters(in: .whitespaces) == excludesLine,
-                   lines[index + 2].trimmingCharacters(in: .whitespaces) == excludedEntryLine {
+                   lines[index + 2].trimmingCharacters(in: .whitespaces) == excludedEntryLine
+                {
                     output.append(line)
                     index += 3
                     continue
