@@ -1,4 +1,14 @@
 # Changelog
+## v0.23.0 - 2026-10-12
+### 🐞 Fixes
+- [Patch] Start a slot of objects as no reference (#1313) (6456434…)
+### 📚 Docs
+- [Docs] Add a getting-started tutorial for Jolt Physics in XR (#1327) (e544326…)
+### 🚀 Features
+- [Feature] Bake procedural Blender materials into repeating textures (#1307) (e8ed7ad…)
+- [Feature] Glass: a material's transmission shows what is behind it and keeps its reflections (#1308) (da580ee…)
+- [Feature] Select LOD levels by the size of the entity on screen (#1322) (6446393…)
+- [Feature] Specular anti-aliasing in the model pass (#1332) (99de731…)
 ## v0.22.0 - 2026-10-04
 ### 🐞 Fixes
 - [Patch] Remember failed texture writes per export, not per Blender session (#1263) (fa706bf…)
