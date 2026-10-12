@@ -2,6 +2,14 @@
 ## v0.23.0 - 2026-10-12
 ### 🐞 Fixes
 - [Patch] Start a slot of objects as no reference (#1313) (6456434…)
+- [Bugfix] Export the material a slot linked to the object shows, not the mesh's default (#1320) (6b7b664…)
+- [Bugfix] Test occlusion from the camera the depth pyramid was built with (#1323) (45823f6…)
+- [Bugfix] Keep a model's hidden parts hidden at its coarse LOD levels (#1324) (c33fca8…)
+- [Bugfix] Detect pip --break-system-packages support in make testrenderer (#1328) (23d66a7…)
+- [Bugfix] Use single-bounce reflectance for IBL diffuse energy conservation (#1329) (a2b154d…)
+- [Bugfix] Report animation clips that match zero joints on the bound skeleton (#1330) (1085580…)
+- [Bugfix] Shade each XR eye from its own position (#1285) (0b2863d…)
+- [Bugfix] Glass keeps its place against its frame and in a headset (#1331) (144863a…)
 ### 📚 Docs
 - [Docs] Add a getting-started tutorial for Jolt Physics in XR (#1327) (e544326…)
 ### 🚀 Features
@@ -9,6 +17,13 @@
 - [Feature] Glass: a material's transmission shows what is behind it and keeps its reflections (#1308) (da580ee…)
 - [Feature] Select LOD levels by the size of the entity on screen (#1322) (6446393…)
 - [Feature] Specular anti-aliasing in the model pass (#1332) (99de731…)
+### ⚡ Performance
+- [Performance] The render passes read the scene through a snapshot (#1321) (8b695d6…)
+### ✨ Enhancement
+- [Enhancement] Add animation playback helpers for synchronized gameplay (#1316) (ec141a0…)
+### 🧹 Chores / Tests
+- Remove hardcoded AWS/CloudFront streaming URLs from demos and tests (#1317) (4ae99ca…)
+- [Test] Keep the reader of the component release test reading for the whole run (#1312) (9f3c637…)
 ## v0.22.0 - 2026-10-04
 ### 🐞 Fixes
 - [Patch] Remember failed texture writes per export, not per Blender session (#1263) (fa706bf…)
