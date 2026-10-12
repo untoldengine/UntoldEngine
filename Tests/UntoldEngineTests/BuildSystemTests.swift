@@ -1674,7 +1674,7 @@ final class BuildSystemTests: XCTestCase {
         let result = try buildSystem.convertProjectLayout(projectRoot: projectDir, projectName: "LegacyGameHandEdited")
 
         XCTAssertFalse(result.log.contains { $0.contains("already matched the root-level layout") },
-                        "should not claim success when project.yml still references the legacy path")
+                       "should not claim success when project.yml still references the legacy path")
         XCTAssertTrue(result.log.contains { $0.contains("hand-edited project.yml?") },
                       "should warn that project.yml needs manual attention")
     }
