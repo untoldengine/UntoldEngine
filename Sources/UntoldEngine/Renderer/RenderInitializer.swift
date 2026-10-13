@@ -172,10 +172,11 @@ func updateOpaqueSampleCountForCurrentState() {
     }
 
     let newSampleCount = effectiveOpaqueSampleCount()
-    // The per-fragment indirect lighting setting changed: the model and light pipelines
-    // are built for one value of it.
-    if renderInfo.perFragmentIndirectLightingBuilt != renderInfo.perFragmentIndirectLighting,
-       renderInfo.opaqueSampleCount == newSampleCount
+    // A per-fragment lighting setting changed: the model and light pipelines are built for
+    // one value of each.
+    if renderInfo.perFragmentIndirectLightingBuilt != renderInfo.perFragmentIndirectLighting
+        || renderInfo.perFragmentLightingBuilt != renderInfo.perFragmentLightingWanted,
+        renderInfo.opaqueSampleCount == newSampleCount
     {
         updateOpaquePipelinesForSampleCount()
         return

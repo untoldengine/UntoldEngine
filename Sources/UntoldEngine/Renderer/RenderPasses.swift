@@ -581,6 +581,7 @@ public enum RenderPasses {
             guard renderInfo.tileLightStageEnabled,
                   !renderInfo.flatLightingExperiment, // the experiment runs through the quad
                   !renderInfo.perFragmentIndirectLightingBuilt, // the stage would light the indirect part again
+                  !renderInfo.perFragmentLightingBuilt, // the geometry lit itself; nothing for a stage to do
                   let pipeline = PipelineManager.shared.renderPipelinesByType[.lightTile],
                   pipeline.success,
                   let state = pipeline.pipelineState,
@@ -2506,6 +2507,32 @@ public enum RenderPasses {
             renderEncoder.setFragmentBytes(&brdfParameters, length: MemoryLayout<IBLParamsUniform>.stride, index: Int(modelPassFragmentIBLParamIndex.rawValue))
             renderEncoder.setFragmentBytes(&lightPassRotationAngle, length: MemoryLayout<Float>.stride, index: Int(modelPassFragmentIBLRotationAngleIndex.rawValue))
         }
+        // The light pass's other inputs — the point, spot and area lights and their shadows —
+        // uploaded once for whichever lights with them: the geometry, when it lights itself
+        // whole per fragment and the quad stands down, or the quad.
+        let headerSize = 16
+        let pointLights = uploadLights(buffer: bufferResources.pointLightBuffer, lights: getPointLights(), maxCount: 1024, headerSize: headerSize, labelForErrors: "Point Lights")
+        let spotLights = uploadLights(buffer: bufferResources.spotLightBuffer, lights: getSpotLights(), maxCount: 1024, headerSize: headerSize, labelForErrors: "Spot Lights")
+        let areaLights = uploadLights(buffer: bufferResources.areaLightBuffer, lights: getAreaLights(), maxCount: 1024, headerSize: headerSize, labelForErrors: "Area Lights")
+        var pointShadowUniforms = pointShadowState.makeUniforms()
+        var spotShadowUniforms = spotShadowState.makeUniforms()
+        if renderInfo.perFragmentLightingBuilt {
+            if let pointLights {
+                renderEncoder.setFragmentBuffer(pointLights, offset: 0, index: Int(modelPassFragmentPointLightsIndex.rawValue))
+            }
+            if let spotLights {
+                renderEncoder.setFragmentBuffer(spotLights, offset: 0, index: Int(modelPassFragmentSpotLightsIndex.rawValue))
+            }
+            if let areaLights {
+                renderEncoder.setFragmentBuffer(areaLights, offset: 0, index: Int(modelPassFragmentAreaLightsIndex.rawValue))
+            }
+            renderEncoder.setFragmentBytes(&pointShadowUniforms, length: MemoryLayout<PointShadowUniforms>.stride, index: Int(modelPassFragmentPointShadowUniformIndex.rawValue))
+            renderEncoder.setFragmentBytes(&spotShadowUniforms, length: MemoryLayout<SpotShadowUniforms>.stride, index: Int(modelPassFragmentSpotShadowUniformIndex.rawValue))
+            renderEncoder.setFragmentTexture(textureResources.areaTextureLTCMag, index: Int(modelPassAreaLTCMagTextureIndex.rawValue))
+            renderEncoder.setFragmentTexture(textureResources.areaTextureLTCMat, index: Int(modelPassAreaLTCMatTextureIndex.rawValue))
+            renderEncoder.setFragmentTexture(textureResources.pointShadowCubeMap, index: Int(modelPassPointShadowTextureIndex.rawValue))
+            renderEncoder.setFragmentTexture(textureResources.spotShadowMap, index: Int(modelPassSpotShadowTextureIndex.rawValue))
+        }
 
         // ── Sub-pass 1: Unbatched geometry ──────────────────────────────────────
         renderEncoder.setRenderPipelineState(modelPipeline.pipelineState!)
@@ -2743,6 +2770,15 @@ public enum RenderPasses {
         }
 
         // ── Sub-pass 2: Lighting quad ────────────────────────────────────────────
+        // When the geometry lit itself whole per fragment, the lit attachment holds the frame
+        // already and the quad stands down: the pass ends here, on device and in the simulator.
+        if renderInfo.perFragmentLightingBuilt {
+            renderEncoder.updateFence(renderInfo.fence, after: .fragment)
+            renderEncoder.popDebugGroup()
+            renderEncoder.endEncoding()
+            combinedEncoderClosed = true
+            return
+        }
         // Device: reads G-buffer from tile memory via [[color(N)]] framebuffer fetch
         // in the same encoder — no G-buffer textures are bound.
         // Simulator: framebuffer fetch is unsupported, so end the G-buffer encoder
@@ -2817,10 +2853,8 @@ public enum RenderPasses {
 
         lights.setTexture(textureResources.csmShadowMap, index: Int(lightPassShadowTextureIndex.rawValue))
         lights.setTexture(textureResources.pointShadowCubeMap, index: Int(lightPassPointShadowTextureIndex.rawValue))
-        var pointShadowUniforms = pointShadowState.makeUniforms()
         lights.setBytes(&pointShadowUniforms, length: MemoryLayout<PointShadowUniforms>.stride, index: Int(lightPassPointShadowUniformIndex.rawValue))
         lights.setTexture(textureResources.spotShadowMap, index: Int(lightPassSpotShadowTextureIndex.rawValue))
-        var spotShadowUniforms = spotShadowState.makeUniforms()
         lights.setBytes(&spotShadowUniforms, length: MemoryLayout<SpotShadowUniforms>.stride, index: Int(lightPassSpotShadowUniformIndex.rawValue))
         lights.setTexture(environmentLighting.irradianceMap, index: Int(lightPassIBLIrradianceTextureIndex.rawValue))
         lights.setTexture(environmentLighting.specularMap, index: Int(lightPassIBLSpecularTextureIndex.rawValue))
@@ -2830,14 +2864,13 @@ public enum RenderPasses {
 
         lights.setBytes(&lightParams, length: MemoryLayout<LightParameters>.stride, index: Int(lightPassLightParamsIndex.rawValue))
 
-        let headerSize = 16
-        if let pointLights = uploadLights(buffer: bufferResources.pointLightBuffer, lights: getPointLights(), maxCount: 1024, headerSize: headerSize, labelForErrors: "Point Lights") {
+        if let pointLights {
             lights.setBuffer(pointLights, offset: 0, index: Int(lightPassPointLightsIndex.rawValue))
         }
-        if let spotLights = uploadLights(buffer: bufferResources.spotLightBuffer, lights: getSpotLights(), maxCount: 1024, headerSize: headerSize, labelForErrors: "Spot Lights") {
+        if let spotLights {
             lights.setBuffer(spotLights, offset: 0, index: Int(lightPassSpotLightsIndex.rawValue))
         }
-        if let areaLights = uploadLights(buffer: bufferResources.areaLightBuffer, lights: getAreaLights(), maxCount: 1024, headerSize: headerSize, labelForErrors: "Area Lights") {
+        if let areaLights {
             lights.setBuffer(areaLights, offset: 0, index: Int(lightPassAreaLightsIndex.rawValue))
         }
 

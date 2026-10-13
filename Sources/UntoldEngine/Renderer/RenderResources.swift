@@ -112,6 +112,17 @@ public struct RenderInfo {
     /// the next frame (`perFragmentIndirectLightingBuilt` is what they were built with).
     public var perFragmentIndirectLighting: Bool = true
     public var perFragmentIndirectLightingBuilt: Bool = false
+    /// Whether the geometry lights itself whole once per fragment — the direct light of the sun,
+    /// the point, spot and area lights with their shadows, over the indirect light above, which
+    /// it needs — and writes the lit colour, so the light quad, which lights once per sample,
+    /// stands down. On by default; the pipelines follow it on the next frame
+    /// (`perFragmentLightingBuilt` is what they were built with).
+    public var perFragmentLighting: Bool = true
+    public var perFragmentLightingBuilt: Bool = false
+    /// What the model pipelines are to light per fragment: the setting, which needs the
+    /// per-fragment indirect light, and stands aside for the flat-lighting experiment, which
+    /// runs through the quad.
+    var perFragmentLightingWanted: Bool { perFragmentIndirectLighting && perFragmentLighting && !flatLightingExperiment }
     /// The mesh entities the frame's culling put to the occlusion test (the culling set's
     /// size), which decides with `HZBOcclusionCulling.minimumEntities` whether the frame's
     /// depth is worth a pyramid.

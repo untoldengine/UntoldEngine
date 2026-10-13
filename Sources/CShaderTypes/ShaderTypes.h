@@ -145,6 +145,12 @@ typedef enum{
     modelPassFragmentLightParamsIndex,
     modelPassFragmentIBLParamIndex,
     modelPassFragmentIBLRotationAngleIndex,
+    // Per-fragment lighting: the light quad's other inputs, when the geometry lights itself whole.
+    modelPassFragmentPointLightsIndex,
+    modelPassFragmentSpotLightsIndex,
+    modelPassFragmentAreaLightsIndex,
+    modelPassFragmentPointShadowUniformIndex,
+    modelPassFragmentSpotShadowUniformIndex,
 }ModelPassFragmentBufferIndices;
 
 typedef enum{
@@ -380,7 +386,13 @@ typedef enum{
     /// and writes them into the G-buffer (the emissive attachment: indirect light added to
     /// the emissive, the shadow factor in alpha); the light pass then adds them from there
     /// instead of computing them once per sample. `setRendering(.perFragmentIndirectLighting)`.
-    modelFunctionConstantIndirectInGBuffer = 3
+    modelFunctionConstantIndirectInGBuffer = 3,
+    /// True lights the surface whole once per fragment — the direct light of the sun, the
+    /// point, spot and area lights with their shadows, over the indirect light of
+    /// `modelFunctionConstantIndirectInGBuffer`, which it needs — and writes the lit colour to
+    /// the attachment the light pass would write, so that pass stands down.
+    /// `setRendering(.perFragmentLighting)`.
+    modelFunctionConstantLitInGBuffer = 5
 }ModelFunctionConstants;
 
 /// Function constants of `fragmentLightShaderTBDR`. The indices share one space with the
@@ -446,6 +458,11 @@ typedef enum{
     modelPassIBLSpecularTextureIndex,
     modelPassIBLBRDFTextureIndex,
     modelPassCSMShadowTextureIndex,
+    // Per-fragment lighting: the light quad's other textures, when the geometry lights itself whole.
+    modelPassAreaLTCMagTextureIndex,
+    modelPassAreaLTCMatTextureIndex,
+    modelPassPointShadowTextureIndex,
+    modelPassSpotShadowTextureIndex,
 }ModelPassTextureIndices;
 
 typedef enum{

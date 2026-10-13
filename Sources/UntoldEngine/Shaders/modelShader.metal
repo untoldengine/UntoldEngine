@@ -252,6 +252,13 @@ constant bool kModelFlatMaterial [[function_constant(modelFunctionConstantFlatMa
 /// added to the emissive, the shadow factor in alpha) for the light pass to add, instead of
 /// once per sample there (`setRendering(.perFragmentIndirectLighting)`).
 constant bool kModelIndirectInGBuffer [[function_constant(modelFunctionConstantIndirectInGBuffer)]];
+/// Per-fragment lighting: the surface lit whole here, once per fragment — the direct light of
+/// the sun, the point, spot and area lights with their shadows, over the indirect light above,
+/// which it needs — and written to the lit attachment, the one the light pass would write; that
+/// pass, which lights once per sample, then stands down (`setRendering(.perFragmentLighting)`).
+constant bool kModelLitInGBuffer [[function_constant(modelFunctionConstantLitInGBuffer)]];
+/// The sun's parameters are bound for either of the two.
+constant bool kModelSunNeeded = kModelIndirectInGBuffer || kModelLitInGBuffer;
 
 /// The emissive attachment's value with the indirect light and the sun's shadow folded in.
 static inline float4 emissiveWithIndirect(
@@ -267,6 +274,27 @@ static inline float4 emissiveWithIndirect(
                                              baseColor, normal, viewVector, roughness, metallic) * iblParam.ambientIntensity;
     float shadow = computeCSMShadow(csmShadowArray, csmUniforms, worldPosition, normal, normalize(lightParams.direction));
     return float4(emissive + indirect, shadow);
+}
+
+/// The lit attachment's value: the direct light over the emissive attachment's value, which
+/// already holds the emissive with the indirect light, and the sun's shadow in its alpha. The
+/// alpha is the coverage the light pass would have written.
+static inline float4 litWithDirect(
+    float4 emissiveAndShadow, float4 baseColor, float3 normal, float4 worldPosition, float roughness, float metallic,
+    float3 cameraPosition,
+    constant LightParameters &lightParams,
+    constant PointLightBlock &plBlock, constant SpotLightBlock &slBlock, constant AreaLightBlock &alBlock,
+    texture2d<float> ltcMagTexture, texture2d<float> ltcMatTexture,
+    depthcube<float> pointShadowCube, depth2d<float> spotShadowMap,
+    constant PointShadowUniforms &pointShadowUniforms, constant SpotShadowUniforms &spotShadowUniforms
+) {
+    float3 viewVector = normalize(cameraPosition - worldPosition.xyz);
+    float3 direct = computeDirectLighting(
+        worldPosition, viewVector, normal, baseColor.rgb, roughness, metallic, emissiveAndShadow.a,
+        lightParams, plBlock, slBlock, alBlock, ltcMagTexture, ltcMatTexture, pointShadowCube, spotShadowMap,
+        pointShadowUniforms, spotShadowUniforms
+    );
+    return float4(direct + emissiveAndShadow.rgb, baseColor.a);
 }
 
 fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
@@ -292,9 +320,19 @@ fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
                                         texture2d<float> iblBRDF [[texture(modelPassIBLBRDFTextureIndex), function_constant(kModelIndirectInGBuffer)]],
                                         depth2d_array<float> csmShadowArray [[texture(modelPassCSMShadowTextureIndex), function_constant(kModelIndirectInGBuffer)]],
                                         constant CSMUniforms &csmUniforms [[buffer(modelPassFragmentCSMUniformsIndex), function_constant(kModelIndirectInGBuffer)]],
-                                        constant LightParameters &lightParams [[buffer(modelPassFragmentLightParamsIndex), function_constant(kModelIndirectInGBuffer)]],
+                                        constant LightParameters &lightParams [[buffer(modelPassFragmentLightParamsIndex), function_constant(kModelSunNeeded)]],
                                         constant IBLParamsUniform &iblParam [[buffer(modelPassFragmentIBLParamIndex), function_constant(kModelIndirectInGBuffer)]],
-                                        constant float &iblRotationAngle [[buffer(modelPassFragmentIBLRotationAngleIndex), function_constant(kModelIndirectInGBuffer)]])
+                                        constant float &iblRotationAngle [[buffer(modelPassFragmentIBLRotationAngleIndex), function_constant(kModelIndirectInGBuffer)]],
+                                        // Per-fragment lighting, bound only with it on.
+                                        constant PointLightBlock &plBlock [[buffer(modelPassFragmentPointLightsIndex), function_constant(kModelLitInGBuffer)]],
+                                        constant SpotLightBlock &slBlock [[buffer(modelPassFragmentSpotLightsIndex), function_constant(kModelLitInGBuffer)]],
+                                        constant AreaLightBlock &alBlock [[buffer(modelPassFragmentAreaLightsIndex), function_constant(kModelLitInGBuffer)]],
+                                        constant PointShadowUniforms &pointShadowUniforms [[buffer(modelPassFragmentPointShadowUniformIndex), function_constant(kModelLitInGBuffer)]],
+                                        constant SpotShadowUniforms &spotShadowUniforms [[buffer(modelPassFragmentSpotShadowUniformIndex), function_constant(kModelLitInGBuffer)]],
+                                        texture2d<float> ltcMagTexture [[texture(modelPassAreaLTCMagTextureIndex), function_constant(kModelLitInGBuffer)]],
+                                        texture2d<float> ltcMatTexture [[texture(modelPassAreaLTCMatTextureIndex), function_constant(kModelLitInGBuffer)]],
+                                        depthcube<float> pointShadowCube [[texture(modelPassPointShadowTextureIndex), function_constant(kModelLitInGBuffer)]],
+                                        depth2d<float> spotShadowMap [[texture(modelPassSpotShadowTextureIndex), function_constant(kModelLitInGBuffer)]])
 {
 
     // Base Color and Normal Maps: Linear filtering, mipmaps, repeat wrapping
@@ -346,6 +384,13 @@ fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
                 iblIrradiance, iblSpecular, iblBRDF, csmShadowArray, csmUniforms, lightParams, iblParam, iblRotationAngle);
         } else {
             gBufferOut.emmisive = float4(materialParameter.emmissive, 1.0);
+        }
+        gBufferOut.lit = float4(0.0);
+        if (kModelLitInGBuffer) {
+            gBufferOut.lit = litWithDirect(
+                gBufferOut.emmisive, gBufferOut.color, flatNormal, verticesInWorldSpace, gBufferOut.material.r, gBufferOut.material.g,
+                uniforms.cameraPosition, lightParams, plBlock, slBlock, alBlock, ltcMagTexture, ltcMatTexture,
+                pointShadowCube, spotShadowMap, pointShadowUniforms, spotShadowUniforms);
         }
         return gBufferOut;
     }
@@ -546,6 +591,13 @@ fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
             iblIrradiance, iblSpecular, iblBRDF, csmShadowArray, csmUniforms, lightParams, iblParam, iblRotationAngle);
     } else {
         gBufferOut.emmisive = float4(emissive, 1.0);
+    }
+    gBufferOut.lit = float4(0.0);
+    if (kModelLitInGBuffer) {
+        gBufferOut.lit = litWithDirect(
+            gBufferOut.emmisive, gBufferOut.color, normalMap, verticesInWorldSpace, roughness, metallic,
+            uniforms.cameraPosition, lightParams, plBlock, slBlock, alBlock, ltcMagTexture, ltcMatTexture,
+            pointShadowCube, spotShadowMap, pointShadowUniforms, spotShadowUniforms);
     }
     return gBufferOut;
 

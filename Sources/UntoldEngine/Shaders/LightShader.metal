@@ -719,6 +719,94 @@ fragment float4 fragmentLightShader(VertexCompositeOutput vertexOut [[stage_in]]
 
 }
 
+// The direct light on a surface: the sun, through the shadow factor given (its cascade
+// shadow, evaluated by the caller), then the point, spot and area lights with theirs. Shared
+// by the light pass below, which lights once per sample from the G-buffer, and the geometry
+// when it lights itself once per fragment (`fragmentModelShader`, `kModelLitInGBuffer`).
+float3 computeDirectLighting(
+    float4 worldPosition,
+    float3 viewVector,
+    float3 normal,
+    float3 albedo,
+    float roughness,
+    float metallic,
+    float sunShadow,
+    constant LightParameters &lights,
+    constant PointLightBlock &plBlock,
+    constant SpotLightBlock &slBlock,
+    constant AreaLightBlock &alBlock,
+    texture2d<float> ltcMagTexture,
+    texture2d<float> ltcMatTexture,
+    depthcube<float> pointShadowCube,
+    depth2d<float> spotShadowMap,
+    constant PointShadowUniforms &pointShadowUniforms,
+    constant SpotShadowUniforms &spotShadowUniforms
+) {
+    float3 lightRayDirection = normalize(lights.direction);
+
+    LightContribution brdf = computeBRDF(lightRayDirection, viewVector, normal, albedo, float3(1.0), roughness, metallic);
+
+    LightContribution color;
+    color.diff = brdf.diff * (half3)lights.color * (half)lights.intensity;
+    color.spec = brdf.spec * lights.color * lights.intensity;
+    color.diff *= (half)sunShadow;
+    color.spec *= sunShadow;
+
+    LightContribution pointColor;
+    uint lightCount = min(plBlock.count.x, MAX_POINT_LIGHTS);
+    for (uint i = 0; i < lightCount; ++i) {
+        LightContribution pl = computePointLightContribution(plBlock.lights[i], worldPosition, viewVector, normal, albedo, roughness, metallic);
+        if (pointShadowUniforms.enabled > 0.5 && int(i) == pointShadowUniforms.lightIndex) {
+            float pointShadow = computePointShadow(
+                pointShadowCube,
+                pointShadowUniforms,
+                plBlock.lights[i].attenuation.x < 0.0 ? plBlock.lights[i].radius : 0.0,
+                worldPosition.xyz,
+                normal
+            );
+            pl.diff *= (half)pointShadow;
+            pl.spec *= pointShadow;
+        }
+        pointColor.diff += pl.diff;
+        pointColor.spec += pl.spec;
+    }
+    color.diff += pointColor.diff;
+    color.spec += pointColor.spec;
+
+    LightContribution spotLightColor;
+    uint spotLightCount = min(slBlock.count.x, MAX_POINT_LIGHTS);
+    for (uint i = 0; i < spotLightCount; ++i) {
+        LightContribution sl = computeSpotLightContribution(slBlock.lights[i], worldPosition, viewVector, normal, albedo, roughness, metallic);
+        if (spotShadowUniforms.enabled > 0.5 && int(i) == spotShadowUniforms.lightIndex) {
+            float spotShadow = computeSpotShadow(
+                spotShadowMap,
+                spotShadowUniforms,
+                slBlock.lights[i],
+                worldPosition.xyz,
+                normal
+            );
+            sl.diff *= (half)spotShadow;
+            sl.spec *= spotShadow;
+        }
+        spotLightColor.diff += sl.diff;
+        spotLightColor.spec += sl.spec;
+    }
+    color.diff += spotLightColor.diff;
+    color.spec += spotLightColor.spec;
+
+    LightContribution areaLightColor;
+    uint areaLightCount = min(alBlock.count.x, MAX_POINT_LIGHTS);
+    for (uint i = 0; i < areaLightCount; ++i) {
+        LightContribution al = evaluateAreaLight(alBlock.lights[i], worldPosition, viewVector, normal, ltcMatTexture, ltcMagTexture, albedo, roughness, metallic);
+        areaLightColor.diff += al.diff;
+        areaLightColor.spec += al.spec;
+    }
+    color.diff += areaLightColor.diff;
+    color.spec += areaLightColor.spec;
+
+    return (float3)color.diff + color.spec;
+}
+
 // The lighting of one G-buffer record: a pixel's surface facts in, its lit colour out
 // (alpha carries the coverage the geometry wrote). Shared by the per-sample fragment
 // pass and the tile stage below.
@@ -782,71 +870,16 @@ static inline float4 lightTBDRSample(
         indirectLighting *= ambientOcclusion * iblParam.ambientIntensity;
     }
 
-    LightContribution brdf = computeBRDF(lightRayDirection, viewVector, surfaceNormal, albedo.rgb, float3(1.0), roughness, metallic);
-
-    LightContribution color;
-    color.diff = brdf.diff * (half3)lights.color * (half)lights.intensity;
-    color.spec = brdf.spec * lights.color * lights.intensity;
-
     float shadow = indirectFromGBuffer
         ? float(gbEmissive.a)
         : computeCSMShadow(csmShadowArray, csmUniforms, verticesInWorldSpace.xyz, surfaceNormal, lightRayDirection);
-    color.diff *= (half)shadow;
-    color.spec *= shadow;
+    float3 direct = computeDirectLighting(
+        verticesInWorldSpace, viewVector, surfaceNormal, albedo.rgb, roughness, metallic, shadow,
+        lights, plBlock, slBlock, alBlock, ltcMagTexture, ltcMatTexture, pointShadowCube, spotShadowMap,
+        pointShadowUniforms, spotShadowUniforms
+    );
 
-    LightContribution pointColor;
-    uint lightCount = min(plBlock.count.x, MAX_POINT_LIGHTS);
-    for (uint i = 0; i < lightCount; ++i) {
-        LightContribution pl = computePointLightContribution(plBlock.lights[i], verticesInWorldSpace, viewVector, surfaceNormal, albedo.rgb, roughness, metallic);
-        if (pointShadowUniforms.enabled > 0.5 && int(i) == pointShadowUniforms.lightIndex) {
-            float pointShadow = computePointShadow(
-                pointShadowCube,
-                pointShadowUniforms,
-                plBlock.lights[i].attenuation.x < 0.0 ? plBlock.lights[i].radius : 0.0,
-                verticesInWorldSpace.xyz,
-                surfaceNormal
-            );
-            pl.diff *= (half)pointShadow;
-            pl.spec *= pointShadow;
-        }
-        pointColor.diff += pl.diff;
-        pointColor.spec += pl.spec;
-    }
-    color.diff += pointColor.diff;
-    color.spec += pointColor.spec;
-
-    LightContribution spotLightColor;
-    uint spotLightCount = min(slBlock.count.x, MAX_POINT_LIGHTS);
-    for (uint i = 0; i < spotLightCount; ++i) {
-        LightContribution sl = computeSpotLightContribution(slBlock.lights[i], verticesInWorldSpace, viewVector, surfaceNormal, albedo.rgb, roughness, metallic);
-        if (spotShadowUniforms.enabled > 0.5 && int(i) == spotShadowUniforms.lightIndex) {
-            float spotShadow = computeSpotShadow(
-                spotShadowMap,
-                spotShadowUniforms,
-                slBlock.lights[i],
-                verticesInWorldSpace.xyz,
-                surfaceNormal
-            );
-            sl.diff *= (half)spotShadow;
-            sl.spec *= spotShadow;
-        }
-        spotLightColor.diff += sl.diff;
-        spotLightColor.spec += sl.spec;
-    }
-    color.diff += spotLightColor.diff;
-    color.spec += spotLightColor.spec;
-
-    LightContribution areaLightColor;
-    uint areaLightCount = min(alBlock.count.x, MAX_POINT_LIGHTS);
-    for (uint i = 0; i < areaLightCount; ++i) {
-        LightContribution al = evaluateAreaLight(alBlock.lights[i], verticesInWorldSpace, viewVector, surfaceNormal, ltcMatTexture, ltcMagTexture, albedo.rgb, roughness, metallic);
-        areaLightColor.diff += al.diff;
-        areaLightColor.spec += al.spec;
-    }
-    color.diff += areaLightColor.diff;
-    color.spec += areaLightColor.spec;
-
-    float3 finalRGB = (float3)color.diff + color.spec + indirectLighting + emissive;
+    float3 finalRGB = direct + indirectLighting + emissive;
     return float4(finalRGB, albedo.a);
 }
 

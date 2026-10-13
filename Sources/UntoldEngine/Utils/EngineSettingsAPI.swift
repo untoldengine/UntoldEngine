@@ -137,6 +137,13 @@ public enum RenderingProperty: Sendable {
     /// light pass computing them once per multisample. Enabled by default; the same picture,
     /// less lighting work under MSAA. Disabling it is a diagnostic.
     case perFragmentIndirectLighting(RenderingToggle)
+    /// Whether the geometry lights itself whole once per fragment — the direct light of the sun,
+    /// the point, spot and area lights with their shadows, over the indirect light — and writes
+    /// the lit colour, so the light quad, which lights once per multisample, stands down: the
+    /// forward way to shade. Enabled by default, and needs `perFragmentIndirectLighting`. The
+    /// same picture but at the multisampled edges, where the quad lit each sample and the
+    /// geometry lights each pixel once. Disabling it is a diagnostic.
+    case perFragmentLighting(RenderingToggle)
 }
 
 /// The model pass's back-face culling: off, or on with the winding that counts as the front.
@@ -244,6 +251,10 @@ public func setRendering(_ property: RenderingProperty) {
         renderInfo.perFragmentIndirectLighting = true
     case .perFragmentIndirectLighting(.disabled):
         renderInfo.perFragmentIndirectLighting = false
+    case .perFragmentLighting(.enabled):
+        renderInfo.perFragmentLighting = true
+    case .perFragmentLighting(.disabled):
+        renderInfo.perFragmentLighting = false
     }
 }
 

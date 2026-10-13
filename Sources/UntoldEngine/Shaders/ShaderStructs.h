@@ -160,6 +160,10 @@ typedef struct
     float4 positions [[color(2)]];
     float4 material [[color(3)]];
     float4 emmisive [[color(4)]];
+    // The lit colour, the attachment the light pass writes: the geometry writes it when it
+    // lights itself whole per fragment (`kModelLitInGBuffer`); otherwise the pipeline masks
+    // the attachment off and the value is nothing.
+    float4 lit [[color(5)]];
 } GBufferOut;
 
 typedef struct{

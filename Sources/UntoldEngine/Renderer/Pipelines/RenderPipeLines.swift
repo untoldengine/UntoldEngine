@@ -392,7 +392,9 @@ public func InitModelFlatPipeline() -> RenderPipeline? {
 
 private func makeModelPipeline(mayDiscard: Bool, flatMaterial: Bool = false, name: String) -> RenderPipeline? {
     let indirectInGBuffer = renderInfo.perFragmentIndirectLighting
+    let litInGBuffer = renderInfo.perFragmentLightingWanted
     renderInfo.perFragmentIndirectLightingBuilt = indirectInGBuffer
+    renderInfo.perFragmentLightingBuilt = litInGBuffer
     guard let library = renderInfo.library else {
         handleError(.metalLibraryNotFound)
         return nil
@@ -408,6 +410,8 @@ private func makeModelPipeline(mayDiscard: Bool, flatMaterial: Bool = false, nam
     constants.setConstantValue(&flatMaterialValue, type: .bool, index: Int(modelFunctionConstantFlatMaterial.rawValue))
     var indirectValue = indirectInGBuffer
     constants.setConstantValue(&indirectValue, type: .bool, index: Int(modelFunctionConstantIndirectInGBuffer.rawValue))
+    var litValue = litInGBuffer
+    constants.setConstantValue(&litValue, type: .bool, index: Int(modelFunctionConstantLitInGBuffer.rawValue))
     let fragmentFunction: MTLFunction
     do {
         fragmentFunction = try library.makeFunction(name: "fragmentModelShader", constantValues: constants)
@@ -434,9 +438,10 @@ private func makeModelPipeline(mayDiscard: Bool, flatMaterial: Bool = false, nam
         desc.colorAttachments[i].writeMask = .all
     }
 
-    // Attachment 5: deferredColorMap — geometry must not write here.
+    // Attachment 5: deferredColorMap — the lit colour, which the geometry writes when it lights
+    // itself per fragment and must not touch otherwise (the light quad writes it then).
     desc.colorAttachments[5].pixelFormat = wf.sceneColor
-    desc.colorAttachments[5].writeMask = []
+    desc.colorAttachments[5].writeMask = litInGBuffer ? .all : []
 
     let depthDesc = MTLDepthStencilDescriptor()
     depthDesc.depthCompareFunction = sceneDepthCompareFunction(.lessEqual)
