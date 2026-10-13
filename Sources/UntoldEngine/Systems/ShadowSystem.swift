@@ -40,19 +40,31 @@ public struct ShadowSoftnessSettings: Equatable, Sendable {
     public var farRadiusTexels: Float
     public var depthScale: Float
     public var xrRadiusScale: Float
+    /// The compares per cascade sample: the whole 16-point Poisson disk, or 8 or 4 of its
+    /// points. Fewer taps cost less per fragment and leave a grainier penumbra, which a
+    /// temporal resolve smooths.
+    public var filterTaps: Int
+    /// The same on a headset, 8 by default: the frame is drawn twice at a high resolution
+    /// under a temporal resolve, and the filter was a fifth of the opaque fragment stage
+    /// there with the whole disk (measured: 1.5 ms of an 11 ms frame).
+    public var xrFilterTaps: Int
 
     public init(
         enabled: Bool = true,
         nearRadiusTexels: Float = 2.0,
         farRadiusTexels: Float = 5.0,
         depthScale: Float = 1.0,
-        xrRadiusScale: Float = 1.35
+        xrRadiusScale: Float = 1.35,
+        filterTaps: Int = 16,
+        xrFilterTaps: Int = 8
     ) {
         self.enabled = enabled
         self.nearRadiusTexels = nearRadiusTexels
         self.farRadiusTexels = farRadiusTexels
         self.depthScale = depthScale
         self.xrRadiusScale = xrRadiusScale
+        self.filterTaps = filterTaps
+        self.xrFilterTaps = xrFilterTaps
     }
 }
 
@@ -72,6 +84,7 @@ struct CSMUniforms {
     var shadowSoftnessFar: Float = 2.25
     var shadowSoftnessDepthScale: Float = 1.0
     var shadowSoftnessEnabled: Float = 1.0
+    var shadowFilterTaps: Float = 16.0
 }
 
 struct SpotShadowUniforms {
@@ -343,6 +356,7 @@ struct ShadowSystem {
         u.shadowSoftnessFar = softness.farRadiusTexels * xrScale
         u.shadowSoftnessDepthScale = softness.depthScale
         u.shadowSoftnessEnabled = softness.enabled ? 1.0 : 0.0
+        u.shadowFilterTaps = Float(renderInfo.isXRStereoMode ? softness.xrFilterTaps : softness.filterTaps)
         return u
     }
 
@@ -360,8 +374,18 @@ struct ShadowSystem {
             nearRadiusTexels: nearRadius,
             farRadiusTexels: farRadius,
             depthScale: depthScale,
-            xrRadiusScale: xrRadiusScale
+            xrRadiusScale: xrRadiusScale,
+            filterTaps: sanitizedFilterTaps(settings.filterTaps),
+            xrFilterTaps: sanitizedFilterTaps(settings.xrFilterTaps)
         )
+    }
+
+    /// 16, 8 or 4 taps: the disk, or every second or fourth of its points.
+    private static func sanitizedFilterTaps(_ count: Int) -> Int {
+        if count >= 16 {
+            return 16
+        }
+        return count >= 8 ? 8 : 4
     }
 
     /// Main per-frame update — computes one tight ortho matrix per cascade.

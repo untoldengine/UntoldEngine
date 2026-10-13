@@ -202,6 +202,7 @@ struct CSMUniforms {
     float    shadowSoftnessFar;        // Poisson PCF radius in texels at the shadow distance
     float    shadowSoftnessDepthScale; // 0 = fixed near radius, 1 = full near-to-far ramp
     float    shadowSoftnessEnabled;
+    float    shadowFilterTaps;         // Poisson taps per cascade sample: 16 (the disk), 8 or 4 of it
 };
 
 struct SpotShadowUniforms {

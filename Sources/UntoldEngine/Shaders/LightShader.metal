@@ -69,12 +69,26 @@ float sampleCSMCascade(
     // into this cascade's normalized depth units so blended edges stay aligned.
     float cascadeDepthSpan = max(csm.cascadeDepthSpans[cascade], 1.0e-6);
     float normalizedBias = worldBias / cascadeDepthSpan;
+    // The taps: the whole Poisson disk, or every second or fourth point of it, which keeps
+    // the spread of the disk with fewer compares (each a hardware-filtered one). Each count
+    // is its own loop with a constant trip count, which the compiler unrolls; one loop over a
+    // count read from the uniforms ran a quarter slower at 16.
+    float2 tapScale = texelSize * cascadeFilterRadius;
     float shadow = 0.0;
+    if (csm.shadowFilterTaps <= 4.0) {
+        for (int i = 0; i < 4; ++i) {
+            shadow += shadowArray.sample_compare(shadowSampler, proj.xy + poissonDisk[i * 4] * tapScale, cascade, proj.z - normalizedBias);
+        }
+        return shadow / 4.0;
+    }
+    if (csm.shadowFilterTaps <= 8.0) {
+        for (int i = 0; i < 8; ++i) {
+            shadow += shadowArray.sample_compare(shadowSampler, proj.xy + poissonDisk[i * 2] * tapScale, cascade, proj.z - normalizedBias);
+        }
+        return shadow / 8.0;
+    }
     for (int i = 0; i < 16; ++i) {
-        float2 offset = poissonDisk[i] * texelSize * cascadeFilterRadius;
-        shadow += shadowArray.sample_compare(
-            shadowSampler, proj.xy + offset, cascade, proj.z - normalizedBias
-        );
+        shadow += shadowArray.sample_compare(shadowSampler, proj.xy + poissonDisk[i] * tapScale, cascade, proj.z - normalizedBias);
     }
     return shadow / 16.0;
 }
