@@ -24,7 +24,7 @@ and input, so you can build your own interactive spatial and XR worlds.
 Creator & Lead Developer:  
 [Harold Serrano](http://www.haroldserrano.com)
 
-[![CoolSaber demo](images/coolsaber-thumbnail.png)](https://youtu.be/4JWZf_NFddY)
+[![State of the Engine 2026](images/state-of-the-engine-2026-thumbnail.png)](https://youtu.be/AnN2NBRKl8E)
 
 ---
 
@@ -46,6 +46,21 @@ Untold Engine is well-suited for:
 
 The engine owns the rendering and XR foundation. Your app owns the vertical
 workflow, product experience, and customer-specific behavior.
+
+---
+
+## Try the Untold Editor
+
+The Untold Editor is a companion app for building scenes visually — placing
+entities, setting up lighting and cameras, and authoring `.untoldscene` files
+that load straight into your app with `loadUntoldScene(named:)`. It's
+optional — nothing in Untold Engine requires it — but it's the fastest way to
+get a scene on screen without hand-writing setup code.
+
+The Editor is now stable enough for regular use. Grab the latest build from
+the [Releases page](https://github.com/untoldengine/UntoldEditor/releases).
+
+![untold-editor](images/editor-main-highlight.png)
 
 ---
 
@@ -100,40 +115,28 @@ Engine as a package dependency.
 
 ---
 
-## Try the Untold Editor
-
-The Untold Editor is a companion app for building scenes visually — placing
-entities, setting up lighting and cameras, and authoring `.untoldscene` files
-that load straight into your app with `loadUntoldScene(named:)`. It's
-optional — nothing in Untold Engine requires it — but it's the fastest way to
-get a scene on screen without hand-writing setup code.
-
-The Editor is now stable enough for regular use. Grab the latest build from
-the [Releases page](https://github.com/untoldengine/UntoldEditor/releases).
-
-![untold-editor](images/editor-main-highlight.png)
-
----
-
 ## Getting Started
 
 To create your own XR, 3D, or spatial visualization app using Untold Engine, see
 [Getting Started](API/GettingStarted.md).
 
-## Core Direction
+## Our Direction
 
-**Vision:** An engine that empowers creativity and never stands in its way.
+### Vision — Why We Exist
 
-**Mission:** Build a reliable engine that lets developers focus on creating,
-not troubleshooting the tools they depend on.
+> An engine that empowers creativity and never stands in its way.
 
-Untold Engine is built around three focused goals:
+### Mission — What We Commit To
 
-- **Spatial Engine First** — Designed for spatial computing applications. LOD, geometry streaming, and static batching exist to support large, real-world-scale environments where presence and performance both matter.
+> Build a reliable engine that lets developers focus on creating, not troubleshooting the tools they depend on.
 
-- **XR / visionOS Support** — Spatial input, AR workflows, and Vision Pro support are functional today and expanding with each release.
+### Engineering Principles — How We Operate
 
-- **Metal-First Architecture** — The rendering layer stays close to Metal to maintain performance, shader control, and pipeline flexibility without abstraction layers getting in the way.
+**Reliability · Testing · Simplicity · Compatibility · Developer Experience · Performance**
+
+These principles guide how we design, build, test, and maintain Untold Engine.
+
+Read our [Engineering Principles](Contributor/EngineeringPrinciples.md) for the standards that guide our development decisions.
 
 ---
 
