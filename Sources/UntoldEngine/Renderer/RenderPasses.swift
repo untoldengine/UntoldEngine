@@ -577,6 +577,7 @@ public enum RenderPasses {
             return nil
         #else
             guard renderInfo.tileLightStageEnabled,
+                  !renderInfo.flatLightingExperiment, // the experiment runs through the quad
                   let pipeline = PipelineManager.shared.renderPipelinesByType[.lightTile],
                   pipeline.success,
                   let state = pipeline.pipelineState,
@@ -2377,8 +2378,11 @@ public enum RenderPasses {
         // The model pipeline compiled without discards, for the draws that never need them (an
         // opaque material, no fade running): the GPU resolves their visibility before shading.
         // Nil runs every draw through the general pipeline.
-        let plainModelPipeline: RenderPipeline? = renderInfo.opaqueHiddenSurfaceRemovalEnabled
-            ? PipelineManager.shared.renderPipelinesByType[.modelOpaque].flatMap { $0.success && $0.pipelineState != nil ? $0 : nil }
+        // The flat-material experiment swaps in the plain pipeline with the material shading
+        // compiled out.
+        let plainPipelineType: RenderPipelineType = renderInfo.flatMaterialExperiment ? .modelFlat : .modelOpaque
+        let plainModelPipeline: RenderPipeline? = renderInfo.opaqueHiddenSurfaceRemovalEnabled || renderInfo.flatMaterialExperiment
+            ? PipelineManager.shared.renderPipelinesByType[plainPipelineType].flatMap { $0.success && $0.pipelineState != nil ? $0 : nil }
             : nil
         renderInfo.opaqueDrawsPlain = 0
         renderInfo.opaqueDrawsDiscarding = 0
@@ -2742,8 +2746,12 @@ public enum RenderPasses {
         if let tileLightState {
             lightQuadEncoder.setRenderPipelineState(tileLightState)
         } else {
-            lightQuadEncoder.setRenderPipelineState(lightPipeline.pipelineState!)
-            if let depthState = lightPipeline.depthState {
+            // The flat-lighting experiment swaps in the quad with the lighting compiled out.
+            let lightQuadPipeline: RenderPipeline = renderInfo.flatLightingExperiment
+                ? (PipelineManager.shared.renderPipelinesByType[.lightFlat].flatMap { $0.success && $0.pipelineState != nil ? $0 : nil } ?? lightPipeline)
+                : lightPipeline
+            lightQuadEncoder.setRenderPipelineState(lightQuadPipeline.pipelineState!)
+            if let depthState = lightQuadPipeline.depthState {
                 lightQuadEncoder.setDepthStencilState(depthState)
             }
             lightQuadEncoder.setVertexBuffer(bufferResources.quadVerticesBuffer, offset: 0, index: 0)

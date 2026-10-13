@@ -14,6 +14,10 @@
 #include "ShadersUtils.h"
 using namespace metal;
 
+/// The flat-lighting experiment: the quad returns the albedo untouched, with no image-based
+/// light, shadows or lights (`setRendering(.flatLightingExperiment)`).
+constant bool kLightFlatShading [[function_constant(lightFunctionConstantFlatShading)]];
+
 // Normal-offset shadows: how many of the cascade's own world-space texels to push the
 // sampled point along the surface normal before the light-space lookup. This moves the
 // tested point off the surface instead of only fudging the depth comparison, so it stays
@@ -873,6 +877,10 @@ fragment TBDRLightOutput fragmentLightShaderTBDR(
     (void)sampleID;
     (void)isGameMode;
     TBDRLightOutput out;
+    if (kLightFlatShading) {
+        out.litColor = float4(float3(gbAlbedo.rgb), float(gbAlbedo.a));
+        return out;
+    }
     out.litColor = lightTBDRSample(
         gbAlbedo, gbNormal, gbPosition, gbMaterial, gbEmissive,
         csmShadowArray, irradianceTexture, specularTexture, iblBRDFTexture, ltcMagTexture, ltcMatTexture,

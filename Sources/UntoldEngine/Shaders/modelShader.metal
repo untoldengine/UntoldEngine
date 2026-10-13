@@ -244,6 +244,9 @@ vertex MeshOccluderShellVertexOut vertexMeshOccluderShellShader(
 // discards gone the GPU resolves visibility before it shades — a fragment another surface
 // covers is never shaded. The general pipeline keeps them for the draws that need them.
 constant bool kModelMayDiscard [[function_constant(modelFunctionConstantMayDiscard)]];
+/// The flat-material experiment: the material's factors and the vertex normal, no texture
+/// sample, no derivative (`setRendering(.flatMaterialExperiment)`).
+constant bool kModelFlatMaterial [[function_constant(modelFunctionConstantFlatMaterial)]];
 
 fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
                                         constant Uniforms & uniforms [[ buffer(modelPassFragmentUniformIndex) ]],
@@ -293,6 +296,22 @@ fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
 
     float4 verticesInWorldSpace=uniforms.modelMatrix*in.vPosition;
     float3 normalVectorInWorldSpace=uniforms.normalMatrix*in.normal;
+
+    if (kModelFlatMaterial) {
+        // Shading-cost experiment: the material's factors and the vertex normal, no texture
+        // sample, no derivative. The same attachments, so the rest of the frame is unchanged.
+        float3 flatNormal = normalize(normalVectorInWorldSpace);
+        if (dot(flatNormal, uniforms.cameraPosition - verticesInWorldSpace.xyz) < 0.0) {
+            flatNormal = -flatNormal;
+        }
+        float3 flatColor = all(materialParameter.baseColor.rgb < 0.001) ? float3(0.8) : materialParameter.baseColor.rgb;
+        gBufferOut.color = float4(flatColor, clamp(materialParameter.passthroughAlpha, 0.0, 1.0));
+        gBufferOut.normals = float4(flatNormal, 0.0);
+        gBufferOut.positions = verticesInWorldSpace;
+        gBufferOut.material = float4(clamp(materialParameter.roughness, 0.045, 1.0), clamp(materialParameter.metallic, 0.0, 1.0), 0.0, 0.0);
+        gBufferOut.emmisive = float4(materialParameter.emmissive, 1.0);
+        return gBufferOut;
+    }
 
     //construct tbn matrix TBN (world-space basis built in the vertex stage)
     simd_float3 N=normalize(in.tbNormal);

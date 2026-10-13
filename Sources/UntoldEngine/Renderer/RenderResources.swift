@@ -95,6 +95,13 @@ public struct RenderInfo {
     /// so per eye in XR.
     public var opaqueDrawsPlain: Int = 0
     public var opaqueDrawsDiscarding: Int = 0
+    /// Shading-cost experiments, off by default. Flat material: the opaque draws write the
+    /// material's factors and the vertex normal, no texture sample, no derivative. Flat
+    /// lighting: the light quad returns the albedo untouched, no image-based light, shadows or
+    /// lights. The passes and attachments stay the same, so a frame's cost with one on is the
+    /// frame's cost without that shading.
+    public var flatMaterialExperiment: Bool = false
+    public var flatLightingExperiment: Bool = false
 
     // XR stereo-aware HZB culling
     // When true, depth and HZB pyramids are maintained per eye and occlusion

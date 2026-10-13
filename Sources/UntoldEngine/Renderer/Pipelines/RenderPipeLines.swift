@@ -384,7 +384,13 @@ public func InitModelOpaquePipeline() -> RenderPipeline? {
     makeModelPipeline(mayDiscard: false, name: "Model Pipeline (opaque)")
 }
 
-private func makeModelPipeline(mayDiscard: Bool, name: String) -> RenderPipeline? {
+/// The plain model pipeline with the material shading compiled out (the flat-material
+/// experiment): the material's factors and the vertex normal, no texture sample.
+public func InitModelFlatPipeline() -> RenderPipeline? {
+    makeModelPipeline(mayDiscard: false, flatMaterial: true, name: "Model Pipeline (flat material)")
+}
+
+private func makeModelPipeline(mayDiscard: Bool, flatMaterial: Bool = false, name: String) -> RenderPipeline? {
     guard let library = renderInfo.library else {
         handleError(.metalLibraryNotFound)
         return nil
@@ -396,6 +402,8 @@ private func makeModelPipeline(mayDiscard: Bool, name: String) -> RenderPipeline
     let constants = MTLFunctionConstantValues()
     var mayDiscardValue = mayDiscard
     constants.setConstantValue(&mayDiscardValue, type: .bool, index: Int(modelFunctionConstantMayDiscard.rawValue))
+    var flatMaterialValue = flatMaterial
+    constants.setConstantValue(&flatMaterialValue, type: .bool, index: Int(modelFunctionConstantFlatMaterial.rawValue))
     let fragmentFunction: MTLFunction
     do {
         fragmentFunction = try library.makeFunction(name: "fragmentModelShader", constantValues: constants)
@@ -473,6 +481,24 @@ public func InitLightPipeline() -> RenderPipeline? {
             name: "Light Pipeline (Simulator)"
         )
     #else
+        return makeLightPipeline(flatShading: false, name: "Light Pipeline (TBDR)")
+    #endif
+}
+
+/// The light quad with the lighting compiled out (the flat-lighting experiment): the albedo
+/// untouched. Nil in the simulator, which has no TBDR light pass.
+public func InitLightFlatPipeline() -> RenderPipeline? {
+    #if targetEnvironment(simulator)
+        return nil
+    #else
+        return makeLightPipeline(flatShading: true, name: "Light Pipeline (TBDR, flat shading)")
+    #endif
+}
+
+#if !targetEnvironment(simulator)
+    /// The TBDR light quad from `fragmentLightShaderTBDR`, specialised by function constant:
+    /// lighting the sample, or returning the albedo for the flat-lighting experiment.
+    private func makeLightPipeline(flatShading: Bool, name: String) -> RenderPipeline? {
         guard let library = renderInfo.library else {
             handleError(.metalLibraryNotFound)
             return nil
@@ -481,13 +507,19 @@ public func InitLightPipeline() -> RenderPipeline? {
             handleError(.shaderCreationFailed, "vertexLightShader")
             return nil
         }
-        guard let fragmentFunction = library.makeFunction(name: "fragmentLightShaderTBDR") else {
-            handleError(.shaderCreationFailed, "fragmentLightShaderTBDR")
+        let constants = MTLFunctionConstantValues()
+        var flatShadingValue = flatShading
+        constants.setConstantValue(&flatShadingValue, type: .bool, index: Int(lightFunctionConstantFlatShading.rawValue))
+        let fragmentFunction: MTLFunction
+        do {
+            fragmentFunction = try library.makeFunction(name: "fragmentLightShaderTBDR", constantValues: constants)
+        } catch {
+            handleError(.shaderCreationFailed, "fragmentLightShaderTBDR (\(name)): \(error.localizedDescription)")
             return nil
         }
 
         let desc = MTLRenderPipelineDescriptor()
-        desc.label = "Light Pipeline (TBDR)"
+        desc.label = name
         desc.vertexFunction = vertexFunction
         desc.fragmentFunction = fragmentFunction
         desc.vertexDescriptor = createLightVertexDescriptor()
@@ -518,15 +550,15 @@ public func InitLightPipeline() -> RenderPipeline? {
                 pipelineState: pipelineState,
                 depthState: depthState,
                 success: true,
-                name: "Light Pipeline (TBDR)",
+                name: name,
                 rasterSampleCount: desc.rasterSampleCount
             )
         } catch {
-            handleError(.pipelineStateCreationFailed, "Light Pipeline (TBDR): \(error.localizedDescription)")
+            handleError(.pipelineStateCreationFailed, "\(name): \(error.localizedDescription)")
             return nil
         }
-    #endif
-}
+    }
+#endif
 
 /// The TBDR light pass as a tile stage (`lightTileShaderTBDR`): the same inputs and the same
 /// attachments as the light quad, dispatched over the tiles of the G-buffer encoder. Nil where
@@ -1199,7 +1231,9 @@ public func DefaultPipeLines() -> [(RenderPipelineType, RenderPipelineInitBlock)
         (.shadow, InitShadowPipeline),
         (.model, InitModelPipeline),
         (.modelOpaque, InitModelOpaquePipeline),
+        (.modelFlat, InitModelFlatPipeline),
         (.light, InitLightPipeline),
+        (.lightFlat, InitLightFlatPipeline),
         (.lightTile, InitLightTilePipeline),
         (.geometry, InitGeometryPipeline),
         (.highlight, InitHighlightPipeline),

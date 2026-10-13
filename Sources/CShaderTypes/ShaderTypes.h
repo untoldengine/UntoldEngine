@@ -366,8 +366,20 @@ typedef enum{
     /// bool: whether a draw through the pipeline may discard fragments (an alpha-masked or
     /// blended material, a dither fade). False compiles the discards out, which lets the
     /// GPU resolve visibility before it shades: hidden fragments are never shaded.
-    modelFunctionConstantMayDiscard = 0
+    modelFunctionConstantMayDiscard = 0,
+    /// True writes the material's factors and the vertex normal with no texture sample and no
+    /// derivative: a shading-cost experiment, `setRendering(.flatMaterialExperiment)`. False
+    /// shades the material.
+    modelFunctionConstantFlatMaterial = 1
 }ModelFunctionConstants;
+
+/// Function constants of `fragmentLightShaderTBDR`. The indices share one space with the
+/// model shader's across the library, so they continue its numbering.
+typedef enum{
+    /// True returns the albedo untouched, with no image-based light, shadows or lights: a
+    /// shading-cost experiment, `setRendering(.flatLightingExperiment)`. False lights the sample.
+    lightFunctionConstantFlatShading = 2
+}LightFunctionConstants;
 
 typedef enum{
     prePassGizmoBufferIndex,

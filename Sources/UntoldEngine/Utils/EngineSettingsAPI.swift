@@ -113,6 +113,13 @@ public enum RenderingProperty: Sendable {
     /// visibility before shading: a fragment another surface covers is never shaded. Enabled
     /// by default; disabling it draws everything through the general pipeline, as a diagnostic.
     case opaqueHiddenSurfaceRemoval(RenderingToggle)
+    /// Shading-cost experiments, off by default. Flat material: the opaque draws write the
+    /// material's factors and the vertex normal with no texture sample and no derivative. Flat
+    /// lighting: the light quad returns the albedo untouched, with no image-based light, shadows
+    /// or lights. The passes and attachments stay the same, so a frame's cost with one of them
+    /// on is the frame's cost without that shading.
+    case flatMaterialExperiment(RenderingToggle)
+    case flatLightingExperiment(RenderingToggle)
 }
 
 public enum RenderingToggle: Sendable {
@@ -193,6 +200,14 @@ public func setRendering(_ property: RenderingProperty) {
         renderInfo.opaqueHiddenSurfaceRemovalEnabled = true
     case .opaqueHiddenSurfaceRemoval(.disabled):
         renderInfo.opaqueHiddenSurfaceRemovalEnabled = false
+    case .flatMaterialExperiment(.enabled):
+        renderInfo.flatMaterialExperiment = true
+    case .flatMaterialExperiment(.disabled):
+        renderInfo.flatMaterialExperiment = false
+    case .flatLightingExperiment(.enabled):
+        renderInfo.flatLightingExperiment = true
+    case .flatLightingExperiment(.disabled):
+        renderInfo.flatLightingExperiment = false
     }
 }
 

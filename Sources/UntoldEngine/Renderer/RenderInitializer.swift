@@ -148,8 +148,14 @@ func updateOpaquePipelinesForSampleCount() {
     if let modelOpaquePipeline = InitModelOpaquePipeline() {
         PipelineManager.shared.update(rendererPipeLine: modelOpaquePipeline, forType: .modelOpaque)
     }
+    if let modelFlatPipeline = InitModelFlatPipeline() {
+        PipelineManager.shared.update(rendererPipeLine: modelFlatPipeline, forType: .modelFlat)
+    }
     if let lightPipeline = InitLightPipeline() {
         PipelineManager.shared.update(rendererPipeLine: lightPipeline, forType: .light)
+    }
+    if let lightFlatPipeline = InitLightFlatPipeline() {
+        PipelineManager.shared.update(rendererPipeLine: lightFlatPipeline, forType: .lightFlat)
     }
     if let lightTilePipeline = InitLightTilePipeline() {
         PipelineManager.shared.update(rendererPipeLine: lightTilePipeline, forType: .lightTile)
