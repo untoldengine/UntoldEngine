@@ -21,11 +21,14 @@ final class TileLightStageTests: BaseRenderSetup {
 
     override func setUp() async throws {
         try await super.setUp()
+        // The stage lights the indirect part itself: the geometry must not carry it.
+        setRendering(.perFragmentIndirectLighting(.disabled))
         savedMode = antiAliasingMode
     }
 
     override func tearDown() async throws {
         setRendering(.tileLightStage(.enabled))
+        setRendering(.perFragmentIndirectLighting(.enabled))
         setRendering(.multisampleCount(4))
         antiAliasingMode = savedMode
         destroyAllEntities()

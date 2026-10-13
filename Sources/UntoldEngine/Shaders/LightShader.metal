@@ -17,6 +17,9 @@ using namespace metal;
 /// The flat-lighting experiment: the quad returns the albedo untouched, with no image-based
 /// light, shadows or lights (`setRendering(.flatLightingExperiment)`).
 constant bool kLightFlatShading [[function_constant(lightFunctionConstantFlatShading)]];
+/// Per-fragment indirect lighting: the indirect light and the sun's shadow come from the
+/// G-buffer, where the geometry wrote them once per fragment, instead of once per sample here.
+constant bool kLightIndirectFromGBuffer [[function_constant(lightFunctionConstantIndirectFromGBuffer)]];
 
 // Normal-offset shadows: how many of the cascade's own world-space texels to push the
 // sampled point along the surface normal before the light-space lookup. This moves the
@@ -742,7 +745,10 @@ static inline float4 lightTBDRSample(
     constant AreaLightBlock   &alBlock,
     constant float            &iblRotationAngle,
     constant PointShadowUniforms &pointShadowUniforms,
-    constant SpotShadowUniforms &spotShadowUniforms
+    constant SpotShadowUniforms &spotShadowUniforms,
+    // The indirect light and the sun's shadow are in the G-buffer already (the emissive
+    // carries the indirect light, its alpha the shadow factor), written once per fragment.
+    bool indirectFromGBuffer
 ) {
     // Background pixels were cleared to (0,0,0,0). Skip lighting entirely —
     // normalize(float3(0)) is undefined, and the IBL/shadow paths would produce
@@ -766,12 +772,15 @@ static inline float4 lightTBDRSample(
 
     float3 viewVector = normalize(cameraPosition - verticesInWorldSpace.xyz);
 
-    float3 indirectLighting = computeIBLContribution(
-        irradianceTexture, specularTexture, iblBRDFTexture,
-        iblRotationAngle, iblParam,
-        albedo, surfaceNormal, viewVector, roughness, metallic
-    );
-    indirectLighting *= ambientOcclusion * iblParam.ambientIntensity;
+    float3 indirectLighting = float3(0.0);
+    if (!indirectFromGBuffer) {
+        indirectLighting = computeIBLContribution(
+            irradianceTexture, specularTexture, iblBRDFTexture,
+            iblRotationAngle, iblParam,
+            albedo, surfaceNormal, viewVector, roughness, metallic
+        );
+        indirectLighting *= ambientOcclusion * iblParam.ambientIntensity;
+    }
 
     LightContribution brdf = computeBRDF(lightRayDirection, viewVector, surfaceNormal, albedo.rgb, float3(1.0), roughness, metallic);
 
@@ -779,7 +788,9 @@ static inline float4 lightTBDRSample(
     color.diff = brdf.diff * (half3)lights.color * (half)lights.intensity;
     color.spec = brdf.spec * lights.color * lights.intensity;
 
-    float shadow = computeCSMShadow(csmShadowArray, csmUniforms, verticesInWorldSpace.xyz, surfaceNormal, lightRayDirection);
+    float shadow = indirectFromGBuffer
+        ? float(gbEmissive.a)
+        : computeCSMShadow(csmShadowArray, csmUniforms, verticesInWorldSpace.xyz, surfaceNormal, lightRayDirection);
     color.diff *= (half)shadow;
     color.spec *= shadow;
 
@@ -886,7 +897,8 @@ fragment TBDRLightOutput fragmentLightShaderTBDR(
         csmShadowArray, irradianceTexture, specularTexture, iblBRDFTexture, ltcMagTexture, ltcMatTexture,
         pointShadowCube, spotShadowMap,
         csmUniforms, cameraPosition, lights, plBlock, slBlock, iblParam, alBlock, iblRotationAngle,
-        pointShadowUniforms, spotShadowUniforms
+        pointShadowUniforms, spotShadowUniforms,
+        kLightIndirectFromGBuffer
     );
     return out;
 }
@@ -939,7 +951,8 @@ kernel void lightTileShaderTBDR(
             csmShadowArray, irradianceTexture, specularTexture, iblBRDFTexture, ltcMagTexture, ltcMatTexture,
             pointShadowCube, spotShadowMap,
             csmUniforms, cameraPosition, lights, plBlock, slBlock, iblParam, alBlock, iblRotationAngle,
-            pointShadowUniforms, spotShadowUniforms
+            pointShadowUniforms, spotShadowUniforms,
+            false // the stage stands aside when the geometry lights per fragment
         );
         tile.write(record, pixel, color, imageblock_data_rate::color);
     }

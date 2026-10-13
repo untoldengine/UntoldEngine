@@ -391,6 +391,8 @@ public func InitModelFlatPipeline() -> RenderPipeline? {
 }
 
 private func makeModelPipeline(mayDiscard: Bool, flatMaterial: Bool = false, name: String) -> RenderPipeline? {
+    let indirectInGBuffer = renderInfo.perFragmentIndirectLighting
+    renderInfo.perFragmentIndirectLightingBuilt = indirectInGBuffer
     guard let library = renderInfo.library else {
         handleError(.metalLibraryNotFound)
         return nil
@@ -404,6 +406,8 @@ private func makeModelPipeline(mayDiscard: Bool, flatMaterial: Bool = false, nam
     constants.setConstantValue(&mayDiscardValue, type: .bool, index: Int(modelFunctionConstantMayDiscard.rawValue))
     var flatMaterialValue = flatMaterial
     constants.setConstantValue(&flatMaterialValue, type: .bool, index: Int(modelFunctionConstantFlatMaterial.rawValue))
+    var indirectValue = indirectInGBuffer
+    constants.setConstantValue(&indirectValue, type: .bool, index: Int(modelFunctionConstantIndirectInGBuffer.rawValue))
     let fragmentFunction: MTLFunction
     do {
         fragmentFunction = try library.makeFunction(name: "fragmentModelShader", constantValues: constants)
@@ -510,6 +514,8 @@ public func InitLightFlatPipeline() -> RenderPipeline? {
         let constants = MTLFunctionConstantValues()
         var flatShadingValue = flatShading
         constants.setConstantValue(&flatShadingValue, type: .bool, index: Int(lightFunctionConstantFlatShading.rawValue))
+        var indirectValue = renderInfo.perFragmentIndirectLighting
+        constants.setConstantValue(&indirectValue, type: .bool, index: Int(lightFunctionConstantIndirectFromGBuffer.rawValue))
         let fragmentFunction: MTLFunction
         do {
             fragmentFunction = try library.makeFunction(name: "fragmentLightShaderTBDR", constantValues: constants)

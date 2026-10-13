@@ -578,6 +578,7 @@ public enum RenderPasses {
         #else
             guard renderInfo.tileLightStageEnabled,
                   !renderInfo.flatLightingExperiment, // the experiment runs through the quad
+                  !renderInfo.perFragmentIndirectLightingBuilt, // the stage would light the indirect part again
                   let pipeline = PipelineManager.shared.renderPipelinesByType[.lightTile],
                   pipeline.success,
                   let state = pipeline.pipelineState,
@@ -2479,6 +2480,31 @@ public enum RenderPasses {
             renderEncoder.setCullMode(.back)
         }
 
+        // The light pass's inputs, which the geometry shares when it lights per fragment: the
+        // indirect light and the sun's shadow then go into the G-buffer once per fragment and
+        // the quad adds them from there instead of computing them once per sample.
+        var csmUniforms = shadowSystem.makeUniforms()
+        csmUniforms.cameraViewMatrix = viewMatrix
+        csmUniforms.lightSpaceMatrices.0 = SceneRootTransform.shared.effectiveLightMatrix(csmUniforms.lightSpaceMatrices.0)
+        csmUniforms.lightSpaceMatrices.1 = SceneRootTransform.shared.effectiveLightMatrix(csmUniforms.lightSpaceMatrices.1)
+        csmUniforms.lightSpaceMatrices.2 = SceneRootTransform.shared.effectiveLightMatrix(csmUniforms.lightSpaceMatrices.2)
+        let environmentLighting = resolveCurrentEnvironmentLighting()
+        var lightParams = getDirectionalLightParameters()
+        var brdfParameters = IBLParamsUniform()
+        brdfParameters.applyIBL = environmentLighting.applyIBL
+        brdfParameters.ambientIntensity = environmentLighting.ambientIntensity
+        var lightPassRotationAngle = envRotationAngle
+        if renderInfo.perFragmentIndirectLightingBuilt {
+            renderEncoder.setFragmentTexture(environmentLighting.irradianceMap, index: Int(modelPassIBLIrradianceTextureIndex.rawValue))
+            renderEncoder.setFragmentTexture(environmentLighting.specularMap, index: Int(modelPassIBLSpecularTextureIndex.rawValue))
+            renderEncoder.setFragmentTexture(environmentLighting.brdfMap, index: Int(modelPassIBLBRDFTextureIndex.rawValue))
+            renderEncoder.setFragmentTexture(textureResources.csmShadowMap, index: Int(modelPassCSMShadowTextureIndex.rawValue))
+            renderEncoder.setFragmentBytes(&csmUniforms, length: MemoryLayout<CSMUniforms>.stride, index: Int(modelPassFragmentCSMUniformsIndex.rawValue))
+            renderEncoder.setFragmentBytes(&lightParams, length: MemoryLayout<LightParameters>.stride, index: Int(modelPassFragmentLightParamsIndex.rawValue))
+            renderEncoder.setFragmentBytes(&brdfParameters, length: MemoryLayout<IBLParamsUniform>.stride, index: Int(modelPassFragmentIBLParamIndex.rawValue))
+            renderEncoder.setFragmentBytes(&lightPassRotationAngle, length: MemoryLayout<Float>.stride, index: Int(modelPassFragmentIBLRotationAngleIndex.rawValue))
+        }
+
         // ── Sub-pass 1: Unbatched geometry ──────────────────────────────────────
         renderEncoder.setRenderPipelineState(modelPipeline.pipelineState!)
         renderEncoder.setDepthStencilState(modelPipeline.depthState)
@@ -2785,11 +2811,6 @@ public enum RenderPasses {
         var effectiveCamPos = shadingCameraPosition(cameraComponent)
         lights.setBytes(&effectiveCamPos, length: MemoryLayout<simd_float3>.stride, index: Int(lightPassCameraPositionIndex.rawValue))
 
-        var csmUniforms = shadowSystem.makeUniforms()
-        csmUniforms.cameraViewMatrix = viewMatrix
-        csmUniforms.lightSpaceMatrices.0 = SceneRootTransform.shared.effectiveLightMatrix(csmUniforms.lightSpaceMatrices.0)
-        csmUniforms.lightSpaceMatrices.1 = SceneRootTransform.shared.effectiveLightMatrix(csmUniforms.lightSpaceMatrices.1)
-        csmUniforms.lightSpaceMatrices.2 = SceneRootTransform.shared.effectiveLightMatrix(csmUniforms.lightSpaceMatrices.2)
         lights.setBytes(&csmUniforms, length: MemoryLayout<CSMUniforms>.stride, index: Int(lightPassLightOrthoViewMatrixIndex.rawValue))
 
         lights.setTexture(textureResources.csmShadowMap, index: Int(lightPassShadowTextureIndex.rawValue))
@@ -2799,14 +2820,12 @@ public enum RenderPasses {
         lights.setTexture(textureResources.spotShadowMap, index: Int(lightPassSpotShadowTextureIndex.rawValue))
         var spotShadowUniforms = spotShadowState.makeUniforms()
         lights.setBytes(&spotShadowUniforms, length: MemoryLayout<SpotShadowUniforms>.stride, index: Int(lightPassSpotShadowUniformIndex.rawValue))
-        let environmentLighting = resolveCurrentEnvironmentLighting()
         lights.setTexture(environmentLighting.irradianceMap, index: Int(lightPassIBLIrradianceTextureIndex.rawValue))
         lights.setTexture(environmentLighting.specularMap, index: Int(lightPassIBLSpecularTextureIndex.rawValue))
         lights.setTexture(environmentLighting.brdfMap, index: Int(lightPassIBLBRDFMapTextureIndex.rawValue))
         lights.setTexture(textureResources.areaTextureLTCMag, index: Int(lightPassAreaLTCMagTextureIndex.rawValue))
         lights.setTexture(textureResources.areaTextureLTCMat, index: Int(lightPassAreaLTCMatTextureIndex.rawValue))
 
-        var lightParams = getDirectionalLightParameters()
         lights.setBytes(&lightParams, length: MemoryLayout<LightParameters>.stride, index: Int(lightPassLightParamsIndex.rawValue))
 
         let headerSize = 16
@@ -2820,12 +2839,7 @@ public enum RenderPasses {
             lights.setBuffer(areaLights, offset: 0, index: Int(lightPassAreaLightsIndex.rawValue))
         }
 
-        var brdfParameters = IBLParamsUniform()
-        brdfParameters.applyIBL = environmentLighting.applyIBL
-        brdfParameters.ambientIntensity = environmentLighting.ambientIntensity
         lights.setBytes(&brdfParameters, length: MemoryLayout<IBLParamsUniform>.stride, index: Int(lightPassIBLParamIndex.rawValue))
-
-        var lightPassRotationAngle = envRotationAngle
         lights.setBytes(&lightPassRotationAngle, length: MemoryLayout<Float>.stride, index: Int(lightPassIBLRotationAngleIndex.rawValue))
 
         var isGameMode = gameMode

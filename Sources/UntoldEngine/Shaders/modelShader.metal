@@ -247,6 +247,27 @@ constant bool kModelMayDiscard [[function_constant(modelFunctionConstantMayDisca
 /// The flat-material experiment: the material's factors and the vertex normal, no texture
 /// sample, no derivative (`setRendering(.flatMaterialExperiment)`).
 constant bool kModelFlatMaterial [[function_constant(modelFunctionConstantFlatMaterial)]];
+/// Per-fragment indirect lighting: the image-based light and the sun's cascade shadow,
+/// evaluated here once per fragment and carried in the emissive attachment (indirect light
+/// added to the emissive, the shadow factor in alpha) for the light pass to add, instead of
+/// once per sample there (`setRendering(.perFragmentIndirectLighting)`).
+constant bool kModelIndirectInGBuffer [[function_constant(modelFunctionConstantIndirectInGBuffer)]];
+
+/// The emissive attachment's value with the indirect light and the sun's shadow folded in.
+static inline float4 emissiveWithIndirect(
+    float3 emissive, float4 baseColor, float3 normal, float3 worldPosition, float roughness, float metallic,
+    float3 cameraPosition,
+    texture2d<float> iblIrradiance, texture2d<float> iblSpecular, texture2d<float> iblBRDF,
+    depth2d_array<float> csmShadowArray,
+    constant CSMUniforms &csmUniforms, constant LightParameters &lightParams,
+    constant IBLParamsUniform &iblParam, constant float &iblRotationAngle
+) {
+    float3 viewVector = normalize(cameraPosition - worldPosition);
+    float3 indirect = computeIBLContribution(iblIrradiance, iblSpecular, iblBRDF, iblRotationAngle, iblParam,
+                                             baseColor, normal, viewVector, roughness, metallic) * iblParam.ambientIntensity;
+    float shadow = computeCSMShadow(csmShadowArray, csmUniforms, worldPosition, normal, normalize(lightParams.direction));
+    return float4(emissive + indirect, shadow);
+}
 
 fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
                                         constant Uniforms & uniforms [[ buffer(modelPassFragmentUniformIndex) ]],
@@ -264,7 +285,16 @@ fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
                                   sampler heightSampler [[sampler(modelPassHeightSamplerIndex)]],
                                         constant float &stScale [[buffer(modelPassFragmentSTScaleIndex)]],
                                         constant POMQualityUniform &pomQuality [[buffer(modelPassFragmentPOMQualityIndex)]],
-                                        constant bool &normalIsPackedXY [[buffer(modelPassFragmentNormalIsPackedXYIndex)]])
+                                        constant bool &normalIsPackedXY [[buffer(modelPassFragmentNormalIsPackedXYIndex)]],
+                                        // Per-fragment indirect lighting, bound only with it on.
+                                        texture2d<float> iblIrradiance [[texture(modelPassIBLIrradianceTextureIndex), function_constant(kModelIndirectInGBuffer)]],
+                                        texture2d<float> iblSpecular [[texture(modelPassIBLSpecularTextureIndex), function_constant(kModelIndirectInGBuffer)]],
+                                        texture2d<float> iblBRDF [[texture(modelPassIBLBRDFTextureIndex), function_constant(kModelIndirectInGBuffer)]],
+                                        depth2d_array<float> csmShadowArray [[texture(modelPassCSMShadowTextureIndex), function_constant(kModelIndirectInGBuffer)]],
+                                        constant CSMUniforms &csmUniforms [[buffer(modelPassFragmentCSMUniformsIndex), function_constant(kModelIndirectInGBuffer)]],
+                                        constant LightParameters &lightParams [[buffer(modelPassFragmentLightParamsIndex), function_constant(kModelIndirectInGBuffer)]],
+                                        constant IBLParamsUniform &iblParam [[buffer(modelPassFragmentIBLParamIndex), function_constant(kModelIndirectInGBuffer)]],
+                                        constant float &iblRotationAngle [[buffer(modelPassFragmentIBLRotationAngleIndex), function_constant(kModelIndirectInGBuffer)]])
 {
 
     // Base Color and Normal Maps: Linear filtering, mipmaps, repeat wrapping
@@ -309,7 +339,14 @@ fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
         gBufferOut.normals = float4(flatNormal, 0.0);
         gBufferOut.positions = verticesInWorldSpace;
         gBufferOut.material = float4(clamp(materialParameter.roughness, 0.045, 1.0), clamp(materialParameter.metallic, 0.0, 1.0), 0.0, 0.0);
-        gBufferOut.emmisive = float4(materialParameter.emmissive, 1.0);
+        if (kModelIndirectInGBuffer) {
+            gBufferOut.emmisive = emissiveWithIndirect(
+                materialParameter.emmissive, gBufferOut.color, flatNormal, verticesInWorldSpace.xyz,
+                gBufferOut.material.r, gBufferOut.material.g, uniforms.cameraPosition,
+                iblIrradiance, iblSpecular, iblBRDF, csmShadowArray, csmUniforms, lightParams, iblParam, iblRotationAngle);
+        } else {
+            gBufferOut.emmisive = float4(materialParameter.emmissive, 1.0);
+        }
         return gBufferOut;
     }
 
@@ -503,7 +540,13 @@ fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
     // .b/.a carry POM debug data (raw height sample, uv-offset magnitude) for
     // RenderDebugViewMode.heightDebug / .pomOffsetDebug — see RenderingSystem.swift.
     gBufferOut.material=float4(roughness, metallic, pomHeightSample, pomOffsetMagnitude);
-    gBufferOut.emmisive = float4(emissive, 1.0);
+    if (kModelIndirectInGBuffer) {
+        gBufferOut.emmisive = emissiveWithIndirect(
+            emissive, gBufferOut.color, normalMap, verticesInWorldSpace.xyz, roughness, metallic, uniforms.cameraPosition,
+            iblIrradiance, iblSpecular, iblBRDF, csmShadowArray, csmUniforms, lightParams, iblParam, iblRotationAngle);
+    } else {
+        gBufferOut.emmisive = float4(emissive, 1.0);
+    }
     return gBufferOut;
 
 

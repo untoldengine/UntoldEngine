@@ -128,6 +128,11 @@ public enum RenderingProperty: Sendable {
     /// GPU time per pass, measured by the GPU at each pass's stage boundaries and averaged over
     /// the recent frames: `GPUPassTiming.shared.averages()`. Off by default.
     case gpuPassTiming(RenderingToggle)
+    /// Whether the geometry evaluates the image-based light and the sun's cascade shadow once
+    /// per fragment and carries them in the G-buffer for the light pass to add, instead of the
+    /// light pass computing them once per multisample. Enabled by default; the same picture,
+    /// less lighting work under MSAA. Disabling it is a diagnostic.
+    case perFragmentIndirectLighting(RenderingToggle)
 }
 
 /// The model pass's back-face culling: off, or on with the winding that counts as the front.
@@ -229,6 +234,10 @@ public func setRendering(_ property: RenderingProperty) {
         GPUPassTiming.shared.setEnabled(true)
     case .gpuPassTiming(.disabled):
         GPUPassTiming.shared.setEnabled(false)
+    case .perFragmentIndirectLighting(.enabled):
+        renderInfo.perFragmentIndirectLighting = true
+    case .perFragmentIndirectLighting(.disabled):
+        renderInfo.perFragmentIndirectLighting = false
     }
 }
 

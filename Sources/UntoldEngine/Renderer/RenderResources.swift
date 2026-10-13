@@ -106,6 +106,12 @@ public struct RenderInfo {
     /// of every triangle, so an open mesh shows its back), or the faces wound the other way
     /// are culled, with the winding that counts as the front. The light quad is never culled.
     public var backFaceCullingExperiment: BackFaceCullingExperiment = .off
+    /// Whether the geometry evaluates the image-based light and the sun's cascade shadow once
+    /// per fragment and carries them in the G-buffer for the light pass to add, instead of the
+    /// light pass computing them once per sample. On by default; the pipelines follow it on
+    /// the next frame (`perFragmentIndirectLightingBuilt` is what they were built with).
+    public var perFragmentIndirectLighting: Bool = true
+    public var perFragmentIndirectLightingBuilt: Bool = false
 
     // XR stereo-aware HZB culling
     // When true, depth and HZB pyramids are maintained per eye and occlusion

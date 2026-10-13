@@ -140,6 +140,11 @@ typedef enum{
     modelPassFragmentSTScaleIndex,
     modelPassFragmentPOMQualityIndex,
     modelPassFragmentNormalIsPackedXYIndex,
+    // Per-fragment indirect lighting: the light pass's inputs the geometry shares.
+    modelPassFragmentCSMUniformsIndex,
+    modelPassFragmentLightParamsIndex,
+    modelPassFragmentIBLParamIndex,
+    modelPassFragmentIBLRotationAngleIndex,
 }ModelPassFragmentBufferIndices;
 
 typedef enum{
@@ -370,7 +375,12 @@ typedef enum{
     /// True writes the material's factors and the vertex normal with no texture sample and no
     /// derivative: a shading-cost experiment, `setRendering(.flatMaterialExperiment)`. False
     /// shades the material.
-    modelFunctionConstantFlatMaterial = 1
+    modelFunctionConstantFlatMaterial = 1,
+    /// True evaluates the image-based light and the sun's cascade shadow once per fragment
+    /// and writes them into the G-buffer (the emissive attachment: indirect light added to
+    /// the emissive, the shadow factor in alpha); the light pass then adds them from there
+    /// instead of computing them once per sample. `setRendering(.perFragmentIndirectLighting)`.
+    modelFunctionConstantIndirectInGBuffer = 3
 }ModelFunctionConstants;
 
 /// Function constants of `fragmentLightShaderTBDR`. The indices share one space with the
@@ -378,7 +388,10 @@ typedef enum{
 typedef enum{
     /// True returns the albedo untouched, with no image-based light, shadows or lights: a
     /// shading-cost experiment, `setRendering(.flatLightingExperiment)`. False lights the sample.
-    lightFunctionConstantFlatShading = 2
+    lightFunctionConstantFlatShading = 2,
+    /// True takes the indirect light and the sun's shadow from the G-buffer, where the
+    /// geometry wrote them once per fragment (`modelFunctionConstantIndirectInGBuffer`).
+    lightFunctionConstantIndirectFromGBuffer = 4
 }LightFunctionConstants;
 
 typedef enum{
@@ -428,6 +441,11 @@ typedef enum{
     modelPassNormalTextureIndex,
     modelPassHeightTextureIndex,
     modelPassEmissiveTextureIndex,
+    // Per-fragment indirect lighting: the light pass's textures the geometry shares.
+    modelPassIBLIrradianceTextureIndex,
+    modelPassIBLSpecularTextureIndex,
+    modelPassIBLBRDFTextureIndex,
+    modelPassCSMShadowTextureIndex,
 }ModelPassTextureIndices;
 
 typedef enum{
