@@ -112,6 +112,10 @@ public struct RenderInfo {
     /// the next frame (`perFragmentIndirectLightingBuilt` is what they were built with).
     public var perFragmentIndirectLighting: Bool = true
     public var perFragmentIndirectLightingBuilt: Bool = false
+    /// The mesh entities the frame's culling put to the occlusion test (the culling set's
+    /// size), which decides with `HZBOcclusionCulling.minimumEntities` whether the frame's
+    /// depth is worth a pyramid.
+    public var hzbCandidateCount: Int = 0
 
     // XR stereo-aware HZB culling
     // When true, depth and HZB pyramids are maintained per eye and occlusion

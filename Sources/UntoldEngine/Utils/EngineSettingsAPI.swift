@@ -86,6 +86,10 @@ public enum RenderingProperty: Sendable {
     /// frustum keeps. In scene units; the default is 0.5. See
     /// `getOcclusionCullingMaxCameraStep()` to read the current value.
     case occlusionCullingMaxCameraStep(Float)
+    /// The fewest mesh entities in the culling set for which the occlusion test runs and the
+    /// depth pyramid it reads is built and its depth copied, every frame. 2 by default: one
+    /// entity hides nothing but itself. A scene with splats keeps the pyramid regardless.
+    case occlusionCullingMinimumEntities(Int)
     /// Whether the XR frame is drawn through the rasterization rate maps the visionOS
     /// compositor provides when the layer is configured with foveation enabled
     /// (`LayerRenderer.Configuration.isFoveationEnabled`): dense where the eyes look, coarse
@@ -200,6 +204,8 @@ public func setRendering(_ property: RenderingProperty) {
         RenderPasses.maxShadowCastingDistance = max(distance, 0.001)
     case let .smallObjectCulling(pixels):
         SmallObjectCulling.minimumPixels = pixels.isFinite ? max(pixels, 0) : 0
+    case let .occlusionCullingMinimumEntities(entities):
+        HZBOcclusionCulling.minimumEntities = max(0, entities)
     case let .occlusionCullingMaxCameraStep(step):
         HZBOcclusionCulling.maxCameraStep = step.isFinite ? max(step, 0) : 0
     case .foveatedRendering(.enabled):

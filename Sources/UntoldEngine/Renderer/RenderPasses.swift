@@ -529,6 +529,8 @@ public enum RenderPasses {
     }
 
     public static let copyOpaqueDepthForHZBExecution: RenderPassExecution = { commandBuffer in
+        // The copy feeds the depth pyramid alone; no pyramid, no copy.
+        guard HZBOcclusionCulling.pyramidWanted() else { return }
         guard let sourceDepth = textureResources.depthMap,
               let hzbSourceDepth = textureResources.hzbSourceDepthMap
         else { return }

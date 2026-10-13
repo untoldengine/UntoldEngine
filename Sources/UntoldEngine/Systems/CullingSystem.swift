@@ -357,6 +357,13 @@ func initFrustumCulllingCompute() {
 }
 
 public func buildHZBDepthPyramid(_ commandBuffer: MTLCommandBuffer, eyeIndex: Int? = nil) {
+    // No pyramid for a frame whose depth could hide nothing next frame (the test is off, or
+    // the scene has too few mesh entities and no splats): the build and the depth copy that
+    // feeds it are the frame's cost for nothing, and a stale pyramid must not count as valid.
+    guard HZBOcclusionCulling.pyramidWanted() else {
+        renderInfo.hzbIsValid = false
+        return
+    }
     // Per-eye stereo path for XR
     // Current XR stereo rendering builds the shared mono HZB once after both eyes
     // are rendered, so mixed-mode opaque-depth snapshotting is handled by the
@@ -797,6 +804,7 @@ public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         // few centimetres apart, the frames a camera step. The per-eye pyramids
         // (hzbDepthPyramidEye) are allocated, but nothing renders the per-eye depth they
         // would be built from.
+        renderInfo.hzbCandidateCount = count
         let ran0 = executeHZBOcclusionCulling(
             commandBuffer,
             cameraPosition: eyePosition(ofView: SceneRootTransform.shared.effectiveViewMatrix(renderInfo.xrEye0View)),
@@ -853,6 +861,7 @@ public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
 
     } else {
         // Mono path (macOS / non-stereo)
+        renderInfo.hzbCandidateCount = count
         let didRunOcclusion = executeHZBOcclusionCulling(
             commandBuffer,
             cameraPosition: eyePosition(ofView: effectiveViewMatrix),
@@ -1167,6 +1176,7 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
     let finalVisibleCountBuffer = visibleCountTriple.bufferForWrite(frame: submitFrameIndex)
     let finalVisibilityBuffer = visibilityTriple.bufferForWrite(frame: submitFrameIndex)
 
+    renderInfo.hzbCandidateCount = count
     let didRunOcclusion = executeHZBOcclusionCulling(
         commandBuffer,
         cameraPosition: eyePosition(ofView: effectiveViewMatrix),
@@ -1243,6 +1253,27 @@ public enum HZBOcclusionCulling {
     /// draws what the frustum keeps. In scene units; 0.5 by default. Set it with
     /// `setRendering(.occlusionCullingMaxCameraStep(_:))`.
     nonisolated(unsafe) static var maxCameraStep: Float = 0.5
+
+    /// The fewest mesh entities in the culling set for which the test, and the depth pyramid
+    /// it reads, built from a copy of the frame's depth every frame, are worth their cost:
+    /// below it nothing can hide anything. 2 by default, since one entity hides nothing but
+    /// itself. A frame with splat entities keeps the pyramid regardless: their cull reads it.
+    /// Set it with `setRendering(.occlusionCullingMinimumEntities(_:))`.
+    nonisolated(unsafe) static var minimumEntities: Int = 2
+
+    /// Whether the frame's depth is worth a pyramid: the test is on, and the scene has enough
+    /// mesh entities or any splats for it to hide something next frame.
+    static func pyramidWanted() -> Bool {
+        guard maxCameraStep > 0 else { return false }
+        if renderInfo.hzbCandidateCount >= minimumEntities { return true }
+        let slot = min(renderInfo.currentInFlightFrameSlot, maxInFlightCommandBuffers - 1)
+        return !GaussianSharedWorkingSet.shared.entityOrder(slot: slot).isEmpty
+    }
+}
+
+/// The fewest mesh entities for which the occlusion test runs and its depth pyramid is built.
+public func getOcclusionCullingMinimumEntities() -> Int {
+    HZBOcclusionCulling.minimumEntities
 }
 
 /// The farthest the camera may move between two frames for the occlusion test to run.
