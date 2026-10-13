@@ -53,7 +53,11 @@
         private var textureSets: [RuntimeEnvironmentLightingTextureSet] = []
         private var currentReadTextureSetIndex = 0
         private var prefilterGeneration: UInt64 = 0
-        private let cameraScaleReferenceWhitePoint: Float = 5000.0
+        /// The probe's camera scale reference at which the room's light is applied as it is.
+        /// Calibrated against RealityKit's lighting of the same object in the same room (a
+        /// dartboard's white segments matched the passthrough's whites at a reference of
+        /// 19016 with a scale of about 19): the reference over a thousand.
+        private let cameraScaleReferenceWhitePoint: Float = 1000.0
         private var smoothedIntensityScaleValue: Float?
         private var smoothedTintColorValue = simd_float3(1.0, 1.0, 1.0)
         private var lastSmoothedLightingTimestamp: CFTimeInterval?
@@ -387,7 +391,7 @@
                 return latestIntensityScaleValue
             }
 
-            let intensityScale = min(max(cameraScaleReference / cameraScaleReferenceWhitePoint, 0.0), 8.0)
+            let intensityScale = min(max(cameraScaleReference / cameraScaleReferenceWhitePoint, 0.0), 64.0)
             latestIntensityScaleValue = intensityScale
             return intensityScale
         }
