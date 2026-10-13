@@ -40,6 +40,7 @@ func UpdateRenderingSystem(in view: MTKView) {
             let renderTotalStart = CACurrentMediaTime()
         #endif
         renderInfo.lastCommandBuffer = commandBuffer
+        GPUPassTiming.shared.beginFrame(device: renderInfo.device)
         renderInfo.currentInFlightFrameSlot = acquireUniformFrameSlot()
 
         // Always refresh the scene-root matrices so that effectiveCameraPosition() and
@@ -141,6 +142,7 @@ func UpdateRenderingSystem(in view: MTKView) {
             MemoryBudgetManager.shared.markUsed(entityIds: visibleEntityIdsAtSubmission)
         }
 
+        GPUPassTiming.shared.endFrame(commandBuffer)
         #if ENGINE_STATS_ENABLED
             let submitStart = CACurrentMediaTime()
         #endif
@@ -1518,6 +1520,7 @@ public let outputTransformRenderPass: RenderPasses.RenderPassExecution = { comma
     // Do not override clearColor here: the XR layer sets it per immersion mode
     // (UntoldEngineXR.swift), and the fullscreen quad overwrites every pixel anyway.
 
+    GPUPassTiming.shared.attach(renderPassDescriptor, "Output")
     guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
         handleError(.renderPassCreationFailed, "Output Transform Pass: encoder creation failed")
         return

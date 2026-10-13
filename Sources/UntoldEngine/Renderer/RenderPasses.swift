@@ -537,7 +537,7 @@ public enum RenderPasses {
         let height = min(sourceDepth.height, hzbSourceDepth.height)
         guard width > 0, height > 0 else { return }
 
-        guard let blitEncoder = commandBuffer.makeBlitCommandEncoder() else { return }
+        guard let blitEncoder = GPUPassTiming.shared.makeBlitEncoder(commandBuffer, "DepthCopy") else { return }
         blitEncoder.label = "Copy Opaque Depth for HZB"
         blitEncoder.copy(
             from: sourceDepth,
@@ -1130,6 +1130,7 @@ public enum RenderPasses {
         encoderDescriptor.colorAttachments[0].storeAction = MTLStoreAction.store
         encoderDescriptor.colorAttachments[0].loadAction = loadAction
 
+        GPUPassTiming.shared.attach(encoderDescriptor, "Grid")
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor)
         else {
             handleError(.renderPassCreationFailed, "Grid Pass")
@@ -1222,6 +1223,7 @@ public enum RenderPasses {
         encoderDescriptor.colorAttachments[0].storeAction = MTLStoreAction.store
         encoderDescriptor.colorAttachments[0].loadAction = MTLLoadAction.clear
 
+        GPUPassTiming.shared.attach(encoderDescriptor, "Sky")
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor)
         else {
             handleError(.renderPassCreationFailed, "Sky Pass")
@@ -1293,6 +1295,7 @@ public enum RenderPasses {
         encoderDescriptor.colorAttachments[0].storeAction = MTLStoreAction.store
         encoderDescriptor.colorAttachments[0].loadAction = MTLLoadAction.clear
 
+        GPUPassTiming.shared.attach(encoderDescriptor, "Environment")
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor)
         else {
             handleError(.renderPassCreationFailed, "Environment Pass")
@@ -1410,6 +1413,7 @@ public enum RenderPasses {
             descriptor.depthAttachment.storeAction = .store
             descriptor.depthAttachment.clearDepth = 1.0
 
+            GPUPassTiming.shared.attach(descriptor, "Shadows")
             guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor) else {
                 handleError(.renderPassCreationFailed, "Shadow Cascade \(cascadeIdx)")
                 continue
@@ -1522,6 +1526,7 @@ public enum RenderPasses {
             let descriptor = renderInfo.csmRenderPassDescriptors[cascadeIdx]
             descriptor.depthAttachment.loadAction = .load
 
+            GPUPassTiming.shared.attach(descriptor, "Shadows")
             guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor) else {
                 handleError(.renderPassCreationFailed, "Batched Shadow Cascade \(cascadeIdx)")
                 continue
@@ -1610,6 +1615,7 @@ public enum RenderPasses {
             return
         }
 
+        GPUPassTiming.shared.attach(descriptor, "SpotShadow")
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor) else {
             handleError(.renderPassCreationFailed, "Spot Shadow")
             return
@@ -1749,6 +1755,7 @@ public enum RenderPasses {
             descriptor.depthAttachment.clearDepth = 1.0
             descriptor.depthAttachment.slice = face
 
+            GPUPassTiming.shared.attach(descriptor, "PointShadow")
             guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor) else {
                 handleError(.renderPassCreationFailed, "Point Shadow")
                 return
@@ -1892,6 +1899,7 @@ public enum RenderPasses {
         encoderDescriptor.depthAttachment.loadAction = .clear
         encoderDescriptor.depthAttachment.clearDepth = sceneDepthClearValue()
 
+        GPUPassTiming.shared.attach(encoderDescriptor, "Model")
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor)
         else {
             handleError(.renderPassCreationFailed, "Model Pass")
@@ -2161,6 +2169,7 @@ public enum RenderPasses {
         encoderDescriptor.colorAttachments[Int(emissiveTarget.rawValue)].loadAction = .load
         encoderDescriptor.depthAttachment.loadAction = .load
 
+        GPUPassTiming.shared.attach(encoderDescriptor, "Model")
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor)
         else {
             handleError(.renderPassCreationFailed, "Batched Model Pass")
@@ -2413,6 +2422,7 @@ public enum RenderPasses {
         // imageblock does not fit the GPU's tile memory at this sample count) runs the quad,
         // this frame and after.
         var tileLightState = tileLightStage(for: encoderDescriptor)
+        GPUPassTiming.shared.attach(encoderDescriptor, "G-Buffer")
         var encoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor)
         if encoder == nil, let refused = tileLightState {
             refuseTileLightStage(refused)
@@ -2728,6 +2738,7 @@ public enum RenderPasses {
             lightPassDescriptor.depthAttachment.loadAction = .load
             lightPassDescriptor.depthAttachment.storeAction = .store
 
+            GPUPassTiming.shared.attach(lightPassDescriptor, "Light")
             guard let lightEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: lightPassDescriptor) else {
                 handleError(.renderPassCreationFailed, "Light Pass (Simulator)")
                 return
@@ -2872,6 +2883,7 @@ public enum RenderPasses {
         renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreAction.store
 
         // set your encoder here
+        GPUPassTiming.shared.attach(renderPassDescriptor, "SSAO")
         guard
             let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)
         else {
@@ -2980,6 +2992,7 @@ public enum RenderPasses {
         renderInfo.ssaoRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)].loadAction = .load
 
         // set your encoder here
+        GPUPassTiming.shared.attach(renderPassDescriptor, "SSAO")
         guard
             let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)
         else {
@@ -3107,6 +3120,7 @@ public enum RenderPasses {
             return
         }
 
+        GPUPassTiming.shared.attach(renderPassDescriptor, "SSAO")
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
             handleError(.renderPassCreationFailed, "SSAO Low-Res Pass")
             return
@@ -3209,6 +3223,7 @@ public enum RenderPasses {
         direction: simd_float2,
         label: String
     ) {
+        GPUPassTiming.shared.attach(destinationDescriptor, "SSAO")
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: destinationDescriptor) else {
             handleError(.renderPassCreationFailed, label)
             return
@@ -3274,6 +3289,7 @@ public enum RenderPasses {
             return
         }
 
+        GPUPassTiming.shared.attach(renderPassDescriptor, "SSAO")
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
             handleError(.renderPassCreationFailed, "SSAO Blur Pass")
             return
@@ -3325,6 +3341,7 @@ public enum RenderPasses {
             return
         }
 
+        GPUPassTiming.shared.attach(renderPassDescriptor, "SSAO")
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
             handleError(.renderPassCreationFailed, "SSAO Upsample Pass")
             return
@@ -3414,6 +3431,7 @@ public enum RenderPasses {
         renderPassDescriptor.depthAttachment.storeAction = .store
 
         // set your encoder here
+        GPUPassTiming.shared.attach(renderPassDescriptor, "Light")
         guard
             let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)
         else {
@@ -3676,6 +3694,7 @@ public enum RenderPasses {
         renderInfo.preCompositeBypassSource = nil
 
         // set your encoder here
+        GPUPassTiming.shared.attach(renderPassDescriptor, "PreComposite")
         guard
             let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)
         else {
@@ -3795,6 +3814,7 @@ public enum RenderPasses {
         encoderDescriptor.depthAttachment.loadAction = .load
         encoderDescriptor.depthAttachment.storeAction = .store
 
+        GPUPassTiming.shared.attach(encoderDescriptor, "Transparency")
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor)
         else {
             handleError(.renderPassCreationFailed, "Transparency Pass")
@@ -4227,6 +4247,7 @@ public enum RenderPasses {
         // (XR foveation); so is what this pass adds to it.
         attachXRFoveation(renderInfo.xrFoveation?.rateMap, to: descriptor)
 
+        GPUPassTiming.shared.attach(descriptor, "Occluders")
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor) else {
             handleError(.renderPassCreationFailed, "Mesh Occluder Shell Pass")
             return
@@ -4369,6 +4390,7 @@ public enum RenderPasses {
         // (XR foveation); so is what this pass adds to it.
         attachXRFoveation(renderInfo.xrFoveation?.rateMap, to: descriptor)
 
+        GPUPassTiming.shared.attach(descriptor, "Occluders")
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor) else {
             handleError(.renderPassCreationFailed, "Wireframe Occlusion Depth Pass")
             return
@@ -4554,6 +4576,7 @@ public enum RenderPasses {
         encoderDescriptor.depthAttachment.loadAction = .load
         encoderDescriptor.depthAttachment.storeAction = .store
 
+        GPUPassTiming.shared.attach(encoderDescriptor, "Wireframe")
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor)
         else {
             handleError(.renderPassCreationFailed, "Wireframe Pass")
@@ -4936,6 +4959,7 @@ public enum RenderPasses {
         encoderDescriptor.depthAttachment.loadAction = .load
         encoderDescriptor.depthAttachment.storeAction = .store
 
+        GPUPassTiming.shared.attach(encoderDescriptor, "DebugBounds")
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor) else {
             handleError(.renderPassCreationFailed, "Spatial Debug Bounds Pass")
             return
@@ -5101,6 +5125,7 @@ public enum RenderPasses {
                 }
             }
 
+            GPUPassTiming.shared.attach(renderPassDescriptor, "Gaussian")
             guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
                 handleError(.renderPassCreationFailed, "Gaussian Pass")
                 return
@@ -5249,6 +5274,7 @@ public enum RenderPasses {
             }
 
             // set your encoder here
+            GPUPassTiming.shared.attach(renderPassDescriptor, "Post")
             guard
                 let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)
             else {

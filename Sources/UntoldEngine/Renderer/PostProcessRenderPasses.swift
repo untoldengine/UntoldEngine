@@ -31,6 +31,7 @@ func executePostProcess(postProcessPipeline: RenderPipeline, uCommandBuffer: MTL
     let pipelineName: String = postProcessPipeline.name!
 
     // set your encoder here
+    GPUPassTiming.shared.attach(renderPassDescriptor, "Post")
     guard
         let renderEncoder = uCommandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)
     else {
@@ -94,6 +95,7 @@ func executeIBLPreFilterPass(uCommandBuffer: MTLCommandBuffer, _ envTexture: MTL
         renderPassDescriptor.colorAttachments[2].storeAction = MTLStoreAction.store
 
         // set your encoder here
+        GPUPassTiming.shared.attach(renderPassDescriptor, "IBL")
         if let renderEncoder = uCommandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) {
             renderEncoder.setRenderPipelineState(iblPrefilterPipeline.pipelineState!)
 
@@ -137,6 +139,7 @@ func executeIBLPreFilterPass(uCommandBuffer: MTLCommandBuffer, _ envTexture: MTL
         renderPassDescriptor.colorAttachments[0].loadAction = .dontCare
         renderPassDescriptor.colorAttachments[0].storeAction = .store
 
+        GPUPassTiming.shared.attach(renderPassDescriptor, "IBL")
         guard let renderEncoder = uCommandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
             continue
         }
@@ -204,6 +207,7 @@ public func executeXRIBLCubePreFilterPass(
     renderPassDescriptor.colorAttachments[2].loadAction = .dontCare
     renderPassDescriptor.colorAttachments[2].storeAction = .store
 
+    GPUPassTiming.shared.attach(renderPassDescriptor, "IBL")
     guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
         return false
     }
@@ -235,6 +239,7 @@ public func executeXRIBLCubePreFilterPass(
         mipRenderPassDescriptor.colorAttachments[0].loadAction = .dontCare
         mipRenderPassDescriptor.colorAttachments[0].storeAction = .store
 
+        GPUPassTiming.shared.attach(mipRenderPassDescriptor, "IBL")
         guard let mipEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: mipRenderPassDescriptor) else {
             continue
         }

@@ -379,7 +379,7 @@ public func buildHZBDepthPyramid(_ commandBuffer: MTLCommandBuffer, eyeIndex: In
             var mipLevel = UInt32(level)
             var sourceDimensions = simd_uint2(UInt32(sourceWidth), UInt32(sourceHeight))
             var reverseZFlag: UInt32 = renderInfo.reverseZEnabled ? 1 : 0
-            let computeEncoder = commandBuffer.makeComputeCommandEncoder()!
+            let computeEncoder = GPUPassTiming.shared.makeComputeEncoder(commandBuffer, "HZB")!
             computeEncoder.label = "HZB Build Eye\(ei) Mip \(level)"
             computeEncoder.setComputePipelineState(pipelineState)
             computeEncoder.setBytes(&mipLevel, length: MemoryLayout<UInt32>.stride, index: Int(hzbBuildPassMipLevelIndex.rawValue))
@@ -447,7 +447,7 @@ public func buildHZBDepthPyramid(_ commandBuffer: MTLCommandBuffer, eyeIndex: In
         )
         var reverseZFlag: UInt32 = renderInfo.reverseZEnabled ? 1 : 0
 
-        let computeEncoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()!
+        let computeEncoder: MTLComputeCommandEncoder = GPUPassTiming.shared.makeComputeEncoder(commandBuffer, "HZB")!
         computeEncoder.label = "HZB Build Mip \(level)"
         computeEncoder.setComputePipelineState(pipelineState)
         computeEncoder.setBytes(&mipLevel, length: MemoryLayout<UInt32>.stride, index: Int(hzbBuildPassMipLevelIndex.rawValue))
@@ -536,7 +536,7 @@ func executeHZBOcclusionCulling(
     // drift of the depths themselves before an object is called occluded.
     var occlusionBias: Float = 0.02
 
-    let computeEncoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()!
+    let computeEncoder: MTLComputeCommandEncoder = GPUPassTiming.shared.makeComputeEncoder(commandBuffer, "Culling")!
     computeEncoder.label = "HZB Occlusion Culling pass"
     computeEncoder.setComputePipelineState(pipelineState)
     computeEncoder.setBuffer(outputVisibilityBuffer, offset: 0, index: Int(hzbCullPassEntityAABBIndex.rawValue))
@@ -729,7 +729,7 @@ public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         return
     }
 
-    let computeEncoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()!
+    let computeEncoder: MTLComputeCommandEncoder = GPUPassTiming.shared.makeComputeEncoder(commandBuffer, "Culling")!
 
     computeEncoder.label = "Frustum Culling pass"
 
@@ -1073,7 +1073,7 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
 
     // Mark visible launch
     do {
-        let computeEncoderMarkVisible: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()!
+        let computeEncoderMarkVisible: MTLComputeCommandEncoder = GPUPassTiming.shared.makeComputeEncoder(commandBuffer, "Culling")!
 
         computeEncoderMarkVisible.label = "Mark Visible Pass"
 
@@ -1093,7 +1093,7 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
 
     // scan local
     do {
-        let computeEncoderLocalScan: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()!
+        let computeEncoderLocalScan: MTLComputeCommandEncoder = GPUPassTiming.shared.makeComputeEncoder(commandBuffer, "Culling")!
 
         computeEncoderLocalScan.label = "Local Scan Pass"
 
@@ -1115,7 +1115,7 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
     // scan block
 
     do {
-        let computeEncoderBlockScan: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()!
+        let computeEncoderBlockScan: MTLComputeCommandEncoder = GPUPassTiming.shared.makeComputeEncoder(commandBuffer, "Culling")!
 
         computeEncoderBlockScan.label = "Block Scan Pass"
 
@@ -1140,7 +1140,7 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
 
     // Compact and stream
     do {
-        let computeEncoderCompact: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()!
+        let computeEncoderCompact: MTLComputeCommandEncoder = GPUPassTiming.shared.makeComputeEncoder(commandBuffer, "Culling")!
 
         computeEncoderCompact.label = "Compact and Stream Pass"
 

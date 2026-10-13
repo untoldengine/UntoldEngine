@@ -246,6 +246,7 @@ public final class TemporalAntiAliasing: @unchecked Sendable {
         descriptor.colorAttachments[0].loadAction = .dontCare
         descriptor.colorAttachments[0].storeAction = .store
 
+        GPUPassTiming.shared.attach(descriptor, "TAA")
         guard let encoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor) else {
             handleError(.renderPassCreationFailed, "TAA Pass")
             return

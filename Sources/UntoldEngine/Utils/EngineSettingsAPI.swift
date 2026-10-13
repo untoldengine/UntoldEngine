@@ -125,6 +125,9 @@ public enum RenderingProperty: Sendable {
     /// way, which halves what the tiler and the rasteriser see of a closed mesh; an open mesh
     /// loses its back. The winding that counts as the front is the asset's convention.
     case backFaceCullingExperiment(BackFaceCullingExperiment)
+    /// GPU time per pass, measured by the GPU at each pass's stage boundaries and averaged over
+    /// the recent frames: `GPUPassTiming.shared.averages()`. Off by default.
+    case gpuPassTiming(RenderingToggle)
 }
 
 /// The model pass's back-face culling: off, or on with the winding that counts as the front.
@@ -222,6 +225,10 @@ public func setRendering(_ property: RenderingProperty) {
         renderInfo.flatLightingExperiment = false
     case let .backFaceCullingExperiment(mode):
         renderInfo.backFaceCullingExperiment = mode
+    case .gpuPassTiming(.enabled):
+        GPUPassTiming.shared.setEnabled(true)
+    case .gpuPassTiming(.disabled):
+        GPUPassTiming.shared.setEnabled(false)
     }
 }
 
