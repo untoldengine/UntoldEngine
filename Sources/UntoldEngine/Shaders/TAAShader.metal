@@ -205,6 +205,12 @@ static inline float4 taaResolveColor(
     }
 
     const float4 history = taaSampleHistory(historyTexture, linearSampler, historyUV, taa.physicalSize);
+    // A history with next to no surface in it — the transparent background a surface has just
+    // moved over — carries no weight: blended whole, it fades the surface's leading edge toward
+    // the room behind it (its colour is black, which sits inside any dark surface's colour box,
+    // so the clip lets it through). The weight is whole again from a quarter of the frame's
+    // coverage up, so an edge the frame covers a little more of keeps its history.
+    weight *= saturate(4.0 * history.a / max(current.a, 1e-4));
     const float3 clipped = taaYCoCgToRGB(taaClipToBox(lo, hi, taaRGBToYCoCg(current.rgb), taaRGBToYCoCg(history.rgb)));
     const float3 blended = mix(current.rgb, clipped, weight);
     const float alpha = mix(current.a, history.a, weight);
