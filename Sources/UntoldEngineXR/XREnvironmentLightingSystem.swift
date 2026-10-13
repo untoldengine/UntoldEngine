@@ -32,6 +32,12 @@
         public var acceptedProbeUpdateCount: Int
         public var skippedProbeUpdateCount: Int
         public var fallbackReason: String?
+        /// The probe texture as ARKit last handed it over: pixel format, face size, mip count.
+        public var latestProbeDescription: String = ""
+        /// The intensity scale as published to the renderer (smoothed), and how many times a
+        /// prefiltered probe has been published.
+        public var publishedIntensityScale: Float?
+        public var publishCount: Int = 0
     }
 
     public final class XREnvironmentLightingSystem: @unchecked Sendable {
@@ -48,6 +54,8 @@
         private var acceptedProbeUpdateCountValue = 0
         private var skippedProbeUpdateCountValue = 0
         private var fallbackReasonValue: String?
+        private var latestProbeDescriptionValue = ""
+        private var publishCountValue = 0
         private var lastAcceptedProbeUpdateTime: CFTimeInterval = 0
         private var probeMonitorTask: Task<Void, Never>?
         private var textureSets: [RuntimeEnvironmentLightingTextureSet] = []
@@ -239,6 +247,12 @@
                     guard shouldAcceptProbeUpdate(timestamp: anchor.timestamp) else { return }
 
                     let hasTexture = anchor.environmentTexture != nil
+                    if let texture = anchor.environmentTexture {
+                        let description = "\(Self.pixelFormatName(texture.pixelFormat)) \(texture.width)×\(texture.height) ×\(texture.mipmapLevelCount) mips"
+                        lock.lock()
+                        latestProbeDescriptionValue = description
+                        lock.unlock()
+                    }
                     let intensityScale = updateProbeCameraScaleReference(
                         anchor.cameraScaleReference,
                         hasTexture: hasTexture
@@ -337,6 +351,7 @@
             let textureSet = textureSets[textureSetIndex]
             latestTintColorValue = tintColor
             fallbackReasonValue = nil
+            publishCountValue += 1
 
             // Smooth the published intensity/tint so auto-exposure steps in the raw
             // probe estimate don't pop every real-world-tinted light in the scene.
@@ -526,6 +541,23 @@
             )
         }
 
+        /// A readable name for the probe's pixel format (Metal prints only the raw value).
+        private static func pixelFormatName(_ pixelFormat: MTLPixelFormat) -> String {
+            switch pixelFormat {
+            case .rgba16Float: return "rgba16Float"
+            case .rgba32Float: return "rgba32Float"
+            case .rgba8Unorm: return "rgba8Unorm"
+            case .rgba8Unorm_srgb: return "rgba8Unorm_srgb"
+            case .bgra8Unorm: return "bgra8Unorm"
+            case .bgra8Unorm_srgb: return "bgra8Unorm_srgb"
+            case .rg11b10Float: return "rg11b10Float"
+            case .rgb9e5Float: return "rgb9e5Float"
+            case .bgr10a2Unorm: return "bgr10a2Unorm"
+            case .rgb10a2Unorm: return "rgb10a2Unorm"
+            default: return "pixelFormat \(pixelFormat.rawValue)"
+            }
+        }
+
         private func environmentTintBytesPerPixel(for pixelFormat: MTLPixelFormat) -> Int? {
             switch pixelFormat {
             case .rgba16Float:
@@ -609,7 +641,10 @@
                 realWorldLightingContribution: RuntimeEnvironmentLightingStore.shared.realWorldLightingContribution,
                 acceptedProbeUpdateCount: acceptedProbeUpdateCountValue,
                 skippedProbeUpdateCount: skippedProbeUpdateCountValue,
-                fallbackReason: fallbackReasonValue
+                fallbackReason: fallbackReasonValue,
+                latestProbeDescription: latestProbeDescriptionValue,
+                publishedIntensityScale: smoothedIntensityScaleValue,
+                publishCount: publishCountValue
             )
             lock.unlock()
             return diagnostics
