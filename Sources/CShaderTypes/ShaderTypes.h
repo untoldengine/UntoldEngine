@@ -558,11 +558,13 @@ typedef enum {
 typedef enum {
     lookPassSplatCoverageTextureIndex = 3,   // texture(0..2) above: the splat layer, premultiplied
     lookPassGizmoTextureIndex = 4,
+    lookPassDepthTextureIndex = 5,   // the opaque depth, when the look pass presents the frame itself
 } LookPassSplatTextureIndices;
 
 typedef enum {
     lookPassSplatMaskIndex = 15,   // starts after TonemapSelectBufferIndices (14)
     lookPassGizmoOverrideIndex = 16,   // bool: the gizmo layer overrides pixels (the editor, not game mode)
+    lookPassEncodingModeIndex = 17,   // int: the display's encoding, when the look pass presents the frame itself
 } LookPassSplatBufferIndices;
 
 typedef enum{

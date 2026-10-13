@@ -1025,6 +1025,21 @@ public func InitLookPipeline() -> RenderPipeline? {
     )
 }
 
+/// The look pass that presents as it grades: the look output, the frame encoded for the
+/// display and the opaque depth, in one pass, in place of the output transform pass.
+public func InitLookPresentPipeline() -> RenderPipeline? {
+    CreatePipeline(
+        vertexShader: "vertexLookShader",
+        fragmentShader: "fragmentLookPresentShader",
+        vertexDescriptor: createPostProcessVertexDescriptor(),
+        colorFormats: [wf.lookOutput, renderInfo.presentColorPixelFormat],
+        depthFormat: renderInfo.presentDepthPixelFormat,
+        depthCompareFunction: .always,
+        depthEnabled: true,
+        name: "Look Pipeline (presents)"
+    )
+}
+
 public func InitOutputTransformPipeline() -> RenderPipeline? {
     CreatePipeline(
         vertexShader: "vertexOutputTransformShader",
@@ -1294,6 +1309,7 @@ public func DefaultPipeLines() -> [(RenderPipelineType, RenderPipelineInitBlock)
         (.gaussianTBDRPostprocess, InitGaussianTBDRPostprocessPipeline),
         (.spatialDebug, InitSpatialDebugPipeline),
         (.look, InitLookPipeline),
+        (.lookPresent, InitLookPresentPipeline),
         (.fxaa, InitFXAAPipeline),
         (.fxaaEdgeDebug, InitFXAAEdgeDebugPipeline),
         (.taa, InitTAAPipeline),

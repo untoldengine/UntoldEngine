@@ -70,6 +70,8 @@ public extension RenderPipelineType {
     static let taa: RenderPipelineType = "taa"
     /// The temporal resolve that also presents the frame (history, display colour, depth).
     static let taaPresent: RenderPipelineType = "taaPresent"
+    /// The look pass that also presents the frame (look output, display colour, depth).
+    static let lookPresent: RenderPipelineType = "lookPresent"
     static let smaaEdges: RenderPipelineType = "smaaEdges"
     static let smaaBlendWeights: RenderPipelineType = "smaaBlendWeights"
     static let smaaNeighborhood: RenderPipelineType = "smaaNeighborhood"

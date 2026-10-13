@@ -569,6 +569,8 @@ private func buildGameModeGraphWithCompilation() throws -> CompiledRenderGraphRe
     // With nothing between the temporal resolve and the output, the resolve presents the frame
     // itself (TemporalAntiAliasing.encodeResolve) and the output pass stands down.
     renderInfo.temporalResolveMayPresent = antiAliasingMode.isTemporal && beforeOutputID == outputDependency
+    // The same for the look pass when it is the last pass before the output.
+    renderInfo.lookMayPresent = outputDependency == lookPass.id && beforeOutputID == outputDependency
 
     let outputPass = RenderPass(
         id: "outputTransform",
@@ -1387,6 +1389,70 @@ private func debugSourceTexture(for mode: RenderDebugViewMode) -> MTLTexture? {
     }
 }
 
+/// The look pass presenting the frame itself, when the output transform would only copy it
+/// (`renderInfo.lookMayPresent`): the display's colour and depth textures become the pass's
+/// second colour attachment and depth, as the temporal resolve does. Returns whether it ran;
+/// false leaves the frame to the look pass proper and the output transform.
+private func lookPresentingPass(source: MTLTexture, destination: MTLTexture) -> (MTLCommandBuffer) -> Bool {
+    { commandBuffer in
+        let presentDescriptor = renderInfo.renderPassDescriptor
+        let presentColor = presentDescriptor?.colorAttachments[0].texture
+        let presentDepth = presentDescriptor?.depthAttachment.texture
+        guard renderInfo.lookMayPresent,
+              let presentDescriptor, let presentColor, let presentDepth,
+              presentColor.width == destination.width, presentColor.height == destination.height,
+              let sourceDepth = textureResources.depthMap,
+              let pipeline = PipelineManager.shared.renderPipelinesByType[.lookPresent],
+              pipeline.success, let pipelineState = pipeline.pipelineState
+        else { return false }
+
+        let descriptor = MTLRenderPassDescriptor()
+        descriptor.colorAttachments[0].texture = destination
+        descriptor.colorAttachments[0].loadAction = .dontCare
+        descriptor.colorAttachments[0].storeAction = .store
+        descriptor.colorAttachments[1].texture = presentColor
+        descriptor.colorAttachments[1].loadAction = presentDescriptor.colorAttachments[0].loadAction
+        descriptor.colorAttachments[1].clearColor = presentDescriptor.colorAttachments[0].clearColor
+        descriptor.colorAttachments[1].storeAction = .store
+        descriptor.depthAttachment.texture = presentDepth
+        descriptor.depthAttachment.loadAction = presentDescriptor.depthAttachment.loadAction
+        descriptor.depthAttachment.clearDepth = presentDescriptor.depthAttachment.clearDepth
+        descriptor.depthAttachment.storeAction = .store
+
+        GPUPassTiming.shared.attach(descriptor, "Post")
+        guard let encoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor) else {
+            handleError(.renderPassCreationFailed, "Look Pass (presents)")
+            return false
+        }
+        encoder.label = "Look Pass (presents)"
+        encoder.pushDebugGroup("Look Pass (presents)")
+        encoder.setRenderPipelineState(pipelineState)
+        if let depthState = pipeline.depthState {
+            encoder.setDepthStencilState(depthState)
+        }
+        encoder.waitForFence(renderInfo.fence, before: .vertex)
+        encoder.setVertexBuffer(bufferResources.quadVerticesBuffer, offset: 0, index: 0)
+        encoder.setVertexBuffer(bufferResources.quadTexCoordsBuffer, offset: 0, index: 1)
+        encoder.setFragmentTexture(source, index: 0)
+        colorGradingCustomization(encoder: encoder)
+        encoder.setFragmentTexture(sourceDepth, index: Int(lookPassDepthTextureIndex.rawValue))
+        var encodingMode = renderInfo.colorPipeline.present.encodingMode.rawValue
+        encoder.setFragmentBytes(&encodingMode, length: MemoryLayout<Int32>.stride, index: Int(lookPassEncodingModeIndex.rawValue))
+        encoder.drawIndexedPrimitivesTracked(
+            type: .triangle,
+            indexCount: 6,
+            indexType: .uint16,
+            indexBuffer: bufferResources.quadIndexBuffer!,
+            indexBufferOffset: 0
+        )
+        encoder.updateFence(renderInfo.fence, after: .fragment)
+        encoder.popDebugGroup()
+        encoder.endEncoding()
+        renderInfo.lookPresentedThisFrame = true
+        return true
+    }
+}
+
 private func lookPassShouldRenderLitOutput(for mode: RenderDebugViewMode) -> Bool {
     switch mode {
     case .lit, .fxaaEdgeDebug, .smaaEdges, .smaaBlend, .smaaDifference, .occlusionDebug, .postTonemapOutput:
@@ -1399,6 +1465,7 @@ private func lookPassShouldRenderLitOutput(for mode: RenderDebugViewMode) -> Boo
 
 public let lookRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in
     let viewMode = renderDebugViewMode
+    renderInfo.lookPresentedThisFrame = false
     guard let destinationTexture = textureResources.lookTexture else {
         handleError(.renderPassCreationFailed, "Look Pass: destination texture is nil")
         return
@@ -1408,6 +1475,9 @@ public let lookRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in
         // The composite, or the lit scene itself on a frame the pre-composite pass was skipped.
         guard let sourceTexture = renderInfo.preCompositeBypassSource ?? textureResources.sceneCompositeTexture else {
             handleError(.renderPassCreationFailed, "Look Pass: source texture is nil")
+            return
+        }
+        if lookPresentingPass(source: sourceTexture, destination: destinationTexture)(commandBuffer) {
             return
         }
         guard let pipeline = PipelineManager.shared.renderPipelinesByType[.look] else {
@@ -1477,8 +1547,11 @@ public let lookRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in
 }
 
 public let outputTransformRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in
-    // The temporal resolve presented the frame already.
+    // The temporal resolve, or the look pass, presented the frame already.
     if antiAliasingMode.isTemporal, TemporalAntiAliasing.shared.presentedThisFrame {
+        return
+    }
+    if renderInfo.lookPresentedThisFrame {
         return
     }
     let sourceTexture: MTLTexture?

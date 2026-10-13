@@ -139,6 +139,11 @@ public struct RenderInfo {
     /// graph (nothing registered between them), so the resolve may present the frame itself
     /// and the output pass stand down. Set when the graph is built.
     public var temporalResolveMayPresent: Bool = false
+    /// The same for the look pass, on a frame without a pass after it (no anti-aliasing pass
+    /// after the look, nothing registered before the output): it then presents the frame
+    /// itself, and `lookPresentedThisFrame` says it did.
+    public var lookMayPresent: Bool = false
+    public var lookPresentedThisFrame: Bool = false
 
     // XR stereo-aware HZB culling
     // When true, depth and HZB pyramids are maintained per eye and occlusion

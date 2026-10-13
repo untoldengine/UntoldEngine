@@ -79,29 +79,31 @@ inline float3 sampleColorGradeLUT(
   return gradeLUTTexture.sample(gradeLUTSampler, t).rgb;
 }
 
-fragment float4 fragmentLookShader(
-  VertexCompositeOutput in [[stage_in]],
-  texture2d<float> sceneTexture [[texture(0)]],
-  texture2d<float> colorLUTTexture [[texture(lookPassColorLUTTextureIndex)]],
-  texture3d<float> colorGradeLUTTexture [[texture(colorGradeLUTTextureIndex)]],
-  constant float &brightness [[buffer(colorGradingPassBrightnessIndex)]],
-  constant float &contrast [[buffer(colorGradingPassContrastIndex)]],
-  constant float &saturation [[buffer(colorGradingPassSaturationIndex)]],
-  constant float &exposure [[buffer(colorGradingPassExposureIndex)]],
-  constant float3 &whiteBalanceCoeffs [[buffer(colorGradingWhiteBalanceCoeffsIndex)]],
-  constant bool &enabled [[buffer(colorGradingPassEnabledIndex)]],
-  constant bool &colorLUTEnabled [[buffer(colorLUTEnabledIndex)]],
-  constant float &colorLUTShaperMinStops [[buffer(colorLUTShaperMinStopsIndex)]],
-  constant float &colorLUTShaperMaxStops [[buffer(colorLUTShaperMaxStopsIndex)]],
-  constant int &colorLUTSize [[buffer(colorLUTSizeIndex)]],
-  constant bool &colorGradeLUTEnabled [[buffer(colorGradeLUTEnabledIndex)]],
-  constant float3 &colorGradeLUTDomainMin [[buffer(colorGradeLUTDomainMinIndex)]],
-  constant float3 &colorGradeLUTDomainMax [[buffer(colorGradeLUTDomainMaxIndex)]],
-  constant int &tonemapOperator [[buffer(tonemapOperatorSelectIndex)]],
-  texture2d<float> splatLayer [[texture(lookPassSplatCoverageTextureIndex)]],
-  constant int &splatMask [[buffer(lookPassSplatMaskIndex)]],
-  texture2d<float> gizmoTexture [[texture(lookPassGizmoTextureIndex)]],
-  constant bool &gizmoOverrides [[buffer(lookPassGizmoOverrideIndex)]]
+// The look pass's colour, the one the output transform presents: shared by the fragment
+// function that writes it alone and the one that presents it too.
+static inline float4 lookColor(
+  VertexCompositeOutput in,
+  texture2d<float> sceneTexture,
+  texture2d<float> colorLUTTexture,
+  texture3d<float> colorGradeLUTTexture,
+  constant float &brightness,
+  constant float &contrast,
+  constant float &saturation,
+  constant float &exposure,
+  constant float3 &whiteBalanceCoeffs,
+  constant bool &enabled,
+  constant bool &colorLUTEnabled,
+  constant float &colorLUTShaperMinStops,
+  constant float &colorLUTShaperMaxStops,
+  constant int &colorLUTSize,
+  constant bool &colorGradeLUTEnabled,
+  constant float3 &colorGradeLUTDomainMin,
+  constant float3 &colorGradeLUTDomainMax,
+  constant int &tonemapOperator,
+  texture2d<float> splatLayer,
+  constant int &splatMask,
+  texture2d<float> gizmoTexture,
+  constant bool &gizmoOverrides
 ) {
   constexpr sampler s(min_filter::linear, mag_filter::linear, address::clamp_to_edge);
   float4 sceneSample = sceneTexture.sample(s, in.uvCoords);
@@ -165,3 +167,82 @@ fragment float4 fragmentLookShader(
   return float4(splatLinear + color * (1.0 - splat), sceneSample.a);
 }
 
+fragment float4 fragmentLookShader(
+  VertexCompositeOutput in [[stage_in]],
+  texture2d<float> sceneTexture [[texture(0)]],
+  texture2d<float> colorLUTTexture [[texture(lookPassColorLUTTextureIndex)]],
+  texture3d<float> colorGradeLUTTexture [[texture(colorGradeLUTTextureIndex)]],
+  constant float &brightness [[buffer(colorGradingPassBrightnessIndex)]],
+  constant float &contrast [[buffer(colorGradingPassContrastIndex)]],
+  constant float &saturation [[buffer(colorGradingPassSaturationIndex)]],
+  constant float &exposure [[buffer(colorGradingPassExposureIndex)]],
+  constant float3 &whiteBalanceCoeffs [[buffer(colorGradingWhiteBalanceCoeffsIndex)]],
+  constant bool &enabled [[buffer(colorGradingPassEnabledIndex)]],
+  constant bool &colorLUTEnabled [[buffer(colorLUTEnabledIndex)]],
+  constant float &colorLUTShaperMinStops [[buffer(colorLUTShaperMinStopsIndex)]],
+  constant float &colorLUTShaperMaxStops [[buffer(colorLUTShaperMaxStopsIndex)]],
+  constant int &colorLUTSize [[buffer(colorLUTSizeIndex)]],
+  constant bool &colorGradeLUTEnabled [[buffer(colorGradeLUTEnabledIndex)]],
+  constant float3 &colorGradeLUTDomainMin [[buffer(colorGradeLUTDomainMinIndex)]],
+  constant float3 &colorGradeLUTDomainMax [[buffer(colorGradeLUTDomainMaxIndex)]],
+  constant int &tonemapOperator [[buffer(tonemapOperatorSelectIndex)]],
+  texture2d<float> splatLayer [[texture(lookPassSplatCoverageTextureIndex)]],
+  constant int &splatMask [[buffer(lookPassSplatMaskIndex)]],
+  texture2d<float> gizmoTexture [[texture(lookPassGizmoTextureIndex)]],
+  constant bool &gizmoOverrides [[buffer(lookPassGizmoOverrideIndex)]]
+) {
+  return lookColor(in, sceneTexture, colorLUTTexture, colorGradeLUTTexture, brightness, contrast, saturation, exposure, whiteBalanceCoeffs, enabled, colorLUTEnabled, colorLUTShaperMinStops, colorLUTShaperMaxStops, colorLUTSize, colorGradeLUTEnabled, colorGradeLUTDomainMin, colorGradeLUTDomainMax, tonemapOperator, splatLayer, splatMask, gizmoTexture, gizmoOverrides);
+}
+
+static inline float3 lookLinearToSRGB(float3 x) {
+  const float3 lo = x * 12.92;
+  const float3 hi = 1.055 * pow(max(x, 0.0), float3(1.0 / 2.4)) - 0.055;
+  return select(lo, hi, x > 0.0031308);
+}
+
+struct LookPresentFragmentOut {
+  float4 color [[color(0)]];   // the look output
+  float4 present [[color(1)]]; // the frame, encoded for the display
+  float depth [[depth(any)]];  // the opaque depth, for the compositor
+};
+
+// The look pass that presents as it grades, in place of the output transform pass: the look
+// output, the frame encoded for the display and the opaque depth (its clear value kept finite:
+// the compositor reprojects by view distance and drops a pixel at infinity).
+fragment LookPresentFragmentOut fragmentLookPresentShader(
+  VertexCompositeOutput in [[stage_in]],
+  texture2d<float> sceneTexture [[texture(0)]],
+  texture2d<float> colorLUTTexture [[texture(lookPassColorLUTTextureIndex)]],
+  texture3d<float> colorGradeLUTTexture [[texture(colorGradeLUTTextureIndex)]],
+  constant float &brightness [[buffer(colorGradingPassBrightnessIndex)]],
+  constant float &contrast [[buffer(colorGradingPassContrastIndex)]],
+  constant float &saturation [[buffer(colorGradingPassSaturationIndex)]],
+  constant float &exposure [[buffer(colorGradingPassExposureIndex)]],
+  constant float3 &whiteBalanceCoeffs [[buffer(colorGradingWhiteBalanceCoeffsIndex)]],
+  constant bool &enabled [[buffer(colorGradingPassEnabledIndex)]],
+  constant bool &colorLUTEnabled [[buffer(colorLUTEnabledIndex)]],
+  constant float &colorLUTShaperMinStops [[buffer(colorLUTShaperMinStopsIndex)]],
+  constant float &colorLUTShaperMaxStops [[buffer(colorLUTShaperMaxStopsIndex)]],
+  constant int &colorLUTSize [[buffer(colorLUTSizeIndex)]],
+  constant bool &colorGradeLUTEnabled [[buffer(colorGradeLUTEnabledIndex)]],
+  constant float3 &colorGradeLUTDomainMin [[buffer(colorGradeLUTDomainMinIndex)]],
+  constant float3 &colorGradeLUTDomainMax [[buffer(colorGradeLUTDomainMaxIndex)]],
+  constant int &tonemapOperator [[buffer(tonemapOperatorSelectIndex)]],
+  texture2d<float> splatLayer [[texture(lookPassSplatCoverageTextureIndex)]],
+  constant int &splatMask [[buffer(lookPassSplatMaskIndex)]],
+  texture2d<float> gizmoTexture [[texture(lookPassGizmoTextureIndex)]],
+  constant bool &gizmoOverrides [[buffer(lookPassGizmoOverrideIndex)]],
+  depth2d<float> depthTexture [[texture(lookPassDepthTextureIndex)]],
+  constant int &encodingMode [[buffer(lookPassEncodingModeIndex)]]
+) {
+  constexpr sampler depthSampler(min_filter::nearest, mag_filter::nearest, address::clamp_to_edge);
+  LookPresentFragmentOut out;
+  out.color = lookColor(in, sceneTexture, colorLUTTexture, colorGradeLUTTexture, brightness, contrast, saturation, exposure, whiteBalanceCoeffs, enabled, colorLUTEnabled, colorLUTShaperMinStops, colorLUTShaperMaxStops, colorLUTSize, colorGradeLUTEnabled, colorGradeLUTDomainMin, colorGradeLUTDomainMax, tonemapOperator, splatLayer, splatMask, gizmoTexture, gizmoOverrides);
+  float3 c = max(out.color.rgb, 0.0);
+  if (encodingMode == 1) {
+      c = lookLinearToSRGB(c);
+  }
+  out.present = float4(c, out.color.a);
+  out.depth = max(depthTexture.sample(depthSampler, in.uvCoords), 1e-4);
+  return out;
+}
