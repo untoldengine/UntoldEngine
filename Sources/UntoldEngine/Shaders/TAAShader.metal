@@ -98,17 +98,16 @@ static inline float4 taaSampleHistory(texture2d<float> history, sampler linearSa
     const float2 uv0 = (center - 1.0) * texel;
     const float2 uv3 = (center + 2.0) * texel;
     const float2 uv12 = (center + offset12) * texel;
+    // The cubic's nine bilinear taps less the four corners, whose weights are a few
+    // thousandths at most; the five kept are renormalised. Four fewer fetches per pixel.
     float4 result = float4(0.0);
-    result += history.sample(linearSampler, float2(uv0.x, uv0.y)) * w0.x * w0.y;
     result += history.sample(linearSampler, float2(uv12.x, uv0.y)) * w12.x * w0.y;
-    result += history.sample(linearSampler, float2(uv3.x, uv0.y)) * w3.x * w0.y;
     result += history.sample(linearSampler, float2(uv0.x, uv12.y)) * w0.x * w12.y;
     result += history.sample(linearSampler, float2(uv12.x, uv12.y)) * w12.x * w12.y;
     result += history.sample(linearSampler, float2(uv3.x, uv12.y)) * w3.x * w12.y;
-    result += history.sample(linearSampler, float2(uv0.x, uv3.y)) * w0.x * w3.y;
     result += history.sample(linearSampler, float2(uv12.x, uv3.y)) * w12.x * w3.y;
-    result += history.sample(linearSampler, float2(uv3.x, uv3.y)) * w3.x * w3.y;
-    return max(result, 0.0);
+    const float kept = w12.x * w0.y + w0.x * w12.y + w12.x * w12.y + w3.x * w12.y + w12.x * w3.y;
+    return max(result / max(kept, 1e-4), 0.0);
 }
 
 // The resolve of one pixel: this frame's look output and the eye's history to the eye's new
@@ -130,18 +129,54 @@ static inline float4 taaResolveColor(
     const float2 texel = 1.0 / max(taa.physicalSize, float2(1.0));
     const float4 current = colorTexture.sample(pointSampler, uv);
 
-    if (taa.historyValid == 0u) {
-        return current;
-    }
-
-    // This pixel's position in space, from its depth. A texel at the clear depth has none:
-    // nothing opaque was drawn there — the background, or a transparent quad over it — and
-    // reprojecting it from the far plane would fetch the wrong history and ghost or wipe it
-    // under a moving camera; such a pixel keeps its own frame, and leaves here before the
-    // neighbourhood is read: in passthrough most of the frame is such pixels.
+    // This pixel's position in space, from its depth, and where it was on the previous
+    // frame's screen and in the history texture. Computed for every pixel, before any pixel
+    // leaves: the local rates of the two maps are read below from the derivatives of these
+    // across the 2×2 quad, which need every lane of the quad to have computed them.
+    // A texel at the clear depth has no position: nothing opaque was drawn there — the
+    // background, or a transparent quad over it — and reprojecting it from the far plane
+    // would fetch the wrong history and ghost or wipe it under a moving camera; such a pixel
+    // keeps its own frame, and in passthrough most of the frame is such pixels.
     const float depth = depthTexture.sample(pointSampler, uv);
     const bool cleared = (taa.reverseZ != 0u) ? (depth <= 1e-6) : (depth >= 1.0 - 1e-6);
-    if (cleared) {
+
+    const float2 physical = in.position.xy;
+    const float2 screen = taaScreenFromPhysical(physical, taa.rateMapSizes, rateMap);
+    const float2 screenSize = taa.rateMapSizes.x > 0.0 ? taa.rateMapSizes.xy : taa.physicalSize;
+    const float2 ndc = float2(screen.x / screenSize.x * 2.0 - 1.0, 1.0 - screen.y / screenSize.y * 2.0);
+    float4 world = taa.invViewProjection * float4(ndc, depth, 1.0);
+    const bool worldValid = abs(world.w) >= 1e-12;
+    world /= worldValid ? world.w : 1.0;
+
+    const float4 prevClip = taa.prevViewProjection * world;
+    const bool prevInFront = prevClip.w > 0.0;
+    const float2 prevNdc = prevClip.xy / (prevInFront ? prevClip.w : 1.0);
+    const float2 prevScreenSize = taa.prevRateMapSizes.x > 0.0 ? taa.prevRateMapSizes.xy : taa.physicalSize;
+    const float2 prevScreen = float2((prevNdc.x * 0.5 + 0.5) * prevScreenSize.x, (1.0 - (prevNdc.y * 0.5 + 0.5)) * prevScreenSize.y);
+    const float2 prevPhysical = taaPhysicalFromScreen(prevScreen, taa.prevRateMapSizes, prevRateMap);
+
+    // Under foveation the history may be coarser here than this frame: the spot was in the
+    // periphery of the previous map (one texel spanning several screen pixels) and the gaze
+    // has moved onto it. Trusting such a history at full weight shows the sharp frame with a
+    // blurry shadow that fades over twenty frames; its weight is cut by how much coarser it
+    // was, measured from the two maps' local rates (texels per screen pixel), per axis: a map
+    // is coarser in one axis than the other wherever its rows and columns differ, so the
+    // ratio is taken on the axis where the history is coarsest relative to this frame. The
+    // rates are the derivatives of the mappings across the quad — this frame's screen
+    // position per texel, and the history's texel per screen pixel — instead of a second
+    // decode of each map a pixel over.
+    const float2 screenStep = float2(abs(dfdx(screen.x)), abs(dfdy(screen.y)));
+    const float2 currentRate = 1.0 / max(screenStep, float2(1e-3));
+    const float2 prevScreenStep = float2(abs(dfdx(prevScreen.x)), abs(dfdy(prevScreen.y)));
+    const float2 prevPhysicalStep = float2(abs(dfdx(prevPhysical.x)), abs(dfdy(prevPhysical.y)));
+    const float2 prevRate = prevPhysicalStep / max(prevScreenStep, float2(1e-4));
+    const float2 ratio = prevRate / currentRate;
+
+    if (taa.historyValid == 0u || cleared || !worldValid || !prevInFront) {
+        return current;
+    }
+    const float2 historyUV = prevPhysical * texel;
+    if (any(historyUV < 0.0) || any(historyUV > 1.0)) {
         return current;
     }
 
@@ -164,45 +199,8 @@ static inline float4 taaResolveColor(
     const float3 lo = mean - taa.clipGamma * sigma;
     const float3 hi = mean + taa.clipGamma * sigma;
 
-    const float2 physical = in.position.xy;
-    const float2 screen = taaScreenFromPhysical(physical, taa.rateMapSizes, rateMap);
-    const float2 screenSize = taa.rateMapSizes.x > 0.0 ? taa.rateMapSizes.xy : taa.physicalSize;
-    const float2 ndc = float2(screen.x / screenSize.x * 2.0 - 1.0, 1.0 - screen.y / screenSize.y * 2.0);
-    float4 world = taa.invViewProjection * float4(ndc, depth, 1.0);
-    if (abs(world.w) < 1e-12) {
-        return current;
-    }
-    world /= world.w;
-
-    // Where it was on the previous frame's screen, then in the history texture.
-    const float4 prevClip = taa.prevViewProjection * world;
-    if (prevClip.w <= 0.0) {
-        return current;
-    }
-    const float2 prevNdc = prevClip.xy / prevClip.w;
-    const float2 prevScreenSize = taa.prevRateMapSizes.x > 0.0 ? taa.prevRateMapSizes.xy : taa.physicalSize;
-    const float2 prevScreen = float2((prevNdc.x * 0.5 + 0.5) * prevScreenSize.x, (1.0 - (prevNdc.y * 0.5 + 0.5)) * prevScreenSize.y);
-    const float2 prevPhysical = taaPhysicalFromScreen(prevScreen, taa.prevRateMapSizes, prevRateMap);
-    const float2 historyUV = prevPhysical * texel;
-    if (any(historyUV < 0.0) || any(historyUV > 1.0)) {
-        return current;
-    }
-
-    // Under foveation the history may be coarser here than this frame: the spot was in the
-    // periphery of the previous map (one texel spanning several screen pixels) and the gaze
-    // has moved onto it. Trusting such a history at full weight shows the sharp frame with a
-    // blurry shadow that fades over twenty frames; its weight is cut by how much coarser it
-    // was, measured from the two maps' local rates (texels per screen pixel).
     float weight = taa.historyWeight;
     if (taa.rateMapSizes.x > 0.0 || taa.prevRateMapSizes.x > 0.0) {
-        // Texels per screen pixel of each frame, per axis: a map is coarser in one axis than
-        // the other wherever its rows and columns differ, so the ratio is taken on the axis
-        // where the history is coarsest relative to this frame.
-        const float2 screenStep = abs(taaScreenFromPhysical(physical + float2(1.0, 1.0), taa.rateMapSizes, rateMap) - screen);
-        const float2 currentRate = 1.0 / max(screenStep, float2(1e-3));
-        const float2 prevStep = abs(taaPhysicalFromScreen(prevScreen + float2(1.0, 1.0), taa.prevRateMapSizes, prevRateMap) - prevPhysical);
-        const float2 prevRate = max(prevStep, float2(1e-3));
-        const float2 ratio = prevRate / currentRate;
         weight *= saturate(min(ratio.x, ratio.y));
     }
 
