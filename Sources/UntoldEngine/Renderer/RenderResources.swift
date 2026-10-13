@@ -29,6 +29,10 @@ public struct RenderInfo {
     public var renderPassDescriptor: MTLRenderPassDescriptor!
     public var environmentRenderPassDescriptor: MTLRenderPassDescriptor!
     public var offscreenRenderPassDescriptor: MTLRenderPassDescriptor!
+    /// The opaque pass's descriptor when the geometry lights itself per fragment: the lit colour
+    /// alone, in the light pass's slot, and the depth — nothing else for the imageblock to hold,
+    /// so the GPU runs the pass in its largest tiles. The G-buffer's descriptor above otherwise.
+    public var forwardRenderPassDescriptor: MTLRenderPassDescriptor!
     public var gaussianRenderPassDescriptor: MTLRenderPassDescriptor!
     public var postProcessRenderPassDescriptor: MTLRenderPassDescriptor!
     // CSM: one render pass descriptor per cascade (3 total), each targeting a separate array slice.
@@ -121,8 +125,12 @@ public struct RenderInfo {
     public var perFragmentLightingBuilt: Bool = false
     /// What the model pipelines are to light per fragment: the setting, which needs the
     /// per-fragment indirect light, and stands aside for the flat-lighting experiment, which
-    /// runs through the quad.
-    var perFragmentLightingWanted: Bool { perFragmentIndirectLighting && perFragmentLighting && !flatLightingExperiment }
+    /// runs through the quad, and for the G-buffer debug views, which read what the forward
+    /// pass does not write.
+    var perFragmentLightingWanted: Bool { perFragmentIndirectLighting && perFragmentLighting && !flatLightingExperiment && !gBufferDebugStorageEnabled }
+    /// The opaque pass's descriptor for the pipelines as built: the forward one when the
+    /// geometry lights itself, the G-buffer's otherwise.
+    var opaquePassDescriptor: MTLRenderPassDescriptor? { perFragmentLightingBuilt ? forwardRenderPassDescriptor : offscreenRenderPassDescriptor }
     /// The mesh entities the frame's culling put to the occlusion test (the culling set's
     /// size), which decides with `HZBOcclusionCulling.minimumEntities` whether the frame's
     /// depth is worth a pyramid.

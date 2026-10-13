@@ -73,7 +73,7 @@ fragment TransparencyOutput fragmentTransparencyShader(
         discard_fragment();
     }
 
-    float4 verticesInWorldSpace = uniforms.modelMatrix * in.vPosition;
+    float4 verticesInWorldSpace = float4(in.worldPosition, 1.0);
     float3 viewVector = normalize(cameraPosition - verticesInWorldSpace.xyz);
 
     // Glass is drawn in two goes (see TransparencyPassFaces): this one keeps the faces
@@ -85,7 +85,7 @@ fragment TransparencyOutput fragmentTransparencyShader(
     // other. The derivative normal's sign follows the winding on screen; the vertex
     // normal picks the outward one of the two, so winding and mirrored transforms still
     // do not matter. A degenerate face (no derivatives) falls back to the shading normal.
-    float3 shadingNormal = normalize(uniforms.normalMatrix * in.normal);
+    float3 shadingNormal = normalize(in.tbNormal);
     float3 faceNormal = cross(dfdx(verticesInWorldSpace.xyz), dfdy(verticesInWorldSpace.xyz));
     faceNormal = dot(faceNormal, shadingNormal) < 0.0 ? -faceNormal : faceNormal;
     float faceLength = length(faceNormal);
@@ -111,7 +111,7 @@ fragment TransparencyOutput fragmentTransparencyShader(
 
     float3 normal = hasNormal
         ? normalize(TBN * normalMap)
-        : normalize(uniforms.normalMatrix * in.normal);
+        : normalize(in.tbNormal);
     // A face of glass is lit on the side the viewer sees: the far face of a pane
     // reflects from inside it what its near face reflects from outside.
     // The shading normal of a pane faces the viewer whichever go draws the face: the

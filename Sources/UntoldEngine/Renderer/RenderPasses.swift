@@ -1873,31 +1873,33 @@ public enum RenderPasses {
             return
         }
 
-        guard let encoderDescriptor = renderInfo.offscreenRenderPassDescriptor else {
+        guard let encoderDescriptor = renderInfo.opaquePassDescriptor else {
             handleError(.renderPassCreationFailed, "Offscreen render pass descriptor not initialized")
             return
         }
 
-        encoderDescriptor.colorAttachments[Int(colorTarget.rawValue)]
-            .loadAction = .clear
-        encoderDescriptor.colorAttachments[Int(normalTarget.rawValue)]
-            .loadAction = .clear
-        encoderDescriptor.colorAttachments[Int(positionTarget.rawValue)]
-            .loadAction = .clear
-        encoderDescriptor.colorAttachments[Int(materialTarget.rawValue)].loadAction = .clear
-        encoderDescriptor.colorAttachments[Int(emissiveTarget.rawValue)].loadAction = .clear
+        if !renderInfo.perFragmentLightingBuilt {
+            encoderDescriptor.colorAttachments[Int(colorTarget.rawValue)]
+                .loadAction = .clear
+            encoderDescriptor.colorAttachments[Int(normalTarget.rawValue)]
+                .loadAction = .clear
+            encoderDescriptor.colorAttachments[Int(positionTarget.rawValue)]
+                .loadAction = .clear
+            encoderDescriptor.colorAttachments[Int(materialTarget.rawValue)].loadAction = .clear
+            encoderDescriptor.colorAttachments[Int(emissiveTarget.rawValue)].loadAction = .clear
 
-        encoderDescriptor.colorAttachments[Int(colorTarget.rawValue)]
-            .storeAction = .store
+            encoderDescriptor.colorAttachments[Int(colorTarget.rawValue)]
+                .storeAction = .store
 
-        encoderDescriptor.colorAttachments[Int(normalTarget.rawValue)]
-            .storeAction = .store
-        encoderDescriptor.colorAttachments[Int(positionTarget.rawValue)]
-            .storeAction = .store
-        encoderDescriptor.colorAttachments[Int(materialTarget.rawValue)]
-            .storeAction = .store
-        encoderDescriptor.colorAttachments[Int(emissiveTarget.rawValue)]
-            .storeAction = .store
+            encoderDescriptor.colorAttachments[Int(normalTarget.rawValue)]
+                .storeAction = .store
+            encoderDescriptor.colorAttachments[Int(positionTarget.rawValue)]
+                .storeAction = .store
+            encoderDescriptor.colorAttachments[Int(materialTarget.rawValue)]
+                .storeAction = .store
+            encoderDescriptor.colorAttachments[Int(emissiveTarget.rawValue)]
+                .storeAction = .store
+        }
 
         encoderDescriptor.depthAttachment.storeAction = .store
         encoderDescriptor.depthAttachment.loadAction = .clear
@@ -2160,17 +2162,19 @@ public enum RenderPasses {
             return
         }
 
-        guard let encoderDescriptor = renderInfo.offscreenRenderPassDescriptor else {
+        guard let encoderDescriptor = renderInfo.opaquePassDescriptor else {
             handleError(.renderPassCreationFailed, "Offscreen render pass descriptor not initialized")
             return
         }
 
         // Reuse existing offscreen descriptor (already configured by modelExecution)
-        encoderDescriptor.colorAttachments[Int(colorTarget.rawValue)].loadAction = .load
-        encoderDescriptor.colorAttachments[Int(normalTarget.rawValue)].loadAction = .load
-        encoderDescriptor.colorAttachments[Int(positionTarget.rawValue)].loadAction = .load
-        encoderDescriptor.colorAttachments[Int(materialTarget.rawValue)].loadAction = .load
-        encoderDescriptor.colorAttachments[Int(emissiveTarget.rawValue)].loadAction = .load
+        if !renderInfo.perFragmentLightingBuilt {
+            encoderDescriptor.colorAttachments[Int(colorTarget.rawValue)].loadAction = .load
+            encoderDescriptor.colorAttachments[Int(normalTarget.rawValue)].loadAction = .load
+            encoderDescriptor.colorAttachments[Int(positionTarget.rawValue)].loadAction = .load
+            encoderDescriptor.colorAttachments[Int(materialTarget.rawValue)].loadAction = .load
+            encoderDescriptor.colorAttachments[Int(emissiveTarget.rawValue)].loadAction = .load
+        }
         encoderDescriptor.depthAttachment.loadAction = .load
 
         GPUPassTiming.shared.attach(encoderDescriptor, "Model")
@@ -2383,7 +2387,10 @@ public enum RenderPasses {
             return
         }
 
-        guard let encoderDescriptor = renderInfo.offscreenRenderPassDescriptor else {
+        // The forward descriptor when the geometry lights itself per fragment (the lit colour
+        // and the depth alone), the G-buffer's otherwise: whichever the pipelines were built for.
+        let forwardPass = renderInfo.perFragmentLightingBuilt
+        guard let encoderDescriptor = renderInfo.opaquePassDescriptor else {
             handleError(.renderPassCreationFailed, "Combined G-buffer + Light Pass descriptor not initialized")
             return
         }
@@ -2411,9 +2418,11 @@ public enum RenderPasses {
         #else
             let gBufferStoreAction: MTLStoreAction = renderInfo.gBufferDebugStorageEnabled ? .store : .dontCare
         #endif
-        for i in 0 ..< 5 {
-            encoderDescriptor.colorAttachments[i].loadAction = .clear
-            encoderDescriptor.colorAttachments[i].storeAction = gBufferStoreAction
+        if !forwardPass {
+            for i in 0 ..< 5 {
+                encoderDescriptor.colorAttachments[i].loadAction = .clear
+                encoderDescriptor.colorAttachments[i].storeAction = gBufferStoreAction
+            }
         }
         encoderDescriptor.colorAttachments[5].loadAction = .clear
         encoderDescriptor.colorAttachments[5].storeAction = renderInfo.opaqueSampleCount > 1 ? .multisampleResolve : .store
@@ -2425,8 +2434,8 @@ public enum RenderPasses {
         // the imageblock's size before the encoder exists. A pass Metal refuses with it (the
         // imageblock does not fit the GPU's tile memory at this sample count) runs the quad,
         // this frame and after.
-        var tileLightState = tileLightStage(for: encoderDescriptor)
-        GPUPassTiming.shared.attach(encoderDescriptor, "G-Buffer")
+        var tileLightState = forwardPass ? nil : tileLightStage(for: encoderDescriptor)
+        GPUPassTiming.shared.attach(encoderDescriptor, forwardPass ? "Forward" : "G-Buffer")
         var encoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor)
         if encoder == nil, let refused = tileLightState {
             refuseTileLightStage(refused)
@@ -2457,8 +2466,8 @@ public enum RenderPasses {
             }
         }
 
-        renderEncoder.label = "G-Buffer + Light Pass (TBDR)"
-        renderEncoder.pushDebugGroup("G-Buffer + Light Pass (TBDR)")
+        renderEncoder.label = forwardPass ? "Forward Pass" : "G-Buffer + Light Pass (TBDR)"
+        renderEncoder.pushDebugGroup(forwardPass ? "Forward Pass" : "G-Buffer + Light Pass (TBDR)")
         // Through the eye's rasterization rate map when there is one (XR foveation): the
         // geometry in the map's screen space, the light quad over the whole of it, the
         // G-buffer read back from the tile under each fragment either way.

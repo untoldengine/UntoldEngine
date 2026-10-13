@@ -428,20 +428,25 @@ private func makeModelPipeline(mayDiscard: Bool, flatMaterial: Bool = false, nam
     desc.depthAttachmentPixelFormat = renderInfo.depthPixelFormat
     desc.rasterSampleCount = max(1, renderInfo.opaqueSampleCount)
 
-    // G-buffer outputs: geometry writes to these.
-    let gbufferFormats: [MTLPixelFormat] = [
-        wf.gBufferAlbedo, wf.gBufferNormal, wf.gBufferPosition,
-        wf.gBufferMaterial, wf.gBufferEmissive,
-    ]
-    for (i, fmt) in gbufferFormats.enumerated() {
-        desc.colorAttachments[i].pixelFormat = fmt
-        desc.colorAttachments[i].writeMask = .all
+    if litInGBuffer {
+        // The forward pass: the lit colour alone, in the light pass's slot
+        // (`forwardRenderPassDescriptor`); the shader's G-buffer outputs are compiled out.
+        desc.colorAttachments[5].pixelFormat = wf.sceneColor
+        desc.colorAttachments[5].writeMask = .all
+    } else {
+        // G-buffer outputs: geometry writes to these.
+        let gbufferFormats: [MTLPixelFormat] = [
+            wf.gBufferAlbedo, wf.gBufferNormal, wf.gBufferPosition,
+            wf.gBufferMaterial, wf.gBufferEmissive,
+        ]
+        for (i, fmt) in gbufferFormats.enumerated() {
+            desc.colorAttachments[i].pixelFormat = fmt
+            desc.colorAttachments[i].writeMask = .all
+        }
+        // Attachment 5: deferredColorMap — the light quad writes it; the geometry must not.
+        desc.colorAttachments[5].pixelFormat = wf.sceneColor
+        desc.colorAttachments[5].writeMask = []
     }
-
-    // Attachment 5: deferredColorMap — the lit colour, which the geometry writes when it lights
-    // itself per fragment and must not touch otherwise (the light quad writes it then).
-    desc.colorAttachments[5].pixelFormat = wf.sceneColor
-    desc.colorAttachments[5].writeMask = litInGBuffer ? .all : []
 
     let depthDesc = MTLDepthStencilDescriptor()
     depthDesc.depthCompareFunction = sceneDepthCompareFunction(.lessEqual)

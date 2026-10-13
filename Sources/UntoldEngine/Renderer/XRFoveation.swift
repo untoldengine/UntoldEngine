@@ -104,6 +104,7 @@ func applyXRFoveationToSceneRenderPassDescriptors() {
     let rateMap = renderInfo.xrFoveation?.rateMap
     for descriptor in [
         renderInfo.offscreenRenderPassDescriptor,
+        renderInfo.forwardRenderPassDescriptor,
         renderInfo.deferredRenderPassDescriptor,
         renderInfo.environmentRenderPassDescriptor,
         renderInfo.gaussianRenderPassDescriptor,

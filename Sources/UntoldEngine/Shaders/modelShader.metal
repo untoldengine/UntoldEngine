@@ -163,10 +163,8 @@ vertex VertexOutModel vertexModelShader(
                    weights.w * (jointMatrices[joints.w] * normals));
     }
 
-    out.vPosition = position;
+    out.worldPosition = (uniforms.modelMatrix * position).xyz;
     out.position = uniforms.projectionMatrix * uniforms.modelViewMatrix * position;
-    out.normal = normals.xyz;
-    //out.shadowCoords = lightOrthoView * uniforms.modelMatrix * position;
     out.uvCoords = in.uv;
 
     // Compute TBN. Tangents are directions, not normals, so transform them with the model
@@ -259,6 +257,22 @@ constant bool kModelIndirectInGBuffer [[function_constant(modelFunctionConstantI
 constant bool kModelLitInGBuffer [[function_constant(modelFunctionConstantLitInGBuffer)]];
 /// The sun's parameters are bound for either of the two.
 constant bool kModelSunNeeded = kModelIndirectInGBuffer || kModelLitInGBuffer;
+/// The G-buffer is written when the light pass is to read it, that is unless the geometry
+/// lights itself.
+constant bool kModelGBufferOut = !kModelLitInGBuffer;
+
+/// What the model fragment stage writes: the G-buffer for the light pass to read from the
+/// tile, or — the geometry lighting itself — the lit colour alone, in the attachment the
+/// light pass would write, so the pass holds nothing else in its imageblock and the GPU runs
+/// it in its largest tiles.
+typedef struct {
+    float4 color [[color(0), function_constant(kModelGBufferOut)]];
+    float4 normals [[color(1), function_constant(kModelGBufferOut)]];
+    float4 positions [[color(2), function_constant(kModelGBufferOut)]];
+    float4 material [[color(3), function_constant(kModelGBufferOut)]];
+    float4 emmisive [[color(4), function_constant(kModelGBufferOut)]];
+    float4 lit [[color(5), function_constant(kModelLitInGBuffer)]];
+} GBufferOut;
 
 /// The emissive attachment's value with the indirect light and the sun's shadow folded in.
 static inline float4 emissiveWithIndirect(
@@ -362,8 +376,8 @@ fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
     float2 stDx = dfdx(st);
     float2 stDy = dfdy(st);
 
-    float4 verticesInWorldSpace=uniforms.modelMatrix*in.vPosition;
-    float3 normalVectorInWorldSpace=uniforms.normalMatrix*in.normal;
+    float4 verticesInWorldSpace = float4(in.worldPosition, 1.0);
+    float3 normalVectorInWorldSpace = in.tbNormal;
 
     if (kModelFlatMaterial) {
         // Shading-cost experiment: the material's factors and the vertex normal, no texture
@@ -373,22 +387,26 @@ fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
             flatNormal = -flatNormal;
         }
         float3 flatColor = all(materialParameter.baseColor.rgb < 0.001) ? float3(0.8) : materialParameter.baseColor.rgb;
-        gBufferOut.color = float4(flatColor, clamp(materialParameter.passthroughAlpha, 0.0, 1.0));
-        gBufferOut.normals = float4(flatNormal, 0.0);
-        gBufferOut.positions = verticesInWorldSpace;
-        gBufferOut.material = float4(clamp(materialParameter.roughness, 0.045, 1.0), clamp(materialParameter.metallic, 0.0, 1.0), 0.0, 0.0);
+        float4 flatBase = float4(flatColor, clamp(materialParameter.passthroughAlpha, 0.0, 1.0));
+        float flatRoughness = clamp(materialParameter.roughness, 0.045, 1.0);
+        float flatMetallic = clamp(materialParameter.metallic, 0.0, 1.0);
+        float4 flatEmissive = float4(materialParameter.emmissive, 1.0);
         if (kModelIndirectInGBuffer) {
-            gBufferOut.emmisive = emissiveWithIndirect(
-                materialParameter.emmissive, gBufferOut.color, flatNormal, verticesInWorldSpace.xyz,
-                gBufferOut.material.r, gBufferOut.material.g, uniforms.cameraPosition,
+            flatEmissive = emissiveWithIndirect(
+                materialParameter.emmissive, flatBase, flatNormal, verticesInWorldSpace.xyz,
+                flatRoughness, flatMetallic, uniforms.cameraPosition,
                 iblIrradiance, iblSpecular, iblBRDF, csmShadowArray, csmUniforms, lightParams, iblParam, iblRotationAngle);
-        } else {
-            gBufferOut.emmisive = float4(materialParameter.emmissive, 1.0);
         }
-        gBufferOut.lit = float4(0.0);
+        if (kModelGBufferOut) {
+            gBufferOut.color = flatBase;
+            gBufferOut.normals = float4(flatNormal, 0.0);
+            gBufferOut.positions = verticesInWorldSpace;
+            gBufferOut.material = float4(flatRoughness, flatMetallic, 0.0, 0.0);
+            gBufferOut.emmisive = flatEmissive;
+        }
         if (kModelLitInGBuffer) {
             gBufferOut.lit = litWithDirect(
-                gBufferOut.emmisive, gBufferOut.color, flatNormal, verticesInWorldSpace, gBufferOut.material.r, gBufferOut.material.g,
+                flatEmissive, flatBase, flatNormal, verticesInWorldSpace, flatRoughness, flatMetallic,
                 uniforms.cameraPosition, lightParams, plBlock, slBlock, alBlock, ltcMagTexture, ltcMatTexture,
                 pointShadowCube, spotShadowMap, pointShadowUniforms, spotShadowUniforms);
         }
@@ -579,23 +597,25 @@ fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
 
     float4 color=inBaseColor;
 
-    gBufferOut.color = float4(color.rgb, passthroughAlpha);
-    gBufferOut.normals=float4(normalMap,0.0);
-    gBufferOut.positions=verticesInWorldSpace;
-    // .b/.a carry POM debug data (raw height sample, uv-offset magnitude) for
-    // RenderDebugViewMode.heightDebug / .pomOffsetDebug — see RenderingSystem.swift.
-    gBufferOut.material=float4(roughness, metallic, pomHeightSample, pomOffsetMagnitude);
+    float4 base = float4(color.rgb, passthroughAlpha);
+    float4 emissiveOut = float4(emissive, 1.0);
     if (kModelIndirectInGBuffer) {
-        gBufferOut.emmisive = emissiveWithIndirect(
-            emissive, gBufferOut.color, normalMap, verticesInWorldSpace.xyz, roughness, metallic, uniforms.cameraPosition,
+        emissiveOut = emissiveWithIndirect(
+            emissive, base, normalMap, verticesInWorldSpace.xyz, roughness, metallic, uniforms.cameraPosition,
             iblIrradiance, iblSpecular, iblBRDF, csmShadowArray, csmUniforms, lightParams, iblParam, iblRotationAngle);
-    } else {
-        gBufferOut.emmisive = float4(emissive, 1.0);
     }
-    gBufferOut.lit = float4(0.0);
+    if (kModelGBufferOut) {
+        gBufferOut.color = base;
+        gBufferOut.normals = float4(normalMap, 0.0);
+        gBufferOut.positions = verticesInWorldSpace;
+        // .b/.a carry POM debug data (raw height sample, uv-offset magnitude) for
+        // RenderDebugViewMode.heightDebug / .pomOffsetDebug — see RenderingSystem.swift.
+        gBufferOut.material = float4(roughness, metallic, pomHeightSample, pomOffsetMagnitude);
+        gBufferOut.emmisive = emissiveOut;
+    }
     if (kModelLitInGBuffer) {
         gBufferOut.lit = litWithDirect(
-            gBufferOut.emmisive, gBufferOut.color, normalMap, verticesInWorldSpace, roughness, metallic,
+            emissiveOut, base, normalMap, verticesInWorldSpace, roughness, metallic,
             uniforms.cameraPosition, lightParams, plBlock, slBlock, alBlock, ltcMagTexture, ltcMatTexture,
             pointShadowCube, spotShadowMap, pointShadowUniforms, spotShadowUniforms);
     }

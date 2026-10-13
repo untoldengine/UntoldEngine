@@ -519,6 +519,31 @@ func initRenderPassDescriptors() {
         renderInfo.offscreenRenderPassDescriptor.depthAttachment.resolveTexture = textureResources.depthMap
     }
 
+    // The forward pass's descriptor (the geometry lighting itself per fragment): the lit
+    // colour alone, in the light pass's slot, and the depth, resolved as above.
+    let forwardDescriptor = MTLRenderPassDescriptor()
+    forwardDescriptor.renderTargetWidth = Int(renderInfo.viewPort.x)
+    forwardDescriptor.renderTargetHeight = Int(renderInfo.viewPort.y)
+    configureAttachment(
+        descriptor: forwardDescriptor.colorAttachments[5],
+        texture: opaqueColorTexture,
+        loadAction: .clear,
+        storeAction: usesMSAA ? .multisampleResolve : .store,
+        clearColor: MTLClearColorMake(0.0, 0.0, 0.0, 0.0)
+    )
+    configureAttachment(
+        descriptor: forwardDescriptor.depthAttachment,
+        texture: opaqueDepthTexture,
+        loadAction: .clear,
+        storeAction: usesMSAA ? .multisampleResolve : .store,
+        clearDepth: sceneDepthClearValue()
+    )
+    if usesMSAA {
+        forwardDescriptor.colorAttachments[5].resolveTexture = textureResources.deferredColorMap
+        forwardDescriptor.depthAttachment.resolveTexture = textureResources.depthMap
+    }
+    renderInfo.forwardRenderPassDescriptor = forwardDescriptor
+
     // Deferred Render Pass
     renderInfo.deferredRenderPassDescriptor = createRenderPassDescriptor(
         width: Int(renderInfo.viewPort.x),

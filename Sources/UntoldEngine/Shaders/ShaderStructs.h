@@ -82,17 +82,16 @@ typedef struct{
     
 }VertexInModel;
 
+// What the model vertex stage hands the fragment stage, kept to what the fragment reads: on
+// Apple GPUs every interpolated float is written to the parameter buffer by the tiler and read
+// back per tile, so the layout is a vertex-stage cost in itself (measured: the stage halves
+// with the material's inputs gone).
 typedef struct{
     float4 position [[position]];
-    float4 shadowCoords;
-    float4 vPosition;
-    float4 verticesInMVSpace;
-    float3 normalVectorInMVSpace;
-    float3 normal;
-    float3 tbNormal; //used in tbn
-    float4 tangent;
+    float3 worldPosition;
+    float3 tbNormal; // the world-space normal, the N of the TBN frame
+    float4 tangent;  // the world-space tangent, its handedness in w
     float2 uvCoords;
-
   }VertexOutModel;
 
 typedef struct {
@@ -152,19 +151,6 @@ typedef struct
     float4 color [[color(0)]];
 
 } FragmentModelOut;
-
-typedef struct
-{
-    float4 color [[color(0)]];
-    float4 normals [[color(1)]];
-    float4 positions [[color(2)]];
-    float4 material [[color(3)]];
-    float4 emmisive [[color(4)]];
-    // The lit colour, the attachment the light pass writes: the geometry writes it when it
-    // lights itself whole per fragment (`kModelLitInGBuffer`); otherwise the pipeline masks
-    // the attachment off and the value is nothing.
-    float4 lit [[color(5)]];
-} GBufferOut;
 
 typedef struct{
 
