@@ -31,6 +31,7 @@ final class ShadingExperimentTests: BaseRenderSetup {
     override func tearDown() async throws {
         setRendering(.flatMaterialExperiment(.disabled))
         setRendering(.flatLightingExperiment(.disabled))
+        setRendering(.backFaceCullingExperiment(.off))
         antiAliasingMode = savedMode
         destroyAllEntities()
         try await super.tearDown()
@@ -79,6 +80,42 @@ final class ShadingExperimentTests: BaseRenderSetup {
         for i in 0 ..< 3 {
             XCTAssertEqual(value[i], expected[i], accuracy: 0.02, message, file: file, line: line)
         }
+    }
+
+    private func litFrame() throws -> [Float] {
+        drawFrames()
+        let texture = try XCTUnwrap(textureResources.deferredColorMap)
+        var halves = [UInt16](repeating: 0, count: texture.width * texture.height * 4)
+        halves.withUnsafeMutableBytes { bytes in
+            texture.getBytes(bytes.baseAddress!, bytesPerRow: texture.width * 8, from: MTLRegionMake2D(0, 0, texture.width, texture.height), mipmapLevel: 0)
+        }
+        return halves.map { Float(Float16(bitPattern: $0)) }
+    }
+
+    /// Culling the faces wound the other way leaves a closed mesh looking exactly as it did
+    /// with both sides drawn, for the winding the mesh uses; the other winding culls its front
+    /// and shows it inside out. The quad is never culled: the frame still lights.
+    func testBackFaceCullingKeepsTheFrontOfAClosedMesh() throws {
+        #if targetEnvironment(simulator)
+            throw XCTSkip("no TBDR light pass in the simulator")
+        #else
+            antiAliasingMode = .none
+            let bothSides = try litFrame()
+            setRendering(.backFaceCullingExperiment(.counterClockwiseFront))
+            let ccw = try litFrame()
+            setRendering(.backFaceCullingExperiment(.clockwiseFront))
+            let cw = try litFrame()
+            setRendering(.backFaceCullingExperiment(.off))
+            func maxDifference(_ a: [Float], _ b: [Float]) -> Float {
+                zip(a, b).reduce(0) { max($0, abs($1.0 - $1.1)) }
+            }
+            let ccwDifference = maxDifference(bothSides, ccw)
+            let cwDifference = maxDifference(bothSides, cw)
+            print("Back-face culling: CCW front differs by \(ccwDifference), CW front by \(cwDifference)")
+            XCTAssertTrue(min(ccwDifference, cwDifference) < 1e-3, "one winding keeps the picture")
+            XCTAssertTrue(max(ccwDifference, cwDifference) > 0.05, "the other winding shows the mesh inside out")
+            XCTAssertTrue(bothSides.contains { $0 > 0.05 }, "the frame is lit")
+        #endif
     }
 
     func testTheExperimentPipelinesExistAndFollowTheSampleCount() throws {

@@ -2456,6 +2456,19 @@ public enum RenderPasses {
         let viewMatrix = pass.viewMatrix
         var renderModes = SceneChannelRenderModeMemo()
 
+        // The back-face culling experiment: the faces wound the other way never reach the
+        // tiler or the rasteriser. Off, both sides draw, as the pass always has.
+        switch renderInfo.backFaceCullingExperiment {
+        case .off:
+            renderEncoder.setCullMode(.none)
+        case .counterClockwiseFront:
+            renderEncoder.setFrontFacing(.counterClockwise)
+            renderEncoder.setCullMode(.back)
+        case .clockwiseFront:
+            renderEncoder.setFrontFacing(.clockwise)
+            renderEncoder.setCullMode(.back)
+        }
+
         // ── Sub-pass 1: Unbatched geometry ──────────────────────────────────────
         renderEncoder.setRenderPipelineState(modelPipeline.pipelineState!)
         renderEncoder.setDepthStencilState(modelPipeline.depthState)
@@ -2811,6 +2824,8 @@ public enum RenderPasses {
             // One thread per pixel of the tile Metal chose for this pass.
             lightQuadEncoder.dispatchThreadsPerTile(MTLSize(width: lightQuadEncoder.tileWidth, height: lightQuadEncoder.tileHeight, depth: 1))
         } else {
+            // The quad draws whatever the geometry culled.
+            lightQuadEncoder.setCullMode(.none)
             lightQuadEncoder.drawIndexedPrimitivesTracked(
                 type: .triangle,
                 indexCount: 6,

@@ -102,6 +102,10 @@ public struct RenderInfo {
     /// frame's cost without that shading.
     public var flatMaterialExperiment: Bool = false
     public var flatLightingExperiment: Bool = false
+    /// Back-face culling in the model pass, as an experiment: off (the pass draws both sides
+    /// of every triangle, so an open mesh shows its back), or the faces wound the other way
+    /// are culled, with the winding that counts as the front. The light quad is never culled.
+    public var backFaceCullingExperiment: BackFaceCullingExperiment = .off
 
     // XR stereo-aware HZB culling
     // When true, depth and HZB pyramids are maintained per eye and occlusion

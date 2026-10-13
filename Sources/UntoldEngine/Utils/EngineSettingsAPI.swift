@@ -120,6 +120,18 @@ public enum RenderingProperty: Sendable {
     /// on is the frame's cost without that shading.
     case flatMaterialExperiment(RenderingToggle)
     case flatLightingExperiment(RenderingToggle)
+    /// Back-face culling in the model pass, off by default: the pass draws both sides of every
+    /// triangle. `.counterClockwiseFront` or `.clockwiseFront` culls the faces wound the other
+    /// way, which halves what the tiler and the rasteriser see of a closed mesh; an open mesh
+    /// loses its back. The winding that counts as the front is the asset's convention.
+    case backFaceCullingExperiment(BackFaceCullingExperiment)
+}
+
+/// The model pass's back-face culling: off, or on with the winding that counts as the front.
+public enum BackFaceCullingExperiment: Sendable {
+    case off
+    case counterClockwiseFront
+    case clockwiseFront
 }
 
 public enum RenderingToggle: Sendable {
@@ -208,6 +220,8 @@ public func setRendering(_ property: RenderingProperty) {
         renderInfo.flatLightingExperiment = true
     case .flatLightingExperiment(.disabled):
         renderInfo.flatLightingExperiment = false
+    case let .backFaceCullingExperiment(mode):
+        renderInfo.backFaceCullingExperiment = mode
     }
 }
 
