@@ -650,8 +650,6 @@ public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         frustumWritePointer[i] = simd_float4(frustum.planes[i].n, frustum.planes[i].d)
     }
 
-    let frustumReadBuffer = frustumTripleBuffer.bufferForRead(frame: submitFrameIndex)
-
     let sceneSnapshot = RenderSceneSnapshot()
     let isXRStereoMode = renderInfo.isXRStereoMode
 
@@ -742,21 +740,22 @@ public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
 
     computeEncoder.setComputePipelineState(frustumCullingPipeline.pipelineState!)
 
-    computeEncoder.setBuffer(frustumReadBuffer, offset: 0, index: Int(frustumCullingPassPlanesIndex.rawValue))
+    computeEncoder.setBuffer(frustumWriteBuffer, offset: 0, index: Int(frustumCullingPassPlanesIndex.rawValue))
 
-    // write current frame's data
+    // This frame's list and planes, in this frame's slot of the rings, which the frame's own
+    // compute reads: the rings keep the frames in flight off each other's slots, they do not
+    // put a frame a slot behind its own data. Reading the slot before (the frame before's
+    // list, with this frame's count) left the entities at the end of a list that had just
+    // shrunk untested, so a board's face vanished on the frames its smallest parts dropped out.
     let entityAABBWriteBuffer = entityAABBTripleBuffer.bufferForWrite(frame: submitFrameIndex)
 
     entityAABBContainer.withUnsafeBytes { src in
         entityAABBWriteBuffer.contents().copyMemory(from: src.baseAddress!, byteCount: src.count)
     }
 
-    // pick the buffer the gpu should read
-    let entityAABBReadBuffer = entityAABBTripleBuffer.bufferForRead(frame: submitFrameIndex)
-
     let candidateVisibilityBuffer = hzbCandidateVisibilityTriple.bufferForWrite(frame: submitFrameIndex)
 
-    computeEncoder.setBuffer(entityAABBReadBuffer, offset: 0, index: Int(frustumCullingPassObjectIndex.rawValue))
+    computeEncoder.setBuffer(entityAABBWriteBuffer, offset: 0, index: Int(frustumCullingPassObjectIndex.rawValue))
 
     var count32 = UInt32(count)
     computeEncoder.setBytes(&count32, length: MemoryLayout<UInt32>.stride, index: Int(frustumCullingPassObjectCountIndex.rawValue))
@@ -987,8 +986,6 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         frustumWritePointer[i] = simd_float4(frustum.planes[i].n, frustum.planes[i].d)
     }
 
-    let frustumReadBuffer = frustumTripleBuffer.bufferForRead(frame: submitFrameIndex)
-
     let sceneSnapshot = RenderSceneSnapshot()
 
     var entityAABBContainer: [EntityAABB] = []
@@ -1066,15 +1063,16 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
     ensureReduceScanCapacity(scannedCount)
     let numBlocks = Int32((scannedCount + Int(BLOCK_SIZE) - 1) / Int(BLOCK_SIZE))
 
-    // write current frame's data
+    // This frame's list and planes, in this frame's slot of the rings, which the frame's own
+    // compute reads: the rings keep the frames in flight off each other's slots, they do not
+    // put a frame a slot behind its own data. Reading the slot before (the frame before's
+    // list, with this frame's count) left the entities at the end of a list that had just
+    // shrunk untested, so a board's face vanished on the frames its smallest parts dropped out.
     let entityAABBWriteBuffer = entityAABBTripleBuffer.bufferForWrite(frame: submitFrameIndex)
 
     entityAABBContainer.withUnsafeBytes { src in
         entityAABBWriteBuffer.contents().copyMemory(from: src.baseAddress!, byteCount: src.count)
     }
-
-    // pick the buffer the gpu should read
-    let entityAABBReadBuffer = entityAABBTripleBuffer.bufferForRead(frame: submitFrameIndex)
 
     let candidateVisibilityBuffer = hzbCandidateVisibilityTriple.bufferForWrite(frame: submitFrameIndex)
 
@@ -1088,8 +1086,8 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
 
         computeEncoderMarkVisible.setComputePipelineState(reduceScanMarkVisiblePipeline.pipelineState!)
 
-        computeEncoderMarkVisible.setBuffer(frustumReadBuffer, offset: 0, index: Int(markVisibilityPassFrustumIndex.rawValue))
-        computeEncoderMarkVisible.setBuffer(entityAABBReadBuffer, offset: 0, index: Int(markVisibilityPassEntityAABBIndex.rawValue))
+        computeEncoderMarkVisible.setBuffer(frustumWriteBuffer, offset: 0, index: Int(markVisibilityPassFrustumIndex.rawValue))
+        computeEncoderMarkVisible.setBuffer(entityAABBWriteBuffer, offset: 0, index: Int(markVisibilityPassEntityAABBIndex.rawValue))
         computeEncoderMarkVisible.setBytes(&count32, length: MemoryLayout<UInt32>.stride, index: Int(markVisibilityPassEntityAABBCountIndex.rawValue))
         computeEncoderMarkVisible.setBuffer(bufferResources.reduceScanFlags, offset: 0, index: Int(markVisibilityPassFlagIndex.rawValue))
 
@@ -1158,7 +1156,7 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         computeEncoderCompact.setBuffer(bufferResources.reduceScanFlags, offset: 0, index: Int(compactPassFlagsIndex.rawValue))
         computeEncoderCompact.setBuffer(bufferResources.reduceScanIndices, offset: 0, index: Int(compactPassIndicesIndex.rawValue))
         computeEncoderCompact.setBuffer(bufferResources.reduceScanBlockOffsets, offset: 0, index: Int(compactPassBlockOffsetIndex.rawValue))
-        computeEncoderCompact.setBuffer(entityAABBReadBuffer, offset: 0, index: Int(compactPassEntityAABBIndex.rawValue))
+        computeEncoderCompact.setBuffer(entityAABBWriteBuffer, offset: 0, index: Int(compactPassEntityAABBIndex.rawValue))
 
         computeEncoderCompact.setBytes(&count32, length: MemoryLayout<UInt32>.stride, index: Int(compactPassCountIndex.rawValue))
 

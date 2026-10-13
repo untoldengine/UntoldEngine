@@ -59,16 +59,16 @@ public final class TripleBuffer<T> {
         frame % inFlight
     }
 
-    @inline(__always) private func readIndex(_ frame: Int) -> Int {
-        (frame + inFlight - 1) % inFlight
-    }
-
     @inline(__always) public func bufferForWrite(frame: Int) -> MTLBuffer {
         buffers[writeIndex(frame)]
     }
 
+    /// The slot the frame's GPU work reads: the one the frame wrote. The ring exists so that
+    /// the frames in flight each have a slot of their own, not to stagger a frame's reads a
+    /// slot behind its writes (which handed a frame the frame before's data under this
+    /// frame's count).
     @inline(__always) public func bufferForRead(frame: Int) -> MTLBuffer {
-        frame == 0 ? buffers[writeIndex(frame)] : buffers[readIndex(frame)]
+        buffers[writeIndex(frame)]
     }
 }
 
