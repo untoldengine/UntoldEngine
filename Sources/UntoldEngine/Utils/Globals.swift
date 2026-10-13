@@ -2353,11 +2353,18 @@ public final class ColorGradeLUTParams: @unchecked Sendable {
 public enum TonemapOperator: String, Sendable, Codable, Equatable {
     case aces
     case agx
+    /// No tone map: the scene's linear colour as it is. For a mixed-immersion space, where
+    /// the passthrough sets the display's response and the compositor applies it to the
+    /// scene as well; a filmic curve there compresses the object's whites and lifts its
+    /// blacks against the room (measured on a dartboard: whites at 87 of 255 against the
+    /// room's 113 for the same object, blacks at 15 against 9).
+    case none
 
     var shaderValue: Int32 {
         switch self {
         case .aces: Int32(tonemapOperatorACES.rawValue)
         case .agx: Int32(tonemapOperatorAgX.rawValue)
+        case .none: Int32(tonemapOperatorNone.rawValue)
         }
     }
 }

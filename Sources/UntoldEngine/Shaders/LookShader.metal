@@ -150,6 +150,10 @@ static inline float4 lookColor(
       // the source scene's full View Transform (including its own tonemap
       // curve), so applying ACES on top would double-compress the image.
       color = sampleColorLUT(max(color, 0.0), colorLUTTexture, colorLUTShaperMinStops, colorLUTShaperMaxStops, colorLUTSize);
+  } else if (tonemapOperator == tonemapOperatorNone) {
+      // No tone map: a mixed-immersion space shows the scene's linear colour next to the
+      // passthrough, whose response the compositor applies to both.
+      color = max(color, 0.0);
   } else if (tonemapOperator == tonemapOperatorAgX) {
       // Tone map ONCE, here.
       color = agxToneMapping(max(color, 0.0));

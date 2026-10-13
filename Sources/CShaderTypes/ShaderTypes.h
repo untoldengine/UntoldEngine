@@ -554,6 +554,9 @@ typedef enum {
 typedef enum {
     tonemapOperatorACES = 0,
     tonemapOperatorAgX = 1,
+    /// No tone map: the scene's linear colour as it is, for a mixed-immersion space where
+    /// the passthrough sets the display's response and the compositor applies it.
+    tonemapOperatorNone = 2,
 } TonemapOperatorID;
 
 // The Gaussian pass's layer on the look pass: a splat pixel is display-referred already
