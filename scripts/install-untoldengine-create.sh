@@ -88,6 +88,25 @@ else
     sudo chmod +x "$INSTALL_DIR/$CLI_NAME"
 fi
 
+# SwiftPM generates a resource bundle (manifest.json, etc.) as a sibling of the
+# binary under .build/<config>/. Bundle.main's resource lookup expects it next
+# to the installed binary too, so copy it alongside $CLI_NAME in $INSTALL_DIR.
+RESOURCE_BUNDLE="UntoldEngineCLI_UntoldEngineCLI.bundle"
+BUNDLE_PATH=".build/$BUILD_CONFIG/$RESOURCE_BUNDLE"
+if [ -d "$BUNDLE_PATH" ]; then
+    echo -e "${CYAN}📦 Installing resource bundle to $INSTALL_DIR/$RESOURCE_BUNDLE...${NC}"
+    if [ -w "$INSTALL_DIR" ]; then
+        rm -rf "$INSTALL_DIR/$RESOURCE_BUNDLE"
+        cp -R "$BUNDLE_PATH" "$INSTALL_DIR/$RESOURCE_BUNDLE"
+    else
+        sudo rm -rf "$INSTALL_DIR/$RESOURCE_BUNDLE"
+        sudo cp -R "$BUNDLE_PATH" "$INSTALL_DIR/$RESOURCE_BUNDLE"
+    fi
+else
+    echo -e "${RED}❌ Error: Resource bundle not found at $BUNDLE_PATH${NC}"
+    exit 1
+fi
+
 # Install Blender exporter support files used by `untoldengine export`.
 echo -e "${CYAN}📦 Installing exporter support files to $SUPPORT_DIR...${NC}"
 if [ ! -d "$SUPPORT_DIR" ]; then
