@@ -28,6 +28,11 @@ public struct EngineTimingStats {
     public var encodeMs: Double = 0.0
     public var submitMs: Double = 0.0
     public var cullingMs: Double = 0.0
+    /// XR: the time the render loop waited for the compositor's optimal input time between
+    /// its update phase and its submission phase — the frame's pacing, not the CPU's work.
+    /// `encodeMs` is then the submission phase: the drawables' command buffers encoded and
+    /// committed. The CPU's work in a frame is `updateMs` + `encodeMs`.
+    public var xrWaitMs: Double = 0.0
     public var streamingRegionMs: Double = 0.0
     public var geometryStreamingMs: Double = 0.0
     public var batchingTickMs: Double = 0.0
@@ -44,6 +49,7 @@ public struct EngineTimingStats {
         encodeMs: Double = 0.0,
         submitMs: Double = 0.0,
         cullingMs: Double = 0.0,
+        xrWaitMs: Double = 0.0,
         streamingRegionMs: Double = 0.0,
         geometryStreamingMs: Double = 0.0,
         batchingTickMs: Double = 0.0,
@@ -59,6 +65,7 @@ public struct EngineTimingStats {
         self.encodeMs = encodeMs
         self.submitMs = submitMs
         self.cullingMs = cullingMs
+        self.xrWaitMs = xrWaitMs
         self.streamingRegionMs = streamingRegionMs
         self.geometryStreamingMs = geometryStreamingMs
         self.batchingTickMs = batchingTickMs

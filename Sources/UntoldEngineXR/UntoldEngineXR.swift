@@ -80,6 +80,13 @@
         private var loggedFoveationState: Bool?
         private var loggedCaptureTargetSkip = false
         private var loggedDrawableCount = 0
+        /// Whether the compositor's frame timing budget has been printed (once per space).
+        private var loggedFrameTimingBudget = false
+
+        private static func milliseconds(_ duration: Duration) -> Double {
+            let parts = duration.components
+            return Double(parts.seconds) * 1000.0 + Double(parts.attoseconds) / 1e15
+        }
         private let spatialGestureRecognizer = XRSpatialGestureRecognizer()
         private let xrEnvironmentLightingSystem = XREnvironmentLightingSystem()
         private var runtimeLightingModeObserverId: UUID?
@@ -612,7 +619,22 @@
             frame.endUpdate()
 
             // 7. Call wait(until:tolerace) to puase your render loop until the optimal rendering time
+            #if ENGINE_STATS_ENABLED
+                let xrWaitStart = CACurrentMediaTime()
+            #endif
             LayerRenderer.Clock().wait(until: timing.optimalInputTime, tolerance: .zero)
+            #if ENGINE_STATS_ENABLED
+                let xrWaitMs = (CACurrentMediaTime() - xrWaitStart) * 1000.0
+                EngineStatsMonitor.shared.update { snapshot in
+                    snapshot.timing.xrWaitMs = xrWaitMs
+                }
+                if !loggedFrameTimingBudget {
+                    loggedFrameTimingBudget = true
+                    let toDeadline = timing.optimalInputTime.duration(to: timing.renderingDeadline)
+                    let toPresentation = timing.optimalInputTime.duration(to: timing.presentationTime)
+                    print(String(format: "XR frame timing: optimal input to rendering deadline %.2f ms, to presentation %.2f ms", Self.milliseconds(toDeadline), Self.milliseconds(toPresentation)))
+                }
+            #endif
 
             // The compositor or app state can transition while waiting. If not running anymore,
             // skip submission entirely to avoid using an invalid frame.
@@ -620,6 +642,9 @@
 
             // 8. Call startSubmission() to mark the start of submission phase
             frame.startSubmission()
+            #if ENGINE_STATS_ENABLED
+                let xrSubmissionStart = CACurrentMediaTime()
+            #endif
             var shouldEndSubmission = true
             defer {
                 if shouldEndSubmission, layerRenderer.state == .running {
@@ -718,6 +743,10 @@
                 }
             }
             #if ENGINE_STATS_ENABLED
+                let xrEncodeMs = (CACurrentMediaTime() - xrSubmissionStart) * 1000.0
+                EngineStatsMonitor.shared.update { snapshot in
+                    snapshot.timing.encodeMs = xrEncodeMs
+                }
                 renderer.finalizeXRStatsAndMonitors(frameStartTime: xrFrameStartTime)
             #else
                 renderer.finalizeXRStatsAndMonitors(frameStartTime: 0.0)
