@@ -82,6 +82,11 @@
         private var loggedDrawableCount = 0
         /// Whether the compositor's frame timing budget has been printed (once per space).
         private var loggedFrameTimingBudget = false
+        /// Whether the layer's depth format and the drawable's depth range have been printed.
+        private var loggedDepthSetup = false
+        /// The layer's depth format and the drawable's depth range (far, near), once a drawable
+        /// has been seen: what the depth test can tell apart at a distance.
+        public private(set) var depthSetupDescription = ""
 
         private static func milliseconds(_ duration: Duration) -> Double {
             let parts = duration.components
@@ -935,6 +940,20 @@
         func executeXRSystemPass(frame _: LayerRenderer.Frame, drawable: LayerRenderer.Drawable, loading: Bool, primary: Bool = true) {
             TemporalAntiAliasing.shared.historyUpdatesEnabled = primary
             defer { TemporalAntiAliasing.shared.historyUpdatesEnabled = true }
+            if !loggedDepthSetup, let depthTexture = drawable.depthTextures.first {
+                loggedDepthSetup = true
+                // What the depth test can tell apart: the layer's depth format and the
+                // drawable's depth range (far, near) the projection is built from.
+                let format: String
+                switch depthTexture.pixelFormat {
+                case .depth16Unorm: format = "depth16Unorm"
+                case .depth32Float: format = "depth32Float"
+                case .depth32Float_stencil8: format = "depth32Float_stencil8"
+                default: format = "pixel format \(depthTexture.pixelFormat.rawValue)"
+                }
+                depthSetupDescription = String(format: "%@, range far %.3f near %.3f", format, drawable.depthRange.x, drawable.depthRange.y)
+                print("XR depth: \(depthSetupDescription)")
+            }
             // Wait for available command buffer slot to prevent unbounded memory growth
             let semaphoreWaitStart = CACurrentMediaTime()
             let firstWaitResult = commandBufferSemaphore.wait(timeout: .now() + .milliseconds(100))

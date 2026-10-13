@@ -118,6 +118,7 @@ static inline float4 taaResolveColor(
     texture2d<float> colorTexture,
     texture2d<float> historyTexture,
     depth2d<float> depthTexture,
+    texture2d<float> velocityTexture,
     constant TAAConstants &taa,
     constant rasterization_rate_map_data *rateMap,
     constant rasterization_rate_map_data *prevRateMap
@@ -148,9 +149,15 @@ static inline float4 taaResolveColor(
     const bool worldValid = abs(world.w) >= 1e-12;
     world /= worldValid ? world.w : 1.0;
 
+    // Where the pixel was on the previous frame's screen: by the surface's own motion when
+    // the opaque pass wrote it (a surface that moves on its own carries its history with it),
+    // by the camera's motion alone otherwise.
     const float4 prevClip = taa.prevViewProjection * world;
-    const bool prevInFront = prevClip.w > 0.0;
-    const float2 prevNdc = prevClip.xy / (prevInFront ? prevClip.w : 1.0);
+    const bool velocityKnown = taa.velocityValid != 0u;
+    const bool prevInFront = velocityKnown || prevClip.w > 0.0;
+    const float2 prevNdc = velocityKnown
+        ? ndc - velocityTexture.sample(pointSampler, uv).xy
+        : prevClip.xy / (prevInFront ? prevClip.w : 1.0);
     const float2 prevScreenSize = taa.prevRateMapSizes.x > 0.0 ? taa.prevRateMapSizes.xy : taa.physicalSize;
     const float2 prevScreen = float2((prevNdc.x * 0.5 + 0.5) * prevScreenSize.x, (1.0 - (prevNdc.y * 0.5 + 0.5)) * prevScreenSize.y);
     const float2 prevPhysical = taaPhysicalFromScreen(prevScreen, taa.prevRateMapSizes, prevRateMap);
@@ -222,12 +229,13 @@ fragment TAAFragmentOut fragmentTAAShader(
     texture2d<float> colorTexture [[texture(taaPassColorTextureIndex)]],
     texture2d<float> historyTexture [[texture(taaPassHistoryTextureIndex)]],
     depth2d<float> depthTexture [[texture(taaPassDepthTextureIndex)]],
+    texture2d<float> velocityTexture [[texture(taaPassVelocityTextureIndex)]],
     constant TAAConstants &taa [[buffer(taaPassConstantsIndex)]],
     constant rasterization_rate_map_data *rateMap [[buffer(taaPassRateMapDataIndex)]],
     constant rasterization_rate_map_data *prevRateMap [[buffer(taaPassPrevRateMapDataIndex)]]
 ) {
     TAAFragmentOut out;
-    out.color = taaResolveColor(in, colorTexture, historyTexture, depthTexture, taa, rateMap, prevRateMap);
+    out.color = taaResolveColor(in, colorTexture, historyTexture, depthTexture, velocityTexture, taa, rateMap, prevRateMap);
     return out;
 }
 
@@ -252,6 +260,7 @@ fragment TAAPresentFragmentOut fragmentTAAPresentShader(
     texture2d<float> colorTexture [[texture(taaPassColorTextureIndex)]],
     texture2d<float> historyTexture [[texture(taaPassHistoryTextureIndex)]],
     depth2d<float> depthTexture [[texture(taaPassDepthTextureIndex)]],
+    texture2d<float> velocityTexture [[texture(taaPassVelocityTextureIndex)]],
     constant TAAConstants &taa [[buffer(taaPassConstantsIndex)]],
     constant rasterization_rate_map_data *rateMap [[buffer(taaPassRateMapDataIndex)]],
     constant rasterization_rate_map_data *prevRateMap [[buffer(taaPassPrevRateMapDataIndex)]],
@@ -259,7 +268,7 @@ fragment TAAPresentFragmentOut fragmentTAAPresentShader(
 ) {
     constexpr sampler depthSampler(min_filter::nearest, mag_filter::nearest, address::clamp_to_edge);
     TAAPresentFragmentOut out;
-    out.color = taaResolveColor(in, colorTexture, historyTexture, depthTexture, taa, rateMap, prevRateMap);
+    out.color = taaResolveColor(in, colorTexture, historyTexture, depthTexture, velocityTexture, taa, rateMap, prevRateMap);
     float3 c = max(out.color.rgb, 0.0);
     if (encodingMode == 1) {
         c = taaLinearToSRGB(c);

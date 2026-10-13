@@ -294,6 +294,10 @@ public struct TextureResources {
     public var materialMap: MTLTexture?
     public var emissiveMap: MTLTexture?
     public var depthMap: MTLTexture?
+    /// The velocity the opaque pass writes per pixel in its forward mode (NDC, this frame minus
+    /// the previous), for the temporal resolve; the multisampled one it draws into, resolved.
+    public var velocityMap: MTLTexture?
+    public var msaaVelocityMap: MTLTexture?
     public var msaaColorMap: MTLTexture?
     public var msaaNormalMap: MTLTexture?
     public var msaaPositionMap: MTLTexture?

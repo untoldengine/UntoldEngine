@@ -538,8 +538,17 @@ func initRenderPassDescriptors() {
         storeAction: usesMSAA ? .multisampleResolve : .store,
         clearDepth: sceneDepthClearValue()
     )
+    // Its velocity, attachment 6 (the lit colour keeps the light pass's slot, 5).
+    configureAttachment(
+        descriptor: forwardDescriptor.colorAttachments[6],
+        texture: usesMSAA ? textureResources.msaaVelocityMap : textureResources.velocityMap,
+        loadAction: .clear,
+        storeAction: usesMSAA ? .multisampleResolve : .store,
+        clearColor: MTLClearColorMake(0.0, 0.0, 0.0, 0.0)
+    )
     if usesMSAA {
         forwardDescriptor.colorAttachments[5].resolveTexture = textureResources.deferredColorMap
+        forwardDescriptor.colorAttachments[6].resolveTexture = textureResources.velocityMap
         forwardDescriptor.depthAttachment.resolveTexture = textureResources.depthMap
     }
     renderInfo.forwardRenderPassDescriptor = forwardDescriptor
@@ -843,6 +852,32 @@ func initTextureResources() {
         )
     } else {
         textureResources.msaaDepthMap = nil
+    }
+
+    // The velocity the opaque pass writes per pixel in its forward mode, for the temporal
+    // resolve: the surface's motion since the previous frame, in NDC.
+    textureResources.velocityMap = createTexture(
+        device: renderInfo.device,
+        label: "Velocity Texture",
+        pixelFormat: .rg16Float,
+        width: viewportWidth,
+        height: viewportHeight,
+        usage: [.shaderRead, .renderTarget],
+        storageMode: .private
+    )
+    if renderInfo.opaqueSampleCount > 1 {
+        textureResources.msaaVelocityMap = createTexture(
+            device: renderInfo.device,
+            label: "MSAA Velocity Texture",
+            pixelFormat: .rg16Float,
+            width: viewportWidth,
+            height: viewportHeight,
+            usage: [.renderTarget],
+            storageMode: .memoryless,
+            sampleCount: renderInfo.opaqueSampleCount
+        )
+    } else {
+        textureResources.msaaVelocityMap = nil
     }
 
     // HZB uses a dedicated source depth so wireframe channels can contribute

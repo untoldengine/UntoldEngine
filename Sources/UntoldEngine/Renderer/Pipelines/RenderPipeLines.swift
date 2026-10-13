@@ -430,9 +430,12 @@ private func makeModelPipeline(mayDiscard: Bool, flatMaterial: Bool = false, nam
 
     if litInGBuffer {
         // The forward pass: the lit colour alone, in the light pass's slot
-        // (`forwardRenderPassDescriptor`); the shader's G-buffer outputs are compiled out.
+        // (`forwardRenderPassDescriptor`), and the velocity; the shader's G-buffer outputs
+        // are compiled out.
         desc.colorAttachments[5].pixelFormat = wf.sceneColor
         desc.colorAttachments[5].writeMask = .all
+        desc.colorAttachments[6].pixelFormat = .rg16Float
+        desc.colorAttachments[6].writeMask = .all
     } else {
         // G-buffer outputs: geometry writes to these.
         let gbufferFormats: [MTLPixelFormat] = [

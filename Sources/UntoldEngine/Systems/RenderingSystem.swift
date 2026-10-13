@@ -23,6 +23,7 @@ public typealias UpdateXRRenderingSystemCallback = (RenderingSystemContext) -> V
 
 @MainActor
 func UpdateRenderingSystem(in view: MTKView) {
+    ObjectMotion.shared.beginFrame()
     // Snapshot loading gate once per frame. While loading, keep rendering from the
     // last-known-good visible list and skip ECS traversal to avoid race conditions.
     let loading = AssetLoadingGate.shared.isLoadingAny

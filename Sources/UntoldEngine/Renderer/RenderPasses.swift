@@ -290,6 +290,10 @@ public enum RenderPasses {
         let viewMatrix: simd_float4x4
         let cameraPosition: simd_float3
         let projectionMatrix = renderInfo.perspectiveSpace
+        /// For the velocity each draw writes: this frame's view-projection without the jitter
+        /// and the previous frame's, of the eye being drawn.
+        let unjitteredViewProjection: simd_float4x4
+        let prevViewProjection: simd_float4x4
         let pomQuality = RenderPasses.currentPOMQualityUniform()
         let batchingEnabled = BatchingSystem.shared.isEnabled()
         let lodFadesEnabled = LODConfig.shared.enableFadeTransitions
@@ -301,6 +305,8 @@ public enum RenderPasses {
         init(cameraComponent: CameraComponent) {
             viewMatrix = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
             cameraPosition = shadingCameraPosition(cameraComponent)
+            unjitteredViewProjection = simd_mul(TemporalAntiAliasing.shared.unjitteredProjection, viewMatrix)
+            prevViewProjection = TemporalAntiAliasing.shared.previousViewProjection(fallback: unjitteredViewProjection)
         }
 
         /// The entity's LOD component while LOD fades are on; nil otherwise, and for an
@@ -2590,6 +2596,12 @@ public enum RenderPasses {
                     modelUniforms.modelMatrix = modelMatrix
                     modelUniforms.cameraPosition = pass.cameraPosition
                     modelUniforms.projectionMatrix = pass.projectionMatrix
+                    // Where the entity was the previous frame, for the velocity.
+                    modelUniforms.unjitteredViewProjectionMatrix = pass.unjitteredViewProjection
+                    modelUniforms.prevViewProjectionMatrix = pass.prevViewProjection
+                    modelUniforms.prevModelMatrix = simd_mul(
+                        ObjectMotion.shared.previousWorldTransform(of: entityId, current: worldTransformComponent.space), mesh.localSpace
+                    )
 
                     renderEncoder.setVertexBytes(&modelUniforms, length: MemoryLayout<Uniforms>.stride, index: Int(modelPassUniformIndex.rawValue))
 
@@ -2685,6 +2697,10 @@ public enum RenderPasses {
                 batchUniforms.normalMatrix = matrix3x3_upper_left(modelMatrix).inverse.transpose
                 batchUniforms.cameraPosition = shadingCameraPosition(cameraComponent)
                 batchUniforms.projectionMatrix = renderInfo.perspectiveSpace
+                // A static batch moves with the camera alone.
+                batchUniforms.unjitteredViewProjectionMatrix = pass.unjitteredViewProjection
+                batchUniforms.prevViewProjectionMatrix = pass.prevViewProjection
+                batchUniforms.prevModelMatrix = matrix_identity_float4x4
 
                 for batchGroup in visibleBatchGroups {
                     guard let positionBuffer = batchGroup.positionBuffer,

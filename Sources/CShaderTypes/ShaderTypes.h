@@ -42,6 +42,12 @@ typedef struct
     matrix_float3x3 normalMatrix;
     matrix_float4x4 modelMatrix;
     simd_float3 cameraPosition;
+    // For the velocity the opaque pass writes per pixel: this frame's view-projection without
+    // its jitter, the previous frame's (of the same eye), and the model matrix the entity was
+    // drawn with the previous frame.
+    matrix_float4x4 unjitteredViewProjectionMatrix;
+    matrix_float4x4 prevViewProjectionMatrix;
+    matrix_float4x4 prevModelMatrix;
 } Uniforms;
 
 
@@ -1437,7 +1443,7 @@ typedef struct {
     uint32_t historyValid;               // 0 on the first frame, after a resize or a mode change: the output is the current frame
     uint32_t reverseZ;
     float clipGamma;                     // the clip box is the 3×3 mean ± clipGamma × standard deviation (1.25)
-    uint32_t pad0;
+    uint32_t velocityValid;              // 1 when the opaque pass wrote the frame's velocity texture (per-object motion)
     uint32_t pad1;
 } TAAConstants;  // 176 bytes
 
@@ -1451,7 +1457,8 @@ typedef enum{
 typedef enum{
     taaPassColorTextureIndex = 0,   // this frame's look output
     taaPassHistoryTextureIndex,     // the previous resolve of this eye
-    taaPassDepthTextureIndex        // this frame's opaque depth
+    taaPassDepthTextureIndex,       // this frame's opaque depth
+    taaPassVelocityTextureIndex     // this frame's velocity (NDC, this minus previous), when velocityValid
 }TAATextureIndices;
 
 typedef enum{

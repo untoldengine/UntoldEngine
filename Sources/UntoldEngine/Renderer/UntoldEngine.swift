@@ -781,7 +781,8 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
 
     @discardableResult
     public func updateXR(useExternalStatsLifecycle: Bool = false) -> Bool {
-        runFrame(statsLifecycle: useExternalStatsLifecycle ? .externalManaged : .internalManaged)
+        ObjectMotion.shared.beginFrame()
+        return runFrame(statsLifecycle: useExternalStatsLifecycle ? .externalManaged : .internalManaged)
     }
 
     @discardableResult

@@ -134,6 +134,8 @@ public final class TemporalAntiAliasing: @unchecked Sendable {
     /// lives in the projection's third column: for a perspective projection, whose clip w is
     /// the view-space depth, it shifts every point by a constant amount in NDC.
     func applyJitter() {
+        // A new frame: nothing has presented yet (the resolve says so when it does).
+        presentedThisFrame = false
         var projection = renderInfo.perspectiveSpace
         projection.columns.2.x -= appliedJitter.x
         projection.columns.2.y -= appliedJitter.y
@@ -159,6 +161,14 @@ public final class TemporalAntiAliasing: @unchecked Sendable {
             return foveation.screenSize
         }
         return renderInfo.viewPort
+    }
+
+    /// The previous frame's view-projection of the eye being drawn (unjittered, scene root
+    /// included), which the resolve reprojects the history with, or `fallback` when the eye has
+    /// no history: what the opaque pass measures a surface's velocity against.
+    func previousViewProjection(fallback: simd_float4x4) -> simd_float4x4 {
+        let eye = eyeIndex
+        return eyes[eye].valid && historyUpdatesEnabled ? eyes[eye].viewProjection : fallback
     }
 
     /// This frame's projection without its jitter.
@@ -246,6 +256,10 @@ public final class TemporalAntiAliasing: @unchecked Sendable {
         constants.clipGamma = TAAParams.shared.clipGamma
         constants.historyValid = eyes[eye].valid && historyUpdatesEnabled ? 1 : 0
         constants.reverseZ = renderInfo.reverseZEnabled ? 1 : 0
+        // The opaque pass wrote the frame's velocity in its forward mode: a surface that moves
+        // on its own has its history where it was.
+        let velocity = renderInfo.perFragmentLightingBuilt ? textureResources.velocityMap : nil
+        constants.velocityValid = velocity != nil ? 1 : 0
 
         let descriptor = MTLRenderPassDescriptor()
         descriptor.colorAttachments[0].texture = writeTexture
@@ -297,6 +311,7 @@ public final class TemporalAntiAliasing: @unchecked Sendable {
         encoder.setFragmentTexture(source, index: Int(taaPassColorTextureIndex.rawValue))
         encoder.setFragmentTexture(readTexture, index: Int(taaPassHistoryTextureIndex.rawValue))
         encoder.setFragmentTexture(depth, index: Int(taaPassDepthTextureIndex.rawValue))
+        encoder.setFragmentTexture(velocity ?? depth, index: Int(taaPassVelocityTextureIndex.rawValue))
         encoder.setFragmentBytes(&constants, length: MemoryLayout<TAAConstants>.stride, index: Int(taaPassConstantsIndex.rawValue))
         // The maps' sizes are in the constants; the shader reads a map's parameters only when
         // its sizes say there is one, so a placeholder stands in for a uniform frame.
