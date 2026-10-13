@@ -111,6 +111,8 @@ final class XRImmersionContractTest: BaseRenderSetup {
         encoder.setFragmentBytes(&passthrough, length: MemoryLayout<Bool>.stride, index: Int(prePassPassthroughBufferIndex.rawValue))
         var ssaoEnabled = false
         encoder.setFragmentBytes(&ssaoEnabled, length: MemoryLayout<Bool>.stride, index: Int(prePassSSAOEnabledIndex.rawValue))
+        var gaussianLayerPresent = true // the (transparent) splat layer takes part in the composite
+        encoder.setFragmentBytes(&gaussianLayerPresent, length: MemoryLayout<Bool>.stride, index: Int(prePassGaussianLayerIndex.rawValue))
 
         encoder.drawIndexedPrimitives(
             type: .triangle,

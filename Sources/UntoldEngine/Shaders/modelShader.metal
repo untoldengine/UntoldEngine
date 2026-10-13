@@ -239,6 +239,12 @@ vertex MeshOccluderShellVertexOut vertexMeshOccluderShellShader(
 }
 
 
+// Whether a draw through this pipeline may discard fragments: an alpha-masked or blended
+// material, or a dither fade. The plain opaque pipeline compiles this false, and with the
+// discards gone the GPU resolves visibility before it shades — a fragment another surface
+// covers is never shaded. The general pipeline keeps them for the draws that need them.
+constant bool kModelMayDiscard [[function_constant(modelFunctionConstantMayDiscard)]];
+
 fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
                                         constant Uniforms & uniforms [[ buffer(modelPassFragmentUniformIndex) ]],
                                  texture2d<float> baseColor [[texture(modelPassBaseTextureIndex)]],
@@ -379,25 +385,27 @@ fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
     : float4(tint, materialParameter.baseColor.a);
 
 
-    if (materialParameter.alphaMode == 2) {
-        discard_fragment();
-    }
+    if (kModelMayDiscard) {
+        if (materialParameter.alphaMode == 2) {
+            discard_fragment();
+        }
 
-    if (materialParameter.alphaMode == 1 && inBaseColor.a < materialParameter.alphaCutoff) {
-        discard_fragment();
-    }
+        if (materialParameter.alphaMode == 1 && inBaseColor.a < materialParameter.alphaCutoff) {
+            discard_fragment();
+        }
 
-    float lodDitherMode = materialParameter.lodDither.y;
-    if (lodDitherMode > 0.5) {
-        float threshold = clamp(materialParameter.lodDither.x, 0.0, 1.0);
-        float dither = lodBayerThreshold(in.position.xy);
+        float lodDitherMode = materialParameter.lodDither.y;
+        if (lodDitherMode > 0.5) {
+            float threshold = clamp(materialParameter.lodDither.x, 0.0, 1.0);
+            float dither = lodBayerThreshold(in.position.xy);
 
-        if (lodDitherMode < 1.5) {
-            if (dither >= threshold) {
+            if (lodDitherMode < 1.5) {
+                if (dither >= threshold) {
+                    discard_fragment();
+                }
+            } else if (dither < threshold) {
                 discard_fragment();
             }
-        } else if (dither < threshold) {
-            discard_fragment();
         }
     }
 

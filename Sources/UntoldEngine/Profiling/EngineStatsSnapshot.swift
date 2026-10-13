@@ -15,7 +15,10 @@ public struct EngineTimingStats {
     public var frameTotalMs: Double = 0.0
     /// CPU frame time averaged over the last 30 frames — use this for smooth FPS display.
     public var smoothedFrameMs: Double = 0.0
-    /// True GPU execution time for this frame (gpuEndTime - gpuStartTime from MTLCommandBuffer).
+    /// The GPU's time on this frame's command buffer beyond the previous frame's (consecutive
+    /// frames overlap on the GPU, so the command buffer's own span would count the previous
+    /// frame's tail too; see `gpuTimeExcludingOverlap`). On a saturated GPU this is the time
+    /// the GPU takes per frame.
     public var gpuExecutionMs: Double = 0.0
     /// Wall-clock interval between successive GPU frame completions — use this for true GPU FPS.
     public var gpuFrameCadenceMs: Double = 0.0

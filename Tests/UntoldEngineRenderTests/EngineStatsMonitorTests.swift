@@ -8,6 +8,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+import QuartzCore
 @testable import UntoldEngine
 import XCTest
 
@@ -175,6 +176,30 @@ final class EngineStatsMonitorTests: XCTestCase {
         XCTAssertEqual(snapshot.timing.gpuExecutionMs, 5.0, accuracy: 0.001)
         // First call: cadence falls back to executionMs.
         XCTAssertEqual(snapshot.timing.gpuFrameCadenceMs, 5.0, accuracy: 0.001)
+    }
+
+    // MARK: - GPU time beyond the previous frame's
+
+    func testGPUTimeExcludingOverlap_countsOnlyTheTimeAfterThePreviousFrame() {
+        // Back to back: the frame began before the previous one ended.
+        XCTAssertEqual(gpuTimeExcludingOverlap(gpuStartTime: 0.008, gpuEndTime: 0.018, previousGPUEndTime: 0.010), 0.008, accuracy: 1e-9)
+        // Apart: the whole span.
+        XCTAssertEqual(gpuTimeExcludingOverlap(gpuStartTime: 0.020, gpuEndTime: 0.025, previousGPUEndTime: 0.018), 0.005, accuracy: 1e-9)
+        // Finished before the previous one: nothing.
+        XCTAssertEqual(gpuTimeExcludingOverlap(gpuStartTime: 0.001, gpuEndTime: 0.004, previousGPUEndTime: 0.010), 0, accuracy: 1e-9)
+    }
+
+    func testRecordGPUCompletion_timestamps_excludeThePreviousFramesTail() {
+        let base = CACurrentMediaTime() + 1000 // past anything an earlier test recorded
+        EngineStatsMonitor.shared.beginFrame(timestampSeconds: 1.0)
+        EngineStatsMonitor.shared.recordGPUCompletion(gpuStartTime: base, gpuEndTime: base + 0.020)
+        EngineStatsMonitor.shared.completeFrame()
+        XCTAssertEqual(getEngineStatsSnapshot().timing.gpuExecutionMs, 20.0, accuracy: 0.01)
+
+        EngineStatsMonitor.shared.beginFrame(timestampSeconds: 1.02)
+        EngineStatsMonitor.shared.recordGPUCompletion(gpuStartTime: base + 0.015, gpuEndTime: base + 0.035)
+        EngineStatsMonitor.shared.completeFrame()
+        XCTAssertEqual(getEngineStatsSnapshot().timing.gpuExecutionMs, 15.0, accuracy: 0.01, "the 5 ms the two frames shared on the GPU count once")
     }
 
     // MARK: - Formatter bottleneck label

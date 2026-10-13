@@ -119,9 +119,13 @@ func requestedOpaqueSampleCount() -> Int {
     #else
         switch antiAliasingMode {
         case .msaa, .msaaTaa:
-            let preferredSampleCount = 4
+            // The multisample count asked for, or the largest below it the device has.
             guard let device = renderInfo.device else { return 1 }
-            return device.supportsTextureSampleCount(preferredSampleCount) ? preferredSampleCount : 1
+            var sampleCount = renderInfo.preferredMultisampleCount
+            while sampleCount > 1, !device.supportsTextureSampleCount(sampleCount) {
+                sampleCount /= 2
+            }
+            return max(1, sampleCount)
         case .none, .fxaa, .smaa, .taa:
             return 1
         }
@@ -141,8 +145,14 @@ func updateOpaquePipelinesForSampleCount() {
     if let modelPipeline = InitModelPipeline() {
         PipelineManager.shared.update(rendererPipeLine: modelPipeline, forType: .model)
     }
+    if let modelOpaquePipeline = InitModelOpaquePipeline() {
+        PipelineManager.shared.update(rendererPipeLine: modelOpaquePipeline, forType: .modelOpaque)
+    }
     if let lightPipeline = InitLightPipeline() {
         PipelineManager.shared.update(rendererPipeLine: lightPipeline, forType: .light)
+    }
+    if let lightTilePipeline = InitLightTilePipeline() {
+        PipelineManager.shared.update(rendererPipeLine: lightTilePipeline, forType: .lightTile)
     }
 }
 

@@ -96,6 +96,23 @@ public enum RenderingProperty: Sendable {
     /// compositor still unwarps, so the picture is distorted. See
     /// `getFoveatedRenderingEnabled()` to read the current value.
     case foveatedRendering(RenderingToggle)
+    /// Whether the pre-composite pass is skipped on a frame it would only copy the lit scene
+    /// (XR passthrough with no environment, splat, ambient-occlusion or gizmo layer to join;
+    /// the lit debug view; no render extension). Enabled by default; disabling it runs the
+    /// pass on every frame, as a diagnostic.
+    case preCompositeBypass(RenderingToggle)
+    /// Whether the deferred light pass runs as a tile stage that lights each pixel once per
+    /// colour it holds, instead of a quad that lights every multisample. Enabled by default
+    /// where tile shading exists; disabling it runs the quad, as a diagnostic.
+    case tileLightStage(RenderingToggle)
+    /// The samples per pixel of the multisampled anti-aliasing modes: 2, 4 (the default) or 8,
+    /// or fewer when the device has no such count. Takes effect on the next frame.
+    case multisampleCount(Int)
+    /// Whether opaque draws that never discard a fragment (an opaque material, no fade
+    /// running) use the model pipeline compiled without discards, which lets the GPU resolve
+    /// visibility before shading: a fragment another surface covers is never shaded. Enabled
+    /// by default; disabling it draws everything through the general pipeline, as a diagnostic.
+    case opaqueHiddenSurfaceRemoval(RenderingToggle)
 }
 
 public enum RenderingToggle: Sendable {
@@ -162,6 +179,20 @@ public func setRendering(_ property: RenderingProperty) {
         xrFoveatedRenderingEnabled = true
     case .foveatedRendering(.disabled):
         xrFoveatedRenderingEnabled = false
+    case .preCompositeBypass(.enabled):
+        renderInfo.preCompositeBypassEnabled = true
+    case .preCompositeBypass(.disabled):
+        renderInfo.preCompositeBypassEnabled = false
+    case .tileLightStage(.enabled):
+        renderInfo.tileLightStageEnabled = true
+    case .tileLightStage(.disabled):
+        renderInfo.tileLightStageEnabled = false
+    case let .multisampleCount(count):
+        renderInfo.preferredMultisampleCount = [2, 4, 8].contains(count) ? count : 4
+    case .opaqueHiddenSurfaceRemoval(.enabled):
+        renderInfo.opaqueHiddenSurfaceRemovalEnabled = true
+    case .opaqueHiddenSurfaceRemoval(.disabled):
+        renderInfo.opaqueHiddenSurfaceRemovalEnabled = false
     }
 }
 

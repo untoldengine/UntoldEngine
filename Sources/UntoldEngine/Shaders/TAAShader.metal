@@ -32,9 +32,10 @@ vertex VertexCompositeOutput vertexTAAShader(VertexCompositeIn in [[stage_in]]) 
     return out;
 }
 
+// The resolved pixel, written once: it is the eye's next history and what the output
+// transform presents (TemporalAntiAliasing.resolvedTexture), so a full-screen write is spared.
 struct TAAFragmentOut {
     float4 color [[color(0)]];
-    float4 history [[color(1)]];
 };
 
 // Luma-chroma space for the neighbourhood clip: a box in YCoCg hugs the local colours more
@@ -129,7 +130,18 @@ fragment TAAFragmentOut fragmentTAAShader(
     TAAFragmentOut out;
     if (taa.historyValid == 0u) {
         out.color = current;
-        out.history = current;
+        return out;
+    }
+
+    // This pixel's position in space, from its depth. A texel at the clear depth has none:
+    // nothing opaque was drawn there — the background, or a transparent quad over it — and
+    // reprojecting it from the far plane would fetch the wrong history and ghost or wipe it
+    // under a moving camera; such a pixel keeps its own frame, and leaves here before the
+    // neighbourhood is read: in passthrough most of the frame is such pixels.
+    const float depth = depthTexture.sample(pointSampler, uv);
+    const bool cleared = (taa.reverseZ != 0u) ? (depth <= 1e-6) : (depth >= 1.0 - 1e-6);
+    if (cleared) {
+        out.color = current;
         return out;
     }
 
@@ -152,17 +164,6 @@ fragment TAAFragmentOut fragmentTAAShader(
     const float3 lo = mean - taa.clipGamma * sigma;
     const float3 hi = mean + taa.clipGamma * sigma;
 
-    // This pixel's position in space, from its depth. A texel at the clear depth has none:
-    // nothing opaque was drawn there — the background, or a transparent quad over it — and
-    // reprojecting it from the far plane would fetch the wrong history and ghost or wipe it
-    // under a moving camera; such a pixel keeps its own frame.
-    const float depth = depthTexture.sample(pointSampler, uv);
-    const bool cleared = (taa.reverseZ != 0u) ? (depth <= 1e-6) : (depth >= 1.0 - 1e-6);
-    if (cleared) {
-        out.color = current;
-        out.history = current;
-        return out;
-    }
     const float2 physical = in.position.xy;
     const float2 screen = taaScreenFromPhysical(physical, taa.rateMapSizes, rateMap);
     const float2 screenSize = taa.rateMapSizes.x > 0.0 ? taa.rateMapSizes.xy : taa.physicalSize;
@@ -170,7 +171,6 @@ fragment TAAFragmentOut fragmentTAAShader(
     float4 world = taa.invViewProjection * float4(ndc, depth, 1.0);
     if (abs(world.w) < 1e-12) {
         out.color = current;
-        out.history = current;
         return out;
     }
     world /= world.w;
@@ -179,7 +179,6 @@ fragment TAAFragmentOut fragmentTAAShader(
     const float4 prevClip = taa.prevViewProjection * world;
     if (prevClip.w <= 0.0) {
         out.color = current;
-        out.history = current;
         return out;
     }
     const float2 prevNdc = prevClip.xy / prevClip.w;
@@ -189,7 +188,6 @@ fragment TAAFragmentOut fragmentTAAShader(
     const float2 historyUV = prevPhysical * texel;
     if (any(historyUV < 0.0) || any(historyUV > 1.0)) {
         out.color = current;
-        out.history = current;
         return out;
     }
 
@@ -216,6 +214,5 @@ fragment TAAFragmentOut fragmentTAAShader(
     const float3 blended = mix(current.rgb, clipped, weight);
     const float alpha = mix(current.a, history.a, weight);
     out.color = float4(blended, alpha);
-    out.history = out.color;
     return out;
 }

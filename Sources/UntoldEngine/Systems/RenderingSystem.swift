@@ -132,8 +132,7 @@ func UpdateRenderingSystem(in view: MTKView) {
         let visibleEntityIdsAtSubmission = visibleEntityIds
         commandBuffer.addCompletedHandler { cb in
             #if ENGINE_STATS_ENABLED
-                let gpuExecutionMs = (cb.gpuEndTime - cb.gpuStartTime) * 1000.0
-                EngineStatsMonitor.shared.recordGPUCompletion(executionMs: gpuExecutionMs)
+                EngineStatsMonitor.shared.recordGPUCompletion(gpuStartTime: cb.gpuStartTime, gpuEndTime: cb.gpuEndTime)
             #endif
             // Signal that this command buffer slot is now available
             commandBufferSemaphore.signal()
@@ -210,8 +209,7 @@ func UpdateXRRenderingSystem(commandBuffer: MTLCommandBuffer, passDescriptor: MT
     commandBuffer.addCompletedHandler { cb in
         #if ENGINE_STATS_ENABLED
             if renderInfo.immersionStyle == .ar {
-                let gpuExecutionMs = (cb.gpuEndTime - cb.gpuStartTime) * 1000.0
-                EngineStatsMonitor.shared.recordGPUCompletion(executionMs: gpuExecutionMs)
+                EngineStatsMonitor.shared.recordGPUCompletion(gpuStartTime: cb.gpuStartTime, gpuEndTime: cb.gpuEndTime)
             }
         #endif
         needsFinalizeDestroys = true
@@ -1402,7 +1400,8 @@ public let lookRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in
     }
 
     if lookPassShouldRenderLitOutput(for: viewMode) {
-        guard let sourceTexture = textureResources.sceneCompositeTexture else {
+        // The composite, or the lit scene itself on a frame the pre-composite pass was skipped.
+        guard let sourceTexture = renderInfo.preCompositeBypassSource ?? textureResources.sceneCompositeTexture else {
             handleError(.renderPassCreationFailed, "Look Pass: source texture is nil")
             return
         }
@@ -1484,9 +1483,14 @@ public let outputTransformRenderPass: RenderPasses.RenderPassExecution = { comma
     case .smaaDifference:
         sourceTexture = textureResources.smaaBlendTexture
     default:
-        sourceTexture = antiAliasingMode.usesPostLookPass
-            ? textureResources.antiAliasingTexture
-            : textureResources.lookTexture
+        if antiAliasingMode.isTemporal {
+            // The temporal resolve writes its result once, as the eye's new history.
+            sourceTexture = TemporalAntiAliasing.shared.resolvedTexture ?? textureResources.lookTexture
+        } else {
+            sourceTexture = antiAliasingMode.usesPostLookPass
+                ? textureResources.antiAliasingTexture
+                : textureResources.lookTexture
+        }
     }
     guard let sourceTexture else {
         handleError(.renderPassCreationFailed, "Output Transform Pass: source texture is nil")

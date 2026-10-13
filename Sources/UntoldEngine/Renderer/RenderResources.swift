@@ -63,9 +63,38 @@ public struct RenderInfo {
     /// coverage: false on the simulator and on a frame the pass skipped, when the anti-aliasing
     /// passes must not read the map.
     public var gaussianCoverageWritten: Bool = false
+    /// The texture the look pass reads instead of `sceneCompositeTexture` on a frame the
+    /// pre-composite pass was skipped (see `RenderPasses.preCompositeExecution`): in XR
+    /// passthrough the composite is the lit scene itself whenever no layer joins it, so the
+    /// pass would copy a full-screen texture into another. Nil on a frame the pass ran.
+    public var preCompositeBypassSource: MTLTexture?
+    /// Whether the pre-composite pass may be skipped on a frame it would only copy. On by
+    /// default; `setRendering(.preCompositeBypass(.disabled))` runs the pass on every frame.
+    public var preCompositeBypassEnabled: Bool = true
     public var hzbDebugMipLevel: Int = 0
     public var gBufferDebugStorageEnabled: Bool = false
     public var opaqueSampleCount: Int = 1
+    /// Whether the TBDR light pass runs as a tile stage, lighting each pixel once per colour it
+    /// holds, rather than as a quad that lights every sample. On by default where tile shading
+    /// exists; `setRendering(.tileLightStage(.disabled))` runs the quad, as a diagnostic.
+    public var tileLightStageEnabled: Bool = true
+    /// The samples per pixel the multisampled anti-aliasing modes ask for (2, 4 or 8; the
+    /// device may grant fewer). 4 by default; `setRendering(.multisampleCount(2))` halves the
+    /// G-buffer's samples, which under the tile light stage is what lets the lighting run once
+    /// per pixel on GPUs whose tile memory does not hold four samples of the G-buffer.
+    public var preferredMultisampleCount: Int = 4
+    /// Whether the last combined G-buffer pass lit through the tile stage (false after a frame
+    /// that ran the quad: the setting off, no tile pipeline, the simulator).
+    public var tileLightStageUsed: Bool = false
+    /// Whether opaque draws that never discard go through the model pipeline compiled without
+    /// discards, so the GPU resolves visibility before shading them. On by default;
+    /// `setRendering(.opaqueHiddenSurfaceRemoval(.disabled))` draws everything through the
+    /// general pipeline, as a diagnostic.
+    public var opaqueHiddenSurfaceRemovalEnabled: Bool = true
+    /// The last combined pass's draws by pipeline: plain (no discards) and general. Per pass,
+    /// so per eye in XR.
+    public var opaqueDrawsPlain: Int = 0
+    public var opaqueDrawsDiscarding: Int = 0
 
     // XR stereo-aware HZB culling
     // When true, depth and HZB pyramids are maintained per eye and occlusion

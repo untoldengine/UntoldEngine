@@ -25,7 +25,12 @@ public extension RenderPipelineType {
     static let sky: RenderPipelineType = "sky"
     static let shadow: RenderPipelineType = "shadow"
     static let model: RenderPipelineType = "model"
+    /// The model pipeline compiled without fragment discards, for the opaque draws that never
+    /// need them: the GPU resolves visibility before shading them.
+    static let modelOpaque: RenderPipelineType = "modelOpaque"
     static let light: RenderPipelineType = "light"
+    /// The TBDR light pass as a tile stage: lights each pixel once per colour it holds.
+    static let lightTile: RenderPipelineType = "lightTile"
     static let geometry: RenderPipelineType = "geometry"
     static let highlight: RenderPipelineType = "highlight"
     static let lightVisual: RenderPipelineType = "lightVisual"

@@ -7,6 +7,7 @@
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
+import CShaderTypes
 import MetalKit
 
 public struct RenderPipeline {
@@ -255,6 +256,7 @@ public func CreateTilePipeline(
     tileShader: String,
     tileShaderLibrary: RenderShaderLibraryReference = .engine,
     colorFormats: [MTLPixelFormat],
+    rasterSampleCount: Int = 1,
     name: String
 ) -> RenderPipeline? {
     #if targetEnvironment(simulator)
@@ -281,6 +283,7 @@ public func CreateTilePipeline(
             pipelineDescriptor.label = name
             pipelineDescriptor.tileFunction = tileFunction
             pipelineDescriptor.threadgroupSizeMatchesTileSize = true
+            pipelineDescriptor.rasterSampleCount = max(1, rasterSampleCount)
 
             for (index, format) in colorFormats.enumerated() {
                 pipelineDescriptor.colorAttachments[index].pixelFormat = format
@@ -296,7 +299,8 @@ public func CreateTilePipeline(
                 pipelineState: pipelineState,
                 depthState: nil,
                 success: true,
-                name: name
+                name: name,
+                rasterSampleCount: max(1, rasterSampleCount)
             )
 
         } catch {
@@ -367,7 +371,20 @@ private var wf: WorkingColorFormats {
 /// pipeline. Attachments 0-4 are the G-buffer targets written by geometry draws.
 /// Attachment 5 is the lit output (deferredColorMap) that only the light sub-pass
 /// writes — geometry must not touch it, so writeMask is disabled for slot 5.
+/// The general model pipeline: its fragment function keeps the discards an alpha-masked or
+/// blended material or a dither fade needs.
 public func InitModelPipeline() -> RenderPipeline? {
+    makeModelPipeline(mayDiscard: true, name: "Model Pipeline")
+}
+
+/// The model pipeline for the opaque draws that never discard, compiled without the
+/// discards: the GPU then resolves visibility before it shades, and a fragment another
+/// surface covers costs nothing. The pass picks it per draw (`combinedModelLightExecution`).
+public func InitModelOpaquePipeline() -> RenderPipeline? {
+    makeModelPipeline(mayDiscard: false, name: "Model Pipeline (opaque)")
+}
+
+private func makeModelPipeline(mayDiscard: Bool, name: String) -> RenderPipeline? {
     guard let library = renderInfo.library else {
         handleError(.metalLibraryNotFound)
         return nil
@@ -376,13 +393,19 @@ public func InitModelPipeline() -> RenderPipeline? {
         handleError(.shaderCreationFailed, "vertexModelShader")
         return nil
     }
-    guard let fragmentFunction = library.makeFunction(name: "fragmentModelShader") else {
-        handleError(.shaderCreationFailed, "fragmentModelShader")
+    let constants = MTLFunctionConstantValues()
+    var mayDiscardValue = mayDiscard
+    constants.setConstantValue(&mayDiscardValue, type: .bool, index: Int(modelFunctionConstantMayDiscard.rawValue))
+    let fragmentFunction: MTLFunction
+    do {
+        fragmentFunction = try library.makeFunction(name: "fragmentModelShader", constantValues: constants)
+    } catch {
+        handleError(.shaderCreationFailed, "fragmentModelShader (\(name)): \(error.localizedDescription)")
         return nil
     }
 
     let desc = MTLRenderPipelineDescriptor()
-    desc.label = "Model Pipeline"
+    desc.label = name
     desc.vertexFunction = vertexFunction
     desc.fragmentFunction = fragmentFunction
     desc.vertexDescriptor = createModelVertexDescriptor()
@@ -414,11 +437,11 @@ public func InitModelPipeline() -> RenderPipeline? {
             pipelineState: pipelineState,
             depthState: depthState,
             success: true,
-            name: "Model Pipeline",
+            name: name,
             rasterSampleCount: desc.rasterSampleCount
         )
     } catch {
-        handleError(.pipelineStateCreationFailed, "Model Pipeline")
+        handleError(.pipelineStateCreationFailed, name)
         return nil
     }
 }
@@ -503,6 +526,22 @@ public func InitLightPipeline() -> RenderPipeline? {
             return nil
         }
     #endif
+}
+
+/// The TBDR light pass as a tile stage (`lightTileShaderTBDR`): the same inputs and the same
+/// attachments as the light quad, dispatched over the tiles of the G-buffer encoder. Nil where
+/// tile shading is unavailable (the simulator; GPUs before Apple family 4), when the quad runs.
+public func InitLightTilePipeline() -> RenderPipeline? {
+    guard let device = renderInfo.device, device.supportsFamily(.apple4) else { return nil }
+    return CreateTilePipeline(
+        tileShader: "lightTileShaderTBDR",
+        colorFormats: [
+            wf.gBufferAlbedo, wf.gBufferNormal, wf.gBufferPosition,
+            wf.gBufferMaterial, wf.gBufferEmissive, wf.sceneColor,
+        ],
+        rasterSampleCount: max(1, renderInfo.opaqueSampleCount),
+        name: "Light Tile Pipeline (TBDR)"
+    )
 }
 
 // MARK: Geometry pipeline
@@ -963,14 +1002,14 @@ public func InitFXAAPipeline() -> RenderPipeline? {
     )
 }
 
-/// The temporal resolve: the look output and the eye's history into the anti-aliasing
-/// texture and the eye's next history, two colour targets of the look format.
+/// The temporal resolve: the look output and the eye's history into the eye's next history,
+/// one colour target of the look format, which the output transform then presents.
 public func InitTAAPipeline() -> RenderPipeline? {
     CreatePipeline(
         vertexShader: "vertexTAAShader",
         fragmentShader: "fragmentTAAShader",
         vertexDescriptor: createPostProcessVertexDescriptor(),
-        colorFormats: [renderInfo.colorPipeline.working.lookOutput, renderInfo.colorPipeline.working.lookOutput],
+        colorFormats: [renderInfo.colorPipeline.working.lookOutput],
         depthFormat: .invalid,
         depthEnabled: false,
         name: "TAA Pipeline"
@@ -1159,7 +1198,9 @@ public func DefaultPipeLines() -> [(RenderPipelineType, RenderPipelineInitBlock)
         (.sky, InitSkyPipeline),
         (.shadow, InitShadowPipeline),
         (.model, InitModelPipeline),
+        (.modelOpaque, InitModelOpaquePipeline),
         (.light, InitLightPipeline),
+        (.lightTile, InitLightTilePipeline),
         (.geometry, InitGeometryPipeline),
         (.highlight, InitHighlightPipeline),
         (.lightVisual, InitLightVisualPipeline),

@@ -110,6 +110,10 @@ public final class TemporalAntiAliasing: @unchecked Sendable {
     /// stream, seen from its own pose): the resolve outputs the frame as is and leaves the
     /// eye's history, matrices and map untouched for the built-in display's next frame.
     public var historyUpdatesEnabled = true
+    /// The texture the last resolve wrote: the resolved frame, which is also the eye's new
+    /// history. The output transform presents it (`outputTransformRenderPass`); writing it a
+    /// second time into `antiAliasingTexture` would cost a full-screen write per eye.
+    public private(set) var resolvedTexture: MTLTexture?
 
     private var eyeIndex: Int {
         renderInfo.isXRStereoMode ? min(max(renderInfo.currentEye, 0), 1) : 0
@@ -195,11 +199,11 @@ public final class TemporalAntiAliasing: @unchecked Sendable {
         return textures
     }
 
-    /// The resolve: the look output and the eye's history into the anti-aliasing texture and
-    /// the eye's other history texture, then the frame's matrices and map become the history's.
+    /// The resolve: the look output and the eye's history into the eye's other history
+    /// texture (`resolvedTexture` afterwards), then the frame's matrices and map become the
+    /// history's.
     func encodeResolve(_ commandBuffer: MTLCommandBuffer) {
         guard let source = textureResources.lookTexture,
-              let destination = textureResources.antiAliasingTexture,
               let depth = textureResources.depthMap,
               let pipeline = PipelineManager.shared.renderPipelinesByType[.taa],
               pipeline.success,
@@ -238,12 +242,9 @@ public final class TemporalAntiAliasing: @unchecked Sendable {
         constants.reverseZ = renderInfo.reverseZEnabled ? 1 : 0
 
         let descriptor = MTLRenderPassDescriptor()
-        descriptor.colorAttachments[0].texture = destination
+        descriptor.colorAttachments[0].texture = writeTexture
         descriptor.colorAttachments[0].loadAction = .dontCare
         descriptor.colorAttachments[0].storeAction = .store
-        descriptor.colorAttachments[1].texture = writeTexture
-        descriptor.colorAttachments[1].loadAction = .dontCare
-        descriptor.colorAttachments[1].storeAction = .store
 
         guard let encoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor) else {
             handleError(.renderPassCreationFailed, "TAA Pass")
@@ -274,6 +275,7 @@ public final class TemporalAntiAliasing: @unchecked Sendable {
         encoder.updateFence(renderInfo.fence, after: .fragment)
         encoder.popDebugGroup()
         encoder.endEncoding()
+        resolvedTexture = writeTexture
 
         // A secondary target wrote the spare history texture, which the next primary resolve
         // overwrites anyway; the one it reads, and the frame's matrices and map, are untouched.

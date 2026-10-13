@@ -361,10 +361,19 @@ typedef struct{
 }MLDecodeParams;
 
 
+/// Function constants of the model fragment shader (`fragmentModelShader`).
+typedef enum{
+    /// bool: whether a draw through the pipeline may discard fragments (an alpha-masked or
+    /// blended material, a dither fade). False compiles the discards out, which lets the
+    /// GPU resolve visibility before it shades: hidden fragments are never shaded.
+    modelFunctionConstantMayDiscard = 0
+}ModelFunctionConstants;
+
 typedef enum{
     prePassGizmoBufferIndex,
     prePassPassthroughBufferIndex,
-    prePassSSAOEnabledIndex
+    prePassSSAOEnabledIndex,
+    prePassGaussianLayerIndex      // bool: the Gaussian pass drew its layer this frame
 }PrePassBufferIndices;
 
 typedef enum{

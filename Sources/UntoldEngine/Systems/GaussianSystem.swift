@@ -821,10 +821,15 @@ public func executeGaussianPreprocess(_ commandBuffer: MTLCommandBuffer) {
     let transformId = getComponentId(for: WorldTransformComponent.self)
     let gaussianId = getComponentId(for: GaussianComponent.self)
     let entities = queryEntitiesWithComponentIds([transformId, gaussianId], in: scene)
-    guard !entities.isEmpty else { return }
-
     let workingSet = GaussianSharedWorkingSet.shared
     let frameSlot = min(renderInfo.currentInFlightFrameSlot, maxInFlightCommandBuffers - 1)
+    guard !entities.isEmpty else {
+        // Nothing stamps this slot's records this frame, so they are whatever an earlier scene
+        // left: an empty order tells the draw pass to skip the frame instead of drawing them.
+        workingSet.setEntityOrder([], slot: frameSlot)
+        return
+    }
+
     guard let sharedKeys = workingSet.keys(slot: frameSlot),
           let sharedRecords = workingSet.records(slot: frameSlot),
           let sharedVisibleSet = workingSet.visibleSet(slot: frameSlot)

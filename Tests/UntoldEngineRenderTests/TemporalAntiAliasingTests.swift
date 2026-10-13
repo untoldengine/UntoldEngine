@@ -55,15 +55,11 @@ final class TemporalAntiAliasingTests: BaseRenderSetup {
         renderInfo.lastCommandBuffer?.waitUntilCompleted()
     }
 
-    /// The anti-aliasing output as floats, RGBA per pixel.
+    /// The resolve's output as floats, RGBA per pixel.
     private func readAntiAliasingOutput() throws -> [Float] {
-        let texture = try XCTUnwrap(textureResources.antiAliasingTexture)
+        let texture = try XCTUnwrap(TemporalAntiAliasing.shared.resolvedTexture)
         XCTAssertEqual(texture.pixelFormat, .rgba16Float)
-        var halves = [UInt16](repeating: 0, count: texture.width * texture.height * 4)
-        halves.withUnsafeMutableBytes { bytes in
-            texture.getBytes(bytes.baseAddress!, bytesPerRow: texture.width * 8, from: MTLRegionMake2D(0, 0, texture.width, texture.height), mipmapLevel: 0)
-        }
-        return halves.map { Float(Float16(bitPattern: $0)) }
+        return readFloats(texture)
     }
 
     private func meanAbsoluteDifference(_ a: [Float], _ b: [Float]) -> Float {
@@ -143,11 +139,31 @@ final class TemporalAntiAliasingTests: BaseRenderSetup {
         return XRFoveationFrame(rateMap: rateMap, viewport: viewport, rateMapData: data)
     }
 
-    /// Reads a physical-size texture of the look format as floats.
+    /// Reads a physical-size texture of the look format as floats. The history textures are
+    /// private to the GPU, so those are copied into a shared texture first.
     private func readFloats(_ texture: MTLTexture) -> [Float] {
-        var halves = [UInt16](repeating: 0, count: texture.width * texture.height * 4)
+        var readable = texture
+        if texture.storageMode == .private,
+           let device = renderInfo.device,
+           let commandBuffer = renderInfo.commandQueue.makeCommandBuffer(),
+           let blit = commandBuffer.makeBlitCommandEncoder()
+        {
+            let descriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: texture.pixelFormat, width: texture.width, height: texture.height, mipmapped: false)
+            descriptor.storageMode = .shared
+            descriptor.usage = [.shaderRead]
+            guard let copy = device.makeTexture(descriptor: descriptor) else {
+                XCTFail("no staging texture")
+                return []
+            }
+            blit.copy(from: texture, to: copy)
+            blit.endEncoding()
+            commandBuffer.commit()
+            commandBuffer.waitUntilCompleted()
+            readable = copy
+        }
+        var halves = [UInt16](repeating: 0, count: readable.width * readable.height * 4)
         halves.withUnsafeMutableBytes { bytes in
-            texture.getBytes(bytes.baseAddress!, bytesPerRow: texture.width * 8, from: MTLRegionMake2D(0, 0, texture.width, texture.height), mipmapLevel: 0)
+            readable.getBytes(bytes.baseAddress!, bytesPerRow: readable.width * 8, from: MTLRegionMake2D(0, 0, readable.width, readable.height), mipmapLevel: 0)
         }
         return halves.map { Float(Float16(bitPattern: $0)) }
     }
@@ -210,7 +226,7 @@ final class TemporalAntiAliasingTests: BaseRenderSetup {
                 // this layout: the thin bar's edge rows, where a history coarser than the frame
                 // on one axis overrode the frame until the rate ratio was taken per axis. A mean
                 // over the frame would not show it.
-                let frameResolved = try readFloats(XCTUnwrap(textureResources.antiAliasingTexture))
+                let frameResolved = try readFloats(XCTUnwrap(TemporalAntiAliasing.shared.resolvedTexture))
                 let reference = layout == 0 ? single : singleOther
                 var lost = 0
                 for i in stride(from: 0, to: min(frameResolved.count, reference.count), by: 4) where reference[i] + reference[i + 1] + reference[i + 2] > 0.6 {
@@ -222,7 +238,7 @@ final class TemporalAntiAliasingTests: BaseRenderSetup {
                 XCTAssertEqual(lost, 0, "frame \(frame) in layout \(layout): no lit pixel loses most of its colour to a history drawn through the other map")
             }
         }
-        let resolved = try readFloats(XCTUnwrap(textureResources.antiAliasingTexture))
+        let resolved = try readFloats(XCTUnwrap(TemporalAntiAliasing.shared.resolvedTexture))
 
         // The floor: the resolve of the first layout held still differs from the single-sample
         // frame by the jitter's averaging and the history filter alone.
@@ -231,7 +247,7 @@ final class TemporalAntiAliasingTests: BaseRenderSetup {
         for _ in 0 ..< 12 {
             drawFrame()
         }
-        let still = try readFloats(XCTUnwrap(textureResources.antiAliasingTexture))
+        let still = try readFloats(XCTUnwrap(TemporalAntiAliasing.shared.resolvedTexture))
         let floor = meanAbsoluteDifference(still, single)
 
         XCTAssertFalse(resolved.contains { $0.isNaN || $0.isInfinite })
@@ -326,5 +342,41 @@ final class TemporalAntiAliasingTests: BaseRenderSetup {
         XCTAssertLessThan(meanAbsoluteDifference(settled, next), 0.004, "a still scene no longer changes between frames")
         XCTAssertLessThan(meanAbsoluteDifference(settled, single), 0.02, "the resolve stays close to the single-sample frame: no drift, no smear")
         XCTAssertGreaterThan(meanAbsoluteDifference(settled, single), 0, "and is not the single-sample frame")
+    }
+
+    func testResolveWritesTheHistoryOnceAndPresentsIt() throws {
+        antiAliasingMode = .taa
+        TemporalAntiAliasing.shared.invalidateHistory()
+
+        // The anti-aliasing texture is FXAA's and SMAA's output; the temporal resolve writes its
+        // frame once, as the eye's new history, and leaves that texture alone.
+        let antiAliasing = try XCTUnwrap(textureResources.antiAliasingTexture)
+        let marker = MTLClearColor(red: 0.25, green: 0.5, blue: 0.75, alpha: 1)
+        let descriptor = MTLRenderPassDescriptor()
+        descriptor.colorAttachments[0].texture = antiAliasing
+        descriptor.colorAttachments[0].loadAction = .clear
+        descriptor.colorAttachments[0].storeAction = .store
+        descriptor.colorAttachments[0].clearColor = marker
+        let fill = try XCTUnwrap(renderInfo.commandQueue.makeCommandBuffer())
+        try XCTUnwrap(fill.makeRenderCommandEncoder(descriptor: descriptor)).endEncoding()
+        fill.commit()
+        fill.waitUntilCompleted()
+
+        drawFrame()
+        drawFrame()
+
+        let resolved = try XCTUnwrap(TemporalAntiAliasing.shared.resolvedTexture, "the resolve publishes what it wrote")
+        XCTAssertTrue(resolved.label?.hasPrefix("TAA History") ?? false, "the resolve's output is the eye's new history: \(resolved.label ?? "")")
+        XCTAssertFalse(resolved === antiAliasing)
+        let output = readFloats(resolved)
+        XCTAssertFalse(output.contains { $0.isNaN || $0.isInfinite })
+        XCTAssertGreaterThan(output.max() ?? 0, 0.01, "the resolve holds the frame")
+
+        let untouched = readFloats(antiAliasing)
+        for i in stride(from: 0, to: min(untouched.count, 400), by: 4) {
+            XCTAssertEqual(untouched[i], 0.25, accuracy: 1e-3)
+            XCTAssertEqual(untouched[i + 1], 0.5, accuracy: 1e-3)
+            XCTAssertEqual(untouched[i + 2], 0.75, accuracy: 1e-3)
+        }
     }
 }

@@ -712,48 +712,39 @@ fragment float4 fragmentLightShader(VertexCompositeOutput vertexOut [[stage_in]]
 
 }
 
-// TBDR light pass: reads G-buffer from tile memory via framebuffer fetch ([[color(N)]]).
-// The geometry and lighting sub-passes share one MTLRenderCommandEncoder, so the
-// G-buffer data never leaves the GPU tile. Outputs lit color to attachment 5.
-fragment TBDRLightOutput fragmentLightShaderTBDR(
-    VertexCompositeOutput vertexOut [[stage_in]],
-    // G-buffer — read directly from tile memory, no texture2d binding needed
-    half4  gbAlbedo   [[color(0)]],
-    half4  gbNormal   [[color(1)]],
-    float4 gbPosition [[color(2)]],
-    half4  gbMaterial [[color(3)]],
-    half4  gbEmissive [[color(4)]],
-    // Shadow and IBL textures (still come from main memory)
-    depth2d_array<float> csmShadowArray  [[texture(lightPassShadowTextureIndex)]],
-    texture2d<float>     irradianceTexture [[texture(lightPassIBLIrradianceTextureIndex)]],
-    texture2d<float>     specularTexture   [[texture(lightPassIBLSpecularTextureIndex)]],
-    texture2d<float>     iblBRDFTexture    [[texture(lightPassIBLBRDFMapTextureIndex)]],
-    texture2d<float>     ltcMagTexture     [[texture(lightPassAreaLTCMagTextureIndex)]],
-    texture2d<float>     ltcMatTexture     [[texture(lightPassAreaLTCMatTextureIndex)]],
-    depthcube<float>     pointShadowCube   [[texture(lightPassPointShadowTextureIndex)]],
-    depth2d<float>       spotShadowMap     [[texture(lightPassSpotShadowTextureIndex)]],
-    // Uniform buffers
-    constant CSMUniforms      &csmUniforms      [[buffer(lightPassLightOrthoViewMatrixIndex)]],
-    constant simd_float3      &cameraPosition   [[buffer(lightPassCameraPositionIndex)]],
-    constant LightParameters  &lights           [[buffer(lightPassLightParamsIndex)]],
-    constant PointLightBlock  &plBlock          [[buffer(lightPassPointLightsIndex)]],
-    constant SpotLightBlock   &slBlock          [[buffer(lightPassSpotLightsIndex)]],
-    constant IBLParamsUniform &iblParam         [[buffer(lightPassIBLParamIndex)]],
-    constant AreaLightBlock   &alBlock          [[buffer(lightPassAreaLightsIndex)]],
-    constant float            &iblRotationAngle [[buffer(lightPassIBLRotationAngleIndex)]],
-    constant bool             &isGameMode       [[buffer(lightPassGameModeIndex)]],
-    constant PointShadowUniforms &pointShadowUniforms [[buffer(lightPassPointShadowUniformIndex)]],
-    constant SpotShadowUniforms &spotShadowUniforms [[buffer(lightPassSpotShadowUniformIndex)]],
-    uint                      sampleID          [[sample_id]]
+// The lighting of one G-buffer record: a pixel's surface facts in, its lit colour out
+// (alpha carries the coverage the geometry wrote). Shared by the per-sample fragment
+// pass and the tile stage below.
+static inline float4 lightTBDRSample(
+    half4  gbAlbedo,
+    half4  gbNormal,
+    float4 gbPosition,
+    half4  gbMaterial,
+    half4  gbEmissive,
+    depth2d_array<float> csmShadowArray,
+    texture2d<float>     irradianceTexture,
+    texture2d<float>     specularTexture,
+    texture2d<float>     iblBRDFTexture,
+    texture2d<float>     ltcMagTexture,
+    texture2d<float>     ltcMatTexture,
+    depthcube<float>     pointShadowCube,
+    depth2d<float>       spotShadowMap,
+    constant CSMUniforms      &csmUniforms,
+    constant simd_float3      &cameraPosition,
+    constant LightParameters  &lights,
+    constant PointLightBlock  &plBlock,
+    constant SpotLightBlock   &slBlock,
+    constant IBLParamsUniform &iblParam,
+    constant AreaLightBlock   &alBlock,
+    constant float            &iblRotationAngle,
+    constant PointShadowUniforms &pointShadowUniforms,
+    constant SpotShadowUniforms &spotShadowUniforms
 ) {
-    (void)sampleID;
     // Background pixels were cleared to (0,0,0,0). Skip lighting entirely —
     // normalize(float3(0)) is undefined, and the IBL/shadow paths would produce
     // garbage that can corrupt the environment composite downstream.
     if (gbAlbedo.a <= 0.0h) {
-        TBDRLightOutput out;
-        out.litColor = float4(0.0);
-        return out;
+        return float4(0.0);
     }
 
     float3 lightRayDirection = normalize(lights.direction);
@@ -841,8 +832,107 @@ fragment TBDRLightOutput fragmentLightShaderTBDR(
     color.spec += areaLightColor.spec;
 
     float3 finalRGB = (float3)color.diff + color.spec + indirectLighting + emissive;
+    return float4(finalRGB, albedo.a);
+}
 
+// TBDR light pass as a full-screen quad: reads the G-buffer from tile memory via framebuffer
+// fetch ([[color(N)]]) in the encoder the geometry drew into, one sample at a time — under
+// MSAA every sample of every pixel is lit. Kept for devices without tile shading and as the
+// fallback of the tile stage below. Outputs the lit colour to attachment 5.
+fragment TBDRLightOutput fragmentLightShaderTBDR(
+    VertexCompositeOutput vertexOut [[stage_in]],
+    // G-buffer — read directly from tile memory, no texture2d binding needed
+    half4  gbAlbedo   [[color(0)]],
+    half4  gbNormal   [[color(1)]],
+    float4 gbPosition [[color(2)]],
+    half4  gbMaterial [[color(3)]],
+    half4  gbEmissive [[color(4)]],
+    // Shadow and IBL textures (still come from main memory)
+    depth2d_array<float> csmShadowArray  [[texture(lightPassShadowTextureIndex)]],
+    texture2d<float>     irradianceTexture [[texture(lightPassIBLIrradianceTextureIndex)]],
+    texture2d<float>     specularTexture   [[texture(lightPassIBLSpecularTextureIndex)]],
+    texture2d<float>     iblBRDFTexture    [[texture(lightPassIBLBRDFMapTextureIndex)]],
+    texture2d<float>     ltcMagTexture     [[texture(lightPassAreaLTCMagTextureIndex)]],
+    texture2d<float>     ltcMatTexture     [[texture(lightPassAreaLTCMatTextureIndex)]],
+    depthcube<float>     pointShadowCube   [[texture(lightPassPointShadowTextureIndex)]],
+    depth2d<float>       spotShadowMap     [[texture(lightPassSpotShadowTextureIndex)]],
+    // Uniform buffers
+    constant CSMUniforms      &csmUniforms      [[buffer(lightPassLightOrthoViewMatrixIndex)]],
+    constant simd_float3      &cameraPosition   [[buffer(lightPassCameraPositionIndex)]],
+    constant LightParameters  &lights           [[buffer(lightPassLightParamsIndex)]],
+    constant PointLightBlock  &plBlock          [[buffer(lightPassPointLightsIndex)]],
+    constant SpotLightBlock   &slBlock          [[buffer(lightPassSpotLightsIndex)]],
+    constant IBLParamsUniform &iblParam         [[buffer(lightPassIBLParamIndex)]],
+    constant AreaLightBlock   &alBlock          [[buffer(lightPassAreaLightsIndex)]],
+    constant float            &iblRotationAngle [[buffer(lightPassIBLRotationAngleIndex)]],
+    constant bool             &isGameMode       [[buffer(lightPassGameModeIndex)]],
+    constant PointShadowUniforms &pointShadowUniforms [[buffer(lightPassPointShadowUniformIndex)]],
+    constant SpotShadowUniforms &spotShadowUniforms [[buffer(lightPassSpotShadowUniformIndex)]],
+    uint                      sampleID          [[sample_id]]
+) {
+    (void)sampleID;
+    (void)isGameMode;
     TBDRLightOutput out;
-    out.litColor = float4(finalRGB, albedo.a);
+    out.litColor = lightTBDRSample(
+        gbAlbedo, gbNormal, gbPosition, gbMaterial, gbEmissive,
+        csmShadowArray, irradianceTexture, specularTexture, iblBRDFTexture, ltcMagTexture, ltcMatTexture,
+        pointShadowCube, spotShadowMap,
+        csmUniforms, cameraPosition, lights, plBlock, slBlock, iblParam, alBlock, iblRotationAngle,
+        pointShadowUniforms, spotShadowUniforms
+    );
     return out;
+}
+
+// The G-buffer as the tile holds it, one record per colour a pixel has: a pixel the geometry
+// covered whole holds one record for all its samples; a pixel on an edge holds one per distinct
+// sample value, each with its coverage mask.
+struct TBDRTileGBuffer {
+    half4  albedo   [[color(0)]];
+    half4  normal   [[color(1)]];
+    float4 position [[color(2)]];
+    half4  material [[color(3)]];
+    half4  emissive [[color(4)]];
+    float4 lit      [[color(5)]];
+};
+
+// TBDR light pass as a tile stage: lights every pixel of the tile once per colour the pixel
+// holds, not once per sample. Under MSAA the geometry writes the same value to every sample
+// a fragment covers, so a pixel inside a surface is lit once however many samples it has;
+// only a pixel on an edge is lit per distinct value, and the resolve then averages them by
+// coverage exactly as it averaged the per-sample lighting of the quad. Same encoder, same
+// tile memory, same inputs as the quad.
+kernel void lightTileShaderTBDR(
+    imageblock<TBDRTileGBuffer, imageblock_layout_implicit> tile,
+    ushort2 pixel [[thread_position_in_threadgroup]],
+    depth2d_array<float> csmShadowArray  [[texture(lightPassShadowTextureIndex)]],
+    texture2d<float>     irradianceTexture [[texture(lightPassIBLIrradianceTextureIndex)]],
+    texture2d<float>     specularTexture   [[texture(lightPassIBLSpecularTextureIndex)]],
+    texture2d<float>     iblBRDFTexture    [[texture(lightPassIBLBRDFMapTextureIndex)]],
+    texture2d<float>     ltcMagTexture     [[texture(lightPassAreaLTCMagTextureIndex)]],
+    texture2d<float>     ltcMatTexture     [[texture(lightPassAreaLTCMatTextureIndex)]],
+    depthcube<float>     pointShadowCube   [[texture(lightPassPointShadowTextureIndex)]],
+    depth2d<float>       spotShadowMap     [[texture(lightPassSpotShadowTextureIndex)]],
+    constant CSMUniforms      &csmUniforms      [[buffer(lightPassLightOrthoViewMatrixIndex)]],
+    constant simd_float3      &cameraPosition   [[buffer(lightPassCameraPositionIndex)]],
+    constant LightParameters  &lights           [[buffer(lightPassLightParamsIndex)]],
+    constant PointLightBlock  &plBlock          [[buffer(lightPassPointLightsIndex)]],
+    constant SpotLightBlock   &slBlock          [[buffer(lightPassSpotLightsIndex)]],
+    constant IBLParamsUniform &iblParam         [[buffer(lightPassIBLParamIndex)]],
+    constant AreaLightBlock   &alBlock          [[buffer(lightPassAreaLightsIndex)]],
+    constant float            &iblRotationAngle [[buffer(lightPassIBLRotationAngleIndex)]],
+    constant PointShadowUniforms &pointShadowUniforms [[buffer(lightPassPointShadowUniformIndex)]],
+    constant SpotShadowUniforms &spotShadowUniforms [[buffer(lightPassSpotShadowUniformIndex)]]
+) {
+    const ushort colors = tile.get_num_colors(pixel);
+    for (ushort color = 0; color < colors; ++color) {
+        TBDRTileGBuffer record = tile.read(pixel, color, imageblock_data_rate::color);
+        record.lit = lightTBDRSample(
+            record.albedo, record.normal, record.position, record.material, record.emissive,
+            csmShadowArray, irradianceTexture, specularTexture, iblBRDFTexture, ltcMagTexture, ltcMatTexture,
+            pointShadowCube, spotShadowMap,
+            csmUniforms, cameraPosition, lights, plBlock, slBlock, iblParam, alBlock, iblRotationAngle,
+            pointShadowUniforms, spotShadowUniforms
+        );
+        tile.write(record, pixel, color, imageblock_data_rate::color);
+    }
 }

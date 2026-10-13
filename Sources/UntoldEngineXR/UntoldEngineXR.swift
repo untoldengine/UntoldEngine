@@ -1059,8 +1059,9 @@
             // Add completion handler to signal semaphore when GPU work is done
             commandBuffer.addCompletedHandler { cb in
                 #if ENGINE_STATS_ENABLED
-                    let gpuExecutionMs = (cb.gpuEndTime - cb.gpuStartTime) * 1000.0
-                    EngineStatsMonitor.shared.recordGPUCompletion(executionMs: gpuExecutionMs)
+                    // The frame's GPU time beyond the previous frame's: the two overlap on the
+                    // GPU, and the command buffer's own span would count the overlap twice.
+                    EngineStatsMonitor.shared.recordGPUCompletion(gpuStartTime: cb.gpuStartTime, gpuEndTime: cb.gpuEndTime)
                 #endif
                 commandBufferSemaphore.signal()
             }
