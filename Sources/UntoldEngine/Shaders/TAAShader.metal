@@ -111,14 +111,17 @@ static inline float4 taaSampleHistory(texture2d<float> history, sampler linearSa
     return max(result, 0.0);
 }
 
-fragment TAAFragmentOut fragmentTAAShader(
-    VertexCompositeOutput in [[stage_in]],
-    texture2d<float> colorTexture [[texture(taaPassColorTextureIndex)]],
-    texture2d<float> historyTexture [[texture(taaPassHistoryTextureIndex)]],
-    depth2d<float> depthTexture [[texture(taaPassDepthTextureIndex)]],
-    constant TAAConstants &taa [[buffer(taaPassConstantsIndex)]],
-    constant rasterization_rate_map_data *rateMap [[buffer(taaPassRateMapDataIndex)]],
-    constant rasterization_rate_map_data *prevRateMap [[buffer(taaPassPrevRateMapDataIndex)]]
+// The resolve of one pixel: this frame's look output and the eye's history to the eye's new
+// history. Shared by the fragment function that writes the history alone and the one that
+// also presents it.
+static inline float4 taaResolveColor(
+    VertexCompositeOutput in,
+    texture2d<float> colorTexture,
+    texture2d<float> historyTexture,
+    depth2d<float> depthTexture,
+    constant TAAConstants &taa,
+    constant rasterization_rate_map_data *rateMap,
+    constant rasterization_rate_map_data *prevRateMap
 ) {
     constexpr sampler linearSampler(min_filter::linear, mag_filter::linear, mip_filter::none, address::clamp_to_edge);
     constexpr sampler pointSampler(min_filter::nearest, mag_filter::nearest, mip_filter::none, address::clamp_to_edge);
@@ -127,10 +130,8 @@ fragment TAAFragmentOut fragmentTAAShader(
     const float2 texel = 1.0 / max(taa.physicalSize, float2(1.0));
     const float4 current = colorTexture.sample(pointSampler, uv);
 
-    TAAFragmentOut out;
     if (taa.historyValid == 0u) {
-        out.color = current;
-        return out;
+        return current;
     }
 
     // This pixel's position in space, from its depth. A texel at the clear depth has none:
@@ -141,8 +142,7 @@ fragment TAAFragmentOut fragmentTAAShader(
     const float depth = depthTexture.sample(pointSampler, uv);
     const bool cleared = (taa.reverseZ != 0u) ? (depth <= 1e-6) : (depth >= 1.0 - 1e-6);
     if (cleared) {
-        out.color = current;
-        return out;
+        return current;
     }
 
     // The colour box of the 3×3 neighbourhood, in YCoCg: the mean ± γ·σ (variance clipping,
@@ -170,16 +170,14 @@ fragment TAAFragmentOut fragmentTAAShader(
     const float2 ndc = float2(screen.x / screenSize.x * 2.0 - 1.0, 1.0 - screen.y / screenSize.y * 2.0);
     float4 world = taa.invViewProjection * float4(ndc, depth, 1.0);
     if (abs(world.w) < 1e-12) {
-        out.color = current;
-        return out;
+        return current;
     }
     world /= world.w;
 
     // Where it was on the previous frame's screen, then in the history texture.
     const float4 prevClip = taa.prevViewProjection * world;
     if (prevClip.w <= 0.0) {
-        out.color = current;
-        return out;
+        return current;
     }
     const float2 prevNdc = prevClip.xy / prevClip.w;
     const float2 prevScreenSize = taa.prevRateMapSizes.x > 0.0 ? taa.prevRateMapSizes.xy : taa.physicalSize;
@@ -187,8 +185,7 @@ fragment TAAFragmentOut fragmentTAAShader(
     const float2 prevPhysical = taaPhysicalFromScreen(prevScreen, taa.prevRateMapSizes, prevRateMap);
     const float2 historyUV = prevPhysical * texel;
     if (any(historyUV < 0.0) || any(historyUV > 1.0)) {
-        out.color = current;
-        return out;
+        return current;
     }
 
     // Under foveation the history may be coarser here than this frame: the spot was in the
@@ -213,6 +210,57 @@ fragment TAAFragmentOut fragmentTAAShader(
     const float3 clipped = taaYCoCgToRGB(taaClipToBox(lo, hi, taaRGBToYCoCg(current.rgb), taaRGBToYCoCg(history.rgb)));
     const float3 blended = mix(current.rgb, clipped, weight);
     const float alpha = mix(current.a, history.a, weight);
-    out.color = float4(blended, alpha);
+    return float4(blended, alpha);
+}
+
+fragment TAAFragmentOut fragmentTAAShader(
+    VertexCompositeOutput in [[stage_in]],
+    texture2d<float> colorTexture [[texture(taaPassColorTextureIndex)]],
+    texture2d<float> historyTexture [[texture(taaPassHistoryTextureIndex)]],
+    depth2d<float> depthTexture [[texture(taaPassDepthTextureIndex)]],
+    constant TAAConstants &taa [[buffer(taaPassConstantsIndex)]],
+    constant rasterization_rate_map_data *rateMap [[buffer(taaPassRateMapDataIndex)]],
+    constant rasterization_rate_map_data *prevRateMap [[buffer(taaPassPrevRateMapDataIndex)]]
+) {
+    TAAFragmentOut out;
+    out.color = taaResolveColor(in, colorTexture, historyTexture, depthTexture, taa, rateMap, prevRateMap);
+    return out;
+}
+
+static inline float3 taaLinearToSRGB(float3 x) {
+    const float3 lo = x * 12.92;
+    const float3 hi = 1.055 * pow(max(x, 0.0), float3(1.0 / 2.4)) - 0.055;
+    return select(lo, hi, x > 0.0031308);
+}
+
+struct TAAPresentFragmentOut {
+    float4 color [[color(0)]];   // the eye's new history
+    float4 present [[color(1)]]; // the frame, encoded for the display
+    float depth [[depth(any)]];  // the opaque depth, for the compositor's reprojection
+};
+
+// The resolve that also presents: what the output transform pass would do with the resolved
+// frame, in the same pass, which spares a full-screen pass per eye. Reverse-Z sky pixels carry
+// the clear depth 0, which the visionOS compositor's reprojection divides by; a finite far
+// depth stands in for it, as in the output transform pass.
+fragment TAAPresentFragmentOut fragmentTAAPresentShader(
+    VertexCompositeOutput in [[stage_in]],
+    texture2d<float> colorTexture [[texture(taaPassColorTextureIndex)]],
+    texture2d<float> historyTexture [[texture(taaPassHistoryTextureIndex)]],
+    depth2d<float> depthTexture [[texture(taaPassDepthTextureIndex)]],
+    constant TAAConstants &taa [[buffer(taaPassConstantsIndex)]],
+    constant rasterization_rate_map_data *rateMap [[buffer(taaPassRateMapDataIndex)]],
+    constant rasterization_rate_map_data *prevRateMap [[buffer(taaPassPrevRateMapDataIndex)]],
+    constant int &encodingMode [[buffer(taaPassEncodingModeIndex)]]
+) {
+    constexpr sampler depthSampler(min_filter::nearest, mag_filter::nearest, address::clamp_to_edge);
+    TAAPresentFragmentOut out;
+    out.color = taaResolveColor(in, colorTexture, historyTexture, depthTexture, taa, rateMap, prevRateMap);
+    float3 c = max(out.color.rgb, 0.0);
+    if (encodingMode == 1) {
+        c = taaLinearToSRGB(c);
+    }
+    out.present = float4(c, out.color.a);
+    out.depth = max(depthTexture.sample(depthSampler, in.uvCoords), 1e-4);
     return out;
 }

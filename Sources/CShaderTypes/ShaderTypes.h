@@ -1425,7 +1425,8 @@ typedef struct {
 typedef enum{
     taaPassConstantsIndex = 0,      // TAAConstants
     taaPassRateMapDataIndex,        // rasterization_rate_map_data of this frame (read only when rateMapSizes.x > 0; a placeholder otherwise)
-    taaPassPrevRateMapDataIndex     // rasterization_rate_map_data of the history's frame (read only when prevRateMapSizes.x > 0)
+    taaPassPrevRateMapDataIndex,    // rasterization_rate_map_data of the history's frame (read only when prevRateMapSizes.x > 0)
+    taaPassEncodingModeIndex        // int: the present encoding (1 = linear to sRGB), for the resolve that presents
 }TAABufferIndices;
 
 typedef enum{

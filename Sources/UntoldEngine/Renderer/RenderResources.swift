@@ -116,6 +116,10 @@ public struct RenderInfo {
     /// size), which decides with `HZBOcclusionCulling.minimumEntities` whether the frame's
     /// depth is worth a pyramid.
     public var hzbCandidateCount: Int = 0
+    /// Whether the output transform pass follows the temporal resolve directly in the frame's
+    /// graph (nothing registered between them), so the resolve may present the frame itself
+    /// and the output pass stand down. Set when the graph is built.
+    public var temporalResolveMayPresent: Bool = false
 
     // XR stereo-aware HZB culling
     // When true, depth and HZB pyramids are maintained per eye and occlusion

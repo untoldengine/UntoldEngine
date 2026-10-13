@@ -68,6 +68,8 @@ public extension RenderPipelineType {
     static let fxaa: RenderPipelineType = "fxaa"
     static let fxaaEdgeDebug: RenderPipelineType = "fxaaEdgeDebug"
     static let taa: RenderPipelineType = "taa"
+    /// The temporal resolve that also presents the frame (history, display colour, depth).
+    static let taaPresent: RenderPipelineType = "taaPresent"
     static let smaaEdges: RenderPipelineType = "smaaEdges"
     static let smaaBlendWeights: RenderPipelineType = "smaaBlendWeights"
     static let smaaNeighborhood: RenderPipelineType = "smaaNeighborhood"

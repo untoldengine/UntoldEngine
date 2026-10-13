@@ -1054,6 +1054,21 @@ public func InitTAAPipeline() -> RenderPipeline? {
     )
 }
 
+/// The temporal resolve that presents as it resolves: the history, the frame encoded for the
+/// display and the opaque depth, in one pass, in place of the output transform pass.
+public func InitTAAPresentPipeline() -> RenderPipeline? {
+    CreatePipeline(
+        vertexShader: "vertexTAAShader",
+        fragmentShader: "fragmentTAAPresentShader",
+        vertexDescriptor: createPostProcessVertexDescriptor(),
+        colorFormats: [renderInfo.colorPipeline.working.lookOutput, renderInfo.presentColorPixelFormat],
+        depthFormat: renderInfo.presentDepthPixelFormat,
+        depthCompareFunction: .always,
+        depthEnabled: true,
+        name: "TAA Pipeline (presents)"
+    )
+}
+
 public func InitFXAAEdgeDebugPipeline() -> RenderPipeline? {
     CreatePipeline(
         vertexShader: "vertexFXAAShader",
@@ -1272,6 +1287,7 @@ public func DefaultPipeLines() -> [(RenderPipelineType, RenderPipelineInitBlock)
         (.fxaa, InitFXAAPipeline),
         (.fxaaEdgeDebug, InitFXAAEdgeDebugPipeline),
         (.taa, InitTAAPipeline),
+        (.taaPresent, InitTAAPresentPipeline),
         (.smaaEdges, InitSMAAEdgesPipeline),
         (.smaaBlendWeights, InitSMAABlendWeightsPipeline),
         (.smaaNeighborhood, InitSMAANeighborhoodPipeline),

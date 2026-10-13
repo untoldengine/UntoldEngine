@@ -114,6 +114,11 @@ public final class TemporalAntiAliasing: @unchecked Sendable {
     /// history. The output transform presents it (`outputTransformRenderPass`); writing it a
     /// second time into `antiAliasingTexture` would cost a full-screen write per eye.
     public private(set) var resolvedTexture: MTLTexture?
+    /// Whether the last resolve also presented the frame — wrote the display's colour and depth
+    /// textures — so the output transform pass stands down for it. The resolve presents when the
+    /// graph put nothing between it and the output (`renderInfo.temporalResolveMayPresent`), the
+    /// view is the lit one, and the present textures exist at its size.
+    public private(set) var presentedThisFrame = false
 
     private var eyeIndex: Int {
         renderInfo.isXRStereoMode ? min(max(renderInfo.currentEye, 0), 1) : 0
@@ -214,6 +219,7 @@ public final class TemporalAntiAliasing: @unchecked Sendable {
             handleError(.renderPassCreationFailed, "TAA Pass: missing texture, pipeline or camera")
             return
         }
+        presentedThisFrame = false
         let eye = eyeIndex
         guard let textures = historyTextures(for: eye) else {
             handleError(.renderPassCreationFailed, "TAA Pass: history textures")
@@ -246,14 +252,45 @@ public final class TemporalAntiAliasing: @unchecked Sendable {
         descriptor.colorAttachments[0].loadAction = .dontCare
         descriptor.colorAttachments[0].storeAction = .store
 
+        // Presenting here, when the output transform would only copy the resolve: the display's
+        // colour and depth textures become the pass's second colour attachment and depth.
+        let presentDescriptor = renderInfo.renderPassDescriptor
+        let presentColor = presentDescriptor?.colorAttachments[0].texture
+        let presentDepth = presentDescriptor?.depthAttachment.texture
+        let presentPipeline = PipelineManager.shared.renderPipelinesByType[.taaPresent]
+        let presents = renderInfo.temporalResolveMayPresent
+            && renderDebugViewMode == .lit
+            && presentColor != nil && presentDepth != nil
+            && presentColor?.width == source.width && presentColor?.height == source.height
+            && presentPipeline?.success == true && presentPipeline?.pipelineState != nil
+        if presents, let presentDescriptor {
+            descriptor.colorAttachments[1].texture = presentColor
+            descriptor.colorAttachments[1].loadAction = presentDescriptor.colorAttachments[0].loadAction
+            descriptor.colorAttachments[1].clearColor = presentDescriptor.colorAttachments[0].clearColor
+            descriptor.colorAttachments[1].storeAction = .store
+            descriptor.depthAttachment.texture = presentDepth
+            descriptor.depthAttachment.loadAction = presentDescriptor.depthAttachment.loadAction
+            descriptor.depthAttachment.clearDepth = presentDescriptor.depthAttachment.clearDepth
+            descriptor.depthAttachment.storeAction = .store
+        }
+
         GPUPassTiming.shared.attach(descriptor, "TAA")
         guard let encoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor) else {
             handleError(.renderPassCreationFailed, "TAA Pass")
             return
         }
-        encoder.label = "TAA Pass"
+        encoder.label = presents ? "TAA Pass (presents)" : "TAA Pass"
         encoder.pushDebugGroup("TAA Pass")
-        encoder.setRenderPipelineState(pipelineState)
+        if presents, let presentPipeline, let presentState = presentPipeline.pipelineState {
+            encoder.setRenderPipelineState(presentState)
+            if let depthState = presentPipeline.depthState {
+                encoder.setDepthStencilState(depthState)
+            }
+            var encodingMode = renderInfo.colorPipeline.present.encodingMode.rawValue
+            encoder.setFragmentBytes(&encodingMode, length: MemoryLayout<Int32>.stride, index: Int(taaPassEncodingModeIndex.rawValue))
+        } else {
+            encoder.setRenderPipelineState(pipelineState)
+        }
         encoder.waitForFence(renderInfo.fence, before: .fragment)
         encoder.setVertexBuffer(bufferResources.quadVerticesBuffer, offset: 0, index: 0)
         encoder.setVertexBuffer(bufferResources.quadTexCoordsBuffer, offset: 0, index: 1)
@@ -277,6 +314,7 @@ public final class TemporalAntiAliasing: @unchecked Sendable {
         encoder.popDebugGroup()
         encoder.endEncoding()
         resolvedTexture = writeTexture
+        presentedThisFrame = presents
 
         // A secondary target wrote the spare history texture, which the next primary resolve
         // overwrites anyway; the one it reads, and the frame's matrices and map, are untouched.

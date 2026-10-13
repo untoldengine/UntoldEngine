@@ -566,6 +566,9 @@ private func buildGameModeGraphWithCompilation() throws -> CompiledRenderGraphRe
     }
 
     let beforeOutputID = builder.resolveStage(.beforeOutput, after: outputDependency) ?? outputDependency
+    // With nothing between the temporal resolve and the output, the resolve presents the frame
+    // itself (TemporalAntiAliasing.encodeResolve) and the output pass stands down.
+    renderInfo.temporalResolveMayPresent = antiAliasingMode.isTemporal && beforeOutputID == outputDependency
 
     let outputPass = RenderPass(
         id: "outputTransform",
@@ -1474,6 +1477,10 @@ public let lookRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in
 }
 
 public let outputTransformRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in
+    // The temporal resolve presented the frame already.
+    if antiAliasingMode.isTemporal, TemporalAntiAliasing.shared.presentedThisFrame {
+        return
+    }
     let sourceTexture: MTLTexture?
     switch renderDebugViewMode {
     case .fxaaEdgeDebug:
