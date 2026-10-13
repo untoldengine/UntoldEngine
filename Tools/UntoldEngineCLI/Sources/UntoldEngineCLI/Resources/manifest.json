@@ -6,32 +6,32 @@
       "name": "Starter Assets",
       "description": "Soccer field, goals, ball, and a sample scene.",
       "version": "1.0.0",
-      "downloadURL": "https://d8pyi1c08k1w.cloudfront.net/StarterPack.zip",
-      "size": "108 MB"
+      "downloadURL": "https://github.com/untoldengine/UntoldEngine/releases/download/assets-v2/StarterPack.zip",
+      "size": "3.9 MB"
     },
     {
       "id": "starter-archviz",
       "name": "ArchViz Starter Assets",
       "description": "Interior/exterior architectural props and a sample scene.",
       "version": "1.0.0",
-      "downloadURL": "https://d8pyi1c08k1w.cloudfront.net/ArchvizPack.zip",
-      "size": "253.4 MB"
+      "downloadURL": "https://github.com/untoldengine/UntoldEngine/releases/download/assets-v2/ArchvizPack.zip",
+      "size": "419.0 MB"
     },
     {
       "id": "starter-streamed-city",
       "name": "Streamed City Starter Assets",
       "description": "A low-poly city scene for the tile-based Geometry Streaming System.",
       "version": "1.0.0",
-      "downloadURL": "https://d8pyi1c08k1w.cloudfront.net/LowPolyCity.zip",
-      "size": "58.9 MB"
+      "downloadURL": "https://github.com/untoldengine/UntoldEngine/releases/download/assets-v2/LowPolyCity.zip",
+      "size": "57.4 MB"
     },
     {
       "id": "starter-digital-twin",
       "name": "Digital Twin Starter Assets",
       "description": "Bedroom digital-twin scene with light portal and selectable devices.",
       "version": "1.0.0",
-      "downloadURL": "https://d8pyi1c08k1w.cloudfront.net/DigitalTwinPack.zip",
-      "size": "424.3 MB"
+      "downloadURL": "https://github.com/untoldengine/UntoldEngine/releases/download/assets-v2/DigitalTwinPack.zip",
+      "size": "416.5 MB"
     }
   ]
 }
