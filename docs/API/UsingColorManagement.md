@@ -40,9 +40,17 @@ setPostFX(.tonemapOperator(.none))
 RealityKit shows such a scene with the display's P3 primaries: measured on a
 panel of swatches it was given, its colours are the Display P3 → sRGB matrix of
 their sRGB values (a red of (0.72, 0.13, 0.11) shows as (192, 0, 8) of 255),
-its greys unchanged. The look pass does the same when asked, after the tone
-map: every saturated colour widens, and a channel the matrix takes negative
-clips to black, as it does there. The default keeps the sRGB colour as it is.
+its greys unchanged. That is the system's colour pipeline, which works in
+Display P3 and expects content in it (WWDC24 session 10092, "Render Metal with
+passthrough in visionOS"); a layer in an sRGB format is converted, so its colour
+stays as specified. The look pass does the same as RealityKit when asked, after
+the tone map: every saturated colour widens, and a channel the matrix takes
+negative clips to black, as it does there. The default keeps the sRGB colour as
+it is.
+
+In bright sunlight RealityKit adapts further: its content turns part
+transparent, a curve goes on it and its lit surfaces darken. That is the
+system's doing, and not something to reproduce; the match above holds in rooms.
 
 ```swift
 setPostFX(.colorPrimaries(.displayP3)) // as RealityKit shows a mixed-immersion scene
