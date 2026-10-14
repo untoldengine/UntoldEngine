@@ -191,6 +191,33 @@ public func executeXRIBLCubePreFilterPass(
         return false
     }
 
+    // The probe's harmonics first, for the irradiance (see xrProbeSHProjection).
+    guard let probeSH = target.probeSH else {
+        handleError(.renderPassCreationFailed, "XR IBL Cube Pre-Filter Pass: the target has no harmonics buffer")
+        return false
+    }
+    if !xrProbeSHPipeline.success, let library = renderInfo.library {
+        createComputePipeline(
+            into: &xrProbeSHPipeline,
+            device: renderInfo.device,
+            library: library,
+            functionName: "xrProbeSHProjection",
+            pipelineName: "XR Probe SH Projection"
+        )
+    }
+    guard xrProbeSHPipeline.success, let projectionState = xrProbeSHPipeline.pipelineState,
+          let projectionEncoder = commandBuffer.makeComputeCommandEncoder()
+    else {
+        handleError(.pipelineStateNulled, "XR Probe SH Projection")
+        return false
+    }
+    projectionEncoder.label = "XR Probe SH Projection"
+    projectionEncoder.setComputePipelineState(projectionState)
+    projectionEncoder.setTexture(environmentCubeTexture, index: 0)
+    projectionEncoder.setBuffer(probeSH, offset: 0, index: 0)
+    projectionEncoder.dispatchThreadgroups(MTLSize(width: 1, height: 1, depth: 1), threadsPerThreadgroup: MTLSize(width: 256, height: 1, depth: 1))
+    projectionEncoder.endEncoding()
+
     let renderPassDescriptor = MTLRenderPassDescriptor()
     renderPassDescriptor.renderTargetWidth = target.irradianceMap.width
     renderPassDescriptor.renderTargetHeight = target.irradianceMap.height
@@ -218,6 +245,7 @@ public func executeXRIBLCubePreFilterPass(
     renderEncoder.setVertexBuffer(bufferResources.quadVerticesBuffer, offset: 0, index: 0)
     renderEncoder.setVertexBuffer(bufferResources.quadTexCoordsBuffer, offset: 0, index: 1)
     renderEncoder.setFragmentTexture(environmentCubeTexture, index: 0)
+    renderEncoder.setFragmentBuffer(probeSH, offset: 0, index: 1)
     renderEncoder.drawIndexedPrimitivesTracked(
         type: .triangle,
         indexCount: 6,
