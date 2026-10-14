@@ -24,9 +24,28 @@ The settings a mixed-immersion space wants, with the calls that set them:
 | Texture budget | 1536 MB | Under the default 200 MB the streaming shed tiers of a 4K object under the wearer's eyes. |
 
 A full-immersion space is different: no passthrough to match, so a tone map (ACES or AgX)
-is right again, the room light makes no sense, and the primaries are a taste. A remote
-immersive space rendered on a Mac keeps the presentation half of this table (it is still
-composited on the headset next to the passthrough) and takes the Mac's budget for the rest.
+is right again, the room light makes no sense, and the primaries are a taste.
+
+## Rendered on a Mac, shown on the headset
+
+A remote immersive space, where the Mac renders through Compositor Services and the headset
+shows the frames, splits the table in two:
+
+- **Presentation follows the display.** The frame is still composited on the headset next
+  to the same passthrough, so the no tone map, the P3 primaries, the premultiplied alpha and
+  the room light from the probe stay exactly the headset's values, whichever machine renders.
+- **Budget follows the renderer.** The render path, the anti-aliasing and its samples, the
+  shadow taps, the texture budget, the LOD distances and the tile light stage are the Mac's
+  to raise: full shadow taps, more samples, deferred with many lights if the game wants it.
+  Foveation depends on whether the remote layer hands the Mac the headset's rate maps; if it
+  does not, render uniformly at the quality the Mac affords.
+- **What the Mac does not buy back.** The cadence is still the headset's, so every frame
+  must still be delivered on time or the compositor repeats one; and the link adds latency,
+  which makes posing animation for the frame's presentation time matter more, not less.
+
+Whether the environment probe and the rate maps reach a remote renderer has not been tested.
+In a profile system this is a third entry: the mixed-immersion presentation with the Mac's
+budget.
 
 ## How RealityKit shows a mixed-immersion scene
 
