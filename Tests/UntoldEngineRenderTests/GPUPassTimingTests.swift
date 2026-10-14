@@ -57,7 +57,9 @@ final class GPUPassTimingTests: BaseRenderSetup {
         let frameMs = drawFrames(30)
         let passes = GPUPassTiming.shared.averages()
         XCTAssertFalse(passes.isEmpty, "the frame's passes are timed")
-        let gBuffer = try XCTUnwrap(passes.first { $0.label == "G-Buffer" }, "the combined pass is timed: \(passes.map(\.label))")
+        // The combined pass: the G-buffer's when the light pass lights, the forward one when the
+        // geometry lights itself (the default).
+        let gBuffer = try XCTUnwrap(passes.first { $0.label == "G-Buffer" || $0.label == "Forward" }, "the combined pass is timed: \(passes.map(\.label))")
         XCTAssertGreaterThan(gBuffer.fragmentMs, 0, "the combined pass shades")
         XCTAssertGreaterThanOrEqual(gBuffer.vertexMs, 0)
         let total = passes.reduce(0) { $0 + $1.totalMs }

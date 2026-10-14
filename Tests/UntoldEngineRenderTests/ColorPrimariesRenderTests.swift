@@ -21,20 +21,25 @@ final class ColorPrimariesRenderTests: BaseRenderSetup {
     private var savedMode: AntiAliasingMode = .fxaa
     private var savedOperator: TonemapOperator = .aces
     private var savedPrimaries: ColorPrimaries = .sRGB
+    private var savedGrading = false
 
     override func setUp() async throws {
         try await super.setUp()
         savedMode = antiAliasingMode
         savedOperator = TonemapParams.shared.operator
         savedPrimaries = TonemapParams.shared.primaries
+        savedGrading = ColorGradingParams.shared.enabled
         antiAliasingMode = .none
         setPostFX(.tonemapOperator(.none))
+        // The look must show the emissive as it is: no grade, whatever a test before left on.
+        ColorGradingParams.shared.enabled = false
     }
 
     override func tearDown() async throws {
         antiAliasingMode = savedMode
         setPostFX(.tonemapOperator(savedOperator))
         setPostFX(.colorPrimaries(savedPrimaries))
+        ColorGradingParams.shared.enabled = savedGrading
         destroyAllEntities()
         try await super.tearDown()
     }
