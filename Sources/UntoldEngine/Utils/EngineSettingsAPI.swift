@@ -403,6 +403,8 @@ public enum PostFXProperty: Sendable {
     case colorLUT(ColorLUTProperty)
     case colorGradeLUT(ColorGradeLUTProperty)
     case tonemapOperator(TonemapOperator)
+    /// The primaries the look pass shows the scene with (see `ColorPrimaries`).
+    case colorPrimaries(ColorPrimaries)
     case colorCorrection(ColorCorrectionProperty)
     case bloomThreshold(BloomThresholdProperty)
     case bloomComposite(BloomCompositeProperty)
@@ -496,6 +498,8 @@ public func setPostFX(_ property: PostFXProperty) {
         applyColorGradeLUTProperty(property)
     case let .tonemapOperator(op):
         TonemapParams.shared.operator = op
+    case let .colorPrimaries(primaries):
+        TonemapParams.shared.primaries = primaries
     case let .colorCorrection(property):
         applyColorCorrectionProperty(property)
     case let .bloomThreshold(property):

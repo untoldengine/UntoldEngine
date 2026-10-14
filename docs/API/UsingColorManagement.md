@@ -26,6 +26,29 @@ Neither operator is a substitute for a custom OCIO config, a non-stock View
 Transform, or a Look — for those, use a creative grade LUT below to get
 closer, or accept the approximation.
 
+## Mixed-Immersion Spaces: No Tone Map, The Display's Primaries
+
+A mixed-immersion space on the headset shows the scene next to the passthrough,
+whose response the compositor applies to both, so a filmic curve there compresses
+an object's whites and lifts its blacks against the room. `.none` hands the
+compositor the scene's linear colour as it is:
+
+```swift
+setPostFX(.tonemapOperator(.none))
+```
+
+RealityKit shows such a scene with the display's P3 primaries: measured on a
+panel of swatches it was given, its colours are the Display P3 → sRGB matrix of
+their sRGB values (a red of (0.72, 0.13, 0.11) shows as (192, 0, 8) of 255),
+its greys unchanged. The look pass does the same when asked, after the tone
+map: every saturated colour widens, and a channel the matrix takes negative
+clips to black, as it does there. The default keeps the sRGB colour as it is.
+
+```swift
+setPostFX(.colorPrimaries(.displayP3)) // as RealityKit shows a mixed-immersion scene
+setPostFX(.colorPrimaries(.sRGB))      // default
+```
+
 ## Using An Externally-Authored Grade LUT (.cube)
 
 If you already have (or want to hand-author, or export from DaVinci

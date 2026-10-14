@@ -100,6 +100,7 @@ static inline float4 lookColor(
   constant float3 &colorGradeLUTDomainMin,
   constant float3 &colorGradeLUTDomainMax,
   constant int &tonemapOperator,
+  constant int &colorPrimaries,
   texture2d<float> splatLayer,
   constant int &splatMask,
   texture2d<float> gizmoTexture,
@@ -168,6 +169,17 @@ static inline float4 lookColor(
       color = sampleColorGradeLUT(color, colorGradeLUTTexture, colorGradeLUTDomainMin, colorGradeLUTDomainMax);
   }
 
+  // Shown with the display's P3 primaries: the colour taken as Display P3 coordinates and
+  // converted to the sRGB the layer is encoded in, which widens every saturated colour, as
+  // RealityKit shows a mixed-immersion scene. A channel that goes negative is outside sRGB and
+  // clips to black, as it does there.
+  if (colorPrimaries == colorPrimariesDisplayP3) {
+      const float3x3 p3ToSRGB = float3x3(float3(1.2249, -0.0420, -0.0197),
+                                         float3(-0.2247, 1.0419, -0.0786),
+                                         float3(0.0, 0.0, 1.0983));
+      color = max(p3ToSRGB * color, 0.0);
+  }
+
   return float4(splatLinear + color * (1.0 - splat), sceneSample.a);
 }
 
@@ -190,12 +202,13 @@ fragment float4 fragmentLookShader(
   constant float3 &colorGradeLUTDomainMin [[buffer(colorGradeLUTDomainMinIndex)]],
   constant float3 &colorGradeLUTDomainMax [[buffer(colorGradeLUTDomainMaxIndex)]],
   constant int &tonemapOperator [[buffer(tonemapOperatorSelectIndex)]],
+  constant int &colorPrimaries [[buffer(lookPassColorPrimariesIndex)]],
   texture2d<float> splatLayer [[texture(lookPassSplatCoverageTextureIndex)]],
   constant int &splatMask [[buffer(lookPassSplatMaskIndex)]],
   texture2d<float> gizmoTexture [[texture(lookPassGizmoTextureIndex)]],
   constant bool &gizmoOverrides [[buffer(lookPassGizmoOverrideIndex)]]
 ) {
-  return lookColor(in, sceneTexture, colorLUTTexture, colorGradeLUTTexture, brightness, contrast, saturation, exposure, whiteBalanceCoeffs, enabled, colorLUTEnabled, colorLUTShaperMinStops, colorLUTShaperMaxStops, colorLUTSize, colorGradeLUTEnabled, colorGradeLUTDomainMin, colorGradeLUTDomainMax, tonemapOperator, splatLayer, splatMask, gizmoTexture, gizmoOverrides);
+  return lookColor(in, sceneTexture, colorLUTTexture, colorGradeLUTTexture, brightness, contrast, saturation, exposure, whiteBalanceCoeffs, enabled, colorLUTEnabled, colorLUTShaperMinStops, colorLUTShaperMaxStops, colorLUTSize, colorGradeLUTEnabled, colorGradeLUTDomainMin, colorGradeLUTDomainMax, tonemapOperator, colorPrimaries, splatLayer, splatMask, gizmoTexture, gizmoOverrides);
 }
 
 static inline float3 lookLinearToSRGB(float3 x) {
@@ -232,6 +245,7 @@ fragment LookPresentFragmentOut fragmentLookPresentShader(
   constant float3 &colorGradeLUTDomainMin [[buffer(colorGradeLUTDomainMinIndex)]],
   constant float3 &colorGradeLUTDomainMax [[buffer(colorGradeLUTDomainMaxIndex)]],
   constant int &tonemapOperator [[buffer(tonemapOperatorSelectIndex)]],
+  constant int &colorPrimaries [[buffer(lookPassColorPrimariesIndex)]],
   texture2d<float> splatLayer [[texture(lookPassSplatCoverageTextureIndex)]],
   constant int &splatMask [[buffer(lookPassSplatMaskIndex)]],
   texture2d<float> gizmoTexture [[texture(lookPassGizmoTextureIndex)]],
@@ -241,7 +255,7 @@ fragment LookPresentFragmentOut fragmentLookPresentShader(
 ) {
   constexpr sampler depthSampler(min_filter::nearest, mag_filter::nearest, address::clamp_to_edge);
   LookPresentFragmentOut out;
-  out.color = lookColor(in, sceneTexture, colorLUTTexture, colorGradeLUTTexture, brightness, contrast, saturation, exposure, whiteBalanceCoeffs, enabled, colorLUTEnabled, colorLUTShaperMinStops, colorLUTShaperMaxStops, colorLUTSize, colorGradeLUTEnabled, colorGradeLUTDomainMin, colorGradeLUTDomainMax, tonemapOperator, splatLayer, splatMask, gizmoTexture, gizmoOverrides);
+  out.color = lookColor(in, sceneTexture, colorLUTTexture, colorGradeLUTTexture, brightness, contrast, saturation, exposure, whiteBalanceCoeffs, enabled, colorLUTEnabled, colorLUTShaperMinStops, colorLUTShaperMaxStops, colorLUTSize, colorGradeLUTEnabled, colorGradeLUTDomainMin, colorGradeLUTDomainMax, tonemapOperator, colorPrimaries, splatLayer, splatMask, gizmoTexture, gizmoOverrides);
   float3 c = max(out.color.rgb, 0.0);
   if (encodingMode == 1) {
       c = lookLinearToSRGB(c);

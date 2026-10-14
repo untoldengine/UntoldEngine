@@ -2369,6 +2369,25 @@ public enum TonemapOperator: String, Sendable, Codable, Equatable {
     }
 }
 
+/// The primaries the look pass shows the scene with.
+public enum ColorPrimaries: String, Sendable, Codable, Equatable {
+    /// The scene's sRGB colour as it is.
+    case sRGB
+    /// The colour taken as Display P3 coordinates: every saturated colour widened to the
+    /// panel's primaries, as RealityKit shows a mixed-immersion scene (its swatches measure as
+    /// the P3→sRGB matrix of their sRGB values, to a count), so a scene shown next to one
+    /// matches it. A channel the matrix takes negative is outside sRGB and clips to black, as
+    /// it does there. Set with `setPostFX(.colorPrimaries(.displayP3))`.
+    case displayP3
+
+    var shaderValue: Int32 {
+        switch self {
+        case .sRGB: Int32(colorPrimariesSRGB.rawValue)
+        case .displayP3: Int32(colorPrimariesDisplayP3.rawValue)
+        }
+    }
+}
+
 public final class TonemapParams: @unchecked Sendable {
     public static let shared = TonemapParams()
 
@@ -2377,6 +2396,7 @@ public final class TonemapParams: @unchecked Sendable {
     // setPostFX(.tonemapOperator(.agx)) for scenes that want to match it.
     private let lock = NSLock()
     private var _operator: TonemapOperator = .aces
+    private var _primaries: ColorPrimaries = .sRGB
 
     public var `operator`: TonemapOperator {
         get {
@@ -2391,9 +2411,24 @@ public final class TonemapParams: @unchecked Sendable {
         }
     }
 
+    /// The primaries the look pass shows the scene with; sRGB unless set.
+    public var primaries: ColorPrimaries {
+        get {
+            lock.lock()
+            defer { lock.unlock() }
+            return _primaries
+        }
+        set {
+            lock.lock()
+            _primaries = newValue
+            lock.unlock()
+        }
+    }
+
     public func resetToDefaults() {
         lock.lock()
         _operator = .aces
+        _primaries = .sRGB
         lock.unlock()
     }
 }

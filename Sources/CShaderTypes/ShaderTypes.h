@@ -574,7 +574,17 @@ typedef enum {
     lookPassSplatMaskIndex = 15,   // starts after TonemapSelectBufferIndices (14)
     lookPassGizmoOverrideIndex = 16,   // bool: the gizmo layer overrides pixels (the editor, not game mode)
     lookPassEncodingModeIndex = 17,   // int: the display's encoding, when the look pass presents the frame itself
+    lookPassColorPrimariesIndex = 18,   // int: ColorPrimariesID, the primaries the scene is shown with
 } LookPassSplatBufferIndices;
+
+/// The primaries the look pass shows the scene with: its sRGB colour as it is, or the colour
+/// taken as Display P3 coordinates and shown with the panel's wider primaries, as RealityKit
+/// shows a mixed-immersion scene (its colours measure as the P3→sRGB matrix of their sRGB
+/// values, to a count).
+typedef enum {
+    colorPrimariesSRGB = 0,
+    colorPrimariesDisplayP3 = 1,
+} ColorPrimariesID;
 
 typedef enum{
     colorCorrectionPassColorTextureIndex,

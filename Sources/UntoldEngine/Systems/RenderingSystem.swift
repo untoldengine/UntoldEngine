@@ -904,6 +904,12 @@ func colorGradingCustomization(encoder: MTLRenderCommandEncoder) {
         length: MemoryLayout<Int32>.stride,
         index: Int(tonemapOperatorSelectIndex.rawValue)
     )
+    var colorPrimaries = TonemapParams.shared.primaries.shaderValue
+    encoder.setFragmentBytes(
+        &colorPrimaries,
+        length: MemoryLayout<Int32>.stride,
+        index: Int(lookPassColorPrimariesIndex.rawValue)
+    )
 
     // The Gaussian pass's layer keeps splat pixels out of the grade and the tone map: they are
     // display-referred already, and a partly covered pixel has only the scene behind the splats
