@@ -206,6 +206,7 @@ func resolveSupportScript(named filename: String, notInstalled: (String) -> Erro
         .deletingLastPathComponent()
         .appendingPathComponent("libexec/untoldengine/\(filename)")
     if FileManager.default.fileExists(atPath: installedScript.path) {
+        warnIfSupportScriptStale(filename: filename, installedScript: installedScript)
         return installedScript
     }
 
@@ -218,6 +219,28 @@ func resolveSupportScript(named filename: String, notInstalled: (String) -> Erro
     }
 
     throw notInstalled(installedScript.path)
+}
+
+/// `resolveSupportScript` prefers the installed copy over the repo's `scripts/<filename>`
+/// even when both exist, so an edit to the repo copy has no effect until the next
+/// `install-untoldengine-create.sh` run — silently, since the installed copy still works.
+/// If a repo copy is reachable from the current directory (the same `swift run`-from-
+/// `Tools/UntoldEngineCLI` layout `resolveSupportScript` already assumes) and its contents
+/// differ from what's installed, warn instead of running the stale copy without a trace.
+func warnIfSupportScriptStale(filename: String, installedScript: URL) {
+    let developmentScript = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        .appendingPathComponent("../../scripts/\(filename)")
+        .standardizedFileURL
+    guard
+        let installedData = try? Data(contentsOf: installedScript),
+        let developmentData = try? Data(contentsOf: developmentScript),
+        installedData != developmentData
+    else { return }
+
+    printWarning(
+        "\(filename) in the repo differs from the installed copy — running the installed " +
+            "one anyway. Re-run ./scripts/install-untoldengine-create.sh to pick up your edit."
+    )
 }
 
 // MARK: - Asset Folder Structure
