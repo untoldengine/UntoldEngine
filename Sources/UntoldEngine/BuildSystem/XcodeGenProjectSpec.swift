@@ -87,6 +87,50 @@ import Foundation
             return output.joined(separator: "\n")
         }
 
+        /// Rewrites a `project.yml` generated before `GameData` moved to the project root
+        /// (see `BuildSystem.createProjectFromEmbeddedTemplates`), pointing its `GameData`
+        /// folder reference(s) at the root instead of `Sources/<Project>/GameData`. Used by
+        /// `BuildSystem.convertProjectLayout`. A no-op (returns the input unchanged) when the
+        /// legacy shape isn't present, so it's safe to call on a spec that's already converted.
+        static func convertingToRootLevelGameData(inYAML yaml: String, projectName: String) -> String {
+            let lines = yaml.components(separatedBy: "\n")
+            let sourcesLine = "- path: Sources"
+            let excludesLine = "excludes:"
+            let excludedEntryLine = "- \"\(projectName)/GameData\""
+            let gameDataLine = "- path: Sources/\(projectName)/GameData"
+
+            var output: [String] = []
+            var index = 0
+            while index < lines.count {
+                let line = lines[index]
+                let trimmed = line.trimmingCharacters(in: .whitespaces)
+
+                // The single-platform spec excluded GameData from the plain "Sources" entry
+                // because GameData used to be nested inside it; it's a root-level sibling of
+                // Sources now, so there's nothing left to exclude.
+                if trimmed == sourcesLine,
+                   index + 2 < lines.count,
+                   lines[index + 1].trimmingCharacters(in: .whitespaces) == excludesLine,
+                   lines[index + 2].trimmingCharacters(in: .whitespaces) == excludedEntryLine
+                {
+                    output.append(line)
+                    index += 3
+                    continue
+                }
+
+                if trimmed == gameDataLine {
+                    let indentation = String(line.prefix(while: { $0 == " " || $0 == "\t" }))
+                    output.append("\(indentation)- path: GameData")
+                    index += 1
+                    continue
+                }
+
+                output.append(line)
+                index += 1
+            }
+            return output.joined(separator: "\n")
+        }
+
         /// Generate project.yml YAML content from build settings
         static func generateYAML(settings: BuildSettings) throws -> String {
             let isMultiPlatform = settings.target.platforms.count > 1
@@ -154,12 +198,11 @@ import Foundation
             // Build sources section. Storyboards under Base.lproj are compiled
             // from the Sources tree; do not add Base.lproj as a raw folder
             // resource or the app bundle will contain an uncompiled storyboard.
+            // GameData lives at the project root, a sibling of Sources, not nested inside it.
             let sourcesSection = """
                 sources:
                   - path: Sources
-                    excludes:
-                      - "\(settings.projectName)/GameData"
-                  - path: Sources/\(settings.projectName)/GameData
+                  - path: GameData
                     type: folder
                     buildPhase: resources
             """
@@ -251,7 +294,7 @@ import Foundation
                     sources:
                       - path: \(settings.projectName) macOS
                       - path: Sources/\(settings.projectName)\(componentSourcesIfEnabled)
-                      - path: Sources/\(settings.projectName)/GameData
+                      - path: GameData
                         type: folder
                         buildPhase: resources
                 \(dependenciesWithKit)
@@ -280,7 +323,7 @@ import Foundation
                     sources:
                       - path: \(settings.projectName) iOS
                       - path: Sources/\(settings.projectName)\(componentSourcesIfEnabled)
-                      - path: Sources/\(settings.projectName)/GameData
+                      - path: GameData
                         type: folder
                         buildPhase: resources
                     dependencies:
@@ -314,7 +357,7 @@ import Foundation
                     sources:
                       - path: \(settings.projectName) iOS AR
                       - path: Sources/\(settings.projectName)\(componentSourcesIfEnabled)
-                      - path: Sources/\(settings.projectName)/GameData
+                      - path: GameData
                         type: folder
                         buildPhase: resources
                     dependencies:
@@ -344,7 +387,7 @@ import Foundation
                     sources:
                       - path: \(settings.projectName) visionOS
                       - path: Sources/\(settings.projectName)\(componentSourcesIfEnabled)
-                      - path: Sources/\(settings.projectName)/GameData
+                      - path: GameData
                         type: folder
                         buildPhase: resources
                     dependencies:

@@ -65,7 +65,7 @@ The CLI finds the project's `GameData` folder and merges the asset files into it
 The important file for this path is the `DigitalTwin.untold` model, installed under:
 
 ```text
-Sources/BedroomTwin/GameData/Models/DigitalTwin/
+GameData/Models/DigitalTwin/
   DigitalTwin.untold
   Textures/
   ...

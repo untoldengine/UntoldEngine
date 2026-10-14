@@ -60,7 +60,7 @@ The CLI finds the project's `GameData` folder and merges the asset files into it
 The important files for this path are the `LowPolyCity.json` manifest and its `LowPolyCity/` tile folder, installed under:
 
 ```text
-Sources/CityStreaming/GameData/StreamModels/
+GameData/StreamModels/
   LowPolyCity.json
   LowPolyCity/
 ```

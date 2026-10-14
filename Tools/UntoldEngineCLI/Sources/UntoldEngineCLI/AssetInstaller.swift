@@ -182,13 +182,16 @@ enum AssetError: LocalizedError {
             return """
             Could not find a GameData folder in the current directory.
             Run this command from your project root, or specify the path:
-              untoldengine assets install <pack> --output ~/Projects/MyGame/Sources/MyGame/GameData
+              untoldengine assets install <pack> --output ~/Projects/MyGame/GameData
             """
         case let .ambiguousGameData(paths):
             let list = paths.map { "  \($0.path)" }.joined(separator: "\n")
             return """
             Found multiple GameData folders — specify which one to use with --output:
             \(list)
+            A project mid-conversion (see `untoldengine convert`) can briefly have both the \
+            root-level GameData and the old Sources/<Project>/GameData; finish the conversion \
+            or delete the stale copy before installing a pack.
             """
         }
     }

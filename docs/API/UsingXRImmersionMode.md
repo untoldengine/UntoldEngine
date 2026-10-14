@@ -257,11 +257,9 @@ Place the HDR inside your project's `GameData/HDR` folder:
 
 ```
 MyGame/
-└── Sources/
-    └── MyGame/
-        └── GameData/
-            └── HDR/
-                └── suburban_garden_2k.hdr
+└── GameData/
+    └── HDR/
+        └── suburban_garden_2k.hdr
 ```
 
 The name is resolved through the engine's standard asset search

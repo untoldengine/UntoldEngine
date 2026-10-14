@@ -83,21 +83,25 @@ A generated project includes source files and a bundled `GameData` folder:
 
 ```text
 MyGame/
+  .gitignore
   Package.swift
   README.md
+  GameData/
+    Scenes/
+    Scripts/
+    Models/
+    StreamModels/
+    Animations/
+    Gaussians/
+    Textures/
+    Shaders/
+    LUT/
+  Resources/
+  Docs/
   Sources/
     MyGame/
       AppDelegate.swift
       GameScene.swift
-      GameData/
-        Scenes/
-        Scripts/
-        Models/
-        StreamModels/
-        Animations/
-        Gaussians/
-        Textures/
-        Shaders/
 ```
 
 `GameScene.swift` is where your engine scene setup usually begins. `GameData` is
@@ -126,7 +130,7 @@ Install into a specific `GameData` path:
 
 ```bash
 untoldengine assets install starter-archviz \
-  --output ~/Projects/MyGame/Sources/MyGame/GameData
+  --output ~/Projects/MyGame/GameData
 ```
 
 ## Load A Single Asset
@@ -134,7 +138,7 @@ untoldengine assets install starter-archviz \
 Place always-resident models under:
 
 ```text
-Sources/MyGame/GameData/Models/<AssetName>/<AssetName>.untold
+GameData/Models/<AssetName>/<AssetName>.untold
 ```
 
 Then load the asset from `GameScene.swift`:
@@ -182,7 +186,7 @@ separate step.
 Place streamed scene manifests and tile payloads under:
 
 ```text
-Sources/MyGame/GameData/StreamModels/<SceneName>/
+GameData/StreamModels/<SceneName>/
   <SceneName>.json
   tile_exports/
 ```

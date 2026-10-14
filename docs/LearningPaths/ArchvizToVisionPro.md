@@ -81,15 +81,17 @@ The project also includes a bundled `GameData` folder. Runtime assets should liv
 
 ```text
 ArchvizViewer/
+  GameData/
+    Models/
+    StreamModels/
+    Textures/
+    Scenes/
+    Scripts/
+  Resources/
+  Docs/
   Sources/
     ArchvizViewer/
       GameScene.swift
-      GameData/
-        Models/
-        StreamModels/
-        Textures/
-        Scenes/
-        Scripts/
 ```
 
 ## Install The Starter Archviz Asset

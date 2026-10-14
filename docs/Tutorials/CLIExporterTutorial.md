@@ -11,7 +11,7 @@ when you want a visual Blender export workflow.
 Generated projects bundle runtime assets from:
 
 ```text
-Sources/<ProjectName>/GameData/
+GameData/
   Models/
   StreamModels/
   Animations/
@@ -62,7 +62,7 @@ From any directory:
 ```bash
 untoldengine export \
   --input /path/to/robot.usdz \
-  --output ~/Projects/MyGame/Sources/MyGame/GameData/Models/robot/robot.untold \
+  --output ~/Projects/MyGame/GameData/Models/robot/robot.untold \
   --convert-orientation
 ```
 
@@ -71,7 +71,7 @@ untoldengine export \
 ```bash
 untoldengine export \
   --input /path/to/robot.blend \
-  --output ~/Projects/MyGame/Sources/MyGame/GameData/Models/robot/robot.untold \
+  --output ~/Projects/MyGame/GameData/Models/robot/robot.untold \
   --convert-orientation
 ```
 
@@ -99,7 +99,7 @@ Use `--validate` while building an asset pipeline:
 ```bash
 untoldengine export \
   --input /path/to/robot.usdz \
-  --output ~/Projects/MyGame/Sources/MyGame/GameData/Models/robot/robot.untold \
+  --output ~/Projects/MyGame/GameData/Models/robot/robot.untold \
   --convert-orientation \
   --validate
 ```
@@ -121,7 +121,7 @@ Then export with optimization:
 ```bash
 untoldengine export \
   --input /path/to/robot.usdz \
-  --output ~/Projects/MyGame/Sources/MyGame/GameData/Models/robot/robot.untold \
+  --output ~/Projects/MyGame/GameData/Models/robot/robot.untold \
   --convert-orientation \
   --optimize
 ```
@@ -142,7 +142,7 @@ Export animation-only `.untoldanim` files with `--animation`:
 ```bash
 untoldengine export \
   --input /path/to/running.usdz \
-  --output ~/Projects/MyGame/Sources/MyGame/GameData/Animations/running/running.untoldanim \
+  --output ~/Projects/MyGame/GameData/Animations/running/running.untoldanim \
   --convert-orientation \
   --animation
 ```
@@ -166,7 +166,7 @@ operator, stage an externally-authored `.cube` LUT with the export:
 ```bash
 untoldengine export \
   --input /path/to/office.blend \
-  --output ~/Projects/MyGame/Sources/MyGame/GameData/Models/office/office.untold \
+  --output ~/Projects/MyGame/GameData/Models/office/office.untold \
   --convert-orientation \
   --color-grade-lut GameData/LUTs/warm_grade.cube
 ```
@@ -191,7 +191,7 @@ For large scenes, export a manifest and tile payloads into `GameData/StreamModel
 ```bash
 untoldengine export-tiles \
   --input /path/to/city.usdz \
-  --output-dir ~/Projects/MyGame/Sources/MyGame/GameData/StreamModels/City/tile_exports \
+  --output-dir ~/Projects/MyGame/GameData/StreamModels/City/tile_exports \
   --tile-size-x 25 \
   --tile-size-z 25 \
   --generate-hlod \
@@ -238,7 +238,7 @@ Use a uniform grid for simple outdoor scenes:
 ```bash
 untoldengine export-tiles \
   --input /path/to/site.usdz \
-  --output-dir ~/Projects/MyGame/Sources/MyGame/GameData/StreamModels/Site/tile_exports \
+  --output-dir ~/Projects/MyGame/GameData/StreamModels/Site/tile_exports \
   --tile-size-x 25 \
   --tile-size-z 25
 ```
@@ -248,7 +248,7 @@ Use quadtree for multi-floor buildings:
 ```bash
 untoldengine export-tiles \
   --input /path/to/building.usdz \
-  --output-dir ~/Projects/MyGame/Sources/MyGame/GameData/StreamModels/Building/tile_exports \
+  --output-dir ~/Projects/MyGame/GameData/StreamModels/Building/tile_exports \
   --quadtree \
   --scene-profile indoor
 ```
@@ -258,7 +258,7 @@ Use KD-tree when geometry is clustered unevenly:
 ```bash
 untoldengine export-tiles \
   --input /path/to/building.usdz \
-  --output-dir ~/Projects/MyGame/Sources/MyGame/GameData/StreamModels/Building/tile_exports \
+  --output-dir ~/Projects/MyGame/GameData/StreamModels/Building/tile_exports \
   --kdtree \
   --scene-profile indoor
 ```
@@ -267,7 +267,7 @@ untoldengine export-tiles \
 
 | Problem | Fix |
 | --- | --- |
-| Asset does not load | Confirm the `.untold` file is under `Sources/<ProjectName>/GameData/Models/<name>/`. |
+| Asset does not load | Confirm the `.untold` file is under `GameData/Models/<name>/`. |
 | Animation does not play | Confirm the clip was exported with `--animation` and registered with `setEntityAnimations(...)`. |
 | Blender look does not match | Try `setPostFX(.tonemapOperator(.agx))`, or export with `--color-grade-lut` and call `loadSceneAuthored(...)`. |
 | Tiled scene does not stream | Confirm the manifest is under `GameData/StreamModels/<SceneName>/` and tile paths are relative to it. |

@@ -2482,6 +2482,19 @@ public struct UntoldPackData: Decodable {
     /// levels from the finest (see `UntoldMeshLODCooker` in the UntoldEngineMeshCook
     /// module). Nil in a pack cooked without them.
     public let lodChains: [String: [UntoldPackLODLevelEntry]]?
+
+    /// Resolves `sourceAsset` to a URL, given the pack's own file location. `sourceAsset`
+    /// is always relative to the pack's directory, like each model's `path` -- a bare
+    /// filename (the exporter's original "source sits beside the pack" convention) is
+    /// just the degenerate case of that with no intermediate directories, so the same
+    /// resolution works whether the source still sits beside the pack or lives in a
+    /// separate tree the pack's own folder doesn't share (e.g. `../../../Resources/...`).
+    public func resolvedSourceAssetURL(packURL: URL) -> URL? {
+        guard let sourceAsset else { return nil }
+        return packURL.deletingLastPathComponent()
+            .appendingPathComponent(sourceAsset)
+            .standardizedFileURL
+    }
 }
 
 /// One simplified level of a pack model: a `.untold` with the model's entities and

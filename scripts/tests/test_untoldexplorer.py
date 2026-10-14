@@ -2650,7 +2650,7 @@ class PackSharedModelTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             output = Path(tmpdir) / "Park.untold"
             result = u.write_untold_pack_from_groups(
-                groups, source_asset_name="Park.blend", output_path=output, file_type_name="tile",
+                groups, source_asset_path=output.parent / "Park.blend", output_path=output, file_type_name="tile",
                 compress_geometry=False, validate=False, progress_callback=None,
             )
         self.assertEqual((result["written_model_count"], result["shared_model_count"]), (1, 2))
@@ -2678,7 +2678,7 @@ class PackSharedModelTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             output = Path(tmpdir) / "Models" / "Park.untold"
             result = u.write_untold_pack_from_groups(
-                groups, source_asset_name="Park.blend", output_path=output, file_type_name="tile",
+                groups, source_asset_path=output.parent / "Park.blend", output_path=output, file_type_name="tile",
                 compress_geometry=False, validate=False, progress_callback=None, assets_dir=Path(tmpdir) / "Models" / "Park",
             )
             manifest = json.loads(output.with_suffix(".untoldpack").read_text())
@@ -2711,7 +2711,7 @@ class PackOutputNameTests(unittest.TestCase):
         with contextlib.redirect_stdout(io.StringIO()):
             return u.write_untold_pack_from_groups(
                 {"Floor": [empty_node("Floor")], "Wall": [empty_node("Wall")]},
-                source_asset_name="scene.blend",
+                source_asset_path=self.output_dir / "scene.blend",
                 output_path=self.output_dir / output_name,
                 file_type_name="tile",
                 compress_geometry=False,

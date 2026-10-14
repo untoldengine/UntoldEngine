@@ -11,6 +11,9 @@
 import Foundation
 @testable import UntoldEngine
 import XCTest
+#if canImport(Darwin)
+    import Darwin
+#endif
 
 @MainActor
 final class BuildSystemTests: XCTestCase {
@@ -426,9 +429,11 @@ final class BuildSystemTests: XCTestCase {
         XCTAssertTrue(yamlContent.contains("PRODUCT_BUNDLE_IDENTIFIER: \(bundleID)"),
                       "XcodeGen spec should include bundle identifier")
 
-        // Verify GameData is also included as resources
-        XCTAssertTrue(yamlContent.contains("path: Sources/\(projectName)/GameData"),
+        // Verify GameData is also included as resources, at the project root
+        XCTAssertTrue(yamlContent.contains("path: GameData"),
                       "XcodeGen spec should include GameData path")
+        XCTAssertFalse(yamlContent.contains("path: Sources/\(projectName)/GameData"),
+                       "GameData should no longer be nested under Sources")
 
         // Verify project structure
         XCTAssertTrue(yamlContent.contains("name: \(projectName)"),
@@ -1212,11 +1217,16 @@ final class BuildSystemTests: XCTestCase {
                       "Should include visionOS source path")
 
         // All targets should share the same Sources folder
-        // Each target references it twice: once for the source path and once for GameData
         let sourcesPattern = "path: Sources/MyMultiPlatformGame"
         let occurrences = yamlContent.components(separatedBy: sourcesPattern).count - 1
-        XCTAssertEqual(occurrences, 8,
-                       "All 4 targets should reference shared Sources folder (2 refs per target)")
+        XCTAssertEqual(occurrences, 4,
+                       "All 4 targets should reference shared Sources folder")
+
+        // GameData lives at the project root, a sibling of Sources, referenced once per target
+        let gameDataPattern = "- path: GameData"
+        let gameDataOccurrences = yamlContent.components(separatedBy: gameDataPattern).count - 1
+        XCTAssertEqual(gameDataOccurrences, 4,
+                       "All 4 targets should reference the root-level GameData folder")
     }
 
     func testMultiPlatformWithTeamID() throws {
@@ -1481,5 +1491,217 @@ final class BuildSystemTests: XCTestCase {
             XCTAssertNil(templates["{{PROJECT_NAME}} visionOS/{{PROJECT_NAME}}App.swift"],
                          "Single-platform should not have multi-platform folder structure")
         }
+    }
+
+    // MARK: - Project Layout Conversion
+
+    func testConvertingToRootLevelGameDataSinglePlatform() throws {
+        let projectName = "MyGame"
+        let settings = BuildSettings(
+            projectName: projectName, bundleIdentifier: "com.test.game", outputPath: tempDirectory,
+            target: .macOS(deployment: .v15)
+        )
+        let currentYAML = try XcodeGenProjectSpec.generateYAML(settings: settings)
+        // What the pre-root-level generator produced: GameData nested under
+        // Sources/<Project>/, with the plain "Sources" entry excluding it.
+        let legacyYAML = currentYAML.replacingOccurrences(
+            of: "      - path: Sources\n      - path: GameData\n        type: folder\n        buildPhase: resources",
+            with: "      - path: Sources\n        excludes:\n          - \"\(projectName)/GameData\"\n      - path: Sources/\(projectName)/GameData\n        type: folder\n        buildPhase: resources"
+        )
+        XCTAssertNotEqual(legacyYAML, currentYAML, "the legacy fixture should actually differ from current output")
+
+        let converted = XcodeGenProjectSpec.convertingToRootLevelGameData(inYAML: legacyYAML, projectName: projectName)
+        XCTAssertEqual(converted, currentYAML, "converting the legacy spec should match what a fresh project gets today")
+    }
+
+    func testConvertingToRootLevelGameDataMultiPlatform() throws {
+        let projectName = "MyMultiGame"
+        let settings = BuildSettings(
+            projectName: projectName, bundleIdentifier: "com.test.game", outputPath: tempDirectory,
+            target: .multi(macOS: .v15, iOS: .v17, visionOS: .v2)
+        )
+        let currentYAML = try XcodeGenProjectSpec.generateYAML(settings: settings)
+
+        let legacyYAML = currentYAML.replacingOccurrences(
+            of: "- path: GameData\n        type: folder\n        buildPhase: resources",
+            with: "- path: Sources/\(projectName)/GameData\n        type: folder\n        buildPhase: resources"
+        )
+        XCTAssertNotEqual(legacyYAML, currentYAML, "the legacy fixture should actually differ from current output")
+
+        let converted = XcodeGenProjectSpec.convertingToRootLevelGameData(inYAML: legacyYAML, projectName: projectName)
+        XCTAssertEqual(converted, currentYAML, "converting the legacy spec should match what a fresh project gets today")
+    }
+
+    func testConvertingToRootLevelGameDataIsANoOpWhenAlreadyConverted() throws {
+        let settings = BuildSettings(
+            projectName: "MyGame", bundleIdentifier: "com.test.game", outputPath: tempDirectory,
+            target: .macOS(deployment: .v15)
+        )
+        let yaml = try XcodeGenProjectSpec.generateYAML(settings: settings)
+        XCTAssertEqual(XcodeGenProjectSpec.convertingToRootLevelGameData(inYAML: yaml, projectName: "MyGame"), yaml)
+    }
+
+    /// Builds a legacy-layout project on disk: GameData nested under
+    /// Sources/<Project>/GameData with one scene file in it, and a legacy-shaped
+    /// project.yml (reconstructed the same way the YAML-only tests above do).
+    private func makeLegacyProject(named projectName: String) throws -> URL {
+        let projectDir = tempDirectory.appendingPathComponent(projectName)
+        let gameDataDir = projectDir.appendingPathComponent("Sources").appendingPathComponent(projectName).appendingPathComponent("GameData")
+        let scenesDir = gameDataDir.appendingPathComponent("Scenes")
+        try FileManager.default.createDirectory(at: scenesDir, withIntermediateDirectories: true)
+        try Data("fake scene".utf8).write(to: scenesDir.appendingPathComponent("Test.untoldscene"))
+
+        let settings = BuildSettings(
+            projectName: projectName, bundleIdentifier: "com.test.game", outputPath: tempDirectory,
+            target: .macOS(deployment: .v15)
+        )
+        let currentYAML = try XcodeGenProjectSpec.generateYAML(settings: settings)
+        let legacyYAML = currentYAML.replacingOccurrences(
+            of: "      - path: Sources\n      - path: GameData\n        type: folder\n        buildPhase: resources",
+            with: "      - path: Sources\n        excludes:\n          - \"\(projectName)/GameData\"\n      - path: Sources/\(projectName)/GameData\n        type: folder\n        buildPhase: resources"
+        )
+        try legacyYAML.write(to: projectDir.appendingPathComponent("project.yml"), atomically: true, encoding: .utf8)
+
+        return projectDir
+    }
+
+    func testConvertProjectLayoutMovesGameDataAndCreatesResourcesAndDocs() throws {
+        let projectDir = try makeLegacyProject(named: "LegacyGame")
+
+        let result = try buildSystem.convertProjectLayout(projectRoot: projectDir, projectName: "LegacyGame")
+
+        let fm = FileManager.default
+        XCTAssertFalse(fm.fileExists(atPath: projectDir.appendingPathComponent("Sources/LegacyGame/GameData").path),
+                       "the legacy GameData location should no longer exist")
+        let rootGameData = projectDir.appendingPathComponent("GameData")
+        XCTAssertTrue(fm.fileExists(atPath: rootGameData.appendingPathComponent("Scenes/Test.untoldscene").path),
+                      "the moved GameData should keep its contents")
+        XCTAssertTrue(fm.fileExists(atPath: projectDir.appendingPathComponent("Resources").path))
+        XCTAssertTrue(fm.fileExists(atPath: projectDir.appendingPathComponent("Docs").path))
+        XCTAssertTrue(fm.fileExists(atPath: projectDir.appendingPathComponent(".gitignore").path))
+        XCTAssertEqual(result.projectRoot, projectDir)
+        XCTAssertFalse(result.log.isEmpty)
+    }
+
+    func testConvertProjectLayoutRewritesProjectYML() throws {
+        let projectDir = try makeLegacyProject(named: "LegacyGame2")
+
+        try buildSystem.convertProjectLayout(projectRoot: projectDir, projectName: "LegacyGame2")
+
+        let rewritten = try String(contentsOf: projectDir.appendingPathComponent("project.yml"), encoding: .utf8)
+        XCTAssertTrue(rewritten.contains("- path: GameData"))
+        XCTAssertFalse(rewritten.contains("Sources/LegacyGame2/GameData"))
+    }
+
+    func testConvertProjectLayoutThrowsWhenAlreadyOnRootLevelLayout() throws {
+        let projectDir = tempDirectory.appendingPathComponent("AlreadyConverted")
+        try FileManager.default.createDirectory(at: projectDir.appendingPathComponent("GameData"), withIntermediateDirectories: true)
+
+        XCTAssertThrowsError(try buildSystem.convertProjectLayout(projectRoot: projectDir, projectName: "AlreadyConverted")) { error in
+            guard case let BuildError.invalidProjectStructure(message) = error else {
+                return XCTFail("expected invalidProjectStructure, got \(error)")
+            }
+            XCTAssertTrue(message.contains("already"))
+        }
+    }
+
+    func testConvertProjectLayoutThrowsWhenLegacyGameDataIsMissing() throws {
+        let projectDir = tempDirectory.appendingPathComponent("NoGameDataYet")
+        try FileManager.default.createDirectory(at: projectDir, withIntermediateDirectories: true)
+
+        XCTAssertThrowsError(try buildSystem.convertProjectLayout(projectRoot: projectDir, projectName: "NoGameDataYet")) { error in
+            guard case BuildError.invalidProjectStructure = error else {
+                return XCTFail("expected invalidProjectStructure, got \(error)")
+            }
+        }
+    }
+
+    func testConvertProjectLayoutThrowsWhenProjectDoesNotExist() throws {
+        let projectDir = tempDirectory.appendingPathComponent("NeverCreated")
+
+        XCTAssertThrowsError(try buildSystem.convertProjectLayout(projectRoot: projectDir, projectName: "NeverCreated")) { error in
+            guard case BuildError.projectNotFound = error else {
+                return XCTFail("expected projectNotFound, got \(error)")
+            }
+        }
+    }
+
+    func testConvertProjectLayoutVerifiesPackSourceAssetStillResolves() throws {
+        let projectDir = try makeLegacyProject(named: "LegacyGameWithPack")
+        let modelDir = projectDir
+            .appendingPathComponent("Sources").appendingPathComponent("LegacyGameWithPack")
+            .appendingPathComponent("GameData").appendingPathComponent("Models").appendingPathComponent("Tower")
+        try FileManager.default.createDirectory(at: modelDir, withIntermediateDirectories: true)
+        // Today's convention: the source sits beside the pack, referenced as a bare filename.
+        try Data("fake blend".utf8).write(to: modelDir.appendingPathComponent("Tower.blend"))
+        let packJSON = """
+        {"formatVersion": 1, "sourceAsset": "Tower.blend", "models": [
+          {"displayName": "Tower", "path": "Tower.untold", "transform": [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]]}
+        ]}
+        """
+        try Data(packJSON.utf8).write(to: modelDir.appendingPathComponent("Tower.untoldpack"))
+
+        let result = try buildSystem.convertProjectLayout(projectRoot: projectDir, projectName: "LegacyGameWithPack")
+
+        // The pack and its source moved together with the rest of GameData, so
+        // sourceAsset -- relative to the pack's own folder -- still resolves with no
+        // rewrite needed.
+        let movedPack = projectDir
+            .appendingPathComponent("GameData").appendingPathComponent("Models").appendingPathComponent("Tower")
+            .appendingPathComponent("Tower.untoldpack")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: movedPack.path))
+        XCTAssertTrue(result.log.contains { $0.contains("1 pack manifest(s) checked") })
+    }
+
+    func testConvertProjectLayoutWarnsInsteadOfClaimingSuccessOnAHandEditedProjectYML() throws {
+        let projectDir = try makeLegacyProject(named: "LegacyGameHandEdited")
+
+        // A project.yml that still points at the legacy GameData path, but not in the exact
+        // shape the generator produces (e.g. single quotes instead of double) -- the textual
+        // rewrite won't recognize this, and should say so rather than reporting the project
+        // as already on the root-level layout.
+        let projectYMLPath = projectDir.appendingPathComponent("project.yml")
+        let handEditedYAML = """
+        name: LegacyGameHandEdited
+        targets:
+          LegacyGameHandEdited:
+            sources:
+              - path: 'Sources/LegacyGameHandEdited/GameData'
+                type: folder
+        """
+        try handEditedYAML.write(to: projectYMLPath, atomically: true, encoding: .utf8)
+
+        let result = try buildSystem.convertProjectLayout(projectRoot: projectDir, projectName: "LegacyGameHandEdited")
+
+        XCTAssertFalse(result.log.contains { $0.contains("already matched the root-level layout") },
+                       "should not claim success when project.yml still references the legacy path")
+        XCTAssertTrue(result.log.contains { $0.contains("hand-edited project.yml?") },
+                      "should warn that project.yml needs manual attention")
+    }
+
+    func testConvertProjectLayoutRollsBackGameDataMoveOnFailure() throws {
+        let projectDir = try makeLegacyProject(named: "LegacyGameRollback")
+
+        // Make project.yml immutable so the rewrite step fails after GameData has already
+        // been moved to the root. Without a rollback, this would leave the project
+        // half-converted: GameData at the root, but project.yml still pointing at the legacy
+        // Sources/<Project>/GameData path.
+        let projectYMLPath = projectDir.appendingPathComponent("project.yml")
+        #if canImport(Darwin)
+            chflags(projectYMLPath.path, UInt32(UF_IMMUTABLE))
+            defer { chflags(projectYMLPath.path, 0) }
+        #endif
+
+        XCTAssertThrowsError(try buildSystem.convertProjectLayout(projectRoot: projectDir, projectName: "LegacyGameRollback"))
+
+        let fm = FileManager.default
+        XCTAssertTrue(
+            fm.fileExists(atPath: projectDir.appendingPathComponent("Sources/LegacyGameRollback/GameData/Scenes/Test.untoldscene").path),
+            "GameData should move back to the legacy location after the failure"
+        )
+        XCTAssertFalse(
+            fm.fileExists(atPath: projectDir.appendingPathComponent("GameData").path),
+            "GameData should not be left at the root-level location after a rolled-back conversion"
+        )
     }
 }
