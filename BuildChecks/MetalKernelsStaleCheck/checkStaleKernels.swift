@@ -22,20 +22,17 @@ import CryptoKit
 import Foundation
 import PackagePlugin
 
-/// `Target.directoryURL` needs PackageDescription 6.1; this package is on 6.0, so
-/// `.directory` (deprecated `Path`) is the only way to locate the target on this
-/// tools version. Routing the access through a deprecated helper silences the
-/// unavoidable deprecation warning instead of letting it trip CI's zero-new-warnings
-/// guardrail.
-@available(*, deprecated)
-private func targetDirectoryPathString(_ target: Target) -> String {
-    target.directory.string
-}
-
 @main
 struct MetalKernelsStaleCheck: BuildToolPlugin {
+    // `Target.directoryURL` needs PackageDescription 6.1; this package is on 6.0, so
+    // `.directory` (deprecated `Path`) is the only way to locate the target on this
+    // tools version. SwiftPM invokes this method through the `BuildToolPlugin`
+    // existential at runtime rather than our code calling it directly, so marking it
+    // deprecated silences the unavoidable warning here without anyone needing to call
+    // a deprecated entry point themselves.
+    @available(*, deprecated)
     func createBuildCommands(context _: PluginContext, target: Target) async throws -> [Command] {
-        let engineDir = URL(fileURLWithPath: targetDirectoryPathString(target))
+        let engineDir = URL(fileURLWithPath: target.directory.string)
         let kernelsDir = engineDir.appending(path: "UntoldEngineKernels")
         let shadersDir = engineDir.appending(path: "Shaders")
         let metalSource = kernelsDir.appending(path: "UntoldEngineKernels.metal")
