@@ -38,6 +38,9 @@
         /// prefiltered probe has been published.
         public var publishedIntensityScale: Float?
         public var publishCount: Int = 0
+        /// The mean luminance of each face of the last probe read back (+x, −x, +y, −y, +z, −z),
+        /// before the intensity scale: where the room's light is in the probe's frame.
+        public var latestProbeFaceLuminance: [Float] = []
     }
 
     public final class XREnvironmentLightingSystem: @unchecked Sendable {
@@ -56,6 +59,7 @@
         private var fallbackReasonValue: String?
         private var latestProbeDescriptionValue = ""
         private var publishCountValue = 0
+        private var latestProbeFaceLuminanceValue: [Float] = []
         private var lastAcceptedProbeUpdateTime: CFTimeInterval = 0
         private var probeMonitorTask: Task<Void, Never>?
         private var textureSets: [RuntimeEnvironmentLightingTextureSet] = []
@@ -576,17 +580,25 @@
             var total = simd_float3(0.0, 0.0, 0.0)
             var sampleCount: Float = 0.0
 
+            var faceLuminance: [Float] = []
             for face in 0 ..< readback.faceCount {
                 let faceBase = face * readback.faceBytes
+                var faceTotal = simd_float3(0.0, 0.0, 0.0)
                 for y in 0 ..< readback.height {
                     let rowBase = faceBase + y * readback.bytesPerRow
                     for x in 0 ..< readback.width {
                         let offset = rowBase + x * environmentTintBytesPerPixel(for: readback.pixelFormat)!
-                        total += environmentTintPixel(contents: contents, offset: offset, pixelFormat: readback.pixelFormat)
+                        faceTotal += environmentTintPixel(contents: contents, offset: offset, pixelFormat: readback.pixelFormat)
                         sampleCount += 1.0
                     }
                 }
+                total += faceTotal
+                let faceSamples = Float(max(readback.width * readback.height, 1))
+                faceLuminance.append(simd_dot(faceTotal / faceSamples, simd_float3(0.2126, 0.7152, 0.0722)))
             }
+            lock.lock()
+            latestProbeFaceLuminanceValue = faceLuminance
+            lock.unlock()
 
             guard sampleCount > 0.0 else { return simd_float3(1.0, 1.0, 1.0) }
             let average = total / sampleCount
@@ -644,7 +656,8 @@
                 fallbackReason: fallbackReasonValue,
                 latestProbeDescription: latestProbeDescriptionValue,
                 publishedIntensityScale: smoothedIntensityScaleValue,
-                publishCount: publishCountValue
+                publishCount: publishCountValue,
+                latestProbeFaceLuminance: latestProbeFaceLuminanceValue
             )
             lock.unlock()
             return diagnostics
