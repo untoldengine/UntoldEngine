@@ -366,3 +366,19 @@ ScenePluginSystem.shared.finishReload()                // new instances, saved v
 ```
 
 A type that no longer exists leaves its slot unbound with its values intact.
+
+## Common Failures
+
+These were found during development, in a packaged app or a generated game rather than in unit
+tests, and are already fixed in the engine — kept here because the fixes explain constraints
+mentioned above (why `entity`, `isAttached` and `hasStarted` are `final`, for instance) and
+because the symptoms are useful if you hit something similar on a custom build or packaging step.
+
+| Symptom | Cause |
+| --- | --- |
+| A component loads in a debug build from Xcode but fails to load in a packaged release build | A subclass in a loaded library copies its base class's dispatch table, internal members included, and release builds hide symbols that aren't exported. This is why `ScenePlugin`'s non-overridable members are `final` — an internal member that isn't would break the same way. `scripts/verify-component-sdk.sh` checks this at packaging time against the bundled SDK. |
+| `discoverInApp()` finds no plugin types at all | Xcode builds an app's code into `<App>.debug.dylib` and leaves the executable itself as a stub, so scanning only the main executable finds nothing. Discovery must cover every image in the app bundle, which is what `discoverInApp()` does. |
+| A library that was just `dlopen`ed isn't recognized by discovery | Path spelling can differ between how a library was opened and how the loader records it (`/private/var/...` vs `/var/...`). Discovery matches against the list of loaded images, not the literal path string. |
+| An entity pending destruction never receives `onDetach()` | `scene.mask(for:)` hides entities already marked for destruction, so a lookup through the mask can't reach their instances to detach them. The cleanup path has to look the entity up by its component bit instead. |
+| A packaged app crashes at launch when run outside the build tree | A packaging script that hardcodes a build path, or skips copying a resource bundle the editor needs, will work in the build tree and fail anywhere else. Worth checking if you maintain a custom packaging step. |
+| Viewport icons or editor-representation markers look washed out | Marker textures read as linear when the pixel data is sRGB. Marker textures should be `rgba8Unorm_srgb`. |
