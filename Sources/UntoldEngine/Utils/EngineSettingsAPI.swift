@@ -144,6 +144,33 @@ public enum RenderingProperty: Sendable {
     /// same picture but at the multisampled edges, where the quad lit each sample and the
     /// geometry lights each pixel once. Disabling it is a diagnostic.
     case perFragmentLighting(RenderingToggle)
+    /// Where the opaque geometry is shaded (see `RenderPath`): sets `perFragmentIndirectLighting`
+    /// and `perFragmentLighting` together, so a scene says "forward" or "deferred" instead of
+    /// composing the two. Forward by default. `getRenderPath()` reads the path the two make.
+    case renderPath(RenderPath)
+}
+
+/// Where the opaque geometry is shaded.
+public enum RenderPath: String, Sendable, Codable, Equatable, CaseIterable {
+    /// The geometry writes its surface to the G-buffer and the light pass lights it, once per
+    /// multisample from a quad or once per pixel through the tile light stage. The path for a
+    /// scene of many lights, and for the effects that read the G-buffer: the ambient occlusion,
+    /// the debug views.
+    case deferred
+    /// Deferred, with the image-based light and the sun's shadow evaluated by the geometry once
+    /// per fragment and carried in the G-buffer; the light pass adds the direct lights.
+    case hybrid
+    /// The geometry lights itself whole once per fragment and writes the lit colour; the light
+    /// quad stands down and the G-buffer shrinks to that colour. One attachment, the samples in
+    /// tile memory: the headset's path. The effects that read the G-buffer stand down with it.
+    case forward
+}
+
+/// The render path the two per-fragment settings make: forward with both on, hybrid with the
+/// indirect light alone, deferred otherwise (the direct light per fragment needs the indirect).
+public func getRenderPath() -> RenderPath {
+    guard renderInfo.perFragmentIndirectLighting else { return .deferred }
+    return renderInfo.perFragmentLighting ? .forward : .hybrid
 }
 
 /// The model pass's back-face culling: off, or on with the winding that counts as the front.
@@ -255,6 +282,9 @@ public func setRendering(_ property: RenderingProperty) {
         renderInfo.perFragmentLighting = true
     case .perFragmentLighting(.disabled):
         renderInfo.perFragmentLighting = false
+    case let .renderPath(path):
+        renderInfo.perFragmentIndirectLighting = path != .deferred
+        renderInfo.perFragmentLighting = path == .forward
     }
 }
 
