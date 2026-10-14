@@ -62,7 +62,7 @@ public struct RuntimeEnvironmentLightingTextureSet {
     public var brdfMap: MTLTexture
     /// The probe's first nine spherical harmonics (nine float4s), which the headset's room
     /// probe pre-filter projects and reads the irradiance from.
-    public var probeSH: MTLBuffer? = nil
+    public var probeSH: MTLBuffer?
 }
 
 public struct ResolvedEnvironmentLighting {

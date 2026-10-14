@@ -92,6 +92,7 @@
             let parts = duration.components
             return Double(parts.seconds) * 1000.0 + Double(parts.attoseconds) / 1e15
         }
+
         private let spatialGestureRecognizer = XRSpatialGestureRecognizer()
         private let xrEnvironmentLightingSystem = XREnvironmentLightingSystem()
         private var runtimeLightingModeObserverId: UUID?

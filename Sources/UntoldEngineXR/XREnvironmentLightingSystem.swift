@@ -544,9 +544,9 @@
                 _ = retainedAnchor
                 guard let self else { return }
                 let succeeded = commandBuffer.status == .completed
-                let tintColor = succeeded ? self.environmentTint(from: faces) : simd_float3(1.0, 1.0, 1.0)
-                let rgb = succeeded ? self.probeTexels(from: texels) : []
-                self.probeEstimateArrived(
+                let tintColor = succeeded ? environmentTint(from: faces) : simd_float3(1.0, 1.0, 1.0)
+                let rgb = succeeded ? probeTexels(from: texels) : []
+                probeEstimateArrived(
                     texels: rgb,
                     size: texels.width,
                     intensityScale: intensityScale,

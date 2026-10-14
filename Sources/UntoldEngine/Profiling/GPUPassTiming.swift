@@ -28,7 +28,9 @@ public final class GPUPassTiming: @unchecked Sendable {
         public let label: String
         public let vertexMs: Double
         public let fragmentMs: Double
-        public var totalMs: Double { vertexMs + fragmentMs }
+        public var totalMs: Double {
+            vertexMs + fragmentMs
+        }
     }
 
     /// Samples per frame the buffer holds: four per render pass, two per compute or blit pass.
@@ -264,7 +266,7 @@ public final class GPUPassTiming: @unchecked Sendable {
         guard stamps.count >= frame.nextSample else { return }
 
         lock.lock()
-        let secondsPerTick = self.secondsPerTick
+        let secondsPerTick = secondsPerTick
         lock.unlock()
         // Until the clocks are calibrated, the frame's own span sets the scale.
         let valid = stamps.filter { $0 != MTLCounterErrorValue && $0 != 0 }
@@ -301,7 +303,7 @@ public final class GPUPassTiming: @unchecked Sendable {
                 continue
             }
             averageTimes[label] = (old.vertex + (now.vertex - old.vertex) * weight,
-                               old.fragment + (now.fragment - old.fragment) * weight)
+                                   old.fragment + (now.fragment - old.fragment) * weight)
         }
         lock.unlock()
     }
