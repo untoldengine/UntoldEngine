@@ -24,12 +24,12 @@ import PackagePlugin
 
 @main
 struct MetalKernelsStaleCheck: BuildToolPlugin {
-    // `Target.directoryURL` needs PackageDescription 6.1; this package is on 6.0, so
-    // `.directory` (deprecated `Path`) is the only way to locate the target on this
-    // tools version. SwiftPM invokes this method through the `BuildToolPlugin`
-    // existential at runtime rather than our code calling it directly, so marking it
-    // deprecated silences the unavoidable warning here without anyone needing to call
-    // a deprecated entry point themselves.
+    /// `Target.directoryURL` needs PackageDescription 6.1; this package is on 6.0, so
+    /// `.directory` (deprecated `Path`) is the only way to locate the target on this
+    /// tools version. SwiftPM invokes this method through the `BuildToolPlugin`
+    /// existential at runtime rather than our code calling it directly, so marking it
+    /// deprecated silences the unavoidable warning here without anyone needing to call
+    /// a deprecated entry point themselves.
     @available(*, deprecated)
     func createBuildCommands(context _: PluginContext, target: Target) async throws -> [Command] {
         let engineDir = URL(fileURLWithPath: target.directory.string)
