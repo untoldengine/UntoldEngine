@@ -74,7 +74,29 @@
 
         private var pendingProbeValue: PendingProbe?
         private var pendingProbeDrainTask: Task<Void, Never>?
-        private var lastPrefilterStartTime: CFTimeInterval?
+        private var lastReadbackStartTime: CFTimeInterval?
+        private var readbackInFlightValue = false
+        /// Bumped when the system is disabled: a readback or a transition step from before
+        /// then has nothing to come back to.
+        private var sessionGeneration: UInt64 = 0
+        /// The light's transition. The newest estimate read back is the target: its first
+        /// mip's texels (six faces, row by row, linear rgb), its scale and its tint. What is
+        /// shown is the current, which moves towards the target step by step; each step
+        /// uploads the current texels into the blend cube, prefilters it and publishes.
+        private var targetProbeTexels: [Float] = []
+        private var targetProbeSize = 0
+        private var targetIntensityScaleValue: Float = 1.0
+        private var targetTintColorValue = simd_float3(1.0, 1.0, 1.0)
+        private var targetTimestampValue: CFTimeInterval = 0
+        private var targetGeneration: UInt64 = 0
+        private var currentProbeTexels: [Float] = []
+        private var currentProbeSize = 0
+        private var currentIntensityScaleValue: Float = 1.0
+        private var currentTintColorValue = simd_float3(1.0, 1.0, 1.0)
+        private var blendedProbeCube: MTLTexture?
+        private var transitionRunning = false
+        private var lastTransitionStepTime: CFTimeInterval?
+        private var publishedIntensityScaleValue: Float?
         private var probeMonitorTask: Task<Void, Never>?
         private var textureSets: [RuntimeEnvironmentLightingTextureSet] = []
         private var currentReadTextureSetIndex = 0
@@ -84,9 +106,6 @@
         /// dartboard's white segments matched the passthrough's whites at a reference of
         /// 19016 with a scale of about 19): the reference over a thousand.
         private let cameraScaleReferenceWhitePoint: Float = 1000.0
-        private var smoothedIntensityScaleValue: Float?
-        private var smoothedTintColorValue = simd_float3(1.0, 1.0, 1.0)
-        private var lastSmoothedLightingTimestamp: CFTimeInterval?
 
         #if canImport(ARKit)
             /// ARKit data providers are one-shot: an instance that has been passed to
@@ -99,13 +118,16 @@
         /// newest one waiting is the one prefiltered.
         public var minimumProbeUpdateInterval: CFTimeInterval = 0.5
 
-        /// Exponential-smoothing time constant (seconds) applied to the probe-driven
-        /// intensity scale and tint before publishing. The raw values track headset
-        /// camera auto-exposure (`cameraScaleReference`) and can step sharply when the
-        /// user looks toward or away from bright real-world light sources; without
-        /// smoothing every real-world-tinted light portal steps in brightness with
-        /// head movement. Set to 0 to publish raw values immediately.
-        public var lightingSmoothingTimeConstant: CFTimeInterval = 1.0
+        /// The time constant (seconds) of the light's transition from one estimate to the
+        /// next. A new estimate does not replace the light at once: the probe's texels, its
+        /// scale and its tint move towards it exponentially, re-prefiltered every
+        /// `transitionStepInterval`, so a step in the camera's exposure or in what the probe
+        /// sees when the wearer turns towards a window becomes a fade, not a cut. 0 publishes
+        /// each estimate as it arrives.
+        public var lightingSmoothingTimeConstant: CFTimeInterval = 3.0
+
+        /// How often the transition re-prefilters the blended probe while it is under way.
+        public var transitionStepInterval: CFTimeInterval = 0.1
 
         public init() {
             #if canImport(ARKit)
@@ -181,11 +203,15 @@
                 pendingProbeValue = nil
                 pendingProbeDrainTask?.cancel()
                 pendingProbeDrainTask = nil
-                lastPrefilterStartTime = nil
+                lastReadbackStartTime = nil
+                readbackInFlightValue = false
                 prefilterGeneration &+= 1
-                smoothedIntensityScaleValue = nil
-                smoothedTintColorValue = simd_float3(1.0, 1.0, 1.0)
-                lastSmoothedLightingTimestamp = nil
+                sessionGeneration &+= 1
+                targetProbeTexels = []
+                currentProbeTexels = []
+                transitionRunning = false
+                lastTransitionStepTime = nil
+                publishedIntensityScaleValue = nil
                 RuntimeEnvironmentLightingStore.shared.publishXRLighting(nil)
             }
             lock.unlock()
@@ -340,6 +366,9 @@
             return (writeIndex, textureSet, prefilterGeneration)
         }
 
+        /// Publishes the prefiltered set with the scale and tint it is given; false when it
+        /// could not (disabled, superseded, or the prefilter failed, which publishes nothing).
+        @discardableResult
         private func finishPrefilter(
             succeeded: Bool,
             textureSetIndex: Int,
@@ -348,12 +377,12 @@
             intensityScale: Float,
             tintColor: simd_float3,
             durationMs: Double
-        ) {
+        ) -> Bool {
             lock.lock()
 
             guard enabledValue, generation == prefilterGeneration else {
                 lock.unlock()
-                return
+                return false
             }
 
             prefilterInFlightValue = false
@@ -363,33 +392,15 @@
                 fallbackReasonValue = "XR probe prefilter failed"
                 lock.unlock()
                 RuntimeEnvironmentLightingStore.shared.publishXRLighting(nil)
-                drainPendingProbe()
-                return
+                return false
             }
 
             currentReadTextureSetIndex = textureSetIndex
             let textureSet = textureSets[textureSetIndex]
             latestTintColorValue = tintColor
+            publishedIntensityScaleValue = intensityScale
             fallbackReasonValue = nil
             publishCountValue += 1
-
-            // Smooth the published intensity/tint so auto-exposure steps in the raw
-            // probe estimate don't pop every real-world-tinted light in the scene.
-            // Diagnostics keep the raw values; only the published lighting is smoothed.
-            var publishedIntensityScale = intensityScale
-            var publishedTintColor = tintColor
-            if let previousScale = smoothedIntensityScaleValue,
-               let previousTimestamp = lastSmoothedLightingTimestamp,
-               lightingSmoothingTimeConstant > 0.0
-            {
-                let deltaTime = min(max(timestamp - previousTimestamp, 0.0), 10.0)
-                let alpha = Float(1.0 - exp(-deltaTime / lightingSmoothingTimeConstant))
-                publishedIntensityScale = previousScale + (intensityScale - previousScale) * alpha
-                publishedTintColor = smoothedTintColorValue + (tintColor - smoothedTintColorValue) * alpha
-            }
-            smoothedIntensityScaleValue = publishedIntensityScale
-            smoothedTintColorValue = publishedTintColor
-            lastSmoothedLightingTimestamp = timestamp
             lock.unlock()
 
             RuntimeEnvironmentLightingStore.shared.publishXRLighting(
@@ -397,13 +408,13 @@
                     irradianceMap: textureSet.irradianceMap,
                     specularMap: textureSet.specularMap,
                     brdfMap: textureSet.brdfMap,
-                    intensityScale: publishedIntensityScale,
-                    tintColor: publishedTintColor,
+                    intensityScale: intensityScale,
+                    tintColor: tintColor,
                     timestamp: timestamp,
                     isValid: true
                 )
             )
-            drainPendingProbe()
+            return true
         }
 
         private func updateProbeCameraScaleReference(_ cameraScaleReference: Float?, hasTexture: Bool) -> Float {
@@ -442,8 +453,9 @@
             var faceCount: Int
         }
 
-        /// Takes a probe in: the newest one waits for the prefilter in flight and for the
-        /// minimum interval, then is prefiltered; an older one still waiting is superseded.
+        /// Takes a probe in: the newest one waits for the readback in flight and for the
+        /// minimum interval, then is read back and becomes the light's target; an older one
+        /// still waiting is superseded.
         private func enqueueProbe(_ probe: PendingProbe) {
             lock.lock()
             pendingProbeValue = probe
@@ -451,17 +463,17 @@
             drainPendingProbe()
         }
 
-        /// Prefilters the waiting probe once nothing is in flight and the interval has passed;
-        /// until then the prefilter's completion, or a timer for the rest of the interval,
-        /// comes back here.
+        /// Reads the waiting probe back once no readback is in flight and the interval has
+        /// passed; until then the readback's completion, or a timer for the rest of the
+        /// interval, comes back here.
         private func drainPendingProbe() {
             lock.lock()
-            guard enabledValue, let probe = pendingProbeValue, !prefilterInFlightValue else {
+            guard enabledValue, let probe = pendingProbeValue, !readbackInFlightValue else {
                 lock.unlock()
                 return
             }
             let now = ProcessInfo.processInfo.systemUptime
-            if let lastStart = lastPrefilterStartTime {
+            if let lastStart = lastReadbackStartTime {
                 let remaining = minimumProbeUpdateInterval - (now - lastStart)
                 if remaining > 0 {
                     if pendingProbeDrainTask == nil {
@@ -476,9 +488,9 @@
                 }
             }
             pendingProbeValue = nil
-            lastPrefilterStartTime = now
+            lastReadbackStartTime = now
             lock.unlock()
-            scheduleProbePrefilter(
+            scheduleProbeReadback(
                 environmentTexture: probe.texture,
                 timestamp: probe.timestamp,
                 intensityScale: probe.intensityScale,
@@ -494,7 +506,9 @@
             drainPendingProbe()
         }
 
-        private func scheduleProbePrefilter(
+        /// Reads the probe back: its first mip, the texels the light's transition blends, and
+        /// its last mip, the per-face light the diagnostics report and the tint comes from.
+        private func scheduleProbeReadback(
             environmentTexture: MTLTexture,
             timestamp: CFTimeInterval,
             intensityScale: Float,
@@ -505,55 +519,268 @@
                 return
             }
 
-            guard let prefilter = beginPrefilterIfPossible() else { return }
+            lock.lock()
+            guard enabledValue, !readbackInFlightValue else {
+                lock.unlock()
+                return
+            }
+            readbackInFlightValue = true
+            let session = sessionGeneration
+            lock.unlock()
+
+            guard let commandBuffer = renderInfo.commandQueue.makeCommandBuffer(),
+                  let texels = encodeEnvironmentTintReadback(commandBuffer: commandBuffer, environmentTexture: environmentTexture, mipLevel: 0),
+                  let faces = encodeEnvironmentTintReadback(commandBuffer: commandBuffer, environmentTexture: environmentTexture)
+            else {
+                lock.lock()
+                readbackInFlightValue = false
+                lock.unlock()
+                publishUnavailableProbe(reason: "XR probe readback could not be encoded")
+                return
+            }
+
+            commandBuffer.label = "XR Environment Probe Readback"
+            commandBuffer.addCompletedHandler { [weak self, retainedAnchor] commandBuffer in
+                _ = retainedAnchor
+                guard let self else { return }
+                let succeeded = commandBuffer.status == .completed
+                let tintColor = succeeded ? self.environmentTint(from: faces) : simd_float3(1.0, 1.0, 1.0)
+                let rgb = succeeded ? self.probeTexels(from: texels) : []
+                self.probeEstimateArrived(
+                    texels: rgb,
+                    size: texels.width,
+                    intensityScale: intensityScale,
+                    tintColor: tintColor,
+                    timestamp: timestamp,
+                    session: session,
+                    succeeded: succeeded
+                )
+            }
+            commandBuffer.commit()
+        }
+
+        /// A readback's texels, face by face and row by row, as linear rgb.
+        private func probeTexels(from readback: EnvironmentTintReadback) -> [Float] {
+            let contents = readback.buffer.contents()
+            let bytesPerPixel = readback.bytesPerRow / max(readback.width, 1)
+            var texels: [Float] = []
+            texels.reserveCapacity(readback.faceCount * readback.width * readback.height * 3)
+            for face in 0 ..< readback.faceCount {
+                for y in 0 ..< readback.height {
+                    for x in 0 ..< readback.width {
+                        let offset = face * readback.faceBytes + y * readback.bytesPerRow + x * bytesPerPixel
+                        let c = environmentTintPixel(contents: contents, offset: offset, pixelFormat: readback.pixelFormat)
+                        texels.append(c.x)
+                        texels.append(c.y)
+                        texels.append(c.z)
+                    }
+                }
+            }
+            return texels
+        }
+
+        /// An estimate has been read back: it is the target the shown light moves to. The
+        /// first estimate, or one of another size, is shown as it is.
+        private func probeEstimateArrived(
+            texels: [Float],
+            size: Int,
+            intensityScale: Float,
+            tintColor: simd_float3,
+            timestamp: CFTimeInterval,
+            session: UInt64,
+            succeeded: Bool
+        ) {
+            lock.lock()
+            readbackInFlightValue = false
+            guard enabledValue, session == sessionGeneration else {
+                lock.unlock()
+                return
+            }
+            guard succeeded, !texels.isEmpty else {
+                lock.unlock()
+                publishUnavailableProbe(reason: "XR probe readback failed")
+                drainPendingProbe()
+                return
+            }
+            targetProbeTexels = texels
+            targetProbeSize = size
+            targetIntensityScaleValue = intensityScale
+            targetTintColorValue = tintColor
+            targetTimestampValue = timestamp
+            targetGeneration &+= 1
+            if currentProbeTexels.count != texels.count {
+                currentProbeTexels = texels
+                currentProbeSize = size
+                currentIntensityScaleValue = intensityScale
+                currentTintColorValue = tintColor
+            }
+            let start = !transitionRunning
+            if start {
+                transitionRunning = true
+                lastTransitionStepTime = ProcessInfo.processInfo.systemUptime
+            }
+            lock.unlock()
+            if start {
+                transitionStep()
+            }
+            drainPendingProbe()
+        }
+
+        /// One step of the light's transition: the shown texels, scale and tint move towards
+        /// the target by the time constant's share of the time since the last step, the blend
+        /// cube is prefiltered and published. The step that reaches the target is the last
+        /// until a new estimate arrives.
+        private func transitionStep() {
+            lock.lock()
+            guard enabledValue, !currentProbeTexels.isEmpty, targetProbeTexels.count == currentProbeTexels.count else {
+                transitionRunning = false
+                lock.unlock()
+                return
+            }
+            let now = ProcessInfo.processInfo.systemUptime
+            let deltaTime = lastTransitionStepTime.map { min(max(now - $0, 0.0), 10.0) } ?? 0.0
+            let timeConstant = lightingSmoothingTimeConstant
+            var alpha: Float = timeConstant > 0.0 ? Float(1.0 - exp(-deltaTime / timeConstant)) : 1.0
+            var maxDifference: Float = 0.0
+            var maxTarget: Float = 0.0
+            for index in currentProbeTexels.indices {
+                maxDifference = max(maxDifference, abs(targetProbeTexels[index] - currentProbeTexels[index]))
+                maxTarget = max(maxTarget, targetProbeTexels[index])
+            }
+            let scaleDifference = abs(targetIntensityScaleValue - currentIntensityScaleValue)
+            // Close enough counts as there: the step snaps to the target and is the last.
+            let final = alpha >= 1.0
+                || (maxDifference <= 0.002 * max(maxTarget, 1.0) && scaleDifference <= 0.005 * max(targetIntensityScaleValue, 0.01))
+            if final {
+                alpha = 1.0
+            }
+            for index in currentProbeTexels.indices {
+                currentProbeTexels[index] += (targetProbeTexels[index] - currentProbeTexels[index]) * alpha
+            }
+            currentIntensityScaleValue += (targetIntensityScaleValue - currentIntensityScaleValue) * alpha
+            currentTintColorValue += (targetTintColorValue - currentTintColorValue) * alpha
+            lastTransitionStepTime = now
+            let shownGeneration = targetGeneration
+            let session = sessionGeneration
+            let texels = currentProbeTexels
+            let size = currentProbeSize
+            let intensityScale = currentIntensityScaleValue
+            let tintColor = currentTintColorValue
+            let timestamp = targetTimestampValue
+            lock.unlock()
+
+            guard let cube = uploadBlendedProbe(texels: texels, size: size) else {
+                lock.lock()
+                transitionRunning = false
+                lock.unlock()
+                publishUnavailableProbe(reason: "XR probe blend texture unavailable")
+                return
+            }
+            prefilterBlendedProbe(cube, intensityScale: intensityScale, tintColor: tintColor, timestamp: timestamp) { [weak self] published in
+                self?.continueTransition(after: shownGeneration, session: session, final: final || !published)
+            }
+        }
+
+        /// After a step: the next one after the interval, or none when the target is reached
+        /// and no newer estimate has arrived in the meantime.
+        private func continueTransition(after shownGeneration: UInt64, session: UInt64, final: Bool) {
+            lock.lock()
+            guard enabledValue, session == sessionGeneration else {
+                transitionRunning = false
+                lock.unlock()
+                return
+            }
+            if final, targetGeneration == shownGeneration {
+                transitionRunning = false
+                lock.unlock()
+                return
+            }
+            let interval = final ? 0.0 : transitionStepInterval
+            lock.unlock()
+            Task { [weak self] in
+                if interval > 0.0 {
+                    try? await Task.sleep(for: .seconds(interval))
+                }
+                self?.transitionStep()
+            }
+        }
+
+        /// The shown texels, uploaded into the blend cube the prefilter reads.
+        private func uploadBlendedProbe(texels: [Float], size: Int) -> MTLTexture? {
+            lock.lock()
+            if blendedProbeCube == nil || blendedProbeCube?.width != size {
+                let descriptor = MTLTextureDescriptor.textureCubeDescriptor(pixelFormat: .rgba16Float, size: size, mipmapped: true)
+                descriptor.usage = [.shaderRead, .shaderWrite]
+                descriptor.storageMode = .shared
+                blendedProbeCube = renderInfo.device.makeTexture(descriptor: descriptor)
+                blendedProbeCube?.label = "XR Environment Probe Blend"
+            }
+            let cube = blendedProbeCube
+            lock.unlock()
+            guard let cube, texels.count == 6 * size * size * 3 else { return nil }
+
+            let faceTexels = size * size
+            var half = [UInt16](repeating: 0, count: faceTexels * 4)
+            for face in 0 ..< 6 {
+                for index in 0 ..< faceTexels {
+                    let base = (face * faceTexels + index) * 3
+                    half[index * 4] = Float16(texels[base]).bitPattern
+                    half[index * 4 + 1] = Float16(texels[base + 1]).bitPattern
+                    half[index * 4 + 2] = Float16(texels[base + 2]).bitPattern
+                    half[index * 4 + 3] = Float16(1.0).bitPattern
+                }
+                half.withUnsafeBytes { bytes in
+                    cube.replace(
+                        region: MTLRegionMake2D(0, 0, size, size),
+                        mipmapLevel: 0,
+                        slice: face,
+                        withBytes: bytes.baseAddress!,
+                        bytesPerRow: size * 8,
+                        bytesPerImage: faceTexels * 8
+                    )
+                }
+            }
+            return cube
+        }
+
+        /// Prefilters the blend cube into the free texture set and publishes it; the completion
+        /// says whether it was published.
+        private func prefilterBlendedProbe(
+            _ cube: MTLTexture,
+            intensityScale: Float,
+            tintColor: simd_float3,
+            timestamp: CFTimeInterval,
+            completion: @escaping (Bool) -> Void
+        ) {
+            guard let prefilter = beginPrefilterIfPossible() else {
+                completion(false)
+                return
+            }
             let textureSetIndex = prefilter.textureSetIndex
             let textureSet = prefilter.textureSet
             let generation = prefilter.generation
 
-            guard let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() else {
-                finishPrefilter(
-                    succeeded: false,
-                    textureSetIndex: textureSetIndex,
-                    generation: generation,
-                    timestamp: timestamp,
-                    intensityScale: intensityScale,
-                    tintColor: simd_float3(1.0, 1.0, 1.0),
-                    durationMs: 0
-                )
+            guard let commandBuffer = renderInfo.commandQueue.makeCommandBuffer(),
+                  let blit = commandBuffer.makeBlitCommandEncoder()
+            else {
+                finishPrefilter(succeeded: false, textureSetIndex: textureSetIndex, generation: generation, timestamp: timestamp, intensityScale: intensityScale, tintColor: tintColor, durationMs: 0)
+                completion(false)
                 return
             }
 
             commandBuffer.label = "XR Environment Probe IBL Prefilter"
+            blit.generateMipmaps(for: cube)
+            blit.endEncoding()
             let startTime = Date().timeIntervalSinceReferenceDate
-            let tintReadback = encodeEnvironmentTintReadback(
-                commandBuffer: commandBuffer,
-                environmentTexture: environmentTexture
-            )
-            let encoded = executeXRIBLCubePreFilterPass(
-                commandBuffer: commandBuffer,
-                environmentCubeTexture: environmentTexture,
-                target: textureSet
-            )
-
-            guard encoded else {
-                finishPrefilter(
-                    succeeded: false,
-                    textureSetIndex: textureSetIndex,
-                    generation: generation,
-                    timestamp: timestamp,
-                    intensityScale: intensityScale,
-                    tintColor: simd_float3(1.0, 1.0, 1.0),
-                    durationMs: 0
-                )
+            guard executeXRIBLCubePreFilterPass(commandBuffer: commandBuffer, environmentCubeTexture: cube, target: textureSet) else {
+                finishPrefilter(succeeded: false, textureSetIndex: textureSetIndex, generation: generation, timestamp: timestamp, intensityScale: intensityScale, tintColor: tintColor, durationMs: 0)
+                completion(false)
                 return
             }
 
-            commandBuffer.addCompletedHandler { [weak self, retainedAnchor] commandBuffer in
-                _ = retainedAnchor
+            commandBuffer.addCompletedHandler { [weak self] commandBuffer in
                 let durationMs = (Date().timeIntervalSinceReferenceDate - startTime) * 1000.0
-                let tintColor = tintReadback.map { self?.environmentTint(from: $0) ?? simd_float3(1.0, 1.0, 1.0) }
-                    ?? simd_float3(1.0, 1.0, 1.0)
-                self?.finishPrefilter(
+                let published = self?.finishPrefilter(
                     succeeded: commandBuffer.status == .completed,
                     textureSetIndex: textureSetIndex,
                     generation: generation,
@@ -561,20 +788,22 @@
                     intensityScale: intensityScale,
                     tintColor: tintColor,
                     durationMs: durationMs
-                )
+                ) ?? false
+                completion(published)
             }
             commandBuffer.commit()
         }
 
         private func encodeEnvironmentTintReadback(
             commandBuffer: MTLCommandBuffer,
-            environmentTexture: MTLTexture
+            environmentTexture: MTLTexture,
+            mipLevel: Int? = nil
         ) -> EnvironmentTintReadback? {
             guard let bytesPerPixel = environmentTintBytesPerPixel(for: environmentTexture.pixelFormat),
                   let blit = commandBuffer.makeBlitCommandEncoder()
             else { return nil }
 
-            let mipLevel = max(environmentTexture.mipmapLevelCount - 1, 0)
+            let mipLevel = min(max(mipLevel ?? (environmentTexture.mipmapLevelCount - 1), 0), max(environmentTexture.mipmapLevelCount - 1, 0))
             let width = max(environmentTexture.width >> mipLevel, 1)
             let height = max(environmentTexture.height >> mipLevel, 1)
             let bytesPerRow = width * bytesPerPixel
@@ -724,7 +953,7 @@
                 skippedProbeUpdateCount: skippedProbeUpdateCountValue,
                 fallbackReason: fallbackReasonValue,
                 latestProbeDescription: latestProbeDescriptionValue,
-                publishedIntensityScale: smoothedIntensityScaleValue,
+                publishedIntensityScale: publishedIntensityScaleValue,
                 publishCount: publishCountValue,
                 latestProbeFaceLuminance: latestProbeFaceLuminanceValue
             )
