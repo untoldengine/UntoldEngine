@@ -28,14 +28,9 @@ public extension RenderPipelineType {
     /// The model pipeline compiled without fragment discards, for the opaque draws that never
     /// need them: the GPU resolves visibility before shading them.
     static let modelOpaque: RenderPipelineType = "modelOpaque"
-    /// The plain model pipeline with the material shading compiled out: the flat-material
-    /// experiment.
-    static let modelFlat: RenderPipelineType = "modelFlat"
     static let light: RenderPipelineType = "light"
     /// The TBDR light pass as a tile stage: lights each pixel once per colour it holds.
     static let lightTile: RenderPipelineType = "lightTile"
-    /// The light quad with the lighting compiled out: the flat-lighting experiment.
-    static let lightFlat: RenderPipelineType = "lightFlat"
     static let geometry: RenderPipelineType = "geometry"
     static let highlight: RenderPipelineType = "highlight"
     static let lightVisual: RenderPipelineType = "lightVisual"

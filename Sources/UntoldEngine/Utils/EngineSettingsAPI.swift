@@ -117,18 +117,6 @@ public enum RenderingProperty: Sendable {
     /// visibility before shading: a fragment another surface covers is never shaded. Enabled
     /// by default; disabling it draws everything through the general pipeline, as a diagnostic.
     case opaqueHiddenSurfaceRemoval(RenderingToggle)
-    /// Shading-cost experiments, off by default. Flat material: the opaque draws write the
-    /// material's factors and the vertex normal with no texture sample and no derivative. Flat
-    /// lighting: the light quad returns the albedo untouched, with no image-based light, shadows
-    /// or lights. The passes and attachments stay the same, so a frame's cost with one of them
-    /// on is the frame's cost without that shading.
-    case flatMaterialExperiment(RenderingToggle)
-    case flatLightingExperiment(RenderingToggle)
-    /// Back-face culling in the model pass, off by default: the pass draws both sides of every
-    /// triangle. `.counterClockwiseFront` or `.clockwiseFront` culls the faces wound the other
-    /// way, which halves what the tiler and the rasteriser see of a closed mesh; an open mesh
-    /// loses its back. The winding that counts as the front is the asset's convention.
-    case backFaceCullingExperiment(BackFaceCullingExperiment)
     /// GPU time per pass, measured by the GPU at each pass's stage boundaries and averaged over
     /// the recent frames: `GPUPassTiming.shared.averages()`. Off by default.
     case gpuPassTiming(RenderingToggle)
@@ -171,13 +159,6 @@ public enum RenderPath: String, Sendable, Codable, Equatable, CaseIterable {
 public func getRenderPath() -> RenderPath {
     guard renderInfo.perFragmentIndirectLighting else { return .deferred }
     return renderInfo.perFragmentLighting ? .forward : .hybrid
-}
-
-/// The model pass's back-face culling: off, or on with the winding that counts as the front.
-public enum BackFaceCullingExperiment: Sendable {
-    case off
-    case counterClockwiseFront
-    case clockwiseFront
 }
 
 public enum RenderingToggle: Sendable {
@@ -260,16 +241,6 @@ public func setRendering(_ property: RenderingProperty) {
         renderInfo.opaqueHiddenSurfaceRemovalEnabled = true
     case .opaqueHiddenSurfaceRemoval(.disabled):
         renderInfo.opaqueHiddenSurfaceRemovalEnabled = false
-    case .flatMaterialExperiment(.enabled):
-        renderInfo.flatMaterialExperiment = true
-    case .flatMaterialExperiment(.disabled):
-        renderInfo.flatMaterialExperiment = false
-    case .flatLightingExperiment(.enabled):
-        renderInfo.flatLightingExperiment = true
-    case .flatLightingExperiment(.disabled):
-        renderInfo.flatLightingExperiment = false
-    case let .backFaceCullingExperiment(mode):
-        renderInfo.backFaceCullingExperiment = mode
     case .gpuPassTiming(.enabled):
         GPUPassTiming.shared.setEnabled(true)
     case .gpuPassTiming(.disabled):

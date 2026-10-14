@@ -585,7 +585,6 @@ public enum RenderPasses {
             return nil
         #else
             guard renderInfo.tileLightStageEnabled,
-                  !renderInfo.flatLightingExperiment, // the experiment runs through the quad
                   !renderInfo.perFragmentIndirectLightingBuilt, // the stage would light the indirect part again
                   !renderInfo.perFragmentLightingBuilt, // the geometry lit itself; nothing for a stage to do
                   let pipeline = PipelineManager.shared.renderPipelinesByType[.lightTile],
@@ -2404,11 +2403,8 @@ public enum RenderPasses {
         // The model pipeline compiled without discards, for the draws that never need them (an
         // opaque material, no fade running): the GPU resolves their visibility before shading.
         // Nil runs every draw through the general pipeline.
-        // The flat-material experiment swaps in the plain pipeline with the material shading
-        // compiled out.
-        let plainPipelineType: RenderPipelineType = renderInfo.flatMaterialExperiment ? .modelFlat : .modelOpaque
-        let plainModelPipeline: RenderPipeline? = renderInfo.opaqueHiddenSurfaceRemovalEnabled || renderInfo.flatMaterialExperiment
-            ? PipelineManager.shared.renderPipelinesByType[plainPipelineType].flatMap { $0.success && $0.pipelineState != nil ? $0 : nil }
+        let plainModelPipeline: RenderPipeline? = renderInfo.opaqueHiddenSurfaceRemovalEnabled
+            ? PipelineManager.shared.renderPipelinesByType[.modelOpaque].flatMap { $0.success && $0.pipelineState != nil ? $0 : nil }
             : nil
         renderInfo.opaqueDrawsPlain = 0
         renderInfo.opaqueDrawsDiscarding = 0
@@ -2484,19 +2480,6 @@ public enum RenderPasses {
         let sceneSnapshot = pass.sceneSnapshot
         let viewMatrix = pass.viewMatrix
         var renderModes = SceneChannelRenderModeMemo()
-
-        // The back-face culling experiment: the faces wound the other way never reach the
-        // tiler or the rasteriser. Off, both sides draw, as the pass always has.
-        switch renderInfo.backFaceCullingExperiment {
-        case .off:
-            renderEncoder.setCullMode(.none)
-        case .counterClockwiseFront:
-            renderEncoder.setFrontFacing(.counterClockwise)
-            renderEncoder.setCullMode(.back)
-        case .clockwiseFront:
-            renderEncoder.setFrontFacing(.clockwise)
-            renderEncoder.setCullMode(.back)
-        }
 
         // The light pass's inputs, which the geometry shares when it lights per fragment: the
         // indirect light and the sun's shadow then go into the G-buffer once per fragment and
@@ -2859,12 +2842,8 @@ public enum RenderPasses {
         if let tileLightState {
             lightQuadEncoder.setRenderPipelineState(tileLightState)
         } else {
-            // The flat-lighting experiment swaps in the quad with the lighting compiled out.
-            let lightQuadPipeline: RenderPipeline = renderInfo.flatLightingExperiment
-                ? (PipelineManager.shared.renderPipelinesByType[.lightFlat].flatMap { $0.success && $0.pipelineState != nil ? $0 : nil } ?? lightPipeline)
-                : lightPipeline
-            lightQuadEncoder.setRenderPipelineState(lightQuadPipeline.pipelineState!)
-            if let depthState = lightQuadPipeline.depthState {
+            lightQuadEncoder.setRenderPipelineState(lightPipeline.pipelineState!)
+            if let depthState = lightPipeline.depthState {
                 lightQuadEncoder.setDepthStencilState(depthState)
             }
             lightQuadEncoder.setVertexBuffer(bufferResources.quadVerticesBuffer, offset: 0, index: 0)
@@ -2909,8 +2888,6 @@ public enum RenderPasses {
             // One thread per pixel of the tile Metal chose for this pass.
             lightQuadEncoder.dispatchThreadsPerTile(MTLSize(width: lightQuadEncoder.tileWidth, height: lightQuadEncoder.tileHeight, depth: 1))
         } else {
-            // The quad draws whatever the geometry culled.
-            lightQuadEncoder.setCullMode(.none)
             lightQuadEncoder.drawIndexedPrimitivesTracked(
                 type: .triangle,
                 indexCount: 6,

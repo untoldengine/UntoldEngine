@@ -249,9 +249,6 @@ vertex MeshOccluderShellVertexOut vertexMeshOccluderShellShader(
 // discards gone the GPU resolves visibility before it shades — a fragment another surface
 // covers is never shaded. The general pipeline keeps them for the draws that need them.
 constant bool kModelMayDiscard [[function_constant(modelFunctionConstantMayDiscard)]];
-/// The flat-material experiment: the material's factors and the vertex normal, no texture
-/// sample, no derivative (`setRendering(.flatMaterialExperiment)`).
-constant bool kModelFlatMaterial [[function_constant(modelFunctionConstantFlatMaterial)]];
 /// Per-fragment indirect lighting: the image-based light and the sun's cascade shadow,
 /// evaluated here once per fragment and carried in the emissive attachment (indirect light
 /// added to the emissive, the shadow factor in alpha) for the light pass to add, instead of
@@ -397,41 +394,6 @@ fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
 
     float4 verticesInWorldSpace = float4(in.worldPosition, 1.0);
     float3 normalVectorInWorldSpace = in.tbNormal;
-
-    if (kModelFlatMaterial) {
-        // Shading-cost experiment: the material's factors and the vertex normal, no texture
-        // sample, no derivative. The same attachments, so the rest of the frame is unchanged.
-        float3 flatNormal = normalize(normalVectorInWorldSpace);
-        if (dot(flatNormal, uniforms.cameraPosition - verticesInWorldSpace.xyz) < 0.0) {
-            flatNormal = -flatNormal;
-        }
-        float3 flatColor = all(materialParameter.baseColor.rgb < 0.001) ? float3(0.8) : materialParameter.baseColor.rgb;
-        float4 flatBase = float4(flatColor, clamp(materialParameter.passthroughAlpha, 0.0, 1.0));
-        float flatRoughness = clamp(materialParameter.roughness, 0.045, 1.0);
-        float flatMetallic = clamp(materialParameter.metallic, 0.0, 1.0);
-        float4 flatEmissive = float4(materialParameter.emmissive, 1.0);
-        if (kModelIndirectInGBuffer) {
-            flatEmissive = emissiveWithIndirect(
-                materialParameter.emmissive, flatBase, flatNormal, verticesInWorldSpace.xyz,
-                flatRoughness, flatMetallic, uniforms.cameraPosition,
-                iblIrradiance, iblSpecular, iblBRDF, csmShadowArray, csmUniforms, lightParams, iblParam, iblRotationAngle);
-        }
-        if (kModelGBufferOut) {
-            gBufferOut.color = flatBase;
-            gBufferOut.normals = float4(flatNormal, 0.0);
-            gBufferOut.positions = verticesInWorldSpace;
-            gBufferOut.material = float4(flatRoughness, flatMetallic, 0.0, 0.0);
-            gBufferOut.emmisive = flatEmissive;
-        }
-        if (kModelLitInGBuffer) {
-            gBufferOut.lit = litWithDirect(
-                flatEmissive, flatBase, flatNormal, verticesInWorldSpace, flatRoughness, flatMetallic,
-                uniforms.cameraPosition, lightParams, plBlock, slBlock, alBlock, ltcMagTexture, ltcMatTexture,
-                pointShadowCube, spotShadowMap, pointShadowUniforms, spotShadowUniforms);
-            gBufferOut.velocity = modelVelocity(in.currentClip, in.prevClip);
-        }
-        return gBufferOut;
-    }
 
     //construct tbn matrix TBN (world-space basis built in the vertex stage)
     simd_float3 N=normalize(in.tbNormal);

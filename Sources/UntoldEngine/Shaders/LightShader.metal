@@ -14,9 +14,6 @@
 #include "ShadersUtils.h"
 using namespace metal;
 
-/// The flat-lighting experiment: the quad returns the albedo untouched, with no image-based
-/// light, shadows or lights (`setRendering(.flatLightingExperiment)`).
-constant bool kLightFlatShading [[function_constant(lightFunctionConstantFlatShading)]];
 /// Per-fragment indirect lighting: the indirect light and the sun's shadow come from the
 /// G-buffer, where the geometry wrote them once per fragment, instead of once per sample here.
 constant bool kLightIndirectFromGBuffer [[function_constant(lightFunctionConstantIndirectFromGBuffer)]];
@@ -935,10 +932,6 @@ fragment TBDRLightOutput fragmentLightShaderTBDR(
     (void)sampleID;
     (void)isGameMode;
     TBDRLightOutput out;
-    if (kLightFlatShading) {
-        out.litColor = float4(float3(gbAlbedo.rgb), float(gbAlbedo.a));
-        return out;
-    }
     out.litColor = lightTBDRSample(
         gbAlbedo, gbNormal, gbPosition, gbMaterial, gbEmissive,
         csmShadowArray, irradianceTexture, specularTexture, iblBRDFTexture, ltcMagTexture, ltcMatTexture,

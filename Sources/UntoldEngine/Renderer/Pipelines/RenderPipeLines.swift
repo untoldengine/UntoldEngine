@@ -384,13 +384,7 @@ public func InitModelOpaquePipeline() -> RenderPipeline? {
     makeModelPipeline(mayDiscard: false, name: "Model Pipeline (opaque)")
 }
 
-/// The plain model pipeline with the material shading compiled out (the flat-material
-/// experiment): the material's factors and the vertex normal, no texture sample.
-public func InitModelFlatPipeline() -> RenderPipeline? {
-    makeModelPipeline(mayDiscard: false, flatMaterial: true, name: "Model Pipeline (flat material)")
-}
-
-private func makeModelPipeline(mayDiscard: Bool, flatMaterial: Bool = false, name: String) -> RenderPipeline? {
+private func makeModelPipeline(mayDiscard: Bool, name: String) -> RenderPipeline? {
     let indirectInGBuffer = renderInfo.perFragmentIndirectLighting
     let litInGBuffer = renderInfo.perFragmentLightingWanted
     renderInfo.perFragmentIndirectLightingBuilt = indirectInGBuffer
@@ -406,8 +400,6 @@ private func makeModelPipeline(mayDiscard: Bool, flatMaterial: Bool = false, nam
     let constants = MTLFunctionConstantValues()
     var mayDiscardValue = mayDiscard
     constants.setConstantValue(&mayDiscardValue, type: .bool, index: Int(modelFunctionConstantMayDiscard.rawValue))
-    var flatMaterialValue = flatMaterial
-    constants.setConstantValue(&flatMaterialValue, type: .bool, index: Int(modelFunctionConstantFlatMaterial.rawValue))
     var indirectValue = indirectInGBuffer
     constants.setConstantValue(&indirectValue, type: .bool, index: Int(modelFunctionConstantIndirectInGBuffer.rawValue))
     var litValue = litInGBuffer
@@ -498,24 +490,14 @@ public func InitLightPipeline() -> RenderPipeline? {
             name: "Light Pipeline (Simulator)"
         )
     #else
-        return makeLightPipeline(flatShading: false, name: "Light Pipeline (TBDR)")
-    #endif
-}
-
-/// The light quad with the lighting compiled out (the flat-lighting experiment): the albedo
-/// untouched. Nil in the simulator, which has no TBDR light pass.
-public func InitLightFlatPipeline() -> RenderPipeline? {
-    #if targetEnvironment(simulator)
-        return nil
-    #else
-        return makeLightPipeline(flatShading: true, name: "Light Pipeline (TBDR, flat shading)")
+        return makeLightPipeline(name: "Light Pipeline (TBDR)")
     #endif
 }
 
 #if !targetEnvironment(simulator)
-    /// The TBDR light quad from `fragmentLightShaderTBDR`, specialised by function constant:
-    /// lighting the sample, or returning the albedo for the flat-lighting experiment.
-    private func makeLightPipeline(flatShading: Bool, name: String) -> RenderPipeline? {
+    /// The TBDR light quad from `fragmentLightShaderTBDR`, specialised by function constant for
+    /// where the indirect light comes from.
+    private func makeLightPipeline(name: String) -> RenderPipeline? {
         guard let library = renderInfo.library else {
             handleError(.metalLibraryNotFound)
             return nil
@@ -525,8 +507,6 @@ public func InitLightFlatPipeline() -> RenderPipeline? {
             return nil
         }
         let constants = MTLFunctionConstantValues()
-        var flatShadingValue = flatShading
-        constants.setConstantValue(&flatShadingValue, type: .bool, index: Int(lightFunctionConstantFlatShading.rawValue))
         var indirectValue = renderInfo.perFragmentIndirectLighting
         constants.setConstantValue(&indirectValue, type: .bool, index: Int(lightFunctionConstantIndirectFromGBuffer.rawValue))
         let fragmentFunction: MTLFunction
@@ -1280,9 +1260,7 @@ public func DefaultPipeLines() -> [(RenderPipelineType, RenderPipelineInitBlock)
         (.shadow, InitShadowPipeline),
         (.model, InitModelPipeline),
         (.modelOpaque, InitModelOpaquePipeline),
-        (.modelFlat, InitModelFlatPipeline),
         (.light, InitLightPipeline),
-        (.lightFlat, InitLightFlatPipeline),
         (.lightTile, InitLightTilePipeline),
         (.geometry, InitGeometryPipeline),
         (.highlight, InitHighlightPipeline),

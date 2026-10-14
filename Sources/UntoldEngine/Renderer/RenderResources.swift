@@ -99,17 +99,6 @@ public struct RenderInfo {
     /// so per eye in XR.
     public var opaqueDrawsPlain: Int = 0
     public var opaqueDrawsDiscarding: Int = 0
-    /// Shading-cost experiments, off by default. Flat material: the opaque draws write the
-    /// material's factors and the vertex normal, no texture sample, no derivative. Flat
-    /// lighting: the light quad returns the albedo untouched, no image-based light, shadows or
-    /// lights. The passes and attachments stay the same, so a frame's cost with one on is the
-    /// frame's cost without that shading.
-    public var flatMaterialExperiment: Bool = false
-    public var flatLightingExperiment: Bool = false
-    /// Back-face culling in the model pass, as an experiment: off (the pass draws both sides
-    /// of every triangle, so an open mesh shows its back), or the faces wound the other way
-    /// are culled, with the winding that counts as the front. The light quad is never culled.
-    public var backFaceCullingExperiment: BackFaceCullingExperiment = .off
     /// Whether the geometry evaluates the image-based light and the sun's cascade shadow once
     /// per fragment and carries them in the G-buffer for the light pass to add, instead of the
     /// light pass computing them once per sample. On by default; the pipelines follow it on
@@ -124,10 +113,9 @@ public struct RenderInfo {
     public var perFragmentLighting: Bool = true
     public var perFragmentLightingBuilt: Bool = false
     /// What the model pipelines are to light per fragment: the setting, which needs the
-    /// per-fragment indirect light, and stands aside for the flat-lighting experiment, which
-    /// runs through the quad, and for the G-buffer debug views, which read what the forward
-    /// pass does not write.
-    var perFragmentLightingWanted: Bool { perFragmentIndirectLighting && perFragmentLighting && !flatLightingExperiment && !gBufferDebugStorageEnabled }
+    /// per-fragment indirect light, and stands aside for the G-buffer debug views, which read
+    /// what the forward pass does not write.
+    var perFragmentLightingWanted: Bool { perFragmentIndirectLighting && perFragmentLighting && !gBufferDebugStorageEnabled }
     /// The opaque pass's descriptor for the pipelines as built: the forward one when the
     /// geometry lights itself, the G-buffer's otherwise.
     var opaquePassDescriptor: MTLRenderPassDescriptor? { perFragmentLightingBuilt ? forwardRenderPassDescriptor : offscreenRenderPassDescriptor }
