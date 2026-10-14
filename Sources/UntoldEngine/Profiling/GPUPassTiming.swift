@@ -46,7 +46,10 @@ public final class GPUPassTiming: @unchecked Sendable {
         let isRenderPass: Bool
     }
 
-    private struct Frame {
+    /// A ring slot's frame. Its sample buffer is a Metal object the completed handler reads
+    /// only once the GPU has finished writing it, and the slot's in-flight flag keeps the
+    /// encoder away from it until then; the frame crosses into the handler as a value.
+    private struct Frame: @unchecked Sendable {
         let buffer: MTLCounterSampleBuffer
         var nextSample = 0
         var passes: [Pass] = []
