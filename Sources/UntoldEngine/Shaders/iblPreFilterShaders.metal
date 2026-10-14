@@ -56,6 +56,19 @@ static float3 xrIBLNormalFromEquirectUV(float2 texCoords) {
     return float3(sin(thetaN) * cos(phiN), sin(thetaN) * sin(phiN), cos(thetaN));
 }
 
+// The direction a texel of the maps stands for, in the world. The maps are read with a
+// world direction through equirectUVFromCubeDirection (y up, the azimuth from x and z) and
+// written here from the texel's direction in the pre-filter's own frame (z the pole, the
+// azimuth from x and y); the two compose to a fixed turn of the axes, d = (−n.z, −n.x, −n.y)
+// for a world direction n. The source is read with the texel's world direction, so that the
+// probe's +y face, the ceiling, lights what faces up. Without it each face lit the wrong side
+// (the ceiling lit the left of a sphere, what was behind the wearer lit its underside, and a
+// chrome ball reflected a wall for the room behind), and the static maps only got away with
+// it because an equirect image reads the same whichever way its azimuth is turned.
+static float3 xrIBLWorldDirection(float3 d) {
+    return float3(-d.y, -d.z, -d.x);
+}
+
 static float4 diffuseImportanceMapCube(float2 texCoords, texturecube<float> environmentTexture) {
     constexpr sampler s(coord::normalized,
                         filter::linear,
@@ -73,7 +86,7 @@ static float4 diffuseImportanceMapCube(float2 texCoords, texturecube<float> envi
         float phi = 2.0 * M_PI_F * p.x;
         float3 pos = float3(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
         float3 posGlob = normalize(normalSpace * pos);
-        result += environmentTexture.sample(s, posGlob).rgb;
+        result += environmentTexture.sample(s, xrIBLWorldDirection(posGlob)).rgb;
     }
 
     return float4(result / float(sampleCount), 1.0);
@@ -96,7 +109,7 @@ static float4 specularImportanceMapCube(float2 texCoords, texturecube<float> env
         float3 L = normalize(2.0 * dot(normal, H) * H - normal);
         float NoL = max(dot(normal, L), 0.0);
         if (NoL > 0.0) {
-            result += environmentTexture.sample(s, L).rgb * NoL;
+            result += environmentTexture.sample(s, xrIBLWorldDirection(L)).rgb * NoL;
             totalWeight += NoL;
         }
     }
