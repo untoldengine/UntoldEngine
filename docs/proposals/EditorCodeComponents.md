@@ -22,6 +22,15 @@ Revision 5.2: control points can be dragged. `.handles(properties:tint:)` names 
 
 ## Implementation status (2026-09-17)
 
+**Update (2026-10-13):** the `UntoldEngine` side of this work (`feature/component_kit`) is merged
+to `develop` — `Sources/UntoldComponentKit`, `ComponentPlugin`/`EntityPlugin`/`EditorMenuPlugin`,
+entity-kind and draggable-handle support, and the sibling-removal-during-`onAttach` fix are all
+present, with the last of those commits landing 2026-09-18. The branch/PR table and stage
+breakdown below are left as the historical record of how it got there; treat "no pull request
+opened" as stale for the engine repo specifically. The `UntoldEditor`-side branch and the
+`UntoldGaussianTwins` adoption (stage 5) were not re-checked as part of this update — verify
+those separately before assuming the full loop (editor + twins) is also merged.
+
 Branches, all pushed to the miolabs fork, no pull request opened:
 
 | Repo | Branch | Holds |
