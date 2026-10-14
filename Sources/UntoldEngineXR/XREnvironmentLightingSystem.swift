@@ -61,6 +61,20 @@
         private var publishCountValue = 0
         private var latestProbeFaceLuminanceValue: [Float] = []
         private var lastAcceptedProbeUpdateTime: CFTimeInterval = 0
+        /// The newest probe not yet prefiltered: one that arrived while another was being
+        /// prefiltered, or inside the minimum interval. ARKit sends its estimates in a burst
+        /// when the provider starts and may then send nothing for a long while in a still
+        /// room, so the newest one must not be dropped.
+        private struct PendingProbe {
+            var texture: MTLTexture
+            var timestamp: CFTimeInterval
+            var intensityScale: Float
+            var retainedAnchor: Any
+        }
+
+        private var pendingProbeValue: PendingProbe?
+        private var pendingProbeDrainTask: Task<Void, Never>?
+        private var lastPrefilterStartTime: CFTimeInterval?
         private var probeMonitorTask: Task<Void, Never>?
         private var textureSets: [RuntimeEnvironmentLightingTextureSet] = []
         private var currentReadTextureSetIndex = 0
@@ -81,6 +95,8 @@
             private var environmentLightEstimationProvider: EnvironmentLightEstimationProvider?
         #endif
 
+        /// The least time between two prefilters: a probe that arrives inside it waits, and the
+        /// newest one waiting is the one prefiltered.
         public var minimumProbeUpdateInterval: CFTimeInterval = 0.5
 
         /// Exponential-smoothing time constant (seconds) applied to the probe-driven
@@ -162,6 +178,10 @@
                 prefilterInFlightValue = false
                 lastPrefilterDurationMsValue = nil
                 lastAcceptedProbeUpdateTime = 0
+                pendingProbeValue = nil
+                pendingProbeDrainTask?.cancel()
+                pendingProbeDrainTask = nil
+                lastPrefilterStartTime = nil
                 prefilterGeneration &+= 1
                 smoothedIntensityScaleValue = nil
                 smoothedTintColorValue = simd_float3(1.0, 1.0, 1.0)
@@ -190,11 +210,6 @@
             guard enabledValue else {
                 skippedProbeUpdateCountValue += 1
                 fallbackReasonValue = "XR lighting disabled"
-                return false
-            }
-
-            guard timestamp - lastAcceptedProbeUpdateTime >= minimumProbeUpdateInterval else {
-                skippedProbeUpdateCountValue += 1
                 return false
             }
 
@@ -263,12 +278,12 @@
                     )
 
                     if let environmentTexture = anchor.environmentTexture {
-                        scheduleProbePrefilter(
-                            environmentTexture: environmentTexture,
+                        enqueueProbe(PendingProbe(
+                            texture: environmentTexture,
                             timestamp: anchor.timestamp,
                             intensityScale: intensityScale,
                             retainedAnchor: anchor
-                        )
+                        ))
                     }
 
                 case .removed:
@@ -348,6 +363,7 @@
                 fallbackReasonValue = "XR probe prefilter failed"
                 lock.unlock()
                 RuntimeEnvironmentLightingStore.shared.publishXRLighting(nil)
+                drainPendingProbe()
                 return
             }
 
@@ -387,6 +403,7 @@
                     isValid: true
                 )
             )
+            drainPendingProbe()
         }
 
         private func updateProbeCameraScaleReference(_ cameraScaleReference: Float?, hasTexture: Bool) -> Float {
@@ -423,6 +440,58 @@
             var bytesPerRow: Int
             var faceBytes: Int
             var faceCount: Int
+        }
+
+        /// Takes a probe in: the newest one waits for the prefilter in flight and for the
+        /// minimum interval, then is prefiltered; an older one still waiting is superseded.
+        private func enqueueProbe(_ probe: PendingProbe) {
+            lock.lock()
+            pendingProbeValue = probe
+            lock.unlock()
+            drainPendingProbe()
+        }
+
+        /// Prefilters the waiting probe once nothing is in flight and the interval has passed;
+        /// until then the prefilter's completion, or a timer for the rest of the interval,
+        /// comes back here.
+        private func drainPendingProbe() {
+            lock.lock()
+            guard enabledValue, let probe = pendingProbeValue, !prefilterInFlightValue else {
+                lock.unlock()
+                return
+            }
+            let now = ProcessInfo.processInfo.systemUptime
+            if let lastStart = lastPrefilterStartTime {
+                let remaining = minimumProbeUpdateInterval - (now - lastStart)
+                if remaining > 0 {
+                    if pendingProbeDrainTask == nil {
+                        pendingProbeDrainTask = Task { [weak self] in
+                            try? await Task.sleep(for: .seconds(remaining))
+                            guard !Task.isCancelled else { return }
+                            self?.drainTimerFired()
+                        }
+                    }
+                    lock.unlock()
+                    return
+                }
+            }
+            pendingProbeValue = nil
+            lastPrefilterStartTime = now
+            lock.unlock()
+            scheduleProbePrefilter(
+                environmentTexture: probe.texture,
+                timestamp: probe.timestamp,
+                intensityScale: probe.intensityScale,
+                retainedAnchor: probe.retainedAnchor
+            )
+        }
+
+        /// The rest of the interval has passed: the waiting probe may go now.
+        private func drainTimerFired() {
+            lock.lock()
+            pendingProbeDrainTask = nil
+            lock.unlock()
+            drainPendingProbe()
         }
 
         private func scheduleProbePrefilter(
