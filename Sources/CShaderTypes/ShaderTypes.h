@@ -138,6 +138,8 @@ typedef enum{
     modelPassJointTransformIndex,
     modelPassHasArmature,
     modelPassOccluderShrinkIndex,
+    // The ModelInstanceUniform records of an instanced draw (vertexModelInstancedShader).
+    modelPassInstanceIndex,
 }ModelPassBufferIndices;
 typedef enum{
     modelPassFragmentUniformIndex,
@@ -158,6 +160,21 @@ typedef enum{
     modelPassFragmentPointShadowUniformIndex,
     modelPassFragmentSpotShadowUniformIndex,
 }ModelPassFragmentBufferIndices;
+
+// What one instance of an instanced model draw has of its own: its transforms. Draws that
+// share their meshes, materials and ghost opacity are encoded once, with a record per
+// instance; the draw's base instance is the index of its first record. Only the vertex
+// stage reads the records; the fragment stage is fragmentModelShader, bound as for a
+// single draw.
+typedef struct
+{
+    matrix_float4x4 modelViewMatrix;
+    matrix_float4x4 modelMatrix;
+    // The model matrix the instance was drawn with the previous frame, for the velocity
+    // (see Uniforms.prevModelMatrix).
+    matrix_float4x4 prevModelMatrix;
+    matrix_float3x3 normalMatrix;
+} ModelInstanceUniform;
 
 typedef enum{
     deformationPassInPositionIndex,
@@ -655,6 +672,8 @@ typedef enum{
     shadowPassLightPositionUniform,
     shadowPassJointTransformIndex,
     shadowPassHasArmature,
+    // The model matrix of each instance of an instanced shadow draw (vertexShadowInstancedShader).
+    shadowPassInstanceIndex,
 }ShadowBufferIndices;
 
 typedef struct{

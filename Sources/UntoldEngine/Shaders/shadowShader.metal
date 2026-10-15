@@ -53,3 +53,25 @@ if (hasArmature) {
 
     return vertexOut;
 }
+
+// Instanced shadow draws: casters that draw the same meshes are encoded as one draw, and
+// each instance's model matrix comes from a buffer the pass writes once. Meshes drawn this
+// way have no skeleton, so the stage takes the position stream alone. The arithmetic is
+// that of vertexShadowShader.
+struct VertexShadowInstancedInput {
+
+    float3 position [[attribute(shadowPassModelPositionIndex)]];
+};
+
+vertex VertexShadowOutput vertexShadowInstancedShader(VertexShadowInstancedInput in [[stage_in]],
+                                                      constant simd_float4x4 &lightOrthoView [[buffer(shadowPassLightMatrixUniform)]],
+                                                      const device simd_float4x4 *instanceModelMatrices [[buffer(shadowPassInstanceIndex)]],
+                                                      uint instanceId [[instance_id]]){
+
+    VertexShadowOutput vertexOut;
+
+    float4 position = float4(in.position, 1.0);
+    vertexOut.position=lightOrthoView*(instanceModelMatrices[instanceId]*position);
+
+    return vertexOut;
+}
