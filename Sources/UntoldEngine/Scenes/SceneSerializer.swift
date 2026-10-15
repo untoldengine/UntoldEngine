@@ -1001,9 +1001,9 @@ public func serializeScene() -> SceneData {
         }
 
         // Kinetic properties
-        entityData.mass = getMass(entityId: entityId)
-
         entityData.hasKineticComponent = hasComponent(entityId: entityId, componentType: KineticComponent.self)
+
+        entityData.mass = entityData.hasKineticComponent ? getMass(entityId: entityId) : 0.0
 
         // Dir Light properties
         let hasDirLight: Bool = hasComponent(entityId: entityId, componentType: DirectionalLightComponent.self)
