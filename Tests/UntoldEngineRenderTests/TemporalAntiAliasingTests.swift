@@ -339,7 +339,10 @@ final class TemporalAntiAliasingTests: BaseRenderSetup {
 
         XCTAssertFalse(settled.contains { $0.isNaN || $0.isInfinite }, "no NaN or infinity in the resolve")
         print("TAA still test: frame to frame \(meanAbsoluteDifference(settled, next)), resolve vs single-sample \(meanAbsoluteDifference(settled, single))")
-        XCTAssertLessThan(meanAbsoluteDifference(settled, next), 0.004, "a still scene no longer changes between frames")
+        // The frame-to-frame residue of a settled resolve under jitter: 0.0030 on an M-series
+        // Mac, 0.0042 on the continuous-integration runner's GPU; a drift or a smear is an
+        // order of magnitude more.
+        XCTAssertLessThan(meanAbsoluteDifference(settled, next), 0.005, "a still scene no longer changes between frames")
         XCTAssertLessThan(meanAbsoluteDifference(settled, single), 0.02, "the resolve stays close to the single-sample frame: no drift, no smear")
         XCTAssertGreaterThan(meanAbsoluteDifference(settled, single), 0, "and is not the single-sample frame")
     }

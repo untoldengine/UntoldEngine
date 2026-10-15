@@ -561,9 +561,12 @@ public func InitLightPipeline() -> RenderPipeline? {
 
 /// The TBDR light pass as a tile stage (`lightTileShaderTBDR`): the same inputs and the same
 /// attachments as the light quad, dispatched over the tiles of the G-buffer encoder. Nil where
-/// tile shading is unavailable (the simulator; GPUs before Apple family 4), when the quad runs.
+/// tile shading is unavailable (the simulator; GPUs before Apple family 4; a paravirtualized
+/// GPU, which compiles the stage's pipeline and renders it black), when the quad runs.
 public func InitLightTilePipeline() -> RenderPipeline? {
-    guard let device = renderInfo.device, device.supportsFamily(.apple4) else { return nil }
+    guard let device = renderInfo.device, device.supportsFamily(.apple4),
+          !device.name.localizedCaseInsensitiveContains("paravirtual")
+    else { return nil }
     return CreateTilePipeline(
         tileShader: "lightTileShaderTBDR",
         colorFormats: [
