@@ -12,7 +12,7 @@ The settings a mixed-immersion space wants, with the calls that set them:
 
 | Setting | Value | Why |
 | --- | --- | --- |
-| Render path | `setRendering(.renderPath(.forward))` | The geometry lights itself once per fragment; matches RealityKit's cost on the headset. Deferred and hybrid stay for many lights, projected decals and the G-buffer effects. |
+| Render path | `setRendering(.renderPath(.forward))` | The geometry lights itself once per fragment; matches RealityKit's cost on the headset, and is visionOS's default (`RenderInfo.defaultRenderPath`; macOS and iOS start deferred). Deferred and hybrid stay for many lights, projected decals and the G-buffer effects. |
 | Anti-aliasing | `.msaaTaa`, 4 samples | Multisampled geometry with the temporal resolve on top; the foveation makes the periphery coarse, and the resolve hides it. |
 | Foveation | on (the compositor's rasterization rate maps) | The frame draws at the display's own resolution only where the eyes look. |
 | Tone map | `setPostFX(.tonemapOperator(.none))` | RealityKit applies no curve below white in a mixed space; a filmic curve compresses whites and lifts blacks against the room. |
@@ -34,9 +34,11 @@ shows the frames, splits the table in two:
 - **Presentation follows the display.** The frame is still composited on the headset next
   to the same passthrough, so the no tone map, the P3 primaries, the premultiplied alpha and
   the room light from the probe stay exactly the headset's values, whichever machine renders.
-- **Budget follows the renderer.** The render path, the anti-aliasing and its samples, the
-  shadow taps, the texture budget, the LOD distances and the tile light stage are the Mac's
-  to raise: full shadow taps, more samples, deferred with many lights if the game wants it.
+- **Budget follows the renderer.** The render path starts forward there as well — the XR
+  loop adopts the headset's path wherever it renders, unless the game chose one — and the
+  anti-aliasing and its samples, the shadow taps, the texture budget, the LOD distances and
+  the tile light stage are the Mac's to raise: full shadow taps, more samples, deferred with
+  many lights if the game wants it.
   Foveation depends on whether the remote layer hands the Mac the headset's rate maps; if it
   does not, render uniformly at the quality the Mac affords.
 - **What the Mac does not buy back.** The cadence is still the headset's, so every frame

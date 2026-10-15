@@ -122,19 +122,21 @@ public enum RenderingProperty: Sendable {
     case gpuPassTiming(RenderingToggle)
     /// Whether the geometry evaluates the image-based light and the sun's cascade shadow once
     /// per fragment and carries them in the G-buffer for the light pass to add, instead of the
-    /// light pass computing them once per multisample. Enabled by default; the same picture,
-    /// less lighting work under MSAA. Disabling it is a diagnostic.
+    /// light pass computing them once per multisample. On where the platform's default path is
+    /// hybrid or forward (`RenderInfo.defaultRenderPath`: visionOS), off elsewhere; the same
+    /// picture, less lighting work under MSAA.
     case perFragmentIndirectLighting(RenderingToggle)
     /// Whether the geometry lights itself whole once per fragment — the direct light of the sun,
     /// the point, spot and area lights with their shadows, over the indirect light — and writes
     /// the lit colour, so the light quad, which lights once per multisample, stands down: the
-    /// forward way to shade. Enabled by default, and needs `perFragmentIndirectLighting`. The
-    /// same picture but at the multisampled edges, where the quad lit each sample and the
-    /// geometry lights each pixel once. Disabling it is a diagnostic.
+    /// forward way to shade. On where the platform's default path is forward (visionOS), off
+    /// elsewhere, and needs `perFragmentIndirectLighting`. The same picture but at the
+    /// multisampled edges, where the quad lit each sample and the geometry lights each pixel once.
     case perFragmentLighting(RenderingToggle)
     /// Where the opaque geometry is shaded (see `RenderPath`): sets `perFragmentIndirectLighting`
     /// and `perFragmentLighting` together, so a scene says "forward" or "deferred" instead of
-    /// composing the two. Forward by default. `getRenderPath()` reads the path the two make.
+    /// composing the two. Forward by default on visionOS, deferred on macOS and iOS
+    /// (`RenderInfo.defaultRenderPath`). `getRenderPath()` reads the path the two make.
     case renderPath(RenderPath)
 }
 
@@ -143,14 +145,16 @@ public enum RenderPath: String, Sendable, Codable, Equatable, CaseIterable {
     /// The geometry writes its surface to the G-buffer and the light pass lights it, once per
     /// multisample from a quad or once per pixel through the tile light stage. The path for a
     /// scene of many lights, and for the effects that read the G-buffer: the ambient occlusion,
-    /// the debug views.
+    /// the debug views. The default on macOS and iOS.
     case deferred
     /// Deferred, with the image-based light and the sun's shadow evaluated by the geometry once
     /// per fragment and carried in the G-buffer; the light pass adds the direct lights.
     case hybrid
     /// The geometry lights itself whole once per fragment and writes the lit colour; the light
     /// quad stands down and the G-buffer shrinks to that colour. One attachment, the samples in
-    /// tile memory: the headset's path. The effects that read the G-buffer stand down with it.
+    /// tile memory: the headset's path, and visionOS's default. The effects that read the
+    /// G-buffer stand down with it; an object moving on its own has its motion written for the
+    /// temporal resolve, which the other paths leave to the resolve's neighbourhood clip.
     case forward
 }
 
@@ -247,16 +251,32 @@ public func setRendering(_ property: RenderingProperty) {
         GPUPassTiming.shared.setEnabled(false)
     case .perFragmentIndirectLighting(.enabled):
         renderInfo.perFragmentIndirectLighting = true
+        renderInfo.renderPathChosen = true
     case .perFragmentIndirectLighting(.disabled):
         renderInfo.perFragmentIndirectLighting = false
+        renderInfo.renderPathChosen = true
     case .perFragmentLighting(.enabled):
         renderInfo.perFragmentLighting = true
+        renderInfo.renderPathChosen = true
     case .perFragmentLighting(.disabled):
         renderInfo.perFragmentLighting = false
+        renderInfo.renderPathChosen = true
     case let .renderPath(path):
         renderInfo.perFragmentIndirectLighting = path != .deferred
         renderInfo.perFragmentLighting = path == .forward
+        renderInfo.renderPathChosen = true
     }
+}
+
+/// The XR loop's render path when the app chose none: forward, the headset's path, wherever
+/// the frame is rendered — on the headset itself, where it is the platform's default already,
+/// or on a Mac rendering a remote immersive space, which starts deferred like any Mac app.
+/// `UntoldEngineXR` calls it as it initialises; a path the app set stays, and the adoption is
+/// not counted as the app's choice.
+public func adoptXRRenderPathUnlessChosen() {
+    guard !renderInfo.renderPathChosen else { return }
+    renderInfo.perFragmentIndirectLighting = true
+    renderInfo.perFragmentLighting = true
 }
 
 /// Whether the XR frame draws through the compositor's rasterization rate maps when the layer

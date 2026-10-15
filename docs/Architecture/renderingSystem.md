@@ -226,6 +226,14 @@ The graph still contains a `batchedModel` node and a `lightPass` node for depend
 
 > **Why TBDR?** Keeping the G-Buffer in tile memory avoids storing and reloading several full-resolution render targets every frame. This is especially important on Apple GPUs, where framebuffer fetch and memoryless attachments let the renderer shade from G-Buffer data while it is still resident on the tile.
 
+### Render Paths
+
+`setRendering(.renderPath(_:))` chooses where the opaque geometry is shaded (`RenderPath`; `getRenderPath()` reads it back). The model and light pipelines follow the choice on the next frame.
+
+- **`.deferred`** — the pipeline above: the geometry writes the G-Buffer and the light sub-pass lights it, once per sample from the quad or once per pixel through the tile light stage. The default on macOS and iOS (`RenderInfo.defaultRenderPath`), and the path for a scene of many lights and for the effects that read the G-Buffer (SSAO, the debug views).
+- **`.hybrid`** — deferred, with the image-based light and the sun's cascade shadow evaluated by the geometry once per fragment and carried in the emissive attachment (the shadow factor in its alpha); the light sub-pass adds the direct lights from there, once per sample. The same picture with less lighting work under MSAA; the tile light stage stands aside.
+- **`.forward`** — the geometry lights itself whole once per fragment and writes the lit colour to attachment 5 and its motion to attachment 6 (the velocity map, for the temporal resolve); the light quad stands down and the pass ends after the geometry. The default on visionOS, where it is the measured match for RealityKit's cost under MSAA and the rasterization rate maps. The effects that read the G-Buffer stand down with it.
+
 ### Transparency Pass
 
 ```swift

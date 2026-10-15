@@ -137,6 +137,10 @@
 
         @MainActor
         public func initUntoldXR(device: MTLDevice, commandQueue: MTLCommandQueue, layerRenderer: LayerRenderer) {
+            // The headset's render path, forward, wherever this loop renders: the platform's
+            // default on visionOS, and what a Mac rendering a remote immersive space takes too,
+            // unless the game chose a path.
+            adoptXRRenderPathUnlessChosen()
             configureSpatialEventBridge()
             configurePSVR2TrackingObserver()
             registerRuntimeLightingModeObserverIfNeeded()

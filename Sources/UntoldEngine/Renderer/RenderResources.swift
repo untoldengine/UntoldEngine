@@ -99,19 +99,37 @@ public struct RenderInfo {
     /// so per eye in XR.
     public var opaqueDrawsPlain: Int = 0
     public var opaqueDrawsDiscarding: Int = 0
+    /// The render path a platform starts on (`setRendering(.renderPath(_:))` chooses another):
+    /// forward on visionOS, where the geometry lighting itself once per fragment is the measured
+    /// match for RealityKit's cost under MSAA and the rasterization rate maps; deferred on every
+    /// other platform, the path the engine was built around — the lighting cost scales with the
+    /// lit pixels, the tile light stage, the effects that read the G-buffer.
+    public static let defaultRenderPath: RenderPath = {
+        #if os(visionOS)
+            return .forward
+        #else
+            return .deferred
+        #endif
+    }()
+
     /// Whether the geometry evaluates the image-based light and the sun's cascade shadow once
     /// per fragment and carries them in the G-buffer for the light pass to add, instead of the
-    /// light pass computing them once per sample. On by default; the pipelines follow it on
-    /// the next frame (`perFragmentIndirectLightingBuilt` is what they were built with).
-    public var perFragmentIndirectLighting: Bool = true
+    /// light pass computing them once per sample. On where `defaultRenderPath` is hybrid or
+    /// forward; the pipelines follow it on the next frame (`perFragmentIndirectLightingBuilt`
+    /// is what they were built with).
+    public var perFragmentIndirectLighting: Bool = RenderInfo.defaultRenderPath != .deferred
     public var perFragmentIndirectLightingBuilt: Bool = false
     /// Whether the geometry lights itself whole once per fragment — the direct light of the sun,
     /// the point, spot and area lights with their shadows, over the indirect light above, which
     /// it needs — and writes the lit colour, so the light quad, which lights once per sample,
-    /// stands down. On by default; the pipelines follow it on the next frame
-    /// (`perFragmentLightingBuilt` is what they were built with).
-    public var perFragmentLighting: Bool = true
+    /// stands down. On where `defaultRenderPath` is forward; the pipelines follow it on the
+    /// next frame (`perFragmentLightingBuilt` is what they were built with).
+    public var perFragmentLighting: Bool = RenderInfo.defaultRenderPath == .forward
     public var perFragmentLightingBuilt: Bool = false
+    /// Whether the app chose a render path (`setRendering(.renderPath(_:))`, or the two settings
+    /// above one by one) rather than running on the platform's default. The XR loop adopts the
+    /// headset's path at its start when it has not (`adoptXRRenderPathUnlessChosen`).
+    public var renderPathChosen: Bool = false
     /// What the model pipelines are to light per fragment: the setting, which needs the
     /// per-fragment indirect light, and stands aside for the G-buffer debug views, which read
     /// what the forward pass does not write.
