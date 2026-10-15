@@ -19,6 +19,7 @@ import XCTest
 @MainActor
 final class XRProbeOrientationTests: BaseRenderSetup {
     private var savedMode: AntiAliasingMode = .fxaa
+    private var savedPath: RenderPath = .deferred
     private var sphere: EntityID = 0
 
     override func setUp() async throws {
@@ -26,8 +27,8 @@ final class XRProbeOrientationTests: BaseRenderSetup {
         savedMode = antiAliasingMode
         antiAliasingMode = .none
         applyIBL = true
-        setRendering(.perFragmentLighting(.enabled))
-        setRendering(.perFragmentIndirectLighting(.enabled))
+        savedPath = getRenderPath()
+        setRendering(.renderPath(.forward))
         // The probe alone: the harness's scene brings a sun of its own.
         LightingSystem.shared.activeDirectionalLight = nil
     }
@@ -35,6 +36,7 @@ final class XRProbeOrientationTests: BaseRenderSetup {
     override func tearDown() async throws {
         RuntimeEnvironmentLightingStore.shared.publishXRLighting(nil)
         RuntimeEnvironmentLightingStore.shared.setMode(.staticIBL)
+        setRendering(.renderPath(savedPath))
         antiAliasingMode = savedMode
         destroyAllEntities()
         try await super.tearDown()

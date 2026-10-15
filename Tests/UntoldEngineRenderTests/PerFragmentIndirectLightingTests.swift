@@ -14,20 +14,23 @@ import simd
 import XCTest
 
 /// The geometry evaluates the image-based light and the sun's cascade shadow once per fragment
-/// and carries them in the G-buffer; the light pass adds them from there. The picture is the
-/// one the light pass makes computing them once per sample, and the pipelines follow the
-/// setting on the next frame.
+/// and carries them in the G-buffer; the light pass adds them from there: the hybrid path. The
+/// picture is the one the light pass makes computing them once per sample (the deferred path),
+/// and the pipelines follow the path on the next frame. `HybridRenderPathTests` has the rest of
+/// the hybrid path: the quad's draw, the tile stage, the direct lights counted once.
 @MainActor
 final class PerFragmentIndirectLightingTests: BaseRenderSetup {
     private var savedMode: AntiAliasingMode = .fxaa
+    private var savedPath: RenderPath = .deferred
 
     override func setUp() async throws {
         try await super.setUp()
         savedMode = antiAliasingMode
+        savedPath = getRenderPath()
     }
 
     override func tearDown() async throws {
-        setRendering(.perFragmentIndirectLighting(.enabled))
+        setRendering(.renderPath(savedPath))
         antiAliasingMode = savedMode
         destroyAllEntities()
         try await super.tearDown()
@@ -60,10 +63,12 @@ final class PerFragmentIndirectLightingTests: BaseRenderSetup {
         }
     }
 
-    private func litFrame(perFragment: Bool) throws -> [Float] {
-        setRendering(.perFragmentIndirectLighting(perFragment ? .enabled : .disabled))
+    private func litFrame(on path: RenderPath) throws -> [Float] {
+        setRendering(.renderPath(path))
         drawFrames()
-        XCTAssertEqual(renderInfo.perFragmentIndirectLightingBuilt, perFragment, "the pipelines follow the setting")
+        XCTAssertEqual(getRenderPath(), path)
+        XCTAssertEqual(renderInfo.perFragmentIndirectLightingBuilt, path == .hybrid, "the pipelines follow the path")
+        XCTAssertFalse(renderInfo.perFragmentLightingBuilt, "the quad lights on both paths")
         let texture = try XCTUnwrap(textureResources.deferredColorMap)
         var halves = [UInt16](repeating: 0, count: texture.width * texture.height * 4)
         halves.withUnsafeMutableBytes { bytes in
@@ -87,8 +92,8 @@ final class PerFragmentIndirectLightingTests: BaseRenderSetup {
 
     func testTheSamePictureAtOneSample() throws {
         antiAliasingMode = .none
-        let perSample = try litFrame(perFragment: false)
-        let perFragment = try litFrame(perFragment: true)
+        let perSample = try litFrame(on: .deferred)
+        let perFragment = try litFrame(on: .hybrid)
         let result = compare(perSample, perFragment)
         XCTAssertGreaterThan(result.lit, 1000, "the scene is lit")
         XCTAssertLessThan(result.mean, 0.002, "mean difference per channel")
@@ -100,9 +105,9 @@ final class PerFragmentIndirectLightingTests: BaseRenderSetup {
         try XCTSkipUnless(renderInfo.device.supportsTextureSampleCount(4), "no 4× MSAA here")
         antiAliasingMode = .msaa
         setRendering(.multisampleCount(4))
-        let perSample = try litFrame(perFragment: false)
+        let perSample = try litFrame(on: .deferred)
         XCTAssertEqual(renderInfo.opaqueSampleCount, 4)
-        let perFragment = try litFrame(perFragment: true)
+        let perFragment = try litFrame(on: .hybrid)
         let result = compare(perSample, perFragment)
         XCTAssertGreaterThan(result.lit, 1000, "the scene is lit")
         XCTAssertLessThan(result.mean, 0.003, "mean difference per channel: only edge pixels differ")
@@ -111,7 +116,7 @@ final class PerFragmentIndirectLightingTests: BaseRenderSetup {
 
     func testTheShadowIsCarried() throws {
         antiAliasingMode = .none
-        let perFragment = try litFrame(perFragment: true)
+        let perFragment = try litFrame(on: .hybrid)
         let texture = try XCTUnwrap(textureResources.deferredColorMap)
         // The slab fills the lower part of the frame; the box's shadow is its darkest region,
         // the open slab its brightest. Both modes made the same picture (above), so this is

@@ -18,17 +18,19 @@ import XCTest
 @MainActor
 final class TileLightStageTests: BaseRenderSetup {
     private var savedMode: AntiAliasingMode = .fxaa
+    private var savedPath: RenderPath = .deferred
 
     override func setUp() async throws {
         try await super.setUp()
         // The stage lights the indirect part itself: the geometry must not carry it.
-        setRendering(.perFragmentIndirectLighting(.disabled))
+        savedPath = getRenderPath()
+        setRendering(.renderPath(.deferred))
         savedMode = antiAliasingMode
     }
 
     override func tearDown() async throws {
         setRendering(.tileLightStage(.enabled))
-        setRendering(.perFragmentIndirectLighting(.enabled))
+        setRendering(.renderPath(savedPath))
         setRendering(.multisampleCount(4))
         antiAliasingMode = savedMode
         destroyAllEntities()

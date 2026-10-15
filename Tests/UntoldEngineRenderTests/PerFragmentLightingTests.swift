@@ -14,22 +14,24 @@ import simd
 import XCTest
 
 /// The geometry lights itself whole once per fragment — the sun, a point light, the indirect
-/// light, the shadows — and writes the lit colour, so the light quad stands down. The picture
-/// is the one the quad makes lighting once per sample, the quad's draw is gone from the frame,
-/// and the pipelines follow the setting on the next frame.
+/// light, the shadows — and writes the lit colour, so the light quad stands down: the forward
+/// path. The picture is the one the quad makes lighting once per sample over the indirect light
+/// the geometry carried (the hybrid path), the quad's draw is gone from the frame, and the
+/// pipelines follow the path on the next frame.
 @MainActor
 final class PerFragmentLightingTests: BaseRenderSetup {
     private var savedMode: AntiAliasingMode = .fxaa
+    private var savedPath: RenderPath = .deferred
     private var pointLight: EntityID = .max
 
     override func setUp() async throws {
         try await super.setUp()
         savedMode = antiAliasingMode
+        savedPath = getRenderPath()
     }
 
     override func tearDown() async throws {
-        setRendering(.perFragmentLighting(.enabled))
-        setRendering(.perFragmentIndirectLighting(.enabled))
+        setRendering(.renderPath(savedPath))
         antiAliasingMode = savedMode
         destroyAllEntities()
         try await super.tearDown()
@@ -65,10 +67,11 @@ final class PerFragmentLightingTests: BaseRenderSetup {
         }
     }
 
-    private func litFrame(perFragment: Bool) throws -> [Float] {
-        setRendering(.perFragmentLighting(perFragment ? .enabled : .disabled))
+    private func litFrame(on path: RenderPath) throws -> [Float] {
+        setRendering(.renderPath(path))
         drawFrames()
-        XCTAssertEqual(renderInfo.perFragmentLightingBuilt, perFragment, "the pipelines follow the setting")
+        XCTAssertEqual(getRenderPath(), path)
+        XCTAssertEqual(renderInfo.perFragmentLightingBuilt, path == .forward, "the pipelines follow the path")
         XCTAssertTrue(renderInfo.perFragmentIndirectLightingBuilt, "the indirect light stays per fragment either way")
         let texture = try XCTUnwrap(textureResources.deferredColorMap)
         var halves = [UInt16](repeating: 0, count: texture.width * texture.height * 4)
@@ -93,8 +96,8 @@ final class PerFragmentLightingTests: BaseRenderSetup {
 
     func testTheSamePictureAtOneSample() throws {
         antiAliasingMode = .none
-        let quad = try litFrame(perFragment: false)
-        let perFragment = try litFrame(perFragment: true)
+        let quad = try litFrame(on: .hybrid)
+        let perFragment = try litFrame(on: .forward)
         let result = compare(quad, perFragment)
         XCTAssertGreaterThan(result.lit, 1000, "the scene is lit")
         XCTAssertLessThan(result.mean, 0.0005, "mean difference per channel")
@@ -106,9 +109,9 @@ final class PerFragmentLightingTests: BaseRenderSetup {
         try XCTSkipUnless(renderInfo.device.supportsTextureSampleCount(4), "no 4× MSAA here")
         antiAliasingMode = .msaa
         setRendering(.multisampleCount(4))
-        let quad = try litFrame(perFragment: false)
+        let quad = try litFrame(on: .hybrid)
         XCTAssertEqual(renderInfo.opaqueSampleCount, 4)
-        let perFragment = try litFrame(perFragment: true)
+        let perFragment = try litFrame(on: .forward)
         let result = compare(quad, perFragment)
         XCTAssertGreaterThan(result.lit, 1000, "the scene is lit")
         XCTAssertLessThan(result.mean, 0.001, "mean difference per channel: only edge pixels differ, lit once instead of once per sample (measured 0.00003)")
@@ -117,9 +120,9 @@ final class PerFragmentLightingTests: BaseRenderSetup {
 
     func testTheQuadStandsDown() throws {
         antiAliasingMode = .none
-        _ = try litFrame(perFragment: false)
+        _ = try litFrame(on: .hybrid)
         let withQuad = RenderStatsCollector.shared.snapshot().drawCallsTotal
-        _ = try litFrame(perFragment: true)
+        _ = try litFrame(on: .forward)
         let without = RenderStatsCollector.shared.snapshot().drawCallsTotal
         XCTAssertFalse(renderInfo.tileLightStageUsed)
         XCTAssertEqual(without, withQuad - 1, "the frame has the same draws but the light quad's")
@@ -127,9 +130,9 @@ final class PerFragmentLightingTests: BaseRenderSetup {
 
     func testThePointLightIsThere() throws {
         antiAliasingMode = .none
-        let withLight = try litFrame(perFragment: true)
+        let withLight = try litFrame(on: .forward)
         destroyEntity(entityId: pointLight)
-        let without = try litFrame(perFragment: true)
+        let without = try litFrame(on: .forward)
         let result = compare(withLight, without)
         XCTAssertGreaterThan(result.max, 0.05, "the point light lit the box's near side (max difference \(result.max))")
     }
