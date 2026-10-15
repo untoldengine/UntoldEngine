@@ -138,6 +138,13 @@ public enum RenderingProperty: Sendable {
     /// composing the two. Forward by default on visionOS, deferred on macOS and iOS
     /// (`RenderInfo.defaultRenderPath`). `getRenderPath()` reads the path the two make.
     case renderPath(RenderPath)
+
+    /// Whether entities that draw the same meshes with the same materials are encoded as
+    /// one instanced draw in the opaque pass and the shadow cascades. A scene that places
+    /// a model many times then costs a draw per model, not per placement. Enabled by
+    /// default; disabled, every entity is encoded on its own. What is drawn is the same
+    /// either way. See `getInstancedDrawsEnabled()` to read the current value.
+    case instancedDraws(RenderingToggle)
 }
 
 /// Where the opaque geometry is shaded.
@@ -265,6 +272,10 @@ public func setRendering(_ property: RenderingProperty) {
         renderInfo.perFragmentIndirectLighting = path != .deferred
         renderInfo.perFragmentLighting = path == .forward
         renderInfo.renderPathChosen = true
+    case .instancedDraws(.enabled):
+        InstancedDrawing.isEnabled = true
+    case .instancedDraws(.disabled):
+        InstancedDrawing.isEnabled = false
     }
 }
 

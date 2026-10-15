@@ -50,7 +50,33 @@ public class WorldTransformComponent: Component {
 }
 
 public class RenderComponent: Component {
-    public var mesh: [Mesh]
+    public var mesh: [Mesh] {
+        didSet {
+            // Whatever changed (a material, a texture, the level of detail), the
+            // renderer has to look again at what the component draws.
+            instanceKey = .unresolved
+            if instancedSubmeshDraws != nil {
+                instancedSubmeshDraws = nil
+            }
+            if instancedShadowDraws != nil {
+                instancedShadowDraws = nil
+            }
+        }
+    }
+
+    /// What `mesh` draws, as a number the renderer groups instanced draws by: see
+    /// `RenderInstanceKeyTable`. Any change to `mesh` clears it.
+    var instanceKey: RenderInstanceKey = .unresolved
+
+    /// The draws of `mesh` in the opaque pass with everything they bind, prepared the
+    /// first time the component stands for its group in an instanced draw. Any change
+    /// to `mesh` clears them.
+    var instancedSubmeshDraws: [InstancedSubmeshDraw]?
+
+    /// The draws of `mesh` in a shadow pass, prepared the first time the component
+    /// stands for its group there: every submesh but those of glass, which casts no
+    /// shadow. Any change to `mesh` clears them.
+    var instancedShadowDraws: [InstancedShadowDraw]?
     var assetURL: URL = .init(fileURLWithPath: "")
     var assetName: String = ""
     public var isVisible: Bool = true // Visibility flag for bulk loading

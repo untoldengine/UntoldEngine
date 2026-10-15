@@ -181,6 +181,8 @@ The cascade count is 2 by default. Raise to 3 in `Globals.swift` for outdoor sce
 
 **Receiver bias:** The established cascade-0 bias is converted from normalized depth into a light-space world distance. Each cascade then converts that shared distance through its own fitted depth span before comparison. This prevents blended cascades from producing spatially offset shadow edges solely because their orthographic depth ranges differ.
 
+**Instanced casters:** Within a cascade, the casters that draw the same meshes share one draw per submesh (see [Instanced Draws](#instanced-draws)): each reads its model matrix from a buffer the cascade writes once. A caster with a skeleton or a deformation has vertices of its own and is drawn alone, as before.
+
 The shadow map produced here is consumed by the TBDR light sub-pass inside `model`.
 
 **Point shadows:** `pointShadow` renders a cube depth map for the first point light with `castsShadow(true)`. It renders six 90-degree faces from the point light's world position and samples the cube map only for the matching point-light index. Because this costs six depth renders, the current milestone intentionally supports one active shadowed point light.
@@ -203,10 +205,10 @@ This is the core of the tile-based deferred rendering (TBDR) pipeline. Opaque ge
 
 Attachments 0-4 are memoryless G-Buffer targets. They stay in tile memory and are not stored as full-screen textures during normal lit rendering. Attachment 5 is the lit scene-color target.
 
-Inside `combinedModelLightExecution`, the unbatched model phase iterates `visibleEntityIds`. For each entity that is not batched:
-- Binds vertex/index buffers
-- Uploads the model matrix, normal matrix, and camera uniforms into the current in-flight frame slot
-- Issues a draw call per mesh submesh
+Inside `combinedModelLightExecution`, the unbatched model phase iterates `visibleEntityIds`. An entity that is not batched goes one of two ways:
+
+- **Drawn with the entities that draw the same thing.** Most entities have nothing of their own in a draw but their transform. They are gathered, and after the walk each group of them that shares its meshes and materials is encoded as one instanced draw per submesh (see [Instanced Draws](#instanced-draws)).
+- **Drawn on its own.** An entity in the middle of a LOD, tile or mesh fade, one with a skeleton or a deformation, and every entity while a debug colouring is on, binds its vertex and index buffers, uploads its model matrix, normal matrix and the camera uniforms, and issues a draw call per submesh.
 
 Before encoding an entity's draws, the renderer checks scene-channel visibility. Individual entities take the render mode of their channels through the pass's scene snapshot (see [How a Pass Reads the Scene](#how-a-pass-reads-the-scene)); batch groups use their stored channel mask. Hidden channels are skipped entirely rather than rendered transparently.
 
@@ -399,6 +401,24 @@ for entityId in visibleEntityIds {
 - **What every draw shares is read when the pass starts**: camera position, projection, quality settings and debug switches (`OpaquePassState` for the model passes). What every draw of an entity shares (its fades, its deformation buffers, its ghost opacity) is read once per entity.
 
 When a pass needs another component, add it to the snapshot instead of calling `scene.get` inside the loop.
+
+---
+
+## Instanced Draws
+
+A scene that places one model many times (the chairs of a hall, the trees of a site, the copies of a pack model) asks for the same draw over and over with a different transform. The opaque phase of `model` and the cascades of `shadow` gather the entities that draw the same thing and encode one draw for all of them: the vertex streams and the material are bound once, and each instance reads what is its own from a buffer.
+
+**What makes a group.** `RenderComponent.instanceKey` is a small number that two components share exactly when their mesh lists send the same things to the GPU: the same Metal meshes with the same local transforms and, for every submesh, the same index data, textures, samplers and material values. `RenderInstanceKeyTable` gives the numbers. It compares the full description of a mesh list (`MeshListDescription`), not a hash of it, so two different materials never end up in one group. Nothing has to be declared: copies of a pack model, a thousand cubes made from one mesh, or two entities given equal materials by hand group by themselves.
+
+**What keeps a key honest.** Any change to `renderComponent.mesh` (a material edited, a texture streamed in, a LOD switch) clears the key in the property's `didSet`, and the key is looked up again the next time the entity is drawn. An entity whose material is edited leaves its group, and joins it again if the material is set back.
+
+**What is not instanced.** Whether an entity has something of its own in a draw is asked of the entity, each frame: a LOD, tile or mesh fade in progress, a skeleton, a deformation. Those are drawn on their own by the code that always drew them. So is every entity while a debug colouring is on, every transparent submesh (the transparency pass sorts them), and every entity when the setting is off: `setRendering(.instancedDraws(.disabled))`.
+
+**The draw.** `InstancedDrawList` holds the groups of a pass. Once the walk is over it lays out one record per instance (`ModelInstanceUniform`: model-view, model and normal matrices and the model matrix of the previous frame for the velocity; a model matrix alone for a shadow), writes them into a buffer borrowed from `InstanceRecordBufferPool` and encodes each group with `vertexModelInstancedShader` or `vertexShadowInstancedShader`. The instanced model pipelines take the model pipeline's own fragment function and function constants, so a group shades as a single draw does on every render path (deferred, hybrid, forward); a group whose material never discards goes through the instanced pipeline compiled without the discards, as a single draw does. The opacity of a ghost channel is the draw's, in the material parameters, so entities that differ in it are in groups of their own. The buffer is bound once per pass; each draw names its first record as its base instance. A group of one is a draw like any other. The command buffer's completion handler hands the buffer back to the pool, so a buffer is never written while the GPU may still read it.
+
+**The same picture.** The instanced vertex stages do the arithmetic of the single-entity ones on the same values and hand the fragment stage the same `VertexOutModel`, and the fragment function of both is `fragmentModelShader` itself. A frame is the same picture drawn either way, to the last bits of a few pixels: a vertex stage compiled apart from another differs from it in the last bits of what it computes (the G-buffer attachments at their own precision are identical), and the derivatives the fragment stage takes (the texture footprint, the specular anti-aliasing) turn that into a visible difference at a quad or two along the silhouettes. `InstancedDrawRenderTests` holds the engine to that, on the deferred, hybrid and forward paths, the velocity of a moving instance included. The one thing that changes is the order of the draws (the entities drawn on their own, the batches, then the groups in the order their first entity came), which can change which of two exactly coplanar surfaces shows.
+
+**Adding a material value.** What an instanced draw binds for a submesh is prepared once per component (`InstancedSubmeshDraw`) from `RenderPasses.opaqueMaterialParameters(of:)`, the function the single-entity draw fills its parameter block with. A value added to `MaterialParametersUniform` and filled there reaches both ways of drawing. Add it to `MeshListDescription.addMaterial(of:)` as well, so that two materials that differ in it get different keys: `RenderInstanceKeyTests` fails until it is there.
 
 ---
 

@@ -172,6 +172,17 @@ func updateOpaquePipelinesForSampleCount() {
     if let modelOpaquePipeline = InitModelOpaquePipeline() {
         PipelineManager.shared.update(rendererPipeLine: modelOpaquePipeline, forType: .modelOpaque)
     }
+    // Only where the renderer was set up with them: the pass draws instanced when they are there.
+    if PipelineManager.shared.renderPipelinesByType[.modelInstanced] != nil,
+       let modelInstancedPipeline = InitModelInstancedPipeline()
+    {
+        PipelineManager.shared.update(rendererPipeLine: modelInstancedPipeline, forType: .modelInstanced)
+    }
+    if PipelineManager.shared.renderPipelinesByType[.modelInstancedOpaque] != nil,
+       let modelInstancedOpaquePipeline = InitModelInstancedOpaquePipeline()
+    {
+        PipelineManager.shared.update(rendererPipeLine: modelInstancedOpaquePipeline, forType: .modelInstancedOpaque)
+    }
     if let lightPipeline = InitLightPipeline() {
         PipelineManager.shared.update(rendererPipeLine: lightPipeline, forType: .light)
     }
@@ -1415,6 +1426,42 @@ func initIBLResources() {
         iblBakeCacheState.iblEnvironmentTexture = iblEnvironmentTexture
         iblBakeCacheState.lock.unlock()
     }
+}
+
+/// The vertex streams of an instanced shadow draw: the position stream alone, laid out as
+/// `createShadowVertexDescriptor` lays it out.
+func createShadowInstancedVertexDescriptor() -> MTLVertexDescriptor {
+    let vertexDescriptor = MTLVertexDescriptor()
+    let position = Int(shadowPassModelPositionIndex.rawValue)
+    vertexDescriptor.attributes[position].format = .float4
+    vertexDescriptor.attributes[position].bufferIndex = position
+    vertexDescriptor.attributes[position].offset = 0
+    vertexDescriptor.layouts[position].stride = MemoryLayout<simd_float4>.stride
+    vertexDescriptor.layouts[position].stepFunction = .perVertex
+    vertexDescriptor.layouts[position].stepRate = 1
+    return vertexDescriptor
+}
+
+/// The vertex streams of an instanced model draw: position, normal, texture coordinates
+/// and tangent, laid out as `createModelVertexDescriptor` lays them out. A mesh drawn
+/// instanced has no skeleton, so the joint streams are not part of the draw.
+func createModelInstancedVertexDescriptor() -> MTLVertexDescriptor {
+    let vertexDescriptor = MTLVertexDescriptor()
+    let streams: [(index: Int, format: MTLVertexFormat, stride: Int)] = [
+        (Int(modelPassVerticesIndex.rawValue), .float4, MemoryLayout<simd_float4>.stride),
+        (Int(modelPassNormalIndex.rawValue), .float4, MemoryLayout<simd_float4>.stride),
+        (Int(modelPassUVIndex.rawValue), .float2, MemoryLayout<simd_float2>.stride),
+        (Int(modelPassTangentIndex.rawValue), .float4, MemoryLayout<simd_float4>.stride),
+    ]
+    for stream in streams {
+        vertexDescriptor.attributes[stream.index].format = stream.format
+        vertexDescriptor.attributes[stream.index].bufferIndex = stream.index
+        vertexDescriptor.attributes[stream.index].offset = 0
+        vertexDescriptor.layouts[stream.index].stride = stream.stride
+        vertexDescriptor.layouts[stream.index].stepFunction = .perVertex
+        vertexDescriptor.layouts[stream.index].stepRate = 1
+    }
+    return vertexDescriptor
 }
 
 func createShadowVertexDescriptor() -> MTLVertexDescriptor {

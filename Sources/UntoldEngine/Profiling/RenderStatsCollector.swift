@@ -170,6 +170,42 @@ public extension MTLRenderCommandEncoder {
         #endif
     }
 
+    /// An instanced draw: `instanceCount` instances, the first of which reads the instance
+    /// record at `baseInstance`. The statistics count it as one draw call and
+    /// `instanceCount` times its triangles.
+    @inline(__always)
+    func drawIndexedPrimitivesTracked(
+        type: MTLPrimitiveType,
+        indexCount: Int,
+        indexType: MTLIndexType,
+        indexBuffer: MTLBuffer,
+        indexBufferOffset: Int,
+        instanceCount: Int,
+        baseInstance: Int,
+        category: RenderDrawCategory = .other
+    ) {
+        drawIndexedPrimitives(
+            type: type,
+            indexCount: indexCount,
+            indexType: indexType,
+            indexBuffer: indexBuffer,
+            indexBufferOffset: indexBufferOffset,
+            instanceCount: instanceCount,
+            baseVertex: 0,
+            baseInstance: baseInstance
+        )
+        #if ENGINE_STATS_ENABLED
+            RenderStatsCollector.shared.recordIndexedDraw(
+                type: type,
+                indexCount: indexCount,
+                instanceCount: instanceCount,
+                category: category
+            )
+        #else
+            _ = category
+        #endif
+    }
+
     @inline(__always)
     func drawPrimitivesTracked(
         type: MTLPrimitiveType,
