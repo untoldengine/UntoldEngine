@@ -6,8 +6,9 @@
 //  the resolve pass after the look pass blends the frame with the eye's reprojected, clipped
 //  history (TAAShader.metal). Sub-pixel detail a single sample flickers on — thin wires, fine
 //  normal maps, the periphery of a foveated frame where a pixel spans several screen pixels —
-//  averages out over frames. The reprojection follows the camera through the depth buffer;
-//  what moves on its own is covered by the neighbourhood clip, not by motion vectors.
+//  averages out over frames. The reprojection follows the camera through the depth buffer and,
+//  on the forward path, each pixel's own motion from the opaque pass; on the deferred and hybrid
+//  paths what moves on its own is covered by the neighbourhood clip alone.
 //
 //  State is per eye (XR renders the two eyes through the same passes): a history texture
 //  ping-pong, the unjittered view-projection of the frame the history holds, and that frame's

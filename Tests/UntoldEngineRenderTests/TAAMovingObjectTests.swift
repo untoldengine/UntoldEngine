@@ -13,23 +13,29 @@ import simd
 @testable import UntoldEngine
 import XCTest
 
-/// A surface that moves on its own under a still camera: the opaque pass writes its motion per
-/// pixel and the resolve finds its history where it was, so the resolve of a moving box differs
-/// from the box's own frame about as little as a resolve held still does, instead of trailing
-/// a ghost of where the box has been.
+/// A surface that moves on its own under a still camera. On the forward path the opaque pass
+/// writes its motion per pixel and the resolve finds its history where it was, so the resolve
+/// of a moving box differs from the box's own frame about as little as a resolve held still
+/// does, instead of trailing a ghost of where the box has been. The deferred and hybrid paths
+/// write no motion: there the neighbourhood clip is what bounds the ghost. Measured (M4 Max,
+/// a plain box over a plain background): the excess over a resolve held still is 0.1–0.3 % of
+/// the box's motion with the motion written, 0.2–0.4 % without, at either stride below.
 @MainActor
 final class TAAMovingObjectTests: BaseRenderSetup {
     private var camera: EntityID = 0
     private var box: EntityID = 0
     private var savedMode: AntiAliasingMode = .fxaa
+    private var savedPath: RenderPath = .deferred
 
     override func setUp() async throws {
         try await super.setUp()
         savedMode = antiAliasingMode
+        savedPath = getRenderPath()
     }
 
     override func tearDown() async throws {
         antiAliasingMode = savedMode
+        setRendering(.renderPath(savedPath))
         TemporalAntiAliasing.shared.invalidateHistory()
         destroyAllEntities()
         try await super.tearDown()
@@ -87,12 +93,32 @@ final class TAAMovingObjectTests: BaseRenderSetup {
         return sum / Float(min(a.count, b.count) / 4 * 3)
     }
 
-    func testTheResolveFollowsAMovingBoxWithoutAGhost() throws {
+    /// How far the resolve of the moving box ends from the box's own frame (`shadow`), against
+    /// how far a resolve held still on that frame ends from it (`floor`): the excess is the
+    /// ghost. `motion` is how far apart the box's first and last frames are.
+    private struct Ghost {
+        let motion: Float
+        let shadow: Float
+        let floor: Float
+    }
+
+    /// A stride of 0.16 a frame crosses the box's width in six frames: a pixel the box leaves
+    /// has only the background around it, so the clip alone rejects the box's history there.
+    private static let fastStride: Float = 0.16
+    /// A stride of 0.02 a frame, a few pixels, is the ghosting case: the pixels the trailing
+    /// edge leaves still have the box in their neighbourhood, so the clip keeps part of the
+    /// stale history, while the motion vectors find the surface's own history instead.
+    private static let slowStride: Float = 0.02
+
+    /// The box walks eight poses, a stride apart, under the temporal resolve on the given path,
+    /// then the resolve is held on the last pose for as long.
+    private func ghost(on path: RenderPath, mode: AntiAliasingMode, stride: Float) throws -> Ghost {
         func pose(_ frame: Int) -> simd_float3 {
-            simd_float3(-0.6 + 0.16 * Float(frame), 0.5, 0)
+            simd_float3(-0.6 + stride * Float(frame), 0.5, 0)
         }
         let frameCount = 8
 
+        setRendering(.renderPath(path))
         antiAliasingMode = .none
         translateTo(entityId: box, position: pose(0))
         drawFrame()
@@ -102,26 +128,49 @@ final class TAAMovingObjectTests: BaseRenderSetup {
         drawFrame()
         drawFrame()
         let last = try readOutput()
-        let motion = meanAbsoluteDifference(first, last)
-        XCTAssertGreaterThan(motion, 0.002, "the box's path moves it in the frame")
+        XCTAssertEqual(getRenderPath(), path)
+        XCTAssertEqual(renderInfo.perFragmentLightingBuilt, path == .forward, "the pipelines follow the path")
 
+        antiAliasingMode = mode
+        TemporalAntiAliasing.shared.invalidateHistory()
+        for frame in 0 ..< frameCount {
+            translateTo(entityId: box, position: pose(frame))
+            drawFrame()
+        }
+        let moved = try readOutput()
+        TemporalAntiAliasing.shared.invalidateHistory()
+        for _ in 0 ..< frameCount {
+            drawFrame()
+        }
+        let held = try readOutput()
+        let measured = Ghost(motion: meanAbsoluteDifference(first, last), shadow: meanAbsoluteDifference(moved, last), floor: meanAbsoluteDifference(held, last))
+        print("TAA moving-box \(path) \(mode) stride \(stride): resolve differs from the box's own frame by \(measured.shadow), held still by \(measured.floor), the first pose by \(measured.motion)")
+        XCTAssertGreaterThan(measured.motion, 0.0005, "the box's path moves it in the frame")
+        return measured
+    }
+
+    func testTheResolveFollowsAMovingBoxWithoutAGhost() throws {
         for mode in [AntiAliasingMode.taa, .msaaTaa] {
-            antiAliasingMode = mode
-            TemporalAntiAliasing.shared.invalidateHistory()
-            for frame in 0 ..< frameCount {
-                translateTo(entityId: box, position: pose(frame))
-                drawFrame()
+            for stride in [Self.fastStride, Self.slowStride] {
+                let measured = try ghost(on: .forward, mode: mode, stride: stride)
+                XCTAssertLessThan(measured.shadow, measured.floor + 0.1 * measured.motion, "\(mode), stride \(stride): the resolve follows the box: it differs from the box's own frame by \(measured.shadow), held still by \(measured.floor), the first pose differs by \(measured.motion)")
             }
-            let moved = try readOutput()
-            TemporalAntiAliasing.shared.invalidateHistory()
-            for _ in 0 ..< frameCount {
-                drawFrame()
+        }
+    }
+
+    /// Without motion vectors the resolve looks for the box's history where the camera alone
+    /// puts it — where the box was — and the clip to the neighbourhood is what keeps that
+    /// history from trailing. The ghost it leaves is bounded as the forward path's is, at a
+    /// tenth of the motion (a clip that let the history through would leave most of it), and
+    /// is about twice the forward path's in the measurement above.
+    func testWithoutMotionVectorsTheClipBoundsTheGhost() throws {
+        for path in [RenderPath.deferred, .hybrid] {
+            for mode in [AntiAliasingMode.taa, .msaaTaa] {
+                for stride in [Self.fastStride, Self.slowStride] {
+                    let measured = try ghost(on: path, mode: mode, stride: stride)
+                    XCTAssertLessThan(measured.shadow, measured.floor + 0.1 * measured.motion, "\(path) \(mode), stride \(stride): the clip bounds the ghost: the resolve differs from the box's own frame by \(measured.shadow), held still by \(measured.floor), the first pose differs by \(measured.motion)")
+                }
             }
-            let held = try readOutput()
-            let shadow = meanAbsoluteDifference(moved, last)
-            let floor = meanAbsoluteDifference(held, last)
-            print("TAA moving-box \(mode): resolve differs from the box's own frame by \(shadow), held still by \(floor), the first pose by \(motion)")
-            XCTAssertLessThan(shadow, floor + 0.1 * motion, "\(mode): the resolve follows the box: it differs from the box's own frame by \(shadow), held still by \(floor), the first pose differs by \(motion)")
         }
     }
 }
