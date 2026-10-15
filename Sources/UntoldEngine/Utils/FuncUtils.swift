@@ -53,7 +53,7 @@ private func makeHDRTexture(width: Int, height: Int, label: String) throws -> MT
         1 + floorf(log2f(fmaxf(Float(width), Float(height))))
     )
 
-    guard let texture = renderInfo.device.makeTexture(descriptor: descriptor) else {
+    guard let device = renderInfo.device, let texture = device.makeTexture(descriptor: descriptor) else {
         throw LoadError.textureCreationFailed
     }
     texture.label = label
