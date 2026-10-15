@@ -92,8 +92,8 @@ typedef struct{
     float3 tbNormal; // the world-space normal, the N of the TBN frame
     float4 tangent;  // the world-space tangent, its handedness in w
     float2 uvCoords;
-    float3 currentClip; // this frame's clip position without the jitter (x, y, w), for the velocity
-    float3 prevClip;    // the previous frame's clip position of the same vertex (x, y, w)
+    float3 currentClipXYW; // this frame's clip position without the jitter: x, y and w (no z), for the velocity
+    float3 prevClipXYW;    // the previous frame's clip position of the same vertex: x, y and w
   }VertexOutModel;
 
 typedef struct {

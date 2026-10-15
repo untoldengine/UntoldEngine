@@ -171,8 +171,8 @@ vertex VertexOutModel vertexModelShader(
     // the velocity the fragment writes (a skinned vertex takes this frame's pose for both).
     float4 currentClip = uniforms.unjitteredViewProjectionMatrix * worldPosition;
     float4 prevClip = uniforms.prevViewProjectionMatrix * uniforms.prevModelMatrix * position;
-    out.currentClip = currentClip.xyw;
-    out.prevClip = prevClip.xyw;
+    out.currentClipXYW = currentClip.xyw;
+    out.prevClipXYW = prevClip.xyw;
 
     // Compute TBN. Tangents are directions, not normals, so transform them with the model
     // matrix linear part. The inverse-transpose normal matrix is only correct for normals.
@@ -281,13 +281,16 @@ typedef struct {
     float2 velocity [[color(6), function_constant(kModelLitInGBuffer)]];
 } GBufferOut;
 
-/// The pixel's motion in NDC: this frame's unjittered position minus the previous frame's. A
-/// vertex behind the previous eye (w <= 0) has no previous position worth a history: no motion.
-static inline float2 modelVelocity(float3 currentClip, float3 prevClip) {
-    if (currentClip.z <= 1e-6 || prevClip.z <= 1e-6) {
+/// The pixel's motion in NDC: this frame's unjittered position minus the previous frame's, each
+/// given as its clip x, y and w (the third component is w, not z). A vertex behind the previous
+/// eye (w <= 0) has no previous position worth a history: no motion.
+static inline float2 modelVelocity(float3 currentClipXYW, float3 prevClipXYW) {
+    const float currentW = currentClipXYW.z;
+    const float prevW = prevClipXYW.z;
+    if (currentW <= 1e-6 || prevW <= 1e-6) {
         return float2(0.0);
     }
-    return currentClip.xy / currentClip.z - prevClip.xy / prevClip.z;
+    return currentClipXYW.xy / currentW - prevClipXYW.xy / prevW;
 }
 
 /// The emissive attachment's value with the indirect light and the sun's shadow folded in.
@@ -600,7 +603,7 @@ fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
             emissiveOut, base, normalMap, verticesInWorldSpace, roughness, metallic,
             uniforms.cameraPosition, lightParams, plBlock, slBlock, alBlock, ltcMagTexture, ltcMatTexture,
             pointShadowCube, spotShadowMap, pointShadowUniforms, spotShadowUniforms);
-        gBufferOut.velocity = modelVelocity(in.currentClip, in.prevClip);
+        gBufferOut.velocity = modelVelocity(in.currentClipXYW, in.prevClipXYW);
     }
     return gBufferOut;
 
