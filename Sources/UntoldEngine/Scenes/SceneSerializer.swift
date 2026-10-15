@@ -1309,21 +1309,24 @@ public func serializeScene() -> SceneData {
         var shouldApplyIBL = applyIBL
 
         if hdrURL.isEmpty == false {
-            var hdrExists = false
+            // Resolve through the same search LoadingSystem/generateHDR already use
+            // (assetBasePath/HDR, app bundle, engine bundle) rather than only checking
+            // assetBasePath/HDR directly. The active HDR may legitimately be one of the
+            // engine's built-in defaults (e.g. teatro_massimo_2k.hdr), which lives in the
+            // engine's resource bundle, not the project's asset folder -- checking only
+            // assetBasePath/HDR falsely reported those as "not found" and disabled IBL.
+            let nsName = hdrURL as NSString
+            let providedExtension = nsName.pathExtension
+            let candidates: [(base: String, ext: String)] = providedExtension.isEmpty
+                ? ["hdr", "exr", "png"].map { (hdrURL, $0) }
+                : [(nsName.deletingPathExtension, providedExtension)]
 
-            // Check in user's asset base path (HDR folder)
-            if let basePath = assetBasePath {
-                let hdrPath = basePath.appendingPathComponent("HDR").appendingPathComponent(hdrURL)
-                hdrExists = FileManager.default.fileExists(atPath: hdrPath.path)
+            let hdrExists = candidates.contains { candidate in
+                LoadingSystem.shared.resourceURL(forResource: candidate.base, withExtension: candidate.ext, subResource: nil) != nil
+            }
 
-                if !hdrExists {
-                    Logger.logWarning(message: "[SceneSerializer] HDR file not found in assets: \(hdrURL), disabling IBL")
-                    validatedHDR = nil
-                    shouldApplyIBL = false
-                }
-            } else {
-                // No asset base path set, can't validate
-                Logger.logWarning(message: "[SceneSerializer] No asset base path set, cannot validate HDR")
+            if !hdrExists {
+                Logger.logWarning(message: "[SceneSerializer] HDR file not found in assets: \(hdrURL), disabling IBL")
                 validatedHDR = nil
                 shouldApplyIBL = false
             }
@@ -1617,12 +1620,14 @@ public func deserializeScene(
             hdrURL = hdr
         } else {
             hdrURL = ""
+            hdrDirectoryURL = nil
         }
     } else {
         applyIBL = false
         renderEnvironment = false
         ambientIntensity = 0.4
         hdrURL = ""
+        hdrDirectoryURL = nil
     }
 
     if let colorGrading = sceneData.colorGrading {

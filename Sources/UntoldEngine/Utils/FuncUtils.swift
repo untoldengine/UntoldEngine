@@ -154,6 +154,10 @@ public func loadTexture(
 }
 
 public func loadImage(_ textureName: String, from directory: URL? = nil) throws -> URL {
+    guard !textureName.isEmpty else {
+        throw LoadError.urlCreationFailed(textureName)
+    }
+
     if let directory {
         let fileURL = directory.appendingPathComponent(textureName)
         if FileManager.default.fileExists(atPath: fileURL.path) {
