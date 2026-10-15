@@ -850,7 +850,7 @@ public struct Material {
     /// contrast to work with unless that slice is stretched back out first.
     public var heightRemapMin: Float = 0.0
     public var heightRemapMax: Float = 1.0
-    public var heightEnabled: Bool = true
+    public var heightEnabled: Bool = false
 
     /// Texture presence flags
     public var hasNormalMap: Bool {
@@ -1060,6 +1060,12 @@ public struct Material {
         heightMidlevel = runtimeMaterial.heightMidlevel
         heightRemapMin = runtimeMaterial.heightRemapMin
         heightRemapMax = runtimeMaterial.heightRemapMax
+        // A height texture baked/embedded in the source asset means the author
+        // intended POM; a blank material later given a height texture through the
+        // editor should stay off until explicitly toggled (see issue #1360).
+        if heightTexture != nil {
+            heightEnabled = true
+        }
 
         let alphaModeBits = runtimeMaterial.flags & 0b11
         alphaMode = MaterialAlphaMode(rawValue: Int32(alphaModeBits)) ?? .opaque
@@ -1142,6 +1148,12 @@ public struct Material {
         height = createTextureDescriptor(device: renderInfo.device, texture: heightTex, wrapMode: .repeat)
         if let displacementScale = mdlMaterial.property(with: .displacementScale)?.floatValue {
             heightScale = displacementScale
+        }
+        // A height texture baked/embedded in the source asset means the author
+        // intended POM; a blank material later given a height texture through the
+        // editor should stay off until explicitly toggled (see issue #1360).
+        if heightTex != nil {
+            heightEnabled = true
         }
 
         baseColorSourceDimensions = baseColorDims

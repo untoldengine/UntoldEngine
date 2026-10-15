@@ -778,6 +778,10 @@ private func applyDeserializedMaterialData(entityId: EntityID, entityData: Entit
 
     if let heightEnabled = materialData.heightEnabled {
         updateMaterialHeightEnabled(entityId: entityId, heightEnabled: heightEnabled)
+    } else if materialData.heightURL != nil {
+        // Legacy scenes saved before `heightEnabled` existed relied on POM
+        // activating implicitly whenever a height texture was present.
+        updateMaterialHeightEnabled(entityId: entityId, heightEnabled: true)
     }
 
     if let heightRemapMin = materialData.heightRemapMin {

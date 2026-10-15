@@ -1590,7 +1590,7 @@ public func updateMaterialHeightRemapMax(entityId: EntityID, heightRemapMax: Flo
 /// Enables/disables Parallax Occlusion Mapping for a material that has a height texture,
 /// without discarding the texture assignment itself.
 public func getMaterialHeightEnabled(entityId: EntityID, meshIndex: Int = 0, submeshIndex: Int = 0) -> Bool {
-    getMaterial(entityId: entityId, meshIndex: meshIndex, submeshIndex: submeshIndex)?.heightEnabled ?? true
+    getMaterial(entityId: entityId, meshIndex: meshIndex, submeshIndex: submeshIndex)?.heightEnabled ?? false
 }
 
 public func updateMaterialHeightEnabled(entityId: EntityID, heightEnabled: Bool, meshIndex: Int = 0, submeshIndex: Int = 0) {

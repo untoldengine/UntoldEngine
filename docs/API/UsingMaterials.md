@@ -296,11 +296,15 @@ updateMaterialHeightScale(entityId: entity, heightScale: 0.08)
 updateMaterialHeightMidlevel(entityId: entity, heightMidlevel: 0.5)
 ```
 
-POM only runs when a material actually has a height texture, and can be disabled without
-discarding the texture assignment:
+POM only runs when a material actually has a height texture, and is opt-in: `heightEnabled`
+defaults to `false` for a material assembled at runtime (e.g. assigning a height texture
+through the editor), even once a height texture is assigned. Load paths that bring in an
+asset already authored with a baked height texture (model import, `.untold`/`.untoldpack`
+load) set `heightEnabled = true` automatically so existing authored content keeps rendering
+unchanged. Toggle it explicitly either way:
 
 ```swift
-updateMaterialHeightEnabled(entityId: entity, heightEnabled: false)
+updateMaterialHeightEnabled(entityId: entity, heightEnabled: true)
 ```
 
 ### Height Remap

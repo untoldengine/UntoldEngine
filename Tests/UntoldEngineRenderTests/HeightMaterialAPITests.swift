@@ -38,7 +38,7 @@ final class HeightMaterialAPITests: BaseRenderSetup {
         XCTAssertEqual(getMaterialHeightMidlevel(entityId: entity), 0.5, accuracy: 0.0001)
         XCTAssertEqual(getMaterialHeightRemapMin(entityId: entity), 0.0, accuracy: 0.0001)
         XCTAssertEqual(getMaterialHeightRemapMax(entityId: entity), 1.0, accuracy: 0.0001)
-        XCTAssertTrue(getMaterialHeightEnabled(entityId: entity), "POM should be enabled by default")
+        XCTAssertFalse(getMaterialHeightEnabled(entityId: entity), "POM should be opt-in and disabled by default (issue #1360)")
     }
 
     // MARK: - Round trips
