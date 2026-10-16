@@ -53,7 +53,7 @@ private func makeHDRTexture(width: Int, height: Int, label: String) throws -> MT
         1 + floorf(log2f(fmaxf(Float(width), Float(height))))
     )
 
-    guard let texture = renderInfo.device.makeTexture(descriptor: descriptor) else {
+    guard let device = renderInfo.device, let texture = device.makeTexture(descriptor: descriptor) else {
         throw LoadError.textureCreationFailed
     }
     texture.label = label
@@ -154,6 +154,10 @@ public func loadTexture(
 }
 
 public func loadImage(_ textureName: String, from directory: URL? = nil) throws -> URL {
+    guard !textureName.isEmpty else {
+        throw LoadError.urlCreationFailed(textureName)
+    }
+
     if let directory {
         let fileURL = directory.appendingPathComponent(textureName)
         if FileManager.default.fileExists(atPath: fileURL.path) {
