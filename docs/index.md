@@ -203,6 +203,7 @@ See [COMMERCIAL.md](https://github.com/untoldengine/UntoldEngine/blob/main/COMME
 - [Async Loading](API/UsingAsyncLoading.md)
 - [Spatial Input](API/UsingSpatialInput.md)
 - [XR Immersion Modes](API/UsingXRImmersionMode.md)
+- [The Vision Pro Rendering Profile, As Measured](API/VisionProRenderingProfile.md)
 - [Light Portals](API/UsingLightPortals.md)
 - [Rendering Extensions](API/UsingRenderingExtensions.md)
 - [Rendering Extension Examples](https://github.com/untoldengine/UntoldEngine/blob/main/Examples/RenderingExtensions/README.md)

@@ -80,6 +80,41 @@ static inline bool projectAABBToScreenRect(
     return true;
 }
 
+/// The rasterization rate map a depth pyramid was drawn through, when its frame was (visionOS
+/// foveation): `rateMapSizes.xy` is the map's screen size and `.zw` the pyramid's base size, in
+/// pixels, and `rateMapSizes.x <= 0` says there is none, in which case `rateMap` is a placeholder
+/// that is never read. Such a pyramid is not laid out over the screen the boxes above project
+/// to — dense where the eyes look, sparse in the periphery — so a screen UV must be moved to
+/// where the map put it before the pyramid is sampled there.
+static inline bool hzbRateMapActive(const float4 rateMapSizes) {
+    return rateMapSizes.x > 0.0f && rateMapSizes.z > 0.0f;
+}
+
+static inline float2 hzbScreenUVToPhysicalUV(
+    constant rasterization_rate_map_data *rateMap,
+    const float4 rateMapSizes,
+    const float2 uv
+) {
+    rasterization_rate_map_decoder decoder(*rateMap);
+    const float2 physical = decoder.map_screen_to_physical_coordinates(uv * rateMapSizes.xy);
+    return clamp(physical / rateMapSizes.zw, 0.0f, 1.0f);
+}
+
+/// Moves a screen rect from `projectAABBToScreenRect` into the pyramid's physical layout; the
+/// map is monotonic along each axis, so the two corners are enough. Nothing without a map.
+static inline void hzbRemapRectToPhysical(
+    constant rasterization_rate_map_data *rateMap,
+    const float4 rateMapSizes,
+    thread float2 &uvMin,
+    thread float2 &uvMax
+) {
+    if (!hzbRateMapActive(rateMapSizes)) {
+        return;
+    }
+    uvMin = hzbScreenUVToPhysicalUV(rateMap, rateMapSizes, uvMin);
+    uvMax = hzbScreenUVToPhysicalUV(rateMap, rateMapSizes, uvMax);
+}
+
 /// True when the rect `uvMin..uvMax` whose nearest depth is `nearDepth` lies behind the HZB
 /// everywhere it is sampled. The mip is the one whose texel spans the rect; a 5x5 grid across
 /// the rect keeps porous occluders (window frames, glass assemblies) from falsely culling what

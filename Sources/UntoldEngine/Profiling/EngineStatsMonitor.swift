@@ -11,6 +11,17 @@
 import Foundation
 import QuartzCore
 
+/// The time the GPU spent on a frame's command buffer beyond the previous frame's: the part
+/// of its span (`gpuStartTime` to `gpuEndTime`) after the previous command buffer ended.
+/// Consecutive frames overlap on the GPU — the next frame's first passes run while the last
+/// passes of the previous one finish — so the plain span of a command buffer also counts the
+/// previous frame's tail, and on a saturated GPU reads far above the time the frame costs.
+/// Summed over a run, this measure is the GPU's time per frame. A command buffer that ended
+/// before the previous one counts nothing.
+public func gpuTimeExcludingOverlap(gpuStartTime: CFTimeInterval, gpuEndTime: CFTimeInterval, previousGPUEndTime: CFTimeInterval) -> CFTimeInterval {
+    max(0, gpuEndTime - max(gpuStartTime, previousGPUEndTime))
+}
+
 public enum EngineStatsLoggingProfile: Equatable {
     case compact
     case verbose
@@ -32,6 +43,7 @@ public final class EngineStatsMonitor: @unchecked Sendable {
         private var _latestGPUExecutionMs: Double = 0.0
         private var _latestGPUFrameCadenceMs: Double = 0.0
         private var _lastGPUCompletionTime: Double = 0.0 // 0 = no completion seen yet
+        private var _lastGPUCommandBufferEndTime: CFTimeInterval = 0.0 // gpuEndTime of the last frame recorded
 
         // 30-frame rolling average for smoothed CPU frame time
         private let kSmoothingWindow = 30
@@ -159,6 +171,23 @@ public final class EngineStatsMonitor: @unchecked Sendable {
             _latestGPUExecutionMs = executionMs
             _latestGPUFrameCadenceMs = cadenceMs
             lock.unlock()
+        #endif
+    }
+
+    /// Records a frame's command buffer from its GPU timestamps, as the time the GPU gave
+    /// it beyond the previous frame's: `gpuTimeExcludingOverlap`. Safe to call from any thread.
+    public func recordGPUCompletion(gpuStartTime: CFTimeInterval, gpuEndTime: CFTimeInterval) {
+        #if ENGINE_STATS_ENABLED
+            lock.lock()
+            let previousEnd = _lastGPUCommandBufferEndTime
+            _lastGPUCommandBufferEndTime = max(previousEnd, gpuEndTime)
+            lock.unlock()
+            recordGPUCompletion(executionMs: gpuTimeExcludingOverlap(
+                gpuStartTime: gpuStartTime, gpuEndTime: gpuEndTime, previousGPUEndTime: previousEnd
+            ) * 1000.0)
+        #else
+            _ = gpuStartTime
+            _ = gpuEndTime
         #endif
     }
 

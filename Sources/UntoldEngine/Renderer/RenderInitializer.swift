@@ -118,11 +118,15 @@ func requestedOpaqueSampleCount() -> Int {
         return 1
     #else
         switch antiAliasingMode {
-        case .msaa:
-            let preferredSampleCount = 4
+        case .msaa, .msaaTaa:
+            // The multisample count asked for, or the largest below it the device has.
             guard let device = renderInfo.device else { return 1 }
-            return device.supportsTextureSampleCount(preferredSampleCount) ? preferredSampleCount : 1
-        case .none, .fxaa, .smaa:
+            var sampleCount = renderInfo.preferredMultisampleCount
+            while sampleCount > 1, !device.supportsTextureSampleCount(sampleCount) {
+                sampleCount /= 2
+            }
+            return max(1, sampleCount)
+        case .none, .fxaa, .smaa, .taa:
             return 1
         }
     #endif
@@ -141,8 +145,14 @@ func updateOpaquePipelinesForSampleCount() {
     if let modelPipeline = InitModelPipeline() {
         PipelineManager.shared.update(rendererPipeLine: modelPipeline, forType: .model)
     }
+    if let modelOpaquePipeline = InitModelOpaquePipeline() {
+        PipelineManager.shared.update(rendererPipeLine: modelOpaquePipeline, forType: .modelOpaque)
+    }
     if let lightPipeline = InitLightPipeline() {
         PipelineManager.shared.update(rendererPipeLine: lightPipeline, forType: .light)
+    }
+    if let lightTilePipeline = InitLightTilePipeline() {
+        PipelineManager.shared.update(rendererPipeLine: lightTilePipeline, forType: .lightTile)
     }
 }
 
@@ -156,6 +166,15 @@ func updateOpaqueSampleCountForCurrentState() {
     }
 
     let newSampleCount = effectiveOpaqueSampleCount()
+    // A per-fragment lighting setting changed: the model and light pipelines are built for
+    // one value of each.
+    if renderInfo.perFragmentIndirectLightingBuilt != renderInfo.perFragmentIndirectLighting
+        || renderInfo.perFragmentLightingBuilt != renderInfo.perFragmentLightingWanted,
+        renderInfo.opaqueSampleCount == newSampleCount
+    {
+        updateOpaquePipelinesForSampleCount()
+        return
+    }
     guard renderInfo.opaqueSampleCount != newSampleCount else { return }
 
     renderInfo.opaqueSampleCount = newSampleCount
@@ -494,6 +513,40 @@ func initRenderPassDescriptors() {
         renderInfo.offscreenRenderPassDescriptor.depthAttachment.resolveTexture = textureResources.depthMap
     }
 
+    // The forward pass's descriptor (the geometry lighting itself per fragment): the lit
+    // colour alone, in the light pass's slot, and the depth, resolved as above.
+    let forwardDescriptor = MTLRenderPassDescriptor()
+    forwardDescriptor.renderTargetWidth = Int(renderInfo.viewPort.x)
+    forwardDescriptor.renderTargetHeight = Int(renderInfo.viewPort.y)
+    configureAttachment(
+        descriptor: forwardDescriptor.colorAttachments[5],
+        texture: opaqueColorTexture,
+        loadAction: .clear,
+        storeAction: usesMSAA ? .multisampleResolve : .store,
+        clearColor: MTLClearColorMake(0.0, 0.0, 0.0, 0.0)
+    )
+    configureAttachment(
+        descriptor: forwardDescriptor.depthAttachment,
+        texture: opaqueDepthTexture,
+        loadAction: .clear,
+        storeAction: usesMSAA ? .multisampleResolve : .store,
+        clearDepth: sceneDepthClearValue()
+    )
+    // Its velocity, attachment 6 (the lit colour keeps the light pass's slot, 5).
+    configureAttachment(
+        descriptor: forwardDescriptor.colorAttachments[6],
+        texture: usesMSAA ? textureResources.msaaVelocityMap : textureResources.velocityMap,
+        loadAction: .clear,
+        storeAction: usesMSAA ? .multisampleResolve : .store,
+        clearColor: MTLClearColorMake(0.0, 0.0, 0.0, 0.0)
+    )
+    if usesMSAA {
+        forwardDescriptor.colorAttachments[5].resolveTexture = textureResources.deferredColorMap
+        forwardDescriptor.colorAttachments[6].resolveTexture = textureResources.velocityMap
+        forwardDescriptor.depthAttachment.resolveTexture = textureResources.depthMap
+    }
+    renderInfo.forwardRenderPassDescriptor = forwardDescriptor
+
     // Deferred Render Pass
     renderInfo.deferredRenderPassDescriptor = createRenderPassDescriptor(
         width: Int(renderInfo.viewPort.x),
@@ -793,6 +846,32 @@ func initTextureResources() {
         )
     } else {
         textureResources.msaaDepthMap = nil
+    }
+
+    // The velocity the opaque pass writes per pixel in its forward mode, for the temporal
+    // resolve: the surface's motion since the previous frame, in NDC.
+    textureResources.velocityMap = createTexture(
+        device: renderInfo.device,
+        label: "Velocity Texture",
+        pixelFormat: .rg16Float,
+        width: viewportWidth,
+        height: viewportHeight,
+        usage: [.shaderRead, .renderTarget],
+        storageMode: .private
+    )
+    if renderInfo.opaqueSampleCount > 1 {
+        textureResources.msaaVelocityMap = createTexture(
+            device: renderInfo.device,
+            label: "MSAA Velocity Texture",
+            pixelFormat: .rg16Float,
+            width: viewportWidth,
+            height: viewportHeight,
+            usage: [.renderTarget],
+            storageMode: .memoryless,
+            sampleCount: renderInfo.opaqueSampleCount
+        )
+    } else {
+        textureResources.msaaVelocityMap = nil
     }
 
     // HZB uses a dedicated source depth so wireframe channels can contribute

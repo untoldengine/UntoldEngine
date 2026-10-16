@@ -163,11 +163,16 @@ vertex VertexOutModel vertexModelShader(
                    weights.w * (jointMatrices[joints.w] * normals));
     }
 
-    out.vPosition = position;
+    float4 worldPosition = uniforms.modelMatrix * position;
+    out.worldPosition = worldPosition.xyz;
     out.position = uniforms.projectionMatrix * uniforms.modelViewMatrix * position;
-    out.normal = normals.xyz;
-    //out.shadowCoords = lightOrthoView * uniforms.modelMatrix * position;
     out.uvCoords = in.uv;
+    // Where the vertex is this frame and was the previous one, on the unjittered screens, for
+    // the velocity the fragment writes (a skinned vertex takes this frame's pose for both).
+    float4 currentClip = uniforms.unjitteredViewProjectionMatrix * worldPosition;
+    float4 prevClip = uniforms.prevViewProjectionMatrix * uniforms.prevModelMatrix * position;
+    out.currentClipXYW = currentClip.xyw;
+    out.prevClipXYW = prevClip.xyw;
 
     // Compute TBN. Tangents are directions, not normals, so transform them with the model
     // matrix linear part. The inverse-transpose normal matrix is only correct for normals.
@@ -239,6 +244,92 @@ vertex MeshOccluderShellVertexOut vertexMeshOccluderShellShader(
 }
 
 
+// Whether a draw through this pipeline may discard fragments: an alpha-masked or blended
+// material, or a dither fade. The plain opaque pipeline compiles this false, and with the
+// discards gone the GPU resolves visibility before it shades — a fragment another surface
+// covers is never shaded. The general pipeline keeps them for the draws that need them.
+constant bool kModelMayDiscard [[function_constant(modelFunctionConstantMayDiscard)]];
+/// Per-fragment indirect lighting: the image-based light and the sun's cascade shadow,
+/// evaluated here once per fragment and carried in the emissive attachment (indirect light
+/// added to the emissive, the shadow factor in alpha) for the light pass to add, instead of
+/// once per sample there (`setRendering(.perFragmentIndirectLighting)`).
+constant bool kModelIndirectInGBuffer [[function_constant(modelFunctionConstantIndirectInGBuffer)]];
+/// Per-fragment lighting: the surface lit whole here, once per fragment — the direct light of
+/// the sun, the point, spot and area lights with their shadows, over the indirect light above,
+/// which it needs — and written to the lit attachment, the one the light pass would write; that
+/// pass, which lights once per sample, then stands down (`setRendering(.perFragmentLighting)`).
+constant bool kModelLitInGBuffer [[function_constant(modelFunctionConstantLitInGBuffer)]];
+/// The sun's parameters are bound for either of the two.
+constant bool kModelSunNeeded = kModelIndirectInGBuffer || kModelLitInGBuffer;
+/// The G-buffer is written when the light pass is to read it, that is unless the geometry
+/// lights itself.
+constant bool kModelGBufferOut = !kModelLitInGBuffer;
+
+/// What the model fragment stage writes: the G-buffer for the light pass to read from the
+/// tile, or — the geometry lighting itself — the lit colour alone, in the attachment the
+/// light pass would write, so the pass holds nothing else in its imageblock and the GPU runs
+/// it in its largest tiles.
+typedef struct {
+    float4 color [[color(0), function_constant(kModelGBufferOut)]];
+    float4 normals [[color(1), function_constant(kModelGBufferOut)]];
+    float4 positions [[color(2), function_constant(kModelGBufferOut)]];
+    float4 material [[color(3), function_constant(kModelGBufferOut)]];
+    float4 emmisive [[color(4), function_constant(kModelGBufferOut)]];
+    float4 lit [[color(5), function_constant(kModelLitInGBuffer)]];
+    // The pixel's motion since the previous frame, in NDC (this frame minus the previous), for
+    // the temporal resolve to find the history of a surface that moves on its own.
+    float2 velocity [[color(6), function_constant(kModelLitInGBuffer)]];
+} GBufferOut;
+
+/// The pixel's motion in NDC: this frame's unjittered position minus the previous frame's, each
+/// given as its clip x, y and w (the third component is w, not z). A vertex behind the previous
+/// eye (w <= 0) has no previous position worth a history: no motion.
+static inline float2 modelVelocity(float3 currentClipXYW, float3 prevClipXYW) {
+    const float currentW = currentClipXYW.z;
+    const float prevW = prevClipXYW.z;
+    if (currentW <= 1e-6 || prevW <= 1e-6) {
+        return float2(0.0);
+    }
+    return currentClipXYW.xy / currentW - prevClipXYW.xy / prevW;
+}
+
+/// The emissive attachment's value with the indirect light and the sun's shadow folded in.
+static inline float4 emissiveWithIndirect(
+    float3 emissive, float4 baseColor, float3 normal, float3 worldPosition, float roughness, float metallic,
+    float3 cameraPosition,
+    texture2d<float> iblIrradiance, texture2d<float> iblSpecular, texture2d<float> iblBRDF,
+    depth2d_array<float> csmShadowArray,
+    constant CSMUniforms &csmUniforms, constant LightParameters &lightParams,
+    constant IBLParamsUniform &iblParam, constant float &iblRotationAngle
+) {
+    float3 viewVector = normalize(cameraPosition - worldPosition);
+    float3 indirect = computeIBLContribution(iblIrradiance, iblSpecular, iblBRDF, iblRotationAngle, iblParam,
+                                             baseColor, normal, viewVector, roughness, metallic) * iblParam.ambientIntensity;
+    float shadow = computeCSMShadow(csmShadowArray, csmUniforms, worldPosition, normal, normalize(lightParams.direction));
+    return float4(emissive + indirect, shadow);
+}
+
+/// The lit attachment's value: the direct light over the emissive attachment's value, which
+/// already holds the emissive with the indirect light, and the sun's shadow in its alpha. The
+/// alpha is the coverage the light pass would have written.
+static inline float4 litWithDirect(
+    float4 emissiveAndShadow, float4 baseColor, float3 normal, float4 worldPosition, float roughness, float metallic,
+    float3 cameraPosition,
+    constant LightParameters &lightParams,
+    constant PointLightBlock &plBlock, constant SpotLightBlock &slBlock, constant AreaLightBlock &alBlock,
+    texture2d<float> ltcMagTexture, texture2d<float> ltcMatTexture,
+    depthcube<float> pointShadowCube, depth2d<float> spotShadowMap,
+    constant PointShadowUniforms &pointShadowUniforms, constant SpotShadowUniforms &spotShadowUniforms
+) {
+    float3 viewVector = normalize(cameraPosition - worldPosition.xyz);
+    float3 direct = computeDirectLighting(
+        worldPosition, viewVector, normal, baseColor.rgb, roughness, metallic, emissiveAndShadow.a,
+        lightParams, plBlock, slBlock, alBlock, ltcMagTexture, ltcMatTexture, pointShadowCube, spotShadowMap,
+        pointShadowUniforms, spotShadowUniforms
+    );
+    return float4(direct + emissiveAndShadow.rgb, baseColor.a);
+}
+
 fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
                                         constant Uniforms & uniforms [[ buffer(modelPassFragmentUniformIndex) ]],
                                  texture2d<float> baseColor [[texture(modelPassBaseTextureIndex)]],
@@ -255,7 +346,26 @@ fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
                                   sampler heightSampler [[sampler(modelPassHeightSamplerIndex)]],
                                         constant float &stScale [[buffer(modelPassFragmentSTScaleIndex)]],
                                         constant POMQualityUniform &pomQuality [[buffer(modelPassFragmentPOMQualityIndex)]],
-                                        constant bool &normalIsPackedXY [[buffer(modelPassFragmentNormalIsPackedXYIndex)]])
+                                        constant bool &normalIsPackedXY [[buffer(modelPassFragmentNormalIsPackedXYIndex)]],
+                                        // Per-fragment indirect lighting, bound only with it on.
+                                        texture2d<float> iblIrradiance [[texture(modelPassIBLIrradianceTextureIndex), function_constant(kModelIndirectInGBuffer)]],
+                                        texture2d<float> iblSpecular [[texture(modelPassIBLSpecularTextureIndex), function_constant(kModelIndirectInGBuffer)]],
+                                        texture2d<float> iblBRDF [[texture(modelPassIBLBRDFTextureIndex), function_constant(kModelIndirectInGBuffer)]],
+                                        depth2d_array<float> csmShadowArray [[texture(modelPassCSMShadowTextureIndex), function_constant(kModelIndirectInGBuffer)]],
+                                        constant CSMUniforms &csmUniforms [[buffer(modelPassFragmentCSMUniformsIndex), function_constant(kModelIndirectInGBuffer)]],
+                                        constant LightParameters &lightParams [[buffer(modelPassFragmentLightParamsIndex), function_constant(kModelSunNeeded)]],
+                                        constant IBLParamsUniform &iblParam [[buffer(modelPassFragmentIBLParamIndex), function_constant(kModelIndirectInGBuffer)]],
+                                        constant float &iblRotationAngle [[buffer(modelPassFragmentIBLRotationAngleIndex), function_constant(kModelIndirectInGBuffer)]],
+                                        // Per-fragment lighting, bound only with it on.
+                                        constant PointLightBlock &plBlock [[buffer(modelPassFragmentPointLightsIndex), function_constant(kModelLitInGBuffer)]],
+                                        constant SpotLightBlock &slBlock [[buffer(modelPassFragmentSpotLightsIndex), function_constant(kModelLitInGBuffer)]],
+                                        constant AreaLightBlock &alBlock [[buffer(modelPassFragmentAreaLightsIndex), function_constant(kModelLitInGBuffer)]],
+                                        constant PointShadowUniforms &pointShadowUniforms [[buffer(modelPassFragmentPointShadowUniformIndex), function_constant(kModelLitInGBuffer)]],
+                                        constant SpotShadowUniforms &spotShadowUniforms [[buffer(modelPassFragmentSpotShadowUniformIndex), function_constant(kModelLitInGBuffer)]],
+                                        texture2d<float> ltcMagTexture [[texture(modelPassAreaLTCMagTextureIndex), function_constant(kModelLitInGBuffer)]],
+                                        texture2d<float> ltcMatTexture [[texture(modelPassAreaLTCMatTextureIndex), function_constant(kModelLitInGBuffer)]],
+                                        depthcube<float> pointShadowCube [[texture(modelPassPointShadowTextureIndex), function_constant(kModelLitInGBuffer)]],
+                                        depth2d<float> spotShadowMap [[texture(modelPassSpotShadowTextureIndex), function_constant(kModelLitInGBuffer)]])
 {
 
     // Base Color and Normal Maps: Linear filtering, mipmaps, repeat wrapping
@@ -285,12 +395,42 @@ fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
     float2 stDx = dfdx(st);
     float2 stDy = dfdy(st);
 
-    float4 verticesInWorldSpace=uniforms.modelMatrix*in.vPosition;
-    float3 normalVectorInWorldSpace=uniforms.normalMatrix*in.normal;
+    float4 verticesInWorldSpace = float4(in.worldPosition, 1.0);
+    float3 normalVectorInWorldSpace = in.tbNormal;
 
     //construct tbn matrix TBN (world-space basis built in the vertex stage)
     simd_float3 N=normalize(in.tbNormal);
     simd_float3 T=normalize(in.tangent.xyz);
+
+    // The model pass does not cull, so an open mesh shows its back faces — a dart's flight, a
+    // leaf, a sheet seen from behind. Those arrive with the front side's normal, pointing away
+    // from the viewer, and shade as if unlit (one wing of a flight dark, the next one lit).
+    // A face whose normal points away from the viewer is lit with it turned around. The test
+    // is geometric rather than [[front_facing]]: the pass sets no winding, and assets arrive
+    // wound either way. It is made on the face itself, from the position's screen derivatives
+    // oriented by the vertex normal, not on the interpolated normal: a kit whose normals are
+    // averaged across hard edges (the Simple Dungeons walls and balusters carry corner normals
+    // 45–72° off their faces) has front faces whose interpolated normal passes 90° from the
+    // viewer before the far edge, and deciding on it turned a strip of every such face dark.
+    // Two cases are left as they are, since deciding them is chance: a face within a few
+    // degrees of edge-on, whose footprint on the pixel is more than 2 % of the distance to the
+    // viewer; and a face whose vertex normal lies within 12° of its plane, which does not say
+    // which side of the face is the outside.
+    float3 toViewer = uniforms.cameraPosition - verticesInWorldSpace.xyz;
+    float3 positionDx = dfdx(verticesInWorldSpace.xyz);
+    float3 positionDy = dfdy(verticesInWorldSpace.xyz);
+    float3 faceNormal = cross(positionDx, positionDy);
+    float faceLength = length(faceNormal);
+    faceNormal = faceLength > 0.0 ? faceNormal / faceLength : N;
+    float outside = dot(faceNormal, N);
+    faceNormal = outside < 0.0 ? -faceNormal : faceNormal;
+    bool faceKnown = faceLength > 0.0 && abs(outside) > 0.2
+        && length(positionDx) + length(positionDy) < 0.02 * length(toViewer);
+    bool turnedAway = faceKnown && dot(faceNormal, toViewer) < 0.0;
+    if (turnedAway) {
+        normalVectorInWorldSpace = -normalVectorInWorldSpace;
+        N = -N;
+    }
 
     //B = (N x T) * T.w
     simd_float3 B=cross(N, T)*in.tangent.w;
@@ -368,25 +508,27 @@ fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
     : float4(tint, materialParameter.baseColor.a);
 
 
-    if (materialParameter.alphaMode == 2) {
-        discard_fragment();
-    }
+    if (kModelMayDiscard) {
+        if (materialParameter.alphaMode == 2) {
+            discard_fragment();
+        }
 
-    if (materialParameter.alphaMode == 1 && inBaseColor.a < materialParameter.alphaCutoff) {
-        discard_fragment();
-    }
+        if (materialParameter.alphaMode == 1 && inBaseColor.a < materialParameter.alphaCutoff) {
+            discard_fragment();
+        }
 
-    float lodDitherMode = materialParameter.lodDither.y;
-    if (lodDitherMode > 0.5) {
-        float threshold = clamp(materialParameter.lodDither.x, 0.0, 1.0);
-        float dither = lodBayerThreshold(in.position.xy);
+        float lodDitherMode = materialParameter.lodDither.y;
+        if (lodDitherMode > 0.5) {
+            float threshold = clamp(materialParameter.lodDither.x, 0.0, 1.0);
+            float dither = lodBayerThreshold(in.position.xy);
 
-        if (lodDitherMode < 1.5) {
-            if (dither >= threshold) {
+            if (lodDitherMode < 1.5) {
+                if (dither >= threshold) {
+                    discard_fragment();
+                }
+            } else if (dither < threshold) {
                 discard_fragment();
             }
-        } else if (dither < threshold) {
-            discard_fragment();
         }
     }
 
@@ -459,13 +601,29 @@ fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
 
     float4 color=inBaseColor;
 
-    gBufferOut.color = float4(color.rgb, passthroughAlpha);
-    gBufferOut.normals=float4(normalMap,0.0);
-    gBufferOut.positions=verticesInWorldSpace;
-    // .b/.a carry POM debug data (raw height sample, uv-offset magnitude) for
-    // RenderDebugViewMode.heightDebug / .pomOffsetDebug — see RenderingSystem.swift.
-    gBufferOut.material=float4(roughness, metallic, pomHeightSample, pomOffsetMagnitude);
-    gBufferOut.emmisive = float4(emissive, 1.0);
+    float4 base = float4(color.rgb, passthroughAlpha);
+    float4 emissiveOut = float4(emissive, 1.0);
+    if (kModelIndirectInGBuffer) {
+        emissiveOut = emissiveWithIndirect(
+            emissive, base, normalMap, verticesInWorldSpace.xyz, roughness, metallic, uniforms.cameraPosition,
+            iblIrradiance, iblSpecular, iblBRDF, csmShadowArray, csmUniforms, lightParams, iblParam, iblRotationAngle);
+    }
+    if (kModelGBufferOut) {
+        gBufferOut.color = base;
+        gBufferOut.normals = float4(normalMap, 0.0);
+        gBufferOut.positions = verticesInWorldSpace;
+        // .b/.a carry POM debug data (raw height sample, uv-offset magnitude) for
+        // RenderDebugViewMode.heightDebug / .pomOffsetDebug — see RenderingSystem.swift.
+        gBufferOut.material = float4(roughness, metallic, pomHeightSample, pomOffsetMagnitude);
+        gBufferOut.emmisive = emissiveOut;
+    }
+    if (kModelLitInGBuffer) {
+        gBufferOut.lit = litWithDirect(
+            emissiveOut, base, normalMap, verticesInWorldSpace, roughness, metallic,
+            uniforms.cameraPosition, lightParams, plBlock, slBlock, alBlock, ltcMagTexture, ltcMatTexture,
+            pointShadowCube, spotShadowMap, pointShadowUniforms, spotShadowUniforms);
+        gBufferOut.velocity = modelVelocity(in.currentClipXYW, in.prevClipXYW);
+    }
     return gBufferOut;
 
 

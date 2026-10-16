@@ -15,7 +15,10 @@ public struct EngineTimingStats {
     public var frameTotalMs: Double = 0.0
     /// CPU frame time averaged over the last 30 frames — use this for smooth FPS display.
     public var smoothedFrameMs: Double = 0.0
-    /// True GPU execution time for this frame (gpuEndTime - gpuStartTime from MTLCommandBuffer).
+    /// The GPU's time on this frame's command buffer beyond the previous frame's (consecutive
+    /// frames overlap on the GPU, so the command buffer's own span would count the previous
+    /// frame's tail too; see `gpuTimeExcludingOverlap`). On a saturated GPU this is the time
+    /// the GPU takes per frame.
     public var gpuExecutionMs: Double = 0.0
     /// Wall-clock interval between successive GPU frame completions — use this for true GPU FPS.
     public var gpuFrameCadenceMs: Double = 0.0
@@ -25,6 +28,11 @@ public struct EngineTimingStats {
     public var encodeMs: Double = 0.0
     public var submitMs: Double = 0.0
     public var cullingMs: Double = 0.0
+    /// XR: the time the render loop waited for the compositor's optimal input time between
+    /// its update phase and its submission phase — the frame's pacing, not the CPU's work.
+    /// `encodeMs` is then the submission phase: the drawables' command buffers encoded and
+    /// committed. The CPU's work in a frame is `updateMs` + `encodeMs`.
+    public var xrWaitMs: Double = 0.0
     public var streamingRegionMs: Double = 0.0
     public var geometryStreamingMs: Double = 0.0
     public var batchingTickMs: Double = 0.0
@@ -41,6 +49,7 @@ public struct EngineTimingStats {
         encodeMs: Double = 0.0,
         submitMs: Double = 0.0,
         cullingMs: Double = 0.0,
+        xrWaitMs: Double = 0.0,
         streamingRegionMs: Double = 0.0,
         geometryStreamingMs: Double = 0.0,
         batchingTickMs: Double = 0.0,
@@ -56,6 +65,7 @@ public struct EngineTimingStats {
         self.encodeMs = encodeMs
         self.submitMs = submitMs
         self.cullingMs = cullingMs
+        self.xrWaitMs = xrWaitMs
         self.streamingRegionMs = streamingRegionMs
         self.geometryStreamingMs = geometryStreamingMs
         self.batchingTickMs = batchingTickMs

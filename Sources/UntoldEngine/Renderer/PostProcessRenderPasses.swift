@@ -31,6 +31,7 @@ func executePostProcess(postProcessPipeline: RenderPipeline, uCommandBuffer: MTL
     let pipelineName: String = postProcessPipeline.name!
 
     // set your encoder here
+    GPUPassTiming.shared.attach(renderPassDescriptor, "Post")
     guard
         let renderEncoder = uCommandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)
     else {
@@ -94,6 +95,7 @@ func executeIBLPreFilterPass(uCommandBuffer: MTLCommandBuffer, _ envTexture: MTL
         renderPassDescriptor.colorAttachments[2].storeAction = MTLStoreAction.store
 
         // set your encoder here
+        GPUPassTiming.shared.attach(renderPassDescriptor, "IBL")
         if let renderEncoder = uCommandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) {
             renderEncoder.setRenderPipelineState(iblPrefilterPipeline.pipelineState!)
 
@@ -137,6 +139,7 @@ func executeIBLPreFilterPass(uCommandBuffer: MTLCommandBuffer, _ envTexture: MTL
         renderPassDescriptor.colorAttachments[0].loadAction = .dontCare
         renderPassDescriptor.colorAttachments[0].storeAction = .store
 
+        GPUPassTiming.shared.attach(renderPassDescriptor, "IBL")
         guard let renderEncoder = uCommandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
             continue
         }
@@ -188,6 +191,33 @@ public func executeXRIBLCubePreFilterPass(
         return false
     }
 
+    // The probe's harmonics first, for the irradiance (see xrProbeSHProjection).
+    guard let probeSH = target.probeSH else {
+        handleError(.renderPassCreationFailed, "XR IBL Cube Pre-Filter Pass: the target has no harmonics buffer")
+        return false
+    }
+    if !xrProbeSHPipeline.success, let library = renderInfo.library {
+        createComputePipeline(
+            into: &xrProbeSHPipeline,
+            device: renderInfo.device,
+            library: library,
+            functionName: "xrProbeSHProjection",
+            pipelineName: "XR Probe SH Projection"
+        )
+    }
+    guard xrProbeSHPipeline.success, let projectionState = xrProbeSHPipeline.pipelineState,
+          let projectionEncoder = commandBuffer.makeComputeCommandEncoder()
+    else {
+        handleError(.pipelineStateNulled, "XR Probe SH Projection")
+        return false
+    }
+    projectionEncoder.label = "XR Probe SH Projection"
+    projectionEncoder.setComputePipelineState(projectionState)
+    projectionEncoder.setTexture(environmentCubeTexture, index: 0)
+    projectionEncoder.setBuffer(probeSH, offset: 0, index: 0)
+    projectionEncoder.dispatchThreadgroups(MTLSize(width: 1, height: 1, depth: 1), threadsPerThreadgroup: MTLSize(width: 256, height: 1, depth: 1))
+    projectionEncoder.endEncoding()
+
     let renderPassDescriptor = MTLRenderPassDescriptor()
     renderPassDescriptor.renderTargetWidth = target.irradianceMap.width
     renderPassDescriptor.renderTargetHeight = target.irradianceMap.height
@@ -204,6 +234,7 @@ public func executeXRIBLCubePreFilterPass(
     renderPassDescriptor.colorAttachments[2].loadAction = .dontCare
     renderPassDescriptor.colorAttachments[2].storeAction = .store
 
+    GPUPassTiming.shared.attach(renderPassDescriptor, "IBL")
     guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
         return false
     }
@@ -214,6 +245,7 @@ public func executeXRIBLCubePreFilterPass(
     renderEncoder.setVertexBuffer(bufferResources.quadVerticesBuffer, offset: 0, index: 0)
     renderEncoder.setVertexBuffer(bufferResources.quadTexCoordsBuffer, offset: 0, index: 1)
     renderEncoder.setFragmentTexture(environmentCubeTexture, index: 0)
+    renderEncoder.setFragmentBuffer(probeSH, offset: 0, index: 1)
     renderEncoder.drawIndexedPrimitivesTracked(
         type: .triangle,
         indexCount: 6,
@@ -235,6 +267,7 @@ public func executeXRIBLCubePreFilterPass(
         mipRenderPassDescriptor.colorAttachments[0].loadAction = .dontCare
         mipRenderPassDescriptor.colorAttachments[0].storeAction = .store
 
+        GPUPassTiming.shared.attach(mipRenderPassDescriptor, "IBL")
         guard let mipEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: mipRenderPassDescriptor) else {
             continue
         }

@@ -1095,7 +1095,7 @@ final class GaussianChunkCullTest: BaseRenderSetup {
         XCTAssertEqual(constants.hzbOcclusionBias, gaussianCullHZBOcclusionBias)
         XCTAssertEqual(constants.uniformQuotas, 0, "the weighted quotas are the default")
         XCTAssertEqual(gaussianChunkCullConstants(chunkTable: table, modelMatrix: world.space, viewMatrix: matrix_identity_float4x4, hzbValid: false, uniformQuotas: true).uniformQuotas, 1)
-        XCTAssertEqual(MemoryLayout<GaussianChunkCullConstants>.stride, 192)
+        XCTAssertEqual(MemoryLayout<GaussianChunkCullConstants>.stride, 208)
         XCTAssertEqual(MemoryLayout<GaussianVisibleChunk>.stride, 16)
         XCTAssertEqual(MemoryLayout<GaussianBudgetState>.stride, 48)
         XCTAssertEqual(MemoryLayout<GaussianBudgetScaleConstants>.stride, 48)

@@ -37,6 +37,9 @@ final class MSAARenderingTests: BaseRenderSetup {
 
         XCTAssertEqual(modelPipeline.rasterSampleCount, expectedSampleCount, "Model pipeline sample count mismatch", file: file, line: line)
         XCTAssertEqual(lightPipeline.rasterSampleCount, expectedSampleCount, "Light pipeline sample count mismatch", file: file, line: line)
+        if let tilePipeline = PipelineManager.shared.renderPipelinesByType[.lightTile] {
+            XCTAssertEqual(tilePipeline.rasterSampleCount, expectedSampleCount, "Light tile pipeline sample count mismatch", file: file, line: line)
+        }
     }
 
     private func assertOpaqueRenderTargetsUseSampleCount(

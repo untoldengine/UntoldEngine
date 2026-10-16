@@ -2239,6 +2239,13 @@ public final class RenderExtensionRegistry: @unchecked Sendable {
         return renderExtension
     }
 
+    /// Whether any render extension is registered, whatever its state.
+    public var hasRegisteredExtensions: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return !extensionsByID.isEmpty
+    }
+
     func setRegisteredExtensionOrder(_ orderedIDs: [String]) {
         lifecycleLock.lock()
         defer { lifecycleLock.unlock() }

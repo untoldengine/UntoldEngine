@@ -1530,7 +1530,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
 
         for environmentEnabled in [false, true] {
             renderEnvironment = environmentEnabled
-            for mode in [AntiAliasingMode.none, .fxaa, .smaa, .msaa] {
+            for mode in [AntiAliasingMode.none, .fxaa, .smaa, .msaa, .taa, .msaaTaa] {
                 antiAliasingMode = mode
                 try captureGraphPassIDs()
             }
@@ -1683,11 +1683,13 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
 
     func testSupportedRenderExtensionStagesResolveAcrossImmersionModes() throws {
         let immersionModes: [UntoldImmersionMode] = [.none, .mixed, .full, .ar]
+        let savedImmersionStyle = renderInfo.immersionStyle
         bypassPostProcessing = true
         antiAliasingMode = .none
         defer {
             bypassPostProcessing = false
             antiAliasingMode = .fxaa
+            renderInfo.immersionStyle = savedImmersionStyle
         }
 
         for (modeIndex, immersionMode) in immersionModes.enumerated() {

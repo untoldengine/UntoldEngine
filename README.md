@@ -222,6 +222,7 @@ Read our [Engineering Principles](docs/Contributor/EngineeringPrinciples.md) for
 - [Async Loading](docs/API/UsingAsyncLoading.md)
 - [Spatial Input](docs/API/UsingSpatialInput.md)
 - [XR Immersion Modes](docs/API/UsingXRImmersionMode.md)
+- [The Vision Pro Rendering Profile, As Measured](docs/API/VisionProRenderingProfile.md)
 - [Light Portals](docs/API/UsingLightPortals.md)
 - [Rendering Extensions](docs/API/UsingRenderingExtensions.md)
 - [Rendering Extension Examples](Examples/RenderingExtensions/README.md)

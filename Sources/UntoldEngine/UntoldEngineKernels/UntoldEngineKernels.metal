@@ -50,6 +50,7 @@ using namespace metal;
 #include "../Shaders/spatialDebugShader.metal"
 #include "../Shaders/FXAAShader.metal"
 #include "../Shaders/SMAAShader.metal"
+#include "../Shaders/TAAShader.metal"
 // Gaussian kernels
 #include "../Shaders/BitonicSort.metal"
 #include "../Shaders/DeviceRadixSort.metal"

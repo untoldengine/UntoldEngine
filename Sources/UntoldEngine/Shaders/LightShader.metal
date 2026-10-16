@@ -14,6 +14,10 @@
 #include "ShadersUtils.h"
 using namespace metal;
 
+/// Per-fragment indirect lighting: the indirect light and the sun's shadow come from the
+/// G-buffer, where the geometry wrote them once per fragment, instead of once per sample here.
+constant bool kLightIndirectFromGBuffer [[function_constant(lightFunctionConstantIndirectFromGBuffer)]];
+
 // Normal-offset shadows: how many of the cascade's own world-space texels to push the
 // sampled point along the surface normal before the light-space lookup. This moves the
 // tested point off the surface instead of only fudging the depth comparison, so it stays
@@ -62,12 +66,26 @@ float sampleCSMCascade(
     // into this cascade's normalized depth units so blended edges stay aligned.
     float cascadeDepthSpan = max(csm.cascadeDepthSpans[cascade], 1.0e-6);
     float normalizedBias = worldBias / cascadeDepthSpan;
+    // The taps: the whole Poisson disk, or every second or fourth point of it, which keeps
+    // the spread of the disk with fewer compares (each a hardware-filtered one). Each count
+    // is its own loop with a constant trip count, which the compiler unrolls; one loop over a
+    // count read from the uniforms ran a quarter slower at 16.
+    float2 tapScale = texelSize * cascadeFilterRadius;
     float shadow = 0.0;
+    if (csm.shadowFilterTaps <= 4.0) {
+        for (int i = 0; i < 4; ++i) {
+            shadow += shadowArray.sample_compare(shadowSampler, proj.xy + poissonDisk[i * 4] * tapScale, cascade, proj.z - normalizedBias);
+        }
+        return shadow / 4.0;
+    }
+    if (csm.shadowFilterTaps <= 8.0) {
+        for (int i = 0; i < 8; ++i) {
+            shadow += shadowArray.sample_compare(shadowSampler, proj.xy + poissonDisk[i * 2] * tapScale, cascade, proj.z - normalizedBias);
+        }
+        return shadow / 8.0;
+    }
     for (int i = 0; i < 16; ++i) {
-        float2 offset = poissonDisk[i] * texelSize * cascadeFilterRadius;
-        shadow += shadowArray.sample_compare(
-            shadowSampler, proj.xy + offset, cascade, proj.z - normalizedBias
-        );
+        shadow += shadowArray.sample_compare(shadowSampler, proj.xy + poissonDisk[i] * tapScale, cascade, proj.z - normalizedBias);
     }
     return shadow / 16.0;
 }
@@ -712,9 +730,174 @@ fragment float4 fragmentLightShader(VertexCompositeOutput vertexOut [[stage_in]]
 
 }
 
-// TBDR light pass: reads G-buffer from tile memory via framebuffer fetch ([[color(N)]]).
-// The geometry and lighting sub-passes share one MTLRenderCommandEncoder, so the
-// G-buffer data never leaves the GPU tile. Outputs lit color to attachment 5.
+// The direct light on a surface: the sun, through the shadow factor given (its cascade
+// shadow, evaluated by the caller), then the point, spot and area lights with theirs. Shared
+// by the light pass below, which lights once per sample from the G-buffer, and the geometry
+// when it lights itself once per fragment (`fragmentModelShader`, `kModelLitInGBuffer`).
+float3 computeDirectLighting(
+    float4 worldPosition,
+    float3 viewVector,
+    float3 normal,
+    float3 albedo,
+    float roughness,
+    float metallic,
+    float sunShadow,
+    constant LightParameters &lights,
+    constant PointLightBlock &plBlock,
+    constant SpotLightBlock &slBlock,
+    constant AreaLightBlock &alBlock,
+    texture2d<float> ltcMagTexture,
+    texture2d<float> ltcMatTexture,
+    depthcube<float> pointShadowCube,
+    depth2d<float> spotShadowMap,
+    constant PointShadowUniforms &pointShadowUniforms,
+    constant SpotShadowUniforms &spotShadowUniforms
+) {
+    float3 lightRayDirection = normalize(lights.direction);
+
+    LightContribution brdf = computeBRDF(lightRayDirection, viewVector, normal, albedo, float3(1.0), roughness, metallic);
+
+    LightContribution color;
+    color.diff = brdf.diff * (half3)lights.color * (half)lights.intensity;
+    color.spec = brdf.spec * lights.color * lights.intensity;
+    color.diff *= (half)sunShadow;
+    color.spec *= sunShadow;
+
+    LightContribution pointColor;
+    uint lightCount = min(plBlock.count.x, MAX_POINT_LIGHTS);
+    for (uint i = 0; i < lightCount; ++i) {
+        LightContribution pl = computePointLightContribution(plBlock.lights[i], worldPosition, viewVector, normal, albedo, roughness, metallic);
+        if (pointShadowUniforms.enabled > 0.5 && int(i) == pointShadowUniforms.lightIndex) {
+            float pointShadow = computePointShadow(
+                pointShadowCube,
+                pointShadowUniforms,
+                plBlock.lights[i].attenuation.x < 0.0 ? plBlock.lights[i].radius : 0.0,
+                worldPosition.xyz,
+                normal
+            );
+            pl.diff *= (half)pointShadow;
+            pl.spec *= pointShadow;
+        }
+        pointColor.diff += pl.diff;
+        pointColor.spec += pl.spec;
+    }
+    color.diff += pointColor.diff;
+    color.spec += pointColor.spec;
+
+    LightContribution spotLightColor;
+    uint spotLightCount = min(slBlock.count.x, MAX_POINT_LIGHTS);
+    for (uint i = 0; i < spotLightCount; ++i) {
+        LightContribution sl = computeSpotLightContribution(slBlock.lights[i], worldPosition, viewVector, normal, albedo, roughness, metallic);
+        if (spotShadowUniforms.enabled > 0.5 && int(i) == spotShadowUniforms.lightIndex) {
+            float spotShadow = computeSpotShadow(
+                spotShadowMap,
+                spotShadowUniforms,
+                slBlock.lights[i],
+                worldPosition.xyz,
+                normal
+            );
+            sl.diff *= (half)spotShadow;
+            sl.spec *= spotShadow;
+        }
+        spotLightColor.diff += sl.diff;
+        spotLightColor.spec += sl.spec;
+    }
+    color.diff += spotLightColor.diff;
+    color.spec += spotLightColor.spec;
+
+    LightContribution areaLightColor;
+    uint areaLightCount = min(alBlock.count.x, MAX_POINT_LIGHTS);
+    for (uint i = 0; i < areaLightCount; ++i) {
+        LightContribution al = evaluateAreaLight(alBlock.lights[i], worldPosition, viewVector, normal, ltcMatTexture, ltcMagTexture, albedo, roughness, metallic);
+        areaLightColor.diff += al.diff;
+        areaLightColor.spec += al.spec;
+    }
+    color.diff += areaLightColor.diff;
+    color.spec += areaLightColor.spec;
+
+    return (float3)color.diff + color.spec;
+}
+
+// The lighting of one G-buffer record: a pixel's surface facts in, its lit colour out
+// (alpha carries the coverage the geometry wrote). Shared by the per-sample fragment
+// pass and the tile stage below.
+static inline float4 lightTBDRSample(
+    half4  gbAlbedo,
+    half4  gbNormal,
+    float4 gbPosition,
+    half4  gbMaterial,
+    half4  gbEmissive,
+    depth2d_array<float> csmShadowArray,
+    texture2d<float>     irradianceTexture,
+    texture2d<float>     specularTexture,
+    texture2d<float>     iblBRDFTexture,
+    texture2d<float>     ltcMagTexture,
+    texture2d<float>     ltcMatTexture,
+    depthcube<float>     pointShadowCube,
+    depth2d<float>       spotShadowMap,
+    constant CSMUniforms      &csmUniforms,
+    constant simd_float3      &cameraPosition,
+    constant LightParameters  &lights,
+    constant PointLightBlock  &plBlock,
+    constant SpotLightBlock   &slBlock,
+    constant IBLParamsUniform &iblParam,
+    constant AreaLightBlock   &alBlock,
+    constant float            &iblRotationAngle,
+    constant PointShadowUniforms &pointShadowUniforms,
+    constant SpotShadowUniforms &spotShadowUniforms,
+    // The indirect light and the sun's shadow are in the G-buffer already (the emissive
+    // carries the indirect light, its alpha the shadow factor), written once per fragment.
+    bool indirectFromGBuffer
+) {
+    // Background pixels were cleared to (0,0,0,0). Skip lighting entirely —
+    // normalize(float3(0)) is undefined, and the IBL/shadow paths would produce
+    // garbage that can corrupt the environment composite downstream.
+    if (gbAlbedo.a <= 0.0h) {
+        return float4(0.0);
+    }
+
+    float3 lightRayDirection = normalize(lights.direction);
+
+    float4 albedo               = float4(gbAlbedo);
+    float4 verticesInWorldSpace = gbPosition;
+    float3 surfaceNormal        = normalize(float3(gbNormal.xyz));
+    float  roughness          = float(gbMaterial.r);
+    float  metallic           = float(gbMaterial.g);
+    float3 emissive           = float3(gbEmissive.rgb);
+
+    // SSAO is disabled in the TBDR path; will be revisited once SSAO is
+    // restructured as a tile kernel running inside this same encoder.
+    float ambientOcclusion = 1.0;
+
+    float3 viewVector = normalize(cameraPosition - verticesInWorldSpace.xyz);
+
+    float3 indirectLighting = float3(0.0);
+    if (!indirectFromGBuffer) {
+        indirectLighting = computeIBLContribution(
+            irradianceTexture, specularTexture, iblBRDFTexture,
+            iblRotationAngle, iblParam,
+            albedo, surfaceNormal, viewVector, roughness, metallic
+        );
+        indirectLighting *= ambientOcclusion * iblParam.ambientIntensity;
+    }
+
+    float shadow = indirectFromGBuffer
+        ? float(gbEmissive.a)
+        : computeCSMShadow(csmShadowArray, csmUniforms, verticesInWorldSpace.xyz, surfaceNormal, lightRayDirection);
+    float3 direct = computeDirectLighting(
+        verticesInWorldSpace, viewVector, surfaceNormal, albedo.rgb, roughness, metallic, shadow,
+        lights, plBlock, slBlock, alBlock, ltcMagTexture, ltcMatTexture, pointShadowCube, spotShadowMap,
+        pointShadowUniforms, spotShadowUniforms
+    );
+
+    float3 finalRGB = direct + indirectLighting + emissive;
+    return float4(finalRGB, albedo.a);
+}
+
+// TBDR light pass as a full-screen quad: reads the G-buffer from tile memory via framebuffer
+// fetch ([[color(N)]]) in the encoder the geometry drew into, one sample at a time — under
+// MSAA every sample of every pixel is lit. Kept for devices without tile shading and as the
+// fallback of the tile stage below. Outputs the lit colour to attachment 5.
 fragment TBDRLightOutput fragmentLightShaderTBDR(
     VertexCompositeOutput vertexOut [[stage_in]],
     // G-buffer — read directly from tile memory, no texture2d binding needed
@@ -747,102 +930,70 @@ fragment TBDRLightOutput fragmentLightShaderTBDR(
     uint                      sampleID          [[sample_id]]
 ) {
     (void)sampleID;
-    // Background pixels were cleared to (0,0,0,0). Skip lighting entirely —
-    // normalize(float3(0)) is undefined, and the IBL/shadow paths would produce
-    // garbage that can corrupt the environment composite downstream.
-    if (gbAlbedo.a <= 0.0h) {
-        TBDRLightOutput out;
-        out.litColor = float4(0.0);
-        return out;
-    }
-
-    float3 lightRayDirection = normalize(lights.direction);
-
-    float4 albedo               = float4(gbAlbedo);
-    float4 verticesInWorldSpace = gbPosition;
-    float3 surfaceNormal        = normalize(float3(gbNormal.xyz));
-    float  roughness          = float(gbMaterial.r);
-    float  metallic           = float(gbMaterial.g);
-    float3 emissive           = float3(gbEmissive.rgb);
-
-    // SSAO is disabled in the TBDR path; will be revisited once SSAO is
-    // restructured as a tile kernel running inside this same encoder.
-    float ambientOcclusion = 1.0;
-
-    float3 viewVector = normalize(cameraPosition - verticesInWorldSpace.xyz);
-
-    float3 indirectLighting = computeIBLContribution(
-        irradianceTexture, specularTexture, iblBRDFTexture,
-        iblRotationAngle, iblParam,
-        albedo, surfaceNormal, viewVector, roughness, metallic
-    );
-    indirectLighting *= ambientOcclusion * iblParam.ambientIntensity;
-
-    LightContribution brdf = computeBRDF(lightRayDirection, viewVector, surfaceNormal, albedo.rgb, float3(1.0), roughness, metallic);
-
-    LightContribution color;
-    color.diff = brdf.diff * (half3)lights.color * (half)lights.intensity;
-    color.spec = brdf.spec * lights.color * lights.intensity;
-
-    float shadow = computeCSMShadow(csmShadowArray, csmUniforms, verticesInWorldSpace.xyz, surfaceNormal, lightRayDirection);
-    color.diff *= (half)shadow;
-    color.spec *= shadow;
-
-    LightContribution pointColor;
-    uint lightCount = min(plBlock.count.x, MAX_POINT_LIGHTS);
-    for (uint i = 0; i < lightCount; ++i) {
-        LightContribution pl = computePointLightContribution(plBlock.lights[i], verticesInWorldSpace, viewVector, surfaceNormal, albedo.rgb, roughness, metallic);
-        if (pointShadowUniforms.enabled > 0.5 && int(i) == pointShadowUniforms.lightIndex) {
-            float pointShadow = computePointShadow(
-                pointShadowCube,
-                pointShadowUniforms,
-                plBlock.lights[i].attenuation.x < 0.0 ? plBlock.lights[i].radius : 0.0,
-                verticesInWorldSpace.xyz,
-                surfaceNormal
-            );
-            pl.diff *= (half)pointShadow;
-            pl.spec *= pointShadow;
-        }
-        pointColor.diff += pl.diff;
-        pointColor.spec += pl.spec;
-    }
-    color.diff += pointColor.diff;
-    color.spec += pointColor.spec;
-
-    LightContribution spotLightColor;
-    uint spotLightCount = min(slBlock.count.x, MAX_POINT_LIGHTS);
-    for (uint i = 0; i < spotLightCount; ++i) {
-        LightContribution sl = computeSpotLightContribution(slBlock.lights[i], verticesInWorldSpace, viewVector, surfaceNormal, albedo.rgb, roughness, metallic);
-        if (spotShadowUniforms.enabled > 0.5 && int(i) == spotShadowUniforms.lightIndex) {
-            float spotShadow = computeSpotShadow(
-                spotShadowMap,
-                spotShadowUniforms,
-                slBlock.lights[i],
-                verticesInWorldSpace.xyz,
-                surfaceNormal
-            );
-            sl.diff *= (half)spotShadow;
-            sl.spec *= spotShadow;
-        }
-        spotLightColor.diff += sl.diff;
-        spotLightColor.spec += sl.spec;
-    }
-    color.diff += spotLightColor.diff;
-    color.spec += spotLightColor.spec;
-
-    LightContribution areaLightColor;
-    uint areaLightCount = min(alBlock.count.x, MAX_POINT_LIGHTS);
-    for (uint i = 0; i < areaLightCount; ++i) {
-        LightContribution al = evaluateAreaLight(alBlock.lights[i], verticesInWorldSpace, viewVector, surfaceNormal, ltcMatTexture, ltcMagTexture, albedo.rgb, roughness, metallic);
-        areaLightColor.diff += al.diff;
-        areaLightColor.spec += al.spec;
-    }
-    color.diff += areaLightColor.diff;
-    color.spec += areaLightColor.spec;
-
-    float3 finalRGB = (float3)color.diff + color.spec + indirectLighting + emissive;
-
+    (void)isGameMode;
     TBDRLightOutput out;
-    out.litColor = float4(finalRGB, albedo.a);
+    out.litColor = lightTBDRSample(
+        gbAlbedo, gbNormal, gbPosition, gbMaterial, gbEmissive,
+        csmShadowArray, irradianceTexture, specularTexture, iblBRDFTexture, ltcMagTexture, ltcMatTexture,
+        pointShadowCube, spotShadowMap,
+        csmUniforms, cameraPosition, lights, plBlock, slBlock, iblParam, alBlock, iblRotationAngle,
+        pointShadowUniforms, spotShadowUniforms,
+        kLightIndirectFromGBuffer
+    );
     return out;
+}
+
+// The G-buffer as the tile holds it, one record per colour a pixel has: a pixel the geometry
+// covered whole holds one record for all its samples; a pixel on an edge holds one per distinct
+// sample value, each with its coverage mask.
+struct TBDRTileGBuffer {
+    half4  albedo   [[color(0)]];
+    half4  normal   [[color(1)]];
+    float4 position [[color(2)]];
+    half4  material [[color(3)]];
+    half4  emissive [[color(4)]];
+    float4 lit      [[color(5)]];
+};
+
+// TBDR light pass as a tile stage: lights every pixel of the tile once per colour the pixel
+// holds, not once per sample. Under MSAA the geometry writes the same value to every sample
+// a fragment covers, so a pixel inside a surface is lit once however many samples it has;
+// only a pixel on an edge is lit per distinct value, and the resolve then averages them by
+// coverage exactly as it averaged the per-sample lighting of the quad. Same encoder, same
+// tile memory, same inputs as the quad.
+kernel void lightTileShaderTBDR(
+    imageblock<TBDRTileGBuffer, imageblock_layout_implicit> tile,
+    ushort2 pixel [[thread_position_in_threadgroup]],
+    depth2d_array<float> csmShadowArray  [[texture(lightPassShadowTextureIndex)]],
+    texture2d<float>     irradianceTexture [[texture(lightPassIBLIrradianceTextureIndex)]],
+    texture2d<float>     specularTexture   [[texture(lightPassIBLSpecularTextureIndex)]],
+    texture2d<float>     iblBRDFTexture    [[texture(lightPassIBLBRDFMapTextureIndex)]],
+    texture2d<float>     ltcMagTexture     [[texture(lightPassAreaLTCMagTextureIndex)]],
+    texture2d<float>     ltcMatTexture     [[texture(lightPassAreaLTCMatTextureIndex)]],
+    depthcube<float>     pointShadowCube   [[texture(lightPassPointShadowTextureIndex)]],
+    depth2d<float>       spotShadowMap     [[texture(lightPassSpotShadowTextureIndex)]],
+    constant CSMUniforms      &csmUniforms      [[buffer(lightPassLightOrthoViewMatrixIndex)]],
+    constant simd_float3      &cameraPosition   [[buffer(lightPassCameraPositionIndex)]],
+    constant LightParameters  &lights           [[buffer(lightPassLightParamsIndex)]],
+    constant PointLightBlock  &plBlock          [[buffer(lightPassPointLightsIndex)]],
+    constant SpotLightBlock   &slBlock          [[buffer(lightPassSpotLightsIndex)]],
+    constant IBLParamsUniform &iblParam         [[buffer(lightPassIBLParamIndex)]],
+    constant AreaLightBlock   &alBlock          [[buffer(lightPassAreaLightsIndex)]],
+    constant float            &iblRotationAngle [[buffer(lightPassIBLRotationAngleIndex)]],
+    constant PointShadowUniforms &pointShadowUniforms [[buffer(lightPassPointShadowUniformIndex)]],
+    constant SpotShadowUniforms &spotShadowUniforms [[buffer(lightPassSpotShadowUniformIndex)]]
+) {
+    const ushort colors = tile.get_num_colors(pixel);
+    for (ushort color = 0; color < colors; ++color) {
+        TBDRTileGBuffer record = tile.read(pixel, color, imageblock_data_rate::color);
+        record.lit = lightTBDRSample(
+            record.albedo, record.normal, record.position, record.material, record.emissive,
+            csmShadowArray, irradianceTexture, specularTexture, iblBRDFTexture, ltcMagTexture, ltcMatTexture,
+            pointShadowCube, spotShadowMap,
+            csmUniforms, cameraPosition, lights, plBlock, slBlock, iblParam, alBlock, iblRotationAngle,
+            pointShadowUniforms, spotShadowUniforms,
+            false // the stage stands aside when the geometry lights per fragment
+        );
+        tile.write(record, pixel, color, imageblock_data_rate::color);
+    }
 }

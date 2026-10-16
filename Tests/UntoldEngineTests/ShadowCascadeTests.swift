@@ -238,6 +238,30 @@ final class ShadowSystemMakeUniformsTests: XCTestCase {
         XCTAssertEqual(u.shadowSoftnessNear, 3.0, accuracy: 1e-6)
         XCTAssertEqual(u.shadowSoftnessFar, 7.5, accuracy: 1e-6)
     }
+
+    func testTheFilterTakesTheWholeDiskByDefaultAndHalfOfItOnAHeadset() {
+        let originalXRMode = renderInfo.isXRStereoMode
+        defer { renderInfo.isXRStereoMode = originalXRMode }
+
+        renderInfo.isXRStereoMode = false
+        XCTAssertEqual(ShadowSystem().makeUniforms().shadowFilterTaps, 16, accuracy: 1e-6)
+        renderInfo.isXRStereoMode = true
+        XCTAssertEqual(ShadowSystem().makeUniforms().shadowFilterTaps, 8, accuracy: 1e-6)
+    }
+
+    func testTheTapCountsAreTheDiskOrEverySecondOrFourthPointOfIt() {
+        let originalXRMode = renderInfo.isXRStereoMode
+        defer { renderInfo.isXRStereoMode = originalXRMode }
+
+        var sys = ShadowSystem()
+        for (asked, packed) in [(16, 16), (12, 8), (8, 8), (5, 4), (4, 4), (1, 4), (0, 4)] {
+            sys.setSoftness(ShadowSoftnessSettings(filterTaps: asked, xrFilterTaps: asked))
+            renderInfo.isXRStereoMode = false
+            XCTAssertEqual(sys.makeUniforms().shadowFilterTaps, Float(packed), accuracy: 1e-6, "\(asked) taps asked")
+            renderInfo.isXRStereoMode = true
+            XCTAssertEqual(sys.makeUniforms().shadowFilterTaps, Float(packed), accuracy: 1e-6, "\(asked) taps asked, headset")
+        }
+    }
 }
 
 // MARK: - ShadowSystem.cascadeBlendStart

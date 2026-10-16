@@ -151,7 +151,13 @@ final class HZBOcclusionReprojectionTests: BaseRenderSetup {
     }
 
     func testThePyramidRecordsTheCameraItWasBuiltFrom() {
+        // The pyramid is built only for a frame whose depth could hide something: two mesh
+        // entities in the culling set, counted by the frame's cull before the pyramid is built.
+        // The scene is this case's own; another case's count must not stand in for it.
+        _ = makeBox(size: simd_float3(1, 1, 1), at: simd_float3(0, 2, -4))
+        _ = makeBox(size: simd_float3(1, 1, 1), at: simd_float3(2, 2, -6))
         look(from: simd_float3(1, 2, 3))
+        drawFrame()
         drawFrame()
         let frame = renderInfo.hzbFrame
         XCTAssertNotNil(frame)

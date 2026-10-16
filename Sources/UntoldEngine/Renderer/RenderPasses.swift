@@ -290,6 +290,10 @@ public enum RenderPasses {
         let viewMatrix: simd_float4x4
         let cameraPosition: simd_float3
         let projectionMatrix = renderInfo.perspectiveSpace
+        /// For the velocity each draw writes: this frame's view-projection without the jitter
+        /// and the previous frame's, of the eye being drawn.
+        let unjitteredViewProjection: simd_float4x4
+        let prevViewProjection: simd_float4x4
         let pomQuality = RenderPasses.currentPOMQualityUniform()
         let batchingEnabled = BatchingSystem.shared.isEnabled()
         let lodFadesEnabled = LODConfig.shared.enableFadeTransitions
@@ -301,6 +305,8 @@ public enum RenderPasses {
         init(cameraComponent: CameraComponent) {
             viewMatrix = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
             cameraPosition = shadingCameraPosition(cameraComponent)
+            unjitteredViewProjection = simd_mul(TemporalAntiAliasing.shared.unjitteredProjection, viewMatrix)
+            prevViewProjection = TemporalAntiAliasing.shared.previousViewProjection(fallback: unjitteredViewProjection)
         }
 
         /// The entity's LOD component while LOD fades are on; nil otherwise, and for an
@@ -341,6 +347,14 @@ public enum RenderPasses {
             LODDitherDraw(meshes: previousMeshes, threshold: threshold, mode: 2.0),
             LODDitherDraw(meshes: renderComponent.mesh, threshold: threshold, mode: 1.0),
         ]
+    }
+
+    /// Whether a draw with these material parameters can never discard a fragment — an opaque
+    /// material, neither masked nor blended, with no dither fade running — and so goes through
+    /// the model pipeline compiled without discards.
+    @inline(__always)
+    private static func modelDrawNeverDiscards(_ parameters: MaterialParametersUniform) -> Bool {
+        parameters.alphaMode == 0 && parameters.lodDither.y <= 0.5
     }
 
     @inline(__always)
@@ -521,6 +535,8 @@ public enum RenderPasses {
     }
 
     public static let copyOpaqueDepthForHZBExecution: RenderPassExecution = { commandBuffer in
+        // The copy feeds the depth pyramid alone; no pyramid, no copy.
+        guard HZBOcclusionCulling.pyramidWanted() else { return }
         guard let sourceDepth = textureResources.depthMap,
               let hzbSourceDepth = textureResources.hzbSourceDepthMap
         else { return }
@@ -529,7 +545,7 @@ public enum RenderPasses {
         let height = min(sourceDepth.height, hzbSourceDepth.height)
         guard width > 0, height > 0 else { return }
 
-        guard let blitEncoder = commandBuffer.makeBlitCommandEncoder() else { return }
+        guard let blitEncoder = GPUPassTiming.shared.makeBlitEncoder(commandBuffer, "DepthCopy") else { return }
         blitEncoder.label = "Copy Opaque Depth for HZB"
         blitEncoder.copy(
             from: sourceDepth,
@@ -541,6 +557,66 @@ public enum RenderPasses {
             destinationOrigin: MTLOrigin(x: 0, y: 0, z: 0)
         )
         blitEncoder.endEncoding()
+    }
+
+    // MARK: - Tile light stage
+
+    /// Pipeline states Metal refused a pass for (their imageblock did not fit the GPU's tile
+    /// memory at the pass's sample count); the quad lights those from then on.
+    private nonisolated(unsafe) static var refusedTileLightStates: [ObjectIdentifier] = []
+    private nonisolated(unsafe) static var loggedTileLightStage: ObjectIdentifier?
+
+    /// The smallest tile Metal lays a pass with an imageblock out in, in pixels (16×16; the
+    /// pass's tile is whatever larger size Metal picks). An imageblock that does not fit the
+    /// GPU's tile memory even at this size cannot be asked for: Metal refuses the encoder, and
+    /// under API validation it asserts instead.
+    private static let smallestTilePixels = 16 * 16
+
+    /// The tile light stage's pipeline for a combined pass, when it runs, with the descriptor
+    /// told the imageblock's bytes per sample; the tile size is left to Metal, which picks one
+    /// the imageblock fits (the encoder reports it). Nil runs the quad: the stage is off, has
+    /// no pipeline (the simulator, a GPU without tile shading), its imageblock at the pass's
+    /// sample count exceeds the tile memory, or Metal refused it before.
+    static func tileLightStage(for descriptor: MTLRenderPassDescriptor) -> MTLRenderPipelineState? {
+        descriptor.tileWidth = 0
+        descriptor.tileHeight = 0
+        descriptor.imageblockSampleLength = 0
+        #if targetEnvironment(simulator)
+            return nil
+        #else
+            guard renderInfo.tileLightStageEnabled,
+                  !renderInfo.perFragmentIndirectLightingBuilt, // the stage would light the indirect part again
+                  !renderInfo.perFragmentLightingBuilt, // the geometry lit itself; nothing for a stage to do
+                  let pipeline = PipelineManager.shared.renderPipelinesByType[.lightTile],
+                  pipeline.success,
+                  let state = pipeline.pipelineState,
+                  !refusedTileLightStates.contains(ObjectIdentifier(state))
+            else {
+                return nil
+            }
+            // Metal lays the imageblock out in 16-byte strides per sample.
+            let bytesPerSample = (state.imageblockSampleLength + 15) / 16 * 16
+            let tileMemoryNeeded = bytesPerSample * max(1, renderInfo.opaqueSampleCount) * smallestTilePixels
+            guard tileMemoryNeeded <= renderInfo.device.maxThreadgroupMemoryLength else {
+                refuseTileLightStage(state, reason: "the stage's imageblock needs \(tileMemoryNeeded) bytes in a 16×16 tile, the GPU's tile memory holds \(renderInfo.device.maxThreadgroupMemoryLength)")
+                return nil
+            }
+            descriptor.imageblockSampleLength = state.imageblockSampleLength
+            return state
+        #endif
+    }
+
+    /// Records that a pass with this pipeline's imageblock cannot run, once.
+    static func refuseTileLightStage(_ state: MTLRenderPipelineState, reason: String = "Metal refused the pass with the stage's imageblock") {
+        refusedTileLightStates.append(ObjectIdentifier(state))
+        Logger.logWarning(message: "Tile light stage: \(reason) (\(state.imageblockSampleLength) bytes per sample, \(renderInfo.opaqueSampleCount) sample(s)); lighting with the quad")
+    }
+
+    /// Logs the tile size Metal chose, once per pipeline state.
+    static func logTileLightStage(_ state: MTLRenderPipelineState, encoder: MTLRenderCommandEncoder) {
+        guard loggedTileLightStage != ObjectIdentifier(state) else { return }
+        loggedTileLightStage = ObjectIdentifier(state)
+        print("✓ Tile light stage: \(encoder.tileWidth)×\(encoder.tileHeight) tiles, \(state.imageblockSampleLength) bytes per sample, \(renderInfo.opaqueSampleCount) sample(s)")
     }
 
     // MARK: - Shadow entity cache
@@ -1063,6 +1139,7 @@ public enum RenderPasses {
         encoderDescriptor.colorAttachments[0].storeAction = MTLStoreAction.store
         encoderDescriptor.colorAttachments[0].loadAction = loadAction
 
+        GPUPassTiming.shared.attach(encoderDescriptor, "Grid")
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor)
         else {
             handleError(.renderPassCreationFailed, "Grid Pass")
@@ -1076,6 +1153,7 @@ public enum RenderPasses {
         }
 
         renderEncoder.label = "Grid Pass"
+        applyXRFoveationViewport(renderEncoder)
 
         renderEncoder.pushDebugGroup("Grid Pass")
 
@@ -1154,6 +1232,7 @@ public enum RenderPasses {
         encoderDescriptor.colorAttachments[0].storeAction = MTLStoreAction.store
         encoderDescriptor.colorAttachments[0].loadAction = MTLLoadAction.clear
 
+        GPUPassTiming.shared.attach(encoderDescriptor, "Sky")
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor)
         else {
             handleError(.renderPassCreationFailed, "Sky Pass")
@@ -1167,6 +1246,7 @@ public enum RenderPasses {
         }
 
         renderEncoder.label = "Sky Pass"
+        applyXRFoveationViewport(renderEncoder)
 
         renderEncoder.pushDebugGroup("Sky Pass")
 
@@ -1224,6 +1304,7 @@ public enum RenderPasses {
         encoderDescriptor.colorAttachments[0].storeAction = MTLStoreAction.store
         encoderDescriptor.colorAttachments[0].loadAction = MTLLoadAction.clear
 
+        GPUPassTiming.shared.attach(encoderDescriptor, "Environment")
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor)
         else {
             handleError(.renderPassCreationFailed, "Environment Pass")
@@ -1237,6 +1318,7 @@ public enum RenderPasses {
         }
 
         renderEncoder.label = "Environment Pass"
+        applyXRFoveationViewport(renderEncoder)
 
         renderEncoder.pushDebugGroup("Environment Pass")
 
@@ -1340,6 +1422,7 @@ public enum RenderPasses {
             descriptor.depthAttachment.storeAction = .store
             descriptor.depthAttachment.clearDepth = 1.0
 
+            GPUPassTiming.shared.attach(descriptor, "Shadows")
             guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor) else {
                 handleError(.renderPassCreationFailed, "Shadow Cascade \(cascadeIdx)")
                 continue
@@ -1452,6 +1535,7 @@ public enum RenderPasses {
             let descriptor = renderInfo.csmRenderPassDescriptors[cascadeIdx]
             descriptor.depthAttachment.loadAction = .load
 
+            GPUPassTiming.shared.attach(descriptor, "Shadows")
             guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor) else {
                 handleError(.renderPassCreationFailed, "Batched Shadow Cascade \(cascadeIdx)")
                 continue
@@ -1540,6 +1624,7 @@ public enum RenderPasses {
             return
         }
 
+        GPUPassTiming.shared.attach(descriptor, "SpotShadow")
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor) else {
             handleError(.renderPassCreationFailed, "Spot Shadow")
             return
@@ -1679,6 +1764,7 @@ public enum RenderPasses {
             descriptor.depthAttachment.clearDepth = 1.0
             descriptor.depthAttachment.slice = face
 
+            GPUPassTiming.shared.attach(descriptor, "PointShadow")
             guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor) else {
                 handleError(.renderPassCreationFailed, "Point Shadow")
                 return
@@ -1792,36 +1878,39 @@ public enum RenderPasses {
             return
         }
 
-        guard let encoderDescriptor = renderInfo.offscreenRenderPassDescriptor else {
+        guard let encoderDescriptor = renderInfo.opaquePassDescriptor else {
             handleError(.renderPassCreationFailed, "Offscreen render pass descriptor not initialized")
             return
         }
 
-        encoderDescriptor.colorAttachments[Int(colorTarget.rawValue)]
-            .loadAction = .clear
-        encoderDescriptor.colorAttachments[Int(normalTarget.rawValue)]
-            .loadAction = .clear
-        encoderDescriptor.colorAttachments[Int(positionTarget.rawValue)]
-            .loadAction = .clear
-        encoderDescriptor.colorAttachments[Int(materialTarget.rawValue)].loadAction = .clear
-        encoderDescriptor.colorAttachments[Int(emissiveTarget.rawValue)].loadAction = .clear
+        if !renderInfo.perFragmentLightingBuilt {
+            encoderDescriptor.colorAttachments[Int(colorTarget.rawValue)]
+                .loadAction = .clear
+            encoderDescriptor.colorAttachments[Int(normalTarget.rawValue)]
+                .loadAction = .clear
+            encoderDescriptor.colorAttachments[Int(positionTarget.rawValue)]
+                .loadAction = .clear
+            encoderDescriptor.colorAttachments[Int(materialTarget.rawValue)].loadAction = .clear
+            encoderDescriptor.colorAttachments[Int(emissiveTarget.rawValue)].loadAction = .clear
 
-        encoderDescriptor.colorAttachments[Int(colorTarget.rawValue)]
-            .storeAction = .store
+            encoderDescriptor.colorAttachments[Int(colorTarget.rawValue)]
+                .storeAction = .store
 
-        encoderDescriptor.colorAttachments[Int(normalTarget.rawValue)]
-            .storeAction = .store
-        encoderDescriptor.colorAttachments[Int(positionTarget.rawValue)]
-            .storeAction = .store
-        encoderDescriptor.colorAttachments[Int(materialTarget.rawValue)]
-            .storeAction = .store
-        encoderDescriptor.colorAttachments[Int(emissiveTarget.rawValue)]
-            .storeAction = .store
+            encoderDescriptor.colorAttachments[Int(normalTarget.rawValue)]
+                .storeAction = .store
+            encoderDescriptor.colorAttachments[Int(positionTarget.rawValue)]
+                .storeAction = .store
+            encoderDescriptor.colorAttachments[Int(materialTarget.rawValue)]
+                .storeAction = .store
+            encoderDescriptor.colorAttachments[Int(emissiveTarget.rawValue)]
+                .storeAction = .store
+        }
 
         encoderDescriptor.depthAttachment.storeAction = .store
         encoderDescriptor.depthAttachment.loadAction = .clear
         encoderDescriptor.depthAttachment.clearDepth = sceneDepthClearValue()
 
+        GPUPassTiming.shared.attach(encoderDescriptor, "Model")
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor)
         else {
             handleError(.renderPassCreationFailed, "Model Pass")
@@ -1835,6 +1924,7 @@ public enum RenderPasses {
         }
 
         renderEncoder.label = "Model Pass"
+        applyXRFoveationViewport(renderEncoder)
 
         renderEncoder.pushDebugGroup("Model Pass")
 
@@ -2077,19 +2167,22 @@ public enum RenderPasses {
             return
         }
 
-        guard let encoderDescriptor = renderInfo.offscreenRenderPassDescriptor else {
+        guard let encoderDescriptor = renderInfo.opaquePassDescriptor else {
             handleError(.renderPassCreationFailed, "Offscreen render pass descriptor not initialized")
             return
         }
 
         // Reuse existing offscreen descriptor (already configured by modelExecution)
-        encoderDescriptor.colorAttachments[Int(colorTarget.rawValue)].loadAction = .load
-        encoderDescriptor.colorAttachments[Int(normalTarget.rawValue)].loadAction = .load
-        encoderDescriptor.colorAttachments[Int(positionTarget.rawValue)].loadAction = .load
-        encoderDescriptor.colorAttachments[Int(materialTarget.rawValue)].loadAction = .load
-        encoderDescriptor.colorAttachments[Int(emissiveTarget.rawValue)].loadAction = .load
+        if !renderInfo.perFragmentLightingBuilt {
+            encoderDescriptor.colorAttachments[Int(colorTarget.rawValue)].loadAction = .load
+            encoderDescriptor.colorAttachments[Int(normalTarget.rawValue)].loadAction = .load
+            encoderDescriptor.colorAttachments[Int(positionTarget.rawValue)].loadAction = .load
+            encoderDescriptor.colorAttachments[Int(materialTarget.rawValue)].loadAction = .load
+            encoderDescriptor.colorAttachments[Int(emissiveTarget.rawValue)].loadAction = .load
+        }
         encoderDescriptor.depthAttachment.loadAction = .load
 
+        GPUPassTiming.shared.attach(encoderDescriptor, "Model")
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor)
         else {
             handleError(.renderPassCreationFailed, "Batched Model Pass")
@@ -2102,6 +2195,7 @@ public enum RenderPasses {
         }
 
         renderEncoder.label = "Batched Model Pass"
+        applyXRFoveationViewport(renderEncoder)
         renderEncoder.pushDebugGroup("Batched Model Pass")
 
         renderEncoder.setRenderPipelineState(modelPipeline.pipelineState!)
@@ -2298,10 +2392,24 @@ public enum RenderPasses {
             return
         }
 
-        guard let encoderDescriptor = renderInfo.offscreenRenderPassDescriptor else {
+        // The forward descriptor when the geometry lights itself per fragment (the lit colour
+        // and the depth alone), the G-buffer's otherwise: whichever the pipelines were built for.
+        let forwardPass = renderInfo.perFragmentLightingBuilt
+        guard let encoderDescriptor = renderInfo.opaquePassDescriptor else {
             handleError(.renderPassCreationFailed, "Combined G-buffer + Light Pass descriptor not initialized")
             return
         }
+
+        // The model pipeline compiled without discards, for the draws that never need them (an
+        // opaque material, no fade running): the GPU resolves their visibility before shading.
+        // Nil runs every draw through the general pipeline.
+        let plainModelPipeline: RenderPipeline? = renderInfo.opaqueHiddenSurfaceRemovalEnabled
+            ? PipelineManager.shared.renderPipelinesByType[.modelOpaque].flatMap { $0.success && $0.pipelineState != nil ? $0 : nil }
+            : nil
+        renderInfo.opaqueDrawsPlain = 0
+        renderInfo.opaqueDrawsDiscarding = 0
+        // Which of the two the encoder holds; the general one is bound first below.
+        var plainBound = false
 
         // G-buffer slots (0-4): cleared at start, normally discarded at end.
         // Lit output (5): cleared at start, stored for downstream passes.
@@ -2312,9 +2420,11 @@ public enum RenderPasses {
         #else
             let gBufferStoreAction: MTLStoreAction = renderInfo.gBufferDebugStorageEnabled ? .store : .dontCare
         #endif
-        for i in 0 ..< 5 {
-            encoderDescriptor.colorAttachments[i].loadAction = .clear
-            encoderDescriptor.colorAttachments[i].storeAction = gBufferStoreAction
+        if !forwardPass {
+            for i in 0 ..< 5 {
+                encoderDescriptor.colorAttachments[i].loadAction = .clear
+                encoderDescriptor.colorAttachments[i].storeAction = gBufferStoreAction
+            }
         }
         encoderDescriptor.colorAttachments[5].loadAction = .clear
         encoderDescriptor.colorAttachments[5].storeAction = renderInfo.opaqueSampleCount > 1 ? .multisampleResolve : .store
@@ -2322,9 +2432,27 @@ public enum RenderPasses {
         encoderDescriptor.depthAttachment.storeAction = renderInfo.opaqueSampleCount > 1 ? .multisampleResolve : .store
         encoderDescriptor.depthAttachment.clearDepth = sceneDepthClearValue()
 
-        guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor) else {
+        // The light pass as a tile stage, when it runs: its pipeline, with the descriptor told
+        // the imageblock's size before the encoder exists. A pass Metal refuses with it (the
+        // imageblock does not fit the GPU's tile memory at this sample count) runs the quad,
+        // this frame and after.
+        var tileLightState = forwardPass ? nil : tileLightStage(for: encoderDescriptor)
+        GPUPassTiming.shared.attach(encoderDescriptor, forwardPass ? "Forward" : "G-Buffer")
+        var encoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor)
+        if encoder == nil, let refused = tileLightState {
+            refuseTileLightStage(refused)
+            tileLightState = nil
+            encoderDescriptor.imageblockSampleLength = 0
+            encoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor)
+        }
+        guard let renderEncoder = encoder else {
+            renderInfo.tileLightStageUsed = false
             handleError(.renderPassCreationFailed, "Combined G-buffer + Light Pass")
             return
+        }
+        renderInfo.tileLightStageUsed = tileLightState != nil
+        if let tileLightState {
+            logTileLightStage(tileLightState, encoder: renderEncoder)
         }
 
         // Both paths end this encoder explicitly (the simulator path ends it
@@ -2340,14 +2468,69 @@ public enum RenderPasses {
             }
         }
 
-        renderEncoder.label = "G-Buffer + Light Pass (TBDR)"
-        renderEncoder.pushDebugGroup("G-Buffer + Light Pass (TBDR)")
+        renderEncoder.label = forwardPass ? "Forward Pass" : "G-Buffer + Light Pass (TBDR)"
+        renderEncoder.pushDebugGroup(forwardPass ? "Forward Pass" : "G-Buffer + Light Pass (TBDR)")
+        // Through the eye's rasterization rate map when there is one (XR foveation): the
+        // geometry in the map's screen space, the light quad over the whole of it, the
+        // G-buffer read back from the tile under each fragment either way.
+        applyXRFoveationViewport(renderEncoder)
 
         // What every draw of the pass shares, read once.
         let pass = OpaquePassState(cameraComponent: cameraComponent)
         let sceneSnapshot = pass.sceneSnapshot
         let viewMatrix = pass.viewMatrix
         var renderModes = SceneChannelRenderModeMemo()
+
+        // The light pass's inputs, which the geometry shares when it lights per fragment: the
+        // indirect light and the sun's shadow then go into the G-buffer once per fragment and
+        // the quad adds them from there instead of computing them once per sample.
+        var csmUniforms = shadowSystem.makeUniforms()
+        csmUniforms.cameraViewMatrix = viewMatrix
+        csmUniforms.lightSpaceMatrices.0 = SceneRootTransform.shared.effectiveLightMatrix(csmUniforms.lightSpaceMatrices.0)
+        csmUniforms.lightSpaceMatrices.1 = SceneRootTransform.shared.effectiveLightMatrix(csmUniforms.lightSpaceMatrices.1)
+        csmUniforms.lightSpaceMatrices.2 = SceneRootTransform.shared.effectiveLightMatrix(csmUniforms.lightSpaceMatrices.2)
+        let environmentLighting = resolveCurrentEnvironmentLighting()
+        var lightParams = getDirectionalLightParameters()
+        var brdfParameters = IBLParamsUniform()
+        brdfParameters.applyIBL = environmentLighting.applyIBL
+        brdfParameters.ambientIntensity = environmentLighting.ambientIntensity
+        var lightPassRotationAngle = envRotationAngle
+        if renderInfo.perFragmentIndirectLightingBuilt {
+            renderEncoder.setFragmentTexture(environmentLighting.irradianceMap, index: Int(modelPassIBLIrradianceTextureIndex.rawValue))
+            renderEncoder.setFragmentTexture(environmentLighting.specularMap, index: Int(modelPassIBLSpecularTextureIndex.rawValue))
+            renderEncoder.setFragmentTexture(environmentLighting.brdfMap, index: Int(modelPassIBLBRDFTextureIndex.rawValue))
+            renderEncoder.setFragmentTexture(textureResources.csmShadowMap, index: Int(modelPassCSMShadowTextureIndex.rawValue))
+            renderEncoder.setFragmentBytes(&csmUniforms, length: MemoryLayout<CSMUniforms>.stride, index: Int(modelPassFragmentCSMUniformsIndex.rawValue))
+            renderEncoder.setFragmentBytes(&lightParams, length: MemoryLayout<LightParameters>.stride, index: Int(modelPassFragmentLightParamsIndex.rawValue))
+            renderEncoder.setFragmentBytes(&brdfParameters, length: MemoryLayout<IBLParamsUniform>.stride, index: Int(modelPassFragmentIBLParamIndex.rawValue))
+            renderEncoder.setFragmentBytes(&lightPassRotationAngle, length: MemoryLayout<Float>.stride, index: Int(modelPassFragmentIBLRotationAngleIndex.rawValue))
+        }
+        // The light pass's other inputs — the point, spot and area lights and their shadows —
+        // uploaded once for whichever lights with them: the geometry, when it lights itself
+        // whole per fragment and the quad stands down, or the quad.
+        let headerSize = 16
+        let pointLights = uploadLights(buffer: bufferResources.pointLightBuffer, lights: getPointLights(), maxCount: 1024, headerSize: headerSize, labelForErrors: "Point Lights")
+        let spotLights = uploadLights(buffer: bufferResources.spotLightBuffer, lights: getSpotLights(), maxCount: 1024, headerSize: headerSize, labelForErrors: "Spot Lights")
+        let areaLights = uploadLights(buffer: bufferResources.areaLightBuffer, lights: getAreaLights(), maxCount: 1024, headerSize: headerSize, labelForErrors: "Area Lights")
+        var pointShadowUniforms = pointShadowState.makeUniforms()
+        var spotShadowUniforms = spotShadowState.makeUniforms()
+        if renderInfo.perFragmentLightingBuilt {
+            if let pointLights {
+                renderEncoder.setFragmentBuffer(pointLights, offset: 0, index: Int(modelPassFragmentPointLightsIndex.rawValue))
+            }
+            if let spotLights {
+                renderEncoder.setFragmentBuffer(spotLights, offset: 0, index: Int(modelPassFragmentSpotLightsIndex.rawValue))
+            }
+            if let areaLights {
+                renderEncoder.setFragmentBuffer(areaLights, offset: 0, index: Int(modelPassFragmentAreaLightsIndex.rawValue))
+            }
+            renderEncoder.setFragmentBytes(&pointShadowUniforms, length: MemoryLayout<PointShadowUniforms>.stride, index: Int(modelPassFragmentPointShadowUniformIndex.rawValue))
+            renderEncoder.setFragmentBytes(&spotShadowUniforms, length: MemoryLayout<SpotShadowUniforms>.stride, index: Int(modelPassFragmentSpotShadowUniformIndex.rawValue))
+            renderEncoder.setFragmentTexture(textureResources.areaTextureLTCMag, index: Int(modelPassAreaLTCMagTextureIndex.rawValue))
+            renderEncoder.setFragmentTexture(textureResources.areaTextureLTCMat, index: Int(modelPassAreaLTCMatTextureIndex.rawValue))
+            renderEncoder.setFragmentTexture(textureResources.pointShadowCubeMap, index: Int(modelPassPointShadowTextureIndex.rawValue))
+            renderEncoder.setFragmentTexture(textureResources.spotShadowMap, index: Int(modelPassSpotShadowTextureIndex.rawValue))
+        }
 
         // ── Sub-pass 1: Unbatched geometry ──────────────────────────────────────
         renderEncoder.setRenderPipelineState(modelPipeline.pipelineState!)
@@ -2396,6 +2579,12 @@ public enum RenderPasses {
                     modelUniforms.modelMatrix = modelMatrix
                     modelUniforms.cameraPosition = pass.cameraPosition
                     modelUniforms.projectionMatrix = pass.projectionMatrix
+                    // Where the entity was the previous frame, for the velocity.
+                    modelUniforms.unjitteredViewProjectionMatrix = pass.unjitteredViewProjection
+                    modelUniforms.prevViewProjectionMatrix = pass.prevViewProjection
+                    modelUniforms.prevModelMatrix = simd_mul(
+                        ObjectMotion.shared.previousWorldTransform(of: entityId, current: worldTransformComponent.space), mesh.localSpace
+                    )
 
                     renderEncoder.setVertexBytes(&modelUniforms, length: MemoryLayout<Uniforms>.stride, index: Int(modelPassUniformIndex.rawValue))
 
@@ -2452,6 +2641,13 @@ public enum RenderPasses {
                         applyTileRepresentationDither(fade: tileRepresentationFade, materialParameters: &materialParameters)
                         applyMeshFadeDither(fade: meshFade, materialParameters: &materialParameters)
 
+                        let plain = plainModelPipeline != nil && modelDrawNeverDiscards(materialParameters)
+                        if plain != plainBound {
+                            renderEncoder.setRenderPipelineState((plain ? plainModelPipeline! : modelPipeline).pipelineState!)
+                            plainBound = plain
+                        }
+                        if plain { renderInfo.opaqueDrawsPlain += 1 } else { renderInfo.opaqueDrawsDiscarding += 1 }
+
                         renderEncoder.setFragmentBytes(&materialParameters, length: MemoryLayout<MaterialParametersUniform>.stride, index: Int(modelPassFragmentMaterialParameterIndex.rawValue))
                         renderEncoder.setFragmentTexture(material.normal.texture, index: Int(modelPassNormalTextureIndex.rawValue))
                         renderEncoder.setFragmentSamplerState(material.normal.sampler, index: Int(modelPassNormalSamplerIndex.rawValue))
@@ -2484,6 +2680,10 @@ public enum RenderPasses {
                 batchUniforms.normalMatrix = matrix3x3_upper_left(modelMatrix).inverse.transpose
                 batchUniforms.cameraPosition = shadingCameraPosition(cameraComponent)
                 batchUniforms.projectionMatrix = renderInfo.perspectiveSpace
+                // A static batch moves with the camera alone.
+                batchUniforms.unjitteredViewProjectionMatrix = pass.unjitteredViewProjection
+                batchUniforms.prevViewProjectionMatrix = pass.prevViewProjection
+                batchUniforms.prevModelMatrix = matrix_identity_float4x4
 
                 for batchGroup in visibleBatchGroups {
                     guard let positionBuffer = batchGroup.positionBuffer,
@@ -2550,6 +2750,13 @@ public enum RenderPasses {
                     applyLODDebugColorOverride(batchGroup: batchGroup, materialParameters: &materialParameters)
                     applyStreamingTierDebugColorOverride(batchMaterial: material, materialParameters: &materialParameters)
 
+                    let plain = plainModelPipeline != nil && modelDrawNeverDiscards(materialParameters)
+                    if plain != plainBound {
+                        renderEncoder.setRenderPipelineState((plain ? plainModelPipeline! : modelPipeline).pipelineState!)
+                        plainBound = plain
+                    }
+                    if plain { renderInfo.opaqueDrawsPlain += 1 } else { renderInfo.opaqueDrawsDiscarding += 1 }
+
                     renderEncoder.setFragmentBytes(&materialParameters, length: MemoryLayout<MaterialParametersUniform>.stride, index: Int(modelPassFragmentMaterialParameterIndex.rawValue))
                     renderEncoder.setFragmentTexture(material.normal.texture, index: Int(modelPassNormalTextureIndex.rawValue))
                     renderEncoder.setFragmentSamplerState(material.normal.sampler, index: Int(modelPassNormalSamplerIndex.rawValue))
@@ -2571,6 +2778,15 @@ public enum RenderPasses {
         }
 
         // ── Sub-pass 2: Lighting quad ────────────────────────────────────────────
+        // When the geometry lit itself whole per fragment, the lit attachment holds the frame
+        // already and the quad stands down: the pass ends here, on device and in the simulator.
+        if renderInfo.perFragmentLightingBuilt {
+            renderEncoder.updateFence(renderInfo.fence, after: .fragment)
+            renderEncoder.popDebugGroup()
+            renderEncoder.endEncoding()
+            combinedEncoderClosed = true
+            return
+        }
         // Device: reads G-buffer from tile memory via [[color(N)]] framebuffer fetch
         // in the same encoder — no G-buffer textures are bound.
         // Simulator: framebuffer fetch is unsupported, so end the G-buffer encoder
@@ -2594,6 +2810,7 @@ public enum RenderPasses {
             lightPassDescriptor.depthAttachment.loadAction = .load
             lightPassDescriptor.depthAttachment.storeAction = .store
 
+            GPUPassTiming.shared.attach(lightPassDescriptor, "Light")
             guard let lightEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: lightPassDescriptor) else {
                 handleError(.renderPassCreationFailed, "Light Pass (Simulator)")
                 return
@@ -2619,88 +2836,66 @@ public enum RenderPasses {
             let lightQuadEncoder: MTLRenderCommandEncoder = renderEncoder
         #endif
 
-        lightQuadEncoder.setRenderPipelineState(lightPipeline.pipelineState!)
-        if let depthState = lightPipeline.depthState {
-            lightQuadEncoder.setDepthStencilState(depthState)
+        // The tile stage lights each pixel once per colour it holds; the quad lights every
+        // sample. Same encoder and the same inputs either way; only the binding differs.
+        let lights = LightStageBinder(encoder: lightQuadEncoder, tile: tileLightState != nil)
+        if let tileLightState {
+            lightQuadEncoder.setRenderPipelineState(tileLightState)
+        } else {
+            lightQuadEncoder.setRenderPipelineState(lightPipeline.pipelineState!)
+            if let depthState = lightPipeline.depthState {
+                lightQuadEncoder.setDepthStencilState(depthState)
+            }
+            lightQuadEncoder.setVertexBuffer(bufferResources.quadVerticesBuffer, offset: 0, index: 0)
+            lightQuadEncoder.setVertexBuffer(bufferResources.quadTexCoordsBuffer, offset: 0, index: 1)
         }
 
-        lightQuadEncoder.setVertexBuffer(bufferResources.quadVerticesBuffer, offset: 0, index: 0)
-        lightQuadEncoder.setVertexBuffer(bufferResources.quadTexCoordsBuffer, offset: 0, index: 1)
-
         var effectiveCamPos = shadingCameraPosition(cameraComponent)
-        lightQuadEncoder.setFragmentBytes(&effectiveCamPos, length: MemoryLayout<simd_float3>.stride, index: Int(lightPassCameraPositionIndex.rawValue))
+        lights.setBytes(&effectiveCamPos, length: MemoryLayout<simd_float3>.stride, index: Int(lightPassCameraPositionIndex.rawValue))
 
-        var csmUniforms = shadowSystem.makeUniforms()
-        csmUniforms.cameraViewMatrix = viewMatrix
-        csmUniforms.lightSpaceMatrices.0 = SceneRootTransform.shared.effectiveLightMatrix(csmUniforms.lightSpaceMatrices.0)
-        csmUniforms.lightSpaceMatrices.1 = SceneRootTransform.shared.effectiveLightMatrix(csmUniforms.lightSpaceMatrices.1)
-        csmUniforms.lightSpaceMatrices.2 = SceneRootTransform.shared.effectiveLightMatrix(csmUniforms.lightSpaceMatrices.2)
-        lightQuadEncoder.setFragmentBytes(&csmUniforms, length: MemoryLayout<CSMUniforms>.stride, index: Int(lightPassLightOrthoViewMatrixIndex.rawValue))
+        lights.setBytes(&csmUniforms, length: MemoryLayout<CSMUniforms>.stride, index: Int(lightPassLightOrthoViewMatrixIndex.rawValue))
 
-        lightQuadEncoder.setFragmentTexture(textureResources.csmShadowMap, index: Int(lightPassShadowTextureIndex.rawValue))
-        lightQuadEncoder.setFragmentTexture(textureResources.pointShadowCubeMap, index: Int(lightPassPointShadowTextureIndex.rawValue))
-        var pointShadowUniforms = pointShadowState.makeUniforms()
-        lightQuadEncoder.setFragmentBytes(&pointShadowUniforms, length: MemoryLayout<PointShadowUniforms>.stride, index: Int(lightPassPointShadowUniformIndex.rawValue))
-        lightQuadEncoder.setFragmentTexture(textureResources.spotShadowMap, index: Int(lightPassSpotShadowTextureIndex.rawValue))
-        var spotShadowUniforms = spotShadowState.makeUniforms()
-        lightQuadEncoder.setFragmentBytes(&spotShadowUniforms, length: MemoryLayout<SpotShadowUniforms>.stride, index: Int(lightPassSpotShadowUniformIndex.rawValue))
-        let environmentLighting = resolveCurrentEnvironmentLighting()
-        lightQuadEncoder.setFragmentTexture(environmentLighting.irradianceMap, index: Int(lightPassIBLIrradianceTextureIndex.rawValue))
-        lightQuadEncoder.setFragmentTexture(environmentLighting.specularMap, index: Int(lightPassIBLSpecularTextureIndex.rawValue))
-        lightQuadEncoder.setFragmentTexture(environmentLighting.brdfMap, index: Int(lightPassIBLBRDFMapTextureIndex.rawValue))
-        lightQuadEncoder.setFragmentTexture(textureResources.areaTextureLTCMag, index: Int(lightPassAreaLTCMagTextureIndex.rawValue))
-        lightQuadEncoder.setFragmentTexture(textureResources.areaTextureLTCMat, index: Int(lightPassAreaLTCMatTextureIndex.rawValue))
+        lights.setTexture(textureResources.csmShadowMap, index: Int(lightPassShadowTextureIndex.rawValue))
+        lights.setTexture(textureResources.pointShadowCubeMap, index: Int(lightPassPointShadowTextureIndex.rawValue))
+        lights.setBytes(&pointShadowUniforms, length: MemoryLayout<PointShadowUniforms>.stride, index: Int(lightPassPointShadowUniformIndex.rawValue))
+        lights.setTexture(textureResources.spotShadowMap, index: Int(lightPassSpotShadowTextureIndex.rawValue))
+        lights.setBytes(&spotShadowUniforms, length: MemoryLayout<SpotShadowUniforms>.stride, index: Int(lightPassSpotShadowUniformIndex.rawValue))
+        lights.setTexture(environmentLighting.irradianceMap, index: Int(lightPassIBLIrradianceTextureIndex.rawValue))
+        lights.setTexture(environmentLighting.specularMap, index: Int(lightPassIBLSpecularTextureIndex.rawValue))
+        lights.setTexture(environmentLighting.brdfMap, index: Int(lightPassIBLBRDFMapTextureIndex.rawValue))
+        lights.setTexture(textureResources.areaTextureLTCMag, index: Int(lightPassAreaLTCMagTextureIndex.rawValue))
+        lights.setTexture(textureResources.areaTextureLTCMat, index: Int(lightPassAreaLTCMatTextureIndex.rawValue))
 
-        var lightParams = getDirectionalLightParameters()
-        lightQuadEncoder.setFragmentBytes(&lightParams, length: MemoryLayout<LightParameters>.stride, index: Int(lightPassLightParamsIndex.rawValue))
+        lights.setBytes(&lightParams, length: MemoryLayout<LightParameters>.stride, index: Int(lightPassLightParamsIndex.rawValue))
 
-        let headerSize = 16
-        _ = uploadAndBindLights(
-            buffer: bufferResources.pointLightBuffer,
-            lights: getPointLights(),
-            maxCount: 1024,
-            headerSize: headerSize,
-            encoder: lightQuadEncoder,
-            bufferIndex: Int(lightPassPointLightsIndex.rawValue),
-            labelForErrors: "Point Lights"
-        )
-        _ = uploadAndBindLights(
-            buffer: bufferResources.spotLightBuffer,
-            lights: getSpotLights(),
-            maxCount: 1024,
-            headerSize: headerSize,
-            encoder: lightQuadEncoder,
-            bufferIndex: Int(lightPassSpotLightsIndex.rawValue),
-            labelForErrors: "Spot Lights"
-        )
-        _ = uploadAndBindLights(
-            buffer: bufferResources.areaLightBuffer,
-            lights: getAreaLights(),
-            maxCount: 1024,
-            headerSize: headerSize,
-            encoder: lightQuadEncoder,
-            bufferIndex: Int(lightPassAreaLightsIndex.rawValue),
-            labelForErrors: "Area Lights"
-        )
+        if let pointLights {
+            lights.setBuffer(pointLights, offset: 0, index: Int(lightPassPointLightsIndex.rawValue))
+        }
+        if let spotLights {
+            lights.setBuffer(spotLights, offset: 0, index: Int(lightPassSpotLightsIndex.rawValue))
+        }
+        if let areaLights {
+            lights.setBuffer(areaLights, offset: 0, index: Int(lightPassAreaLightsIndex.rawValue))
+        }
 
-        var brdfParameters = IBLParamsUniform()
-        brdfParameters.applyIBL = environmentLighting.applyIBL
-        brdfParameters.ambientIntensity = environmentLighting.ambientIntensity
-        lightQuadEncoder.setFragmentBytes(&brdfParameters, length: MemoryLayout<IBLParamsUniform>.stride, index: Int(lightPassIBLParamIndex.rawValue))
-
-        var lightPassRotationAngle = envRotationAngle
-        lightQuadEncoder.setFragmentBytes(&lightPassRotationAngle, length: MemoryLayout<Float>.stride, index: Int(lightPassIBLRotationAngleIndex.rawValue))
+        lights.setBytes(&brdfParameters, length: MemoryLayout<IBLParamsUniform>.stride, index: Int(lightPassIBLParamIndex.rawValue))
+        lights.setBytes(&lightPassRotationAngle, length: MemoryLayout<Float>.stride, index: Int(lightPassIBLRotationAngleIndex.rawValue))
 
         var isGameMode = gameMode
-        lightQuadEncoder.setFragmentBytes(&isGameMode, length: MemoryLayout<Bool>.size, index: Int(lightPassGameModeIndex.rawValue))
+        lights.setBytes(&isGameMode, length: MemoryLayout<Bool>.size, index: Int(lightPassGameModeIndex.rawValue))
 
-        lightQuadEncoder.drawIndexedPrimitivesTracked(
-            type: .triangle,
-            indexCount: 6,
-            indexType: .uint16,
-            indexBuffer: bufferResources.quadIndexBuffer!,
-            indexBufferOffset: 0
-        )
+        if tileLightState != nil {
+            // One thread per pixel of the tile Metal chose for this pass.
+            lightQuadEncoder.dispatchThreadsPerTile(MTLSize(width: lightQuadEncoder.tileWidth, height: lightQuadEncoder.tileHeight, depth: 1))
+        } else {
+            lightQuadEncoder.drawIndexedPrimitivesTracked(
+                type: .triangle,
+                indexCount: 6,
+                indexType: .uint16,
+                indexBuffer: bufferResources.quadIndexBuffer!,
+                indexBufferOffset: 0
+            )
+        }
 
         lightQuadEncoder.updateFence(renderInfo.fence, after: .fragment)
         // Ends the shared TBDR encoder on device, the standalone light encoder
@@ -2739,6 +2934,7 @@ public enum RenderPasses {
         renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreAction.store
 
         // set your encoder here
+        GPUPassTiming.shared.attach(renderPassDescriptor, "SSAO")
         guard
             let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)
         else {
@@ -2800,6 +2996,14 @@ public enum RenderPasses {
 
         var projScale = simd_float2(renderInfo.perspectiveSpace.columns.0.x, renderInfo.perspectiveSpace.columns.1.y)
         renderEncoder.setFragmentBytes(&projScale, length: MemoryLayout<simd_float2>.stride, index: Int(ssaoPassProjScaleIndex.rawValue))
+        // The eye's rasterization rate map (XR foveation): the depth was drawn through it, so
+        // the view positions are rebuilt from where its texels sit on screen, not in the texture.
+        bindRateMap(
+            renderInfo.xrFoveation?.rateMapData,
+            toFragmentsOf: renderEncoder,
+            dataIndex: Int(ssaoPassRateMapDataIndex.rawValue),
+            sizesIndex: Int(ssaoPassRateMapSizesIndex.rawValue)
+        )
         // set the draw command
 
         renderEncoder.drawIndexedPrimitivesTracked(
@@ -2839,6 +3043,7 @@ public enum RenderPasses {
         renderInfo.ssaoRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)].loadAction = .load
 
         // set your encoder here
+        GPUPassTiming.shared.attach(renderPassDescriptor, "SSAO")
         guard
             let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)
         else {
@@ -2966,6 +3171,7 @@ public enum RenderPasses {
             return
         }
 
+        GPUPassTiming.shared.attach(renderPassDescriptor, "SSAO")
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
             handleError(.renderPassCreationFailed, "SSAO Low-Res Pass")
             return
@@ -3000,6 +3206,14 @@ public enum RenderPasses {
 
         var projScale = simd_float2(renderInfo.perspectiveSpace.columns.0.x, renderInfo.perspectiveSpace.columns.1.y)
         renderEncoder.setFragmentBytes(&projScale, length: MemoryLayout<simd_float2>.stride, index: Int(ssaoPassProjScaleIndex.rawValue))
+        // The eye's rasterization rate map (XR foveation): the depth was drawn through it, so
+        // the view positions are rebuilt from where its texels sit on screen, not in the texture.
+        bindRateMap(
+            renderInfo.xrFoveation?.rateMapData,
+            toFragmentsOf: renderEncoder,
+            dataIndex: Int(ssaoPassRateMapDataIndex.rawValue),
+            sizesIndex: Int(ssaoPassRateMapSizesIndex.rawValue)
+        )
 
         // SSAO properties
         renderEncoder.setFragmentBytes(&SSAOParams.shared.radius, length: MemoryLayout<Float>.stride, index: Int(ssaoPassRadiusIndex.rawValue))
@@ -3060,6 +3274,7 @@ public enum RenderPasses {
         direction: simd_float2,
         label: String
     ) {
+        GPUPassTiming.shared.attach(destinationDescriptor, "SSAO")
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: destinationDescriptor) else {
             handleError(.renderPassCreationFailed, label)
             return
@@ -3125,6 +3340,7 @@ public enum RenderPasses {
             return
         }
 
+        GPUPassTiming.shared.attach(renderPassDescriptor, "SSAO")
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
             handleError(.renderPassCreationFailed, "SSAO Blur Pass")
             return
@@ -3176,6 +3392,7 @@ public enum RenderPasses {
             return
         }
 
+        GPUPassTiming.shared.attach(renderPassDescriptor, "SSAO")
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
             handleError(.renderPassCreationFailed, "SSAO Upsample Pass")
             return
@@ -3265,6 +3482,7 @@ public enum RenderPasses {
         renderPassDescriptor.depthAttachment.storeAction = .store
 
         // set your encoder here
+        GPUPassTiming.shared.attach(renderPassDescriptor, "Light")
         guard
             let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)
         else {
@@ -3438,6 +3656,9 @@ public enum RenderPasses {
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
     } // end _legacyLightExecution_DEAD
 
+    /// Whether the first skipped pre-composite frame has been logged.
+    private nonisolated(unsafe) static var loggedPreCompositeBypass = false
+
     public static let preCompositeExecution: RenderPassExecution = { commandBuffer in
         guard let preCompositePipeline = PipelineManager.shared.renderPipelinesByType[.preComposite] else {
             handleError(.pipelineStateNulled, "preCompositePipeline is nil")
@@ -3487,7 +3708,44 @@ public enum RenderPasses {
         // Load Gaussian texture so it isn't cleared
         renderInfo.gaussianRenderPassDescriptor?.colorAttachments[0].loadAction = .load
 
+        // In XR passthrough nothing lies behind the scene, so with no splat, ambient-occlusion
+        // or gizmo layer to join and the lit view wanted, the composite is the lit scene itself
+        // and this full-screen pass would copy one texture into another (two frames' worth of
+        // bandwidth per eye at the headset's resolution). The look pass reads the lit scene
+        // directly instead. A registered render extension may draw into the composite, which
+        // keeps the pass.
+        let gameFrame = gameMode
+        let finalColorTexture: MTLTexture? = gameFrame
+            ? (bypassPostProcessing
+                ? (renderInfo.deferredRenderPassDescriptor?.colorAttachments[0].texture
+                    ?? renderInfo.postProcessRenderPassDescriptor?.colorAttachments[0].texture)
+                : renderInfo.postProcessRenderPassDescriptor?.colorAttachments[0].texture)
+            : renderInfo.deferredRenderPassDescriptor?.colorAttachments[0].texture
+        // The splat layer holds something only on a frame the Gaussian pass drew for splat
+        // entities: the pass draws the working set's entities, none when its order is empty.
+        let gaussianFrameSlot = min(renderInfo.currentInFlightFrameSlot, maxInFlightCommandBuffers - 1)
+        let splatLayerPresent = renderInfo.gaussianCoverageWritten
+            && textureResources.gaussianColorMap != nil
+            && !GaussianSharedWorkingSet.shared.entityOrder(slot: gaussianFrameSlot).isEmpty
+        let copyOnly = renderInfo.preCompositeBypassEnabled
+            && gameFrame
+            && renderInfo.immersionStyle == .mixed
+            && !SSAOParams.shared.enabled
+            && !splatLayerPresent
+            && renderDebugViewMode == .lit
+            && !RenderExtensionRegistry.shared.hasRegisteredExtensions
+        if copyOnly, let finalColorTexture {
+            renderInfo.preCompositeBypassSource = finalColorTexture
+            if !RenderPasses.loggedPreCompositeBypass {
+                RenderPasses.loggedPreCompositeBypass = true
+                print("✓ Pre-composite pass skipped: a passthrough frame with no layer to join; the look pass reads the lit scene")
+            }
+            return
+        }
+        renderInfo.preCompositeBypassSource = nil
+
         // set your encoder here
+        GPUPassTiming.shared.attach(renderPassDescriptor, "PreComposite")
         guard
             let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)
         else {
@@ -3527,11 +3785,6 @@ public enum RenderPasses {
                 index: Int(prePassDepthTextureIndex.rawValue)
             )
         } else {
-            let postProcessColorTexture = renderInfo.postProcessRenderPassDescriptor?.colorAttachments[0].texture
-            let finalColorTexture = bypassPostProcessing
-                ? (renderInfo.deferredRenderPassDescriptor?.colorAttachments[0].texture ?? postProcessColorTexture)
-                : postProcessColorTexture
-
             renderEncoder.setFragmentTexture(
                 finalColorTexture,
                 index: Int(prePassFinalTextureIndex.rawValue)
@@ -3564,6 +3817,11 @@ public enum RenderPasses {
 
         var ssaoEnabled = SSAOParams.shared.enabled
         renderEncoder.setFragmentBytes(&ssaoEnabled, length: MemoryLayout<Bool>.stride, index: Int(prePassSSAOEnabledIndex.rawValue))
+
+        // The splat layer is read only on a frame the Gaussian pass drew it (see
+        // gaussianExecution): on any other it holds an earlier frame, or nothing at all.
+        var gaussianLayerPresent = renderInfo.gaussianCoverageWritten && textureResources.gaussianColorMap != nil
+        renderEncoder.setFragmentBytes(&gaussianLayerPresent, length: MemoryLayout<Bool>.stride, index: Int(prePassGaussianLayerIndex.rawValue))
 
         // set the draw command
 
@@ -3607,6 +3865,7 @@ public enum RenderPasses {
         encoderDescriptor.depthAttachment.loadAction = .load
         encoderDescriptor.depthAttachment.storeAction = .store
 
+        GPUPassTiming.shared.attach(encoderDescriptor, "Transparency")
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor)
         else {
             handleError(.renderPassCreationFailed, "Transparency Pass")
@@ -3619,6 +3878,7 @@ public enum RenderPasses {
         }
 
         renderEncoder.label = "Transparency Pass"
+        applyXRFoveationViewport(renderEncoder)
         renderEncoder.pushDebugGroup("Transparency Pass")
 
         renderEncoder.setRenderPipelineState(transparencyPipeline.pipelineState!)
@@ -4034,7 +4294,11 @@ public enum RenderPasses {
         descriptor.depthAttachment.texture = depthTexture
         descriptor.depthAttachment.loadAction = .load
         descriptor.depthAttachment.storeAction = .store
+        // The depth was drawn through the eye's rasterization rate map when there is one
+        // (XR foveation); so is what this pass adds to it.
+        attachXRFoveation(renderInfo.xrFoveation?.rateMap, to: descriptor)
 
+        GPUPassTiming.shared.attach(descriptor, "Occluders")
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor) else {
             handleError(.renderPassCreationFailed, "Mesh Occluder Shell Pass")
             return
@@ -4047,6 +4311,7 @@ public enum RenderPasses {
         }
 
         renderEncoder.label = "Mesh Occluder Shell Pass"
+        applyXRFoveationViewport(renderEncoder)
         renderEncoder.pushDebugGroup("Mesh Occluder Shell Pass")
         renderEncoder.setRenderPipelineState(pipelineState)
         renderEncoder.setDepthStencilState(pipeline.depthState)
@@ -4172,7 +4437,11 @@ public enum RenderPasses {
         descriptor.depthAttachment.texture = depthTexture
         descriptor.depthAttachment.loadAction = .load
         descriptor.depthAttachment.storeAction = .store
+        // The depth was drawn through the eye's rasterization rate map when there is one
+        // (XR foveation); so is what this pass adds to it.
+        attachXRFoveation(renderInfo.xrFoveation?.rateMap, to: descriptor)
 
+        GPUPassTiming.shared.attach(descriptor, "Occluders")
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor) else {
             handleError(.renderPassCreationFailed, "Wireframe Occlusion Depth Pass")
             return
@@ -4185,6 +4454,7 @@ public enum RenderPasses {
         }
 
         renderEncoder.label = "Wireframe Occlusion Depth Pass"
+        applyXRFoveationViewport(renderEncoder)
         renderEncoder.pushDebugGroup("Wireframe Occlusion Depth Pass")
         renderEncoder.setRenderPipelineState(pipelineState)
         renderEncoder.setDepthStencilState(pipeline.depthState)
@@ -4357,6 +4627,7 @@ public enum RenderPasses {
         encoderDescriptor.depthAttachment.loadAction = .load
         encoderDescriptor.depthAttachment.storeAction = .store
 
+        GPUPassTiming.shared.attach(encoderDescriptor, "Wireframe")
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor)
         else {
             handleError(.renderPassCreationFailed, "Wireframe Pass")
@@ -4369,6 +4640,7 @@ public enum RenderPasses {
         }
 
         renderEncoder.label = "Wireframe Pass"
+        applyXRFoveationViewport(renderEncoder)
         renderEncoder.pushDebugGroup("Wireframe Pass")
 
         renderEncoder.setRenderPipelineState(wireframePipelineState)
@@ -4738,6 +5010,7 @@ public enum RenderPasses {
         encoderDescriptor.depthAttachment.loadAction = .load
         encoderDescriptor.depthAttachment.storeAction = .store
 
+        GPUPassTiming.shared.attach(encoderDescriptor, "DebugBounds")
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor) else {
             handleError(.renderPassCreationFailed, "Spatial Debug Bounds Pass")
             return
@@ -4749,6 +5022,7 @@ public enum RenderPasses {
         }
 
         renderEncoder.label = "Spatial Debug Bounds Pass"
+        applyXRFoveationViewport(renderEncoder)
         renderEncoder.pushDebugGroup("Spatial Debug Bounds Pass")
 
         renderEncoder.setRenderPipelineState(spatialDebugPipeline.pipelineState!)
@@ -4818,6 +5092,17 @@ public enum RenderPasses {
             _ = commandBuffer
             return
         #else
+            // A frame without a splat entity has nothing to draw. The pass is skipped whole —
+            // the depth snapshot, the tile initialise, the empty draw, the resolve — and its
+            // layer is left as it is: the composite, the look and the anti-aliasing passes read
+            // it only when `gaussianCoverageWritten` says this frame drew it. The order is the
+            // preprocess's (an empty one when the scene has no splat entity), stale only while
+            // the asset-loading gate skips the preprocess, when the draw below handles it.
+            let workingSet = GaussianSharedWorkingSet.shared
+            let gaussianFrameSlot = min(renderInfo.currentInFlightFrameSlot, maxInFlightCommandBuffers - 1)
+            let entities = workingSet.entityOrder(slot: gaussianFrameSlot)
+            guard !entities.isEmpty else { return }
+
             EngineProfiler.shared.beginScope(.gaussianDraw)
             defer { EngineProfiler.shared.endScope(.gaussianDraw) }
 
@@ -4891,12 +5176,14 @@ public enum RenderPasses {
                 }
             }
 
+            GPUPassTiming.shared.attach(renderPassDescriptor, "Gaussian")
             guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
                 handleError(.renderPassCreationFailed, "Gaussian Pass")
                 return
             }
 
             renderEncoder.label = "Gaussian Pass"
+            applyXRFoveationViewport(renderEncoder)
             renderInfo.gaussianCoverageWritten = true
 
             renderEncoder.pushDebugGroup("Gaussian Pass")
@@ -4940,12 +5227,8 @@ public enum RenderPasses {
             // vertex stage indexes, written per uniform ring index so the two eyes of a stereo
             // frame keep their own matrices; an entity that has gone gets zero matrices, which
             // makes its stale records fail the vertex stage's w test and draw nothing.
-            let workingSet = GaussianSharedWorkingSet.shared
-            let gaussianFrameSlot = min(renderInfo.currentInFlightFrameSlot, maxInFlightCommandBuffers - 1)
             let uniformIndex = min(currentUniformBufferIndex(), totalPerMeshUniformBuffers() - 1)
-            let entities = workingSet.entityOrder(slot: gaussianFrameSlot)
-            if !entities.isEmpty,
-               let sortedKeys = workingSet.keys(slot: gaussianFrameSlot),
+            if let sortedKeys = workingSet.keys(slot: gaussianFrameSlot),
                let sharedRecords = workingSet.records(slot: gaussianFrameSlot),
                let sharedVisibleSet = workingSet.visibleSet(slot: gaussianFrameSlot),
                let entityConstants = workingSet.entityConstants(uniformIndex: uniformIndex)
@@ -5042,6 +5325,7 @@ public enum RenderPasses {
             }
 
             // set your encoder here
+            GPUPassTiming.shared.attach(renderPassDescriptor, "Post")
             guard
                 let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)
             else {
@@ -5093,19 +5377,19 @@ extension float4x4 {
     }
 }
 
+/// Writes the lights into the buffer (a uint4 count header, then the records, capped to
+/// `maxCount`) and returns it, or nil without a buffer.
 @inline(__always)
-private func uploadAndBindLights<T>(
+private func uploadLights<T>(
     buffer: MTLBuffer?,
     lights: [T],
     maxCount: Int,
     headerSize: Int = 16, // uint4 header
-    encoder: MTLRenderCommandEncoder,
-    bufferIndex: Int,
     labelForErrors: String
-) -> Bool {
+) -> MTLBuffer? {
     guard let buf = buffer else {
         print("Missing buffer for \(labelForErrors)")
-        return false
+        return nil
     }
 
     // Cap to buffer capacity
@@ -5121,10 +5405,54 @@ private func uploadAndBindLights<T>(
     lights.withUnsafeBytes { raw in
         dst.copyMemory(from: raw.baseAddress!, byteCount: nBytes)
     }
+    return buf
+}
 
-    // Bind
+private func uploadAndBindLights(
+    buffer: MTLBuffer?,
+    lights: [some Any],
+    maxCount: Int,
+    headerSize: Int = 16, // uint4 header
+    encoder: MTLRenderCommandEncoder,
+    bufferIndex: Int,
+    labelForErrors: String
+) -> Bool {
+    guard let buf = uploadLights(buffer: buffer, lights: lights, maxCount: maxCount, headerSize: headerSize, labelForErrors: labelForErrors) else {
+        return false
+    }
     encoder.setFragmentBuffer(buf, offset: 0, index: bufferIndex)
     return true
+}
+
+/// Binds the light pass's inputs to the stage that lights: the quad's fragment function or
+/// the tile kernel. Both take the same indices.
+struct LightStageBinder {
+    let encoder: MTLRenderCommandEncoder
+    let tile: Bool
+
+    func setBytes(_ bytes: UnsafeRawPointer, length: Int, index: Int) {
+        if tile {
+            encoder.setTileBytes(bytes, length: length, index: index)
+        } else {
+            encoder.setFragmentBytes(bytes, length: length, index: index)
+        }
+    }
+
+    func setTexture(_ texture: MTLTexture?, index: Int) {
+        if tile {
+            encoder.setTileTexture(texture, index: index)
+        } else {
+            encoder.setFragmentTexture(texture, index: index)
+        }
+    }
+
+    func setBuffer(_ buffer: MTLBuffer?, offset: Int, index: Int) {
+        if tile {
+            encoder.setTileBuffer(buffer, offset: offset, index: index)
+        } else {
+            encoder.setFragmentBuffer(buffer, offset: offset, index: index)
+        }
+    }
 }
 
 /// Returns true when the entity's AABB is farther than maxDistance from the camera.
