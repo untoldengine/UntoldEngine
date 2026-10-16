@@ -407,8 +407,27 @@ fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
     // from the viewer, and shade as if unlit (one wing of a flight dark, the next one lit).
     // A face whose normal points away from the viewer is lit with it turned around. The test
     // is geometric rather than [[front_facing]]: the pass sets no winding, and assets arrive
-    // wound either way.
-    if (dot(N, uniforms.cameraPosition - verticesInWorldSpace.xyz) < 0.0) {
+    // wound either way. It is made on the face itself, from the position's screen derivatives
+    // oriented by the vertex normal, not on the interpolated normal: a kit whose normals are
+    // averaged across hard edges (the Simple Dungeons walls and balusters carry corner normals
+    // 45–72° off their faces) has front faces whose interpolated normal passes 90° from the
+    // viewer before the far edge, and deciding on it turned a strip of every such face dark.
+    // Two cases are left as they are, since deciding them is chance: a face within a few
+    // degrees of edge-on, whose footprint on the pixel is more than 2 % of the distance to the
+    // viewer; and a face whose vertex normal lies within 12° of its plane, which does not say
+    // which side of the face is the outside.
+    float3 toViewer = uniforms.cameraPosition - verticesInWorldSpace.xyz;
+    float3 positionDx = dfdx(verticesInWorldSpace.xyz);
+    float3 positionDy = dfdy(verticesInWorldSpace.xyz);
+    float3 faceNormal = cross(positionDx, positionDy);
+    float faceLength = length(faceNormal);
+    faceNormal = faceLength > 0.0 ? faceNormal / faceLength : N;
+    float outside = dot(faceNormal, N);
+    faceNormal = outside < 0.0 ? -faceNormal : faceNormal;
+    bool faceKnown = faceLength > 0.0 && abs(outside) > 0.2
+        && length(positionDx) + length(positionDy) < 0.02 * length(toViewer);
+    bool turnedAway = faceKnown && dot(faceNormal, toViewer) < 0.0;
+    if (turnedAway) {
         normalVectorInWorldSpace = -normalVectorInWorldSpace;
         N = -N;
     }
