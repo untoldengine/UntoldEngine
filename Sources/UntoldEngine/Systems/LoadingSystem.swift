@@ -109,9 +109,16 @@ public func getResourceURL(resourceName: String, ext: String, subName: String?) 
 
     // Flat layout (no top-level "Assets")
     var searchPaths: [[String]] = [
+        // Nested form (Models/<name>/<name>.<ext>) is checked first, then the flat
+        // form (Models/<name>.<ext>) the Editor's asset exporter actually writes --
+        // it cooks the runtime asset into the category root, beside the per-model
+        // support folder, rather than inside it. See RuntimeExportLocation.swift.
         ["Models", resourceName, "\(resourceName).\(ext)"],
+        ["Models", "\(resourceName).\(ext)"],
         ["StreamModels", resourceName, "\(resourceName).\(ext)"],
+        ["StreamModels", "\(resourceName).\(ext)"],
         ["Animations", resourceName, "\(resourceName).\(ext)"],
+        ["Animations", "\(resourceName).\(ext)"],
         ["HDR", "\(resourceName).\(ext)"],
         ["Gaussians", "\(resourceName).\(ext)"],
         ["Scripts", "\(resourceName).\(ext)"],
@@ -132,8 +139,11 @@ public func getResourceURL(resourceName: String, ext: String, subName: String?) 
         // Then try structured subdirectories
         let searchPaths: [[String]] = [
             ["Models", resourceName, "\(resourceName).\(ext)"],
+            ["Models", "\(resourceName).\(ext)"],
             ["StreamModels", resourceName, "\(resourceName).\(ext)"],
+            ["StreamModels", "\(resourceName).\(ext)"],
             ["Animations", resourceName, "\(resourceName).\(ext)"],
+            ["Animations", "\(resourceName).\(ext)"],
             ["HDR", "\(resourceName).\(ext)"],
             ["Gaussians", "\(resourceName).\(ext)"],
             ["Scripts", "\(resourceName).\(ext)"],
