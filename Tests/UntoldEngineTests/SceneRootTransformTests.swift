@@ -263,7 +263,7 @@ final class SceneRootTransformTests: XCTestCase {
     // MARK: - Helpers
 
     private func assertMatricesEqual(_ a: simd_float4x4, _ b: simd_float4x4,
-                                     accuracy: Float = 1e-4, file: StaticString = #file, line: UInt = #line)
+                                     accuracy: Float = 1e-4, file: StaticString = #filePath, line: UInt = #line)
     {
         for col in 0 ..< 4 {
             for row in 0 ..< 4 {

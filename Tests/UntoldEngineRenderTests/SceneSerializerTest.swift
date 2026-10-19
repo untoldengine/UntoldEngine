@@ -306,7 +306,6 @@ final class SceneSerializerTests: BaseRenderSetup {
         XCTAssertEqual(getEntityName(entityId: children[2]), "new_child_name")
 
         let originalSceneData = serializeScene()
-        let serializedAuthoredCount = originalSceneData.entities.count
 
         let tempDir = FileManager.default.temporaryDirectory
         let sceneURL = tempDir.appendingPathComponent("base_scene_roundtrip.json")

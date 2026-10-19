@@ -10,7 +10,8 @@
 
 import Foundation
 
-final class FrameMetricsCollector {
+/// All mutable state is guarded by `lock`, so the class is safe to share across threads.
+final class FrameMetricsCollector: @unchecked Sendable {
     private let capacity: Int
     private var samples: [Double]
     private var writeIndex: Int

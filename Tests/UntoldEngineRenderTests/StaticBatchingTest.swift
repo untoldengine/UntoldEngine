@@ -152,8 +152,8 @@ final class StaticBatchingTest: BaseRenderSetup {
 
     func testGenerateBatchesWithNoStaticEntities() {
         // Given: No entities marked as static
-        let entity1 = createEntity()
-        let entity2 = createEntity()
+        _ = createEntity()
+        _ = createEntity()
 
         // When: Generate batches
         generateBatches()

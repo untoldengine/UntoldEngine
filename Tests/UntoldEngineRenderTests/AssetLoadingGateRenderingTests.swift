@@ -36,6 +36,13 @@ final class AssetLoadingGateRenderingTests: BaseRenderSetup {
         }
     }
 
+    /// Mirrors the `if !loading { ... }` gate in `executeXRSystemPass`. Routed through a
+    /// function (rather than inlining `!loading` on a local literal) so the compiler can't
+    /// prove either branch unreachable and flag it as dead code.
+    private func xrSystemPassRenderPrepWouldExecute(loading: Bool) -> Bool {
+        !loading
+    }
+
     // MARK: - Test 1: Verify render prep is skipped when AssetLoadingGate.shared.isLoadingAny is true
 
     func testUpdateRenderingSystem_SkipsRenderPrepWhenLoadingGateIsActive() {
@@ -143,10 +150,7 @@ final class AssetLoadingGateRenderingTests: BaseRenderSetup {
         // This verifies the condition that guards render prep execution
         // The actual functions (performFrustumCulling, executeGaussianDepth, executeBitonicSort)
         // should NOT be called when loading is true
-        var renderPrepExecuted = false
-        if !loading {
-            renderPrepExecuted = true
-        }
+        let renderPrepExecuted = xrSystemPassRenderPrepWouldExecute(loading: loading)
         XCTAssertFalse(renderPrepExecuted, "Render prep should not execute when loading is true")
     }
 
@@ -175,7 +179,7 @@ final class AssetLoadingGateRenderingTests: BaseRenderSetup {
 
         // When: We apply the executeXRSystemPass logic:
         // `if !loading { visibleEntityIds = tripleVisibleEntities.snapshotForRead(frame: cullFrameIndex) }`
-        if !loading {
+        if xrSystemPassRenderPrepWouldExecute(loading: loading) {
             visibleEntityIds = tripleVisibleEntities.snapshotForRead(frame: cullFrameIndex)
         }
 
@@ -302,7 +306,7 @@ final class AssetLoadingGateRenderingTests: BaseRenderSetup {
 
         // During loading: visibleEntityIds should NOT update
         var loading = AssetLoadingGate.shared.isLoadingAny
-        var previousVisibleIds = visibleEntityIds
+        let previousVisibleIds = visibleEntityIds
         if !loading {
             visibleEntityIds = tripleVisibleEntities.snapshotForRead(frame: cullFrameIndex)
         }

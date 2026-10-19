@@ -177,7 +177,7 @@ final class MLDeformerTests: XCTestCase {
         )
 
         // Sleeve: 12 rings × 16 around the upper arm axis (x from 0.02 to 0.28 at y = 1), radius 0.05.
-        var vertexWriter = UntoldBinaryWriter()
+        let vertexWriter = UntoldBinaryWriter()
         var jointIndexData = Data()
         var jointWeightData = Data()
         var vertexCount = 0

@@ -64,7 +64,7 @@ final class EntityCapacityTests: XCTestCase {
 
         for _ in 0 ..< ComponentPool.chunkCapacity * 2 {
             let entityId = createEntity()
-            scene.assign(to: entityId, component: CapacityTestComponent.self)
+            _ = scene.assign(to: entityId, component: CapacityTestComponent.self)
         }
 
         XCTAssertEqual(snapshot.get(component: CapacityTestComponent.self, for: first)?.value, 42)
