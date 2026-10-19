@@ -1,4 +1,5 @@
 # Changelog
+## v0.24.0 - 2026-10-19
 ## v0.23.0 - 2026-10-12
 ### 🐞 Fixes
 - [Patch] Start a slot of objects as no reference (#1313) (6456434…)
