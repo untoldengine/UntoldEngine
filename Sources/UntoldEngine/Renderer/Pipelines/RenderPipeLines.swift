@@ -7,6 +7,7 @@
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
+import CShaderTypes
 import MetalKit
 
 public struct RenderPipeline {
@@ -255,6 +256,7 @@ public func CreateTilePipeline(
     tileShader: String,
     tileShaderLibrary: RenderShaderLibraryReference = .engine,
     colorFormats: [MTLPixelFormat],
+    rasterSampleCount: Int = 1,
     name: String
 ) -> RenderPipeline? {
     #if targetEnvironment(simulator)
@@ -281,6 +283,7 @@ public func CreateTilePipeline(
             pipelineDescriptor.label = name
             pipelineDescriptor.tileFunction = tileFunction
             pipelineDescriptor.threadgroupSizeMatchesTileSize = true
+            pipelineDescriptor.rasterSampleCount = max(1, rasterSampleCount)
 
             for (index, format) in colorFormats.enumerated() {
                 pipelineDescriptor.colorAttachments[index].pixelFormat = format
@@ -296,7 +299,8 @@ public func CreateTilePipeline(
                 pipelineState: pipelineState,
                 depthState: nil,
                 success: true,
-                name: name
+                name: name,
+                rasterSampleCount: max(1, rasterSampleCount)
             )
 
         } catch {
@@ -367,7 +371,24 @@ private var wf: WorkingColorFormats {
 /// pipeline. Attachments 0-4 are the G-buffer targets written by geometry draws.
 /// Attachment 5 is the lit output (deferredColorMap) that only the light sub-pass
 /// writes — geometry must not touch it, so writeMask is disabled for slot 5.
+/// The general model pipeline: its fragment function keeps the discards an alpha-masked or
+/// blended material or a dither fade needs.
 public func InitModelPipeline() -> RenderPipeline? {
+    makeModelPipeline(mayDiscard: true, name: "Model Pipeline")
+}
+
+/// The model pipeline for the opaque draws that never discard, compiled without the
+/// discards: the GPU then resolves visibility before it shades, and a fragment another
+/// surface covers costs nothing. The pass picks it per draw (`combinedModelLightExecution`).
+public func InitModelOpaquePipeline() -> RenderPipeline? {
+    makeModelPipeline(mayDiscard: false, name: "Model Pipeline (opaque)")
+}
+
+private func makeModelPipeline(mayDiscard: Bool, name: String) -> RenderPipeline? {
+    let indirectInGBuffer = renderInfo.perFragmentIndirectLighting
+    let litInGBuffer = renderInfo.perFragmentLightingWanted
+    renderInfo.perFragmentIndirectLightingBuilt = indirectInGBuffer
+    renderInfo.perFragmentLightingBuilt = litInGBuffer
     guard let library = renderInfo.library else {
         handleError(.metalLibraryNotFound)
         return nil
@@ -376,32 +397,51 @@ public func InitModelPipeline() -> RenderPipeline? {
         handleError(.shaderCreationFailed, "vertexModelShader")
         return nil
     }
-    guard let fragmentFunction = library.makeFunction(name: "fragmentModelShader") else {
-        handleError(.shaderCreationFailed, "fragmentModelShader")
+    let constants = MTLFunctionConstantValues()
+    var mayDiscardValue = mayDiscard
+    constants.setConstantValue(&mayDiscardValue, type: .bool, index: Int(modelFunctionConstantMayDiscard.rawValue))
+    var indirectValue = indirectInGBuffer
+    constants.setConstantValue(&indirectValue, type: .bool, index: Int(modelFunctionConstantIndirectInGBuffer.rawValue))
+    var litValue = litInGBuffer
+    constants.setConstantValue(&litValue, type: .bool, index: Int(modelFunctionConstantLitInGBuffer.rawValue))
+    let fragmentFunction: MTLFunction
+    do {
+        fragmentFunction = try library.makeFunction(name: "fragmentModelShader", constantValues: constants)
+    } catch {
+        handleError(.shaderCreationFailed, "fragmentModelShader (\(name)): \(error.localizedDescription)")
         return nil
     }
 
     let desc = MTLRenderPipelineDescriptor()
-    desc.label = "Model Pipeline"
+    desc.label = name
     desc.vertexFunction = vertexFunction
     desc.fragmentFunction = fragmentFunction
     desc.vertexDescriptor = createModelVertexDescriptor()
     desc.depthAttachmentPixelFormat = renderInfo.depthPixelFormat
     desc.rasterSampleCount = max(1, renderInfo.opaqueSampleCount)
 
-    // G-buffer outputs: geometry writes to these.
-    let gbufferFormats: [MTLPixelFormat] = [
-        wf.gBufferAlbedo, wf.gBufferNormal, wf.gBufferPosition,
-        wf.gBufferMaterial, wf.gBufferEmissive,
-    ]
-    for (i, fmt) in gbufferFormats.enumerated() {
-        desc.colorAttachments[i].pixelFormat = fmt
-        desc.colorAttachments[i].writeMask = .all
+    if litInGBuffer {
+        // The forward pass: the lit colour alone, in the light pass's slot
+        // (`forwardRenderPassDescriptor`), and the velocity; the shader's G-buffer outputs
+        // are compiled out.
+        desc.colorAttachments[5].pixelFormat = wf.sceneColor
+        desc.colorAttachments[5].writeMask = .all
+        desc.colorAttachments[6].pixelFormat = .rg16Float
+        desc.colorAttachments[6].writeMask = .all
+    } else {
+        // G-buffer outputs: geometry writes to these.
+        let gbufferFormats: [MTLPixelFormat] = [
+            wf.gBufferAlbedo, wf.gBufferNormal, wf.gBufferPosition,
+            wf.gBufferMaterial, wf.gBufferEmissive,
+        ]
+        for (i, fmt) in gbufferFormats.enumerated() {
+            desc.colorAttachments[i].pixelFormat = fmt
+            desc.colorAttachments[i].writeMask = .all
+        }
+        // Attachment 5: deferredColorMap — the light quad writes it; the geometry must not.
+        desc.colorAttachments[5].pixelFormat = wf.sceneColor
+        desc.colorAttachments[5].writeMask = []
     }
-
-    // Attachment 5: deferredColorMap — geometry must not write here.
-    desc.colorAttachments[5].pixelFormat = wf.sceneColor
-    desc.colorAttachments[5].writeMask = []
 
     let depthDesc = MTLDepthStencilDescriptor()
     depthDesc.depthCompareFunction = sceneDepthCompareFunction(.lessEqual)
@@ -414,11 +454,11 @@ public func InitModelPipeline() -> RenderPipeline? {
             pipelineState: pipelineState,
             depthState: depthState,
             success: true,
-            name: "Model Pipeline",
+            name: name,
             rasterSampleCount: desc.rasterSampleCount
         )
     } catch {
-        handleError(.pipelineStateCreationFailed, "Model Pipeline")
+        handleError(.pipelineStateCreationFailed, name)
         return nil
     }
 }
@@ -450,6 +490,14 @@ public func InitLightPipeline() -> RenderPipeline? {
             name: "Light Pipeline (Simulator)"
         )
     #else
+        return makeLightPipeline(name: "Light Pipeline (TBDR)")
+    #endif
+}
+
+#if !targetEnvironment(simulator)
+    /// The TBDR light quad from `fragmentLightShaderTBDR`, specialised by function constant for
+    /// where the indirect light comes from.
+    private func makeLightPipeline(name: String) -> RenderPipeline? {
         guard let library = renderInfo.library else {
             handleError(.metalLibraryNotFound)
             return nil
@@ -458,13 +506,19 @@ public func InitLightPipeline() -> RenderPipeline? {
             handleError(.shaderCreationFailed, "vertexLightShader")
             return nil
         }
-        guard let fragmentFunction = library.makeFunction(name: "fragmentLightShaderTBDR") else {
-            handleError(.shaderCreationFailed, "fragmentLightShaderTBDR")
+        let constants = MTLFunctionConstantValues()
+        var indirectValue = renderInfo.perFragmentIndirectLighting
+        constants.setConstantValue(&indirectValue, type: .bool, index: Int(lightFunctionConstantIndirectFromGBuffer.rawValue))
+        let fragmentFunction: MTLFunction
+        do {
+            fragmentFunction = try library.makeFunction(name: "fragmentLightShaderTBDR", constantValues: constants)
+        } catch {
+            handleError(.shaderCreationFailed, "fragmentLightShaderTBDR (\(name)): \(error.localizedDescription)")
             return nil
         }
 
         let desc = MTLRenderPipelineDescriptor()
-        desc.label = "Light Pipeline (TBDR)"
+        desc.label = name
         desc.vertexFunction = vertexFunction
         desc.fragmentFunction = fragmentFunction
         desc.vertexDescriptor = createLightVertexDescriptor()
@@ -495,14 +549,33 @@ public func InitLightPipeline() -> RenderPipeline? {
                 pipelineState: pipelineState,
                 depthState: depthState,
                 success: true,
-                name: "Light Pipeline (TBDR)",
+                name: name,
                 rasterSampleCount: desc.rasterSampleCount
             )
         } catch {
-            handleError(.pipelineStateCreationFailed, "Light Pipeline (TBDR): \(error.localizedDescription)")
+            handleError(.pipelineStateCreationFailed, "\(name): \(error.localizedDescription)")
             return nil
         }
-    #endif
+    }
+#endif
+
+/// The TBDR light pass as a tile stage (`lightTileShaderTBDR`): the same inputs and the same
+/// attachments as the light quad, dispatched over the tiles of the G-buffer encoder. Nil where
+/// tile shading is unavailable (the simulator; GPUs before Apple family 4; a paravirtualized
+/// GPU, which compiles the stage's pipeline and renders it black), when the quad runs.
+public func InitLightTilePipeline() -> RenderPipeline? {
+    guard let device = renderInfo.device, device.supportsFamily(.apple4),
+          !device.name.localizedCaseInsensitiveContains("paravirtual")
+    else { return nil }
+    return CreateTilePipeline(
+        tileShader: "lightTileShaderTBDR",
+        colorFormats: [
+            wf.gBufferAlbedo, wf.gBufferNormal, wf.gBufferPosition,
+            wf.gBufferMaterial, wf.gBufferEmissive, wf.sceneColor,
+        ],
+        rasterSampleCount: max(1, renderInfo.opaqueSampleCount),
+        name: "Light Tile Pipeline (TBDR)"
+    )
 }
 
 // MARK: Geometry pipeline
@@ -938,6 +1011,21 @@ public func InitLookPipeline() -> RenderPipeline? {
     )
 }
 
+/// The look pass that presents as it grades: the look output, the frame encoded for the
+/// display and the opaque depth, in one pass, in place of the output transform pass.
+public func InitLookPresentPipeline() -> RenderPipeline? {
+    CreatePipeline(
+        vertexShader: "vertexLookShader",
+        fragmentShader: "fragmentLookPresentShader",
+        vertexDescriptor: createPostProcessVertexDescriptor(),
+        colorFormats: [wf.lookOutput, renderInfo.presentColorPixelFormat],
+        depthFormat: renderInfo.presentDepthPixelFormat,
+        depthCompareFunction: .always,
+        depthEnabled: true,
+        name: "Look Pipeline (presents)"
+    )
+}
+
 public func InitOutputTransformPipeline() -> RenderPipeline? {
     CreatePipeline(
         vertexShader: "vertexOutputTransformShader",
@@ -960,6 +1048,35 @@ public func InitFXAAPipeline() -> RenderPipeline? {
         depthFormat: renderInfo.depthPixelFormat,
         depthEnabled: false,
         name: "FXAA Pipeline"
+    )
+}
+
+/// The temporal resolve: the look output and the eye's history into the eye's next history,
+/// one colour target of the look format, which the output transform then presents.
+public func InitTAAPipeline() -> RenderPipeline? {
+    CreatePipeline(
+        vertexShader: "vertexTAAShader",
+        fragmentShader: "fragmentTAAShader",
+        vertexDescriptor: createPostProcessVertexDescriptor(),
+        colorFormats: [renderInfo.colorPipeline.working.lookOutput],
+        depthFormat: .invalid,
+        depthEnabled: false,
+        name: "TAA Pipeline"
+    )
+}
+
+/// The temporal resolve that presents as it resolves: the history, the frame encoded for the
+/// display and the opaque depth, in one pass, in place of the output transform pass.
+public func InitTAAPresentPipeline() -> RenderPipeline? {
+    CreatePipeline(
+        vertexShader: "vertexTAAShader",
+        fragmentShader: "fragmentTAAPresentShader",
+        vertexDescriptor: createPostProcessVertexDescriptor(),
+        colorFormats: [renderInfo.colorPipeline.working.lookOutput, renderInfo.presentColorPixelFormat],
+        depthFormat: renderInfo.presentDepthPixelFormat,
+        depthCompareFunction: .always,
+        depthEnabled: true,
+        name: "TAA Pipeline (presents)"
     )
 }
 
@@ -1145,7 +1262,9 @@ public func DefaultPipeLines() -> [(RenderPipelineType, RenderPipelineInitBlock)
         (.sky, InitSkyPipeline),
         (.shadow, InitShadowPipeline),
         (.model, InitModelPipeline),
+        (.modelOpaque, InitModelOpaquePipeline),
         (.light, InitLightPipeline),
+        (.lightTile, InitLightTilePipeline),
         (.geometry, InitGeometryPipeline),
         (.highlight, InitHighlightPipeline),
         (.lightVisual, InitLightVisualPipeline),
@@ -1174,8 +1293,11 @@ public func DefaultPipeLines() -> [(RenderPipelineType, RenderPipelineInitBlock)
         (.gaussianTBDRPostprocess, InitGaussianTBDRPostprocessPipeline),
         (.spatialDebug, InitSpatialDebugPipeline),
         (.look, InitLookPipeline),
+        (.lookPresent, InitLookPresentPipeline),
         (.fxaa, InitFXAAPipeline),
         (.fxaaEdgeDebug, InitFXAAEdgeDebugPipeline),
+        (.taa, InitTAAPipeline),
+        (.taaPresent, InitTAAPresentPipeline),
         (.smaaEdges, InitSMAAEdgesPipeline),
         (.smaaBlendWeights, InitSMAABlendWeightsPipeline),
         (.smaaNeighborhood, InitSMAANeighborhoodPipeline),

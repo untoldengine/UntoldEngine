@@ -19,7 +19,6 @@ vertex VertexOutModel vertexGizmoShader(
 
     float4 position = in.position;
 
-    out.vPosition = position;
     out.position = uniforms.projectionMatrix * uniforms.modelViewMatrix * position;
 
     return out;

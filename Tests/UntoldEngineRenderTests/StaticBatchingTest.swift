@@ -41,6 +41,10 @@ final class StaticBatchingTest: BaseRenderSetup {
         // Clean up batches after tests
         clearSceneBatches()
         enableBatching(false)
+        // The channel render modes some tests set are global: hidden context geometry left
+        // behind hides every entity of every test after this class.
+        setSceneChannel(.contextGeometry, .renderMode(.normal))
+        setSceneChannel(.ghostGeometry, .renderMode(.normal))
         BatchingSystem.shared.setBatchCellSize(32.0)
         BatchingSystem.shared.setMaxDirtyCellsPerTick(8)
         BatchingSystem.shared.setMaxRebuildVerticesPerTick(1_000_000_000)

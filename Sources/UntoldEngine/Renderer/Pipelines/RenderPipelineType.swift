@@ -25,7 +25,12 @@ public extension RenderPipelineType {
     static let sky: RenderPipelineType = "sky"
     static let shadow: RenderPipelineType = "shadow"
     static let model: RenderPipelineType = "model"
+    /// The model pipeline compiled without fragment discards, for the opaque draws that never
+    /// need them: the GPU resolves visibility before shading them.
+    static let modelOpaque: RenderPipelineType = "modelOpaque"
     static let light: RenderPipelineType = "light"
+    /// The TBDR light pass as a tile stage: lights each pixel once per colour it holds.
+    static let lightTile: RenderPipelineType = "lightTile"
     static let geometry: RenderPipelineType = "geometry"
     static let highlight: RenderPipelineType = "highlight"
     static let lightVisual: RenderPipelineType = "lightVisual"
@@ -57,6 +62,11 @@ public extension RenderPipelineType {
     static let outputTransform: RenderPipelineType = "outputTransform"
     static let fxaa: RenderPipelineType = "fxaa"
     static let fxaaEdgeDebug: RenderPipelineType = "fxaaEdgeDebug"
+    static let taa: RenderPipelineType = "taa"
+    /// The temporal resolve that also presents the frame (history, display colour, depth).
+    static let taaPresent: RenderPipelineType = "taaPresent"
+    /// The look pass that also presents the frame (look output, display colour, depth).
+    static let lookPresent: RenderPipelineType = "lookPresent"
     static let smaaEdges: RenderPipelineType = "smaaEdges"
     static let smaaBlendWeights: RenderPipelineType = "smaaBlendWeights"
     static let smaaNeighborhood: RenderPipelineType = "smaaNeighborhood"

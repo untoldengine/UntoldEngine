@@ -117,6 +117,8 @@ enum AntiAliasingModeData: String, Codable {
     case fxaa
     case smaa
     case msaa
+    case taa
+    case msaaTaa
 }
 
 struct FXAAData: Codable {
@@ -1391,6 +1393,10 @@ public func serializeScene() -> SceneData {
         antiAliasingModeData = .smaa
     case .msaa:
         antiAliasingModeData = .msaa
+    case .taa:
+        antiAliasingModeData = .taa
+    case .msaaTaa:
+        antiAliasingModeData = .msaaTaa
     }
     sceneData.antiAliasing = AntiAliasingData(
         mode: antiAliasingModeData,
@@ -1705,6 +1711,10 @@ public func deserializeScene(
             antiAliasingMode = .smaa
         case .msaa:
             antiAliasingMode = .msaa
+        case .taa:
+            antiAliasingMode = .taa
+        case .msaaTaa:
+            antiAliasingMode = .msaaTaa
         }
 
         FXAAParams.shared.subpixelQuality = antiAliasing.fxaa.subpixelQuality

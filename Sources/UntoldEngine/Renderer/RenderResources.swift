@@ -29,6 +29,10 @@ public struct RenderInfo {
     public var renderPassDescriptor: MTLRenderPassDescriptor!
     public var environmentRenderPassDescriptor: MTLRenderPassDescriptor!
     public var offscreenRenderPassDescriptor: MTLRenderPassDescriptor!
+    /// The opaque pass's descriptor when the geometry lights itself per fragment: the lit colour
+    /// alone, in the light pass's slot, and the depth — nothing else for the imageblock to hold,
+    /// so the GPU runs the pass in its largest tiles. The G-buffer's descriptor above otherwise.
+    public var forwardRenderPassDescriptor: MTLRenderPassDescriptor!
     public var gaussianRenderPassDescriptor: MTLRenderPassDescriptor!
     public var postProcessRenderPassDescriptor: MTLRenderPassDescriptor!
     // CSM: one render pass descriptor per cascade (3 total), each targeting a separate array slice.
@@ -63,9 +67,95 @@ public struct RenderInfo {
     /// coverage: false on the simulator and on a frame the pass skipped, when the anti-aliasing
     /// passes must not read the map.
     public var gaussianCoverageWritten: Bool = false
+    /// The texture the look pass reads instead of `sceneCompositeTexture` on a frame the
+    /// pre-composite pass was skipped (see `RenderPasses.preCompositeExecution`): in XR
+    /// passthrough the composite is the lit scene itself whenever no layer joins it, so the
+    /// pass would copy a full-screen texture into another. Nil on a frame the pass ran.
+    public var preCompositeBypassSource: MTLTexture?
+    /// Whether the pre-composite pass may be skipped on a frame it would only copy. On by
+    /// default; `setRendering(.preCompositeBypass(.disabled))` runs the pass on every frame.
+    public var preCompositeBypassEnabled: Bool = true
     public var hzbDebugMipLevel: Int = 0
     public var gBufferDebugStorageEnabled: Bool = false
     public var opaqueSampleCount: Int = 1
+    /// Whether the TBDR light pass runs as a tile stage, lighting each pixel once per colour it
+    /// holds, rather than as a quad that lights every sample. On by default where tile shading
+    /// exists; `setRendering(.tileLightStage(.disabled))` runs the quad, as a diagnostic.
+    public var tileLightStageEnabled: Bool = true
+    /// The samples per pixel the multisampled anti-aliasing modes ask for (2, 4 or 8; the
+    /// device may grant fewer). 4 by default; `setRendering(.multisampleCount(2))` halves the
+    /// G-buffer's samples, which under the tile light stage is what lets the lighting run once
+    /// per pixel on GPUs whose tile memory does not hold four samples of the G-buffer.
+    public var preferredMultisampleCount: Int = 4
+    /// Whether the last combined G-buffer pass lit through the tile stage (false after a frame
+    /// that ran the quad: the setting off, no tile pipeline, the simulator).
+    public var tileLightStageUsed: Bool = false
+    /// Whether opaque draws that never discard go through the model pipeline compiled without
+    /// discards, so the GPU resolves visibility before shading them. On by default;
+    /// `setRendering(.opaqueHiddenSurfaceRemoval(.disabled))` draws everything through the
+    /// general pipeline, as a diagnostic.
+    public var opaqueHiddenSurfaceRemovalEnabled: Bool = true
+    /// The last combined pass's draws by pipeline: plain (no discards) and general. Per pass,
+    /// so per eye in XR.
+    public var opaqueDrawsPlain: Int = 0
+    public var opaqueDrawsDiscarding: Int = 0
+    /// The render path a platform starts on (`setRendering(.renderPath(_:))` chooses another):
+    /// forward on visionOS, where the geometry lighting itself once per fragment is the measured
+    /// match for RealityKit's cost under MSAA and the rasterization rate maps; deferred on every
+    /// other platform, the path the engine was built around — the lighting cost scales with the
+    /// lit pixels, the tile light stage, the effects that read the G-buffer.
+    public static let defaultRenderPath: RenderPath = {
+        #if os(visionOS)
+            return .forward
+        #else
+            return .deferred
+        #endif
+    }()
+
+    /// Whether the geometry evaluates the image-based light and the sun's cascade shadow once
+    /// per fragment and carries them in the G-buffer for the light pass to add, instead of the
+    /// light pass computing them once per sample. On where `defaultRenderPath` is hybrid or
+    /// forward; the pipelines follow it on the next frame (`perFragmentIndirectLightingBuilt`
+    /// is what they were built with).
+    public var perFragmentIndirectLighting: Bool = RenderInfo.defaultRenderPath != .deferred
+    public var perFragmentIndirectLightingBuilt: Bool = false
+    /// Whether the geometry lights itself whole once per fragment — the direct light of the sun,
+    /// the point, spot and area lights with their shadows, over the indirect light above, which
+    /// it needs — and writes the lit colour, so the light quad, which lights once per sample,
+    /// stands down. On where `defaultRenderPath` is forward; the pipelines follow it on the
+    /// next frame (`perFragmentLightingBuilt` is what they were built with).
+    public var perFragmentLighting: Bool = RenderInfo.defaultRenderPath == .forward
+    public var perFragmentLightingBuilt: Bool = false
+    /// Whether the app chose a render path (`setRendering(.renderPath(_:))`, or the two settings
+    /// above one by one) rather than running on the platform's default. The XR loop adopts the
+    /// headset's path at its start when it has not (`adoptXRRenderPathUnlessChosen`).
+    public var renderPathChosen: Bool = false
+    /// What the model pipelines are to light per fragment: the setting, which needs the
+    /// per-fragment indirect light, and stands aside for the G-buffer debug views, which read
+    /// what the forward pass does not write.
+    var perFragmentLightingWanted: Bool {
+        perFragmentIndirectLighting && perFragmentLighting && !gBufferDebugStorageEnabled
+    }
+
+    /// The opaque pass's descriptor for the pipelines as built: the forward one when the
+    /// geometry lights itself, the G-buffer's otherwise.
+    var opaquePassDescriptor: MTLRenderPassDescriptor? {
+        perFragmentLightingBuilt ? forwardRenderPassDescriptor : offscreenRenderPassDescriptor
+    }
+
+    /// The mesh entities the frame's culling put to the occlusion test (the culling set's
+    /// size), which decides with `HZBOcclusionCulling.minimumEntities` whether the frame's
+    /// depth is worth a pyramid.
+    public var hzbCandidateCount: Int = 0
+    /// Whether the output transform pass follows the temporal resolve directly in the frame's
+    /// graph (nothing registered between them), so the resolve may present the frame itself
+    /// and the output pass stand down. Set when the graph is built.
+    public var temporalResolveMayPresent: Bool = false
+    /// The same for the look pass, on a frame without a pass after it (no anti-aliasing pass
+    /// after the look, nothing registered before the output): it then presents the frame
+    /// itself, and `lookPresentedThisFrame` says it did.
+    public var lookMayPresent: Bool = false
+    public var lookPresentedThisFrame: Bool = false
 
     // XR stereo-aware HZB culling
     // When true, depth and HZB pyramids are maintained per eye and occlusion
@@ -87,6 +177,10 @@ public struct RenderInfo {
     /// shadingCameraPosition so each eye gets its own view vector (specular highlights,
     /// Fresnel), while streaming, LOD and culling keep the head-centre camera position.
     public var xrEyeCameraPosition: simd_float3?
+    /// The rasterization rate map of the eye being drawn (visionOS foveation), with the
+    /// viewport and the decoder data that go with it; nil when the frame is drawn uniformly.
+    /// `viewPort` stays the size of the textures, the map's physical size. See XRFoveation.swift.
+    public var xrFoveation: XRFoveationFrame?
 }
 
 /// Where an eye is, from its view matrix (the inverse of the eye's camera transform).
@@ -176,6 +270,9 @@ public struct BufferResources {
     var reduceScanCapacity: Int = 0
     /// Whether a frame with more bounding boxes than the scan takes was reported.
     var reportedReduceScanOverflow: Bool = false
+
+    /// Bound where a shader declares a rasterization rate map it will not read (XRFoveation.swift).
+    var rateMapPlaceholder: MTLBuffer?
 }
 
 public struct TripleBufferResources {
@@ -209,6 +306,10 @@ public struct TextureResources {
     public var materialMap: MTLTexture?
     public var emissiveMap: MTLTexture?
     public var depthMap: MTLTexture?
+    /// The velocity the opaque pass writes per pixel in its forward mode (NDC, this frame minus
+    /// the previous), for the temporal resolve; the multisampled one it draws into, resolved.
+    public var velocityMap: MTLTexture?
+    public var msaaVelocityMap: MTLTexture?
     public var msaaColorMap: MTLTexture?
     public var msaaNormalMap: MTLTexture?
     public var msaaPositionMap: MTLTexture?
@@ -328,9 +429,14 @@ public struct HZBPyramidFrame: Sendable {
     public var viewProjection: simd_float4x4
     /// Where that frame's camera stood, in world space.
     public var cameraPosition: simd_float3
+    /// The rasterization rate map that frame was drawn through (XR foveation), nil when it was
+    /// drawn uniformly: the pyramid is laid out in the map's physical space, so a screen rect or
+    /// point the test projects must go through the map before the pyramid is sampled there.
+    public var rateMapData: XRRasterizationRateMapData?
 
-    public init(viewProjection: simd_float4x4, cameraPosition: simd_float3) {
+    public init(viewProjection: simd_float4x4, cameraPosition: simd_float3, rateMapData: XRRasterizationRateMapData? = nil) {
         self.viewProjection = viewProjection
         self.cameraPosition = cameraPosition
+        self.rateMapData = rateMapData
     }
 }

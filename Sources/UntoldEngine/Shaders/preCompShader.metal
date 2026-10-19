@@ -32,34 +32,42 @@ fragment float4 fragmentPreCompositeShader(VertexCompositeOutput vertexOut [[sta
                                         texture2d<float> ssaoTexture [[texture(prePassSSAOTextureIndex)]],
                                         constant bool &isGameMode [[ buffer(prePassGizmoBufferIndex) ]],
                                         constant bool &isPassthrough [[buffer(prePassPassthroughBufferIndex)]],
-                                        constant bool &ssaoEnabled [[buffer(prePassSSAOEnabledIndex)]]) {
+                                        constant bool &ssaoEnabled [[buffer(prePassSSAOEnabledIndex)]],
+                                        constant bool &gaussianLayerPresent [[buffer(prePassGaussianLayerIndex)]]) {
 
     constexpr sampler s(min_filter::linear, mag_filter::linear);
 
-    // Sample textures
-    float4 envColor = envTexture.sample(s, vertexOut.uvCoords);
+    // This pass is bound by memory bandwidth: every layer it samples is a full-screen read.
+    // Only the layers the frame has are read — the environment where it shows (passthrough
+    // has nothing behind the scene), the splat layer on a frame the Gaussian pass drew it
+    // (otherwise the texture holds an earlier frame, or nothing), the gizmo layer in the editor.
     float4 modelColor = finalTexture.sample(s, vertexOut.uvCoords);
-    float4 gaussianColor = gaussianTexture.sample(s, vertexOut.uvCoords);
-    // Un-premultiply, decode, premultiply again: a pixel the splats cover whole shows the
-    // trained colour; a partial cover blends with the scene in linear.
-    if (gaussianColor.a > kSplatLayerAlphaFloor) {
-        float3 straight = gaussianColor.rgb / gaussianColor.a;
-        gaussianColor.rgb = splatSRGBToLinear(straight) * gaussianColor.a;
+    float4 background = float4(0.0, 0.0, 0.0, 0.0);
+    if (isPassthrough == false) {
+        background = envTexture.sample(s, vertexOut.uvCoords);
     }
 
     if (ssaoEnabled) {
         float ao = ssaoTexture.sample(s, vertexOut.uvCoords).r;
         modelColor.rgb *= ao;
     }
-    
+
     // Composite scene color over environment using alpha.
     // This guarantees transparent pixels blend against environment instead of black.
-    float4 background = (isPassthrough == false) ? envColor : float4(0.0, 0.0, 0.0, 0.0);
     float4 baseColor = modelColor + background * (1.0 - modelColor.a);
-    
-    // Composite Gaussians (occlusion handled during Gaussian rendering)
-    baseColor.rgb = gaussianColor.rgb + baseColor.rgb * (1.0 - gaussianColor.a);
-    baseColor.a = gaussianColor.a + baseColor.a * (1.0 - gaussianColor.a);
+
+    if (gaussianLayerPresent) {
+        float4 gaussianColor = gaussianTexture.sample(s, vertexOut.uvCoords);
+        // Un-premultiply, decode, premultiply again: a pixel the splats cover whole shows the
+        // trained colour; a partial cover blends with the scene in linear.
+        if (gaussianColor.a > kSplatLayerAlphaFloor) {
+            float3 straight = gaussianColor.rgb / gaussianColor.a;
+            gaussianColor.rgb = splatSRGBToLinear(straight) * gaussianColor.a;
+        }
+        // Composite Gaussians (occlusion handled during Gaussian rendering)
+        baseColor.rgb = gaussianColor.rgb + baseColor.rgb * (1.0 - gaussianColor.a);
+        baseColor.a = gaussianColor.a + baseColor.a * (1.0 - gaussianColor.a);
+    }
 
     // Non-passthrough modes (full immersion, macOS, AR) present an opaque layer:
     // the environment already fills every background pixel, so alpha must be 1.0
@@ -69,12 +77,12 @@ fragment float4 fragmentPreCompositeShader(VertexCompositeOutput vertexOut [[sta
         baseColor.a = 1.0;
     }
 
-    // Sample gizmo
-    float3 gizmoColor = gizmoTexture.sample(s, vertexOut.uvCoords).rgb;
-    float gizmoLumen = getLuminance(gizmoColor);
-
-    if (!isGameMode && gizmoLumen > 0.1) {
-        return float4(gizmoColor, 1.0);
+    // The editor's gizmo layer overrides the pixel wherever it is lit.
+    if (!isGameMode) {
+        float3 gizmoColor = gizmoTexture.sample(s, vertexOut.uvCoords).rgb;
+        if (getLuminance(gizmoColor) > 0.1) {
+            return float4(gizmoColor, 1.0);
+        }
     }
 
     return baseColor;

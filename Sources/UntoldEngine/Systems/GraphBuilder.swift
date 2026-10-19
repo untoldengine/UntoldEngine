@@ -949,6 +949,9 @@ func makeSceneRenderTargetAccess(
             return nil
         }
         encoder.label = label
+        // The copied descriptor carries the eye's rasterization rate map (XR foveation); the
+        // viewport that goes with it is the eye's, not the texture's.
+        applyXRFoveationViewport(encoder)
         return encoder
     }
 }

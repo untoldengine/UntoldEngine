@@ -86,6 +86,83 @@ public enum RenderingProperty: Sendable {
     /// frustum keeps. In scene units; the default is 0.5. See
     /// `getOcclusionCullingMaxCameraStep()` to read the current value.
     case occlusionCullingMaxCameraStep(Float)
+    /// The fewest mesh entities in the culling set for which the occlusion test runs and the
+    /// depth pyramid it reads is built and its depth copied, every frame. 2 by default: one
+    /// entity hides nothing but itself. A scene with splats keeps the pyramid regardless.
+    case occlusionCullingMinimumEntities(Int)
+    /// Whether the XR frame is drawn through the rasterization rate maps the visionOS
+    /// compositor provides when the layer is configured with foveation enabled
+    /// (`LayerRenderer.Configuration.isFoveationEnabled`): dense where the eyes look, coarse
+    /// in the periphery, and the only configuration in which the compositor accepts a render
+    /// quality above the platform default. Enabled by default; a layer configured without
+    /// foveation provides no maps and draws uniformly whatever this says. Disabling it in a
+    /// foveated layer is a diagnostic: the frame is then drawn uniformly into textures the
+    /// compositor still unwarps, so the picture is distorted. See
+    /// `getFoveatedRenderingEnabled()` to read the current value.
+    case foveatedRendering(RenderingToggle)
+    /// Whether the pre-composite pass is skipped on a frame it would only copy the lit scene
+    /// (XR passthrough with no environment, splat, ambient-occlusion or gizmo layer to join;
+    /// the lit debug view; no render extension). Enabled by default; disabling it runs the
+    /// pass on every frame, as a diagnostic.
+    case preCompositeBypass(RenderingToggle)
+    /// Whether the deferred light pass runs as a tile stage that lights each pixel once per
+    /// colour it holds, instead of a quad that lights every multisample. Enabled by default
+    /// where tile shading exists; disabling it runs the quad, as a diagnostic.
+    case tileLightStage(RenderingToggle)
+    /// The samples per pixel of the multisampled anti-aliasing modes: 2, 4 (the default) or 8,
+    /// or fewer when the device has no such count. Takes effect on the next frame.
+    case multisampleCount(Int)
+    /// Whether opaque draws that never discard a fragment (an opaque material, no fade
+    /// running) use the model pipeline compiled without discards, which lets the GPU resolve
+    /// visibility before shading: a fragment another surface covers is never shaded. Enabled
+    /// by default; disabling it draws everything through the general pipeline, as a diagnostic.
+    case opaqueHiddenSurfaceRemoval(RenderingToggle)
+    /// GPU time per pass, measured by the GPU at each pass's stage boundaries and averaged over
+    /// the recent frames: `GPUPassTiming.shared.averages()`. Off by default.
+    case gpuPassTiming(RenderingToggle)
+    /// Whether the geometry evaluates the image-based light and the sun's cascade shadow once
+    /// per fragment and carries them in the G-buffer for the light pass to add, instead of the
+    /// light pass computing them once per multisample. On where the platform's default path is
+    /// hybrid or forward (`RenderInfo.defaultRenderPath`: visionOS), off elsewhere; the same
+    /// picture, less lighting work under MSAA.
+    case perFragmentIndirectLighting(RenderingToggle)
+    /// Whether the geometry lights itself whole once per fragment — the direct light of the sun,
+    /// the point, spot and area lights with their shadows, over the indirect light — and writes
+    /// the lit colour, so the light quad, which lights once per multisample, stands down: the
+    /// forward way to shade. On where the platform's default path is forward (visionOS), off
+    /// elsewhere, and needs `perFragmentIndirectLighting`. The same picture but at the
+    /// multisampled edges, where the quad lit each sample and the geometry lights each pixel once.
+    case perFragmentLighting(RenderingToggle)
+    /// Where the opaque geometry is shaded (see `RenderPath`): sets `perFragmentIndirectLighting`
+    /// and `perFragmentLighting` together, so a scene says "forward" or "deferred" instead of
+    /// composing the two. Forward by default on visionOS, deferred on macOS and iOS
+    /// (`RenderInfo.defaultRenderPath`). `getRenderPath()` reads the path the two make.
+    case renderPath(RenderPath)
+}
+
+/// Where the opaque geometry is shaded.
+public enum RenderPath: String, Sendable, Codable, Equatable, CaseIterable {
+    /// The geometry writes its surface to the G-buffer and the light pass lights it, once per
+    /// multisample from a quad or once per pixel through the tile light stage. The path for a
+    /// scene of many lights, and for the effects that read the G-buffer: the ambient occlusion,
+    /// the debug views. The default on macOS and iOS.
+    case deferred
+    /// Deferred, with the image-based light and the sun's shadow evaluated by the geometry once
+    /// per fragment and carried in the G-buffer; the light pass adds the direct lights.
+    case hybrid
+    /// The geometry lights itself whole once per fragment and writes the lit colour; the light
+    /// quad stands down and the G-buffer shrinks to that colour. One attachment, the samples in
+    /// tile memory: the headset's path, and visionOS's default. The effects that read the
+    /// G-buffer stand down with it; an object moving on its own has its motion written for the
+    /// temporal resolve, which the other paths leave to the resolve's neighbourhood clip.
+    case forward
+}
+
+/// The render path the two per-fragment settings make: forward with both on, hybrid with the
+/// indirect light alone, deferred otherwise (the direct light per fragment needs the indirect).
+public func getRenderPath() -> RenderPath {
+    guard renderInfo.perFragmentIndirectLighting else { return .deferred }
+    return renderInfo.perFragmentLighting ? .forward : .hybrid
 }
 
 public enum RenderingToggle: Sendable {
@@ -146,9 +223,66 @@ public func setRendering(_ property: RenderingProperty) {
         RenderPasses.maxShadowCastingDistance = max(distance, 0.001)
     case let .smallObjectCulling(pixels):
         SmallObjectCulling.minimumPixels = pixels.isFinite ? max(pixels, 0) : 0
+    case let .occlusionCullingMinimumEntities(entities):
+        HZBOcclusionCulling.minimumEntities = max(0, entities)
     case let .occlusionCullingMaxCameraStep(step):
         HZBOcclusionCulling.maxCameraStep = step.isFinite ? max(step, 0) : 0
+    case .foveatedRendering(.enabled):
+        xrFoveatedRenderingEnabled = true
+    case .foveatedRendering(.disabled):
+        xrFoveatedRenderingEnabled = false
+    case .preCompositeBypass(.enabled):
+        renderInfo.preCompositeBypassEnabled = true
+    case .preCompositeBypass(.disabled):
+        renderInfo.preCompositeBypassEnabled = false
+    case .tileLightStage(.enabled):
+        renderInfo.tileLightStageEnabled = true
+    case .tileLightStage(.disabled):
+        renderInfo.tileLightStageEnabled = false
+    case let .multisampleCount(count):
+        renderInfo.preferredMultisampleCount = [2, 4, 8].contains(count) ? count : 4
+    case .opaqueHiddenSurfaceRemoval(.enabled):
+        renderInfo.opaqueHiddenSurfaceRemovalEnabled = true
+    case .opaqueHiddenSurfaceRemoval(.disabled):
+        renderInfo.opaqueHiddenSurfaceRemovalEnabled = false
+    case .gpuPassTiming(.enabled):
+        GPUPassTiming.shared.setEnabled(true)
+    case .gpuPassTiming(.disabled):
+        GPUPassTiming.shared.setEnabled(false)
+    case .perFragmentIndirectLighting(.enabled):
+        renderInfo.perFragmentIndirectLighting = true
+        renderInfo.renderPathChosen = true
+    case .perFragmentIndirectLighting(.disabled):
+        renderInfo.perFragmentIndirectLighting = false
+        renderInfo.renderPathChosen = true
+    case .perFragmentLighting(.enabled):
+        renderInfo.perFragmentLighting = true
+        renderInfo.renderPathChosen = true
+    case .perFragmentLighting(.disabled):
+        renderInfo.perFragmentLighting = false
+        renderInfo.renderPathChosen = true
+    case let .renderPath(path):
+        renderInfo.perFragmentIndirectLighting = path != .deferred
+        renderInfo.perFragmentLighting = path == .forward
+        renderInfo.renderPathChosen = true
     }
+}
+
+/// The XR loop's render path when the app chose none: forward, the headset's path, wherever
+/// the frame is rendered — on the headset itself, where it is the platform's default already,
+/// or on a Mac rendering a remote immersive space, which starts deferred like any Mac app.
+/// `UntoldEngineXR` calls it as it initialises; a path the app set stays, and the adoption is
+/// not counted as the app's choice.
+public func adoptXRRenderPathUnlessChosen() {
+    guard !renderInfo.renderPathChosen else { return }
+    renderInfo.perFragmentIndirectLighting = true
+    renderInfo.perFragmentLighting = true
+}
+
+/// Whether the XR frame draws through the compositor's rasterization rate maps when the layer
+/// provides them. See `RenderingProperty.foveatedRendering`.
+public func getFoveatedRenderingEnabled() -> Bool {
+    xrFoveatedRenderingEnabled
 }
 
 public enum RenderResourceQuery {
@@ -290,6 +424,8 @@ public enum PostFXProperty: Sendable {
     case colorLUT(ColorLUTProperty)
     case colorGradeLUT(ColorGradeLUTProperty)
     case tonemapOperator(TonemapOperator)
+    /// The primaries the look pass shows the scene with (see `ColorPrimaries`).
+    case colorPrimaries(ColorPrimaries)
     case colorCorrection(ColorCorrectionProperty)
     case bloomThreshold(BloomThresholdProperty)
     case bloomComposite(BloomCompositeProperty)
@@ -383,6 +519,8 @@ public func setPostFX(_ property: PostFXProperty) {
         applyColorGradeLUTProperty(property)
     case let .tonemapOperator(op):
         TonemapParams.shared.operator = op
+    case let .colorPrimaries(primaries):
+        TonemapParams.shared.primaries = primaries
     case let .colorCorrection(property):
         applyColorCorrectionProperty(property)
     case let .bloomThreshold(property):

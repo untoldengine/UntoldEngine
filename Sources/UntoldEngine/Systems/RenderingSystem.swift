@@ -23,6 +23,7 @@ public typealias UpdateXRRenderingSystemCallback = (RenderingSystemContext) -> V
 
 @MainActor
 func UpdateRenderingSystem(in view: MTKView) {
+    ObjectMotion.shared.beginFrame()
     // Snapshot loading gate once per frame. While loading, keep rendering from the
     // last-known-good visible list and skip ECS traversal to avoid race conditions.
     let loading = AssetLoadingGate.shared.isLoadingAny
@@ -40,6 +41,7 @@ func UpdateRenderingSystem(in view: MTKView) {
             let renderTotalStart = CACurrentMediaTime()
         #endif
         renderInfo.lastCommandBuffer = commandBuffer
+        GPUPassTiming.shared.beginFrame(device: renderInfo.device)
         renderInfo.currentInFlightFrameSlot = acquireUniformFrameSlot()
 
         // Always refresh the scene-root matrices so that effectiveCameraPosition() and
@@ -94,7 +96,12 @@ func UpdateRenderingSystem(in view: MTKView) {
             commandBuffer.label = "Rendering Command Buffer"
 
             do {
+                // This frame's sub-pixel jitter (temporal anti-aliasing), before anything reads the projection.
+                TemporalAntiAliasing.shared.applyJitter()
                 let graph = try buildExecutableGameModeGraph()
+                // A rasterization rate map set on renderInfo.xrFoveation (the foveation tests
+                // draw through one on the Mac) goes on the scene passes here as in XR.
+                applyXRFoveationToSceneRenderPassDescriptors()
 
                 #if ENGINE_STATS_ENABLED
                     let encodeStart = CACurrentMediaTime()
@@ -127,8 +134,7 @@ func UpdateRenderingSystem(in view: MTKView) {
         let visibleEntityIdsAtSubmission = visibleEntityIds
         commandBuffer.addCompletedHandler { cb in
             #if ENGINE_STATS_ENABLED
-                let gpuExecutionMs = (cb.gpuEndTime - cb.gpuStartTime) * 1000.0
-                EngineStatsMonitor.shared.recordGPUCompletion(executionMs: gpuExecutionMs)
+                EngineStatsMonitor.shared.recordGPUCompletion(gpuStartTime: cb.gpuStartTime, gpuEndTime: cb.gpuEndTime)
             #endif
             // Signal that this command buffer slot is now available
             commandBufferSemaphore.signal()
@@ -137,6 +143,7 @@ func UpdateRenderingSystem(in view: MTKView) {
             MemoryBudgetManager.shared.markUsed(entityIds: visibleEntityIdsAtSubmission)
         }
 
+        GPUPassTiming.shared.endFrame(commandBuffer)
         #if ENGINE_STATS_ENABLED
             let submitStart = CACurrentMediaTime()
         #endif
@@ -168,7 +175,13 @@ func UpdateXRRenderingSystem(commandBuffer: MTLCommandBuffer, passDescriptor: MT
     commandBuffer.label = "XR Rendering Command Buffer"
 
     do {
+        // This eye's sub-pixel jitter (temporal anti-aliasing), before anything reads the projection.
+        TemporalAntiAliasing.shared.applyJitter()
         let graph = try buildExecutableGameModeGraph()
+
+        // The eye's rasterization rate map (visionOS foveation) on the passes that draw the
+        // scene, after the build: a rebuild may have recreated their descriptors.
+        applyXRFoveationToSceneRenderPassDescriptors()
 
         #if ENGINE_STATS_ENABLED
             let encodeStart = shouldRecordStatsInThisCallback ? CACurrentMediaTime() : 0.0
@@ -199,8 +212,7 @@ func UpdateXRRenderingSystem(commandBuffer: MTLCommandBuffer, passDescriptor: MT
     commandBuffer.addCompletedHandler { cb in
         #if ENGINE_STATS_ENABLED
             if renderInfo.immersionStyle == .ar {
-                let gpuExecutionMs = (cb.gpuEndTime - cb.gpuStartTime) * 1000.0
-                EngineStatsMonitor.shared.recordGPUCompletion(executionMs: gpuExecutionMs)
+                EngineStatsMonitor.shared.recordGPUCompletion(gpuStartTime: cb.gpuStartTime, gpuEndTime: cb.gpuEndTime)
             }
         #endif
         needsFinalizeDestroys = true
@@ -256,6 +268,7 @@ let gameModeReservedPassIDs: Set<String> = [
     "look",
     "fxaa",
     "fxaaEdgeDebug",
+    "taa",
     "smaaEdges",
     "smaaBlendWeights",
     "smaaNeighborhood",
@@ -526,6 +539,10 @@ private func buildGameModeGraphWithCompilation() throws -> CompiledRenderGraphRe
             let fxaaPass = RenderPass(id: "fxaa", dependencies: [lookPass.id], execute: fxaaRenderPass)
             builder.addPass(fxaaPass)
             outputDependency = fxaaPass.id
+        case .taa, .msaaTaa:
+            let taaPass = RenderPass(id: "taa", dependencies: [lookPass.id], execute: taaRenderPass)
+            builder.addPass(taaPass)
+            outputDependency = taaPass.id
         case .smaa:
             let smaaEdgesPass = RenderPass(id: "smaaEdges", dependencies: [lookPass.id], execute: smaaEdgesRenderPass)
             builder.addPass(smaaEdgesPass)
@@ -550,6 +567,11 @@ private func buildGameModeGraphWithCompilation() throws -> CompiledRenderGraphRe
     }
 
     let beforeOutputID = builder.resolveStage(.beforeOutput, after: outputDependency) ?? outputDependency
+    // With nothing between the temporal resolve and the output, the resolve presents the frame
+    // itself (TemporalAntiAliasing.encodeResolve) and the output pass stands down.
+    renderInfo.temporalResolveMayPresent = antiAliasingMode.isTemporal && beforeOutputID == outputDependency
+    // The same for the look pass when it is the last pass before the output.
+    renderInfo.lookMayPresent = outputDependency == lookPass.id && beforeOutputID == outputDependency
 
     let outputPass = RenderPass(
         id: "outputTransform",
@@ -881,6 +903,12 @@ func colorGradingCustomization(encoder: MTLRenderCommandEncoder) {
         &tonemapOperator,
         length: MemoryLayout<Int32>.stride,
         index: Int(tonemapOperatorSelectIndex.rawValue)
+    )
+    var colorPrimaries = TonemapParams.shared.primaries.shaderValue
+    encoder.setFragmentBytes(
+        &colorPrimaries,
+        length: MemoryLayout<Int32>.stride,
+        index: Int(lookPassColorPrimariesIndex.rawValue)
     )
 
     // The Gaussian pass's layer keeps splat pixels out of the grade and the tone map: they are
@@ -1368,6 +1396,70 @@ private func debugSourceTexture(for mode: RenderDebugViewMode) -> MTLTexture? {
     }
 }
 
+/// The look pass presenting the frame itself, when the output transform would only copy it
+/// (`renderInfo.lookMayPresent`): the display's colour and depth textures become the pass's
+/// second colour attachment and depth, as the temporal resolve does. Returns whether it ran;
+/// false leaves the frame to the look pass proper and the output transform.
+private func lookPresentingPass(source: MTLTexture, destination: MTLTexture) -> (MTLCommandBuffer) -> Bool {
+    { commandBuffer in
+        let presentDescriptor = renderInfo.renderPassDescriptor
+        let presentColor = presentDescriptor?.colorAttachments[0].texture
+        let presentDepth = presentDescriptor?.depthAttachment.texture
+        guard renderInfo.lookMayPresent,
+              let presentDescriptor, let presentColor, let presentDepth,
+              presentColor.width == destination.width, presentColor.height == destination.height,
+              let sourceDepth = textureResources.depthMap,
+              let pipeline = PipelineManager.shared.renderPipelinesByType[.lookPresent],
+              pipeline.success, let pipelineState = pipeline.pipelineState
+        else { return false }
+
+        let descriptor = MTLRenderPassDescriptor()
+        descriptor.colorAttachments[0].texture = destination
+        descriptor.colorAttachments[0].loadAction = .dontCare
+        descriptor.colorAttachments[0].storeAction = .store
+        descriptor.colorAttachments[1].texture = presentColor
+        descriptor.colorAttachments[1].loadAction = presentDescriptor.colorAttachments[0].loadAction
+        descriptor.colorAttachments[1].clearColor = presentDescriptor.colorAttachments[0].clearColor
+        descriptor.colorAttachments[1].storeAction = .store
+        descriptor.depthAttachment.texture = presentDepth
+        descriptor.depthAttachment.loadAction = presentDescriptor.depthAttachment.loadAction
+        descriptor.depthAttachment.clearDepth = presentDescriptor.depthAttachment.clearDepth
+        descriptor.depthAttachment.storeAction = .store
+
+        GPUPassTiming.shared.attach(descriptor, "Post")
+        guard let encoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor) else {
+            handleError(.renderPassCreationFailed, "Look Pass (presents)")
+            return false
+        }
+        encoder.label = "Look Pass (presents)"
+        encoder.pushDebugGroup("Look Pass (presents)")
+        encoder.setRenderPipelineState(pipelineState)
+        if let depthState = pipeline.depthState {
+            encoder.setDepthStencilState(depthState)
+        }
+        encoder.waitForFence(renderInfo.fence, before: .vertex)
+        encoder.setVertexBuffer(bufferResources.quadVerticesBuffer, offset: 0, index: 0)
+        encoder.setVertexBuffer(bufferResources.quadTexCoordsBuffer, offset: 0, index: 1)
+        encoder.setFragmentTexture(source, index: 0)
+        colorGradingCustomization(encoder: encoder)
+        encoder.setFragmentTexture(sourceDepth, index: Int(lookPassDepthTextureIndex.rawValue))
+        var encodingMode = renderInfo.colorPipeline.present.encodingMode.rawValue
+        encoder.setFragmentBytes(&encodingMode, length: MemoryLayout<Int32>.stride, index: Int(lookPassEncodingModeIndex.rawValue))
+        encoder.drawIndexedPrimitivesTracked(
+            type: .triangle,
+            indexCount: 6,
+            indexType: .uint16,
+            indexBuffer: bufferResources.quadIndexBuffer!,
+            indexBufferOffset: 0
+        )
+        encoder.updateFence(renderInfo.fence, after: .fragment)
+        encoder.popDebugGroup()
+        encoder.endEncoding()
+        renderInfo.lookPresentedThisFrame = true
+        return true
+    }
+}
+
 private func lookPassShouldRenderLitOutput(for mode: RenderDebugViewMode) -> Bool {
     switch mode {
     case .lit, .fxaaEdgeDebug, .smaaEdges, .smaaBlend, .smaaDifference, .occlusionDebug, .postTonemapOutput:
@@ -1380,14 +1472,19 @@ private func lookPassShouldRenderLitOutput(for mode: RenderDebugViewMode) -> Boo
 
 public let lookRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in
     let viewMode = renderDebugViewMode
+    renderInfo.lookPresentedThisFrame = false
     guard let destinationTexture = textureResources.lookTexture else {
         handleError(.renderPassCreationFailed, "Look Pass: destination texture is nil")
         return
     }
 
     if lookPassShouldRenderLitOutput(for: viewMode) {
-        guard let sourceTexture = textureResources.sceneCompositeTexture else {
+        // The composite, or the lit scene itself on a frame the pre-composite pass was skipped.
+        guard let sourceTexture = renderInfo.preCompositeBypassSource ?? textureResources.sceneCompositeTexture else {
             handleError(.renderPassCreationFailed, "Look Pass: source texture is nil")
+            return
+        }
+        if lookPresentingPass(source: sourceTexture, destination: destinationTexture)(commandBuffer) {
             return
         }
         guard let pipeline = PipelineManager.shared.renderPipelinesByType[.look] else {
@@ -1457,6 +1554,13 @@ public let lookRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in
 }
 
 public let outputTransformRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in
+    // The temporal resolve, or the look pass, presented the frame already.
+    if antiAliasingMode.isTemporal, TemporalAntiAliasing.shared.presentedThisFrame {
+        return
+    }
+    if renderInfo.lookPresentedThisFrame {
+        return
+    }
     let sourceTexture: MTLTexture?
     switch renderDebugViewMode {
     case .fxaaEdgeDebug:
@@ -1468,9 +1572,14 @@ public let outputTransformRenderPass: RenderPasses.RenderPassExecution = { comma
     case .smaaDifference:
         sourceTexture = textureResources.smaaBlendTexture
     default:
-        sourceTexture = antiAliasingMode.usesPostLookPass
-            ? textureResources.antiAliasingTexture
-            : textureResources.lookTexture
+        if antiAliasingMode.isTemporal {
+            // The temporal resolve writes its result once, as the eye's new history.
+            sourceTexture = TemporalAntiAliasing.shared.resolvedTexture ?? textureResources.lookTexture
+        } else {
+            sourceTexture = antiAliasingMode.usesPostLookPass
+                ? textureResources.antiAliasingTexture
+                : textureResources.lookTexture
+        }
     }
     guard let sourceTexture else {
         handleError(.renderPassCreationFailed, "Output Transform Pass: source texture is nil")
@@ -1498,6 +1607,7 @@ public let outputTransformRenderPass: RenderPasses.RenderPassExecution = { comma
     // Do not override clearColor here: the XR layer sets it per immersion mode
     // (UntoldEngineXR.swift), and the fullscreen quad overwrites every pixel anyway.
 
+    GPUPassTiming.shared.attach(renderPassDescriptor, "Output")
     guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
         handleError(.renderPassCreationFailed, "Output Transform Pass: encoder creation failed")
         return

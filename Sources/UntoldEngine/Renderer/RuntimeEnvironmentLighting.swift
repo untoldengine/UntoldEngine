@@ -60,6 +60,9 @@ public struct RuntimeEnvironmentLightingTextureSet {
     public var irradianceMap: MTLTexture
     public var specularMap: MTLTexture
     public var brdfMap: MTLTexture
+    /// The probe's first nine spherical harmonics (nine float4s), which the headset's room
+    /// probe pre-filter projects and reads the irradiance from.
+    public var probeSH: MTLBuffer?
 }
 
 public struct ResolvedEnvironmentLighting {
@@ -108,10 +111,14 @@ public func makeRuntimeEnvironmentLightingTextureSet(labelPrefix: String) -> Run
         storageMode: .private
     ) else { return nil }
 
+    let probeSH = currentRenderInfo.device.makeBuffer(length: 9 * MemoryLayout<SIMD4<Float>>.stride, options: .storageModeShared)
+    probeSH?.label = "\(labelPrefix) Probe Harmonics"
+
     return RuntimeEnvironmentLightingTextureSet(
         irradianceMap: irradianceMap,
         specularMap: specularMap,
-        brdfMap: brdfMap
+        brdfMap: brdfMap,
+        probeSH: probeSH
     )
 }
 

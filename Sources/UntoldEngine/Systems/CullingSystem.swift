@@ -357,6 +357,13 @@ func initFrustumCulllingCompute() {
 }
 
 public func buildHZBDepthPyramid(_ commandBuffer: MTLCommandBuffer, eyeIndex: Int? = nil) {
+    // No pyramid for a frame whose depth could hide nothing next frame (the test is off, or
+    // the scene has too few mesh entities and no splats): the build and the depth copy that
+    // feeds it are the frame's cost for nothing, and a stale pyramid must not count as valid.
+    guard HZBOcclusionCulling.pyramidWanted() else {
+        renderInfo.hzbIsValid = false
+        return
+    }
     // Per-eye stereo path for XR
     // Current XR stereo rendering builds the shared mono HZB once after both eyes
     // are rendered, so mixed-mode opaque-depth snapshotting is handled by the
@@ -379,7 +386,7 @@ public func buildHZBDepthPyramid(_ commandBuffer: MTLCommandBuffer, eyeIndex: In
             var mipLevel = UInt32(level)
             var sourceDimensions = simd_uint2(UInt32(sourceWidth), UInt32(sourceHeight))
             var reverseZFlag: UInt32 = renderInfo.reverseZEnabled ? 1 : 0
-            let computeEncoder = commandBuffer.makeComputeCommandEncoder()!
+            let computeEncoder = GPUPassTiming.shared.makeComputeEncoder(commandBuffer, "HZB")!
             computeEncoder.label = "HZB Build Eye\(ei) Mip \(level)"
             computeEncoder.setComputePipelineState(pipelineState)
             computeEncoder.setBytes(&mipLevel, length: MemoryLayout<UInt32>.stride, index: Int(hzbBuildPassMipLevelIndex.rawValue))
@@ -447,7 +454,7 @@ public func buildHZBDepthPyramid(_ commandBuffer: MTLCommandBuffer, eyeIndex: In
         )
         var reverseZFlag: UInt32 = renderInfo.reverseZEnabled ? 1 : 0
 
-        let computeEncoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()!
+        let computeEncoder: MTLComputeCommandEncoder = GPUPassTiming.shared.makeComputeEncoder(commandBuffer, "HZB")!
         computeEncoder.label = "HZB Build Mip \(level)"
         computeEncoder.setComputePipelineState(pipelineState)
         computeEncoder.setBytes(&mipLevel, length: MemoryLayout<UInt32>.stride, index: Int(hzbBuildPassMipLevelIndex.rawValue))
@@ -536,7 +543,7 @@ func executeHZBOcclusionCulling(
     // drift of the depths themselves before an object is called occluded.
     var occlusionBias: Float = 0.02
 
-    let computeEncoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()!
+    let computeEncoder: MTLComputeCommandEncoder = GPUPassTiming.shared.makeComputeEncoder(commandBuffer, "Culling")!
     computeEncoder.label = "HZB Occlusion Culling pass"
     computeEncoder.setComputePipelineState(pipelineState)
     computeEncoder.setBuffer(outputVisibilityBuffer, offset: 0, index: Int(hzbCullPassEntityAABBIndex.rawValue))
@@ -548,6 +555,14 @@ func executeHZBOcclusionCulling(
     computeEncoder.setBytes(&mipCount, length: MemoryLayout<UInt32>.stride, index: Int(hzbCullPassMipCountIndex.rawValue))
     computeEncoder.setBytes(&reverseZFlag, length: MemoryLayout<UInt32>.stride, index: Int(hzbCullPassReverseZIndex.rawValue))
     computeEncoder.setBytes(&occlusionBias, length: MemoryLayout<Float>.stride, index: Int(hzbCullPassOcclusionBiasIndex.rawValue))
+    // The rasterization rate map the pyramid's frame was drawn through (XR foveation): the
+    // rects are moved into the pyramid's physical layout before it is sampled.
+    bindRateMap(
+        pyramidFrame.rateMapData,
+        to: computeEncoder,
+        dataIndex: Int(hzbCullPassRateMapDataIndex.rawValue),
+        sizesIndex: Int(hzbCullPassRateMapSizesIndex.rawValue)
+    )
     computeEncoder.setTexture(hzbDepthPyramid, index: Int(hzbCullPassDepthPyramidTextureIndex.rawValue))
 
     let tew = pipelineState.threadExecutionWidth
@@ -635,8 +650,6 @@ public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         frustumWritePointer[i] = simd_float4(frustum.planes[i].n, frustum.planes[i].d)
     }
 
-    let frustumReadBuffer = frustumTripleBuffer.bufferForRead(frame: submitFrameIndex)
-
     let sceneSnapshot = RenderSceneSnapshot()
     let isXRStereoMode = renderInfo.isXRStereoMode
 
@@ -721,27 +734,28 @@ public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         return
     }
 
-    let computeEncoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()!
+    let computeEncoder: MTLComputeCommandEncoder = GPUPassTiming.shared.makeComputeEncoder(commandBuffer, "Culling")!
 
     computeEncoder.label = "Frustum Culling pass"
 
     computeEncoder.setComputePipelineState(frustumCullingPipeline.pipelineState!)
 
-    computeEncoder.setBuffer(frustumReadBuffer, offset: 0, index: Int(frustumCullingPassPlanesIndex.rawValue))
+    computeEncoder.setBuffer(frustumWriteBuffer, offset: 0, index: Int(frustumCullingPassPlanesIndex.rawValue))
 
-    // write current frame's data
+    // This frame's list and planes, in this frame's slot of the rings, which the frame's own
+    // compute reads: the rings keep the frames in flight off each other's slots, they do not
+    // put a frame a slot behind its own data. Reading the slot before (the frame before's
+    // list, with this frame's count) left the entities at the end of a list that had just
+    // shrunk untested, so a board's face vanished on the frames its smallest parts dropped out.
     let entityAABBWriteBuffer = entityAABBTripleBuffer.bufferForWrite(frame: submitFrameIndex)
 
     entityAABBContainer.withUnsafeBytes { src in
         entityAABBWriteBuffer.contents().copyMemory(from: src.baseAddress!, byteCount: src.count)
     }
 
-    // pick the buffer the gpu should read
-    let entityAABBReadBuffer = entityAABBTripleBuffer.bufferForRead(frame: submitFrameIndex)
-
     let candidateVisibilityBuffer = hzbCandidateVisibilityTriple.bufferForWrite(frame: submitFrameIndex)
 
-    computeEncoder.setBuffer(entityAABBReadBuffer, offset: 0, index: Int(frustumCullingPassObjectIndex.rawValue))
+    computeEncoder.setBuffer(entityAABBWriteBuffer, offset: 0, index: Int(frustumCullingPassObjectIndex.rawValue))
 
     var count32 = UInt32(count)
     computeEncoder.setBytes(&count32, length: MemoryLayout<UInt32>.stride, index: Int(frustumCullingPassObjectCountIndex.rawValue))
@@ -789,6 +803,7 @@ public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         // few centimetres apart, the frames a camera step. The per-eye pyramids
         // (hzbDepthPyramidEye) are allocated, but nothing renders the per-eye depth they
         // would be built from.
+        renderInfo.hzbCandidateCount = count
         let ran0 = executeHZBOcclusionCulling(
             commandBuffer,
             cameraPosition: eyePosition(ofView: SceneRootTransform.shared.effectiveViewMatrix(renderInfo.xrEye0View)),
@@ -845,6 +860,7 @@ public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
 
     } else {
         // Mono path (macOS / non-stereo)
+        renderInfo.hzbCandidateCount = count
         let didRunOcclusion = executeHZBOcclusionCulling(
             commandBuffer,
             cameraPosition: eyePosition(ofView: effectiveViewMatrix),
@@ -970,8 +986,6 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         frustumWritePointer[i] = simd_float4(frustum.planes[i].n, frustum.planes[i].d)
     }
 
-    let frustumReadBuffer = frustumTripleBuffer.bufferForRead(frame: submitFrameIndex)
-
     let sceneSnapshot = RenderSceneSnapshot()
 
     var entityAABBContainer: [EntityAABB] = []
@@ -1049,15 +1063,16 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
     ensureReduceScanCapacity(scannedCount)
     let numBlocks = Int32((scannedCount + Int(BLOCK_SIZE) - 1) / Int(BLOCK_SIZE))
 
-    // write current frame's data
+    // This frame's list and planes, in this frame's slot of the rings, which the frame's own
+    // compute reads: the rings keep the frames in flight off each other's slots, they do not
+    // put a frame a slot behind its own data. Reading the slot before (the frame before's
+    // list, with this frame's count) left the entities at the end of a list that had just
+    // shrunk untested, so a board's face vanished on the frames its smallest parts dropped out.
     let entityAABBWriteBuffer = entityAABBTripleBuffer.bufferForWrite(frame: submitFrameIndex)
 
     entityAABBContainer.withUnsafeBytes { src in
         entityAABBWriteBuffer.contents().copyMemory(from: src.baseAddress!, byteCount: src.count)
     }
-
-    // pick the buffer the gpu should read
-    let entityAABBReadBuffer = entityAABBTripleBuffer.bufferForRead(frame: submitFrameIndex)
 
     let candidateVisibilityBuffer = hzbCandidateVisibilityTriple.bufferForWrite(frame: submitFrameIndex)
 
@@ -1065,14 +1080,14 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
 
     // Mark visible launch
     do {
-        let computeEncoderMarkVisible: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()!
+        let computeEncoderMarkVisible: MTLComputeCommandEncoder = GPUPassTiming.shared.makeComputeEncoder(commandBuffer, "Culling")!
 
         computeEncoderMarkVisible.label = "Mark Visible Pass"
 
         computeEncoderMarkVisible.setComputePipelineState(reduceScanMarkVisiblePipeline.pipelineState!)
 
-        computeEncoderMarkVisible.setBuffer(frustumReadBuffer, offset: 0, index: Int(markVisibilityPassFrustumIndex.rawValue))
-        computeEncoderMarkVisible.setBuffer(entityAABBReadBuffer, offset: 0, index: Int(markVisibilityPassEntityAABBIndex.rawValue))
+        computeEncoderMarkVisible.setBuffer(frustumWriteBuffer, offset: 0, index: Int(markVisibilityPassFrustumIndex.rawValue))
+        computeEncoderMarkVisible.setBuffer(entityAABBWriteBuffer, offset: 0, index: Int(markVisibilityPassEntityAABBIndex.rawValue))
         computeEncoderMarkVisible.setBytes(&count32, length: MemoryLayout<UInt32>.stride, index: Int(markVisibilityPassEntityAABBCountIndex.rawValue))
         computeEncoderMarkVisible.setBuffer(bufferResources.reduceScanFlags, offset: 0, index: Int(markVisibilityPassFlagIndex.rawValue))
 
@@ -1085,7 +1100,7 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
 
     // scan local
     do {
-        let computeEncoderLocalScan: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()!
+        let computeEncoderLocalScan: MTLComputeCommandEncoder = GPUPassTiming.shared.makeComputeEncoder(commandBuffer, "Culling")!
 
         computeEncoderLocalScan.label = "Local Scan Pass"
 
@@ -1107,7 +1122,7 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
     // scan block
 
     do {
-        let computeEncoderBlockScan: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()!
+        let computeEncoderBlockScan: MTLComputeCommandEncoder = GPUPassTiming.shared.makeComputeEncoder(commandBuffer, "Culling")!
 
         computeEncoderBlockScan.label = "Block Scan Pass"
 
@@ -1132,7 +1147,7 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
 
     // Compact and stream
     do {
-        let computeEncoderCompact: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()!
+        let computeEncoderCompact: MTLComputeCommandEncoder = GPUPassTiming.shared.makeComputeEncoder(commandBuffer, "Culling")!
 
         computeEncoderCompact.label = "Compact and Stream Pass"
 
@@ -1141,7 +1156,7 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         computeEncoderCompact.setBuffer(bufferResources.reduceScanFlags, offset: 0, index: Int(compactPassFlagsIndex.rawValue))
         computeEncoderCompact.setBuffer(bufferResources.reduceScanIndices, offset: 0, index: Int(compactPassIndicesIndex.rawValue))
         computeEncoderCompact.setBuffer(bufferResources.reduceScanBlockOffsets, offset: 0, index: Int(compactPassBlockOffsetIndex.rawValue))
-        computeEncoderCompact.setBuffer(entityAABBReadBuffer, offset: 0, index: Int(compactPassEntityAABBIndex.rawValue))
+        computeEncoderCompact.setBuffer(entityAABBWriteBuffer, offset: 0, index: Int(compactPassEntityAABBIndex.rawValue))
 
         computeEncoderCompact.setBytes(&count32, length: MemoryLayout<UInt32>.stride, index: Int(compactPassCountIndex.rawValue))
 
@@ -1159,6 +1174,7 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
     let finalVisibleCountBuffer = visibleCountTriple.bufferForWrite(frame: submitFrameIndex)
     let finalVisibilityBuffer = visibilityTriple.bufferForWrite(frame: submitFrameIndex)
 
+    renderInfo.hzbCandidateCount = count
     let didRunOcclusion = executeHZBOcclusionCulling(
         commandBuffer,
         cameraPosition: eyePosition(ofView: effectiveViewMatrix),
@@ -1235,6 +1251,27 @@ public enum HZBOcclusionCulling {
     /// draws what the frustum keeps. In scene units; 0.5 by default. Set it with
     /// `setRendering(.occlusionCullingMaxCameraStep(_:))`.
     nonisolated(unsafe) static var maxCameraStep: Float = 0.5
+
+    /// The fewest mesh entities in the culling set for which the test, and the depth pyramid
+    /// it reads, built from a copy of the frame's depth every frame, are worth their cost:
+    /// below it nothing can hide anything. 2 by default, since one entity hides nothing but
+    /// itself. A frame with splat entities keeps the pyramid regardless: their cull reads it.
+    /// Set it with `setRendering(.occlusionCullingMinimumEntities(_:))`.
+    nonisolated(unsafe) static var minimumEntities: Int = 2
+
+    /// Whether the frame's depth is worth a pyramid: the test is on, and the scene has enough
+    /// mesh entities or any splats for it to hide something next frame.
+    static func pyramidWanted() -> Bool {
+        guard maxCameraStep > 0 else { return false }
+        if renderInfo.hzbCandidateCount >= minimumEntities { return true }
+        let slot = min(renderInfo.currentInFlightFrameSlot, maxInFlightCommandBuffers - 1)
+        return !GaussianSharedWorkingSet.shared.entityOrder(slot: slot).isEmpty
+    }
+}
+
+/// The fewest mesh entities for which the occlusion test runs and its depth pyramid is built.
+public func getOcclusionCullingMinimumEntities() -> Int {
+    HZBOcclusionCulling.minimumEntities
 }
 
 /// The farthest the camera may move between two frames for the occlusion test to run.
@@ -1257,9 +1294,11 @@ extension HZBPyramidFrame {
               let cameraComponent = scene.get(component: CameraComponent.self, for: camera)
         else { return nil }
         let view = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
+        // In stereo the last eye drawn: its view, projection and rate map alike.
         return HZBPyramidFrame(
             viewProjection: simd_mul(renderInfo.perspectiveSpace, view),
-            cameraPosition: eyePosition(ofView: view)
+            cameraPosition: eyePosition(ofView: view),
+            rateMapData: renderInfo.xrFoveation?.rateMapData
         )
     }
 }

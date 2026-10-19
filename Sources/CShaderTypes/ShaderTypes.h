@@ -42,6 +42,12 @@ typedef struct
     matrix_float3x3 normalMatrix;
     matrix_float4x4 modelMatrix;
     simd_float3 cameraPosition;
+    // For the velocity the opaque pass writes per pixel: this frame's view-projection without
+    // its jitter, the previous frame's (of the same eye), and the model matrix the entity was
+    // drawn with the previous frame.
+    matrix_float4x4 unjitteredViewProjectionMatrix;
+    matrix_float4x4 prevViewProjectionMatrix;
+    matrix_float4x4 prevModelMatrix;
 } Uniforms;
 
 
@@ -140,6 +146,17 @@ typedef enum{
     modelPassFragmentSTScaleIndex,
     modelPassFragmentPOMQualityIndex,
     modelPassFragmentNormalIsPackedXYIndex,
+    // Per-fragment indirect lighting: the light pass's inputs the geometry shares.
+    modelPassFragmentCSMUniformsIndex,
+    modelPassFragmentLightParamsIndex,
+    modelPassFragmentIBLParamIndex,
+    modelPassFragmentIBLRotationAngleIndex,
+    // Per-fragment lighting: the light quad's other inputs, when the geometry lights itself whole.
+    modelPassFragmentPointLightsIndex,
+    modelPassFragmentSpotLightsIndex,
+    modelPassFragmentAreaLightsIndex,
+    modelPassFragmentPointShadowUniformIndex,
+    modelPassFragmentSpotShadowUniformIndex,
 }ModelPassFragmentBufferIndices;
 
 typedef enum{
@@ -361,10 +378,38 @@ typedef struct{
 }MLDecodeParams;
 
 
+/// Function constants of the model fragment shader (`fragmentModelShader`).
+typedef enum{
+    /// bool: whether a draw through the pipeline may discard fragments (an alpha-masked or
+    /// blended material, a dither fade). False compiles the discards out, which lets the
+    /// GPU resolve visibility before it shades: hidden fragments are never shaded.
+    modelFunctionConstantMayDiscard = 0,
+    /// True evaluates the image-based light and the sun's cascade shadow once per fragment
+    /// and writes them into the G-buffer (the emissive attachment: indirect light added to
+    /// the emissive, the shadow factor in alpha); the light pass then adds them from there
+    /// instead of computing them once per sample. `setRendering(.perFragmentIndirectLighting)`.
+    modelFunctionConstantIndirectInGBuffer = 3,
+    /// True lights the surface whole once per fragment — the direct light of the sun, the
+    /// point, spot and area lights with their shadows, over the indirect light of
+    /// `modelFunctionConstantIndirectInGBuffer`, which it needs — and writes the lit colour to
+    /// the attachment the light pass would write, so that pass stands down.
+    /// `setRendering(.perFragmentLighting)`.
+    modelFunctionConstantLitInGBuffer = 5
+}ModelFunctionConstants;
+
+/// Function constants of `fragmentLightShaderTBDR`. The indices share one space with the
+/// model shader's across the library, so they continue its numbering.
+typedef enum{
+    /// True takes the indirect light and the sun's shadow from the G-buffer, where the
+    /// geometry wrote them once per fragment (`modelFunctionConstantIndirectInGBuffer`).
+    lightFunctionConstantIndirectFromGBuffer = 4
+}LightFunctionConstants;
+
 typedef enum{
     prePassGizmoBufferIndex,
     prePassPassthroughBufferIndex,
-    prePassSSAOEnabledIndex
+    prePassSSAOEnabledIndex,
+    prePassGaussianLayerIndex      // bool: the Gaussian pass drew its layer this frame
 }PrePassBufferIndices;
 
 typedef enum{
@@ -407,6 +452,16 @@ typedef enum{
     modelPassNormalTextureIndex,
     modelPassHeightTextureIndex,
     modelPassEmissiveTextureIndex,
+    // Per-fragment indirect lighting: the light pass's textures the geometry shares.
+    modelPassIBLIrradianceTextureIndex,
+    modelPassIBLSpecularTextureIndex,
+    modelPassIBLBRDFTextureIndex,
+    modelPassCSMShadowTextureIndex,
+    // Per-fragment lighting: the light quad's other textures, when the geometry lights itself whole.
+    modelPassAreaLTCMagTextureIndex,
+    modelPassAreaLTCMatTextureIndex,
+    modelPassPointShadowTextureIndex,
+    modelPassSpotShadowTextureIndex,
 }ModelPassTextureIndices;
 
 typedef enum{
@@ -492,6 +547,9 @@ typedef enum {
 typedef enum {
     tonemapOperatorACES = 0,
     tonemapOperatorAgX = 1,
+    /// No tone map: the scene's linear colour as it is, for a mixed-immersion space where
+    /// the passthrough sets the display's response and the compositor applies it.
+    tonemapOperatorNone = 2,
 } TonemapOperatorID;
 
 // The Gaussian pass's layer on the look pass: a splat pixel is display-referred already
@@ -502,12 +560,24 @@ typedef enum {
 typedef enum {
     lookPassSplatCoverageTextureIndex = 3,   // texture(0..2) above: the splat layer, premultiplied
     lookPassGizmoTextureIndex = 4,
+    lookPassDepthTextureIndex = 5,   // the opaque depth, when the look pass presents the frame itself
 } LookPassSplatTextureIndices;
 
 typedef enum {
     lookPassSplatMaskIndex = 15,   // starts after TonemapSelectBufferIndices (14)
     lookPassGizmoOverrideIndex = 16,   // bool: the gizmo layer overrides pixels (the editor, not game mode)
+    lookPassEncodingModeIndex = 17,   // int: the display's encoding, when the look pass presents the frame itself
+    lookPassColorPrimariesIndex = 18,   // int: ColorPrimariesID, the primaries the scene is shown with
 } LookPassSplatBufferIndices;
+
+/// The primaries the look pass shows the scene with: its sRGB colour as it is, or the colour
+/// taken as Display P3 coordinates and shown with the panel's wider primaries, as RealityKit
+/// shows a mixed-immersion scene (its colours measure as the P3→sRGB matrix of their sRGB
+/// values, to a count).
+typedef enum {
+    colorPrimariesSRGB = 0,
+    colorPrimariesDisplayP3 = 1,
+} ColorPrimariesID;
 
 typedef enum{
     colorCorrectionPassColorTextureIndex,
@@ -559,6 +629,8 @@ typedef enum{
     ssaoPassFrustumIndex,
     ssaoPassReverseZIndex,
     ssaoPassProjScaleIndex,
+    ssaoPassRateMapDataIndex,   // rasterization_rate_map_data of the eye's rate map (XR foveation; a never-read placeholder otherwise)
+    ssaoPassRateMapSizesIndex,  // float4: the map's screen size in xy, the depth texture's size in zw; x <= 0 when there is no map
 }SSAOBufferIndices;
 
 typedef enum{
@@ -767,7 +839,9 @@ typedef enum{
     hzbCullPassViewportIndex,
     hzbCullPassMipCountIndex,
     hzbCullPassReverseZIndex,
-    hzbCullPassOcclusionBiasIndex
+    hzbCullPassOcclusionBiasIndex,
+    hzbCullPassRateMapDataIndex,   // rasterization_rate_map_data the pyramid was drawn through (XR foveation; a never-read placeholder otherwise)
+    hzbCullPassRateMapSizesIndex   // float4: the map's screen size in xy, the pyramid's base size in zw; x <= 0 when there is no map
 }HZBOcclusionCullingBufferIndices;
 
 typedef enum{
@@ -800,6 +874,8 @@ typedef enum{
     gaussianCullHZBReverseZIndex,
     gaussianCullHZBOcclusionBiasIndex,
     gaussianCullHZBValidIndex,
+    gaussianCullHZBRateMapDataIndex,   // rasterization_rate_map_data the pyramid was drawn through (XR foveation; a never-read placeholder otherwise)
+    gaussianCullHZBRateMapSizesIndex,  // float4: the map's screen size in xy, the pyramid's base size in zw; x <= 0 when there is no map
 }GaussianDepthBufferIndices;
 
 typedef enum{
@@ -1034,7 +1110,8 @@ typedef struct{
     uint32_t uniformQuotas;      // GaussianDebugOptions.disableScreenWeightedQuotas: screenArea = splatCount, the uniform quota rule
     uint32_t paged;              // 0: every record resident; 1: a paged entity (the cull writes the demand table and lists resident ranks only, the fused pass reads the page pool); 2: demand only (a warming tier: write the demand word and return)
     uint32_t rangeCount;         // entries of ranges[] (gaussianChunkCullRangesIndex, GaussianChunkTreeCull); a thread whose chunkIndex falls in none of them skips the per-chunk test. 0 (GaussianDebugOptions.disableTreeSkip, or a file without a tree) skips the check entirely, as before the tree was wired in
-}GaussianChunkCullConstants;  // 192 bytes (176 + rangeCount, padded to the struct's 16-byte alignment)
+    simd_float4 hzbRateMapSizes; // the rasterization rate map the HZB was drawn through (XR foveation): its screen size in xy, the pyramid's base size in zw; x <= 0 when there is none and the rate map buffer is a never-read placeholder
+}GaussianChunkCullConstants;  // 208 bytes (180 + hzbRateMapSizes at 192, padded to the struct's 16-byte alignment)
 
 /// One span of GaussianChunkTreeCull.visibleChunkRanges (Swift): chunk indices [firstChunk,
 /// firstChunk + chunkCount) the tree walk could not rule out this frame. Every chunk still gets
@@ -1062,6 +1139,7 @@ typedef enum{
     gaussianChunkCullLevelStateIndex = 11, // GaussianChunkLevelState[chunkCount], persistent, written by gaussianComputeChunkQuotas (a never-read stand-in without coarse levels)
     gaussianChunkCullLevelConstantsIndex = 12, // GaussianChunkLevelConstants (setBytes); hasCoarse = 0 keeps every path as it was
     gaussianChunkCullRangesIndex = 13,     // GaussianChunkCullRange[rangeCount] (setBytes; a never-read stand-in when rangeCount == 0)
+    gaussianChunkCullRateMapDataIndex = 14, // rasterization_rate_map_data the HZB was drawn through (XR foveation; read only when hzbRateMapSizes.x > 0, a placeholder otherwise)
 }GaussianChunkCullBufferIndices;
 
 typedef enum{
@@ -1299,6 +1377,7 @@ typedef enum{
     gaussianChunkPreprocessCoarseTableIndex,     // 17: GaussianChunkDecodeConstants[levelCount × chunkCount], the coarse rows, level-major
     gaussianChunkPreprocessLevelStateIndex,      // 18: GaussianChunkLevelState[chunkCount] as gaussianComputeChunkQuotas left it this frame
     gaussianChunkPreprocessLevelConstantsIndex,  // 19: GaussianChunkLevelConstants (setBytes)
+    gaussianChunkPreprocessRateMapDataIndex,     // 20: rasterization_rate_map_data the HZB was drawn through (XR foveation; read only when the cull constants' hzbRateMapSizes.x > 0, a placeholder otherwise)
 }GaussianChunkPreprocessBufferIndices;
 
 typedef enum{
@@ -1353,6 +1432,40 @@ typedef enum{
     fxaaPassColorTextureIndex = 0,
     fxaaPassSplatCoverageTextureIndex = 1
 }FXAATextureIndices;
+
+// MARK: - Temporal anti-aliasing (TAAShader.metal)
+
+/// The resolve's inputs: the eye's unjittered matrices for this frame and the frame its
+/// history holds, and the rasterization rate maps of both when the frames were foveated
+/// (XR): the history is laid out in its own frame's physical space, so a pixel goes
+/// physical → screen → world → previous screen → previous physical before the history is read.
+typedef struct {
+    matrix_float4x4 invViewProjection;   // this frame, unjittered, scene root included
+    matrix_float4x4 prevViewProjection;  // the history's frame, unjittered, scene root included
+    simd_float4 rateMapSizes;            // this frame's map: screen size xy, physical size zw; x <= 0 when drawn uniformly
+    simd_float4 prevRateMapSizes;        // the history frame's map, same layout
+    simd_float2 physicalSize;            // the colour, depth and history textures' size in pixels
+    float historyWeight;                 // share of the clipped history in the output (0.9)
+    uint32_t historyValid;               // 0 on the first frame, after a resize or a mode change: the output is the current frame
+    uint32_t reverseZ;
+    float clipGamma;                     // the clip box is the 3×3 mean ± clipGamma × standard deviation (1.25)
+    uint32_t velocityValid;              // 1 when the opaque pass wrote the frame's velocity texture (per-object motion)
+    uint32_t pad1;
+} TAAConstants;  // 176 bytes
+
+typedef enum{
+    taaPassConstantsIndex = 0,      // TAAConstants
+    taaPassRateMapDataIndex,        // rasterization_rate_map_data of this frame (read only when rateMapSizes.x > 0; a placeholder otherwise)
+    taaPassPrevRateMapDataIndex,    // rasterization_rate_map_data of the history's frame (read only when prevRateMapSizes.x > 0)
+    taaPassEncodingModeIndex        // int: the present encoding (1 = linear to sRGB), for the resolve that presents
+}TAABufferIndices;
+
+typedef enum{
+    taaPassColorTextureIndex = 0,   // this frame's look output
+    taaPassHistoryTextureIndex,     // the previous resolve of this eye
+    taaPassDepthTextureIndex,       // this frame's opaque depth
+    taaPassVelocityTextureIndex     // this frame's velocity (NDC, this minus previous), when velocityValid
+}TAATextureIndices;
 
 typedef enum{
     smaaPassTexelSizeIndex,

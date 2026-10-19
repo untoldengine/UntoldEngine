@@ -82,17 +82,18 @@ typedef struct{
     
 }VertexInModel;
 
+// What the model vertex stage hands the fragment stage, kept to what the fragment reads: on
+// Apple GPUs every interpolated float is written to the parameter buffer by the tiler and read
+// back per tile, so the layout is a vertex-stage cost in itself (measured: the stage halves
+// with the material's inputs gone).
 typedef struct{
     float4 position [[position]];
-    float4 shadowCoords;
-    float4 vPosition;
-    float4 verticesInMVSpace;
-    float3 normalVectorInMVSpace;
-    float3 normal;
-    float3 tbNormal; //used in tbn
-    float4 tangent;
+    float3 worldPosition;
+    float3 tbNormal; // the world-space normal, the N of the TBN frame
+    float4 tangent;  // the world-space tangent, its handedness in w
     float2 uvCoords;
-
+    float3 currentClipXYW; // this frame's clip position without the jitter: x, y and w (no z), for the velocity
+    float3 prevClipXYW;    // the previous frame's clip position of the same vertex: x, y and w
   }VertexOutModel;
 
 typedef struct {
@@ -153,15 +154,6 @@ typedef struct
 
 } FragmentModelOut;
 
-typedef struct
-{
-    float4 color [[color(0)]];
-    float4 normals [[color(1)]];
-    float4 positions [[color(2)]];
-    float4 material [[color(3)]];
-    float4 emmisive [[color(4)]];
-} GBufferOut;
-
 typedef struct{
 
     float4 position [[attribute(modelPassVerticesIndex)]];
@@ -187,10 +179,10 @@ typedef struct{
     float3 cov2;
     float3 conic;
     float3 color;
-    float2 coordxy;
+    float2 pixelDelta; // the vertex's offset from the splat's centre in the conic's pixel frame (y down)
     float alpha;
     bool valid;
-    
+
 }GaussianOutData;
 
 // Cascaded Shadow Maps: 3 cascades shared between both eyes in XR.
@@ -212,6 +204,7 @@ struct CSMUniforms {
     float    shadowSoftnessFar;        // Poisson PCF radius in texels at the shadow distance
     float    shadowSoftnessDepthScale; // 0 = fixed near radius, 1 = full near-to-far ramp
     float    shadowSoftnessEnabled;
+    float    shadowFilterTaps;         // Poisson taps per cascade sample: 16 (the disk), 8 or 4 of it
 };
 
 struct SpotShadowUniforms {

@@ -86,6 +86,10 @@ class BaseRenderSetup: XCTestCase {
         applyIBL = false
         antiAliasingMode = .fxaa
         renderDebugViewMode = .lit
+        // A test that tries the other immersion modes leaves renderInfo.immersionStyle at the
+        // last one, and the renderer created here keeps it: every later test would draw that
+        // mode's graph. The temporal rate-map test showed it, behind RenderGraphBuilderTest.
+        renderInfo.immersionStyle = .none
         currentGlobalTime = 0.0
         // Engine defaults (RuntimeGlobalsStore's cameraDefaultFOV/cameraNearPlane/cameraFarPlane
         // initial values). A scene-authored asset load (e.g. loadSceneAuthored) overwrites these

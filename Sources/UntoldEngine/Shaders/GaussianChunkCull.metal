@@ -93,6 +93,8 @@ static inline bool gaussianBoxPassesClipPlanes(
 // the HZB. The occlusion test is the mesh cull's (HZBOcclusion.h): the box's screen rect at the
 // mip that covers it, 5x5 samples, nearest box depth against the farthest sample plus the bias.
 // `area` is the box's clipped screen area in this view, 0 when the view rejects or occludes it.
+// `hzbRateMap` is the rasterization rate map the pyramid was drawn through when it was
+// (params.hzbRateMapSizes, HZBOcclusion.h): the rect is moved into the pyramid's layout.
 static inline bool gaussianChunkVisibleInView(
     const float3 boxMin,
     const float3 boxMax,
@@ -100,6 +102,7 @@ static inline bool gaussianChunkVisibleInView(
     constant GaussianChunkCullConstants &params,
     const uint hzbValid,
     texture2d<float, access::sample> hzbDepthPyramid,
+    constant rasterization_rate_map_data *hzbRateMap,
     thread float &area)
 {
     if (!gaussianBoxPassesClipPlanes(boxMin, boxMax, viewProjection, params.clipGuardBand, area)) {
@@ -116,6 +119,7 @@ static inline bool gaussianChunkVisibleInView(
     if (!projectAABBToScreenRect(0.5f * (boxMin + boxMax), 0.5f * (boxMax - boxMin), viewProjection, reverseZ, uvMin, uvMax, nearDepth)) {
         return true;
     }
+    hzbRemapRectToPhysical(hzbRateMap, params.hzbRateMapSizes, uvMin, uvMax);
     if (hzbRectIsOccluded(hzbDepthPyramid, uvMin, uvMax, nearDepth, params.viewport, params.hzbMipCount, reverseZ, params.hzbOcclusionBias)) {
         area = 0.0f;
         return false;
@@ -189,6 +193,7 @@ kernel void gaussianChunkCull(
     const device GaussianChunkLevelState *levelState [[buffer(gaussianChunkCullLevelStateIndex)]],
     constant GaussianChunkLevelConstants &lvl [[buffer(gaussianChunkCullLevelConstantsIndex)]],
     const device GaussianChunkCullRange *ranges [[buffer(gaussianChunkCullRangesIndex)]],
+    constant rasterization_rate_map_data *hzbRateMap [[buffer(gaussianChunkCullRateMapDataIndex)]],
     texture2d<float, access::sample> hzbDepthPyramid [[texture(gaussianChunkCullHZBDepthPyramidTextureIndex)]],
     uint chunkIndex [[thread_position_in_grid]])
 {
@@ -227,9 +232,9 @@ kernel void gaussianChunkCull(
     const uint hzbValidForView0 = params.viewCount > 1u ? 0u : params.hzbValid;
     float area0 = 0.0f;
     float area1 = 0.0f;
-    const bool keep0 = gaussianChunkVisibleInView(boxMin, boxMax, params.viewProjection0, params, hzbValidForView0, hzbDepthPyramid, area0);
+    const bool keep0 = gaussianChunkVisibleInView(boxMin, boxMax, params.viewProjection0, params, hzbValidForView0, hzbDepthPyramid, hzbRateMap, area0);
     const bool keep1 = params.viewCount > 1u
-        ? gaussianChunkVisibleInView(boxMin, boxMax, params.viewProjection1, params, params.hzbValid, hzbDepthPyramid, area1)
+        ? gaussianChunkVisibleInView(boxMin, boxMax, params.viewProjection1, params, params.hzbValid, hzbDepthPyramid, hzbRateMap, area1)
         : false;
     const bool seen = keep0 || keep1;
     const float area = clamp(max(keep0 ? area0 : 0.0f, keep1 ? area1 : 0.0f), kGaussianScreenAreaMin, limit * limit);

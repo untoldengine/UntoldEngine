@@ -226,6 +226,14 @@ The graph still contains a `batchedModel` node and a `lightPass` node for depend
 
 > **Why TBDR?** Keeping the G-Buffer in tile memory avoids storing and reloading several full-resolution render targets every frame. This is especially important on Apple GPUs, where framebuffer fetch and memoryless attachments let the renderer shade from G-Buffer data while it is still resident on the tile.
 
+### Render Paths
+
+`setRendering(.renderPath(_:))` chooses where the opaque geometry is shaded (`RenderPath`; `getRenderPath()` reads it back). The model and light pipelines follow the choice on the next frame.
+
+- **`.deferred`** — the pipeline above: the geometry writes the G-Buffer and the light sub-pass lights it, once per sample from the quad or once per pixel through the tile light stage. The default on macOS and iOS (`RenderInfo.defaultRenderPath`), and the path for a scene of many lights and for the effects that read the G-Buffer (SSAO, the debug views).
+- **`.hybrid`** — deferred, with the image-based light and the sun's cascade shadow evaluated by the geometry once per fragment and carried in the emissive attachment (the shadow factor in its alpha); the light sub-pass adds the direct lights from there, once per sample. The same picture with less lighting work under MSAA; the tile light stage stands aside.
+- **`.forward`** — the geometry lights itself whole once per fragment and writes the lit colour to attachment 5 and its motion to attachment 6 (the velocity map, for the temporal resolve); the light quad stands down and the pass ends after the geometry. The default on visionOS, where it is the measured match for RealityKit's cost under MSAA and the rasterization rate maps. The effects that read the G-Buffer stand down with it.
+
 ### Transparency Pass
 
 ```swift
@@ -332,9 +340,12 @@ After the look pass, the graph inserts an anti-aliasing pass whose topology depe
 |---|---|---|
 | `.fxaa` | `fxaa` | `look → fxaa → outputTransform` |
 | `.smaa` | `smaaEdges`, `smaaBlendWeights`, `smaaNeighborhood` | `look → smaaEdges → smaaBlendWeights → smaaNeighborhood → outputTransform` |
-| `.none` | *(none)* | `look → outputTransform` |
+| `.taa`, `.msaaTaa` | `taa` | `look → taa → outputTransform` (`.msaaTaa` also draws the G-buffer at 4 samples, like `.msaa`) |
+| `.none`, `.msaa` | *(none)* | `look → outputTransform` |
 
 **FXAA** is a single-pass screen-space filter that attenuates aliased edges using local luma contrast.
+
+**TAA** (temporal anti-aliasing, `TemporalAntiAliasing.swift`, `TAAShader.metal`) jitters the projection by a sub-pixel Halton offset before each frame's graph is built (`applyJitter`, in the projection's third column, so the offset is a constant NDC shift; the previous frame's offset is taken out first) and, after the look pass, blends the frame with the eye's history: each pixel is reprojected through the depth buffer and the unjittered view-projections of this frame and the history's, the history colour is clipped to the YCoCg box of the pixel's 3×3 neighbourhood (so what moved or was uncovered does not ghost), and the two are mixed with `TAAParams.shared.historyWeight` (0.9). The resolve writes the anti-aliasing texture and the eye's next history texture in one pass (two colour targets); the history is per eye, ping-ponged, and invalidated by a resize or a mode change. Under a foveated XR frame the textures are in physical space and each frame's rate map differs, so the reprojection goes physical → screen → world → previous screen → previous physical through both maps, and the jitter is measured in screen pixels. Camera motion is handled on every path through the depth buffer. On the forward path the opaque pass also writes each pixel's own motion (the velocity map, the forward descriptor's attachment 6), so an object moving on its own finds its history where it was; on the deferred and hybrid paths there are no motion vectors and such an object relies on the clip.
 
 **SMAA** (Subpixel Morphological Anti-Aliasing) is a three-pass chain:
 1. **Edge detection** (`smaaEdges`) — identifies aliased edges from the look texture using luma and chroma gradients. Also detects diagonal patterns.
