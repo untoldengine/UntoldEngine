@@ -1,4 +1,19 @@
 # Changelog
+## v0.24.0 - 2026-10-19
+### 🐞 Fixes
+- [Bugfix] Fix HDR/IBL validation falling back to stale directory on scene restore (#1367) (72150232…)
+- [Bugfix] Resolve assets the Editor exports flat into Models/StreamModels/Animations (#1369) (6bb8b3e1…)
+- [Bugfix] Skip mass lookup for entities without a kinetic component in serializeScene (#1366) (ebfa68be…)
+- [Bugfix] Default Material.heightEnabled to false; auto-enable on height-map-bearing loads (#1361) (09365af8…)
+### 📚 Docs
+- [Docs] Document ComponentKit common failures and component_kit merge status (#1356) (47855dc1…)
+- [Docs] Re-host starter assets on GitHub Releases; promote Untold Editor in README (#1349) (e8de441c…)
+- Update README logo with new Untold Engine banner (#1362) (af46a146…)
+### 🚀 Features
+- [Feature] Headset rendering: foveation, temporal anti-aliasing, a forward path, and RealityKit's look in a mixed space (#1359) (021480a8…)
+- [Project Layout] Root-level GameData/Resources/Docs project layout (#1345) (60722ce4…)
+### 🧹 Chores / Tests
+- [Chores] Warn at build time when Metal kernel sources are stale (#1357) (5cf22298…)
 ## v0.23.0 - 2026-10-12
 ### 🐞 Fixes
 - [Patch] Start a slot of objects as no reference (#1313) (6456434…)
