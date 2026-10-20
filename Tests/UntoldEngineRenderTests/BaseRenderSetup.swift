@@ -155,6 +155,10 @@ class BaseRenderSetup: XCTestCase {
         resetGlobalEngineState()
         ambientIntensity = 0.4
 
+        // SwiftPM's `.process("Resources")` flattens the whole Resources/ tree (including
+        // GameData/) into the bundle root -- there is no GameData subfolder to offset into
+        // here. getResourceURL()'s flat-bundle fallback already resolves names against
+        // assetBasePath directly, so point it straight at the bundle root.
         let bundleURL = Bundle.module.resourceURL
         assetBasePath = bundleURL
 

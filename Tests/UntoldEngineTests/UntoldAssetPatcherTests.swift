@@ -513,7 +513,7 @@ final class UntoldAssetPatcherTests: XCTestCase {
         let sourceURL = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
-            .appendingPathComponent("UntoldEngineRenderTests/Resources/Models/singlecube/singlecube.untold")
+            .appendingPathComponent("UntoldEngineRenderTests/Resources/GameData/Models/singlecube/singlecube.untold")
         guard FileManager.default.fileExists(atPath: sourceURL.path) else {
             throw XCTSkip("cooked fixture not found at \(sourceURL.path)")
         }
