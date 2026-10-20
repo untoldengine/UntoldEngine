@@ -275,7 +275,7 @@ final class UpdateXRRenderingSystemTest: BaseRenderSetup {
     func assertTopologicalConstraints(
         order: [String],
         constraints: [(before: String, after: String)],
-        file: StaticString = #file,
+        file: StaticString = #filePath,
         line: UInt = #line
     ) {
         for (before, after) in constraints {

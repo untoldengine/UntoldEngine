@@ -9,6 +9,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import Foundation
+@preconcurrency import Metal
 import simd
 @testable import UntoldEngine
 import XCTest
@@ -110,7 +111,7 @@ final class UntoldPackRenderTests: BaseRenderSetup {
         }
         await fulfillment(of: [expectation], timeout: 10.0)
         let scenegraph = try XCTUnwrap(scene.get(component: ScenegraphComponent.self, for: rootId))
-        return Dictionary(uniqueKeysWithValues: scenegraph.children.map { (getEntityName(entityId: $0) ?? "", $0) })
+        return Dictionary(uniqueKeysWithValues: scenegraph.children.map { (getEntityName(entityId: $0), $0) })
     }
 
     /// A model of a pack is created spatial and placed with the transform calls, which
@@ -281,7 +282,9 @@ final class UntoldPackRenderTests: BaseRenderSetup {
         let key = LoadedTextureCache.key(url: tempRoot.appendingPathComponent("atlas.png"), isSRGB: true)
         let loads = Counter()
         let made = try makeTexture()
-        let results = UnsafeMutablePointer<Unmanaged<AnyObject>?>.allocate(capacity: 8)
+        // Each iteration of concurrentPerform below writes to a distinct index, so
+        // concurrent access is safe despite the pointee not being Sendable.
+        nonisolated(unsafe) let results = UnsafeMutablePointer<Unmanaged<AnyObject>?>.allocate(capacity: 8)
         results.initialize(repeating: nil, count: 8)
         defer { results.deallocate() }
 

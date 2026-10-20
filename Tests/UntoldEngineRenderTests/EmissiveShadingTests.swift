@@ -102,8 +102,8 @@ final class EmissiveShadingTests: MaterialShadingTestCase {
         let without = MDLMaterial(name: "wall", scatteringFunction: MDLPhysicallyPlausibleScatteringFunction())
 
         let textureLoader = TextureLoader(device: renderInfo.device)
-        let sign = Material(mdlMaterial: withTexture, textureLoader: textureLoader, name: "sign")
-        let wall = Material(mdlMaterial: without, textureLoader: textureLoader, name: "wall")
+        let sign = Material(mdlMaterial: withTexture, textureLoader: textureLoader)
+        let wall = Material(mdlMaterial: without, textureLoader: textureLoader)
 
         XCTAssertTrue(sign.hasEmissiveMap)
         XCTAssertEqual(sign.emissiveValue, simd_float3(1, 1, 1))

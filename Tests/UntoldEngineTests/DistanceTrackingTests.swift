@@ -50,7 +50,7 @@ final class DistanceTrackingTests: XCTestCase {
     // MARK: - Fix 5: Distance Tracking Tests
 
     func testPickedEntityDistanceInitialValue() {
-        var state = XRSpatialInputState()
+        let state = XRSpatialInputState()
         XCTAssertEqual(
             state.pickedEntityDistance,
             Float.infinity,

@@ -78,7 +78,6 @@ final class USCCameraScriptTests: XCTestCase {
         // Different from default so we can see a change
         let eye = simd_float3(1.0, 2.0, 3.0)
         let target = simd_float3(0.0, 0.0, 0.0)
-        let up = simd_float3.up
 
         let script = buildScript(name: "cameraLookAtScript") { s in
             s.onUpdate()

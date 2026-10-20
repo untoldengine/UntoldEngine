@@ -19,11 +19,11 @@ final class EnvironmentAssetRebakeTests: BaseRenderSetup {
 
     private var customDirectory: URL?
 
-    override func tearDown() {
+    override func tearDown() async throws {
         if let customDirectory {
             try? FileManager.default.removeItem(at: customDirectory)
         }
-        super.tearDown()
+        try await super.tearDown()
     }
 
     func testViewportRebakeKeepsEnvironmentLoadedFromCustomDirectory() throws {

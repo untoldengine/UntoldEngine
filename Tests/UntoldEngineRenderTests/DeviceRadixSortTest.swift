@@ -224,7 +224,7 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         else { XCTFail("Buffer allocation failed"); return }
 
         zeroBuffer(histBuf)
-        var numElems = UInt32(n)
+        let numElems = UInt32(n)
         var passIndex = UInt32(0)
 
         dispatch(pipeline, threadCount: n) { enc in
@@ -262,7 +262,7 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         else { XCTFail("Buffer allocation failed"); return }
 
         zeroBuffer(histBuf)
-        var numElems = UInt32(kRadixBuckets)
+        let numElems = UInt32(kRadixBuckets)
         var passIndex = UInt32(0)
 
         dispatch(pipeline, threadCount: kRadixBuckets) { enc in
@@ -295,7 +295,7 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         else { XCTFail("Buffer allocation failed"); return }
 
         zeroBuffer(histBuf)
-        var numElems = UInt32(1)
+        let numElems = UInt32(1)
         var passIndex = UInt32(0)
 
         dispatch(pipeline, threadCount: 1) { enc in
@@ -331,7 +331,7 @@ final class DeviceRadixSortTest: BaseRenderSetup {
               let histBuf = makeBuffer(count: kRadixBuckets, type: UInt32.self)
         else { XCTFail("Buffer allocation failed"); return }
 
-        var numElems = UInt32(n)
+        let numElems = UInt32(n)
 
         for pass in 0 ..< 4 {
             zeroBuffer(histBuf)
@@ -366,7 +366,7 @@ final class DeviceRadixSortTest: BaseRenderSetup {
               let histBuf = makeBuffer(count: kRadixBuckets, type: UInt32.self)
         else { XCTFail("Buffer allocation failed"); return }
 
-        var numElems = UInt32(n)
+        let numElems = UInt32(n)
 
         for pass in 0 ..< 4 {
             zeroBuffer(histBuf)
@@ -580,7 +580,7 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         else { XCTFail("Buffer allocation failed"); return }
 
         zeroBuffer(zeroBuf)
-        var numElems = UInt32(n)
+        let numElems = UInt32(n)
         var passIndex = UInt32(0)
 
         dispatch(pipeline, threadCount: n) { enc in
@@ -626,7 +626,7 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         else { XCTFail("Buffer allocation failed"); return }
 
         zeroBuffer(zeroBuf)
-        var numElems = UInt32(n)
+        let numElems = UInt32(n)
         var passIndex = UInt32(0)
 
         dispatch(pipeline, threadCount: n) { enc in
@@ -674,7 +674,7 @@ final class DeviceRadixSortTest: BaseRenderSetup {
         else { XCTFail("Buffer allocation failed"); return }
 
         zeroBuffer(zeroBuf)
-        var numElems = UInt32(n)
+        let numElems = UInt32(n)
         var passIndex = UInt32(0)
 
         dispatch(pipeline, threadCount: n) { enc in

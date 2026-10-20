@@ -208,16 +208,12 @@ final class AsyncMeshLoadingTest: BaseRenderSetup {
         // When: Start loading and track progress
         let loadingCompleteExpectation = XCTestExpectation(description: "Loading completed")
 
-        // Track that loading was started at some point during the async operation
-        var loadingWasStarted = false
-
         // Poll rapidly to catch loading state (loading may complete very quickly)
         let monitorTask = Task {
             for _ in 0 ..< 500 { // Check for up to 0.5 seconds
                 if Task.isCancelled { break }
                 let isLoading = await AssetLoadingState.shared.isLoading(entityId: entityId)
                 if isLoading {
-                    loadingWasStarted = true
                     break
                 }
                 try? await Task.sleep(nanoseconds: 1_000_000) // 1ms
@@ -243,9 +239,6 @@ final class AsyncMeshLoadingTest: BaseRenderSetup {
 
         let progressAfter = await AssetLoadingState.shared.getProgress(for: entityId)
         XCTAssertNil(progressAfter, "Progress should be cleared after completion")
-
-        // Note: loadingWasStarted may be false if loading completed before monitoring could detect it
-        // This is expected behavior with very fast loading - the important thing is that completion works
     }
 
     func testAsyncLoading_tracksMultipleEntitiesSimultaneously() async {
@@ -297,7 +290,6 @@ final class AsyncMeshLoadingTest: BaseRenderSetup {
         setEntityName(entityId: entityId, name: "PhaseEntity")
 
         var loadingPhaseDetected = false
-        var registeringPhaseDetected = false
 
         // When: Load and monitor phase transitions with rapid polling
         let monitorTask = Task {
@@ -308,7 +300,7 @@ final class AsyncMeshLoadingTest: BaseRenderSetup {
                     case .loading:
                         loadingPhaseDetected = true
                     case .registering:
-                        registeringPhaseDetected = true
+                        break
                     }
                 }
                 try? await Task.sleep(nanoseconds: 1_000_000) // 1ms
@@ -400,27 +392,10 @@ final class AsyncMeshLoadingTest: BaseRenderSetup {
         let entityId = createEntity()
         setEntityName(entityId: entityId, name: "VisibilityEntity")
 
-        var wasHiddenDuringLoad = false
-
         // When: Monitor visibility during loading
         let monitorTask = Task {
             for _ in 0 ..< 50 {
                 if Task.isCancelled { break }
-                if let renderComp = scene.get(component: RenderComponent.self, for: entityId) {
-                    if !renderComp.isVisible {
-                        wasHiddenDuringLoad = true
-                    }
-                }
-                // Also check children
-                if let sceneGraph = scene.get(component: ScenegraphComponent.self, for: entityId) {
-                    for childId in sceneGraph.children {
-                        if let childRenderComp = scene.get(component: RenderComponent.self, for: childId) {
-                            if !childRenderComp.isVisible {
-                                wasHiddenDuringLoad = true
-                            }
-                        }
-                    }
-                }
                 try? await Task.sleep(nanoseconds: 50_000_000) // 0.05s
             }
         }
@@ -582,7 +557,6 @@ final class AsyncMeshLoadingTest: BaseRenderSetup {
 
         // When: Load with asset name filter
         let expectation = XCTestExpectation(description: "Filtered load")
-        var loadSuccess = false
 
         // Note: This requires knowing the internal asset name structure of stadium.usdz
         // For this test, we'll use a generic approach
@@ -591,8 +565,7 @@ final class AsyncMeshLoadingTest: BaseRenderSetup {
             filename: "stadium",
             withExtension: "untold",
             assetName: "stadium" // Using the file name as asset name
-        ) { success in
-            loadSuccess = success
+        ) { _ in
             expectation.fulfill()
         }
 

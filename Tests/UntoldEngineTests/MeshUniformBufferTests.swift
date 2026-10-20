@@ -113,11 +113,3 @@ final class MeshUniformBufferTests: XCTestCase {
                                  "Uniforms struct must fit within the 4 KB setVertexBytes limit")
     }
 }
-
-// MARK: - Helper Extensions for Matrix Operations
-
-extension simd_float4x4: @retroactive Equatable {
-    public static func == (lhs: simd_float4x4, rhs: simd_float4x4) -> Bool {
-        lhs.columns == rhs.columns
-    }
-}

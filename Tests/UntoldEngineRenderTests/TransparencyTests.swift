@@ -31,7 +31,7 @@ final class MaterialAlphaDecodingTests: BaseRenderSetup {
         mdlMaterial.setProperty(MDLMaterialProperty(name: "alphaMode", semantic: .userDefined, string: "blend"))
 
         let textureLoader = TextureLoader(device: renderInfo.device)
-        let material = Material(mdlMaterial: mdlMaterial, textureLoader: textureLoader, name: "test")
+        let material = Material(mdlMaterial: mdlMaterial, textureLoader: textureLoader)
 
         XCTAssertEqual(material.alphaMode, .blend, "Explicit 'blend' string should decode to .blend")
     }
@@ -41,7 +41,7 @@ final class MaterialAlphaDecodingTests: BaseRenderSetup {
         mdlMaterial.setProperty(MDLMaterialProperty(name: "alphaMode", semantic: .userDefined, string: "mask"))
 
         let textureLoader = TextureLoader(device: renderInfo.device)
-        let material = Material(mdlMaterial: mdlMaterial, textureLoader: textureLoader, name: "test")
+        let material = Material(mdlMaterial: mdlMaterial, textureLoader: textureLoader)
 
         XCTAssertEqual(material.alphaMode, .mask, "Explicit 'mask' string should decode to .mask")
     }
@@ -51,7 +51,7 @@ final class MaterialAlphaDecodingTests: BaseRenderSetup {
         mdlMaterial.setProperty(MDLMaterialProperty(name: "alphaMode", semantic: .userDefined, string: "opaque"))
 
         let textureLoader = TextureLoader(device: renderInfo.device)
-        let material = Material(mdlMaterial: mdlMaterial, textureLoader: textureLoader, name: "test")
+        let material = Material(mdlMaterial: mdlMaterial, textureLoader: textureLoader)
 
         XCTAssertEqual(material.alphaMode, .opaque, "Explicit 'opaque' string should decode to .opaque")
     }
@@ -61,7 +61,7 @@ final class MaterialAlphaDecodingTests: BaseRenderSetup {
         mdlMaterial.setProperty(MDLMaterialProperty(name: "transparencyMode", semantic: .userDefined, string: "transparent"))
 
         let textureLoader = TextureLoader(device: renderInfo.device)
-        let material = Material(mdlMaterial: mdlMaterial, textureLoader: textureLoader, name: "test")
+        let material = Material(mdlMaterial: mdlMaterial, textureLoader: textureLoader)
 
         XCTAssertEqual(material.alphaMode, .blend, "transparencyMode='transparent' should decode to .blend")
     }
@@ -71,7 +71,7 @@ final class MaterialAlphaDecodingTests: BaseRenderSetup {
         mdlMaterial.setProperty(MDLMaterialProperty(name: "alphaMode", semantic: .userDefined, string: "cutout"))
 
         let textureLoader = TextureLoader(device: renderInfo.device)
-        let material = Material(mdlMaterial: mdlMaterial, textureLoader: textureLoader, name: "test")
+        let material = Material(mdlMaterial: mdlMaterial, textureLoader: textureLoader)
 
         XCTAssertEqual(material.alphaMode, .mask, "Explicit 'cutout' string should decode to .mask")
     }
@@ -89,9 +89,9 @@ final class MaterialAlphaDecodingTests: BaseRenderSetup {
 
         let textureLoader = TextureLoader(device: renderInfo.device)
 
-        let matOpaque = Material(mdlMaterial: mdlMaterialOpaque, textureLoader: textureLoader, name: "test")
-        let matMask = Material(mdlMaterial: mdlMaterialMask, textureLoader: textureLoader, name: "test")
-        let matBlend = Material(mdlMaterial: mdlMaterialBlend, textureLoader: textureLoader, name: "test")
+        let matOpaque = Material(mdlMaterial: mdlMaterialOpaque, textureLoader: textureLoader)
+        let matMask = Material(mdlMaterial: mdlMaterialMask, textureLoader: textureLoader)
+        let matBlend = Material(mdlMaterial: mdlMaterialBlend, textureLoader: textureLoader)
 
         XCTAssertEqual(matOpaque.alphaMode, .opaque, "Scalar 0.0 should decode to .opaque")
         XCTAssertEqual(matMask.alphaMode, .mask, "Scalar 1.0 should decode to .mask")
@@ -107,7 +107,7 @@ final class MaterialAlphaDecodingTests: BaseRenderSetup {
         mdlMaterial.setProperty(MDLMaterialProperty(name: "baseColor", semantic: .baseColor, color: color))
 
         let textureLoader = TextureLoader(device: renderInfo.device)
-        let material = Material(mdlMaterial: mdlMaterial, textureLoader: textureLoader, name: "test")
+        let material = Material(mdlMaterial: mdlMaterial, textureLoader: textureLoader)
 
         XCTAssertEqual(material.alphaMode, .blend,
                        "Base color with alpha < 1.0 should infer .blend when no explicit alphaMode is set")
@@ -118,7 +118,7 @@ final class MaterialAlphaDecodingTests: BaseRenderSetup {
         mdlMaterial.setProperty(MDLMaterialProperty(name: "opacity", semantic: .opacity, float: 0.7))
 
         let textureLoader = TextureLoader(device: renderInfo.device)
-        let material = Material(mdlMaterial: mdlMaterial, textureLoader: textureLoader, name: "test")
+        let material = Material(mdlMaterial: mdlMaterial, textureLoader: textureLoader)
 
         XCTAssertEqual(material.alphaMode, .blend,
                        "Opacity < 1.0 should infer .blend when no explicit alphaMode is set")
@@ -130,7 +130,7 @@ final class MaterialAlphaDecodingTests: BaseRenderSetup {
         // Base color without explicit alpha (float3 path returns hasExplicitAlpha=false)
 
         let textureLoader = TextureLoader(device: renderInfo.device)
-        let material = Material(mdlMaterial: mdlMaterial, textureLoader: textureLoader, name: "test")
+        let material = Material(mdlMaterial: mdlMaterial, textureLoader: textureLoader)
 
         XCTAssertEqual(material.alphaMode, .opaque,
                        "Material with no transparency signals should default to .opaque")
@@ -144,7 +144,7 @@ final class MaterialAlphaDecodingTests: BaseRenderSetup {
         mdlMaterial.setProperty(MDLMaterialProperty(name: "alphaCutoff", semantic: .userDefined, float: 2.5))
 
         let textureLoader = TextureLoader(device: renderInfo.device)
-        let material = Material(mdlMaterial: mdlMaterial, textureLoader: textureLoader, name: "test")
+        let material = Material(mdlMaterial: mdlMaterial, textureLoader: textureLoader)
 
         XCTAssertEqual(material.alphaCutoff, 1.0, accuracy: 0.0001,
                        "alphaCutoff above 1.0 should be clamped to 1.0")
@@ -156,7 +156,7 @@ final class MaterialAlphaDecodingTests: BaseRenderSetup {
         mdlMaterial.setProperty(MDLMaterialProperty(name: "alphaCutoff", semantic: .userDefined, float: -0.5))
 
         let textureLoader = TextureLoader(device: renderInfo.device)
-        let material = Material(mdlMaterial: mdlMaterial, textureLoader: textureLoader, name: "test")
+        let material = Material(mdlMaterial: mdlMaterial, textureLoader: textureLoader)
 
         XCTAssertEqual(material.alphaCutoff, 0.0, accuracy: 0.0001,
                        "alphaCutoff below 0.0 should be clamped to 0.0")
@@ -168,7 +168,7 @@ final class MaterialAlphaDecodingTests: BaseRenderSetup {
         mdlMaterial.setProperty(MDLMaterialProperty(name: "alphaCutoff", semantic: .userDefined, float: 0.3))
 
         let textureLoader = TextureLoader(device: renderInfo.device)
-        let material = Material(mdlMaterial: mdlMaterial, textureLoader: textureLoader, name: "test")
+        let material = Material(mdlMaterial: mdlMaterial, textureLoader: textureLoader)
 
         XCTAssertEqual(material.alphaCutoff, 0.3, accuracy: 0.0001,
                        "alphaCutoff within [0,1] should be preserved as-is")
@@ -180,7 +180,7 @@ final class MaterialAlphaDecodingTests: BaseRenderSetup {
         // No alphaCutoff property
 
         let textureLoader = TextureLoader(device: renderInfo.device)
-        let material = Material(mdlMaterial: mdlMaterial, textureLoader: textureLoader, name: "test")
+        let material = Material(mdlMaterial: mdlMaterial, textureLoader: textureLoader)
 
         XCTAssertEqual(material.alphaCutoff, 0.5, accuracy: 0.0001,
                        "alphaCutoff should default to 0.5 when not explicitly provided")

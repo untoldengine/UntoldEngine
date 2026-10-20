@@ -79,14 +79,14 @@ final class PhysicsEventsTests: XCTestCase {
         USCSystem.shared.initialize()
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         for subscription in subscriptions {
             subscription.cancel()
         }
         subscriptions.removeAll()
         gameMode = false
         PhysicsBackendRegistry.shared.resetForTesting()
-        super.tearDown()
+        try await super.tearDown()
     }
 
     private func makeContext() -> EngineExtensionUpdateContext {
