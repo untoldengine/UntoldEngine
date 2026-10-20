@@ -1,0 +1,6 @@
+# This is not a buildable XcodeGen spec -- these are render-test fixtures, not an app.
+# UntoldEditor's openProject() only checks for <name>.xcodeproj or project.yml to accept a
+# folder as a project (see EditorView+Project.swift); this file exists solely to satisfy
+# that check so UnitTestRender.untoldscene and GameData/Models/* can be browsed and edited
+# in the editor like any other project.
+name: Resources

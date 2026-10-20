@@ -24,7 +24,7 @@
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
-            .appendingPathComponent("Tests/UntoldEngineRenderTests/Resources")
+            .appendingPathComponent("Tests/UntoldEngineRenderTests/Resources/GameData")
     }
 
     // MARK: - Engine Configuration

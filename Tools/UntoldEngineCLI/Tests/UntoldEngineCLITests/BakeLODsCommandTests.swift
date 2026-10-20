@@ -39,7 +39,7 @@ final class BakeLODsCommandTests: XCTestCase {
             .deletingLastPathComponent() // UntoldEngineCLI
             .deletingLastPathComponent() // Tools
             .deletingLastPathComponent() // repository root
-            .appendingPathComponent("Tests/UntoldEngineRenderTests/Resources/Models/stadium/stadium.untold")
+            .appendingPathComponent("Tests/UntoldEngineRenderTests/Resources/GameData/Models/stadium/stadium.untold")
         guard FileManager.default.fileExists(atPath: source.path) else {
             throw XCTSkip("cooked fixture not found at \(source.path)")
         }
