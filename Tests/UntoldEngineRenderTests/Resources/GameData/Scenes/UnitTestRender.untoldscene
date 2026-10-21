@@ -1,207 +1,96 @@
 {
+  "colorCorrection" : {
+    "lift" : [
+      0,
+      0,
+      0
+    ],
+    "temperature" : 0,
+    "gamma" : [
+      1,
+      1,
+      1
+    ],
+    "gain" : [
+      1,
+      1,
+      1
+    ],
+    "tint" : 0,
+    "enabled" : false
+  },
+  "toneMapping" : {
+    "exposure" : 1,
+    "gamma" : 1,
+    "toneMapOperator" : 0
+  },
+  "ssao" : {
+    "bias" : 0.02,
+    "radius" : 0.5,
+    "intensity" : 0.5,
+    "enabled" : true
+  },
+  "schemaVersion" : 2,
+  "tonemapOperator" : "aces",
   "depthOfField" : {
-    "focusRange" : 0.1933618,
     "maxBlur" : 0.0012119081,
-    "enabled" : true,
-    "focusDistance" : 1
+    "focusRange" : 0.1933618,
+    "focusDistance" : 1,
+    "enabled" : true
+  },
+  "antiAliasing" : {
+    "mode" : "fxaa",
+    "fxaa" : {
+      "subpixelQuality" : 0.75,
+      "edgeThresholdMin" : 0.0625,
+      "edgeThreshold" : 0.125
+    },
+    "smaa" : {
+      "edgeThreshold" : 0.1
+    }
+  },
+  "environment" : {
+    "ambientIntensity" : 0.4,
+    "renderEnvironment" : true,
+    "hdr" : "",
+    "applyIBL" : true
   },
   "colorGrading" : {
     "exposure" : -0.2,
+    "brightness" : -0.05,
     "enabled" : true,
-    "temperature" : 44.536102,
     "contrast" : 1.15,
     "saturation" : 0.9,
-    "tint" : -5.5075684,
-    "brightness" : -0.05
+    "temperature" : 44.536102,
+    "tint" : -5.5075684
+  },
+  "bloom" : {
+    "threshold" : 0.5,
+    "intensity" : 0,
+    "enabled" : false
+  },
+  "chromaticAberration" : {
+    "enabled" : false,
+    "intensity" : 0,
+    "center" : [
+      0.5,
+      0.5
+    ]
+  },
+  "vignette" : {
+    "enabled" : true,
+    "softness" : 0.1791168,
+    "intensity" : 0.15566528,
+    "radius" : 0.13849032,
+    "center" : [
+      0.5,
+      0.5
+    ]
   },
   "entities" : [
     {
-      "hasRenderingComponent" : true,
-      "assetURL" : "file:\/\/\/primitive\/Sphere",
-      "uuid" : "393039BD-F37F-4354-8DB0-7B2956A8CB51",
-      "materialData" : {
-        "roughnessWrapMode" : 1,
-        "roughnessURL" : "file:\/\/\/Users\/haroldserrano\/Downloads\/UntoldXRTest\/Sources\/UntoldXRTest\/GameData\/Materials\/MetalCorrodedHeavy001\/MetalCorrodedHeavy001_ROUGHNESS_2K_METALNESS.jpg",
-        "opacity" : 1,
-        "emissiveValue" : [
-          0,
-          0,
-          0
-        ],
-        "heightURL" : "file:\/\/\/Users\/haroldserrano\/Downloads\/UntoldXRTest\/Sources\/UntoldXRTest\/GameData\/Materials\/Bricks066_4K-JPG\/Bricks066_4K-JPG_Displacement.jpg",
-        "heightRemapMax" : 1,
-        "normalURL" : "file:\/\/\/Users\/haroldserrano\/Downloads\/UntoldXRTest\/Sources\/UntoldXRTest\/GameData\/Materials\/MetalCorrodedHeavy001\/MetalCorrodedHeavy001_NRM_2K_METALNESS.jpg",
-        "stScale" : 1,
-        "baseColorURL" : "file:\/\/\/Users\/haroldserrano\/Downloads\/UntoldXRTest\/Sources\/UntoldXRTest\/GameData\/Materials\/MetalCorrodedHeavy001\/MetalCorrodedHeavy001_COL_2K_METALNESS.jpg",
-        "baseColorWrapMode" : 1,
-        "alphaMode" : 0,
-        "baseColorValue" : [
-          1,
-          1,
-          1,
-          1
-        ],
-        "metallicURL" : "file:\/\/\/Users\/haroldserrano\/Downloads\/UntoldXRTest\/Sources\/UntoldXRTest\/GameData\/Materials\/MetalCorrodedHeavy001\/MetalCorrodedHeavy001_METALNESS_2K_METALNESS.jpg",
-        "normalWrapMode" : 1,
-        "heightScale" : 0.05,
-        "metallicValue" : 1,
-        "heightMidlevel" : 0.5,
-        "heightEnabled" : true,
-        "heightRemapMin" : 0,
-        "alphaCutoff" : 0.5,
-        "roughnessValue" : 1,
-        "metallicWrapMode" : 1,
-        "heightWrapMode" : 1
-      },
-      "hasKineticComponent" : false,
-      "customComponents" : {
-
-      },
-      "name" : "Sphere-8589934593",
-      "scale" : [
-        5,
-        5,
-        5
-      ],
-      "axisOfRotations" : [
-        0,
-        0,
-        0
-      ],
-      "asset" : {
-        "path" : "\/primitive\/Sphere",
-        "displayName" : "Sphere",
-        "kind" : "procedural"
-      },
-      "castsShadow" : true,
-      "assetName" : "Sphere",
-      "animations" : [
-
-      ],
-      "rotation" : [
-        0,
-        0,
-        0,
-        1
-      ],
-      "hasAnimationComponent" : false,
+      "hasCameraComponent" : true,
       "mass" : 0,
-      "hasLocalTransformComponent" : true,
-      "position" : [
-        0,
-        0,
-        0
-      ]
-    },
-    {
-      "hasRenderingComponent" : true,
-      "assetURL" : "file:\/\/\/primitive\/default_cube",
-      "uuid" : "1E2C04DE-4515-4DF4-8881-044590E26ED0",
-      "materialData" : {
-        "roughnessWrapMode" : 1,
-        "opacity" : 1,
-        "emissiveValue" : [
-          0,
-          0,
-          0
-        ],
-        "heightRemapMax" : 1,
-        "baseColorWrapMode" : 1,
-        "stScale" : 1,
-        "normalWrapMode" : 1,
-        "heightRemapMin" : 0,
-        "alphaMode" : 0,
-        "baseColorValue" : [
-          1,
-          1,
-          1,
-          1
-        ],
-        "heightMidlevel" : 0.5,
-        "heightScale" : 0.05,
-        "metallicValue" : 0,
-        "heightEnabled" : true,
-        "alphaCutoff" : 0.5,
-        "roughnessValue" : 0.9,
-        "metallicWrapMode" : 1,
-        "heightWrapMode" : 1
-      },
-      "hasKineticComponent" : false,
-      "hasDirLightComponent" : true,
-      "customComponents" : {
-
-      },
-      "name" : "Directional Light",
-      "scale" : [
-        1,
-        1,
-        1
-      ],
-      "axisOfRotations" : [
-        0,
-        0,
-        0
-      ],
-      "asset" : {
-        "path" : "\/primitive\/default_cube",
-        "displayName" : "default_cube",
-        "kind" : "procedural"
-      },
-      "castsShadow" : true,
-      "assetName" : "default_cube",
-      "animations" : [
-
-      ],
-      "lightData" : {
-        "radius" : 1,
-        "color" : [
-          1,
-          1,
-          1
-        ],
-        "coneAngle" : 30,
-        "falloff" : 0.5,
-        "right" : [
-          1,
-          0,
-          0
-        ],
-        "twoSided" : false,
-        "up" : [
-          0,
-          1,
-          0
-        ],
-        "intensity" : 5,
-        "bounds" : [
-          1,
-          1
-        ],
-        "castsShadow" : true,
-        "forward" : [
-          0,
-          0,
-          -1
-        ],
-        "usesRadiometricUnits" : false
-      },
-      "rotation" : [
-        -0.31243286,
-        0.6343387,
-        0.31243268,
-        0.634339
-      ],
-      "hasAnimationComponent" : false,
-      "mass" : 0,
-      "hasLocalTransformComponent" : true,
-      "position" : [
-        0,
-        1.7585897,
-        0
-      ]
-    },
-    {
-      "hasRenderingComponent" : false,
       "cameraData" : {
         "target" : [
           0,
@@ -219,116 +108,606 @@
           4
         ]
       },
-      "assetURL" : "file:\/\/\/",
-      "uuid" : "B0DF2382-4D25-4706-8AE2-4CA4362A0493",
-      "hasKineticComponent" : false,
-      "hasCameraComponent" : true,
-      "name" : "Game Camera",
-      "scale" : [
-        1,
-        1,
-        1
-      ],
       "axisOfRotations" : [
         0,
         0,
         0
       ],
-      "customComponents" : {
-
-      },
-      "assetName" : "",
+      "position" : [
+        0,
+        1,
+        4
+      ],
+      "name" : "Game Camera",
       "animations" : [
 
       ],
+      "uuid" : "7EADF637-FC85-49A9-A1D8-3BB6A749741D",
+      "hasKineticComponent" : false,
+      "customComponents" : {
+
+      },
       "rotation" : [
         0.082480535,
         -0,
         -0,
         0.9965927
       ],
-      "hasAnimationComponent" : false,
-      "mass" : 0,
-      "hasLocalTransformComponent" : true,
-      "position" : [
-        0,
+      "assetName" : "",
+      "scale" : [
         1,
-        4
-      ]
+        1,
+        1
+      ],
+      "hasAnimationComponent" : false,
+      "hasLocalTransformComponent" : true,
+      "hasRenderingComponent" : false,
+      "assetURL" : "file:\/\/\/"
     },
     {
-      "hasRenderingComponent" : true,
-      "assetURL" : "file:\/\/\/primitive\/default_cube",
-      "uuid" : "0F6F830A-A3B5-4E3A-947B-48808B568346",
-      "materialData" : {
-        "roughnessWrapMode" : 1,
-        "opacity" : 1,
-        "emissiveValue" : [
+      "axisOfRotations" : [
+        0,
+        0,
+        0
+      ],
+      "mass" : 0,
+      "position" : [
+        0,
+        1.7585897,
+        0
+      ],
+      "name" : "Directional Light",
+      "animations" : [
+
+      ],
+      "uuid" : "1AEAF5DB-5A71-41BC-B908-E24AB97E238E",
+      "hasKineticComponent" : false,
+      "asset" : {
+        "path" : "\/primitive\/default_cube",
+        "displayName" : "default_cube",
+        "kind" : "procedural"
+      },
+      "customComponents" : {
+
+      },
+      "rotation" : [
+        -0.31243286,
+        0.6343387,
+        0.31243268,
+        0.634339
+      ],
+      "lightData" : {
+        "forward" : [
+          0,
+          0,
+          -1
+        ],
+        "intensity" : 5,
+        "right" : [
+          1,
+          0,
+          0
+        ],
+        "falloff" : 0.5,
+        "twoSided" : false,
+        "coneAngle" : 30,
+        "radius" : 1,
+        "color" : [
           1,
           1,
           1
         ],
-        "heightRemapMax" : 1,
-        "baseColorWrapMode" : 1,
-        "stScale" : 1,
+        "up" : [
+          0,
+          1,
+          0
+        ],
+        "usesRadiometricUnits" : false,
+        "bounds" : [
+          1,
+          1
+        ],
+        "castsShadow" : true
+      },
+      "assetName" : "default_cube",
+      "materialData" : {
+        "metallicWrapMode" : 1,
+        "roughnessValue" : 0.9,
+        "metallicValue" : 0,
         "normalWrapMode" : 1,
-        "heightRemapMin" : 0,
+        "stScale" : 1,
+        "heightScale" : 0.05,
+        "roughnessWrapMode" : 1,
+        "alphaCutoff" : 0.5,
+        "heightWrapMode" : 1,
+        "opacity" : 1,
+        "heightEnabled" : false,
+        "heightRemapMax" : 1,
         "alphaMode" : 0,
+        "emissiveValue" : [
+          0,
+          0,
+          0
+        ],
+        "baseColorWrapMode" : 1,
+        "transmission" : 0,
+        "heightRemapMin" : 0,
+        "heightMidlevel" : 0.5,
+        "baseColorValue" : [
+          1,
+          1,
+          1,
+          1
+        ]
+      },
+      "scale" : [
+        1,
+        1,
+        1
+      ],
+      "castsShadow" : true,
+      "hasAnimationComponent" : false,
+      "hasLocalTransformComponent" : true,
+      "hasRenderingComponent" : true,
+      "assetURL" : "file:\/\/\/primitive\/default_cube",
+      "hasDirLightComponent" : true
+    },
+    {
+      "hasKineticComponent" : false,
+      "name" : "Sphere-8589934593",
+      "hasLocalTransformComponent" : true,
+      "rotation" : [
+        0,
+        0,
+        0,
+        1
+      ],
+      "animations" : [
+
+      ],
+      "castsShadow" : true,
+      "position" : [
+        0,
+        0,
+        0
+      ],
+      "hasRenderingComponent" : true,
+      "axisOfRotations" : [
+        0,
+        0,
+        0
+      ],
+      "assetName" : "Sphere",
+      "scale" : [
+        5,
+        5,
+        5
+      ],
+      "mass" : 0,
+      "materialData" : {
+        "normalURL" : "file:\/\/\/Users\/haroldserrano\/Desktop\/UntoldEngineStudio\/UntoldEngine\/Tests\/UntoldEngineRenderTests\/Resources\/GameData\/Materials\/MetalCorrodedHeavy001\/MetalCorrodedHeavy001_NRM_2K_METALNESS.jpg",
+        "alphaCutoff" : 0.5,
+        "baseColorURL" : "file:\/\/\/Users\/haroldserrano\/Desktop\/UntoldEngineStudio\/UntoldEngine\/Tests\/UntoldEngineRenderTests\/Resources\/GameData\/Materials\/MetalCorrodedHeavy001\/MetalCorrodedHeavy001_COL_2K_METALNESS.jpg",
+        "roughnessWrapMode" : 1,
+        "heightWrapMode" : 1,
+        "metallicValue" : 1,
+        "roughnessURL" : "file:\/\/\/Users\/haroldserrano\/Desktop\/UntoldEngineStudio\/UntoldEngine\/Tests\/UntoldEngineRenderTests\/Resources\/GameData\/Materials\/MetalCorrodedHeavy001\/MetalCorrodedHeavy001_ROUGHNESS_2K_METALNESS.jpg",
+        "metallicURL" : "file:\/\/\/Users\/haroldserrano\/Desktop\/UntoldEngineStudio\/UntoldEngine\/Tests\/UntoldEngineRenderTests\/Resources\/GameData\/Materials\/MetalCorrodedHeavy001\/MetalCorrodedHeavy001_METALNESS_2K_METALNESS.jpg",
+        "emissiveValue" : [
+          0,
+          0,
+          0
+        ],
+        "roughnessValue" : 1,
+        "heightScale" : 0.05,
+        "normalWrapMode" : 1,
+        "stScale" : 1,
+        "baseColorWrapMode" : 1,
+        "metallicWrapMode" : 1,
+        "heightMidlevel" : 0.5,
+        "heightEnabled" : true,
+        "heightRemapMin" : 0,
+        "transmission" : 0,
+        "opacity" : 1,
         "baseColorValue" : [
           1,
           1,
           1,
           1
         ],
-        "heightMidlevel" : 0.5,
-        "heightScale" : 0.05,
-        "metallicValue" : 0,
-        "heightEnabled" : true,
-        "alphaCutoff" : 0.5,
-        "roughnessValue" : 0.9,
-        "metallicWrapMode" : 1,
-        "heightWrapMode" : 1
+        "alphaMode" : 0,
+        "heightURL" : "file:\/\/\/Users\/haroldserrano\/Desktop\/UntoldEngineStudio\/UntoldEngine\/Tests\/UntoldEngineRenderTests\/Resources\/GameData\/Materials\/Bricks066_4K-JPG\/Bricks066_4K-JPG_Displacement.jpg",
+        "heightRemapMax" : 1
       },
+      "uuid" : "08A7E10F-B025-4F45-B5FE-F95333B6F9DD",
+      "assetURL" : "file:\/\/\/primitive\/Sphere",
+      "hasAnimationComponent" : false,
+      "asset" : {
+        "displayName" : "Sphere",
+        "kind" : "procedural",
+        "path" : "\/primitive\/Sphere"
+      },
+      "customComponents" : {
+
+      }
+    },
+    {
+      "mass" : 0,
+      "materialData" : {
+        "roughnessValue" : 0.04,
+        "heightWrapMode" : 1,
+        "baseColorWrapMode" : 1,
+        "heightRemapMax" : 1,
+        "heightEnabled" : false,
+        "alphaCutoff" : 0.5,
+        "metallicWrapMode" : 1,
+        "alphaMode" : 0,
+        "opacity" : 1,
+        "transmission" : 1,
+        "emissiveValue" : [
+          0,
+          0,
+          0
+        ],
+        "heightScale" : 0.05,
+        "stScale" : 1,
+        "metallicValue" : 0,
+        "normalWrapMode" : 1,
+        "heightMidlevel" : 0.5,
+        "heightRemapMin" : 0,
+        "roughnessWrapMode" : 1,
+        "baseColorValue" : [
+          0.911,
+          0.966,
+          0.96,
+          1
+        ]
+      },
+      "axisOfRotations" : [
+        0,
+        -0,
+        0
+      ],
+      "rotation" : [
+        0,
+        0,
+        0,
+        1
+      ],
+      "hasAnimationComponent" : false,
+      "hasRenderingComponent" : true,
+      "castsShadow" : true,
+      "animations" : [
+
+      ],
       "hasKineticComponent" : false,
+      "assetURL" : "Models\/glass_panes\/Clear_window\/Clear_window.untold",
+      "uuid" : "578D9A64-5D84-4DA3-BE4E-D66CA03B69EE",
       "customComponents" : {
 
       },
-      "name" : "Entity_12",
       "scale" : [
         1,
         1,
         1
       ],
-      "axisOfRotations" : [
-        0,
-        0,
-        0
-      ],
+      "hasLocalTransformComponent" : true,
+      "assetName" : "Clear window",
+      "parentUUID" : "D1972726-DE2C-4020-B1A3-DD07B32D973A",
       "asset" : {
-        "path" : "\/primitive\/default_cube",
-        "displayName" : "default_cube",
-        "kind" : "procedural"
+        "kind" : "model",
+        "path" : "Models\/glass_panes\/Clear_window\/Clear_window.untold",
+        "displayName" : "Clear window"
       },
-      "castsShadow" : true,
-      "assetName" : "default_cube",
-      "animations" : [
-
-      ],
-      "lightData" : {
-        "range" : 0,
-        "falloff" : 0.5,
-        "intensity" : 10,
-        "color" : [
-          1,
-          1,
-          1
-        ],
-        "coneAngle" : 15,
-        "right" : [
-          1,
+      "name" : "Clear window",
+      "position" : [
+        -4.25,
+        1,
+        0
+      ]
+    },
+    {
+      "mass" : 0,
+      "materialData" : {
+        "roughnessValue" : 0.25,
+        "heightWrapMode" : 1,
+        "baseColorWrapMode" : 1,
+        "heightRemapMax" : 1,
+        "heightEnabled" : false,
+        "alphaCutoff" : 0.5,
+        "metallicWrapMode" : 1,
+        "alphaMode" : 0,
+        "opacity" : 1,
+        "transmission" : 1,
+        "emissiveValue" : [
+          0,
           0,
           0
         ],
+        "heightScale" : 0.05,
+        "stScale" : 1,
+        "metallicValue" : 0,
+        "normalWrapMode" : 1,
+        "heightMidlevel" : 0.5,
+        "heightRemapMin" : 0,
+        "roughnessWrapMode" : 1,
+        "baseColorValue" : [
+          0.911,
+          0.966,
+          0.96,
+          1
+        ]
+      },
+      "axisOfRotations" : [
+        0,
+        -0,
+        0
+      ],
+      "rotation" : [
+        0,
+        0,
+        0,
+        1
+      ],
+      "hasAnimationComponent" : false,
+      "hasRenderingComponent" : true,
+      "castsShadow" : true,
+      "animations" : [
+
+      ],
+      "hasKineticComponent" : false,
+      "assetURL" : "Models\/glass_panes\/Channel_glass\/Channel_glass.untold",
+      "uuid" : "D4DE3C67-43DD-46B5-9ECE-F08B625E5065",
+      "customComponents" : {
+
+      },
+      "scale" : [
+        1,
+        1,
+        1
+      ],
+      "hasLocalTransformComponent" : true,
+      "assetName" : "Channel glass",
+      "parentUUID" : "D1972726-DE2C-4020-B1A3-DD07B32D973A",
+      "asset" : {
+        "path" : "Models\/glass_panes\/Channel_glass\/Channel_glass.untold",
+        "displayName" : "Channel glass",
+        "kind" : "model"
+      },
+      "name" : "Channel glass",
+      "position" : [
+        -0.85,
+        1,
+        0
+      ]
+    },
+    {
+      "mass" : 0,
+      "materialData" : {
+        "roughnessValue" : 0.06,
+        "heightWrapMode" : 1,
+        "baseColorWrapMode" : 1,
+        "heightRemapMax" : 1,
+        "heightEnabled" : false,
+        "alphaCutoff" : 0.5,
+        "metallicWrapMode" : 1,
+        "alphaMode" : 0,
+        "opacity" : 1,
+        "transmission" : 0.96,
+        "emissiveValue" : [
+          0,
+          0,
+          0
+        ],
+        "heightScale" : 0.05,
+        "stScale" : 1,
+        "metallicValue" : 0,
+        "normalWrapMode" : 1,
+        "heightMidlevel" : 0.5,
+        "heightRemapMin" : 0,
+        "roughnessWrapMode" : 1,
+        "baseColorValue" : [
+          0.22,
+          0.3,
+          0.31,
+          1
+        ]
+      },
+      "axisOfRotations" : [
+        0,
+        -0,
+        0
+      ],
+      "rotation" : [
+        0,
+        0,
+        0,
+        1
+      ],
+      "hasAnimationComponent" : false,
+      "hasRenderingComponent" : true,
+      "castsShadow" : true,
+      "animations" : [
+
+      ],
+      "hasKineticComponent" : false,
+      "assetURL" : "Models\/glass_panes\/Car_window\/Car_window.untold",
+      "uuid" : "F2447BA9-355F-4C8D-8B7F-BF18798FF22F",
+      "customComponents" : {
+
+      },
+      "scale" : [
+        1,
+        1,
+        1
+      ],
+      "hasLocalTransformComponent" : true,
+      "assetName" : "Car window",
+      "parentUUID" : "D1972726-DE2C-4020-B1A3-DD07B32D973A",
+      "asset" : {
+        "displayName" : "Car window",
+        "kind" : "model",
+        "path" : "Models\/glass_panes\/Car_window\/Car_window.untold"
+      },
+      "name" : "Car window",
+      "position" : [
+        0.85,
+        1,
+        0
+      ]
+    },
+    {
+      "name" : "Black tempered",
+      "hasKineticComponent" : false,
+      "hasLocalTransformComponent" : true,
+      "castsShadow" : true,
+      "parentUUID" : "D1972726-DE2C-4020-B1A3-DD07B32D973A",
+      "customComponents" : {
+
+      },
+      "scale" : [
+        1,
+        1,
+        1
+      ],
+      "animations" : [
+
+      ],
+      "axisOfRotations" : [
+        0,
+        -0,
+        0
+      ],
+      "mass" : 0,
+      "assetURL" : "Models\/glass_panes\/Black_tempered\/Black_tempered.untold",
+      "hasRenderingComponent" : true,
+      "asset" : {
+        "path" : "Models\/glass_panes\/Black_tempered\/Black_tempered.untold",
+        "kind" : "model",
+        "displayName" : "Black tempered"
+      },
+      "rotation" : [
+        0,
+        0,
+        0,
+        1
+      ],
+      "position" : [
+        4.25,
+        1,
+        0
+      ],
+      "hasAnimationComponent" : false,
+      "assetName" : "Black tempered",
+      "uuid" : "FC398325-4CEA-469D-A4B4-4058E44E28CA",
+      "materialData" : {
+        "heightRemapMin" : 0,
+        "metallicValue" : 0,
+        "heightEnabled" : false,
+        "heightRemapMax" : 1,
+        "alphaMode" : 0,
+        "metallicWrapMode" : 1,
+        "normalWrapMode" : 1,
+        "baseColorWrapMode" : 1,
+        "roughnessValue" : 0,
+        "emissiveValue" : [
+          0,
+          0,
+          0
+        ],
+        "heightScale" : 0.05,
+        "stScale" : 1,
+        "transmission" : 0,
+        "roughnessWrapMode" : 1,
+        "baseColorValue" : [
+          0,
+          0,
+          0,
+          1
+        ],
+        "alphaCutoff" : 0.5,
+        "heightWrapMode" : 1,
+        "opacity" : 1,
+        "heightMidlevel" : 0.5
+      }
+    },
+    {
+      "name" : "Behind 5",
+      "hasKineticComponent" : false,
+      "hasLocalTransformComponent" : true,
+      "castsShadow" : true,
+      "parentUUID" : "D1972726-DE2C-4020-B1A3-DD07B32D973A",
+      "customComponents" : {
+
+      },
+      "scale" : [
+        1,
+        1,
+        1
+      ],
+      "animations" : [
+
+      ],
+      "axisOfRotations" : [
+        0,
+        -0,
+        0
+      ],
+      "mass" : 0,
+      "assetURL" : "Models\/glass_panes\/Behind_5\/Behind_5.untold",
+      "hasRenderingComponent" : true,
+      "asset" : {
+        "kind" : "model",
+        "displayName" : "Behind 5",
+        "path" : "Models\/glass_panes\/Behind_5\/Behind_5.untold"
+      },
+      "rotation" : [
+        0,
+        0.24740398,
+        0,
+        0.9689124
+      ],
+      "position" : [
+        4.25,
+        0.72,
+        -1.3
+      ],
+      "hasAnimationComponent" : false,
+      "assetName" : "Behind 5",
+      "uuid" : "5C2A4615-1591-4150-936B-C9AEC85DF652",
+      "materialData" : {
+        "heightRemapMin" : 0,
+        "metallicValue" : 0,
+        "heightEnabled" : false,
+        "heightRemapMax" : 1,
+        "alphaMode" : 0,
+        "metallicWrapMode" : 1,
+        "normalWrapMode" : 1,
+        "baseColorWrapMode" : 1,
+        "roughnessValue" : 0.5,
+        "emissiveValue" : [
+          0,
+          0,
+          0
+        ],
+        "heightScale" : 0.05,
+        "stScale" : 1,
+        "transmission" : 0,
+        "roughnessWrapMode" : 1,
+        "baseColorValue" : [
+          0.9,
+          0.5,
+          0.1,
+          1
+        ],
+        "alphaCutoff" : 0.5,
+        "heightWrapMode" : 1,
+        "opacity" : 1,
+        "heightMidlevel" : 0.5
+      }
+    },
+    {
+      "lightData" : {
         "bounds" : [
           1,
           1
@@ -338,15 +717,58 @@
           1,
           0
         ],
+        "right" : [
+          1,
+          0,
+          0
+        ],
+        "coneAngle" : 15,
+        "castsShadow" : false,
+        "radius" : 1,
+        "color" : [
+          1,
+          1,
+          1
+        ],
         "twoSided" : false,
+        "range" : 0,
         "forward" : [
           0,
           0,
           -1
         ],
-        "castsShadow" : false,
-        "usesRadiometricUnits" : false,
-        "radius" : 1
+        "intensity" : 10,
+        "falloff" : 0.5,
+        "usesRadiometricUnits" : false
+      },
+      "name" : "Entity_12",
+      "hasSpotLightComponent" : true,
+      "hasKineticComponent" : false,
+      "hasLocalTransformComponent" : true,
+      "castsShadow" : true,
+      "customComponents" : {
+
+      },
+      "scale" : [
+        1,
+        1,
+        1
+      ],
+      "animations" : [
+
+      ],
+      "axisOfRotations" : [
+        0,
+        0,
+        0
+      ],
+      "mass" : 0,
+      "assetURL" : "file:\/\/\/primitive\/default_cube",
+      "hasRenderingComponent" : true,
+      "asset" : {
+        "displayName" : "default_cube",
+        "kind" : "procedural",
+        "path" : "\/primitive\/default_cube"
       },
       "rotation" : [
         -0.34599066,
@@ -354,360 +776,886 @@
         0.18660319,
         0.8092945
       ],
-      "hasAnimationComponent" : false,
-      "hasSpotLightComponent" : true,
-      "mass" : 0,
-      "hasLocalTransformComponent" : true,
       "position" : [
         1.0505034,
         0.74240667,
         1.187109
-      ]
-    },
-    {
-      "hasRenderingComponent" : true,
-      "assetURL" : "file:\/\/\/primitive\/Cube",
-      "uuid" : "4001EF1D-538F-4F9B-9093-27E9DF292D4C",
+      ],
+      "hasAnimationComponent" : false,
+      "assetName" : "default_cube",
+      "uuid" : "54722059-10C0-46F8-A798-DCEB01DF76B2",
       "materialData" : {
-        "roughnessWrapMode" : 1,
-        "opacity" : 1,
-        "emissiveValue" : [
-          0,
-          0,
-          0
-        ],
-        "heightRemapMax" : 1,
-        "baseColorWrapMode" : 1,
-        "stScale" : 1,
-        "normalWrapMode" : 1,
         "heightRemapMin" : 0,
+        "metallicValue" : 0,
+        "heightEnabled" : false,
+        "heightRemapMax" : 1,
         "alphaMode" : 0,
+        "metallicWrapMode" : 1,
+        "normalWrapMode" : 1,
+        "baseColorWrapMode" : 1,
+        "roughnessValue" : 0.9,
+        "emissiveValue" : [
+          1,
+          1,
+          1
+        ],
+        "heightScale" : 0.05,
+        "stScale" : 1,
+        "transmission" : 0,
+        "roughnessWrapMode" : 1,
         "baseColorValue" : [
           1,
           1,
           1,
           1
         ],
-        "heightMidlevel" : 0.5,
-        "heightScale" : 0.05,
-        "metallicValue" : 0,
-        "heightEnabled" : true,
         "alphaCutoff" : 0.5,
-        "roughnessValue" : 0.9,
-        "metallicWrapMode" : 1,
-        "heightWrapMode" : 1
-      },
+        "heightWrapMode" : 1,
+        "opacity" : 1,
+        "heightMidlevel" : 0.5
+      }
+    },
+    {
+      "name" : "Cube-51539607557",
       "hasKineticComponent" : false,
+      "hasLocalTransformComponent" : true,
+      "castsShadow" : true,
       "customComponents" : {
 
       },
-      "name" : "Cube-51539607557",
       "scale" : [
         1,
         1,
         1
+      ],
+      "animations" : [
+
       ],
       "axisOfRotations" : [
         0,
         0,
         0
       ],
+      "mass" : 0,
+      "assetURL" : "file:\/\/\/primitive\/Cube",
+      "hasRenderingComponent" : true,
       "asset" : {
-        "path" : "\/primitive\/Cube",
+        "kind" : "procedural",
         "displayName" : "Cube",
-        "kind" : "procedural"
+        "path" : "\/primitive\/Cube"
       },
-      "castsShadow" : true,
-      "assetName" : "Cube",
-      "animations" : [
-
-      ],
       "rotation" : [
         0,
         0,
         0,
         1
       ],
-      "hasAnimationComponent" : false,
-      "mass" : 0,
-      "hasLocalTransformComponent" : true,
       "position" : [
         0,
         0.7419706,
         0.97658753
-      ]
-    },
-    {
-      "hasRenderingComponent" : true,
-      "assetURL" : "file:\/\/\/primitive\/default_cube",
-      "uuid" : "988CB404-9A0A-4699-A3E3-433DB5A0C89A",
+      ],
+      "hasAnimationComponent" : false,
+      "assetName" : "Cube",
+      "uuid" : "B9DEC9D5-4B4D-482A-B919-648A0C05AEAD",
       "materialData" : {
-        "roughnessWrapMode" : 1,
-        "opacity" : 1,
-        "emissiveValue" : [
-          1,
-          1,
-          1
-        ],
-        "heightRemapMax" : 1,
-        "baseColorWrapMode" : 1,
-        "stScale" : 1,
-        "normalWrapMode" : 1,
         "heightRemapMin" : 0,
+        "metallicValue" : 0,
+        "heightEnabled" : true,
+        "heightRemapMax" : 1,
         "alphaMode" : 0,
+        "metallicWrapMode" : 1,
+        "normalWrapMode" : 1,
+        "baseColorWrapMode" : 1,
+        "roughnessValue" : 0.9,
+        "emissiveValue" : [
+          0,
+          0,
+          0
+        ],
+        "heightScale" : 0.05,
+        "stScale" : 1,
+        "transmission" : 0,
+        "roughnessWrapMode" : 1,
         "baseColorValue" : [
           1,
           1,
           1,
           1
         ],
-        "heightMidlevel" : 0.5,
-        "heightScale" : 0.05,
-        "metallicValue" : 0,
-        "heightEnabled" : true,
         "alphaCutoff" : 0.5,
-        "roughnessValue" : 0.9,
+        "heightWrapMode" : 1,
+        "opacity" : 1,
+        "heightMidlevel" : 0.5
+      }
+    },
+    {
+      "materialData" : {
+        "baseColorWrapMode" : 1,
+        "normalWrapMode" : 1,
+        "transmission" : 0,
+        "heightScale" : 0.05,
+        "heightMidlevel" : 0.5,
+        "heightRemapMax" : 1,
         "metallicWrapMode" : 1,
-        "heightWrapMode" : 1
+        "alphaCutoff" : 0.5,
+        "baseColorValue" : [
+          1,
+          1,
+          1,
+          1
+        ],
+        "roughnessValue" : 0.9,
+        "heightEnabled" : false,
+        "heightRemapMin" : 0,
+        "roughnessWrapMode" : 1,
+        "metallicValue" : 0,
+        "heightWrapMode" : 1,
+        "emissiveValue" : [
+          1,
+          1,
+          1
+        ],
+        "opacity" : 1,
+        "alphaMode" : 0,
+        "stScale" : 1
       },
-      "hasKineticComponent" : false,
       "customComponents" : {
 
       },
-      "name" : "Entity_39",
       "scale" : [
         1,
         1,
         1
       ],
-      "axisOfRotations" : [
-        0,
-        0,
-        0
-      ],
+      "uuid" : "F595FDC8-7B3D-4185-AFB3-A1BC006342A2",
+      "assetURL" : "file:\/\/\/primitive\/default_cube",
       "asset" : {
         "path" : "\/primitive\/default_cube",
         "displayName" : "default_cube",
         "kind" : "procedural"
       },
-      "castsShadow" : true,
-      "assetName" : "default_cube",
       "animations" : [
 
       ],
+      "position" : [
+        -0.08444816,
+        -0.026705325,
+        1.0356375
+      ],
+      "hasLocalTransformComponent" : true,
+      "hasAnimationComponent" : false,
       "hasAreaLightComponent" : true,
+      "hasKineticComponent" : false,
       "lightData" : {
-        "range" : 0,
-        "falloff" : 0.5,
-        "intensity" : 10,
-        "color" : [
-          1,
-          1,
-          1
-        ],
-        "coneAngle" : 30,
-        "right" : [
-          0.99984825,
-          0,
-          -0.017421832
-        ],
         "bounds" : [
           0.5,
           0.5
         ],
         "up" : [
-          0.008094259,
-          0.88551843,
-          0.4645338
-        ],
-        "twoSided" : false,
-        "forward" : [
-          0.015427353,
-          -0.46460432,
-          0.8853841
-        ],
-        "castsShadow" : false,
-        "usesRadiometricUnits" : false,
-        "radius" : 1
-      },
-      "rotation" : [
-        0.23924142,
-        0.008458254,
-        -0.0020841702,
-        0.97092104
-      ],
-      "hasAnimationComponent" : false,
-      "mass" : 0,
-      "hasLocalTransformComponent" : true,
-      "position" : [
-        0,
-        -0.5330231,
-        1.0356375
-      ]
-    },
-    {
-      "hasRenderingComponent" : true,
-      "assetURL" : "file:\/\/\/primitive\/default_cube",
-      "uuid" : "486ECB03-FA8A-4671-A022-74D8E23CCE6F",
-      "materialData" : {
-        "roughnessWrapMode" : 1,
-        "opacity" : 1,
-        "emissiveValue" : [
           0,
+          1,
+          0
+        ],
+        "right" : [
+          1,
           0,
           0
         ],
-        "heightRemapMax" : 1,
+        "coneAngle" : 30,
+        "castsShadow" : false,
+        "radius" : 1,
+        "color" : [
+          1,
+          1,
+          1
+        ],
+        "twoSided" : false,
+        "range" : 0,
+        "forward" : [
+          0,
+          0,
+          1
+        ],
+        "intensity" : 10,
+        "falloff" : 0.5,
+        "usesRadiometricUnits" : false
+      },
+      "assetName" : "default_cube",
+      "axisOfRotations" : [
+        0,
+        0,
+        0
+      ],
+      "mass" : 0,
+      "castsShadow" : true,
+      "rotation" : [
+        0,
+        0,
+        0,
+        1
+      ],
+      "hasRenderingComponent" : true,
+      "name" : "Entity_39"
+    },
+    {
+      "materialData" : {
         "baseColorWrapMode" : 1,
-        "stScale" : 1,
         "normalWrapMode" : 1,
-        "heightRemapMin" : 0,
-        "alphaMode" : 0,
+        "transmission" : 0,
+        "heightScale" : 0.05,
+        "heightMidlevel" : 0.5,
+        "heightRemapMax" : 1,
+        "metallicWrapMode" : 1,
+        "alphaCutoff" : 0.5,
         "baseColorValue" : [
           1,
           1,
           1,
           1
         ],
-        "heightMidlevel" : 0.5,
-        "heightScale" : 0.05,
-        "metallicValue" : 0,
-        "heightEnabled" : true,
-        "alphaCutoff" : 0.5,
         "roughnessValue" : 0.9,
-        "metallicWrapMode" : 1,
-        "heightWrapMode" : 1
+        "heightEnabled" : false,
+        "heightRemapMin" : 0,
+        "roughnessWrapMode" : 1,
+        "metallicValue" : 0,
+        "heightWrapMode" : 1,
+        "emissiveValue" : [
+          0,
+          0,
+          0
+        ],
+        "opacity" : 1,
+        "alphaMode" : 0,
+        "stScale" : 1
       },
-      "hasKineticComponent" : false,
       "customComponents" : {
 
       },
-      "name" : "Entity_29",
       "scale" : [
         1,
         1,
         1
       ],
-      "axisOfRotations" : [
-        0,
-        0,
-        0
-      ],
+      "uuid" : "298B541F-E081-4596-8263-8626DD428F53",
+      "assetURL" : "file:\/\/\/primitive\/default_cube",
       "asset" : {
-        "path" : "\/primitive\/default_cube",
         "displayName" : "default_cube",
+        "path" : "\/primitive\/default_cube",
         "kind" : "procedural"
       },
-      "castsShadow" : true,
-      "assetName" : "default_cube",
       "animations" : [
 
       ],
+      "position" : [
+        -1.5321543,
+        -0.7420628,
+        0.56710863
+      ],
+      "hasLocalTransformComponent" : true,
+      "hasAnimationComponent" : false,
       "hasPointLightComponent" : true,
+      "hasKineticComponent" : false,
       "lightData" : {
-        "range" : 0,
-        "falloff" : 0.5,
-        "intensity" : 10,
-        "color" : [
-          1,
+        "radius" : 1,
+        "bounds" : [
           1,
           1
         ],
         "coneAngle" : 30,
+        "intensity" : 10,
         "right" : [
           1,
           0,
           0
         ],
-        "bounds" : [
+        "color" : [
+          1,
           1,
           1
         ],
+        "range" : 0,
         "up" : [
           0,
           1,
           0
         ],
         "twoSided" : false,
+        "castsShadow" : false,
+        "usesRadiometricUnits" : false,
         "forward" : [
           0,
           0,
           -1
         ],
-        "castsShadow" : false,
-        "usesRadiometricUnits" : false,
-        "radius" : 1
+        "falloff" : 0.5
       },
+      "assetName" : "default_cube",
+      "axisOfRotations" : [
+        0,
+        0,
+        0
+      ],
+      "mass" : 0,
+      "castsShadow" : true,
       "rotation" : [
         -0.7071067,
         0,
         0,
         0.7071068
       ],
-      "hasAnimationComponent" : false,
-      "mass" : 0,
-      "hasLocalTransformComponent" : true,
-      "position" : [
-        -1.5321543,
-        -0.93593675,
-        0.56710863
-      ]
+      "hasRenderingComponent" : true,
+      "name" : "Entity_29"
     },
     {
-      "hasRenderingComponent" : true,
-      "assetURL" : "file:\/\/\/primitive\/Cube",
-      "uuid" : "E550403F-3E1D-460B-AFE9-2456666D9A12",
       "materialData" : {
-        "roughnessWrapMode" : 1,
-        "opacity" : 1,
-        "emissiveValue" : [
-          0,
-          0,
-          0
-        ],
-        "heightRemapMax" : 1,
         "baseColorWrapMode" : 1,
-        "stScale" : 1,
         "normalWrapMode" : 1,
-        "heightRemapMin" : 0,
-        "alphaMode" : 0,
+        "transmission" : 0,
+        "heightScale" : 0.05,
+        "heightMidlevel" : 0.5,
+        "heightRemapMax" : 1,
+        "metallicWrapMode" : 1,
+        "alphaCutoff" : 0.5,
         "baseColorValue" : [
           1,
           1,
           1,
           1
         ],
-        "heightMidlevel" : 0.5,
-        "heightScale" : 0.05,
-        "metallicValue" : 0,
-        "heightEnabled" : true,
-        "alphaCutoff" : 0.5,
         "roughnessValue" : 0.9,
-        "metallicWrapMode" : 1,
-        "heightWrapMode" : 1
+        "heightEnabled" : true,
+        "heightRemapMin" : 0,
+        "roughnessWrapMode" : 1,
+        "metallicValue" : 0,
+        "heightWrapMode" : 1,
+        "emissiveValue" : [
+          0,
+          0,
+          0
+        ],
+        "opacity" : 1,
+        "alphaMode" : 0,
+        "stScale" : 1
       },
-      "hasKineticComponent" : false,
       "customComponents" : {
 
       },
-      "name" : "Cube-107374182405",
       "scale" : [
         10,
         10,
         10
       ],
+      "uuid" : "7364F043-81B4-4040-8327-2BB15C4CE226",
+      "asset" : {
+        "kind" : "procedural",
+        "path" : "\/primitive\/Cube",
+        "displayName" : "Cube"
+      },
+      "assetURL" : "file:\/\/\/primitive\/Cube",
+      "animations" : [
+
+      ],
+      "position" : [
+        -4.1108685,
+        0,
+        -35.049004
+      ],
+      "hasLocalTransformComponent" : true,
+      "hasAnimationComponent" : false,
+      "hasKineticComponent" : false,
+      "assetName" : "Cube",
       "axisOfRotations" : [
         0,
         0,
         0
       ],
-      "asset" : {
-        "path" : "\/primitive\/Cube",
-        "displayName" : "Cube",
-        "kind" : "procedural"
-      },
+      "mass" : 0,
       "castsShadow" : true,
-      "assetName" : "Cube",
+      "rotation" : [
+        0,
+        0,
+        0,
+        1
+      ],
+      "hasRenderingComponent" : true,
+      "name" : "Cube-107374182405"
+    },
+    {
+      "materialData" : {
+        "baseColorWrapMode" : 1,
+        "normalWrapMode" : 1,
+        "transmission" : 0,
+        "heightScale" : 0.05,
+        "heightMidlevel" : 0.5,
+        "heightRemapMax" : 1,
+        "metallicWrapMode" : 1,
+        "alphaCutoff" : 0.5,
+        "baseColorValue" : [
+          0.9,
+          0.9,
+          0.9,
+          1
+        ],
+        "roughnessValue" : 0.5,
+        "heightEnabled" : false,
+        "heightRemapMin" : 0,
+        "roughnessWrapMode" : 1,
+        "metallicValue" : 0,
+        "heightWrapMode" : 1,
+        "emissiveValue" : [
+          0,
+          0,
+          0
+        ],
+        "opacity" : 1,
+        "alphaMode" : 0,
+        "stScale" : 1
+      },
+      "customComponents" : {
+
+      },
+      "scale" : [
+        1,
+        1,
+        1
+      ],
+      "uuid" : "7A7ADDB2-4CC4-42E2-9067-66E4802033BE",
+      "asset" : {
+        "kind" : "model",
+        "displayName" : "Behind 4",
+        "path" : "Models\/glass_panes\/Behind_4\/Behind_4.untold"
+      },
+      "assetURL" : "Models\/glass_panes\/Behind_4\/Behind_4.untold",
+      "animations" : [
+
+      ],
+      "position" : [
+        2.55,
+        0.75,
+        -1.3
+      ],
+      "hasLocalTransformComponent" : true,
+      "parentUUID" : "D1972726-DE2C-4020-B1A3-DD07B32D973A",
+      "hasAnimationComponent" : false,
+      "hasKineticComponent" : false,
+      "assetName" : "Behind 4",
+      "hasLODComponent" : true,
+      "axisOfRotations" : [
+        0,
+        -0,
+        0
+      ],
+      "mass" : 0,
+      "castsShadow" : true,
+      "rotation" : [
+        0,
+        0,
+        0,
+        1
+      ],
+      "hasRenderingComponent" : true,
+      "name" : "Behind 4",
+      "lodData" : {
+        "currentLOD" : 0,
+        "fadeTransition" : false,
+        "lodLevels" : [
+          {
+            "screenPercentage" : 0,
+            "maxDistance" : 17.67419,
+            "url" : "file:\/\/\/Users\/haroldserrano\/Desktop\/UntoldEngineStudio\/UntoldEngine\/Tests\/UntoldEngineRenderTests\/Resources\/GameData\/Models\/glass_panes\/Behind_4\/Behind_4.untold"
+          },
+          {
+            "screenPercentage" : 0.061531,
+            "maxDistance" : 32.326942,
+            "url" : "file:\/\/\/Users\/haroldserrano\/Desktop\/UntoldEngineStudio\/UntoldEngine\/Tests\/UntoldEngineRenderTests\/Resources\/GameData\/Models\/glass_panes\/Behind_4\/Behind_4_LOD1.untold"
+          },
+          {
+            "screenPercentage" : 0.033641,
+            "maxDistance" : 72.28386,
+            "url" : "file:\/\/\/Users\/haroldserrano\/Desktop\/UntoldEngineStudio\/UntoldEngine\/Tests\/UntoldEngineRenderTests\/Resources\/GameData\/Models\/glass_panes\/Behind_4\/Behind_4_LOD2.untold"
+          },
+          {
+            "screenPercentage" : 0.015045,
+            "maxDistance" : 3.4028235e+38,
+            "url" : "file:\/\/\/Users\/haroldserrano\/Desktop\/UntoldEngineStudio\/UntoldEngine\/Tests\/UntoldEngineRenderTests\/Resources\/GameData\/Models\/glass_panes\/Behind_4\/Behind_4_LOD3.untold"
+          }
+        ],
+        "transitionDuration" : 0.3
+      }
+    },
+    {
+      "asset" : {
+        "kind" : "model",
+        "displayName" : "Behind 3",
+        "path" : "Models\/glass_panes\/Behind_3\/Behind_3.untold"
+      },
+      "customComponents" : {
+
+      },
+      "hasRenderingComponent" : true,
+      "hasKineticComponent" : false,
+      "uuid" : "5E344CF8-18F6-41E5-BDBC-0FC494CFF70E",
+      "mass" : 0,
+      "axisOfRotations" : [
+        0,
+        -0,
+        0
+      ],
+      "hasLocalTransformComponent" : true,
+      "scale" : [
+        1,
+        1,
+        1
+      ],
+      "materialData" : {
+        "baseColorWrapMode" : 1,
+        "normalWrapMode" : 1,
+        "transmission" : 0,
+        "heightScale" : 0.05,
+        "heightMidlevel" : 0.5,
+        "heightRemapMax" : 1,
+        "metallicWrapMode" : 1,
+        "alphaCutoff" : 0.5,
+        "baseColorValue" : [
+          0.2,
+          0.6,
+          0.9,
+          1
+        ],
+        "roughnessValue" : 0.5,
+        "heightEnabled" : false,
+        "heightRemapMin" : 0,
+        "roughnessWrapMode" : 1,
+        "metallicValue" : 0,
+        "heightWrapMode" : 1,
+        "emissiveValue" : [
+          0,
+          0,
+          0
+        ],
+        "opacity" : 1,
+        "alphaMode" : 0,
+        "stScale" : 1
+      },
+      "animations" : [
+
+      ],
+      "parentUUID" : "D1972726-DE2C-4020-B1A3-DD07B32D973A",
+      "rotation" : [
+        0,
+        0.24740398,
+        0,
+        0.9689124
+      ],
+      "name" : "Behind 3",
+      "assetURL" : "Models\/glass_panes\/Behind_3\/Behind_3.untold",
+      "position" : [
+        0.85,
+        0.72,
+        -1.3
+      ],
+      "assetName" : "Behind 3",
+      "castsShadow" : true,
+      "hasAnimationComponent" : false
+    },
+    {
+      "asset" : {
+        "path" : "Models\/glass_panes\/Behind_2\/Behind_2.untold",
+        "kind" : "model",
+        "displayName" : "Behind 2"
+      },
+      "customComponents" : {
+
+      },
+      "hasRenderingComponent" : true,
+      "hasKineticComponent" : false,
+      "uuid" : "DA043483-76A8-4D7C-AF4B-C056DB9CE3F3",
+      "mass" : 0,
+      "axisOfRotations" : [
+        0,
+        -0,
+        0
+      ],
+      "hasLocalTransformComponent" : true,
+      "scale" : [
+        1,
+        1,
+        1
+      ],
+      "materialData" : {
+        "alphaMode" : 0,
+        "heightWrapMode" : 1,
+        "baseColorValue" : [
+          0.9,
+          0.9,
+          0.9,
+          1
+        ],
+        "alphaCutoff" : 0.5,
+        "heightMidlevel" : 0.5,
+        "heightEnabled" : false,
+        "baseColorWrapMode" : 1,
+        "normalWrapMode" : 1,
+        "roughnessWrapMode" : 1,
+        "emissiveValue" : [
+          0,
+          0,
+          0
+        ],
+        "stScale" : 1,
+        "heightScale" : 0.05,
+        "heightRemapMax" : 1,
+        "heightRemapMin" : 0,
+        "metallicWrapMode" : 1,
+        "roughnessValue" : 0.5,
+        "transmission" : 0,
+        "opacity" : 1,
+        "metallicValue" : 0
+      },
+      "hasLODComponent" : true,
+      "lodData" : {
+        "currentLOD" : 0,
+        "lodLevels" : [
+          {
+            "maxDistance" : 17.67419,
+            "screenPercentage" : 0,
+            "url" : "file:\/\/\/Users\/haroldserrano\/Desktop\/UntoldEngineStudio\/UntoldEngine\/Tests\/UntoldEngineRenderTests\/Resources\/GameData\/Models\/glass_panes\/Behind_2\/Behind_2.untold"
+          },
+          {
+            "maxDistance" : 32.326942,
+            "screenPercentage" : 0.061531,
+            "url" : "file:\/\/\/Users\/haroldserrano\/Desktop\/UntoldEngineStudio\/UntoldEngine\/Tests\/UntoldEngineRenderTests\/Resources\/GameData\/Models\/glass_panes\/Behind_2\/Behind_2_LOD1.untold"
+          },
+          {
+            "maxDistance" : 72.28386,
+            "screenPercentage" : 0.033641,
+            "url" : "file:\/\/\/Users\/haroldserrano\/Desktop\/UntoldEngineStudio\/UntoldEngine\/Tests\/UntoldEngineRenderTests\/Resources\/GameData\/Models\/glass_panes\/Behind_2\/Behind_2_LOD2.untold"
+          },
+          {
+            "maxDistance" : 3.4028235e+38,
+            "screenPercentage" : 0.015045,
+            "url" : "file:\/\/\/Users\/haroldserrano\/Desktop\/UntoldEngineStudio\/UntoldEngine\/Tests\/UntoldEngineRenderTests\/Resources\/GameData\/Models\/glass_panes\/Behind_2\/Behind_2_LOD3.untold"
+          }
+        ],
+        "fadeTransition" : false,
+        "transitionDuration" : 0.3
+      },
+      "animations" : [
+
+      ],
+      "parentUUID" : "D1972726-DE2C-4020-B1A3-DD07B32D973A",
+      "rotation" : [
+        0,
+        0,
+        0,
+        1
+      ],
+      "name" : "Behind 2",
+      "assetURL" : "Models\/glass_panes\/Behind_2\/Behind_2.untold",
+      "position" : [
+        -0.85,
+        0.75,
+        -1.3
+      ],
+      "assetName" : "Behind 2",
+      "castsShadow" : true,
+      "hasAnimationComponent" : false
+    },
+    {
+      "asset" : {
+        "path" : "Models\/glass_panes\/Behind_1\/Behind_1.untold",
+        "displayName" : "Behind 1",
+        "kind" : "model"
+      },
+      "customComponents" : {
+
+      },
+      "hasRenderingComponent" : true,
+      "hasKineticComponent" : false,
+      "uuid" : "822AA984-8E3C-4D8B-8AC0-C5E0D4A196CC",
+      "mass" : 0,
+      "axisOfRotations" : [
+        0,
+        -0,
+        0
+      ],
+      "hasLocalTransformComponent" : true,
+      "scale" : [
+        1,
+        1,
+        1
+      ],
+      "materialData" : {
+        "alphaMode" : 0,
+        "heightWrapMode" : 1,
+        "baseColorValue" : [
+          0.9,
+          0.5,
+          0.1,
+          1
+        ],
+        "alphaCutoff" : 0.5,
+        "heightMidlevel" : 0.5,
+        "heightEnabled" : false,
+        "baseColorWrapMode" : 1,
+        "normalWrapMode" : 1,
+        "roughnessWrapMode" : 1,
+        "emissiveValue" : [
+          0,
+          0,
+          0
+        ],
+        "stScale" : 1,
+        "heightScale" : 0.05,
+        "heightRemapMax" : 1,
+        "heightRemapMin" : 0,
+        "metallicWrapMode" : 1,
+        "roughnessValue" : 0.5,
+        "transmission" : 0,
+        "opacity" : 1,
+        "metallicValue" : 0
+      },
+      "animations" : [
+
+      ],
+      "parentUUID" : "D1972726-DE2C-4020-B1A3-DD07B32D973A",
+      "rotation" : [
+        0,
+        0,
+        0,
+        1
+      ],
+      "name" : "Behind 1",
+      "assetURL" : "Models\/glass_panes\/Behind_1\/Behind_1.untold",
+      "position" : [
+        -2.55,
+        0.72,
+        -1.3
+      ],
+      "assetName" : "Behind 1",
+      "castsShadow" : true,
+      "hasAnimationComponent" : false
+    },
+    {
+      "asset" : {
+        "kind" : "model",
+        "path" : "Models\/glass_panes\/Behind_0\/Behind_0.untold",
+        "displayName" : "Behind 0"
+      },
+      "customComponents" : {
+
+      },
+      "hasRenderingComponent" : true,
+      "hasKineticComponent" : false,
+      "uuid" : "46A1038C-D4D9-4B71-A1E0-EF6877D23657",
+      "mass" : 0,
+      "axisOfRotations" : [
+        0,
+        -0,
+        0
+      ],
+      "hasLocalTransformComponent" : true,
+      "scale" : [
+        1,
+        1,
+        1
+      ],
+      "materialData" : {
+        "alphaMode" : 0,
+        "heightWrapMode" : 1,
+        "baseColorValue" : [
+          0.9,
+          0.9,
+          0.9,
+          1
+        ],
+        "alphaCutoff" : 0.5,
+        "heightMidlevel" : 0.5,
+        "heightEnabled" : false,
+        "baseColorWrapMode" : 1,
+        "normalWrapMode" : 1,
+        "roughnessWrapMode" : 1,
+        "emissiveValue" : [
+          0,
+          0,
+          0
+        ],
+        "stScale" : 1,
+        "heightScale" : 0.05,
+        "heightRemapMax" : 1,
+        "heightRemapMin" : 0,
+        "metallicWrapMode" : 1,
+        "roughnessValue" : 0.5,
+        "transmission" : 0,
+        "opacity" : 1,
+        "metallicValue" : 0
+      },
+      "hasLODComponent" : true,
+      "lodData" : {
+        "currentLOD" : 0,
+        "lodLevels" : [
+          {
+            "screenPercentage" : 0,
+            "url" : "file:\/\/\/Users\/haroldserrano\/Desktop\/UntoldEngineStudio\/UntoldEngine\/Tests\/UntoldEngineRenderTests\/Resources\/GameData\/Models\/glass_panes\/Behind_0\/Behind_0.untold",
+            "maxDistance" : 17.67419
+          },
+          {
+            "screenPercentage" : 0.061531,
+            "url" : "file:\/\/\/Users\/haroldserrano\/Desktop\/UntoldEngineStudio\/UntoldEngine\/Tests\/UntoldEngineRenderTests\/Resources\/GameData\/Models\/glass_panes\/Behind_0\/Behind_0_LOD1.untold",
+            "maxDistance" : 32.326942
+          },
+          {
+            "screenPercentage" : 0.033641,
+            "url" : "file:\/\/\/Users\/haroldserrano\/Desktop\/UntoldEngineStudio\/UntoldEngine\/Tests\/UntoldEngineRenderTests\/Resources\/GameData\/Models\/glass_panes\/Behind_0\/Behind_0_LOD2.untold",
+            "maxDistance" : 72.28386
+          },
+          {
+            "screenPercentage" : 0.015045,
+            "url" : "file:\/\/\/Users\/haroldserrano\/Desktop\/UntoldEngineStudio\/UntoldEngine\/Tests\/UntoldEngineRenderTests\/Resources\/GameData\/Models\/glass_panes\/Behind_0\/Behind_0_LOD3.untold",
+            "maxDistance" : 3.4028235e+38
+          }
+        ],
+        "fadeTransition" : false,
+        "transitionDuration" : 0.3
+      },
+      "animations" : [
+
+      ],
+      "parentUUID" : "D1972726-DE2C-4020-B1A3-DD07B32D973A",
+      "rotation" : [
+        0,
+        0,
+        0,
+        1
+      ],
+      "name" : "Behind 0",
+      "assetURL" : "Models\/glass_panes\/Behind_0\/Behind_0.untold",
+      "position" : [
+        -4.25,
+        0.75,
+        -1.3
+      ],
+      "assetName" : "Behind 0",
+      "castsShadow" : true,
+      "hasAnimationComponent" : false
+    },
+    {
+      "hasRenderingComponent" : false,
+      "hasKineticComponent" : false,
+      "uuid" : "D1972726-DE2C-4020-B1A3-DD07B32D973A",
+      "mass" : 0,
+      "axisOfRotations" : [
+        0,
+        0,
+        0
+      ],
+      "hasLocalTransformComponent" : true,
+      "scale" : [
+        1,
+        1,
+        1
+      ],
       "animations" : [
 
       ],
@@ -717,86 +1665,319 @@
         0,
         1
       ],
+      "assetURL" : "file:\/\/\/",
+      "name" : "glass",
       "hasAnimationComponent" : false,
-      "mass" : 0,
-      "hasLocalTransformComponent" : true,
+      "assetName" : "",
       "position" : [
-        -4.1108685,
         0,
-        -35.049004
-      ]
+        -1.2555197,
+        -1.9558147
+      ],
+      "customComponents" : {
+
+      }
+    },
+    {
+      "asset" : {
+        "kind" : "model",
+        "path" : "Models\/glass_panes\/Floor\/Floor.untold",
+        "displayName" : "Floor"
+      },
+      "customComponents" : {
+
+      },
+      "hasRenderingComponent" : true,
+      "hasKineticComponent" : false,
+      "uuid" : "E741FE7C-1E3B-4CAE-B525-A6A2677F3FB8",
+      "mass" : 0,
+      "axisOfRotations" : [
+        0,
+        -0,
+        0
+      ],
+      "hasLocalTransformComponent" : true,
+      "scale" : [
+        1,
+        1,
+        1
+      ],
+      "materialData" : {
+        "alphaMode" : 0,
+        "heightWrapMode" : 1,
+        "baseColorValue" : [
+          0.35,
+          0.35,
+          0.35,
+          1
+        ],
+        "alphaCutoff" : 0.5,
+        "heightMidlevel" : 0.5,
+        "heightEnabled" : false,
+        "baseColorWrapMode" : 1,
+        "normalWrapMode" : 1,
+        "roughnessWrapMode" : 1,
+        "emissiveValue" : [
+          0,
+          0,
+          0
+        ],
+        "stScale" : 1,
+        "heightScale" : 0.05,
+        "heightRemapMax" : 1,
+        "heightRemapMin" : 0,
+        "metallicWrapMode" : 1,
+        "roughnessValue" : 0.8,
+        "transmission" : 0,
+        "opacity" : 1,
+        "metallicValue" : 0
+      },
+      "animations" : [
+
+      ],
+      "parentUUID" : "D1972726-DE2C-4020-B1A3-DD07B32D973A",
+      "rotation" : [
+        0,
+        0,
+        0,
+        1
+      ],
+      "name" : "Floor",
+      "assetURL" : "Models\/glass_panes\/Floor\/Floor.untold",
+      "position" : [
+        0,
+        0,
+        0
+      ],
+      "assetName" : "Floor",
+      "castsShadow" : true,
+      "hasAnimationComponent" : false
+    },
+    {
+      "asset" : {
+        "kind" : "model",
+        "path" : "Models\/glass_panes\/Red_lens\/Red_lens.untold",
+        "displayName" : "Red lens"
+      },
+      "hasKineticComponent" : false,
+      "hasLocalTransformComponent" : true,
+      "assetName" : "Red lens",
+      "parentUUID" : "D1972726-DE2C-4020-B1A3-DD07B32D973A",
+      "mass" : 0,
+      "castsShadow" : true,
+      "uuid" : "676ED3FE-B649-4F07-922D-376CD137D91E",
+      "hasAnimationComponent" : false,
+      "customComponents" : {
+
+      },
+      "name" : "Red lens",
+      "scale" : [
+        1,
+        1,
+        1
+      ],
+      "position" : [
+        2.55,
+        1,
+        0
+      ],
+      "axisOfRotations" : [
+        0,
+        -0,
+        0
+      ],
+      "materialData" : {
+        "emissiveValue" : [
+          0,
+          0,
+          0
+        ],
+        "baseColorValue" : [
+          0.8,
+          0.05,
+          0.02,
+          1
+        ],
+        "metallicWrapMode" : 1,
+        "heightRemapMin" : 0,
+        "stScale" : 1,
+        "opacity" : 1,
+        "heightScale" : 0.05,
+        "baseColorWrapMode" : 1,
+        "heightRemapMax" : 1,
+        "transmission" : 1,
+        "alphaMode" : 0,
+        "heightMidlevel" : 0.5,
+        "heightEnabled" : false,
+        "alphaCutoff" : 0.5,
+        "normalWrapMode" : 1,
+        "roughnessValue" : 0.1,
+        "metallicValue" : 0,
+        "heightWrapMode" : 1,
+        "roughnessWrapMode" : 1
+      },
+      "animations" : [
+
+      ],
+      "hasRenderingComponent" : true,
+      "rotation" : [
+        0,
+        0,
+        0,
+        1
+      ],
+      "assetURL" : "Models\/glass_panes\/Red_lens\/Red_lens.untold"
+    },
+    {
+      "asset" : {
+        "displayName" : "Solar control",
+        "kind" : "model",
+        "path" : "Models\/glass_panes\/Solar_control\/Solar_control.untold"
+      },
+      "hasKineticComponent" : false,
+      "hasLocalTransformComponent" : true,
+      "assetName" : "Solar control",
+      "parentUUID" : "D1972726-DE2C-4020-B1A3-DD07B32D973A",
+      "mass" : 0,
+      "castsShadow" : true,
+      "uuid" : "08D7D751-1C9E-48EA-B915-BD10A608487C",
+      "hasAnimationComponent" : false,
+      "customComponents" : {
+
+      },
+      "name" : "Solar control",
+      "scale" : [
+        1,
+        1,
+        1
+      ],
+      "position" : [
+        -2.55,
+        1,
+        0
+      ],
+      "axisOfRotations" : [
+        0,
+        -0,
+        0
+      ],
+      "materialData" : {
+        "emissiveValue" : [
+          0,
+          0,
+          0
+        ],
+        "baseColorValue" : [
+          0.34,
+          0.48,
+          0.53,
+          1
+        ],
+        "metallicWrapMode" : 1,
+        "heightRemapMin" : 0,
+        "stScale" : 1,
+        "opacity" : 1,
+        "heightScale" : 0.05,
+        "baseColorWrapMode" : 1,
+        "heightRemapMax" : 1,
+        "transmission" : 0.92,
+        "alphaMode" : 0,
+        "heightMidlevel" : 0.5,
+        "heightEnabled" : false,
+        "alphaCutoff" : 0.5,
+        "normalWrapMode" : 1,
+        "roughnessValue" : 0.08,
+        "metallicValue" : 0,
+        "heightWrapMode" : 1,
+        "roughnessWrapMode" : 1
+      },
+      "animations" : [
+
+      ],
+      "hasRenderingComponent" : true,
+      "rotation" : [
+        0,
+        0,
+        0,
+        1
+      ],
+      "assetURL" : "Models\/glass_panes\/Solar_control\/Solar_control.untold"
+    },
+    {
+      "asset" : {
+        "kind" : "model",
+        "path" : "Models\/glass_panes\/Wall\/Wall.untold",
+        "displayName" : "Wall"
+      },
+      "hasKineticComponent" : false,
+      "hasLocalTransformComponent" : true,
+      "assetName" : "Wall",
+      "parentUUID" : "D1972726-DE2C-4020-B1A3-DD07B32D973A",
+      "mass" : 0,
+      "castsShadow" : true,
+      "uuid" : "67E51B4E-C549-448C-9BBE-1A70BBB6A8C1",
+      "hasAnimationComponent" : false,
+      "customComponents" : {
+
+      },
+      "name" : "Wall",
+      "scale" : [
+        1,
+        1,
+        1
+      ],
+      "position" : [
+        0,
+        1.5,
+        -3
+      ],
+      "axisOfRotations" : [
+        0,
+        -0,
+        0
+      ],
+      "materialData" : {
+        "emissiveValue" : [
+          0,
+          0,
+          0
+        ],
+        "baseColorValue" : [
+          1,
+          1,
+          1,
+          1
+        ],
+        "metallicWrapMode" : 1,
+        "heightRemapMin" : 0,
+        "stScale" : 1,
+        "opacity" : 1,
+        "heightScale" : 0.05,
+        "baseColorWrapMode" : 1,
+        "heightRemapMax" : 1,
+        "baseColorURL" : "file:\/\/\/Users\/haroldserrano\/Desktop\/UntoldEngineStudio\/UntoldEngine\/Tests\/UntoldEngineRenderTests\/Resources\/GameData\/Models\/glass_panes\/Wall\/..\/Textures\/stripes.png",
+        "transmission" : 0,
+        "alphaMode" : 0,
+        "heightMidlevel" : 0.5,
+        "heightEnabled" : false,
+        "alphaCutoff" : 0.5,
+        "normalWrapMode" : 1,
+        "roughnessValue" : 0.9,
+        "metallicValue" : 0,
+        "heightWrapMode" : 1,
+        "roughnessWrapMode" : 1
+      },
+      "animations" : [
+
+      ],
+      "hasRenderingComponent" : true,
+      "rotation" : [
+        0.707108,
+        0,
+        0,
+        0.7071055
+      ],
+      "assetURL" : "Models\/glass_panes\/Wall\/Wall.untold"
     }
-  ],
-  "bloom" : {
-    "intensity" : 0,
-    "enabled" : false,
-    "threshold" : 0.5
-  },
-  "toneMapping" : {
-    "exposure" : 1,
-    "toneMapOperator" : 0,
-    "gamma" : 1
-  },
-  "chromaticAberration" : {
-    "center" : [
-      0.5,
-      0.5
-    ],
-    "enabled" : false,
-    "intensity" : 0
-  },
-  "antiAliasing" : {
-    "smaa" : {
-      "edgeThreshold" : 0.1
-    },
-    "fxaa" : {
-      "edgeThreshold" : 0.125,
-      "subpixelQuality" : 0.75,
-      "edgeThresholdMin" : 0.0625
-    },
-    "mode" : "fxaa"
-  },
-  "environment" : {
-    "hdr" : "",
-    "renderEnvironment" : true,
-    "ambientIntensity" : 0.4,
-    "applyIBL" : true
-  },
-  "ssao" : {
-    "bias" : 0.02,
-    "radius" : 0.5,
-    "enabled" : true,
-    "intensity" : 0.5
-  },
-  "colorCorrection" : {
-    "lift" : [
-      0,
-      0,
-      0
-    ],
-    "gamma" : [
-      1,
-      1,
-      1
-    ],
-    "gain" : [
-      1,
-      1,
-      1
-    ],
-    "enabled" : false,
-    "tint" : 0,
-    "temperature" : 0
-  },
-  "schemaVersion" : 2,
-  "vignette" : {
-    "center" : [
-      0.5,
-      0.5
-    ],
-    "softness" : 0.1501407,
-    "radius" : 0.45014572,
-    "enabled" : true,
-    "intensity" : 1
-  }
+  ]
 }

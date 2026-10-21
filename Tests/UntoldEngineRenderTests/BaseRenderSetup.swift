@@ -141,6 +141,7 @@ class BaseRenderSetup: XCTestCase {
         "FlythroughWaypoint3": "23.5",
         "FXAA": "29.5",
         "GaussianTarget": "26.5",
+        "GlassTarget": "32.0",
         "LightPassColor": "32.0",
         "MSAA": "29.5",
         "SMAA": "29.5",
@@ -197,6 +198,17 @@ class BaseRenderSetup: XCTestCase {
         }
 
         initializeAssets()
+
+        // Mesh loading kicked off by initializeAssets() (loadUntoldScene/setEntityMeshAsync)
+        // always completes via a Task { @MainActor in ... } hop, even in .sync mode -- see
+        // setEntityMeshAsync (RegistrationSystem.swift) and deserializeScene's
+        // AsyncLoadTracker/BoundedAsyncLoadDispatcher (SceneSerializer.swift). That hop needs
+        // genuine `await` suspension to run; a blocking XCTestExpectation.wait(for:timeout:)
+        // inside initializeAssets() itself would never let it, so initializeAssets() must only
+        // kick the load off (fire-and-forget) and this drain -- already proven safe for the
+        // pre-test cleanup above -- is what actually waits for it to finish before
+        // setVisibleEntities() runs.
+        await waitForOutstandingAssetLoadsToFinish(context: "initializeAssets")
 
         setVisibleEntities()
 
@@ -278,6 +290,7 @@ class BaseRenderSetup: XCTestCase {
             targetName.contains("LightPassColor") ||
             targetName.contains("NormalTarget") ||
             targetName.contains("TransparencyTarget") ||
+            targetName == "GlassTarget" ||
             targetName == "DisplacementMap" ||
             targetName == "DepthOfField" ||
             targetName == "ChromaticAberration" ||
@@ -481,6 +494,7 @@ class BaseRenderSetup: XCTestCase {
             referenceName.contains("LightPassColor") ||
             referenceName.contains("NormalTarget") ||
             referenceName.contains("TransparencyTarget") ||
+            referenceName == "GlassTarget" ||
             referenceName == "DepthOfField" ||
             referenceName == "ChromaticAberration" ||
             referenceName == "Bloom" ||
@@ -521,18 +535,19 @@ class BaseRenderSetup: XCTestCase {
     }
 
     func initializeAssets() {
-        // Mesh/animation loading inside deserializeScene is always dispatched via Task {},
-        // even in .sync mode — so the completion here is the only reliable signal that
-        // entities have their RenderComponent attached. Without waiting for it, setVisibleEntities()
-        // (called right after in setUp()) can run before the scene's meshes finish loading.
-        let sceneLoaded = expectation(description: "UnitTestRender scene loaded")
+        // Entity creation (including the camera entity) happens synchronously inside
+        // deserializeScene's main loop; only mesh geometry loading for `.model`-kind entities
+        // is deferred to a Task. So loadUntoldScene() can be fire-and-forget here -- setUp()
+        // (the only caller of initializeAssets()) awaits that deferred work afterward via
+        // waitForOutstandingAssetLoadsToFinish() before calling setVisibleEntities(). Blocking
+        // this call site itself on scene-load completion (e.g. via XCTestExpectation.wait)
+        // deadlocks: that's a thread-blocking wait, not a suspension, so it never lets the
+        // completion's Task { @MainActor in ... } hop run.
         loadUntoldScene(named: "UnitTestRender", meshLoadingMode: .sync) { success in
             if !success {
                 XCTFail("Failed to load UnitTestRender scene")
             }
-            sceneLoaded.fulfill()
         }
-        wait(for: [sceneLoaded], timeout: 15.0)
 
         // deserializeScene() creates the camera entity from the scene's cameraData but does
         // not bind it as the active camera — only playSceneAt() does that rebind. Since this

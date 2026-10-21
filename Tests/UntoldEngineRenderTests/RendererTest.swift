@@ -100,6 +100,11 @@ final class RendererTests: BaseRenderSetup {
             )
 
             self.testGenerateRenderTarget(
+                targetName: "GlassTarget",
+                texture: renderInfo.deferredRenderPassDescriptor.colorAttachments[0].texture!
+            )
+
+            self.testGenerateRenderTarget(
                 targetName: "DisplacementMap",
                 texture: renderInfo.deferredRenderPassDescriptor.colorAttachments[0].texture!
             )
@@ -473,6 +478,29 @@ final class RendererTests: BaseRenderSetup {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             self.psnrTest(
                 targetName: "TransparencyTarget",
+                texture: renderInfo.deferredRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)].texture!
+            )
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: TimeInterval(timeoutFactor))
+    }
+
+    /// Golden-image regression coverage for glass/transmission (#1372). `GlassShadingTests.swift`
+    /// covers the material math in isolation; this diffs the glass panes in the shared
+    /// `UnitTestRender` scene against a checked-in reference, the same way
+    /// `testTransparencyTarget()` does for the transparency pass.
+    func testGlassTarget() {
+        XCTAssertNotNil(renderer, "Renderer should be initialized")
+        XCTAssertNotNil(renderer.metalView, "MetalView should be initialized")
+
+        renderer.draw(in: renderer.metalView)
+
+        let expectation = XCTestExpectation(description: "Glass target test")
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            self.psnrTest(
+                targetName: "GlassTarget",
                 texture: renderInfo.deferredRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)].texture!
             )
             expectation.fulfill()
