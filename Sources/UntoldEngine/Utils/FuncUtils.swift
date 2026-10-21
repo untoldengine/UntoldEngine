@@ -344,6 +344,7 @@ public func generateHDR(_ hdrName: String, from directory: URL? = nil) {
         guard let envMipMapCommandBuffer: MTLCommandBuffer = renderInfo.commandQueue.makeCommandBuffer()
         else {
             handleError(.iblMipMapCreationFailed)
+            iblSuccessful = false
             return
         }
 
@@ -352,6 +353,7 @@ public func generateHDR(_ hdrName: String, from directory: URL? = nil) {
             envMipMapCommandBuffer.makeBlitCommandEncoder()
         else {
             handleError(.iblMipMapBlitCreationFailed)
+            iblSuccessful = false
             return
         }
 
@@ -371,6 +373,7 @@ public func generateHDR(_ hdrName: String, from directory: URL? = nil) {
             let iblPreFilterCommandBuffer: MTLCommandBuffer = renderInfo.commandQueue.makeCommandBuffer()
         else {
             handleError(.iblPreFilterCreationFailed)
+            iblSuccessful = false
             return
         }
 
