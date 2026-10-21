@@ -1,0 +1,488 @@
+{
+  "formatVersion" : 1,
+  "lodChains" : {
+    "Behind_0/Behind_0.untold" : [
+      {
+        "error" : 0.0039031000000000001,
+        "path" : "Behind_0/Behind_0_LOD1.untold",
+        "screenSize" : 0.061531000000000002,
+        "triangles" : 1104
+      },
+      {
+        "error" : 0.0098490000000000001,
+        "path" : "Behind_0/Behind_0_LOD2.untold",
+        "screenSize" : 0.033640999999999997,
+        "triangles" : 330
+      },
+      {
+        "error" : 0.051019000000000002,
+        "path" : "Behind_0/Behind_0_LOD3.untold",
+        "screenSize" : 0.015044999999999999,
+        "triangles" : 66
+      }
+    ],
+    "Behind_2/Behind_2.untold" : [
+      {
+        "error" : 0.0039031000000000001,
+        "path" : "Behind_2/Behind_2_LOD1.untold",
+        "screenSize" : 0.061531000000000002,
+        "triangles" : 1104
+      },
+      {
+        "error" : 0.0098490000000000001,
+        "path" : "Behind_2/Behind_2_LOD2.untold",
+        "screenSize" : 0.033640999999999997,
+        "triangles" : 330
+      },
+      {
+        "error" : 0.051019000000000002,
+        "path" : "Behind_2/Behind_2_LOD3.untold",
+        "screenSize" : 0.015044999999999999,
+        "triangles" : 66
+      }
+    ],
+    "Behind_4/Behind_4.untold" : [
+      {
+        "error" : 0.0039020999999999999,
+        "path" : "Behind_4/Behind_4_LOD1.untold",
+        "screenSize" : 0.061531000000000002,
+        "triangles" : 1104
+      },
+      {
+        "error" : 0.010135999999999999,
+        "path" : "Behind_4/Behind_4_LOD2.untold",
+        "screenSize" : 0.033640999999999997,
+        "triangles" : 330
+      },
+      {
+        "error" : 0.046182000000000001,
+        "path" : "Behind_4/Behind_4_LOD3.untold",
+        "screenSize" : 0.015044999999999999,
+        "triangles" : 66
+      }
+    ]
+  },
+  "models" : [
+    {
+      "displayName" : "Behind 0",
+      "path" : "Behind_0/Behind_0.untold",
+      "transform" : [
+        [
+          1,
+          0,
+          0,
+          -4.25
+        ],
+        [
+          0,
+          1,
+          0,
+          0.75
+        ],
+        [
+          0,
+          0,
+          1,
+          -1.2999999523162842
+        ],
+        [
+          0,
+          0,
+          0,
+          1
+        ]
+      ]
+    },
+    {
+      "displayName" : "Behind 1",
+      "path" : "Behind_1/Behind_1.untold",
+      "transform" : [
+        [
+          0.87758255004882812,
+          0,
+          0.47942554950714111,
+          -2.5499999523162842
+        ],
+        [
+          0,
+          1,
+          0,
+          0.72000002861022949
+        ],
+        [
+          -0.47942554950714111,
+          0,
+          0.87758255004882812,
+          -1.2999999523162842
+        ],
+        [
+          0,
+          0,
+          0,
+          1
+        ]
+      ]
+    },
+    {
+      "displayName" : "Behind 2",
+      "path" : "Behind_2/Behind_2.untold",
+      "transform" : [
+        [
+          1,
+          0,
+          0,
+          -0.85000002384185791
+        ],
+        [
+          0,
+          1,
+          0,
+          0.75
+        ],
+        [
+          0,
+          0,
+          1,
+          -1.2999999523162842
+        ],
+        [
+          0,
+          0,
+          0,
+          1
+        ]
+      ]
+    },
+    {
+      "displayName" : "Behind 3",
+      "path" : "Behind_3/Behind_3.untold",
+      "transform" : [
+        [
+          0.87758255004882812,
+          0,
+          0.47942554950714111,
+          0.85000002384185791
+        ],
+        [
+          0,
+          1,
+          0,
+          0.72000002861022949
+        ],
+        [
+          -0.47942554950714111,
+          0,
+          0.87758255004882812,
+          -1.2999999523162842
+        ],
+        [
+          0,
+          0,
+          0,
+          1
+        ]
+      ]
+    },
+    {
+      "displayName" : "Behind 4",
+      "path" : "Behind_4/Behind_4.untold",
+      "transform" : [
+        [
+          1,
+          0,
+          0,
+          2.5499999523162842
+        ],
+        [
+          0,
+          1,
+          0,
+          0.75
+        ],
+        [
+          0,
+          0,
+          1,
+          -1.2999999523162842
+        ],
+        [
+          0,
+          0,
+          0,
+          1
+        ]
+      ]
+    },
+    {
+      "displayName" : "Behind 5",
+      "path" : "Behind_5/Behind_5.untold",
+      "transform" : [
+        [
+          0.87758255004882812,
+          0,
+          0.47942554950714111,
+          4.25
+        ],
+        [
+          0,
+          1,
+          0,
+          0.72000002861022949
+        ],
+        [
+          -0.47942554950714111,
+          0,
+          0.87758255004882812,
+          -1.2999999523162842
+        ],
+        [
+          0,
+          0,
+          0,
+          1
+        ]
+      ]
+    },
+    {
+      "displayName" : "Black tempered",
+      "path" : "Black_tempered/Black_tempered.untold",
+      "transform" : [
+        [
+          1,
+          0,
+          0,
+          4.25
+        ],
+        [
+          0,
+          1,
+          0,
+          1
+        ],
+        [
+          0,
+          0,
+          1,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          1
+        ]
+      ]
+    },
+    {
+      "displayName" : "Car window",
+      "path" : "Car_window/Car_window.untold",
+      "transform" : [
+        [
+          1,
+          0,
+          0,
+          0.85000002384185791
+        ],
+        [
+          0,
+          1,
+          0,
+          1
+        ],
+        [
+          0,
+          0,
+          1,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          1
+        ]
+      ]
+    },
+    {
+      "displayName" : "Channel glass",
+      "path" : "Channel_glass/Channel_glass.untold",
+      "transform" : [
+        [
+          1,
+          0,
+          0,
+          -0.85000002384185791
+        ],
+        [
+          0,
+          1,
+          0,
+          1
+        ],
+        [
+          0,
+          0,
+          1,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          1
+        ]
+      ]
+    },
+    {
+      "displayName" : "Clear window",
+      "path" : "Clear_window/Clear_window.untold",
+      "transform" : [
+        [
+          1,
+          0,
+          0,
+          -4.25
+        ],
+        [
+          0,
+          1,
+          0,
+          1
+        ],
+        [
+          0,
+          0,
+          1,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          1
+        ]
+      ]
+    },
+    {
+      "displayName" : "Floor",
+      "path" : "Floor/Floor.untold",
+      "transform" : [
+        [
+          1,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          1,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          1
+        ]
+      ]
+    },
+    {
+      "displayName" : "Red lens",
+      "path" : "Red_lens/Red_lens.untold",
+      "transform" : [
+        [
+          1,
+          0,
+          0,
+          2.5499999523162842
+        ],
+        [
+          0,
+          1,
+          0,
+          1
+        ],
+        [
+          0,
+          0,
+          1,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          1
+        ]
+      ]
+    },
+    {
+      "displayName" : "Solar control",
+      "path" : "Solar_control/Solar_control.untold",
+      "transform" : [
+        [
+          1,
+          0,
+          0,
+          -2.5499999523162842
+        ],
+        [
+          0,
+          1,
+          0,
+          1
+        ],
+        [
+          0,
+          0,
+          1,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          1
+        ]
+      ]
+    },
+    {
+      "displayName" : "Wall",
+      "path" : "Wall/Wall.untold",
+      "transform" : [
+        [
+          1,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          -3.6199901387590216e-06,
+          -1,
+          1.5
+        ],
+        [
+          0,
+          1,
+          -3.6199901387590216e-06,
+          -3
+        ],
+        [
+          0,
+          0,
+          0,
+          1
+        ]
+      ]
+    }
+  ],
+  "sourceAsset" : "glass_panes.blend"
+}
