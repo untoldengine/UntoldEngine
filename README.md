@@ -87,6 +87,11 @@ the [Releases page](https://github.com/untoldengine/UntoldEditor/releases).
 | [CoolWater](https://github.com/untoldengine/UntoldArcade/tree/main/CoolWater) | Real-time animated water with reflection, refraction, and ripples |
 | [CoolCloth](https://github.com/untoldengine/UntoldArcade/tree/main/CoolCloth) | GPU cloth simulation (XPBD) you can punch a ball through |
 | [CoolWeb](https://github.com/untoldengine/UntoldArcade/tree/main/CoolWeb) | Spider-Man web-shooter — gesture-triggered webs that stick to real room geometry |
+| [CoolBasket](https://github.com/untoldengine/UntoldArcade/tree/main/CoolBasket) | Mixed-reality basketball — first demo on the engine's pluggable physics backend seam |
+| [CoolBowling](https://github.com/untoldengine/UntoldArcade/tree/main/CoolBowling) | Mixed-reality bowling with Jolt Physics rigid-body pins you knock down for real |
+| [ImmersiveGol](https://github.com/untoldengine/UntoldArcade/tree/main/ImmersiveGol) | Mixed-reality penalty shootout — save shots from an animated kicker with your tracked hands |
+| [CoolMirror](https://github.com/untoldengine/UntoldArcade/tree/main/CoolMirror) | Virtual mirror — a rigged character mimics your real-world motion via iPhone + headset tracking |
+| [CoolFutbol](https://github.com/untoldengine/UntoldArcade/tree/main/CoolFutbol) | Mixed-reality tabletop soccer controlled with a PSVR2 Sense controller |
 | [Archviz Viewer](https://untoldengine.github.io/UntoldEngine/LearningPaths/ArchvizToVisionPro/) | Blender-authored architectural scene walked through in mixed reality |
 | [Bedroom Digital Twin](https://untoldengine.github.io/UntoldEngine/LearningPaths/BedroomDigitalTwin/) | Tap-to-inspect digital twin bedroom with live mock status data |
 | [City Streaming](https://untoldengine.github.io/UntoldEngine/LearningPaths/CityStreamingOnVisionPro/) | City-scale scene streamed in tile by tile with LOD/HLOD |
