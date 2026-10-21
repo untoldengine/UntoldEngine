@@ -110,6 +110,30 @@ func createTexture(
     return texture
 }
 
+/// Clears an IBL lookup texture (irradiance/specular/BRDF map) to all-zero so a failed or
+/// skipped bake leaves it contributing nothing to shading, instead of the uninitialized
+/// garbage Metal may leave in a freshly allocated `.shared` texture. IBL maps are always
+/// `.rgba16Float` (see `WorkingColorFormats`), 8 bytes/pixel.
+func zeroFillIBLTexture(_ texture: MTLTexture?) {
+    guard let texture else { return }
+    let bytesPerPixel = 8
+    var mipWidth = texture.width
+    var mipHeight = texture.height
+    let zeroBuffer = [UInt8](repeating: 0, count: mipWidth * mipHeight * bytesPerPixel)
+    for level in 0 ..< texture.mipmapLevelCount {
+        zeroBuffer.withUnsafeBytes { bytes in
+            texture.replace(
+                region: MTLRegionMake2D(0, 0, mipWidth, mipHeight),
+                mipmapLevel: level,
+                withBytes: bytes.baseAddress!,
+                bytesPerRow: mipWidth * bytesPerPixel
+            )
+        }
+        mipWidth = max(1, mipWidth / 2)
+        mipHeight = max(1, mipHeight / 2)
+    }
+}
+
 @inline(__always)
 func requestedOpaqueSampleCount() -> Int {
     #if targetEnvironment(simulator)
@@ -1352,7 +1376,28 @@ func initIBLResources() {
     renderInfo.iblOffscreenRenderPassDescriptor.colorAttachments[2].texture =
         textureResources.iblBRDFMap
 
+    guard !hdrURL.isEmpty else {
+        // No environment is configured for the current scene (e.g. deserializeScene cleared
+        // hdrURL because the scene has no HDR). This is not a failure — there is simply
+        // nothing to bake — so skip generateHDR entirely rather than attempting it and
+        // logging a spurious iBLCreationFailed error on the next resize/init.
+        zeroFillIBLTexture(textureResources.irradianceMap)
+        zeroFillIBLTexture(textureResources.specularMap)
+        zeroFillIBLTexture(textureResources.iblBRDFMap)
+        iblSuccessful = false
+        return
+    }
+
     generateHDR(hdrURL, from: hdrDirectory)
+
+    if !iblSuccessful {
+        // The bake failed partway through: the maps above may hold uninitialized data from
+        // `createTexture`, or partially-written data from an incomplete prefilter pass. Zero
+        // them so a failed IBL bake is ignored rather than corrupting shading with garbage.
+        zeroFillIBLTexture(textureResources.irradianceMap)
+        zeroFillIBLTexture(textureResources.specularMap)
+        zeroFillIBLTexture(textureResources.iblBRDFMap)
+    }
 
     if iblSuccessful, let cacheKey,
        let irradianceMap = textureResources.irradianceMap,
