@@ -61,12 +61,3 @@ xcrun -sdk xros metallib "$airDir/UntoldEngineKernels-xros.air" -o UntoldEngineK
 xcrun -sdk xrsimulator metal -mtargetos=xros$XROS_MIN-simulator UntoldEngineKernels.metal -c -o "$airDir/UntoldEngineKernels-xrossim.air"
 
 xcrun -sdk xrsimulator metallib "$airDir/UntoldEngineKernels-xrossim.air" -o UntoldEngineKernels-xrossim.metallib
-
-# Stamp the source hash MetalKernelsStaleCheck compares against, so `swift build` can tell
-# these metallibs are current. Covers UntoldEngineKernels.metal plus every file it #includes
-# from ../Shaders (sorted, to match the plugin's directory listing order) since editing any
-# of those changes the compiled kernel too. Commit this file along with the rebuilt metallibs.
-{
-    cat UntoldEngineKernels.metal
-    find ../Shaders -maxdepth 1 -name "*.metal" -print0 | LC_ALL=C sort -z | xargs -0 cat
-} | shasum -a 256 | awk '{print $1}' > .metalsource.sha256

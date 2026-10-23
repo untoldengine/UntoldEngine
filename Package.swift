@@ -100,11 +100,6 @@ let package = Package(
             exclude: ["LICENSE.md", "README.md"],
             publicHeadersPath: "include"
         ),
-        .plugin(
-            name: "MetalKernelsStaleCheck",
-            capability: .buildTool(),
-            path: "BuildChecks/MetalKernelsStaleCheck"
-        ),
         .target(
             name: "UntoldEngine",
             dependencies: ["CShaderTypes"],
@@ -135,8 +130,7 @@ let package = Package(
 
                 // iOS UI stack (only if some targets import UIKit)
                 .linkedFramework("UIKit", .when(platforms: [.iOS])),
-            ],
-            plugins: ["MetalKernelsStaleCheck"]
+            ]
         ),
 
         // The cook's mesh work. A module of its own so that UntoldEngine does not import
