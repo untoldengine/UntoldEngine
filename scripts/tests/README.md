@@ -58,3 +58,14 @@ blender --background --factory-startup --python-exit-code 1 --python scripts/tes
 blender --background --factory-startup --python-exit-code 1 --python scripts/tests/blender/material_bake_checks.py
 blender --background --factory-startup --python-exit-code 1 --python scripts/tests/blender/material_slot_checks.py
 ```
+
+## Reference scenes
+
+`blender/scenes/` holds generated scenes for comparing Blender's render with
+the engine's drawing of the cooked file, each with a README that gives the
+steps: generate the `.blend`, render the reference in Cycles under one of the
+engine's HDR environments, cook it, and draw it from the same camera.
+
+- `blender/scenes/glass_panes/`: six kinds of glass in front of a striped wall,
+  the scene of the comparison image of #1308 and the setup for a golden image
+  of glass.
