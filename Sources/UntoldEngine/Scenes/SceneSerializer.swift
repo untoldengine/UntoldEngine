@@ -238,6 +238,10 @@ struct LODData: Codable {
     var currentLOD: Int
     var fadeTransition: Bool
     var transitionDuration: Float
+    // Optional: absent in scenes saved before these were tracked (defaults to off).
+    var selectsByScreenSize: Bool? = nil
+    var screenSizeRadius: Float? = nil
+    var levelsShareMaterials: Bool? = nil
 }
 
 // MARK: - Geometry Streaming Data
@@ -1132,7 +1136,10 @@ public func serializeScene() -> SceneData {
                         lodLevels: lodLevelsData,
                         currentLOD: lodComponent.currentLOD,
                         fadeTransition: lodComponent.fadeTransition,
-                        transitionDuration: lodComponent.transitionDuration
+                        transitionDuration: lodComponent.transitionDuration,
+                        selectsByScreenSize: lodComponent.selectsByScreenSize,
+                        screenSizeRadius: lodComponent.screenSizeRadius,
+                        levelsShareMaterials: lodComponent.levelsShareMaterials
                     )
                 }
             }
@@ -1586,6 +1593,10 @@ public func deserializeScene(
 ) {
     var uuidToEntityMap: [UUID: EntityID] = [:]
 
+    // Shared across every asset-instance load in this scene, so repeated placements of
+    // the same .untold file parse and build their GPU meshes once instead of once per entity.
+    let sceneLoadBuilds = UntoldBuildCache()
+
     // Track async loading operations for completion callback
     let loadTracker = AsyncLoadTracker()
     loadTracker.completion = VoidCompletionBox(callback: {
@@ -1779,12 +1790,17 @@ public func deserializeScene(
                 let assetURL = assetInstance.asset.flatMap { resolvedSceneAssetURL($0) } ?? assetInstance.assetURL
                 let filename = resourceNameForLoading(from: assetURL)
                 let withExtension = assetURL.pathExtension
+                // Re-derive the pack-driven LOD chain for this placement, if any (see
+                // packLODChain's doc comment -- a saved scene never keeps a link to the
+                // .untoldpack that originally placed this model).
+                let placementScale = simd_reduce_max(simd_abs(sceneDataEntity.scale))
+                let lodChain = packLODChain(forModelAt: assetURL, placementScale: placementScale)
 
                 switch meshLoadingMode {
                 case .sync:
                     loadTracker.registerLoad()
                     pendingMeshLoads.append { loadDone in
-                        setEntityMeshAsync(entityId: entityId, filename: filename, withExtension: withExtension, assetName: nil) { success in
+                        loadEntityMeshAsync(entityId: entityId, filename: filename, withExtension: withExtension, assetName: nil, streamingPolicy: .immediate, blockRenderLoop: true, sharedBuilds: sceneLoadBuilds, lodChain: lodChain) { success in
                             applyDeserializedLocalTransform(entityId: entityId, entityData: sceneDataEntity)
                             applyDeserializedRenderProperties(entityId: entityId, entityData: sceneDataEntity)
                             if success {
@@ -1803,7 +1819,7 @@ public func deserializeScene(
                 case .asyncDefault:
                     loadTracker.registerLoad()
                     pendingMeshLoads.append { loadDone in
-                        setEntityMeshAsync(entityId: entityId, filename: filename, withExtension: withExtension, assetName: nil) { success in
+                        loadEntityMeshAsync(entityId: entityId, filename: filename, withExtension: withExtension, assetName: nil, streamingPolicy: .immediate, blockRenderLoop: true, sharedBuilds: sceneLoadBuilds, lodChain: lodChain) { success in
                             applyDeserializedLocalTransform(entityId: entityId, entityData: sceneDataEntity)
                             applyDeserializedRenderProperties(entityId: entityId, entityData: sceneDataEntity)
                             if success {
@@ -2163,35 +2179,47 @@ public func deserializeScene(
                             let maxDistance = lodLevelData.maxDistance
 
                             loadTracker.registerLoad()
-                            addLODLevel(
-                                entityId: entityId,
-                                lodIndex: index,
-                                fileName: filename,
-                                withExtension: ext,
-                                maxDistance: maxDistance
-                            ) { success in
-                                if success {
-                                    var finishedAllLevels = false
-                                    lodLoadCountLock.lock()
-                                    loadedCount += 1
-                                    finishedAllLevels = loadedCount == totalLevels
-                                    lodLoadCountLock.unlock()
+                            // Deferred into pendingMeshLoads (like the base-mesh loads below) and
+                            // drained by the same bounded dispatcher: a scene with many LOD
+                            // entities used to fire every level's addLODLevel Task at once here,
+                            // which is the same thread-pool-exhaustion hazard PackLoadDispatcher
+                            // and BoundedAsyncLoadDispatcher exist to avoid elsewhere.
+                            pendingMeshLoads.append { loadDone in
+                                addLODLevel(
+                                    entityId: entityId,
+                                    lodIndex: index,
+                                    fileName: filename,
+                                    withExtension: ext,
+                                    maxDistance: maxDistance,
+                                    sharedBuilds: sceneLoadBuilds
+                                ) { success in
+                                    if success {
+                                        var finishedAllLevels = false
+                                        lodLoadCountLock.lock()
+                                        loadedCount += 1
+                                        finishedAllLevels = loadedCount == totalLevels
+                                        lodLoadCountLock.unlock()
 
-                                    // When all levels are loaded, restore LOD settings.
-                                    if finishedAllLevels {
-                                        Logger.log(message: "✅ LOD loaded for '\(sceneDataEntity.name)' with \(totalLevels) levels")
-                                        withWorldMutationGate {
-                                            if let lodComponent = scene.get(component: LODComponent.self, for: entityId) {
-                                                lodComponent.currentLOD = lodData.currentLOD
-                                                lodComponent.fadeTransition = lodData.fadeTransition
-                                                lodComponent.transitionDuration = lodData.transitionDuration
+                                        // When all levels are loaded, restore LOD settings.
+                                        if finishedAllLevels {
+                                            Logger.log(message: "✅ LOD loaded for '\(sceneDataEntity.name)' with \(totalLevels) levels")
+                                            withWorldMutationGate {
+                                                if let lodComponent = scene.get(component: LODComponent.self, for: entityId) {
+                                                    lodComponent.currentLOD = lodData.currentLOD
+                                                    lodComponent.fadeTransition = lodData.fadeTransition
+                                                    lodComponent.transitionDuration = lodData.transitionDuration
+                                                    lodComponent.selectsByScreenSize = lodData.selectsByScreenSize ?? false
+                                                    lodComponent.screenSizeRadius = lodData.screenSizeRadius ?? 0
+                                                    lodComponent.levelsShareMaterials = lodData.levelsShareMaterials ?? false
+                                                }
                                             }
                                         }
+                                    } else {
+                                        Logger.logWarning(message: "⚠️ Failed to load LOD level \(index) for '\(sceneDataEntity.name)'")
                                     }
-                                } else {
-                                    Logger.logWarning(message: "⚠️ Failed to load LOD level \(index) for '\(sceneDataEntity.name)'")
+                                    loadTracker.completeLoad()
+                                    loadDone(success)
                                 }
-                                loadTracker.completeLoad()
                             }
                         }
                     }
