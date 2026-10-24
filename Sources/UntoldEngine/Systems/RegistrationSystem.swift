@@ -2523,6 +2523,46 @@ public func loadUntoldPack(url: URL) -> UntoldPackData? {
     return pack
 }
 
+/// Finds the LOD levels a `.untoldpack` gave `modelURL`, by looking for a `.untoldpack`
+/// manifest in the model's own directory whose `models` list resolves one entry to
+/// `modelURL`. Scene reload only has the model's own saved `.untold` path to go on
+/// (see `createUntoldScene`'s doc comment: a scene is not a live link to the pack that
+/// seeded it) -- this re-derives the chain the same way the pack loader built it
+/// originally, from whatever `.untoldpack` still sits beside the model on disk. The
+/// caller supplies the placement's own scale (its current scene scale, not the pack
+/// manifest's, since the two can drift once a placement is hand-edited). Returns `nil`
+/// if no such manifest is found, or the model has no LOD chain in it.
+func packLODChain(forModelAt modelURL: URL, placementScale: Float) -> PackLODChain? {
+    let standardizedModelURL = modelURL.standardizedFileURL
+    let fm = FileManager.default
+
+    // The manifest's models can sit in subdirectories below it (e.g. "Tree/Tree.untold"
+    // beside a "Site.untoldpack" that references it), so the manifest isn't necessarily
+    // in modelURL's own directory -- walk up looking for one, bounded so a model with
+    // no owning pack on disk anymore doesn't walk all the way to "/".
+    var dir = modelURL.deletingLastPathComponent()
+    for _ in 0 ..< 8 {
+        if let candidates = try? fm.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil) {
+            for candidate in candidates where candidate.pathExtension.lowercased() == "untoldpack" {
+                guard let pack = loadUntoldPack(url: candidate) else { continue }
+                let packDir = candidate.deletingLastPathComponent()
+                guard let model = pack.models.first(where: {
+                    packDir.appendingPathComponent($0.path).standardizedFileURL == standardizedModelURL
+                }) else { continue }
+                let levels = (pack.lodChains?[model.path] ?? []).map {
+                    PackLODChain.Level(url: packDir.appendingPathComponent($0.path), screenSize: $0.screenSize)
+                }
+                guard !levels.isEmpty else { return nil }
+                return PackLODChain(levels: levels, placementScale: placementScale)
+            }
+        }
+        let parent = dir.deletingLastPathComponent()
+        if parent == dir { break }
+        dir = parent
+    }
+    return nil
+}
+
 /// The largest of the scales `matrix` applies along its three axes.
 func largestAxisScale(of matrix: simd_float4x4) -> Float {
     max(
@@ -2759,7 +2799,9 @@ final class UntoldBuild: @unchecked Sendable {
 /// while the lock is held, and that is for a few instructions at a time. The lock is
 /// never held while a file is built, so different files build at the same time, and
 /// never while a waiting caller is resumed.
-final class UntoldBuildCache: Sendable {
+public final class UntoldBuildCache: Sendable {
+    public init() {}
+
     private typealias Waiter = CheckedContinuation<UntoldBuild?, Never>
 
     /// Where the build of one file stands.
@@ -6272,6 +6314,7 @@ public func addLODLevel(
     withExtension: String,
     maxDistance: Float,
     screenPercentage: Float = 0.0,
+    sharedBuilds: UntoldBuildCache? = nil,
     completion: ((Bool) -> Void)? = nil
 ) {
     let completionBox = completion.map { BoolCompletionBox(callback: $0) }
@@ -6291,14 +6334,30 @@ public func addLODLevel(
             return
         }
 
-        // Load meshes for this LOD
-        guard let runtimeAsset = try? NativeFormatLoader().loadAssetSync(from: url) else {
-            completionBox?.call(false)
-            return
+        // Load meshes for this LOD. Repeated placements that share a build cache parse
+        // this file and build its GPU meshes once, instead of once per placement; the
+        // Mesh values returned still share those GPU buffers/textures across copies.
+        var meshes: [Mesh]
+        if let sharedBuilds {
+            guard let build = await sharedBuilds.build(for: url, make: {
+                guard let runtimeAsset = try? NativeFormatLoader().loadAssetSync(from: url) else { return nil }
+                return UntoldBuild(runtimeAsset: runtimeAsset, prebuiltMeshes: prebuildNodeMeshes(from: runtimeAsset.nodes))
+            }) else {
+                completionBox?.call(false)
+                return
+            }
+            meshes = build.runtimeAsset.nodes
+                .filter { !$0.primitives.isEmpty }
+                .flatMap { build.prebuiltMeshes[$0.id] ?? [] }
+        } else {
+            guard let runtimeAsset = try? NativeFormatLoader().loadAssetSync(from: url) else {
+                completionBox?.call(false)
+                return
+            }
+            meshes = runtimeAsset.nodes
+                .filter { !$0.primitives.isEmpty }
+                .flatMap { makeMeshes(from: $0) }
         }
-        var meshes: [Mesh] = runtimeAsset.nodes
-            .filter { !$0.primitives.isEmpty }
-            .flatMap { makeMeshes(from: $0) }
 
         // Assign empty skin to all meshes (required by shaders)
         let skin = Skin()
