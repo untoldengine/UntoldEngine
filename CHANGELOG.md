@@ -1,4 +1,9 @@
 # Changelog
+## v0.24.1 - 2026-10-26
+### 🐞 Fixes
+- [Patch] Fix IBL creation failure fallback and spurious bake attempts (#1382) (2f0036c…)
+### 📚 Docs
+- [Docs] Add missing Vision Pro demos to README showcase table (#1383) (6e4ea12…)
 ## v0.24.0 - 2026-10-19
 ### 🐞 Fixes
 - [Bugfix] Fix HDR/IBL validation falling back to stale directory on scene restore (#1367) (72150232…)
