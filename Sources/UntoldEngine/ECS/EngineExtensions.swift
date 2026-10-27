@@ -42,6 +42,10 @@ public protocol EngineExtension: AnyObject, Sendable {
 
     func update(deltaTime: Float, context: EngineExtensionUpdateContext)
 
+    /// Once per simulation step in game mode: a fixed 1/60 s step by default, or, under
+    /// `SimulationStepping.perFrame`, every frame with the frame's own delta in equal
+    /// sub-steps never longer than 1.1/60 s. Integrate by `deltaTime`, never by a
+    /// constant.
     func fixedUpdate(deltaTime: Float, context: EngineExtensionUpdateContext)
 
     func willUnregister()

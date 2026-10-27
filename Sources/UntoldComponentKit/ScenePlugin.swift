@@ -84,7 +84,8 @@ open class ScenePlugin {
     open func onStart() {}
     /// Once per rendered frame while playing.
     open func onUpdate(deltaTime _: Float) {}
-    /// Once per fixed step while playing.
+    /// Once per simulation step while playing: every 1/60 s by default, or every frame (in sub-steps
+    /// never longer than 1.1/60 s) under `SimulationStepping.perFrame`.
     open func onFixedUpdate(deltaTime _: Float) {}
     /// Play ended, or the instance is being detached while playing.
     open func onStop() {}

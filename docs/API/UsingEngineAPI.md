@@ -141,7 +141,22 @@ The nested property shape is intentional: the compiler keeps effect-specific set
 setEngine(.assetBasePath(gameDataURL))
 setEngine(.metrics(.enabled))
 setEngine(.metrics(.disabled))
+setEngine(.simulationStepping(.fixed))     // one 1/60 s step per 1/60 s accumulated (the default)
+setEngine(.simulationStepping(.perFrame))  // one pass every frame; a longer frame in equal sub-steps never longer than 1.1/60 s, five at most, nothing carried
+getSimulationStepping()
 ```
+
+A 90 or 100 Hz display leaves frames unstepped under the fixed step (two in five at 100 Hz),
+so anything that only moves in a step — a physics backend's ragdoll, an extension's
+simulation — stands still on them while the animation moves on. `.perFrame` steps once on
+every frame with the frame's own delta; every `fixedUpdate` participant then sees a varying
+`deltaTime` (never longer than 1.1/60 s) and must integrate by it. The simulation then follows
+the display's cadence rather than one fixed sequence; a frame longer than 5/60 s simulates
+5/60 s and carries nothing, and one shorter than 1/250 s (a second draw for one refresh)
+simulates nothing. A 60 Hz host runs exactly one step per frame under `.perFrame` (a tenth of
+a step of jitter is absorbed); under `.fixed` the residual drifts with the wall clock, so now
+and then a frame runs none or two. A Jolt world's `collisionSteps` divides each engine step: 3
+keeps a powered ragdoll's sub-steps under 6.2 ms.
 
 ## Geometry Streaming
 

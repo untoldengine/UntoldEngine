@@ -220,8 +220,9 @@ it renders anything:
 
 - `update(deltaTime:context:)` runs once per engine frame, before graph
   construction and render encoding, regardless of game mode;
-- `fixedUpdate(deltaTime:context:)` runs inside the fixed-timestep loop in game
-  mode; and
+- `fixedUpdate(deltaTime:context:)` runs inside the simulation loop in game
+  mode (1/60 s by default, the frame's delta under
+  `SimulationStepping.perFrame`); and
 - `willUnregister()` runs before registered plugin state is removed —
   including on `unregister(id:)`, `removeAll()`, and hot-swap replacement
   (registering a new instance under an already-registered `id`).

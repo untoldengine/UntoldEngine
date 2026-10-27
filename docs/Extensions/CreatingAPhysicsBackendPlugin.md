@@ -36,7 +36,7 @@ final class MyBackend: PhysicsBackend {
     func configure(_ config: PhysicsWorldConfiguration) { /* gravity, layers */ }
     func didAddBody(entity: EntityID, descriptor: PhysicsBodyDescriptor) { /* create body */ }
     func didRemoveBody(entity: EntityID) { /* destroy body */ }
-    func step(deltaTime: Float) { /* advance simulation one fixed substep */ }
+    func step(deltaTime: Float) { /* advance by deltaTime: 1/60 s by default, the frame's delta or a share of it under per-frame stepping */ }
     func drainEvents(into sink: any PhysicsEventSink) { /* hand over buffered events */ }
     func writeKinematicTargets(_ batch: PhysicsBodyWriteBatch) { /* engine → you */ }
     func readActiveTransforms(into batch: PhysicsTransformReadBatch) -> Int { /* you → engine */ }
@@ -78,8 +78,9 @@ rest of the run.
 ## What the engine does with your backend
 
 Installing schedules the engine's `PhysicsCoordinator` (an `EngineExtension`)
-into the fixed-timestep loop; uninstalling removes it. Once per fixed substep,
-after the built-in integrator, the coordinator:
+into the simulation loop; uninstalling removes it. Once per simulation step (a
+fixed 1/60 s by default, see `SimulationStepping`), after the built-in
+integrator, the coordinator:
 
 1. **Diffs the body set.** Entities carrying `RigidBodyComponent` +
    `ColliderComponent` + `LocalTransformComponent` are yours. New ones arrive
@@ -143,5 +144,5 @@ The engine's own suites (`PhysicsBackendRegistryTests`,
 every seam above with mock backends — they double as reference implementations
 for the protocol's expected behavior. A useful pattern for your package's
 tests: install your plugin, drive `PhysicsCoordinator.shared.fixedUpdate`
-manually, and assert on your backend's recorded calls, exactly as those suites
-do.
+manually with more than one delta — a backend must not assume 1/60 — and
+assert on your backend's recorded calls, exactly as those suites do.

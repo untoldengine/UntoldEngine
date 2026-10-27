@@ -130,6 +130,31 @@ PhysicsCoordinator.shared.setWorldConfiguration(config)
 
 If a backend is installed later, the coordinator applies the current configuration to it.
 
+## Stepping
+
+The simulation runs inside the engine's game-mode loop: the built-in integrator, then every
+`fixedUpdate` (the backend through `PhysicsCoordinator`), then the legacy custom systems.
+How that loop is stepped against the frames is an engine setting:
+
+```swift
+setEngine(.simulationStepping(.fixed))     // one 1/60 s step per 1/60 s accumulated (the default)
+setEngine(.simulationStepping(.perFrame))  // one pass every frame with the frame's own delta
+```
+
+Under `.fixed` a display faster than 60 Hz has frames in which nothing is stepped (two in
+five at 100 Hz), so a pose that only moves in a step stands still on them. Under `.perFrame`
+every frame steps once with its own delta; a frame longer than a step is divided into equal
+sub-steps never longer than 1.1/60 s, five at most, nothing is carried past 5/60 s, and a
+frame shorter than 1/250 s (a second draw for one refresh) simulates nothing.
+
+The delta contract is the same for a backend's `step(deltaTime:)` and for the built-in
+integrator: integrate by `deltaTime` and never assume one length from call to call — it is
+1/60 s by default and the frame's delta, or an equal share of it, under `.perFrame`.
+
+A frame runs the animation update, then the simulation steps, then the game update. A pose
+the game reads back in its update therefore reflects the targets it set the frame before, in
+either mode.
+
 ## Backend Events
 
 When an installed backend emits events, subscribe through `PhysicsEvents`.

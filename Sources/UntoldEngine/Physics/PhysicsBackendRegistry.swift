@@ -215,8 +215,8 @@ private struct InstalledPhysicsBackendPlugin {
 /// uses its built-in integrator, exactly as before this registry existed.
 ///
 /// Install before `UntoldRenderer.create(...)`. The registry locks for runtime on
-/// the first fixed substep the coordinator simulates with the installed backend;
-/// from then on install and uninstall are rejected.
+/// the first simulation step the coordinator runs with the installed backend (see
+/// `SimulationStepping`); from then on install and uninstall are rejected.
 public final class PhysicsBackendRegistry: @unchecked Sendable {
     public static let shared = PhysicsBackendRegistry()
 

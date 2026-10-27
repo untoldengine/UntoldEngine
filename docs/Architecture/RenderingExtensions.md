@@ -38,7 +38,7 @@ may contribute:
 - render and compute pipelines;
 - staged graph passes;
 - once-per-frame update work;
-- fixed-step simulation work; and
+- simulation-step work; and
 - teardown or resource-refresh handling.
 
 Only `id` and `buildGraph` are required. The registration and lifecycle hooks
@@ -154,9 +154,10 @@ frame before graph construction and render encoding. The context includes:
 it for work that must run once per frame instead of once per eye.
 
 In game mode, registered extensions also receive
-`fixedUpdate(deltaTime:context:)` inside the fixed-timestep loop after built-in
-physics and before legacy custom systems. The fixed delta time is the engine
-simulation step.
+`fixedUpdate(deltaTime:context:)` inside the simulation loop after built-in
+physics and before legacy custom systems. The delta is the engine's simulation
+step: 1/60 s by default, the frame's delta in sub-steps never longer than
+1.1/60 s under `setEngine(.simulationStepping(.perFrame))`.
 
 ## Shader and Pipeline Packaging
 

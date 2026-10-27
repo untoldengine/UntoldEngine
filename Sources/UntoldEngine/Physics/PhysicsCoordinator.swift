@@ -11,8 +11,8 @@
 import Foundation
 import simd
 
-/// Drives the installed external physics backend from the engine's
-/// fixed-timestep loop as an `EngineExtension` — no engine-core seams.
+/// Drives the installed external physics backend from the engine's simulation loop
+/// (see `SimulationStepping`) as an `EngineExtension` — no engine-core seams.
 ///
 /// `PhysicsBackendRegistry` registers the coordinator with
 /// `EngineExtensionRegistry` when a backend plugin installs and unregisters it
@@ -22,8 +22,9 @@ import simd
 /// `KineticComponent` entities, while the external backend owns only entities
 /// carrying both `RigidBodyComponent` and `ColliderComponent`.
 ///
-/// Each `fixedUpdate` (frame thread, once per fixed substep, right after
-/// `updatePhysicsSystem`):
+/// Each `fixedUpdate` (frame thread, once per simulation step: a fixed 1/60 s substep by
+/// default, or a share of the frame's delta no longer than 1.1/60 s under
+/// `SimulationStepping.perFrame`; right after `updatePhysicsSystem`):
 /// 1. locks `PhysicsBackendRegistry` for runtime on the first simulated substep,
 ///    freezing the backend choice for the rest of the run;
 /// 2. diffs the current `RigidBodyComponent`+`ColliderComponent` query result

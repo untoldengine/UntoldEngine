@@ -376,11 +376,12 @@ public func getAllEntityComponentsIds(entityId: EntityID) -> [Int] {
     return componentIdsArray
 }
 
-/// A lightweight, low-ceremony way for game code to attach a per-frame closure to its own
-/// `Component` types without conforming to `EngineExtension`. Meant for a single game's own
-/// gameplay logic, not for distributable plugins — those should use `EngineExtension`/
-/// `RenderExtension`, which carry a namespaced identity and formal lifecycle contract this
-/// mechanism deliberately does not require.
+/// A lightweight, low-ceremony way for game code to attach a closure run once per simulation
+/// step in game mode (see `SimulationStepping`) to its own `Component` types without
+/// conforming to `EngineExtension`. Meant for a single game's own gameplay logic, not for
+/// distributable plugins — those should use `EngineExtension`/`RenderExtension`, which carry
+/// a namespaced identity and formal lifecycle contract this mechanism deliberately does not
+/// require.
 public struct CustomSystemHandle: Hashable, Sendable {
     private let id: UUID
 

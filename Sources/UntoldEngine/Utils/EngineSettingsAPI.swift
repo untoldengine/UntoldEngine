@@ -400,6 +400,12 @@ private func applyWireframeProperty(_ property: WireframeProperty) {
 public enum EngineProperty: Sendable {
     case assetBasePath(URL?)
     case metrics(EngineMetricsSetting)
+    /// How the game-mode simulation loop is stepped against the frames: one fixed 1/60 s step
+    /// per 1/60 s of frame time accumulated (the default), or one pass every frame with the
+    /// frame's own delta, in equal sub-steps never longer than 1.1/60 s, for a display faster
+    /// than 60 Hz on which the fixed step leaves frames unstepped. Not physics only: every
+    /// `fixedUpdate` participant is retimed. See `getSimulationStepping()`.
+    case simulationStepping(SimulationStepping)
 }
 
 public enum EngineMetricsSetting: Sendable {
@@ -415,7 +421,15 @@ public func setEngine(_ property: EngineProperty) {
         enableEngineMetrics = true
     case .metrics(.disabled):
         enableEngineMetrics = false
+    case let .simulationStepping(stepping):
+        simulationStepping = stepping
     }
+}
+
+/// How the game-mode simulation loop is stepped against the frames. See
+/// `EngineProperty.simulationStepping`.
+public func getSimulationStepping() -> SimulationStepping {
+    simulationStepping
 }
 
 public enum PostFXProperty: Sendable {

@@ -27,6 +27,7 @@ final class EngineSettingsAPITests: XCTestCase {
         setCamera(.clipPlanes(near: 0.1, far: 500.0))
         assetBasePath = nil
         enableEngineMetrics = false
+        simulationStepping = .fixed
         Logger.logLevel = .debug
         Logger.resetCategoryToggles()
         GeometryStreamingSystem.shared.enabled = true
@@ -117,6 +118,13 @@ final class EngineSettingsAPITests: XCTestCase {
 
         setEngine(.metrics(.disabled))
         XCTAssertFalse(enableEngineMetrics)
+
+        setEngine(.simulationStepping(.perFrame))
+        XCTAssertEqual(simulationStepping, .perFrame)
+        XCTAssertEqual(getSimulationStepping(), .perFrame)
+
+        setEngine(.simulationStepping(.fixed))
+        XCTAssertEqual(getSimulationStepping(), .fixed)
     }
 
     func testSetPostFXUpdatesEffectParams() {

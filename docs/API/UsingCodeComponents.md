@@ -98,7 +98,7 @@ subclass directly):
 | `onAttach()` | the instance was bound to `entity`, in edit mode or in play |
 | `onStart()` | play began, or the instance was attached while playing |
 | `onUpdate(deltaTime:)` | once per rendered frame while playing |
-| `onFixedUpdate(deltaTime:)` | once per fixed step while playing |
+| `onFixedUpdate(deltaTime:)` | once per simulation step while playing: every 1/60 s by default, every frame under `setEngine(.simulationStepping(.perFrame))` |
 | `onStop()` | play ended, or the instance is being detached while playing |
 | `onDetach()` | removed, entity destroyed, or a reload is replacing the instance |
 | `onEditorChanged(property:)` | the editor wrote a property while not playing |

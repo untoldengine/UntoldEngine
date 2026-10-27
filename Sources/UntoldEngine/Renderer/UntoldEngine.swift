@@ -636,24 +636,9 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
             // USC scripts (runs every frame in Play mode)
             USCSystem.shared.update(timeSinceLastUpdate)
 
-            // fixed‐timestep physics
-            physicsAccumulator += timeSinceLastUpdate
-            let maxSteps = 5
-            var steps = 0
-            while physicsAccumulator >= fixedStep, steps < maxSteps {
-                updatePhysicsSystem(deltaTime: fixedStep)
-                EngineExtensionRegistry.shared.fixedUpdateExtensions(
-                    deltaTime: fixedStep,
-                    context: extensionUpdateContext
-                )
-                RenderExtensionRegistry.shared.fixedUpdateExtensions(
-                    deltaTime: fixedStep,
-                    context: extensionUpdateContext
-                )
-                updateCustomSystems(deltaTime: fixedStep)
-                physicsAccumulator -= fixedStep
-                steps += 1
-            }
+            // The simulation: one fixed 1/60 s step per 1/60 s accumulated (the default), or,
+            // per frame, the frame's own delta in equal sub-steps. See `SimulationStepping`.
+            updateSimulationSteps(deltaTime: timeSinceLastUpdate, context: extensionUpdateContext)
 
             // user game update
             gameUpdateCallback?(timeSinceLastUpdate)
