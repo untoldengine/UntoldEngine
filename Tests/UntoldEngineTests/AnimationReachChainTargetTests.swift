@@ -165,6 +165,45 @@ final class AnimationReachChainTargetTests: XCTestCase {
         XCTAssertLessThan(simd_distance(hand, leftShoulder + toGoal * 0.6), 0.01)
     }
 
+    /// A nearly straight arm whose elbow sits a centimetre off the line says
+    /// nothing about its bend plane: a reach that has to bend it bows the
+    /// elbow the configured way, not the way of that centimetre.
+    func testANearlyStraightArmBendsTheConfiguredWay() {
+        // The left elbow 1 cm toward +Z (3 % of the 0.6 m arm); the chain's
+        // configured direction is -Z.
+        let down = simd_float3(0, -0.3, 0)
+        let localTranslations = [simd_float3(0, 0, 0), leftShoulder, down + simd_float3(0, 0, 0.01), down, rightShoulder, down, down]
+        let identity = SIMD4<Float>(0, 0, 0, 1)
+        let channels = jointPaths.enumerated().map { index, path in
+            RuntimeAnimationChannel(
+                jointPath: path,
+                translations: [.init(time: 0.0, value: localTranslations[index]), .init(time: 1.0, value: localTranslations[index])],
+                rotations: [.init(time: 0.0, value: identity), .init(time: 1.0, value: identity)]
+            )
+        }
+        animationComponent.animationClips["slight"] = AnimationClip(
+            runtimeClip: RuntimeAnimationClip(name: "slight", duration: 1.0, channels: channels)
+        )
+        changeAnimation(entityId: entityId, name: "slight", transitionHalflife: 0)
+        // A target 0.45 m below the shoulder: the 0.6 m arm must bend.
+        setReachIKChainTargets(
+            entityId: entityId,
+            targets: [ReachIKChainTarget(position: simd_float3(0, -0.45, 0), space: .shoulder), nil],
+            halflife: 0
+        )
+        AnimationSystem.shared.update(deltaTime)
+
+        var positions: [simd_float3] = []
+        var rotations: [simd_quatf] = []
+        computeForwardKinematics(pose: animationComponent.localPose, parentIndices: parents, positions: &positions, rotations: &rotations)
+        let elbow = positions[2], hand = positions[3]
+        // The hand lands (the solve rotates about the configured plane from a
+        // chain that was not quite in it, so it is a centimetre or two out);
+        // the elbow is on the configured side.
+        XCTAssertLessThan(simd_distance(hand, leftShoulder + simd_float3(0, -0.45, 0)), 0.03)
+        XCTAssertLessThan(elbow.z, -0.05, "the elbow bowed toward the centimetre of noise instead of the configured -Z: \(elbow)")
+    }
+
     func testAFullReachStraightensTheChain() {
         setReachIKChainTargets(
             entityId: entityId,

@@ -254,8 +254,14 @@ func applyReachIK(
             goal = shoulder + toTarget / distance * maxReach
         }
 
+        // The clip's own bend decides the elbow's side, unless the arm is
+        // nearly straight: then the elbow's offset from the shoulder-to-hand
+        // line is noise, and a reach that straightens the arm folds the
+        // elbow wherever that noise points (into the body, on a headset).
+        // Below 5 % of the arm's length the configured direction decides.
         var bendHint = elbow - (shoulder + hand) * 0.5
-        if simd_length_squared(simd_cross(hand - shoulder, bendHint)) < 1e-8 {
+        let lateral = simd_length(simd_cross(simd_normalize(hand - shoulder), bendHint))
+        if lateral < 0.05 * armLength {
             bendHint = chain.bendDirection
         }
 
