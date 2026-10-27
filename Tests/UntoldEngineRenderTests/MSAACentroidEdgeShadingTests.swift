@@ -153,9 +153,13 @@ final class MSAACentroidEdgeShadingTests: BaseRenderSetup {
         let height: Int
         var pixels: [Float]
 
-        func channel(_ x: Int, _ y: Int, _ c: Int) -> Float { pixels[(y * width + x) * 4 + c] }
+        func channel(_ x: Int, _ y: Int, _ c: Int) -> Float {
+            pixels[(y * width + x) * 4 + c]
+        }
 
-        func alpha(_ x: Int, _ y: Int) -> Float { channel(x, y, 3) }
+        func alpha(_ x: Int, _ y: Int) -> Float {
+            channel(x, y, 3)
+        }
 
         /// The colour over the coverage: what the surface was shaded, before the resolve
         /// weighted it by the samples it covers.
@@ -208,7 +212,9 @@ final class MSAACentroidEdgeShadingTests: BaseRenderSetup {
         var bottom = 0
         for y in 0 ..< eye.height {
             if eye.alpha(column, y) > 0 {
-                if top == nil { top = y }
+                if top == nil {
+                    top = y
+                }
                 bottom = y
             } else if top != nil {
                 break
@@ -233,7 +239,9 @@ final class MSAACentroidEdgeShadingTests: BaseRenderSetup {
         let edgeLuminance: Float
         let insideLuminance: Float
 
-        var ratio: Float { edgeLuminance / max(insideLuminance, 0.005) }
+        var ratio: Float {
+            edgeLuminance / max(insideLuminance, 0.005)
+        }
     }
 
     /// Along the bottom arc, for every column the sphere covers: the lowest covered texel
@@ -317,7 +325,9 @@ final class MSAACentroidEdgeShadingTests: BaseRenderSetup {
                     bytes[base + 1] = encode(straight.y)
                     bytes[base + 2] = encode(straight.z)
                 } else {
-                    for c in 0 ..< 3 { bytes[base + c] = encode(room) }
+                    for c in 0 ..< 3 {
+                        bytes[base + c] = encode(room)
+                    }
                 }
             }
         }
