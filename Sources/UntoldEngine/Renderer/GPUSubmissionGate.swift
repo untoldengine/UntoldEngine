@@ -40,6 +40,19 @@ public final class GPUSubmissionGate: @unchecked Sendable {
     private var lastCommitted: MTLCommandBuffer?
     private let observersLock = NSLock()
     private var observers: [NSObjectProtocol] = []
+    /// The sites whose GPU work went on while the gate was closed (the main thread, which
+    /// never waits), each logged once per pause.
+    private var sitesWhilePaused: Set<String> = []
+    private static let timestampFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm:ss.SSS"
+        return formatter
+    }()
+
+    /// The wall-clock time of a log line, to set it against the system's own log.
+    public static func logTimestamp() -> String {
+        timestampFormatter.string(from: Date())
+    }
 
     init() {}
 
@@ -75,8 +88,9 @@ public final class GPUSubmissionGate: @unchecked Sendable {
         }
         isOpenValue = false
         closedAt = CACurrentMediaTime()
+        sitesWhilePaused.removeAll()
         condition.unlock()
-        print("Engine: GPU work paused: \(reason)")
+        print("Engine [\(Self.logTimestamp())]: GPU work paused: \(reason)")
     }
 
     /// Opens the gate and releases every waiter. Opening an open gate changes nothing.
@@ -96,18 +110,26 @@ public final class GPUSubmissionGate: @unchecked Sendable {
         for waiter in released {
             waiter.resume()
         }
-        print("Engine: GPU work resumed after \(String(format: "%.1f", pausedSeconds)) s: \(reason)")
+        print("Engine [\(Self.logTimestamp())]: GPU work resumed after \(String(format: "%.1f", pausedSeconds)) s: \(reason)")
     }
 
     /// Blocks the calling thread until the gate is open, or until `timeout` seconds have passed
     /// (nil: as long as it takes), and returns whether it is open. The main thread never waits:
-    /// the gate is opened from it, so there the call returns at once and the caller goes on.
+    /// the gate is opened from it, so there the call returns at once and the caller goes on,
+    /// which is logged once per site and pause.
     @discardableResult
-    public func waitUntilOpen(timeout: TimeInterval? = nil) -> Bool {
+    public func waitUntilOpen(timeout: TimeInterval? = nil, file: StaticString = #fileID, line: UInt = #line) -> Bool {
         condition.lock()
         defer { condition.unlock() }
-        if isOpenValue || Thread.isMainThread {
-            return isOpenValue
+        if isOpenValue {
+            return true
+        }
+        if Thread.isMainThread {
+            let site = "\(file):\(line)"
+            if sitesWhilePaused.insert(site).inserted {
+                print("Engine [\(Self.logTimestamp())]: GPU work goes on while paused, from the main thread at \(site)")
+            }
+            return false
         }
         if let timeout {
             let deadline = Date(timeIntervalSinceNow: timeout)
@@ -173,7 +195,7 @@ public final class GPUSubmissionGate: @unchecked Sendable {
                 center.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: .main) { [weak self] _ in
                     guard let self else { return }
                     close(reason: "the app entered the background")
-                    print("Engine: the app is in the background; GPU work stays paused until it is active again")
+                    print("Engine [\(Self.logTimestamp())]: the app is in the background; GPU work stays paused until it is active again")
                     waitForCommittedWork()
                 },
                 center.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in

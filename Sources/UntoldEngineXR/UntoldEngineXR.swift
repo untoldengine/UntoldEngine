@@ -80,6 +80,9 @@
         private var loggedFoveationState: Bool?
         private var loggedCaptureTargetSkip = false
         private var loggedDrawableCount = 0
+        /// Whether the loop has said that it takes no frame from a running layer while GPU
+        /// work is paused (once per pause).
+        private var loggedIdleWhilePaused = false
         /// Whether the compositor's frame timing budget has been printed (once per space).
         private var loggedFrameTimingBudget = false
         /// Whether the layer's depth format and the drawable's depth range have been printed.
@@ -556,9 +559,9 @@
                         // headset off): the loop waits for it to run again, and the frame
                         // after the pause lets no time pass.
                         let pausedAt = CACurrentMediaTime()
-                        print("XR: the layer is paused; the loop waits for it to run again")
+                        print("XR [\(GPUSubmissionGate.logTimestamp())]: the layer is paused; the loop waits for it to run again")
                         layerRenderer.waitUntilRunning()
-                        print("XR: the layer runs again after \(String(format: "%.1f", CACurrentMediaTime() - pausedAt)) s")
+                        print("XR [\(GPUSubmissionGate.logTimestamp())]: the layer runs again after \(String(format: "%.1f", CACurrentMediaTime() - pausedAt)) s, state \(layerRenderer.state)")
                         renderer?.resetFrameTiming()
 
                     case .running:
@@ -567,8 +570,16 @@
                         // again. The wait wakes now and then to see the loop stopped or the
                         // layer gone meanwhile.
                         guard GPUSubmissionGate.shared.isOpen else {
+                            if !loggedIdleWhilePaused {
+                                loggedIdleWhilePaused = true
+                                print("XR [\(GPUSubmissionGate.logTimestamp())]: the layer runs while GPU work is paused; the loop takes no frame")
+                            }
                             GPUSubmissionGate.shared.waitUntilOpen(timeout: 0.25)
                             return
+                        }
+                        if loggedIdleWhilePaused {
+                            loggedIdleWhilePaused = false
+                            print("XR [\(GPUSubmissionGate.logTimestamp())]: the loop takes frames again")
                         }
                         renderNewFrame()
 
