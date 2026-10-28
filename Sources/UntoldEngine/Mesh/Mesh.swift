@@ -931,6 +931,9 @@ public struct Material {
 
         func loadRuntimeTexture(_ label: String, reference: RuntimeTextureReference?, isSRGB: Bool) -> MTLTexture? {
             guard let reference, let url = reference.sourceURL else { return nil }
+            // The upload and the mip levels are GPU work, refused to an app inactive or in the
+            // background: wait for it to be allowed again rather than lose the texture.
+            GPUSubmissionGate.shared.waitUntilOpen()
             let fileExists = fileManager.fileExists(atPath: url.path)
             Logger.log(
                 message: "[UntoldTexture] \(label) '\(runtimeMaterial.name ?? "<unnamed material>")' -> \(url.path) | exists=\(fileExists)",
@@ -1325,6 +1328,9 @@ final class TextureLoader {
         desc.usage = [.shaderRead, .shaderWrite, .pixelFormatView]
         desc.storageMode = .private
 
+        // The GPU resamples, which refuses an app inactive or in the background: wait for it
+        // to be allowed again.
+        GPUSubmissionGate.shared.waitUntilOpen()
         guard let target = device.makeTexture(descriptor: desc),
               let commandBuffer = downsampleCommandQueue?.makeCommandBuffer()
         else { return texture }
@@ -1493,6 +1499,9 @@ final class TextureLoader {
                      mapType: String) -> MTLTexture?
     {
         guard let property else { return nil }
+        // MetalKit builds the mip levels on the GPU, which refuses an app inactive or in the
+        // background: wait for it to be allowed again rather than lose the texture.
+        GPUSubmissionGate.shared.waitUntilOpen()
         stateLock.lock()
         defer { stateLock.unlock() }
 
@@ -1855,7 +1864,10 @@ private func sRGBView(of texture: MTLTexture) -> MTLTexture {
 
     // The smaller levels were averaged from the stored values. Build them again through
     // the view, which averages the light those values stand for, as for any color texture.
+    // The GPU builds the levels, refused to an app inactive or in the background: wait for it
+    // to be allowed again (the main thread, which reopens the gate, does not wait: no levels).
     if view.mipmapLevelCount > 1,
+       GPUSubmissionGate.shared.waitUntilOpen(),
        let commandBuffer = renderInfo.commandQueue?.makeCommandBuffer(),
        let blitEncoder = commandBuffer.makeBlitCommandEncoder()
     {

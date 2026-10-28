@@ -157,6 +157,9 @@ public enum MLDeformerBaker {
                         }
                     }
 
+                    // An app inactive or in the background is refused the frame's work: wait
+                    // for the GPU to be allowed again.
+                    GPUSubmissionGate.shared.waitUntilOpen()
                     guard let commandBuffer = queue.makeCommandBuffer(),
                           let encoder = commandBuffer.makeComputeCommandEncoder()
                     else { throw MLDeformerBakeError.noMetalDevice }

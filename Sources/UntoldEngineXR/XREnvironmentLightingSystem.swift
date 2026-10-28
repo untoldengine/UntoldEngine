@@ -472,6 +472,19 @@
                 lock.unlock()
                 return
             }
+            // An app inactive or in the background is refused the readback: the probe waits
+            // for the GPU to be allowed again, which brings it back here.
+            guard GPUSubmissionGate.shared.isOpen else {
+                if pendingProbeDrainTask == nil {
+                    pendingProbeDrainTask = Task { [weak self] in
+                        await GPUSubmissionGate.shared.waitUntilOpen()
+                        guard !Task.isCancelled else { return }
+                        self?.drainTimerFired()
+                    }
+                }
+                lock.unlock()
+                return
+            }
             let now = ProcessInfo.processInfo.systemUptime
             if let lastStart = lastReadbackStartTime {
                 let remaining = minimumProbeUpdateInterval - (now - lastStart)
@@ -631,6 +644,15 @@
         /// cube is prefiltered and published. The step that reaches the target is the last
         /// until a new estimate arrives.
         private func transitionStep() {
+            // An app inactive or in the background is refused the prefilter: the step waits for
+            // the GPU to be allowed again and runs then.
+            guard GPUSubmissionGate.shared.isOpen else {
+                Task { [weak self] in
+                    await GPUSubmissionGate.shared.waitUntilOpen()
+                    self?.transitionStep()
+                }
+                return
+            }
             lock.lock()
             guard enabledValue, !currentProbeTexels.isEmpty, targetProbeTexels.count == currentProbeTexels.count else {
                 transitionRunning = false

@@ -46,7 +46,9 @@ while true {
 }
 ```
 
-The `.paused` state blocks the thread cheaply until the compositor is ready — this happens when the user puts the app in the background or when the system needs to reclaim resources. The `.invalidated` state is the clean shutdown signal.
+The `.paused` state blocks the thread cheaply until the compositor shows the layer again — the space hidden, or the system reclaiming the display. The `.invalidated` state is the clean shutdown signal.
+
+**The app's own state gates the GPU.** iOS and visionOS refuse GPU work from an app that is not in the foreground: Metal logs `Insufficient Permission (to submit GPU work from background)` and drops the command buffer. Taking the headset off does exactly that: the app resigns active and enters the background. `GPUSubmissionGate` (in `UntoldEngine`) follows the app's state — it closes when the app resigns active and opens when the app is active again, logging both with the pause's length. While it is closed the loop takes no frame (a frame already taken is finished, and its command buffer is scheduled before the app reaches the background, as Apple asks), and the engine's GPU work outside the frame — texture uploads and resamples, the room light's probe readback and prefilter, Gaussian decodes, bakes — waits at the gate instead of failing. When the headset goes back on the loop resumes by itself, and the first frame after a pause lets no time pass (`UntoldRenderer.resetFrameTiming()`), so no simulation step spans the pause. macOS never restricts the GPU; the gate stays open there.
 
 **Why a background thread?** The compositor render thread must never be blocked by Swift's main actor or UIKit layout passes. Running here ensures that Metal encoding proceeds at compositor frame rate (90 FPS on Vision Pro) without contention.
 

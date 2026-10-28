@@ -30,6 +30,8 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
     private var configuration: UntoldRendererConfig
     public var delegate: UntoldRendererDelegate?
     public var pendingResize = false
+    /// The GPU gate's resume count at the last frame: a change means the engine paused since.
+    private var resumeCountSeen: UInt64 = 0
 
     @MainActor
     init(configuration: UntoldRendererConfig? = nil) {
@@ -43,6 +45,8 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         #endif
 
         super.init()
+        // The app's state gates the GPU where the system refuses a background app's work.
+        GPUSubmissionGate.shared.observeApplicationState()
     }
 
     @MainActor
@@ -221,7 +225,21 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         reinitSSAOTextures()
     }
 
+    /// Makes the next frame a first frame: no time passes to it. For a loop that paused on its
+    /// own, like the XR loop while its layer was paused; a pause of the GPU gate the clock sees
+    /// by itself.
+    public func resetFrameTiming() {
+        firstUpdateCall = false
+    }
+
     func calculateDeltaTime() {
+        // The engine paused since the last frame (the app inactive or in the background, the
+        // headset taken off): no time passes to the first frame after, as to a first frame.
+        let resumeCount = GPUSubmissionGate.shared.resumeCount
+        if resumeCount != resumeCountSeen {
+            resumeCountSeen = resumeCount
+            firstUpdateCall = false
+        }
         if !firstUpdateCall {
             // init the time properties for the update
 
@@ -693,6 +711,9 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
     }
 
     public func draw(in view: MTKView) {
+        // The app is inactive or in the background: the GPU would refuse the frame, so none is
+        // drawn until the app is active again; the view keeps showing the last one.
+        guard GPUSubmissionGate.shared.isOpen else { return }
         // Not an XR eye: shading uses the camera's own position.
         renderInfo.xrEyeCameraPosition = nil
         if pendingResize {

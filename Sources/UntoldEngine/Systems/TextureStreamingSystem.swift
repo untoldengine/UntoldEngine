@@ -868,6 +868,9 @@ public class TextureStreamingSystem: @unchecked Sendable {
         let capturedMinimumDim = normalizedMinimumDimension()
 
         Task {
+            // An app inactive or in the background is refused the uploads and resamples: the
+            // batch waits for the GPU to be allowed again.
+            await GPUSubmissionGate.shared.waitUntilOpen()
             var loaded: [LoadedTexture] = []
             loaded.reserveCapacity(budgetedWorkItems.count)
 
@@ -1130,6 +1133,7 @@ public class TextureStreamingSystem: @unchecked Sendable {
             return nil
         }
 
+        await GPUSubmissionGate.shared.waitUntilOpen()
         guard let commandBuffer = commandQueue.makeCommandBuffer() else {
             if verboseLogging {
                 Logger.log(

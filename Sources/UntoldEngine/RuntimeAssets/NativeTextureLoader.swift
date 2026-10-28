@@ -192,6 +192,9 @@ public final class NativeTextureLoader: @unchecked Sendable {
             throw NativeTexLoadError.unsupportedPixelFormat(header.pixelFormat)
         }
 
+        // An app inactive or in the background is refused the upload: wait for the GPU to be
+        // allowed again rather than lose the texture.
+        GPUSubmissionGate.shared.waitUntilOpen()
         guard let commandBuffer = commandQueue.makeCommandBuffer(),
               let blitEncoder = commandBuffer.makeBlitCommandEncoder()
         else {
