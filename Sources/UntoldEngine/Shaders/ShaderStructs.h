@@ -86,12 +86,22 @@ typedef struct{
 // Apple GPUs every interpolated float is written to the parameter buffer by the tiler and read
 // back per tile, so the layout is a vertex-stage cost in itself (measured: the stage halves
 // with the material's inputs gone).
+//
+// The surface attributes are interpolated at the centroid of the covered samples. Under MSAA
+// the fragment runs once per pixel, and evaluated at the pixel's centre, which along a
+// silhouette lies outside the triangle, they are extrapolated past it: the normal keeps
+// turning toward the back of the surface and a sun from above lights the dark lower limb of
+// a sphere, so its partly covered edge texels carry the colour of its sunlit top (sparse pale
+// dots along the edge once a compositor blends them by their coverage). The centroid is the
+// pixel's centre wherever the pixel is fully covered, so the interior shades as before, and
+// without MSAA nothing changes. The velocity's clip positions stay at the centre: both are
+// extrapolated alike and their difference is the surface's motion either way.
 typedef struct{
     float4 position [[position]];
-    float3 worldPosition;
-    float3 tbNormal; // the world-space normal, the N of the TBN frame
-    float4 tangent;  // the world-space tangent, its handedness in w
-    float2 uvCoords;
+    float3 worldPosition [[centroid_perspective]];
+    float3 tbNormal [[centroid_perspective]]; // the world-space normal, the N of the TBN frame
+    float4 tangent [[centroid_perspective]];  // the world-space tangent, its handedness in w
+    float2 uvCoords [[centroid_perspective]];
     float3 currentClipXYW; // this frame's clip position without the jitter: x, y and w (no z), for the velocity
     float3 prevClipXYW;    // the previous frame's clip position of the same vertex: x, y and w
   }VertexOutModel;
