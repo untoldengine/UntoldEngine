@@ -84,14 +84,20 @@
         /// work is paused (once per pause).
         private var loggedIdleWhilePaused = false
         /// The frame account against the compositor's three frame slots: frames taken from it,
-        /// frames ended with endSubmission, and frames let go without it.
+        /// frames ended with endSubmission, and frames let go without it, which only the frames
+        /// the compositor cancels (no timing, no drawables) and frames no command buffer could
+        /// present are.
         private var framesTaken = 0
         private var framesEnded = 0
         private var framesLetGo = 0
+        /// Of the frames ended: those ended without drawing, and those whose submission was
+        /// ended after the layer had left running.
+        private var framesEndedUndrawn = 0
+        private var framesEndedOnPausedLayer = 0
 
         private func frameAccount() -> String {
             let state = layerRenderer.map { "\($0.state)" } ?? "none"
-            return "taken \(framesTaken), ended \(framesEnded), let go \(framesLetGo), layer \(state)"
+            return "taken \(framesTaken), ended \(framesEnded) (undrawn \(framesEndedUndrawn), on a paused layer \(framesEndedOnPausedLayer)), let go \(framesLetGo), layer \(state)"
         }
 
         /// Says that a taken frame was not ended, why, and how the account stands.
@@ -658,7 +664,8 @@
 
             // 5. Perform any rendering-related work that doesn't rely on the device anchor info
             guard let renderer else {
-                noteFrameLetGo("no renderer")
+                frame.endUpdate()
+                endFrameUndrawn(frame, reason: "no renderer")
                 return
             }
 
@@ -695,10 +702,11 @@
                 }
             #endif
 
-            // The compositor or app state can transition while waiting. If not running anymore,
-            // skip submission entirely to avoid using an invalid frame.
+            // The loop may have been stopped and the layer may have left running during the wait
+            // (reading the state takes the compositor's pending messages): the frame is then
+            // ended without drawing rather than let go, which would poison its slot.
             guard isRunning(), layerRenderer.state == .running else {
-                noteFrameLetGo("the loop stopped or the layer left running before the submission")
+                endFrameUndrawn(frame, reason: "the loop stopped or the layer left running before the submission")
                 return
             }
 
@@ -707,14 +715,18 @@
             #if ENGINE_STATS_ENABLED
                 let xrSubmissionStart = CACurrentMediaTime()
             #endif
+            // The submission is ended whatever the layer's state by then: the frame stays valid
+            // once its drawables came (only a failed timing or drawable query invalidates one),
+            // and the compositor hands out its three frames in turn and aborts the app on the
+            // query that lands on a frame neither ended nor cancelled.
             var shouldEndSubmission = true
             defer {
                 if shouldEndSubmission {
-                    if layerRenderer.state == .running {
-                        frame.endSubmission()
-                        framesEnded += 1
-                    } else {
-                        noteFrameLetGo("the layer left running during the submission")
+                    frame.endSubmission()
+                    framesEnded += 1
+                    if layerRenderer.state != .running {
+                        framesEndedOnPausedLayer += 1
+                        print("XR [\(GPUSubmissionGate.logTimestamp())]: a frame's submission was ended after the layer left running; \(frameAccount())")
                     }
                 }
             }
@@ -723,12 +735,7 @@
             // visionOS 26 hands a frame one drawable per target (the built-in display, and a
             // capture target while the view is recorded or streamed); a layer with foveation
             // or a render quality set aborts the app if the single-drawable query is used.
-            let drawables: [LayerRenderer.Drawable]
-            if #available(visionOS 26.0, *) {
-                drawables = frame.queryDrawables()
-            } else {
-                drawables = frame.queryDrawable().map { [$0] } ?? []
-            }
+            let drawables = queryDrawables(of: frame)
             guard !drawables.isEmpty else {
                 #if ENGINE_STATS_ENABLED
                     renderer.finalizeXRStatsAndMonitors(frameStartTime: xrFrameStartTime)
@@ -757,6 +764,7 @@
             let loadingNow = AssetLoadingGate.shared.isLoadingAny
             let effectiveLoading = loading || loadingNow
 
+            var allPresented = true
             for drawable in drawables {
                 // 10. Fetch the predicted device anchor from ARKit using the frameTiming information, and
                 // apply the anchor to your frame
@@ -805,10 +813,16 @@
                     if #available(visionOS 26.0, *) {
                         primary = drawable.target == .builtIn
                     }
-                    executeXRSystemPass(frame: frame, drawable: drawable, loading: effectiveLoading, primary: primary)
+                    allPresented = executeXRSystemPass(frame: frame, drawable: drawable, loading: effectiveLoading, primary: primary) && allPresented
                 } else {
-                    presentCleared(drawable)
+                    allPresented = presentCleared(drawable) && allPresented
                 }
+            }
+            if !allPresented {
+                // A frame with a drawable not presented cannot be ended (the compositor aborts
+                // on it): it is let go, and its slot with it.
+                noteFrameLetGo("a drawable could not be presented, no command buffer")
+                shouldEndSubmission = false
             }
             #if ENGINE_STATS_ENABLED
                 let xrEncodeMs = (CACurrentMediaTime() - xrSubmissionStart) * 1000.0
@@ -819,6 +833,44 @@
             #else
                 renderer.finalizeXRStatsAndMonitors(frameStartTime: 0.0)
             #endif
+        }
+
+        /// The frame's drawables: one per target on visionOS 26 (the built-in display, and a
+        /// capture target while the view is recorded or streamed), the single drawable before.
+        private func queryDrawables(of frame: LayerRenderer.Frame) -> [LayerRenderer.Drawable] {
+            if #available(visionOS 26.0, *) {
+                return frame.queryDrawables()
+            }
+            return frame.queryDrawable().map { [$0] } ?? []
+        }
+
+        /// Ends a frame the loop does not draw, after its update phase. The compositor hands
+        /// out its three frames in turn and aborts the app on the query that lands on a frame
+        /// neither ended nor cancelled, so a frame taken is always carried to its end: its
+        /// submission is started and each drawable the compositor still gives is presented
+        /// cleared. A paused layer gives none and cancels the frame itself, at no cost.
+        private func endFrameUndrawn(_ frame: LayerRenderer.Frame, reason: String) {
+            frame.startSubmission()
+            let drawables = queryDrawables(of: frame)
+            guard !drawables.isEmpty else {
+                noteFrameLetGo("\(reason); the compositor cancelled it")
+                return
+            }
+            var allPresented = true
+            for drawable in drawables {
+                if let anchor = lastValidDeviceAnchor {
+                    drawable.deviceAnchor = anchor
+                }
+                allPresented = presentCleared(drawable) && allPresented
+            }
+            guard allPresented else {
+                noteFrameLetGo("\(reason); a drawable could not be presented, no command buffer")
+                return
+            }
+            frame.endSubmission()
+            framesEnded += 1
+            framesEndedUndrawn += 1
+            print("XR [\(GPUSubmissionGate.logTimestamp())]: a frame was ended undrawn, \(reason); \(frameAccount())")
         }
 
         /// Whether the scene is drawn into a drawable. The built-in display always; another
@@ -842,8 +894,9 @@
         /// Presents a drawable with its colour cleared (the immersion mode's alpha) and its depth
         /// cleared, without drawing the scene: the compositor wants every drawable it handed out
         /// presented.
-        private func presentCleared(_ drawable: LayerRenderer.Drawable) {
-            guard let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() else { return }
+        /// Returns whether the drawable was presented (false without a command buffer).
+        private func presentCleared(_ drawable: LayerRenderer.Drawable) -> Bool {
+            guard let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() else { return false }
             commandBuffer.label = "XR Cleared Drawable"
             for viewIndex in drawable.views.indices
                 where viewIndex < drawable.colorTextures.count && viewIndex < drawable.depthTextures.count
@@ -865,6 +918,7 @@
             drawable.encodePresent(commandBuffer: commandBuffer)
             commandBuffer.commit()
             GPUSubmissionGate.shared.noteCommitted(commandBuffer)
+            return true
         }
 
         private func updateSpatialInputState() {
@@ -1001,7 +1055,9 @@
             return XRFoveationFrame(rateMap: rateMap, viewport: screenViewport, rateMapData: data)
         }
 
-        func executeXRSystemPass(frame _: LayerRenderer.Frame, drawable: LayerRenderer.Drawable, loading: Bool, primary: Bool = true) {
+        /// Returns whether the drawable was presented: false when no command buffer could be
+        /// made or there is no renderer, and the frame then cannot be ended.
+        func executeXRSystemPass(frame _: LayerRenderer.Frame, drawable: LayerRenderer.Drawable, loading: Bool, primary: Bool = true) -> Bool {
             TemporalAntiAliasing.shared.historyUpdatesEnabled = primary
             defer { TemporalAntiAliasing.shared.historyUpdatesEnabled = true }
             if !loggedDepthSetup, let depthTexture = drawable.depthTextures.first {
@@ -1036,7 +1092,7 @@
             guard let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() else {
                 // Failed to create command buffer - release semaphore
                 commandBufferSemaphore.signal()
-                return
+                return false
             }
             GPUPassTiming.shared.beginFrame(device: renderInfo.device)
             #if ENGINE_STATS_ENABLED
@@ -1129,7 +1185,7 @@
                 guard let renderer else {
                     // Early return - signal semaphore
                     commandBufferSemaphore.signal()
-                    return
+                    return false
                 }
 
                 renderInfo.currentEye = viewIndex
@@ -1193,6 +1249,7 @@
                     snapshot.timing.renderTotalMs += renderTotalMs
                 }
             #endif
+            return true
         }
 
         /// Extracts the headset world position from the device anchor and pushes it into the
