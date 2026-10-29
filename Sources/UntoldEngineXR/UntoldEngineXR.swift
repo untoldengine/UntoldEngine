@@ -581,10 +581,12 @@
                         // The compositor shows nothing of this layer (the space hidden, the
                         // headset off): the loop waits for it to run again, and the frame
                         // after the pause lets no time pass.
-                        let pausedAt = CACurrentMediaTime()
+                        // Wall-clock time: the media clock stops while the device sleeps with
+                        // the headset off, and said 4 s for a pause of 12.
+                        let pausedAt = Date()
                         print("XR [\(GPUSubmissionGate.logTimestamp())]: the layer is paused; the loop waits for it to run again; \(frameAccount())")
                         layerRenderer.waitUntilRunning()
-                        print("XR [\(GPUSubmissionGate.logTimestamp())]: the layer runs again after \(String(format: "%.1f", CACurrentMediaTime() - pausedAt)) s; \(frameAccount())")
+                        print("XR [\(GPUSubmissionGate.logTimestamp())]: the layer runs again after \(String(format: "%.1f", Date().timeIntervalSince(pausedAt))) s; \(frameAccount())")
                         renderer?.resetFrameTiming()
 
                     case .running:
