@@ -37,7 +37,7 @@ public enum SimulationStepping: Sendable, Equatable {
 /// accumulator carries to the next frame — from the stepping mode, the frame's delta and the
 /// value carried in. Pure, so the policy is tested without a frame: `updateSimulationSteps`
 /// asks for a plan and runs it.
-struct SimulationStepPlan: Equatable, Sendable {
+struct SimulationStepPlan: Equatable {
     /// The most steps one frame runs in either mode: the fixed loop's catch-up clamp, and the
     /// per-frame mode's bound on how finely a long frame is divided.
     static let maxSteps = 5
