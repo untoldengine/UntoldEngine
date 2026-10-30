@@ -148,6 +148,7 @@ func UpdateRenderingSystem(in view: MTKView) {
             let submitStart = CACurrentMediaTime()
         #endif
         commandBuffer.commit()
+        GPUSubmissionGate.shared.noteCommitted(commandBuffer)
         #if ENGINE_STATS_ENABLED
             let submitMs = (CACurrentMediaTime() - submitStart) * 1000.0
             let renderTotalMs = (CACurrentMediaTime() - renderTotalStart) * 1000.0

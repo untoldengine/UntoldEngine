@@ -192,6 +192,11 @@ public final class NativeTextureLoader: @unchecked Sendable {
             throw NativeTexLoadError.unsupportedPixelFormat(header.pixelFormat)
         }
 
+        // An app inactive or in the background is refused the upload: wait for the GPU to be
+        // allowed again rather than lose the texture (the main thread does not wait: no upload).
+        guard GPUSubmissionGate.shared.waitUntilOpen() else {
+            throw NativeTexLoadError.gpuPaused
+        }
         guard let commandBuffer = commandQueue.makeCommandBuffer(),
               let blitEncoder = commandBuffer.makeBlitCommandEncoder()
         else {
@@ -262,6 +267,9 @@ public enum NativeTexLoadError: Error, Sendable {
     case pixelFormatNotSupported(MTLPixelFormat)
     case textureAllocationFailed
     case commandEncoderCreationFailed
+    /// GPU work is paused (the app inactive or in the background) and the caller, on the main
+    /// thread, cannot wait for it.
+    case gpuPaused
     case mipPayloadOutOfBounds(mipIndex: Int, offset: Int, size: Int, fileSize: Int)
     case stagingBufferAllocationFailed(mipIndex: Int)
     case gpuUploadFailed(Error)

@@ -341,6 +341,13 @@ public func generateHDR(_ hdrName: String, from directory: URL? = nil) {
 
         // If the environment was properly loaded, then mip-map it
 
+        // An app inactive or in the background is refused the bake: wait for the GPU to be
+        // allowed again rather than lose the environment. The main thread does not wait: the
+        // textures stay as loaded, with their first level only, and the IBL is not built.
+        guard GPUSubmissionGate.shared.waitUntilOpen() else {
+            iblSuccessful = false
+            return
+        }
         guard let envMipMapCommandBuffer: MTLCommandBuffer = renderInfo.commandQueue.makeCommandBuffer()
         else {
             handleError(.iblMipMapCreationFailed)

@@ -692,6 +692,11 @@ enum GaussianChunkLoader {
         }
         encodedSplatBuffer.label = "Gaussian Encoded Splats"
 
+        // An app inactive or in the background is refused the decode: wait for the GPU to be
+        // allowed again rather than lose the chunk (the main thread does not wait: no decode).
+        guard GPUSubmissionGate.shared.waitUntilOpen() else {
+            throw GaussianChunkLoadError.gpuDecodeFailed("GPU work is paused while the app is inactive or in the background")
+        }
         guard let commandBuffer = commandQueue.makeCommandBuffer(),
               let encoder = commandBuffer.makeComputeCommandEncoder()
         else {
