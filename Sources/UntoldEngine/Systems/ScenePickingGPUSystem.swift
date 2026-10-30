@@ -192,8 +192,8 @@ private func scenePickingNewAccelerationStructure(
         return nil
     }
 
-    GPUSubmissionGate.shared.waitUntilOpen()
-    guard let commandBuffer = renderInfo.commandQueue.makeCommandBuffer(),
+    guard GPUSubmissionGate.shared.waitUntilOpen(),
+          let commandBuffer = renderInfo.commandQueue.makeCommandBuffer(),
           let commandEncoder = commandBuffer.makeAccelerationStructureCommandEncoder()
     else {
         return nil
@@ -796,8 +796,8 @@ func pickEntityGPUWithCandidates(
         return nil
     }
 
-    GPUSubmissionGate.shared.waitUntilOpen()
-    guard let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() else { return nil }
+    guard GPUSubmissionGate.shared.waitUntilOpen(),
+          let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() else { return nil }
     guard let computeEncoder = commandBuffer.makeComputeCommandEncoder() else { return nil }
     computeEncoder.label = "Scene Picking Octree+GPU Ray Hit pass"
     computeEncoder.setComputePipelineState(pipelineState)
@@ -874,8 +874,8 @@ func pickEntityGPU(
         scenePickingAsyncQueryCommandBuffer = nil
     }
 
-    GPUSubmissionGate.shared.waitUntilOpen()
-    guard let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() else { return .error }
+    guard GPUSubmissionGate.shared.waitUntilOpen(),
+          let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() else { return .error }
 
     guard scenePickingExecuteRayVsModelHit(
         commandBuffer,

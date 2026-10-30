@@ -46,6 +46,9 @@ public enum MLDeformerBakeError: Error, Equatable {
     case noClips
     case noMetalDevice
     case kernelsUnavailable
+    /// GPU work is paused (the app inactive or in the background) and the bake, on the main
+    /// thread, cannot wait for it.
+    case gpuPaused
     case io(String)
 }
 
@@ -158,8 +161,11 @@ public enum MLDeformerBaker {
                     }
 
                     // An app inactive or in the background is refused the frame's work: wait
-                    // for the GPU to be allowed again.
-                    GPUSubmissionGate.shared.waitUntilOpen()
+                    // for the GPU to be allowed again. The main thread does not wait, and a
+                    // frame cannot be skipped without corrupting the bake: the bake is aborted.
+                    guard GPUSubmissionGate.shared.waitUntilOpen() else {
+                        throw MLDeformerBakeError.gpuPaused
+                    }
                     guard let commandBuffer = queue.makeCommandBuffer(),
                           let encoder = commandBuffer.makeComputeCommandEncoder()
                     else { throw MLDeformerBakeError.noMetalDevice }

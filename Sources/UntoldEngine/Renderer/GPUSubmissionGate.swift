@@ -115,9 +115,8 @@ public final class GPUSubmissionGate: @unchecked Sendable {
 
     /// Blocks the calling thread until the gate is open, or until `timeout` seconds have passed
     /// (nil: as long as it takes), and returns whether it is open. The main thread never waits:
-    /// the gate is opened from it, so there the call returns at once and the caller goes on,
-    /// which is logged once per site and pause.
-    @discardableResult
+    /// the gate is opened from it, so there the call returns `false` at once, logged once per
+    /// site and pause, and the caller must skip its submission rather than commit it.
     public func waitUntilOpen(timeout: TimeInterval? = nil, file: StaticString = #fileID, line: UInt = #line) -> Bool {
         condition.lock()
         defer { condition.unlock() }
