@@ -192,6 +192,64 @@ vertex VertexOutModel vertexModelShader(
 }
 
 
+// Instanced model draws: entities that draw the same meshes with the same materials are
+// encoded as one draw. Each instance reads what is its own (ModelInstanceUniform) from a
+// buffer the pass writes once; `uniforms` carries only what the pass shares (projection,
+// view, camera, and the view-projections of this frame and the previous one for the
+// velocity). Meshes drawn this way have no skeleton, so the stage takes only the four
+// streams every mesh has. The stage hands the fragment stage the same VertexOutModel as
+// vertexModelShader, computed by the same arithmetic, and the pipeline's fragment function
+// is fragmentModelShader itself: an entity shades the same whichever way it is drawn, to
+// the last bits of what two compilations of the same arithmetic compute.
+typedef struct {
+    float4 position [[attribute(modelPassVerticesIndex)]];
+    float4 normals [[attribute(modelPassNormalIndex)]];
+    float2 uv [[attribute(modelPassUVIndex)]];
+    float4 tangent [[attribute(modelPassTangentIndex)]];
+} VertexInModelInstanced;
+
+vertex VertexOutModel vertexModelInstancedShader(
+    VertexInModelInstanced in [[stage_in]],
+    constant Uniforms &uniforms [[buffer(modelPassUniformIndex)]],
+    const device ModelInstanceUniform *instances [[buffer(modelPassInstanceIndex)]],
+    uint instanceId [[instance_id]]
+) {
+    const device ModelInstanceUniform &instance = instances[instanceId];
+
+    VertexOutModel out;
+
+    float4 position = in.position;
+    float4 normals = in.normals;
+
+    float4 worldPosition = instance.modelMatrix * position;
+    out.worldPosition = worldPosition.xyz;
+    out.position = uniforms.projectionMatrix * instance.modelViewMatrix * position;
+    out.uvCoords = in.uv;
+    // See vertexModelShader: where the vertex is this frame and was the previous one, for
+    // the velocity. The pass's uniforms carry the two view-projections, the record where
+    // the instance was drawn the previous frame.
+    float4 currentClip = uniforms.unjitteredViewProjectionMatrix * worldPosition;
+    float4 prevClip = uniforms.prevViewProjectionMatrix * instance.prevModelMatrix * position;
+    out.currentClipXYW = currentClip.xyw;
+    out.prevClipXYW = prevClip.xyw;
+
+    // See vertexModelShader: tangents take the model matrix's linear part, normals the
+    // inverse-transpose.
+    float3x3 modelLinear = float3x3(
+        instance.modelMatrix.columns[0].xyz,
+        instance.modelMatrix.columns[1].xyz,
+        instance.modelMatrix.columns[2].xyz
+    );
+    simd_float3 T = normalize(modelLinear * in.tangent.xyz);
+    simd_float3 N = normalize(instance.normalMatrix * normals.xyz);
+
+    out.tangent = float4(T, in.tangent.w);
+    out.tbNormal = N;
+
+    return out;
+}
+
+
 // Depth-only occluder shell of a mesh (MeshOccluderComponent): the same vertex streams and
 // skinning as vertexModelShader, but every vertex is pushed `shrinkMeters` along its world-space
 // normal, away from the camera, so the shell sits just behind the surface the camera sees.

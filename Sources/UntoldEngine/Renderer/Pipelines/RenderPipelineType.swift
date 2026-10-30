@@ -24,10 +24,17 @@ public extension RenderPipelineType {
     static let grid: RenderPipelineType = "grid"
     static let sky: RenderPipelineType = "sky"
     static let shadow: RenderPipelineType = "shadow"
+    /// The shadow pipeline for instanced draws: casters that share their meshes, one draw.
+    static let shadowInstanced: RenderPipelineType = "shadowInstanced"
     static let model: RenderPipelineType = "model"
     /// The model pipeline compiled without fragment discards, for the opaque draws that never
     /// need them: the GPU resolves visibility before shading them.
     static let modelOpaque: RenderPipelineType = "modelOpaque"
+    /// The model pipeline for instanced draws: entities that share their meshes and
+    /// materials, one draw.
+    static let modelInstanced: RenderPipelineType = "modelInstanced"
+    /// The instanced model pipeline compiled without fragment discards, as `modelOpaque`.
+    static let modelInstancedOpaque: RenderPipelineType = "modelInstancedOpaque"
     static let light: RenderPipelineType = "light"
     /// The TBDR light pass as a tile stage: lights each pixel once per colour it holds.
     static let lightTile: RenderPipelineType = "lightTile"

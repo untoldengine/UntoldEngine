@@ -361,6 +361,24 @@ public func InitShadowPipeline() -> RenderPipeline? {
     )
 }
 
+/// The shadow pipeline of instanced draws (see `InstancedDrawList`): the depth state of
+/// `InitShadowPipeline`, a vertex stage that reads each instance's model matrix from a
+/// buffer and takes the position stream alone. Nil on a device that cannot draw that
+/// way (`InstancedDrawing.isSupported(by:)`): the pass then draws caster by caster.
+public func InitShadowInstancedPipeline() -> RenderPipeline? {
+    guard let device = renderInfo.device, InstancedDrawing.isSupported(by: device) else { return nil }
+    return CreatePipeline(
+        vertexShader: "vertexShadowInstancedShader",
+        fragmentShader: nil,
+        vertexDescriptor: createShadowInstancedVertexDescriptor(),
+        colorFormats: [.invalid],
+        depthFormat: renderInfo.depthPixelFormat,
+        depthCompareFunction: MTLCompareFunction.less,
+        reverseZCompatible: false,
+        name: "Shadow Instanced Pipeline"
+    )
+}
+
 // MARK: Model pipeline
 
 private var wf: WorkingColorFormats {
@@ -384,7 +402,30 @@ public func InitModelOpaquePipeline() -> RenderPipeline? {
     makeModelPipeline(mayDiscard: false, name: "Model Pipeline (opaque)")
 }
 
-private func makeModelPipeline(mayDiscard: Bool, name: String) -> RenderPipeline? {
+/// The model pipeline of instanced draws (see `InstancedDrawList`): the attachments, the
+/// depth state, the function constants and the fragment function of `InitModelPipeline`
+/// itself, so a group shades as a single draw does on every render path (deferred, hybrid,
+/// forward); a vertex stage that reads each instance's transform from a
+/// buffer, and the four vertex streams every mesh has. Nil on a device that cannot draw
+/// that way (`InstancedDrawing.isSupported(by:)`): the pass then draws entity by entity.
+public func InitModelInstancedPipeline() -> RenderPipeline? {
+    guard let device = renderInfo.device, InstancedDrawing.isSupported(by: device) else { return nil }
+    return makeModelPipeline(instanced: true, mayDiscard: true, name: "Model Instanced Pipeline")
+}
+
+/// The instanced model pipeline compiled without the discards, as `InitModelOpaquePipeline`:
+/// the pass picks it for the groups whose material never needs them.
+public func InitModelInstancedOpaquePipeline() -> RenderPipeline? {
+    guard let device = renderInfo.device, InstancedDrawing.isSupported(by: device) else { return nil }
+    return makeModelPipeline(instanced: true, mayDiscard: false, name: "Model Instanced Pipeline (opaque)")
+}
+
+private func makeModelPipeline(instanced: Bool = false, mayDiscard: Bool, name: String) -> RenderPipeline? {
+    let vertexShader = instanced ? "vertexModelInstancedShader" : "vertexModelShader"
+    // One fragment function for both: a second compilation of the same stage would differ
+    // from the first in the last bits it computes, and a group is to shade as a single
+    // draw does.
+    let fragmentShader = "fragmentModelShader"
     let indirectInGBuffer = renderInfo.perFragmentIndirectLighting
     let litInGBuffer = renderInfo.perFragmentLightingWanted
     renderInfo.perFragmentIndirectLightingBuilt = indirectInGBuffer
@@ -393,8 +434,8 @@ private func makeModelPipeline(mayDiscard: Bool, name: String) -> RenderPipeline
         handleError(.metalLibraryNotFound)
         return nil
     }
-    guard let vertexFunction = library.makeFunction(name: "vertexModelShader") else {
-        handleError(.shaderCreationFailed, "vertexModelShader")
+    guard let vertexFunction = library.makeFunction(name: vertexShader) else {
+        handleError(.shaderCreationFailed, vertexShader)
         return nil
     }
     let constants = MTLFunctionConstantValues()
@@ -406,9 +447,9 @@ private func makeModelPipeline(mayDiscard: Bool, name: String) -> RenderPipeline
     constants.setConstantValue(&litValue, type: .bool, index: Int(modelFunctionConstantLitInGBuffer.rawValue))
     let fragmentFunction: MTLFunction
     do {
-        fragmentFunction = try library.makeFunction(name: "fragmentModelShader", constantValues: constants)
+        fragmentFunction = try library.makeFunction(name: fragmentShader, constantValues: constants)
     } catch {
-        handleError(.shaderCreationFailed, "fragmentModelShader (\(name)): \(error.localizedDescription)")
+        handleError(.shaderCreationFailed, "\(fragmentShader) (\(name)): \(error.localizedDescription)")
         return nil
     }
 
@@ -416,7 +457,7 @@ private func makeModelPipeline(mayDiscard: Bool, name: String) -> RenderPipeline
     desc.label = name
     desc.vertexFunction = vertexFunction
     desc.fragmentFunction = fragmentFunction
-    desc.vertexDescriptor = createModelVertexDescriptor()
+    desc.vertexDescriptor = instanced ? createModelInstancedVertexDescriptor() : createModelVertexDescriptor()
     desc.depthAttachmentPixelFormat = renderInfo.depthPixelFormat
     desc.rasterSampleCount = max(1, renderInfo.opaqueSampleCount)
 
@@ -1261,8 +1302,11 @@ public func DefaultPipeLines() -> [(RenderPipelineType, RenderPipelineInitBlock)
         (.grid, InitGridPipeline),
         (.sky, InitSkyPipeline),
         (.shadow, InitShadowPipeline),
+        (.shadowInstanced, InitShadowInstancedPipeline),
         (.model, InitModelPipeline),
         (.modelOpaque, InitModelOpaquePipeline),
+        (.modelInstanced, InitModelInstancedPipeline),
+        (.modelInstancedOpaque, InitModelInstancedOpaquePipeline),
         (.light, InitLightPipeline),
         (.lightTile, InitLightTilePipeline),
         (.geometry, InitGeometryPipeline),

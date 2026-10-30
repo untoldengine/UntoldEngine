@@ -25,6 +25,11 @@ public enum RenderPasses {
     /// Set to 0 to disable distance culling. Default: 40 world units.
     public nonisolated(unsafe) static var maxShadowCastingDistance: Float = 40.0
 
+    /// What the most recent opaque pass drew instanced, and what the cascades of the most
+    /// recent shadow pass did together. Written by the passes (render thread).
+    nonisolated(unsafe) static var lastOpaqueInstancedDrawCounts = InstancedDrawCounts()
+    nonisolated(unsafe) static var lastShadowInstancedDrawCounts = InstancedDrawCounts()
+
     private static let runtimeState = RuntimeState()
     private static let lodDebugPalette: [simd_float3] = [
         simd_float3(1.0, 0.0, 0.0), // LOD0 = red
@@ -85,6 +90,30 @@ public enum RenderPasses {
         /// not on every cascade call.
         var shadowEntityCandidates: [EntityID] = []
         var shadowCacheDirty: Bool = true
+        /// The instanced draws of the opaque pass and of the shadow cascades, kept
+        /// between frames for their storage. A pass takes its list out and puts it back
+        /// empty: see `takeInstancedDrawList`.
+        var opaqueInstancedDraws = InstancedDrawList()
+        var shadowInstancedDraws = InstancedDrawList()
+    }
+
+    /// Takes the instanced draw list a pass fills, leaving an empty one in its place so
+    /// that the pass is the only owner of the storage while it works on it.
+    private static func takeInstancedDrawList(_ list: ReferenceWritableKeyPath<RuntimeState, InstancedDrawList>) -> InstancedDrawList {
+        runtimeState.lock.lock()
+        defer { runtimeState.lock.unlock() }
+        let taken = runtimeState[keyPath: list]
+        runtimeState[keyPath: list] = InstancedDrawList()
+        return taken
+    }
+
+    /// Puts a pass's instanced draw list back, emptied: its storage serves the next
+    /// frame, and it lets go of the components it grouped.
+    private static func putBackInstancedDrawList(_ draws: inout InstancedDrawList, _ list: ReferenceWritableKeyPath<RuntimeState, InstancedDrawList>) {
+        draws.removeAll()
+        runtimeState.lock.lock()
+        defer { runtimeState.lock.unlock() }
+        runtimeState[keyPath: list] = draws
     }
 
     @inline(__always)
@@ -353,7 +382,7 @@ public enum RenderPasses {
     /// material, neither masked nor blended, with no dither fade running — and so goes through
     /// the model pipeline compiled without discards.
     @inline(__always)
-    private static func modelDrawNeverDiscards(_ parameters: MaterialParametersUniform) -> Bool {
+    static func modelDrawNeverDiscards(_ parameters: MaterialParametersUniform) -> Bool {
         parameters.alphaMode == 0 && parameters.lodDither.y <= 0.5
     }
 
@@ -977,16 +1006,49 @@ public enum RenderPasses {
         return computed
     }
 
+    /// The parameter block of `material` for a draw of the opaque pass: what the material
+    /// says, before anything the entity adds to it (the opacity of a ghost channel, a
+    /// dither, a debug colour). An instanced draw sends exactly this, so a value added to
+    /// `MaterialParametersUniform` and filled here reaches both ways of drawing; add it to
+    /// `MeshListDescription` too, which decides whether two materials are the same.
+    /// (`RenderInstanceKeyTests` fails until it is.)
+    @inline(__always)
+    static func opaqueMaterialParameters(of material: borrowing Material) -> MaterialParametersUniform {
+        var materialParameters = MaterialParametersUniform()
+        materialParameters.specular = material.specular
+        materialParameters.specularTint = material.specularTint
+        materialParameters.subsurface = material.subsurface
+        materialParameters.anisotropic = material.anisotropic
+        materialParameters.sheen = material.sheen
+        materialParameters.sheenTint = material.sheenTint
+        materialParameters.clearCoat = material.clearCoat
+        materialParameters.clearCoatGloss = material.clearCoatGloss
+        materialParameters.baseColor = material.baseColorValue
+        materialParameters.roughness = material.roughnessValue
+        materialParameters.metallic = material.metallicValue
+        materialParameters.ior = material.ior
+        materialParameters.edgeTint = material.edgeTint
+        materialParameters.alphaCutoff = material.alphaCutoff
+        materialParameters.alphaMode = Int32(material.alphaMode.rawValue)
+        materialParameters.interactWithLight = material.interactWithLight
+        materialParameters.emmissive = material.emissiveValue
+        applyMaterialTextureState(material: material, materialParameters: &materialParameters)
+        return materialParameters
+    }
+
     @inline(__always)
     private static func applyMaterialTextureState(
-        material: Material,
+        material: borrowing Material,
         materialParameters: inout MaterialParametersUniform
     ) {
+        // Read apart: `&&` would capture the borrowed material in its closure.
+        let hasHeightMap = material.hasHeightMap
+        let heightEnabled = material.heightEnabled
         materialParameters.hasTexture = simd_int4(
             Int32(material.hasBaseMap ? 1 : 0),
             Int32(material.hasRoughMap ? 1 : 0),
             Int32(material.hasMetalMap ? 1 : 0),
-            Int32((material.hasHeightMap && material.heightEnabled) ? 1 : 0)
+            Int32((hasHeightMap && heightEnabled) ? 1 : 0)
         )
         materialParameters.textureChannels = simd_int4(
             Int32(material.roughnessChannel.rawValue),
@@ -1414,6 +1476,16 @@ public enum RenderPasses {
         let cameraPosition = shadingCameraPosition(cameraComponent)
         let projectionMatrix = renderInfo.perspectiveSpace
 
+        // The casters whose vertices are not their own (no skeleton, no deformation) are
+        // gathered per cascade and encoded together, one draw for all those that share
+        // their meshes.
+        let instancedPipeline = instancedPipeline(.shadowInstanced, beside: shadowPipeline)
+        let instanceKeyGeneration = instancedPipeline == nil ? 0 : RenderInstanceKeyTable.shared.beginPass()
+        var instancedDraws = takeInstancedDrawList(\.shadowInstancedDraws)
+        defer { putBackInstancedDrawList(&instancedDraws, \.shadowInstancedDraws) }
+        var instancedCounts = InstancedDrawCounts()
+        defer { lastShadowInstancedDrawCounts = instancedCounts }
+
         // Render each cascade into its own depth array slice.
         for cascadeIdx in 0 ..< csmCascadeCount {
             guard cascadeIdx < renderInfo.csmRenderPassDescriptors.count else { break }
@@ -1453,6 +1525,14 @@ public enum RenderPasses {
                 let deformation = sceneSnapshot.deformation(of: caster.entity)
                 let hasSkeleton = caster.entity.traits.contains(.skeleton)
 
+                if instancedPipeline != nil, deformation == nil, !hasSkeleton {
+                    let keyID = instanceKeyID(of: caster.components.render, generation: instanceKeyGeneration)
+                    if keyID >= 0 {
+                        instancedDraws.add(keyID: keyID, component: caster.components.render, space: transformComponent.space)
+                        continue
+                    }
+                }
+
                 for mesh in caster.components.render.mesh {
                     var modelUniforms = Uniforms()
                     var modelMatrix = simd_mul(transformComponent.space, mesh.localSpace)
@@ -1485,6 +1565,19 @@ public enum RenderPasses {
                         )
                     }
                 }
+            }
+
+            if let instancedPipeline {
+                let counts = encodeInstancedShadowDraws(
+                    &instancedDraws,
+                    pipeline: instancedPipeline,
+                    renderEncoder: renderEncoder,
+                    commandBuffer: commandBuffer
+                )
+                instancedCounts.groups += counts.groups
+                instancedCounts.instances += counts.instances
+                instancedCounts.draws += counts.draws
+                instancedDraws.removeAll()
             }
 
             renderEncoder.updateFence(renderInfo.fence, after: .fragment)
@@ -2532,6 +2625,21 @@ public enum RenderPasses {
             renderEncoder.setFragmentTexture(textureResources.spotShadowMap, index: Int(modelPassSpotShadowTextureIndex.rawValue))
         }
 
+        // The entities that draw nothing of their own are gathered and encoded together
+        // in sub-pass 1c, one draw for all those that share their meshes and materials.
+        // A debug colouring gives every entity its own colour, so it draws them one by one.
+        let instancedPipeline = (pass.colorsByLOD || pass.colorsByStreamingTier)
+            ? nil
+            : instancedPipeline(.modelInstanced, beside: modelPipeline)
+        // Its counterpart without the discards, for the groups whose material never needs
+        // them, when the single draws have theirs.
+        let plainInstancedPipeline: RenderPipeline? = (instancedPipeline == nil || plainModelPipeline == nil)
+            ? nil
+            : Self.instancedPipeline(.modelInstancedOpaque, beside: modelPipeline)
+        let instanceKeyGeneration = instancedPipeline == nil ? 0 : RenderInstanceKeyTable.shared.beginPass()
+        var instancedDraws = takeInstancedDrawList(\.opaqueInstancedDraws)
+        defer { putBackInstancedDrawList(&instancedDraws, \.opaqueInstancedDraws) }
+
         // ── Sub-pass 1: Unbatched geometry ──────────────────────────────────────
         renderEncoder.setRenderPipelineState(modelPipeline.pipelineState!)
         renderEncoder.setDepthStencilState(modelPipeline.depthState)
@@ -2565,6 +2673,30 @@ public enum RenderPasses {
 
             // The entity's meshes, or its outgoing and incoming levels while a LOD fade runs.
             let fadeDraws = lodFadeDraws(lod: fadingLOD, renderComponent: renderComponent)
+
+            // Nothing of this draw is the entity's own but its transform: it joins the
+            // entities that draw the same meshes (sub-pass 1c).
+            if instancedPipeline != nil,
+               fadeDraws == nil,
+               deformation == nil,
+               !hasSkeleton,
+               tileRepresentationFade == nil,
+               meshFade == nil
+            {
+                let keyID = instanceKeyID(of: renderComponent, generation: instanceKeyGeneration)
+                if keyID >= 0 {
+                    instancedDraws.add(
+                        keyID: keyID,
+                        component: renderComponent,
+                        space: worldTransformComponent.space,
+                        // Where the entity was the previous frame, for the velocity.
+                        previousSpace: ObjectMotion.shared.previousWorldTransform(of: entityId, current: worldTransformComponent.space),
+                        passthroughAlpha: passthroughAlpha
+                    )
+                    continue
+                }
+            }
+
             for drawIndex in 0 ..< (fadeDraws?.count ?? 1) {
                 let lodDraw = fadeDraws?[drawIndex] ?? LODDitherDraw(meshes: renderComponent.mesh, threshold: 1.0, mode: 0.0)
                 for mesh in lodDraw.meshes {
@@ -2611,26 +2743,8 @@ public enum RenderPasses {
                         var normalIsPackedXY = material.normalIsPackedXY
                         renderEncoder.setFragmentBytes(&normalIsPackedXY, length: MemoryLayout<Bool>.stride, index: Int(modelPassFragmentNormalIsPackedXYIndex.rawValue))
 
-                        var materialParameters = MaterialParametersUniform()
-                        materialParameters.specular = material.specular
-                        materialParameters.specularTint = material.specularTint
-                        materialParameters.subsurface = material.subsurface
-                        materialParameters.anisotropic = material.anisotropic
-                        materialParameters.sheen = material.sheen
-                        materialParameters.sheenTint = material.sheenTint
-                        materialParameters.clearCoat = material.clearCoat
-                        materialParameters.clearCoatGloss = material.clearCoatGloss
-                        materialParameters.baseColor = material.baseColorValue
-                        materialParameters.roughness = material.roughnessValue
-                        materialParameters.metallic = material.metallicValue
-                        materialParameters.ior = material.ior
-                        materialParameters.edgeTint = material.edgeTint
-                        materialParameters.alphaCutoff = material.alphaCutoff
+                        var materialParameters = opaqueMaterialParameters(of: material)
                         materialParameters.passthroughAlpha = passthroughAlpha
-                        materialParameters.alphaMode = Int32(material.alphaMode.rawValue)
-                        materialParameters.interactWithLight = material.interactWithLight
-                        materialParameters.emmissive = material.emissiveValue
-                        applyMaterialTextureState(material: material, materialParameters: &materialParameters)
                         if pass.colorsByLOD {
                             applyLODDebugColorOverride(entityId: entityId, materialParameters: &materialParameters)
                         }
@@ -2775,6 +2889,25 @@ public enum RenderPasses {
                     )
                 }
             }
+        }
+
+        // ── Sub-pass 1c: Instanced geometry ─────────────────────────────────────
+        if let instancedPipeline {
+            lastOpaqueInstancedDrawCounts = encodeInstancedOpaqueDraws(
+                &instancedDraws,
+                pipeline: instancedPipeline,
+                plainPipeline: plainInstancedPipeline,
+                renderEncoder: renderEncoder,
+                commandBuffer: commandBuffer,
+                viewMatrix: viewMatrix,
+                projectionMatrix: pass.projectionMatrix,
+                cameraPosition: pass.cameraPosition,
+                unjitteredViewProjection: pass.unjitteredViewProjection,
+                prevViewProjection: pass.prevViewProjection,
+                pomQuality: pass.pomQuality
+            )
+        } else {
+            lastOpaqueInstancedDrawCounts = InstancedDrawCounts()
         }
 
         // ── Sub-pass 2: Lighting quad ────────────────────────────────────────────

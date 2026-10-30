@@ -97,6 +97,17 @@ setRendering(.foveatedRendering(.disabled))
 getFoveatedRenderingEnabled()
 ```
 
+Entities that draw the same meshes with the same materials are encoded as one instanced draw, in
+the opaque pass and in the shadow cascades: a scene that places a model many times costs a draw
+per model, not per placement. Nothing has to be set up for it. An entity whose material is
+edited, or that is fading, skinned or deformed, is drawn on its own. The picture is the same
+either way; turn it off to compare, or to rule it out while tracking down a problem:
+
+```swift
+setRendering(.instancedDraws(.disabled))
+getInstancedDrawsEnabled()
+```
+
 ## PostFX
 
 Use `setPostFX` for individual post-processing and SSAO settings:
