@@ -204,6 +204,39 @@ final class AnimationReachChainTargetTests: XCTestCase {
         XCTAssertLessThan(elbow.z, -0.05, "the elbow bowed toward the centimetre of noise instead of the configured -Z: \(elbow)")
     }
 
+    /// A fully folded arm puts the hand on the shoulder, so there is no
+    /// shoulder-to-hand line to measure the elbow against. The solver has
+    /// nothing to bend about either and leaves the pose alone, but the
+    /// reach must not hand it NaN on the way.
+    func testAFoldedArmLeavesThePoseFinite() {
+        let down = simd_float3(0, -0.3, 0)
+        let localTranslations = [simd_float3(0, 0, 0), leftShoulder, down, -down, rightShoulder, down, down]
+        let identity = SIMD4<Float>(0, 0, 0, 1)
+        let channels = jointPaths.enumerated().map { index, path in
+            RuntimeAnimationChannel(
+                jointPath: path,
+                translations: [.init(time: 0.0, value: localTranslations[index]), .init(time: 1.0, value: localTranslations[index])],
+                rotations: [.init(time: 0.0, value: identity), .init(time: 1.0, value: identity)]
+            )
+        }
+        animationComponent.animationClips["folded"] = AnimationClip(
+            runtimeClip: RuntimeAnimationClip(name: "folded", duration: 1.0, channels: channels)
+        )
+        changeAnimation(entityId: entityId, name: "folded", transitionHalflife: 0)
+        setReachIKChainTargets(
+            entityId: entityId,
+            targets: [ReachIKChainTarget(position: simd_float3(0, -0.45, 0), space: .shoulder), nil],
+            halflife: 0
+        )
+        AnimationSystem.shared.update(deltaTime)
+
+        for rotation in animationComponent.localPose.rotations {
+            XCTAssertFalse(rotation.vector.x.isNaN || rotation.vector.y.isNaN || rotation.vector.z.isNaN || rotation.vector.w.isNaN,
+                           "a folded arm put NaN in the pose: \(rotation)")
+        }
+        XCTAssertLessThan(simd_distance(hands().left, leftShoulder), 1e-4, "the folded arm moved although it has no bend plane")
+    }
+
     func testAFullReachStraightensTheChain() {
         setReachIKChainTargets(
             entityId: entityId,
