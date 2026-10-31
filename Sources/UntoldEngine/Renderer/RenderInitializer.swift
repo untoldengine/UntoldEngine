@@ -1298,6 +1298,35 @@ private func iblBakeCacheKey(
     )
 }
 
+/// Caches the most recently baked IBL maps so a later `initIBLResources()` call — e.g. one
+/// triggered by a viewport resize that has nothing to do with the environment — can reuse
+/// them instead of redundantly re-running the synchronous GPU bake. Must be called after any
+/// successful `generateHDR(_:from:)`, including the direct calls made outside
+/// `initIBLResources()` (scene deserialization, the Editor's "Add IBL" button), since those
+/// paths previously left the cache empty and guaranteed a miss on the next resize.
+func cacheIBLBake(hdrName: String, directory: URL?) {
+    guard iblSuccessful,
+          let irradianceMap = textureResources.irradianceMap,
+          let specularMap = textureResources.specularMap,
+          let iblBRDFMap = textureResources.iblBRDFMap,
+          let environmentTexture = textureResources.environmentTexture,
+          let iblEnvironmentTexture = textureResources.iblEnvironmentTexture,
+          let cacheKey = iblBakeCacheKey(
+              hdrName: hdrName, directory: directory, iblSize: 256,
+              pixelFormat: renderInfo.colorPipeline.working.ibl, device: renderInfo.device
+          )
+    else { return }
+
+    iblBakeCacheState.lock.lock()
+    iblBakeCacheState.key = cacheKey
+    iblBakeCacheState.irradianceMap = irradianceMap
+    iblBakeCacheState.specularMap = specularMap
+    iblBakeCacheState.iblBRDFMap = iblBRDFMap
+    iblBakeCacheState.environmentTexture = environmentTexture
+    iblBakeCacheState.iblEnvironmentTexture = iblEnvironmentTexture
+    iblBakeCacheState.lock.unlock()
+}
+
 func initIBLResources() {
     let wf = renderInfo.colorPipeline.working
     // IBL maps are low-frequency lookup textures — fixed small size,
@@ -1410,22 +1439,9 @@ func initIBLResources() {
         zeroFillIBLTexture(textureResources.iblBRDFMap)
     }
 
-    if iblSuccessful, let cacheKey,
-       let irradianceMap = textureResources.irradianceMap,
-       let specularMap = textureResources.specularMap,
-       let iblBRDFMap = textureResources.iblBRDFMap,
-       let environmentTexture = textureResources.environmentTexture,
-       let iblEnvironmentTexture = textureResources.iblEnvironmentTexture
-    {
-        iblBakeCacheState.lock.lock()
-        iblBakeCacheState.key = cacheKey
-        iblBakeCacheState.irradianceMap = irradianceMap
-        iblBakeCacheState.specularMap = specularMap
-        iblBakeCacheState.iblBRDFMap = iblBRDFMap
-        iblBakeCacheState.environmentTexture = environmentTexture
-        iblBakeCacheState.iblEnvironmentTexture = iblEnvironmentTexture
-        iblBakeCacheState.lock.unlock()
-    }
+    // `generateHDR` above already populates `iblBakeCacheState` on success via
+    // `cacheIBLBake`, so the next `initIBLResources()` call (e.g. from a viewport resize)
+    // hits the cache instead of redundantly re-baking.
 }
 
 /// The vertex streams of an instanced shadow draw: the position stream alone, laid out as
