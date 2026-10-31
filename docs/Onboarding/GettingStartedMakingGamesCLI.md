@@ -139,4 +139,4 @@ spinning in place.
 
 If your team is evaluating Untold Engine and needs an engine capability that
 is not currently available, see
-[Commercial Use, Sponsored Features, and Support](../../COMMERCIAL.md).
+[Commercial Use, Sponsored Features, and Support](https://github.com/untoldengine/UntoldEngine/blob/main/COMMERCIAL.md).
