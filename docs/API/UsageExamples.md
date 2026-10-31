@@ -3,7 +3,7 @@
 This page collects common Untold Engine setup patterns in one place. Use it when
 you want a concrete example first, then open the focused API pages for details.
 
-For a broader first project walkthrough, see [Getting Started](GettingStarted.md).
+For a broader first project walkthrough, see [Building Your First Vision Pro Scene](../Onboarding/BuildingYourFirstVisionProScene.md).
 
 ## Create an Entity
 
@@ -372,7 +372,7 @@ final class GameScene {
 
 ## Related Pages
 
-- [Getting Started](GettingStarted.md)
+- [Building Your First Vision Pro Scene](../Onboarding/BuildingYourFirstVisionProScene.md)
 - [Using The Exporter](UsingTheExporter.md)
 - [Using the Registration System](UsingRegistrationSystem.md)
 - [Using Async Loading](UsingAsyncLoading.md)

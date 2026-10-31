@@ -60,7 +60,7 @@ engine APIs so you can use them directly in your own app.
 
 ## Related Documentation
 
-- [Getting Started](../API/GettingStarted.md)
+- [Building Your First Vision Pro Scene](../Onboarding/BuildingYourFirstVisionProScene.md)
 - [Untold Engine CLI](../API/UsingUntoldEngineCLI.md)
 - [Exporter](../API/UsingTheExporter.md)
 - [Usage Examples](../API/UsageExamples.md)

@@ -208,7 +208,7 @@ geometry based on camera distance.
 ## Related Documentation
 
 - [Untold Engine CLI](../API/UsingUntoldEngineCLI.md)
-- [Getting Started](../API/GettingStarted.md)
+- [Building Your First Vision Pro Scene](../Onboarding/BuildingYourFirstVisionProScene.md)
 - [Async Loading](../API/UsingAsyncLoading.md)
 - [Geometry Streaming](../API/UsingGeometryStreamingSystem.md)
 - [Export Assets With The CLI](CLIExporterTutorial.md)
