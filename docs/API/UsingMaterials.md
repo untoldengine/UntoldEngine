@@ -214,6 +214,8 @@ How glass is drawn:
 
 > On a device whose GPU cannot blend with two sources, tinted glass darkens what is behind it by the brightness of its color and does not color it. This is also how the simulator draws it.
 
+A reference scene for glass, six kinds of pane in front of a striped wall with the steps to generate it, render it in Blender and cook it, is in the repository under `scripts/tests/blender/scenes/glass_panes/`.
+
 ---
 
 ## Textures
