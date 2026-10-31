@@ -14,9 +14,7 @@ model authored in Blender:
 
 ![archviz-image](../images/archviz-model.png)
 
-By the end, you will be able to render it in the Vision Pro/Simulator. Click
-the image below for a video.
-[![untoldengine-image](../images/engine-highlight-5.png)](https://vimeo.com/1176995991?fl=ip&fe=ec) 
+By the end, you will be able to render it in the Vision Pro/Simulator. 
 
 If you created your project with a platform other than `visionos`, some
 sections below (XR input, Vision Pro build/run) won't apply directly — the
