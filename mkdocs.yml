@@ -43,7 +43,11 @@ markdown_extensions:
 
 nav:
   - Introduction: index.md
-  - Getting Started: API/GettingStarted.md
+  - Getting Started:
+    - With the Editor: Onboarding/GettingStartedWithEditor.md
+    - Making Games — Editor: Onboarding/GettingStartedMakingGamesEditor.md
+    - Making Games — CLI: Onboarding/GettingStartedMakingGamesCLI.md
+    - Building Your First Vision Pro Scene: Onboarding/BuildingYourFirstVisionProScene.md
   - Tutorials:
     - Overview: Tutorials/index.md
     - Starter Demo: Tutorials/StarterDemo.md
@@ -64,7 +68,6 @@ nav:
     - Performance Diagnostics: Tutorials/PerformanceDiagnosticsTutorial.md
   - Learning Paths:
     - Overview: LearningPaths/index.md
-    - Archviz To Vision Pro: LearningPaths/ArchvizToVisionPro.md
     - Bedroom Digital Twin: LearningPaths/BedroomDigitalTwin.md
     - City Streaming On Vision Pro: LearningPaths/CityStreamingOnVisionPro.md
   - API:

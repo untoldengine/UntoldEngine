@@ -1,5 +1,23 @@
 # Using The Exporter
 
+## What Is `.untold`?
+
+Untold Engine uses `.untold` as its native runtime asset format. You author
+assets in Blender (or any DCC tool that exports USD/USDZ), then convert them
+to `.untold` before loading them in the engine. The exporter accepts either a
+`.blend` file directly or a USD/USDZ asset.
+
+The `.untold` format is a binary container optimised for fast runtime parsing
+with no ModelIO dependency. It supports runtime mesh data, PBR materials,
+texture references, transforms, bounds, and exported animation clips.
+
+`.untold` assets can also carry scene-authored data from Blender, including
+lights, cameras, and an optional baked color-management LUT. Mesh loading
+APIs load geometry and materials; call `loadSceneAuthored(...)` when you want
+the Blender-authored scene lighting, cameras, and color transform too. See
+[Load Blender-Authored Lights, Cameras, and Color Management](UsageExamples.md#load-blender-authored-lights-cameras-and-color-management)
+for the runtime pattern.
+
 UntoldEngine ships global CLI commands for both individual-asset and tiled
 scene exports, plus a repository script wrapper for tiled exports:
 

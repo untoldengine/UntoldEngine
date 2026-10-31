@@ -36,6 +36,10 @@ Untold Engine is an **open-source Swift/Metal XR engine for Apple
 platforms**. It gives you full control over rendering, shaders, physics,
 and input, so you can build your own interactive spatial and XR worlds.
 
+> An engine that empowers creativity and never stands in its way — built to
+> let developers focus on creating, not troubleshooting the tools they
+> depend on.
+
 Creator & Lead Developer:  
 https://www.haroldserrano.com
 
@@ -64,40 +68,6 @@ workflow, product experience, and customer-specific behavior.
 
 ---
 
-## Try the Untold Editor
-
-The Untold Editor is a companion app for building scenes visually — placing
-entities, setting up lighting and cameras, and authoring `.untoldscene` files
-that load straight into your app with `loadUntoldScene(named:)`. It's
-optional — nothing in Untold Engine requires it — but it's the fastest way to
-get a scene on screen without hand-writing setup code.
-
-The Editor is now stable enough for regular use. Grab the latest build from
-the [Releases page](https://github.com/untoldengine/UntoldEditor/releases).
-
-![untold-editor](docs/images/editor-main-highlight.png)
-
----
-
-## Watch It in Action — Apple Vision Pro Demos
-
-| Demo | Description |
-| --- | --- |
-| [CoolSaber](https://github.com/untoldengine/UntoldArcade/tree/main/CoolSaber) | PSVR2-driven lightsaber duels, blades clashing over SharePlay |
-| [CoolWater](https://github.com/untoldengine/UntoldArcade/tree/main/CoolWater) | Real-time animated water with reflection, refraction, and ripples |
-| [CoolCloth](https://github.com/untoldengine/UntoldArcade/tree/main/CoolCloth) | GPU cloth simulation (XPBD) you can punch a ball through |
-| [CoolWeb](https://github.com/untoldengine/UntoldArcade/tree/main/CoolWeb) | Spider-Man web-shooter — gesture-triggered webs that stick to real room geometry |
-| [CoolBasket](https://github.com/untoldengine/UntoldArcade/tree/main/CoolBasket) | Mixed-reality basketball — first demo on the engine's pluggable physics backend seam |
-| [CoolBowling](https://github.com/untoldengine/UntoldArcade/tree/main/CoolBowling) | Mixed-reality bowling with Jolt Physics rigid-body pins you knock down for real |
-| [ImmersiveGol](https://github.com/untoldengine/UntoldArcade/tree/main/ImmersiveGol) | Mixed-reality penalty shootout — save shots from an animated kicker with your tracked hands |
-| [CoolMirror](https://github.com/untoldengine/UntoldArcade/tree/main/CoolMirror) | Virtual mirror — a rigged character mimics your real-world motion via iPhone + headset tracking |
-| [CoolFutbol](https://github.com/untoldengine/UntoldArcade/tree/main/CoolFutbol) | Mixed-reality tabletop soccer controlled with a PSVR2 Sense controller |
-| [Archviz Viewer](https://untoldengine.github.io/UntoldEngine/LearningPaths/ArchvizToVisionPro/) | Blender-authored architectural scene walked through in mixed reality |
-| [Bedroom Digital Twin](https://untoldengine.github.io/UntoldEngine/LearningPaths/BedroomDigitalTwin/) | Tap-to-inspect digital twin bedroom with live mock status data |
-| [City Streaming](https://untoldengine.github.io/UntoldEngine/LearningPaths/CityStreamingOnVisionPro/) | City-scale scene streamed in tile by tile with LOD/HLOD |
-
-Full source for every demo above lives in the [UntoldArcade](https://github.com/untoldengine/UntoldArcade) repo.
-
 ## Requirements
 
 - macOS 26 or newer
@@ -105,17 +75,41 @@ Full source for every demo above lives in the [UntoldArcade](https://github.com/
 - Apple Silicon Mac
 - Supported platforms: macOS, iOS, and visionOS
 
-## Try the Engine Right Now
+---
 
-The best first step is to run the Starter Demo. It is intentionally small and
-shows the basic shape of an Untold Engine app without the extra systems used by
-the larger showcase.
+## Getting Started
+
+### For Game/App Developers
+
+Build your own XR, 3D, or spatial app with Untold Engine as a dependency —
+no need to clone the engine repository. Pick the path that fits how you like
+to work:
+
+- [Getting Started With the Editor](docs/Onboarding/GettingStartedWithEditor.md) —
+  a tour of the Editor's panels, viewport navigation, and selection/gizmo
+  controls, before creating a project.
+- [Getting Started Making Games — Editor](docs/Onboarding/GettingStartedMakingGamesEditor.md) —
+  download the Untold Editor, create a project, place a cube visually, then
+  reference and move it in code. No command line required.
+- [Getting Started Making Games — CLI](docs/Onboarding/GettingStartedMakingGamesCLI.md) —
+  install the `untoldengine` CLI, scaffold a project from the terminal, add
+  a cube via the Editor or straight in code, then reference and move it.
+
+Both guides take you from nothing installed to a running app with a cube you
+can move in code, and end with pointers to the full
+[Building Your First Vision Pro Scene](docs/Onboarding/BuildingYourFirstVisionProScene.md) and the [Tutorials](https://untoldengine.github.io/UntoldEngine/Tutorials/).
+
+If your team is evaluating Untold Engine and needs an engine capability that is
+not currently available, see [Commercial Use, Sponsored Features, and Support](COMMERCIAL.md).
+
+### For Contributors
+
+Fixing bugs, adding engine features, or working on the engine's own source?
+Clone the engine repository itself.
 
 > **Recommendation:** Use the latest stable release instead of the `develop`
 > branch. The `develop` branch is the bleeding-edge version of Untold Engine and
 > is updated frequently, so it may contain unstable changes or regressions.
-
-Clone the repository and launch the Starter Demo:
 
 ```bash
 git clone https://github.com/untoldengine/UntoldEngine.git
@@ -124,7 +118,7 @@ git checkout v0.24.1
 swift run StarterDemo
 ```
 
-After that, run the focused demos based on what you want to learn:
+Run the focused demos based on what you want to learn:
 
 | Demo | Command | Start here when you want to learn |
 | --- | --- | --- |
@@ -136,45 +130,11 @@ After that, run the focused demos based on what you want to learn:
 | Exporter Pipeline Demo | `swift run ExporterPipelineDemo` | Loading exported `.untold` assets, applying exported animation clips, and checking validation metadata. |
 | Showcase Demo | `swift run ShowcaseDemo` | A broader engine showcase that combines many systems in one app. Use this after the focused demos. |
 
-The demos live under `Sources/Demos`. They are runnable when working inside the
-engine repository, but are not exposed as products to apps that add Untold
-Engine as a package dependency.
+The demos live under `Sources/Demos`. They are runnable when working inside
+the engine repository, but are not exposed as products to apps that add
+Untold Engine as a package dependency.
 
----
-
-## Getting Started
-
-To create your own XR, 3D, or spatial visualization app using Untold Engine,
-start with the documentation path that matches where you are:
-
-- **Build a complete Vision Pro app:** follow the
-  [Archviz To Vision Pro learning path](https://untoldengine.github.io/UntoldEngine/LearningPaths/ArchvizToVisionPro/)
-  to take a Blender archviz model into a standalone visionOS project.
-- **Learn the engine API through focused demos:** use the
-  [Tutorials](https://untoldengine.github.io/UntoldEngine/Tutorials/)
-  to understand Starter Demo, lighting, rendering quality, exporter workflows,
-  scene channels, light portals, XR input, and performance diagnostics.
-- **Create your own project from scratch:** see
-  [Getting Started](https://untoldengine.github.io/UntoldEngine/API/GettingStarted/)
-  and [Create A New Xcode Project](https://untoldengine.github.io/UntoldEngine/Tutorials/CreateXcodeProjectTutorial/).
-- **Build scenes visually:** download the
-  [Untold Editor](https://github.com/untoldengine/UntoldEditor/releases) to
-  arrange entities, lighting, and cameras without writing scene-setup code.
-
-If your team is evaluating Untold Engine and needs an engine capability that is
-not currently available, see [Commercial Use, Sponsored Features, and Support](COMMERCIAL.md).
-
-## Our Direction
-
-### Vision — Why We Exist
-
-> An engine that empowers creativity and never stands in its way.
-
-### Mission — What We Commit To
-
-> Build a reliable engine that lets developers focus on creating, not troubleshooting the tools they depend on.
-
-### Engineering Principles — How We Operate
+#### Engineering Principles
 
 **Reliability · Testing · Simplicity · Compatibility · Developer Experience · Performance**
 
@@ -202,11 +162,30 @@ Read our [Engineering Principles](docs/Contributor/EngineeringPrinciples.md) for
 
 ---
 
+# Watch It in Action — Apple Vision Pro Demos
 
+| Demo | Description |
+| --- | --- |
+| [CoolSaber](https://github.com/untoldengine/UntoldArcade/tree/main/CoolSaber) | PSVR2-driven lightsaber duels, blades clashing over SharePlay |
+| [CoolWater](https://github.com/untoldengine/UntoldArcade/tree/main/CoolWater) | Real-time animated water with reflection, refraction, and ripples |
+| [CoolCloth](https://github.com/untoldengine/UntoldArcade/tree/main/CoolCloth) | GPU cloth simulation (XPBD) you can punch a ball through |
+| [CoolWeb](https://github.com/untoldengine/UntoldArcade/tree/main/CoolWeb) | Spider-Man web-shooter — gesture-triggered webs that stick to real room geometry |
+| [CoolBasket](https://github.com/untoldengine/UntoldArcade/tree/main/CoolBasket) | Mixed-reality basketball — first demo on the engine's pluggable physics backend seam |
+| [CoolBowling](https://github.com/untoldengine/UntoldArcade/tree/main/CoolBowling) | Mixed-reality bowling with Jolt Physics rigid-body pins you knock down for real |
+| [ImmersiveGol](https://github.com/untoldengine/UntoldArcade/tree/main/ImmersiveGol) | Mixed-reality penalty shootout — save shots from an animated kicker with your tracked hands |
+| [CoolMirror](https://github.com/untoldengine/UntoldArcade/tree/main/CoolMirror) | Virtual mirror — a rigged character mimics your real-world motion via iPhone + headset tracking |
+| [CoolFutbol](https://github.com/untoldengine/UntoldArcade/tree/main/CoolFutbol) | Mixed-reality tabletop soccer controlled with a PSVR2 Sense controller |
+| [Archviz Viewer](https://github.com/untoldengine/UntoldArcade/tree/main/ArchvizViewer) | Blender-authored architectural scene walked through in mixed reality |
+| [Bedroom Digital Twin](https://untoldengine.github.io/UntoldEngine/LearningPaths/BedroomDigitalTwin/) | Tap-to-inspect digital twin bedroom with live mock status data |
+| [City Streaming](https://untoldengine.github.io/UntoldEngine/LearningPaths/CityStreamingOnVisionPro/) | City-scale scene streamed in tile by tile with LOD/HLOD |
+
+Full source for every demo above lives in the [UntoldArcade](https://github.com/untoldengine/UntoldArcade) repo.
+
+---
 
 # Engine API
 
-- [Getting Started](docs/API/GettingStarted.md)
+- [Building Your First Vision Pro Scene](docs/Onboarding/BuildingYourFirstVisionProScene.md)
 - [Create Project with CLI](docs/API/UsingUntoldEngineCLI.md)
 - [Registration System](docs/API/UsingRegistrationSystem.md)
 - [Transform System](docs/API/UsingTransformSystem.md)
@@ -257,34 +236,6 @@ Read our [Engineering Principles](docs/Contributor/EngineeringPrinciples.md) for
 
 ---
 
-# Roadmap
-
-See open issues for planned features and known improvements.
-
-- [Feature Requests](https://github.com/untoldengine/UntoldEngine/issues?q=label%3Aenhancement)
-- [Bug Reports](https://github.com/untoldengine/UntoldEngine/issues?q=label%3Abug)
-
----
-
-# Engineering Principles
-
-Untold Engine is built to a set of engineering principles that put
-reliability, testing, and developer experience ahead of feature velocity —
-the same discipline that keeps a spatial engine stable as scenes, platforms,
-and contributors grow.
-
-See [ENGINEERING_PRINCIPLES.md](ENGINEERING_PRINCIPLES.md) for the full set
-of principles that guide how the engine is developed, reviewed, and
-maintained.
-
----
-
-# Support
-
-For help or questions, open a [GitHub Issue](https://github.com/untoldengine/UntoldEngine/issues).
-
----
-
 # Contributing
 
 Contributions are welcome — whether that's fixing bugs, improving systems, writing documentation, or proposing ideas.
@@ -295,9 +246,14 @@ Before submitting a pull request, please review the [Contributing Guidelines](do
 
 All contributions are licensed under **MPL-2.0**.
 
----
+## Roadmap
 
-# Contributor License Agreement
+See open issues for planned features and known improvements.
+
+- [Feature Requests](https://github.com/untoldengine/UntoldEngine/issues?q=label%3Aenhancement)
+- [Bug Reports](https://github.com/untoldengine/UntoldEngine/issues?q=label%3Abug)
+
+## Contributor License Agreement
 
 By submitting a pull request you agree that your contributions may be distributed under the **Mozilla Public License 2.0**. See [CONTRIBUTOR_LICENSE_AGREEMENT.md](CONTRIBUTOR_LICENSE_AGREEMENT.md) for details.
 
@@ -366,3 +322,5 @@ See [COMMERCIAL.md](COMMERCIAL.md) for commercial licensing details.
 
 - [GitHub Discussions](https://github.com/untoldengine/UntoldEngine/discussions) — ideas and questions
 - [GitHub Issues](https://github.com/untoldengine/UntoldEngine/issues) — bugs and tasks
+
+For help or questions, open a [GitHub Issue](https://github.com/untoldengine/UntoldEngine/issues).
