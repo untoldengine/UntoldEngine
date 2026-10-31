@@ -64,7 +64,7 @@ loadUntoldScene(named: "MyScene") { success in
     guard success else { return }
     if let cube = findEntity(name: "Cube") {
         // Move it 5 units out in front, once, at load time
-        translateBy(entityId: cube, position: simd_float3(0, 0, 5))
+        translateBy(entityId: cube, position: simd_float3(0, 0, -5))
     }
     setSceneReady(success)
 }

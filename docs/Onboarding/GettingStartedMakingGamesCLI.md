@@ -88,7 +88,7 @@ loadUntoldScene(named: "MyScene") { success in
     guard success else { return }
     if let cube = findEntity(name: "Cube") {
         // Move it 5 units out in front, once, at load time
-        translateBy(entityId: cube, position: simd_float3(0, 0, 5))
+        translateBy(entityId: cube, position: simd_float3(0, 0, -5))
     }
     setSceneReady(success)
 }
@@ -109,7 +109,7 @@ If you're skipping the Editor (Option A), build the cube procedurally with
 let cube = createEntity()
 setEntityMeshDirect(entityId: cube, meshes: BasicPrimitives.createCube(), assetName: "Cube")
 setEntityName(entityId: cube, name: "Cube")
-translateBy(entityId: cube, position: simd_float3(0, 0, 5))
+translateBy(entityId: cube, position: simd_float3(0, 0, -5))
 setSceneReady(true)
 
 // In your per-frame update
