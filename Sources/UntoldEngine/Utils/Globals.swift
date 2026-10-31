@@ -1126,6 +1126,7 @@ private final class RuntimeGlobalsStore: @unchecked Sendable {
     private var enableEngineMetricsValue: Bool = false
     private var bypassPostProcessingValue: Bool = false
     private var xrFoveatedRenderingEnabledValue: Bool = true
+    private var simulationSteppingValue: SimulationStepping = .fixed
     private var antiAliasingModeValue: AntiAliasingMode = .fxaa
     private var renderDebugViewModeValue: RenderDebugViewMode = .lit
     private var pomQualitySettingsValue: POMQualitySettings = .platformDefault
@@ -1627,6 +1628,20 @@ private final class RuntimeGlobalsStore: @unchecked Sendable {
         set {
             lock.lock()
             xrFoveatedRenderingEnabledValue = newValue
+            lock.unlock()
+        }
+    }
+
+    var simulationStepping: SimulationStepping {
+        get {
+            lock.lock()
+            let value = simulationSteppingValue
+            lock.unlock()
+            return value
+        }
+        set {
+            lock.lock()
+            simulationSteppingValue = newValue
             lock.unlock()
         }
     }
@@ -2135,6 +2150,14 @@ public var bypassPostProcessing: Bool {
 public var xrFoveatedRenderingEnabled: Bool {
     get { RuntimeGlobalsStore.shared.xrFoveatedRenderingEnabled }
     set { RuntimeGlobalsStore.shared.xrFoveatedRenderingEnabled = newValue }
+}
+
+/// How the game-mode simulation loop is stepped against the frames: one fixed 1/60 s step per
+/// 1/60 s accumulated (the default), or one pass every frame with the frame's own delta. See
+/// `EngineProperty.simulationStepping`.
+public var simulationStepping: SimulationStepping {
+    get { RuntimeGlobalsStore.shared.simulationStepping }
+    set { RuntimeGlobalsStore.shared.simulationStepping = newValue }
 }
 
 /// Selects the active anti-aliasing pass inserted after the look pass.

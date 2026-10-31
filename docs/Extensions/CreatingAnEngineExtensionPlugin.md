@@ -3,7 +3,7 @@
 This tutorial builds a reusable Swift package that simulates its own entity
 state every frame — the shape a physics, audio, or AI backend takes. The
 finished plugin owns a `Component`, steps its own simulation on the
-fixed-timestep loop, and cleans itself up completely on uninstall, without
+engine's simulation loop, and cleans itself up completely on uninstall, without
 touching engine internals.
 
 Use this tutorial for plugins that do not render anything. If your plugin
@@ -22,7 +22,7 @@ The plugin will:
 
 1. define a `Component` that marks an entity as plugin-owned;
 2. conform to `EngineExtension` and register with `EngineExtensionRegistry`;
-3. step its own simulation once per fixed timestep;
+3. step its own simulation once per simulation step, by the `deltaTime` it is given;
 4. track entity lifecycle so it never touches a destroyed entity; and
 5. release every resource it owns on `willUnregister()`.
 
@@ -221,10 +221,13 @@ final class GravityBodyExtension: EngineExtension, @unchecked Sendable {
 
 Notes:
 
-- `fixedUpdate` runs inside the fixed-timestep loop in game mode, alongside
+- `fixedUpdate` runs inside the simulation loop in game mode, alongside
   every other registered `EngineExtension` and `RenderExtension`, in
-  registration order. Use `update(deltaTime:context:)` instead for logic that
-  should run every rendered frame regardless of game mode.
+  registration order. Its delta is 1/60 s under the default
+  `SimulationStepping.fixed` and the frame's delta, in sub-steps never longer
+  than 1.1/60 s, under `.perFrame`: integrate by `deltaTime`, never by a
+  constant. Use `update(deltaTime:context:)` instead for logic that should run
+  every rendered frame regardless of game mode.
 - Query entities with `queryEntities(with:)` rather than storing your own
   entity list — the ECS mask index is already built for this and stays
   correct as entities are created and destroyed elsewhere in the scene.

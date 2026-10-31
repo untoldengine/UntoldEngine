@@ -14,9 +14,10 @@ import Foundation
 ///
 /// Events originate in the active `PhysicsBackend`, which buffers them internally
 /// during `step` and hands them over on the frame thread when the coordinator calls
-/// `drainEvents(into:)` after each fixed substep. Handlers therefore run on the
-/// frame thread, once per event, in backend delivery order. Subscriptions can be
-/// created or cancelled from any thread.
+/// `drainEvents(into:)` after each simulation step (a fixed 1/60 s substep by default,
+/// the frame's delta or a share of it under `SimulationStepping.perFrame`). Handlers
+/// therefore run on the frame thread, once per event, in backend delivery order.
+/// Subscriptions can be created or cancelled from any thread.
 ///
 /// With no external backend installed nothing is ever dispatched — the built-in
 /// integrator has no collision detection, so this hub is dormant, exactly as before.

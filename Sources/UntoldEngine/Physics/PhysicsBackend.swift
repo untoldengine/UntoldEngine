@@ -292,7 +292,10 @@ public protocol PhysicsBackend: AnyObject {
     /// Called when a body entity is destroyed or loses its physics components.
     func didRemoveBody(entity: EntityID)
 
-    /// Advances the simulation by one fixed substep.
+    /// Advances the simulation by `deltaTime` seconds: one fixed 1/60 s substep by default, or,
+    /// under `SimulationStepping.perFrame`, the frame's own delta or an equal share of it, never
+    /// longer than 1.1/60 s. A backend must not assume one length from call to call; one that
+    /// sub-steps (Jolt's collision steps) divides `deltaTime`.
     func step(deltaTime: Float)
 
     /// Delivers events buffered during the preceding `step`. Called on the frame thread.

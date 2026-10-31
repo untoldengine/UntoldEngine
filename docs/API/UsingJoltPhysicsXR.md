@@ -122,11 +122,16 @@ can look like a swat at full speed.
 
 ## 5. Stepping Happens Automatically
 
-Once registered, Jolt steps every fixed update as part of the engine's
-physics loop — there's no `step()` call to make yourself.
-`JoltWorldSettings.collisionSteps` controls how many Jolt sub-steps run per
-engine step; the default of 1 is fine for most scenes, and a higher value
-helps fast-moving bodies or cloth stay stable.
+Once registered, Jolt steps every simulation step as part of the engine's
+loop — there's no `step()` call to make yourself: a fixed 1/60 s step by
+default. On a 90 or 100 Hz headset set
+`setEngine(.simulationStepping(.perFrame))` so the world steps with every
+frame — under the fixed step two frames in five show no new physics pose.
+`JoltWorldSettings.collisionSteps` divides each engine step (1/60 s by
+default; under `.perFrame` the frame's delta, never longer than 1.1/60 s):
+the default of 1 is fine for most scenes; 3 keeps a powered ragdoll's
+sub-steps under 6.2 ms, and a higher value helps fast-moving bodies or
+cloth stay stable.
 
 ## 6. Resetting a Body
 
