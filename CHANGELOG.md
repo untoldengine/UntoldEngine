@@ -1,4 +1,11 @@
 # Changelog
+## v0.25.0 - 2026-11-01
+### 📚 Docs
+- [Docs] The glass reference scene: scripts to generate, render and cook the six-pane scene of #1308 (#1374) (552ecc3…)
+- [Docs] Restructure onboarding docs around Editor/CLI/contributor paths (#1394) (ef679f7…)
+- [Docs] Fix broken COMMERCIAL.md links flagged by mkdocs --strict (#1395) (eed4298…)
+### 🚀 Features
+- [Feature] Per-frame simulation stepping for displays faster than 60 Hz (#1393) (83ad28f…)
 ## v0.24.1 - 2026-10-26
 ### 🐞 Fixes
 - [Patch] Fix IBL creation failure fallback and spurious bake attempts (#1382) (2f0036c…)

@@ -114,7 +114,7 @@ Clone the engine repository itself.
 ```bash
 git clone https://github.com/untoldengine/UntoldEngine.git
 cd UntoldEngine
-git checkout v0.24.1
+git checkout v0.25.0
 swift run StarterDemo
 ```
 
