@@ -1,11 +1,18 @@
 # Changelog
 ## v0.25.0 - 2026-11-01
+### 🐞 Fixes
+- [Bugfix] Populate IBL bake cache from generateHDR so viewport resize doesn't re-bake (#1397) (329c4b43…)
+- [Bugfix] A nearly straight reach chain bends the configured way (#1392) (ebbc4dda…)
+- [Bugfix] No GPU work while the app is inactive or in the background, and the XR loop ends every frame it takes (#1391) (9c95fc97…)
+- [Bugfix] Evaluate the model pass's surface attributes at the MSAA centroid (#1389) (c5b514c7…)
 ### 📚 Docs
 - [Docs] The glass reference scene: scripts to generate, render and cook the six-pane scene of #1308 (#1374) (552ecc3…)
 - [Docs] Restructure onboarding docs around Editor/CLI/contributor paths (#1394) (ef679f7…)
 - [Docs] Fix broken COMMERCIAL.md links flagged by mkdocs --strict (#1395) (eed4298…)
 ### 🚀 Features
 - [Feature] Per-frame simulation stepping for displays faster than 60 Hz (#1393) (83ad28f…)
+### ⚡ Performance
+- [Performance] Draw entities that share their meshes and materials as one instanced draw (#1390) (500035a7…)
 ## v0.24.1 - 2026-10-26
 ### 🐞 Fixes
 - [Patch] Fix IBL creation failure fallback and spurious bake attempts (#1382) (2f0036c…)
