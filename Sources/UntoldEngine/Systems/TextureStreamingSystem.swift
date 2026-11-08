@@ -77,8 +77,18 @@ public class TextureStreamingSystem: @unchecked Sendable {
         /// metres away.
         case superdetailed
 
-        /// Deprecated alias for `.detailed`.
-        @available(*, deprecated, renamed: "detailed", message: "Use .detailed for close-inspection/high-fidelity texture streaming.")
+        /// Architectural walkthrough / interior scenes (standing or walking through rooms).
+        ///
+        /// `.detailed` assumes the camera closes to within ~2.5 m of a hero asset;
+        /// interior walkthroughs instead view walls and floors from typical
+        /// room-scale distances of several metres, so the upgrade/downgrade radii
+        /// are pulled back well beyond `.detailed` without spreading as wide as
+        /// `.openWorld`. The minimum tier (384 px) sits above `.openWorld`/`.balanced`
+        /// (256 px) because walls and floors fill much more of the screen than
+        /// distant open-world terrain, but below `.detailed` (512 px) since surfaces
+        /// are viewed from farther away on average.
+        ///
+        /// Use for room-scale interior walkthroughs and digital twins.
         case archviz
 
         /// Large outdoor / open-world scenes (cities, landscapes, terrain).
@@ -117,13 +127,24 @@ public class TextureStreamingSystem: @unchecked Sendable {
     /// ```
     public func apply(_ profile: Profile) {
         switch profile {
-        case .detailed, .archviz:
-            // Full res within inspection distance; for detailed assets and rooms,
-            // even the fallback tiers remain relatively high resolution.
+        case .detailed:
+            // Full res within inspection distance; even the fallback tiers
+            // remain relatively high resolution.
             upgradeRadius = 2.5
             downgradeRadius = 6.0
             maxTextureDimension = 1024
             minimumTextureDimension = 512 // 256 px looks muddy on a wall at 5 m
+            hysteresisFraction = 0.20 // wider dead band — no transitions mid-walkthrough
+            maxConcurrentOps = 6 // GPU-bound; no disk I/O on warm path
+            updateInterval = 0.1 // more responsive at walking speed
+
+        case .archviz:
+            // Room-scale walkthrough distances: wider than .detailed's inspection
+            // band, narrower than .openWorld's terrain-scale spread.
+            upgradeRadius = 6.0
+            downgradeRadius = 14.0
+            maxTextureDimension = 1024
+            minimumTextureDimension = 384 // between .openWorld/.balanced (256) and .detailed (512)
             hysteresisFraction = 0.20 // wider dead band — no transitions mid-walkthrough
             maxConcurrentOps = 6 // GPU-bound; no disk I/O on warm path
             updateInterval = 0.1 // more responsive at walking speed
