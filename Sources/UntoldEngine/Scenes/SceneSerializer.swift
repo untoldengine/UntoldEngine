@@ -35,6 +35,10 @@ public struct SceneData: Codable {
     var depthOfField: DepthOfFieldData? = nil
     var ssao: SSAOData? = nil
     var antiAliasing: AntiAliasingData? = nil
+    /// The named `TextureStreamingSystem.Profile` active when the scene was saved, if any.
+    /// Only the named profile is persisted (not post-`apply` property overrides) -- see
+    /// issue #1404 for the scoping rationale.
+    var textureStreamingProfile: TextureStreamingProfileData? = nil
 }
 
 enum SceneAssetKind: String, Codable, Equatable {
@@ -135,6 +139,15 @@ struct AntiAliasingData: Codable {
     var mode: AntiAliasingModeData = .fxaa
     var fxaa: FXAAData = .init()
     var smaa: SMAAData = .init()
+}
+
+enum TextureStreamingProfileData: String, Codable {
+    case detailed
+    case superdetailed
+    case archviz
+    case openWorld
+    case balanced
+    case tiled
 }
 
 struct LightData: Codable {
@@ -1415,6 +1428,23 @@ public func serializeScene() -> SceneData {
         smaa: SMAAData(edgeThreshold: SMAAParams.shared.edgeThreshold)
     )
 
+    if let activeProfile = TextureStreamingSystem.shared.activeProfile {
+        switch activeProfile {
+        case .detailed:
+            sceneData.textureStreamingProfile = .detailed
+        case .superdetailed:
+            sceneData.textureStreamingProfile = .superdetailed
+        case .archviz:
+            sceneData.textureStreamingProfile = .archviz
+        case .openWorld:
+            sceneData.textureStreamingProfile = .openWorld
+        case .balanced:
+            sceneData.textureStreamingProfile = .balanced
+        case .tiled:
+            sceneData.textureStreamingProfile = .tiled
+        }
+    }
+
     // Intentionally not persisting `assetBasePath`: it's an absolute, machine-specific
     // filesystem path. Baking it into the scene file breaks portability when the project
     // (and its .untoldscene files) is shared or checked into version control. Consumers
@@ -1732,6 +1762,27 @@ public func deserializeScene(
         FXAAParams.shared.edgeThreshold = antiAliasing.fxaa.edgeThreshold
         FXAAParams.shared.edgeThresholdMin = antiAliasing.fxaa.edgeThresholdMin
         SMAAParams.shared.edgeThreshold = antiAliasing.smaa.edgeThreshold
+    }
+
+    if let textureStreamingProfile = sceneData.textureStreamingProfile {
+        let profile: TextureStreamingSystem.Profile
+        switch textureStreamingProfile {
+        case .detailed:
+            profile = .detailed
+        case .superdetailed:
+            profile = .superdetailed
+        case .archviz:
+            profile = .archviz
+        case .openWorld:
+            profile = .openWorld
+        case .balanced:
+            profile = .balanced
+        case .tiled:
+            profile = .tiled
+        }
+        // Applied before entities below start streaming in so the restored profile's
+        // radii/tiers are in effect from the first texture load, not just future updates.
+        TextureStreamingSystem.shared.apply(profile)
     }
 
     // Mesh loads discovered below are queued here rather than fired immediately --

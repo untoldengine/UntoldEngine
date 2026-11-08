@@ -870,6 +870,20 @@ final class SceneSerializerTests: BaseRenderSetup {
         SMAAParams.shared.edgeThreshold = 0.1
     }
 
+    func testSerializeTextureStreamingProfile() {
+        // Apply a non-default profile
+        TextureStreamingSystem.shared.apply(.archviz)
+
+        // Serialize
+        let sceneData = serializeScene()
+
+        // Verify
+        XCTAssertEqual(sceneData.textureStreamingProfile, .archviz, "Texture streaming profile should be serialized")
+
+        // Reset
+        TextureStreamingSystem.shared.apply(.balanced)
+    }
+
     // MARK: - Asset Instance Override Tests
 
     func testSerializeSceneStoresDerivedNodeNameOverride() {
@@ -1009,6 +1023,26 @@ final class SceneSerializerTests: BaseRenderSetup {
         FXAAParams.shared.edgeThreshold = 0.125
         FXAAParams.shared.edgeThresholdMin = 0.0625
         SMAAParams.shared.edgeThreshold = 0.1
+    }
+
+    func testDeserializeTextureStreamingProfile() {
+        // Start from a different profile so we can confirm the load actually applies it.
+        TextureStreamingSystem.shared.apply(.detailed)
+
+        var sceneData = SceneData()
+        sceneData.textureStreamingProfile = .openWorld
+
+        // Deserialize
+        deserializeScene(sceneData: sceneData)
+
+        // Verify the named profile's tuning was applied (upgrade/downgrade radii are
+        // the simplest observable signature distinguishing .openWorld from .detailed).
+        XCTAssertEqual(TextureStreamingSystem.shared.activeProfile, .openWorld, "Texture streaming profile should be restored")
+        XCTAssertEqual(TextureStreamingSystem.shared.upgradeRadius, 15.0, accuracy: 0.0001, "Upgrade radius should match .openWorld profile")
+        XCTAssertEqual(TextureStreamingSystem.shared.downgradeRadius, 60.0, accuracy: 0.0001, "Downgrade radius should match .openWorld profile")
+
+        // Reset
+        TextureStreamingSystem.shared.apply(.balanced)
     }
 
     // MARK: - Parent-Child Hierarchy Tests
