@@ -2552,8 +2552,10 @@ def bake_object_world_transform_to_mesh_data(obj, world_matrix=None):
 def duplicate_objects_to_scene(source_objects, temp_scene, bake_world=True):
     """Copy objects into a temporary scene, baking world transforms if requested.
 
-    Uses the evaluated depsgraph to capture matrix_world so that parent-chain
-    transforms (including USD import axis-correction empties) are fully resolved.
+    Evaluate geometry, material assignments and world transforms in the source
+    scene. Modifiers must run before the object's axes are reset or its mesh is
+    clipped/merged. Capture every snapshot before linking duplicates, which can
+    invalidate the source depsgraph.
     Passing the captured matrix directly to bake_object_world_transform avoids a
     set/read race where setting obj.matrix_world schedules a deferred depsgraph
     update that has not yet fired when we read it back.
@@ -2562,14 +2564,40 @@ def duplicate_objects_to_scene(source_objects, temp_scene, bake_world=True):
     src_collection = temp_scene.collection
     depsgraph = bpy.context.evaluated_depsgraph_get() if bake_world else None
 
+    snapshots = {}
+    if bake_world:
+        for src_obj in source_objects:
+            evaluated_obj = src_obj.evaluated_get(depsgraph)
+            world_mat = evaluated_obj.matrix_world.copy()
+            mesh = None
+            if src_obj.type == "MESH" and src_obj.data:
+                mesh = bpy.data.meshes.new_from_object(
+                    evaluated_obj, preserve_all_data_layers=True, depsgraph=depsgraph
+                )
+                # Freeze the material each slot actually shows, including object
+                # overrides and slots introduced by modifiers. Later split/merge
+                # operations consume mesh data rather than object-linked slots.
+                for index, slot in enumerate(evaluated_obj.material_slots):
+                    if index < len(mesh.materials):
+                        mesh.materials[index] = slot.material
+            snapshots[src_obj.as_pointer()] = (world_mat, mesh)
+
     for src_obj in source_objects:
         if bake_world:
-            world_mat = src_obj.evaluated_get(depsgraph).matrix_world.copy()
+            world_mat, evaluated_mesh = snapshots[src_obj.as_pointer()]
         else:
             world_mat = None
+            evaluated_mesh = None
 
         new_obj = src_obj.copy()
-        if src_obj.data:
+        if evaluated_mesh is not None:
+            new_obj.data = evaluated_mesh
+            new_obj.modifiers.clear()
+            new_obj.constraints.clear()
+            new_obj.animation_data_clear()
+            for slot in new_obj.material_slots:
+                slot.link = 'DATA'
+        elif src_obj.data:
             new_obj.data = src_obj.data.copy()
         new_obj["mesh_original_name"] = src_obj.name
         src_collection.objects.link(new_obj)
@@ -2824,85 +2852,17 @@ def build_usd_export_kwargs(filepath):
 # mesh before USD export, reducing per-tile draw calls.
 # ============================================================
 
-def _principled_bsdf_node(mat):
-    """Find the first Principled BSDF node in a material's node tree."""
-    node_tree = getattr(mat, "node_tree", None) if mat is not None else None
-    if not mat or node_tree is None:
-        return None
-    for node in node_tree.nodes:
-        if node.type == 'BSDF_PRINCIPLED':
-            return node
-    return None
-
-
-def _input_image_path(bsdf, input_name):
-    """Extract the resolved image filepath connected to a BSDF input.
-
-    Follows one level of indirection for Normal Map and Bump nodes.
-    Returns the filepath string, or None if no image is connected.
-    """
-    inp = bsdf.inputs.get(input_name)
-    if inp is None or not inp.is_linked:
-        return None
-    node = inp.links[0].from_node
-    # Direct image texture connection.
-    if node.type == 'TEX_IMAGE' and node.image:
-        return node.image.filepath_from_user()
-    # Normal Map → Color → Image Texture
-    if node.type == 'NORMAL_MAP':
-        color_inp = node.inputs.get('Color')
-        if color_inp and color_inp.is_linked:
-            inner = color_inp.links[0].from_node
-            if inner.type == 'TEX_IMAGE' and inner.image:
-                return inner.image.filepath_from_user()
-    # Bump → Height → Image Texture
-    if node.type == 'BUMP':
-        height_inp = node.inputs.get('Height')
-        if height_inp and height_inp.is_linked:
-            inner = height_inp.links[0].from_node
-            if inner.type == 'TEX_IMAGE' and inner.image:
-                return inner.image.filepath_from_user()
-    return None
-
-
-def _input_scalar_key(bsdf, input_name):
-    """Return a rounded scalar or colour tuple for a non-linked BSDF input."""
-    inp = bsdf.inputs.get(input_name)
-    if inp is None or inp.is_linked:
-        return None
-    val = getattr(inp, 'default_value', None)
-    if val is None:
-        return None
-    if hasattr(val, '__iter__'):
-        return tuple(round(float(v), 4) for v in val)
-    return round(float(val), 4)
-
-
 def _single_material_key(mat):
     """Hashable identity for one Blender material.
 
-    Two materials with identical keys produce identical visual output after
-    USD export and can safely share a merged mesh.
+    Only objects using the same material datablock may share a merged surface.
+    Comparing a few Principled inputs misses textures behind colour nodes, UV
+    mappings, transmission and other settings, discarding the other materials
+    when the meshes are merged.
     """
     if mat is None:
         return "__none__"
-    bsdf = _principled_bsdf_node(mat)
-    if bsdf is None:
-        # Non-node material or no Principled BSDF: fall back to datablock name.
-        return f"name:{mat.name_full}"
-    parts = []
-    for channel in ('Base Color', 'Metallic', 'Roughness', 'Normal',
-                    'Emission Color', 'Alpha'):
-        img = _input_image_path(bsdf, channel)
-        if img is not None:
-            parts.append(f"{channel}:img:{img}")
-        else:
-            scalar = _input_scalar_key(bsdf, channel)
-            if scalar is not None:
-                parts.append(f"{channel}:val:{scalar}")
-            else:
-                parts.append(f"{channel}:empty")
-    return "|".join(parts)
+    return f"material:{mat.as_pointer()}"
 
 
 def material_merge_key(obj):
@@ -3021,14 +2981,21 @@ def split_objects_by_material(objects, temp_scene):
                 bm.to_mesh(new_mesh)
                 new_mesh.update()
 
-                mat = mesh.materials[mat_idx] if mat_idx < len(mesh.materials) else None
+                if mat_idx < len(obj.material_slots):
+                    mat = obj.material_slots[mat_idx].material
+                else:
+                    mat = mesh.materials[mat_idx] if mat_idx < len(mesh.materials) else None
                 if mat:
                     new_mesh.materials.append(mat)
                     for p in new_mesh.polygons:
                         p.material_index = 0
 
-                new_obj = bpy.data.objects.new(f"{obj.name}_mat{mat_idx}", new_mesh)
-                new_obj["mesh_original_name"] = obj.get("mesh_original_name", obj.name)
+                source_name = obj.get("mesh_original_name", obj.name)
+                new_obj = bpy.data.objects.new(f"{source_name}_mat{mat_idx}", new_mesh)
+                # Entity names key the exporter's transform and geometry maps.
+                # Sibling fragments must not all reuse the source object's name,
+                # or the last material silently overwrites its siblings.
+                new_obj["mesh_original_name"] = new_obj.name
                 new_obj.matrix_world = obj.matrix_world.copy()
                 temp_scene.collection.objects.link(new_obj)
                 result.append(new_obj)
