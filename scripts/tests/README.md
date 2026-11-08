@@ -50,6 +50,9 @@ temporary folder.
 - `blender/material_slot_checks.py`: a multi-material object split for export
   keeps the material each slot shows, including a slot linked to the object over
   a shared mesh, for linked duplicates and for a rigged object.
+- `blender/tile_transform_checks.py`: evaluated transforms and materials survive
+  tile snapshots, clipping, splitting and merging. A native export is decoded to
+  compare world positions, UVs, texture references and texture pixels.
 
 Run from the repo root:
 
@@ -57,6 +60,7 @@ Run from the repo root:
 blender --background --factory-startup --python-exit-code 1 --python scripts/tests/blender/texture_write_checks.py
 blender --background --factory-startup --python-exit-code 1 --python scripts/tests/blender/material_bake_checks.py
 blender --background --factory-startup --python-exit-code 1 --python scripts/tests/blender/material_slot_checks.py
+blender --background --factory-startup --python-exit-code 1 --python scripts/tests/blender/tile_transform_checks.py
 ```
 
 ## Reference scenes
