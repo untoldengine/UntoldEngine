@@ -2852,60 +2852,6 @@ def build_usd_export_kwargs(filepath):
 # mesh before USD export, reducing per-tile draw calls.
 # ============================================================
 
-def _principled_bsdf_node(mat):
-    """Find the first Principled BSDF node in a material's node tree."""
-    node_tree = getattr(mat, "node_tree", None) if mat is not None else None
-    if not mat or node_tree is None:
-        return None
-    for node in node_tree.nodes:
-        if node.type == 'BSDF_PRINCIPLED':
-            return node
-    return None
-
-
-def _input_image_path(bsdf, input_name):
-    """Extract the resolved image filepath connected to a BSDF input.
-
-    Follows one level of indirection for Normal Map and Bump nodes.
-    Returns the filepath string, or None if no image is connected.
-    """
-    inp = bsdf.inputs.get(input_name)
-    if inp is None or not inp.is_linked:
-        return None
-    node = inp.links[0].from_node
-    # Direct image texture connection.
-    if node.type == 'TEX_IMAGE' and node.image:
-        return node.image.filepath_from_user()
-    # Normal Map → Color → Image Texture
-    if node.type == 'NORMAL_MAP':
-        color_inp = node.inputs.get('Color')
-        if color_inp and color_inp.is_linked:
-            inner = color_inp.links[0].from_node
-            if inner.type == 'TEX_IMAGE' and inner.image:
-                return inner.image.filepath_from_user()
-    # Bump → Height → Image Texture
-    if node.type == 'BUMP':
-        height_inp = node.inputs.get('Height')
-        if height_inp and height_inp.is_linked:
-            inner = height_inp.links[0].from_node
-            if inner.type == 'TEX_IMAGE' and inner.image:
-                return inner.image.filepath_from_user()
-    return None
-
-
-def _input_scalar_key(bsdf, input_name):
-    """Return a rounded scalar or colour tuple for a non-linked BSDF input."""
-    inp = bsdf.inputs.get(input_name)
-    if inp is None or inp.is_linked:
-        return None
-    val = getattr(inp, 'default_value', None)
-    if val is None:
-        return None
-    if hasattr(val, '__iter__'):
-        return tuple(round(float(v), 4) for v in val)
-    return round(float(val), 4)
-
-
 def _single_material_key(mat):
     """Hashable identity for one Blender material.
 
