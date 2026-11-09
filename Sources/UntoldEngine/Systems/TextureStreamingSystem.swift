@@ -125,7 +125,15 @@ public class TextureStreamingSystem: @unchecked Sendable {
     /// // Fine-tune a single value afterwards if needed:
     /// TextureStreamingSystem.shared.upgradeRadius = 3.0
     /// ```
+    /// The most recently applied built-in profile, if any.
+    ///
+    /// Used by `SceneSerializer` to persist the active profile so a reload
+    /// (in this app or another host) restores the same tuning. Overrides
+    /// made to individual properties after `apply(_:)` are not tracked here.
+    public private(set) var activeProfile: Profile?
+
     public func apply(_ profile: Profile) {
+        activeProfile = profile
         switch profile {
         case .detailed:
             // Full res within inspection distance; even the fallback tiers
