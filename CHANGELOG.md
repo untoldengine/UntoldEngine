@@ -1,4 +1,9 @@
 # Changelog
+## v0.25.1 - 2026-11-09
+### 🐞 Fixes
+- [Bugfix] Fix tile-streaming transform/material corruption from modifiers and merges (#1403) (38b95d9…)
+- [Patch] Reinstate .archviz texture streaming profile for interior walkthroughs (#1405) (b7ad5d5…)
+- [Patch] Persist TextureStreamingSystem profile in SceneSerializer (#1406) (6c5c37d…)
 ## v0.25.0 - 2026-11-01
 ### 🐞 Fixes
 - [Bugfix] Populate IBL bake cache from generateHDR so viewport resize doesn't re-bake (#1397) (329c4b43…)
