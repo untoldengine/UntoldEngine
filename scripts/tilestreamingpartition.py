@@ -1008,6 +1008,39 @@ def classify_runtime_representation_detail(distance, unload_r, hlod_levels=None,
     return "full"
 
 
+def _build_collection_render_visibility_map(scene):
+    """Map collection name -> True if reachable from the scene's root
+    collection through at least one chain of collections that all have
+    hide_render == False.
+
+    Collection.hide_render (the camera icon on a collection in the
+    Outliner) is a data-block-level flag that applies across every view
+    layer. It is distinct from Object.hide_render (per-object) and from
+    LayerCollection.exclude/hide_viewport (per-view-layer overrides, which
+    Object.hide_get()/visible_get() already account for). Neither
+    Object.hide_render nor Object.hide_get()/visible_get() consults it, so
+    without this map a collection disabled this way (e.g. a background
+    "grass particles" collection an artist marked do-not-render) is
+    silently still included in world bounds and the tile partition.
+    """
+    visible = {}
+
+    def visit(coll, ancestor_hidden):
+        hidden_here = coll.hide_render or ancestor_hidden
+        visible[coll.name] = visible.get(coll.name, False) or (not hidden_here)
+        for child in coll.children:
+            visit(child, hidden_here)
+
+    visit(scene.collection, False)
+    return visible
+
+
+def _is_render_visible(obj, render_visibility_map):
+    if obj.hide_render:
+        return False
+    return any(render_visibility_map.get(c.name, False) for c in obj.users_collection)
+
+
 def get_candidate_objects():
     # Exclude objects in the "Tile Preview" collection — those are the wireframe
     # tile-bound boxes created by create_tile_preview() for visual debugging.
@@ -1020,13 +1053,19 @@ def get_candidate_objects():
 
     objs = []
     view_layer = bpy.context.view_layer
+    render_visibility_map = _build_collection_render_visibility_map(bpy.context.scene)
     for obj in bpy.context.scene.objects:
         if obj.type != "MESH":
             continue
         if obj in preview_objects:
             continue
+        # Render-excluded objects (object-level hide_render, or a containing
+        # collection disabled for render) must never contribute to world
+        # bounds or the tile partition, regardless of VISIBLE_ONLY.
+        if not _is_render_visible(obj, render_visibility_map):
+            continue
         if VISIBLE_ONLY:
-            if obj.hide_viewport or obj.hide_get(view_layer=view_layer):
+            if not obj.visible_get(view_layer=view_layer):
                 continue
         # Tiled scenes are static-only; skip skinned meshes rather than
         # failing the whole export (see warn_skipped_animated_objects()).
@@ -1036,10 +1075,12 @@ def get_candidate_objects():
     return objs
 
 
-def _is_visible_for_tiled_export(obj, view_layer):
+def _is_visible_for_tiled_export(obj, view_layer, render_visibility_map):
+    if not _is_render_visible(obj, render_visibility_map):
+        return False
     if not VISIBLE_ONLY:
         return True
-    return not obj.hide_viewport and not obj.hide_get(view_layer=view_layer)
+    return obj.visible_get(view_layer=view_layer)
 
 
 def _mesh_uses_armature(obj):
@@ -1059,10 +1100,11 @@ def warn_skipped_animated_objects():
     without a trace.
     """
     view_layer = bpy.context.view_layer
+    render_visibility_map = _build_collection_render_visibility_map(bpy.context.scene)
     armatures = []
     skinned_meshes = []
     for obj in bpy.context.scene.objects:
-        if not _is_visible_for_tiled_export(obj, view_layer):
+        if not _is_visible_for_tiled_export(obj, view_layer, render_visibility_map):
             continue
         if obj.type == "ARMATURE":
             armatures.append(obj.name)
@@ -1625,14 +1667,39 @@ def group_has_spanning_metadata(tile_objs, metadata_map):
     return any(meta.get("spatial_class") == "spanning" for meta in group_metadata(tile_objs, metadata_map))
 
 
-def group_cell_bounds_xy(tile_objs, metadata_map):
+# _collapse_underfilled_tile_tiers() merges a sparse (node_id, tier) group
+# into its parent node, one level at a time, to avoid a separate streaming
+# bucket for a near-empty leaf. Each merge overwrites the moved objects'
+# cell_bounds_xy with the parent's full rectangle, which can climb all the
+# way to the floor root for an isolated object. Past this ratio of cell
+# area to the group's own union-AABB area, the stored cell is treated as
+# misleading and callers fall back to the group's content AABB instead.
+CELL_BOUNDS_MAX_AREA_RATIO = 25.0
+
+
+def group_cell_bounds_xy(tile_objs, metadata_map, object_bounds=None):
     if group_has_spanning_metadata(tile_objs, metadata_map):
         return None
+    cell = None
     for meta in group_metadata(tile_objs, metadata_map):
-        cell = meta.get("cell_bounds_xy")
-        if cell:
-            return cell
-    return None
+        c = meta.get("cell_bounds_xy")
+        if c:
+            cell = c
+            break
+    if not cell:
+        return None
+
+    if object_bounds is not None:
+        x_min = min(object_bounds[o.name]["min"][0] for o in tile_objs)
+        y_min = min(object_bounds[o.name]["min"][1] for o in tile_objs)
+        x_max = max(object_bounds[o.name]["max"][0] for o in tile_objs)
+        y_max = max(object_bounds[o.name]["max"][1] for o in tile_objs)
+        union_area = max((x_max - x_min) * (y_max - y_min), 1e-6)
+        cell_area = (cell["max_x"] - cell["min_x"]) * (cell["max_y"] - cell["min_y"])
+        if cell_area > union_area * CELL_BOUNDS_MAX_AREA_RATIO:
+            return None
+
+    return cell
 
 
 # ============================================================
@@ -5106,7 +5173,7 @@ def run():
                 filepath  = os.path.join(output_dir, f"{tile_id}.{ext}")
                 aabb_usd  = compute_objects_aabb_usd(tile_objs, object_bounds)
                 cell_aabb_usd = node_cell_bounds_aabb_usd(
-                    group_cell_bounds_xy(tile_objs, metadata_map),
+                    group_cell_bounds_xy(tile_objs, metadata_map, object_bounds=object_bounds),
                     tile_objs,
                     object_bounds,
                 )
@@ -5388,7 +5455,7 @@ def run():
             filepath  = os.path.join(output_dir, f"{tile_id}.{ext}")
             aabb_usd  = compute_objects_aabb_usd(tile_objs, object_bounds)
             cell_aabb_usd = node_cell_bounds_aabb_usd(
-                group_cell_bounds_xy(tile_objs, metadata_map),
+                group_cell_bounds_xy(tile_objs, metadata_map, object_bounds=object_bounds),
                 tile_objs,
                 object_bounds,
             )

@@ -158,16 +158,55 @@ def _group_cell_bounds_xy(module, objs, metadata_map):
     return None
 
 
+# _collapse_underfilled_tile_tiers() (tilestreamingpartition.py) merges a
+# sparse (node_id, tier) group into its parent node, one level at a time,
+# to avoid a separate streaming bucket for a near-empty leaf. Each merge
+# overwrites the moved objects' cell_bounds_xy with the parent's full
+# rectangle, which can climb all the way to the floor root for an isolated
+# object. That's fine for streaming (which buckets by the real content
+# AABB, not cell_bounds_xy) but means a collapsed group's stored cell can
+# be orders of magnitude larger than what it actually contains. Past this
+# ratio of cell area to the group's own union-AABB area, the cell is
+# treated as misleading and the tight union AABB is drawn instead.
+_CELL_BOX_MAX_AREA_RATIO = 25.0
+
+
+def _xy_area_too_loose(box_xy, union_xy):
+    bx0, by0, bx1, by1 = box_xy
+    ux0, uy0, ux1, uy1 = union_xy
+    union_area = max((ux1 - ux0) * (uy1 - uy0), 1e-6)
+    box_area = (bx1 - bx0) * (by1 - by0)
+    return box_area > union_area * _CELL_BOX_MAX_AREA_RATIO
+
+
 def _cell_box_from_metadata(module, objs, aabbs, metadata_map):
+    """Return (box_or_None, had_cell_metadata).
+
+    had_cell_metadata is True whenever the group carries stored
+    cell_bounds_xy at all, even if it was rejected as too loose — that
+    distinguishes "no metadata, try reconstructing from node_id" from
+    "metadata exists but node_id was itself collapsed to an ancestor, so
+    reconstructing from node_id would reproduce the same oversized box."
+    """
     cell = _group_cell_bounds_xy(module, objs, metadata_map)
     if not cell:
-        return None
+        return None, False
+
+    x_min = min(aabbs[obj.name][0].x for obj in objs)
+    y_min = min(aabbs[obj.name][0].y for obj in objs)
+    x_max = max(aabbs[obj.name][1].x for obj in objs)
+    y_max = max(aabbs[obj.name][1].y for obj in objs)
+    cell_xy = (cell["min_x"], cell["min_y"], cell["max_x"], cell["max_y"])
+    if _xy_area_too_loose(cell_xy, (x_min, y_min, x_max, y_max)):
+        return None, True
+
     z_min = min(aabbs[obj.name][0].z for obj in objs)
     z_max = max(aabbs[obj.name][1].z for obj in objs)
-    return (
+    box = (
         (cell["min_x"], cell["min_y"], z_min),
         (cell["max_x"], cell["max_y"], z_max),
     )
+    return box, True
 
 
 # ── Geometry helpers ──────────────────────────────────────────────────────────
@@ -586,13 +625,20 @@ class UntoldTilePreviewSettings(bpy.types.PropertyGroup):
 # ── Object / AABB helpers ─────────────────────────────────────────────────────
 
 def _collect_objects(context: bpy.types.Context, visible_only: bool) -> list:
+    # Delegate to tilestreamingpartition's render-visibility logic so this
+    # preview matches the exporter exactly: Object.hide_render alone misses
+    # a collection disabled for render via its own hide_render flag (the
+    # camera icon on the collection, distinct from the per-view-layer
+    # LayerCollection overrides that visible_get()/hide_get() already see).
+    from . import bridge as _bridge
+    module = _bridge.tile_exporter_module()
     view_layer = context.view_layer
+    render_visibility_map = module._build_collection_render_visibility_map(context.scene)
     return [
         obj for obj in context.scene.objects
         if obj.type == 'MESH'
-        and (not visible_only or (
-            not obj.hide_viewport and not obj.hide_get(view_layer=view_layer)
-        ))
+        and module._is_render_visible(obj, render_visibility_map)
+        and (not visible_only or obj.visible_get(view_layer=view_layer))
     ]
 
 
@@ -757,21 +803,48 @@ def _build_tree_boxes(objects: list, aabbs: dict, settings, use_kdtree: bool) ->
         color = _heatmap_color(t)
         z_min = min(aabbs[obj.name][0].z for obj in objs)
         z_max = max(aabbs[obj.name][1].z for obj in objs)
-        cell_box = _cell_box_from_metadata(module, objs, aabbs, metadata_map)
+
+        # KD-tree node bounds only tighten on the axis they split, so a leaf
+        # can stay floor-wide on the perpendicular axis. The stored
+        # cell_bounds_xy reflects that looseness directly, so always prefer
+        # the tight union AABB of the objects actually assigned to the node
+        # rather than the raw node rectangle.
+        if use_kdtree:
+            x_min = min(aabbs[obj.name][0].x for obj in objs)
+            y_min = min(aabbs[obj.name][0].y for obj in objs)
+            x_max = max(aabbs[obj.name][1].x for obj in objs)
+            y_max = max(aabbs[obj.name][1].y for obj in objs)
+            boxes.append(((x_min, y_min, z_min), (x_max, y_max, z_max), color))
+            continue
+
+        cell_box, had_cell_metadata = _cell_box_from_metadata(module, objs, aabbs, metadata_map)
         if cell_box:
             boxes.append((cell_box[0], cell_box[1], color))
             continue
 
-        if not use_kdtree:
+        union_xy = (
+            min(aabbs[o.name][0].x for o in objs), min(aabbs[o.name][0].y for o in objs),
+            max(aabbs[o.name][1].x for o in objs), max(aabbs[o.name][1].y for o in objs),
+        )
+
+        # If cell metadata existed but was rejected as too loose, node_id was
+        # itself collapsed to a coarser ancestor (see
+        # _collapse_underfilled_tile_tiers in tilestreamingpartition.py), so
+        # reconstructing from node_id would just reproduce the same
+        # oversized rectangle. Go straight to the tight union AABB instead.
+        # Even when metadata was never involved, a structurally correct but
+        # sparse quadtree leaf can still look like "bounding emptiness"; the
+        # same looseness check applies to the reconstructed box too.
+        if not had_cell_metadata:
             bounds = _quadtree_node_xy_bounds(
                 node_id, scene_min_x, scene_min_y, scene_max_x, scene_max_y
             )
-            if bounds:
+            if bounds and not _xy_area_too_loose(bounds, union_xy):
                 nx0, ny0, nx1, ny1 = bounds
                 boxes.append(((nx0, ny0, z_min), (nx1, ny1, z_max), color))
                 continue
 
-        # KD-tree: use union AABB (split positions are data-driven, not reconstructable)
+        # Fallback: tight union AABB of the objects actually in the group.
         x_min = min(aabbs[obj.name][0].x for obj in objs)
         y_min = min(aabbs[obj.name][0].y for obj in objs)
         x_max = max(aabbs[obj.name][1].x for obj in objs)
@@ -1042,7 +1115,12 @@ def _build_tree_runtime_boxes(
         if not objs:
             continue
 
-        cell_box = _cell_box_from_metadata(module, objs, aabbs, metadata_map)
+        # KD-tree node bounds only tighten on the split axis (see
+        # _build_tree_boxes), so always use the tight union AABB there
+        # instead of the raw, possibly floor-wide, node rectangle.
+        cell_box, _had_cell_metadata = (
+            (None, False) if use_kdtree else _cell_box_from_metadata(module, objs, aabbs, metadata_map)
+        )
         if cell_box:
             distance_mn, distance_mx = cell_box
             distance_aabb = {"min": distance_mn, "max": distance_mx}
