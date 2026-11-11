@@ -4016,17 +4016,11 @@ public enum RenderPasses {
 
         renderEncoder.setRenderPipelineState(transparencyPipeline.pipelineState!)
 
-        // XR passthrough: write transparent depth so compositor occlusion/depth edges
-        // match transparent silhouettes against camera passthrough.
-        if renderInfo.immersionStyle == .mixed {
-            if let xrDepthWriteState = getOrCreateTransparencyXRDepthWriteState(device: renderInfo.device) {
-                renderEncoder.setDepthStencilState(xrDepthWriteState)
-            } else {
-                renderEncoder.setDepthStencilState(transparencyPipeline.depthState)
-            }
-        } else {
-            renderEncoder.setDepthStencilState(transparencyPipeline.depthState)
-        }
+        // Which panes write their own depth is decided per material below (see the
+        // isGlass/paneShowsItself check ahead of each draw) — passthrough is not an
+        // exception: a clear pane over nothing still has no real depth to offer the
+        // compositor, so it must not stamp the glass plane's own near depth over it.
+        renderEncoder.setDepthStencilState(transparencyPipeline.depthState)
         renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
 
         var transpCSM = shadowSystem.makeUniforms()
@@ -4341,9 +4335,11 @@ public enum RenderPasses {
                     // A headset's compositor reprojects every pixel by the depth it finds. A pane
                     // that mostly shows itself (dark, frosted) writes its depth, so its tint and
                     // reflections stay on the pane; a clear pane leaves the depth of what is seen
-                    // through it, which is what the eye follows. The other blended materials keep
-                    // the pass's state; passthrough already writes depth for every transparent draw.
-                    if renderInfo.isXRStereoMode, renderInfo.immersionStyle != .mixed {
+                    // through it, which is what the eye follows — in passthrough that is the real
+                    // world behind it, whose depth the glass plane's own distance cannot stand in
+                    // for without mismatching the compositor's reprojection of it on head motion.
+                    // The other blended materials keep the pass's state.
+                    if renderInfo.isXRStereoMode {
                         if isGlass, material.paneShowsItself, let writeState = getOrCreateTransparencyXRDepthWriteState(device: renderInfo.device) {
                             renderEncoder.setDepthStencilState(writeState)
                         } else {
