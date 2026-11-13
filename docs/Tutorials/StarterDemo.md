@@ -76,6 +76,22 @@ renderer.setupCallbacks(
 Use `gameUpdate` for simulation, animation, and other time-based scene changes.
 Use `handleInput` for keyboard, mouse, touch, gamepad, or XR input state.
 
+`deltaTime` is the time from the previous frame's presentation to this one's. To pose
+a moving object for the instant the frame will be shown (on a headset the head pose is
+predicted for that same instant), take the frame's time instead:
+
+```swift
+renderer.setupCallbacks(
+    frameUpdate: { [weak self] frame in
+        // frame.presentationTime, frame.deltaTime, frame.skippedFrames
+        self?.gameScene.update(frame: frame)
+    },
+    handleInput: { [weak self] in
+        self?.gameScene.handleInput()
+    }
+)
+```
+
 The important API shape is:
 
 - `gameUpdate` receives `deltaTime`, so movement and animation can be frame-rate independent.
