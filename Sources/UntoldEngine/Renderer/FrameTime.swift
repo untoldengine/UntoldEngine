@@ -51,7 +51,9 @@ public struct FrameTime: Sendable, Equatable {
     }
 
     /// Whether the display repeated the previous frame before this one.
-    public var wasFrameSkipped: Bool { skippedFrames > 0 }
+    public var wasFrameSkipped: Bool {
+        skippedFrames > 0
+    }
 
     /// No frame yet: every field zero.
     public static let zero = FrameTime(presentationTime: 0, deltaTime: 0, period: 0, skippedFrames: 0, frameIndex: 0)
@@ -79,7 +81,9 @@ public struct FrameClock: Sendable, Equatable {
     }
 
     /// The display's period as the clock knows it, 0 before it knows one.
-    public var period: TimeInterval { nominalPeriod ?? learnedPeriod ?? 0 }
+    public var period: TimeInterval {
+        nominalPeriod ?? learnedPeriod ?? 0
+    }
 
     /// Advances to a frame predicted to be shown at `presentationTime` and returns its time.
     @discardableResult

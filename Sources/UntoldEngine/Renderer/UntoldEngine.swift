@@ -36,7 +36,9 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
 
     /// The frame being prepared or drawn: its predicted presentation time, the delta from the
     /// frame before and whether the display skipped a frame between them.
-    public var frameTime: FrameTime { currentFrameTime }
+    public var frameTime: FrameTime {
+        currentFrameTime
+    }
 
     let frameEvents = FrameEventDispatcher()
 

@@ -92,7 +92,9 @@ public struct TransformTrack: Sendable, Equatable {
     }
 
     /// The time of the last key: the length of one pass.
-    public var duration: TimeInterval { keys.last?.time ?? 0 }
+    public var duration: TimeInterval {
+        keys.last?.time ?? 0
+    }
 
     /// The pose `time` seconds into the track: before the first key the first key's, after the
     /// last the last's (or, looping, the pose that far into the next pass). Nil without keys.
