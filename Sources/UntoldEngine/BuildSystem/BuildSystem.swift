@@ -401,7 +401,8 @@ import Foundation
             Logger.log(message: "📋 Template project created successfully")
         }
 
-        private func createProjectFromEmbeddedTemplates(at projectDir: URL, settings: BuildSettings) throws {
+        /// internal, not private: exercised directly by `BuildSystemTests` via `@testable import`.
+        func createProjectFromEmbeddedTemplates(at projectDir: URL, settings: BuildSettings) throws {
             let fileManager = FileManager.default
 
             // Get template files for the target
@@ -442,6 +443,17 @@ import Foundation
             if let docsDirectory = layout.docsDirectory {
                 try fileManager.createDirectory(at: docsDirectory, withIntermediateDirectories: true)
             }
+
+            // Standard, empty install location for optional Claude Code skills (e.g. a future
+            // Untold Engine AI Development Kit). `.gitkeep` keeps the otherwise-empty directory
+            // tracked by Git; nothing in the engine or build system reads this folder.
+            let claudeSkillsDirectory = projectDir.appendingPathComponent(".claude").appendingPathComponent("skills")
+            try fileManager.createDirectory(at: claudeSkillsDirectory, withIntermediateDirectories: true)
+            try "".write(
+                to: claudeSkillsDirectory.appendingPathComponent(".gitkeep"),
+                atomically: true,
+                encoding: .utf8
+            )
 
             Logger.log(message: "📄 Created \(filesToWrite.count) files from embedded templates")
 
