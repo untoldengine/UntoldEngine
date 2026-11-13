@@ -136,7 +136,7 @@ Notes:
 ## 9. Documentation and Examples
 
 - `docs/API/` — one file per subsystem (`UsingTransformSystem.md`, `UsingMaterials.md`, `UsingLightingSystem.md`, `UsingPhysicsSystem.md`, `UsingScriptingSystem.md`, `UsingCodeComponents.md`, etc.) — the primary source for API usage beyond this file.
-- `docs/Architecture/` — deep-dive design docs (render graph, asset format, streaming, batching, LOD). Note: `docs/Architecture/animationPoseLayer.md` is known to be stale (pre-dates a later pose-layer redesign) — verify animation pose-layer claims against source, not that doc.
+- `docs/Architecture/` — deep-dive design docs (render graph, asset format, streaming, batching, LOD, animation pose pipeline).
 - `docs/Tutorials/`, `docs/Onboarding/` — step-by-step walkthroughs for specific demos and first-project setup.
 - `docs/Extensions/` — plugin/extension authoring guides.
 - `Sources/Demos/*` — the most reliable "does this actually work" reference; prefer reading a demo over inferring usage from a doc alone.
