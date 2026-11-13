@@ -140,6 +140,7 @@ Notes:
 - `docs/Tutorials/`, `docs/Onboarding/` — step-by-step walkthroughs for specific demos and first-project setup.
 - `docs/Extensions/` — plugin/extension authoring guides.
 - `Sources/Demos/*` — the most reliable "does this actually work" reference; prefer reading a demo over inferring usage from a doc alone.
+- `.claude/skills/` — task-specific Claude Code skills for application developers: `untold-entity-scene` (scene/entity/material/light/camera work), `untold-new-project` (scaffolding a new project with the CLI), `untold-asset-pipeline` (Blender → `.untold`/`.untoldgs` export). These load automatically when relevant; read one directly if you want the condensed, example-grounded version of a section above.
 - `Examples/RenderingExtensions/`, `Examples/CodeComponents/` — standalone worked examples of the extension and code-component systems.
 
 ## 10. Rules for AI-Generated Code
