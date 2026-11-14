@@ -85,6 +85,14 @@
             renderer?.setupCallbacks(gameUpdate: gameUpdate, handleInput: handleInput)
         }
 
+        /// Installs the game's per-frame callbacks with the frame's time (see `FrameTime`).
+        public func setupCallbacks(
+            frameUpdate: @escaping (_ frame: FrameTime) -> Void,
+            handleInput: @escaping () -> Void
+        ) {
+            renderer?.setupCallbacks(frameUpdate: frameUpdate, handleInput: handleInput)
+        }
+
         public func drawRectResized(size: CGSize) {
             renderInfo.viewPort = simd_float2(Float(size.width), Float(size.height))
             viewportSizeDidChange = true
@@ -133,7 +141,13 @@
             updateARStates(currentFrame: currentFrame)
             EngineProfiler.shared.endScope(.renderPrep)
 
-            renderer.updateXR()
+            // The host's display link target, if it gave one; otherwise the engine poses the
+            // frame one of the view's periods ahead of now (an MTKView predicts no
+            // presentation time), as the renderer's own draw does.
+            let presentationTime = renderer.predictedPresentationTime
+            renderer.predictedPresentationTime = nil
+            let period = 1.0 / Double(max(view.preferredFramesPerSecond, 1))
+            renderer.updateXR(presentationTime: presentationTime, nominalPeriod: period)
 
             if let renderPassDescriptor = view.currentRenderPassDescriptor {
                 renderInfo.renderPassDescriptor = renderPassDescriptor

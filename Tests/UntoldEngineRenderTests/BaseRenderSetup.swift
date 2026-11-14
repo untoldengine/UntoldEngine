@@ -80,6 +80,7 @@ class BaseRenderSetup: XCTestCase {
         timeSinceLastUpdate = nil
         physicsAccumulator = 0
         simulationStepping = .fixed
+        currentFrameTime = .zero
         firstUpdateCall = false
         frameCount = 0
         timePassedSinceLastFrame = 0.0
