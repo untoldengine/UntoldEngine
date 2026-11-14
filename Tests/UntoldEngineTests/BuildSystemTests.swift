@@ -77,6 +77,40 @@ final class BuildSystemTests: XCTestCase {
         XCTAssertFalse(result, "projectExists should return false when no project exists at the specified path")
     }
 
+    // MARK: - Claude Code skills directory
+
+    func testEmbeddedTemplateGenerationCreatesClaudeSkillsDirectoryWithGitkeep() throws {
+        // Given: Build settings for a fresh project
+        let projectName = "ClaudeSkillsProject"
+        let settings = BuildSettings(
+            projectName: projectName,
+            bundleIdentifier: "com.test.app",
+            outputPath: tempDirectory,
+            target: .macOS(deployment: .v14)
+        )
+        let projectDir = tempDirectory.appendingPathComponent(projectName)
+        try FileManager.default.createDirectory(at: projectDir, withIntermediateDirectories: true)
+
+        // When: Generating the project from embedded templates
+        try buildSystem.createProjectFromEmbeddedTemplates(at: projectDir, settings: settings)
+
+        // Then: An empty, Git-trackable skills install location exists alongside GameData/Resources/Docs
+        let gitkeepPath = projectDir
+            .appendingPathComponent(".claude")
+            .appendingPathComponent("skills")
+            .appendingPathComponent(".gitkeep")
+        var isDirectory: ObjCBool = false
+        XCTAssertTrue(
+            FileManager.default.fileExists(atPath: gitkeepPath.deletingLastPathComponent().path, isDirectory: &isDirectory),
+            ".claude/skills should be created for every generated project"
+        )
+        XCTAssertTrue(isDirectory.boolValue, ".claude/skills should be a directory")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: gitkeepPath.path), ".claude/skills/.gitkeep should exist")
+
+        let gitkeepContent = try String(contentsOf: gitkeepPath, encoding: .utf8)
+        XCTAssertTrue(gitkeepContent.isEmpty, ".gitkeep should be an empty placeholder file")
+    }
+
     // MARK: - isValidProjectStructure Tests
 
     func testIsValidProjectStructureReturnsTrueForValidStructure() {
