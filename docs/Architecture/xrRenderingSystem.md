@@ -267,6 +267,7 @@ Selection rays update from interaction events, not continuously as the user look
 | | macOS (`UpdateRenderingSystem`) | visionOS (`executeXRSystemPass`) |
 |---|---|---|
 | Frame timing | MTKView drives at display rate | CompositorServices dictates via `optimalInputTime` |
+| Frame's time (`FrameTime`) | An estimate: one of the view's periods ahead of the draw, so the delta is the wall-clock spacing of the draws, jitter included. Exact only when the host sets `predictedPresentationTime` from its display link's target | The compositor's predicted presentation time: the delta is the display's period whatever the CPU did |
 | Eyes | 1 | 2 (per-eye loop over `drawable.views`) |
 | Compute passes | Once per frame | Once per frame (shared across both eyes) |
 | View matrix | Camera entity transform | `(originFromDevice × deviceFromView)⁻¹` from ARKit anchor |

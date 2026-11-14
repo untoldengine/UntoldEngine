@@ -141,10 +141,13 @@
             updateARStates(currentFrame: currentFrame)
             EngineProfiler.shared.endScope(.renderPrep)
 
-            // No presentation time is predicted for an MTKView: the frame is posed one of the
-            // view's periods ahead of now.
+            // The host's display link target, if it gave one; otherwise the engine poses the
+            // frame one of the view's periods ahead of now (an MTKView predicts no
+            // presentation time), as the renderer's own draw does.
+            let presentationTime = renderer.predictedPresentationTime
+            renderer.predictedPresentationTime = nil
             let period = 1.0 / Double(max(view.preferredFramesPerSecond, 1))
-            renderer.updateXR(presentationTime: CACurrentMediaTime() + period)
+            renderer.updateXR(presentationTime: presentationTime, nominalPeriod: period)
 
             if let renderPassDescriptor = view.currentRenderPassDescriptor {
                 renderInfo.renderPassDescriptor = renderPassDescriptor

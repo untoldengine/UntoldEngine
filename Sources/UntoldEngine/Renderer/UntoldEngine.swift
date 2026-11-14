@@ -29,9 +29,10 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
     /// Makes each frame's `FrameTime` from the presentation time the host loop predicts.
     var frameClock = FrameClock()
 
-    /// A host that drives `draw(in:)` from its own display link sets the link's target
-    /// timestamp here before each draw; the frame is then posed for that instant instead of
-    /// one period ahead of the draw. The frame consumes it.
+    /// A host that drives `draw(in:)` (this renderer's or the AR renderer's) from its own
+    /// display link sets the link's target timestamp here before each draw; the frame is then
+    /// posed for that instant instead of one period ahead of the draw, and steps by the
+    /// display's period whatever the draws' jitter. The frame consumes it.
     public var predictedPresentationTime: TimeInterval?
 
     /// The frame being prepared or drawn: its predicted presentation time, the delta from the
@@ -838,16 +839,22 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
     }
 
     /// Runs the frame's simulation posed for `presentationTime`, the instant the host loop
-    /// predicts the frame will be shown (nil: one period ahead of now).
+    /// predicts the frame will be shown. A loop that predicts none (an MTKView's draw) passes
+    /// nil and the frame is posed one period ahead of now: its delta is then the spacing of
+    /// the draws on the wall clock, with whatever jitter the draws have.
+    /// `nominalPeriod` is the host display's frame interval (1 / the view's preferred frames
+    /// per second); nil makes the clock learn it from the presentation times, which only
+    /// times on the display's grid, like the compositor's, teach it right, and stands for
+    /// 1/60 s when no time is predicted either.
     @discardableResult
-    public func updateXR(presentationTime: TimeInterval? = nil, useExternalStatsLifecycle: Bool = false) -> Bool {
+    public func updateXR(presentationTime: TimeInterval? = nil, nominalPeriod: TimeInterval? = nil, useExternalStatsLifecycle: Bool = false) -> Bool {
         ObjectMotion.shared.beginFrame()
-        return runFrame(presentationTime: presentationTime, statsLifecycle: useExternalStatsLifecycle ? .externalManaged : .internalManaged)
+        return runFrame(presentationTime: presentationTime, nominalPeriod: nominalPeriod, statsLifecycle: useExternalStatsLifecycle ? .externalManaged : .internalManaged)
     }
 
     @discardableResult
-    public func updateXR(presentationTime: TimeInterval? = nil, render: @escaping () -> Void, useExternalStatsLifecycle: Bool = false) -> Bool {
-        runFrame(presentationTime: presentationTime, render: render, statsLifecycle: useExternalStatsLifecycle ? .externalManaged : .internalManaged)
+    public func updateXR(presentationTime: TimeInterval? = nil, nominalPeriod: TimeInterval? = nil, render: @escaping () -> Void, useExternalStatsLifecycle: Bool = false) -> Bool {
+        runFrame(presentationTime: presentationTime, nominalPeriod: nominalPeriod, render: render, statsLifecycle: useExternalStatsLifecycle ? .externalManaged : .internalManaged)
     }
 
     /// Syncs the physical headset world position into the ECS camera components used by

@@ -113,4 +113,34 @@ final class FrameTimeLoopTests: BaseRenderSetup {
         XCTAssertLessThanOrEqual(renderer.frameTime.presentationTime, after + period)
         XCTAssertEqual(renderer.frameTime.period, period, accuracy: 1e-9)
     }
+
+    func testAFrameWithoutAPredictionTakesTheHostsPeriod() {
+        // What the AR draw passes: no prediction, the view's period.
+        let period: TimeInterval = 1.0 / 120.0
+        let before = CACurrentMediaTime()
+        XCTAssertTrue(renderer.updateXR(nominalPeriod: period))
+        let after = CACurrentMediaTime()
+        XCTAssertGreaterThanOrEqual(renderer.frameTime.presentationTime, before + period)
+        XCTAssertLessThanOrEqual(renderer.frameTime.presentationTime, after + period)
+        XCTAssertEqual(renderer.frameTime.period, period, accuracy: 1e-9)
+    }
+
+    func testAShortGapBetweenTwoFramesDoesNotBecomeThePeriodOfAHostThatNamesIts() {
+        // Two draws half a period apart (the draw after a hitch): with the host's period the
+        // frames that follow skip nothing. A clock left to learn its period would keep the
+        // half and report a skipped refresh on every frame after
+        // (FrameClockTests.testAShortGapBecomesTheLearnedPeriod).
+        let period: TimeInterval = 1.0 / 60.0
+        let start: TimeInterval = 4000.0
+        let times = [start, start + period, start + 1.5 * period, start + 2.5 * period, start + 3.5 * period]
+        var frames: [FrameTime] = []
+        for time in times {
+            XCTAssertTrue(renderer.updateXR(presentationTime: time, nominalPeriod: period))
+            frames.append(renderer.frameTime)
+        }
+        XCTAssertEqual(frames.map(\.skippedFrames), [0, 0, 0, 0, 0])
+        for frame in frames {
+            XCTAssertEqual(frame.period, period, accuracy: 1e-9)
+        }
+    }
 }

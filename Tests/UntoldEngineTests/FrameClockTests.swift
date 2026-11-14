@@ -118,4 +118,23 @@ final class FrameClockTests: XCTestCase {
         XCTAssertEqual(frame.deltaTime, 0)
         XCTAssertEqual(frame.frameIndex, 1)
     }
+
+    func testAShortGapBecomesTheLearnedPeriod() {
+        // Why a host that knows its display's period names it: the learned period is the
+        // shortest spacing seen, right for times on the display's grid (the compositor's)
+        // and wrong for estimates off the wall clock, where one short gap between two draws
+        // halves it and every frame after reports a skipped refresh.
+        let period: TimeInterval = 1.0 / 60.0
+        let times = [0, period, 1.5 * period, 2.5 * period, 3.5 * period].map { 500.0 + $0 }
+
+        var learning = FrameClock()
+        let learned = times.map { learning.advance(toPresentation: $0) }
+        XCTAssertEqual(learned.map(\.skippedFrames), [0, 0, 0, 1, 1])
+        XCTAssertEqual(learning.period, period / 2, accuracy: 1e-9)
+
+        var named = FrameClock(nominalPeriod: period)
+        let told = times.map { named.advance(toPresentation: $0) }
+        XCTAssertEqual(told.map(\.skippedFrames), [0, 0, 0, 0, 0])
+        XCTAssertEqual(named.period, period, accuracy: 1e-9)
+    }
 }

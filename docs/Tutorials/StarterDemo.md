@@ -92,6 +92,15 @@ renderer.setupCallbacks(
 )
 ```
 
+How exact that time is depends on the loop. On Vision Pro it is the compositor's
+prediction, so a moving object steps by the display's period from frame to frame
+whatever the CPU did. An `MTKView` (macOS, iOS, and the AR renderer) predicts no
+presentation time: the engine poses the frame one of the view's periods ahead of the
+draw, and the delta is the spacing of the draws on the wall clock, as it always was. A
+host that drives the view from its own display link can set
+`renderer.predictedPresentationTime` to the link's target timestamp before each draw to
+get the exact time there too.
+
 The important API shape is:
 
 - `gameUpdate` receives `deltaTime`, so movement and animation can be frame-rate independent.
