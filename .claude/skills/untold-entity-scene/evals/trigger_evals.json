@@ -1,0 +1,16 @@
+[
+  {"query": "I'm building my first scene with Untold Engine - how do I add a cube entity, give it a red material, and place it at the origin?", "should_trigger": true},
+  {"query": "can you make the lamp entity a child of the desk entity in my GameScene.swift, offset up by 0.3 on the y axis", "should_trigger": true},
+  {"query": "the robot I loaded with setEntityMeshAsync looks white, I want to change its base color to a dark blue and bump the roughness down a bit", "should_trigger": true},
+  {"query": "add a point light above the table prop in my scene and dial back its intensity so the room isn't blown out", "should_trigger": true},
+  {"query": "I need a third-person camera that follows my player entity around with a bit of a dead zone so it doesn't jitter", "should_trigger": true},
+  {"query": "set up createGameCamera and createDirLight in my GameScene init() like the StarterDemo does, I just want the basic boilerplate", "should_trigger": true},
+  {"query": "my scene has entity 42 (the sword) and entity 7 (the player hand bone) - I want the sword to follow the hand", "should_trigger": true},
+  {"query": "in Unity I'd do transform.SetParent(parentTransform, false) - what's the equivalent for parenting GameObjects in a C# MonoBehaviour script", "should_trigger": false},
+  {"query": "how do I anchor a RealityKit Entity to an AnchorEntity and attach a ModelComponent with a custom material in a visionOS app", "should_trigger": false},
+  {"query": "I'm writing a raw Metal renderer from scratch and need to set up an MTLRenderPipelineDescriptor with a vertex and fragment function for a triangle", "should_trigger": false},
+  {"query": "I have a buffer of vertex data and I'm trying to figure out the right MTLVertexDescriptor layout for position + normal + uv interleaved attributes", "should_trigger": false},
+  {"query": "in my RealityKit app, how do I make an Entity respond to a drag gesture and move it in world space", "should_trigger": false},
+  {"query": "how does ARKit's ARAnchor relate to the entities RealityKit creates for plane detection", "should_trigger": false},
+  {"query": "I'm debugging a crash in UntoldEngine's RegistrationSystem.swift where destroyEntity doesn't call the cleanup handler for a new component type I added - is there a missing ComponentRegistry registration?", "should_trigger": false}
+]

@@ -1,6 +1,6 @@
 ---
 name: untold-entity-scene
-description: Use when adding or modifying scene content in an Untold Engine project — creating entities, loading/placing meshes, parenting, changing materials/colors, adding or tuning lights, or setting up/moving a camera. Triggers on requests like "add a cube to the scene", "make this object a child of that one", "change the material color", "add a point light", "set up a third-person camera". Not for engine-internal development, project scaffolding (see untold-new-project), or asset export (see untold-asset-pipeline).
+description: Use when adding or modifying scene content in an Untold Engine project — creating entities, loading/placing meshes, parenting, changing materials/colors, adding or tuning lights, or setting up/moving a camera. Triggers on requests like "add a cube to the scene", "make this object a child of that one", "change the material color", "add a point light", "set up a third-person camera". Not for engine-internal development, project scaffolding (see untold-new-project), asset export (see untold-asset-pipeline), deeper texture/color-grading work (see untold-materials-color), scene-channel visibility/light-portal grouping (see untold-scene-channels), XR-specific spatial input (see untold-xr-spatial), large manifest-driven tile streaming (see untold-geometry-streaming), animation playback (see untold-animation), physics/collision (see untold-physics), reusable compiled-Swift components (see untold-code-components), async-load completion/sequencing nuances (see untold-async-loading), or multi-level-of-detail setup on one entity (see untold-lod-system).
 version: 0.1.0
 ---
 
@@ -44,6 +44,8 @@ rotateBy(entityId:angle:axis:)
 getPosition(entityId:) / getLocalPosition(entityId:)
 getOrientation(entityId:) / getLocalOrientation(entityId:)
 ```
+
+Full reference: `docs/API/UsingTransformSystem.md`.
 
 These are per-entity. Do **not** use them to move "the whole scene" — for that there's a separate scene-root-level API: `translateSceneTo/By`, `rotateSceneToYaw/ByYaw` (used by large streamed scenes, not typical per-object work).
 

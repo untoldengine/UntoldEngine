@@ -1,0 +1,50 @@
+{
+  "skill_name": "untold-entity-scene",
+  "evals": [
+    {
+      "id": 1,
+      "name": "task1-primitive-color",
+      "fixture": "fixtures/task1-primitive-color",
+      "prompt": "Using Untold Engine, create a new entity named \"marker\", give it a cube mesh, color it red, and position it at (0, 1, 0).",
+      "edit_file": "Sources/Task1/GameScene.swift",
+      "grading_method": "build_plus_checklist",
+      "note": "Mesh/material creation needs a live Metal device (renderInfo.device) that only exists once the renderer is bootstrapped - not available in this bare CLI target. Grade by swift build success + reading the code against the checklist below, not by executing buildScene().",
+      "checklist": [
+        "Creates an entity and names it exactly 'marker' (setEntityName)",
+        "Attaches a cube mesh to it (e.g. setEntityMeshDirect with BasicPrimitives.createCube, or an equivalent real mesh-loading call)",
+        "Sets its base color to a red-ish value via updateMaterialColor (high red, low green/blue) - not by poking Material fields directly",
+        "Positions it at (0, 1, 0) via translateTo",
+        "Uses only real, existing engine functions (no invented APIs like a nonexistent Color(r:g:b:a:) initializer)"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "task2-parenting",
+      "fixture": "fixtures/task2-parenting",
+      "prompt": "Create two entities, \"body\" and \"turret\". Make \"turret\" a child of \"body\" with an offset of (0, 0.5, 0).",
+      "edit_file": "Sources/Task2/GameScene.swift",
+      "grading_method": "execute_and_assert",
+      "note": "Pure ECS/scenegraph logic, no rendering dependency - this harness actually runs buildScene() and asserts the resulting state via getEntityParent/getEntityChildren. swift run exit code 0 + 'ALL CHECKS PASSED' = pass.",
+      "checklist": [
+        "Creates 'body' and 'turret' entities",
+        "Calls setParent(childId: turret, parentId: body, offset: (0, 0.5, 0))",
+        "getEntityParent(turret) == body and getEntityChildren(body) contains turret at runtime"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "task3-camera-light",
+      "fixture": "fixtures/task3-camera-light",
+      "prompt": "Set up basic scene boilerplate: create a game camera named \"mainCamera\" positioned at (0, 3, 10), and add a directional light named \"sun\".",
+      "edit_file": "Sources/Task3/GameScene.swift",
+      "grading_method": "build_plus_checklist",
+      "note": "Camera/light creation needs a live Metal device for the same reason as task 1. Grade by swift build success + reading the code against the checklist below.",
+      "checklist": [
+        "Creates an entity named exactly 'mainCamera' and calls createGameCamera(entityId:) on it",
+        "Sets it as the active camera (setCamera(.active(...))) and/or positions it at (0, 3, 10) via moveCameraTo or translateTo",
+        "Creates a second entity named exactly 'sun' and calls createDirLight(entityId:) on it",
+        "Does not invent a light/camera API beyond createDirLight/createGameCamera and their documented setters"
+      ]
+    }
+  ]
+}

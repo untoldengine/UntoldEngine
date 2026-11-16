@@ -1,6 +1,6 @@
 ---
 name: untold-asset-pipeline
-description: Use when importing or converting 3D assets for Untold Engine — exporting a Blender/USD/USDZ model to the engine's .untold format, exporting animation clips, linking Gaussian-splat (.untoldgs) payloads to an entity, or exporting tiled/streamed scenes. Triggers on "export this model", "convert my Blender file", "load this asset in the engine", "attach a splat to this mesh". Not for runtime scene/entity editing (see untold-entity-scene) or project scaffolding (see untold-new-project).
+description: Use when importing or converting 3D assets for Untold Engine — exporting a Blender/USD/USDZ model to the engine's .untold format, exporting animation clips, linking Gaussian-splat (.untoldgs) payloads to an entity, or exporting tiled/streamed scenes. Triggers on "export this model", "convert my Blender file", "load this asset in the engine", "attach a splat to this mesh". Not for runtime scene/entity editing (see untold-entity-scene), project scaffolding (see untold-new-project), or loading/tuning the exported tiled manifest at runtime (see untold-geometry-streaming).
 version: 0.1.0
 ---
 
