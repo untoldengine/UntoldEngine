@@ -32,13 +32,11 @@
 
 # Untold Engine
 
-Untold Engine is an **open-source Swift/Metal XR engine for Apple
-platforms**. It gives you full control over rendering, shaders, physics,
-and input, so you can build your own interactive spatial and XR worlds.
+**Full control over rendering. Built for Apple platforms.**
 
-> An engine that empowers creativity and never stands in its way — built to
-> let developers focus on creating, not troubleshooting the tools they
-> depend on.
+Untold Engine is an **open-source Swift and Metal engine for macOS, iOS, and
+Apple Vision Pro**. Build exactly the visuals and performance your app needs —
+with direct access to shaders, the rendering pipeline, physics, and input.
 
 Creator & Lead Developer:  
 https://www.haroldserrano.com
@@ -53,18 +51,82 @@ Untold Engine is built for developers and teams who:
 
 - Need **full control over Metal rendering, shaders, physics, and engine systems**
 - Prefer a native **Swift + Metal** architecture on Apple platforms
-- Are building **interactive XR, 3D, or spatial worlds** — not just viewing them
+- Are building **3D, XR, or spatial applications/games** with requirements beyond standard tools
 - Need to handle **large scenes, streaming data, or custom asset pipelines**
 - Want an open engine they can inspect, modify, extend, and embed
 
 Untold Engine is well-suited for:
 
-- Interactive XR experiences on Vision Pro — hand tracking, physics, and gameplay built on ARKit
-- Spatial worlds and digital twins — archviz walkthroughs, tap-to-inspect twins, and city-scale streamed environments
-- Custom rendering pipelines and graphics research — rendering extensions, Gaussian splats, shader-level control
+- **Custom rendering pipelines** — rendering extensions, and shader-level control
+- **Interactive XR experiences on Vision Pro** — hand tracking, physics, and gameplay built on ARKit
 
 The engine owns the rendering and XR foundation. Your app owns the vertical
 workflow, product experience, and customer-specific behavior.
+
+---
+
+## Extend the Renderer
+
+Untold Engine is designed to be extended. Add your own shaders, materials, and
+render passes — or plug in entirely new rendering techniques — without forking
+the engine.
+
+- [Using Rendering Extensions](docs/API/UsingRenderingExtensions.md)
+- [Rendering Extension Examples](Examples/RenderingExtensions/README.md)
+- [Create a Rendering Extension Plugin](docs/Extensions/CreatingRenderingExtensionPlugin.md)
+- [Rendering Extensions Architecture](docs/Architecture/RenderingExtensions.md)
+
+---
+
+# Watch It in Action — Apple Vision Pro Demos
+
+### Custom Rendering
+
+| Demo | Description |
+| --- | --- |
+| [CoolWater](https://github.com/untoldengine/UntoldArcade/tree/main/CoolWater) | Real-time animated water with reflection, refraction, and ripples |
+| [CoolCloth](https://github.com/untoldengine/UntoldArcade/tree/main/CoolCloth) | GPU cloth simulation (XPBD) you can punch a ball through |
+| [CoolSaber](https://github.com/untoldengine/UntoldArcade/tree/main/CoolSaber) | PSVR2-driven energy-blade duels, blades clashing over SharePlay[ |
+
+### Large Scenes & Digital Twins
+
+| Demo | Description |
+| --- | --- |
+| [City Streaming](https://untoldengine.github.io/UntoldEngine/LearningPaths/CityStreamingOnVisionPro/) | City-scale scene streamed in tile by tile with LOD/HLOD |
+| [Archviz Viewer](https://github.com/untoldengine/UntoldArcade/tree/main/ArchvizViewer) | Blender-authored architectural scene walked through in mixed reality |
+| [Bedroom Digital Twin](https://untoldengine.github.io/UntoldEngine/LearningPaths/BedroomDigitalTwin/) | Tap-to-inspect digital twin bedroom with live mock status data |
+
+### Interactive XR
+
+| Demo | Description |
+| --- | --- |
+| [CoolSaber](https://github.com/untoldengine/UntoldArcade/tree/main/CoolSaber) | PSVR2-driven energy-blade duels, blades clashing over SharePlay |
+| [CoolWeb](https://github.com/untoldengine/UntoldArcade/tree/main/CoolWeb) | Web-shooter — gesture-triggered webs that stick to real room geometry |
+| [CoolMirror](https://github.com/untoldengine/UntoldArcade/tree/main/CoolMirror) | Virtual mirror — a rigged character mimics your real-world motion via iPhone + headset tracking |
+| [CoolBasket](https://github.com/untoldengine/UntoldArcade/tree/main/CoolBasket) | Mixed-reality basketball — first demo on the engine's pluggable physics backend seam |
+| [CoolBowling](https://github.com/untoldengine/UntoldArcade/tree/main/CoolBowling) | Mixed-reality bowling with Jolt Physics rigid-body pins you knock down for real |
+| [ImmersiveGol](https://github.com/untoldengine/UntoldArcade/tree/main/ImmersiveGol) | Mixed-reality penalty shootout — save shots from an animated kicker with your tracked hands |
+| [CoolFutbol](https://github.com/untoldengine/UntoldArcade/tree/main/CoolFutbol) | Mixed-reality tabletop soccer controlled with a PSVR2 Sense controller |
+
+Full source for the demos lives in the [UntoldArcade](https://github.com/untoldengine/UntoldArcade) repo.
+
+---
+
+# Current Features
+
+- **Rendering Pipeline Control** — Metal renderer with PBR/IBL workflows, shader-level control, rendering extensions, and post-processing across standard and XR paths
+- **Gaussian Splat Rendering** — Native Metal support for rendering and compositing 3D Gaussian content
+- **LOD and Streaming** — LOD support with geometry streaming, streaming regions, and memory budget management
+- **Static Batching and Culling** — Static batching, octree acceleration, and occlusion culling for large-scene performance
+- **Async Content Loading** — Asynchronous loading pipeline for scenes and assets to improve responsiveness on large worlds
+- **Apple Platform Coverage** — Unified Swift + Metal codebase for macOS, iOS, and visionOS
+- **AR and XR Runtime Support** — Built-in AR workflows plus visionOS integration and spatial interaction support
+- **Spatial Input Features** — XR spatial input helpers including anchored pinch drag, distance tracking, and two-hand rotation
+- **Advanced Picking** — Scene, ground, and GPU ray picking with octree-backed intersection paths
+- **ECS + Scene Graph Core** — Component-based architecture with hierarchical transforms and scene root transform controls
+- **Gameplay Systems** — Physics, animation, camera waypoint, and input systems (keyboard, mouse, touch, and gamepad)
+- **Scripting System (USC)** — Untold Script Core with multi-script support plus camera, math, and physics APIs (Experimental)
+- **Tooling Integration** — Optional Untold Editor workflow and Swift Package Manager integration
 
 ---
 
@@ -81,7 +143,7 @@ workflow, product experience, and customer-specific behavior.
 
 ### For Game/App Developers
 
-Build your own XR, 3D, or spatial app with Untold Engine as a dependency —
+Build your own 3D, XR, or spatial app with Untold Engine as a dependency —
 no need to clone the engine repository. Pick the path that fits how you like
 to work:
 
@@ -98,9 +160,6 @@ to work:
 Both guides take you from nothing installed to a running app with a cube you
 can move in code, and end with pointers to the full
 [Building Your First Vision Pro Scene](docs/Onboarding/BuildingYourFirstVisionProScene.md) and the [Tutorials](https://untoldengine.github.io/UntoldEngine/Tutorials/).
-
-If your team is evaluating Untold Engine and needs an engine capability that is
-not currently available, see [Commercial Use, Sponsored Features, and Support](COMMERCIAL.md).
 
 ### For Contributors
 
@@ -139,47 +198,10 @@ Untold Engine as a package dependency.
 **Reliability · Testing · Simplicity · Compatibility · Developer Experience · Performance**
 
 These principles guide how we design, build, test, and maintain Untold Engine.
+The engine is backed by **1,000+ tests** across rendering, animation,
+streaming, and physics.
 
 Read our [Engineering Principles](docs/Contributor/EngineeringPrinciples.md) for the standards that guide our development decisions.
-
----
-
-# Current Features
-
-- **Apple Platform Coverage** — Unified Swift + Metal codebase for macOS, iOS, and visionOS
-- **Rendering Pipeline Control** — Metal renderer with PBR/IBL workflows, shader-level control, rendering extensions, and post-processing across standard and XR paths
-- **AR and XR Runtime Support** — Built-in AR workflows plus visionOS integration and spatial interaction support
-- **ECS + Scene Graph Core** — Component-based architecture with hierarchical transforms and scene root transform controls
-- **Async Content Loading** — Asynchronous loading pipeline for scenes and assets to improve responsiveness on large worlds
-- **LOD and Streaming** — LOD support with geometry streaming, streaming regions, and memory budget management
-- **Static Batching and Culling** — Static batching, octree acceleration, and occlusion culling for large-scene performance
-- **Advanced Picking** — Scene, ground, and GPU ray picking with octree-backed intersection paths
-- **Spatial Input Features** — XR spatial input helpers including anchored pinch drag, distance tracking, and two-hand rotation
-- **Scripting System (USC)** — Untold Script Core with multi-script support plus camera, math, and physics APIs (Experimental)
-- **Gameplay Systems** — Physics, animation, camera waypoint, and input systems (keyboard, mouse, touch, and gamepad)
-- **Gaussian Splat Rendering** — Native Metal support for rendering and compositing 3D Gaussian content
-- **Tooling Integration** — Optional Untold Editor workflow and Swift Package Manager integration
-
----
-
-# Watch It in Action — Apple Vision Pro Demos
-
-| Demo | Description |
-| --- | --- |
-| [CoolSaber](https://github.com/untoldengine/UntoldArcade/tree/main/CoolSaber) | PSVR2-driven lightsaber duels, blades clashing over SharePlay |
-| [CoolWater](https://github.com/untoldengine/UntoldArcade/tree/main/CoolWater) | Real-time animated water with reflection, refraction, and ripples |
-| [CoolCloth](https://github.com/untoldengine/UntoldArcade/tree/main/CoolCloth) | GPU cloth simulation (XPBD) you can punch a ball through |
-| [CoolWeb](https://github.com/untoldengine/UntoldArcade/tree/main/CoolWeb) | Spider-Man web-shooter — gesture-triggered webs that stick to real room geometry |
-| [CoolBasket](https://github.com/untoldengine/UntoldArcade/tree/main/CoolBasket) | Mixed-reality basketball — first demo on the engine's pluggable physics backend seam |
-| [CoolBowling](https://github.com/untoldengine/UntoldArcade/tree/main/CoolBowling) | Mixed-reality bowling with Jolt Physics rigid-body pins you knock down for real |
-| [ImmersiveGol](https://github.com/untoldengine/UntoldArcade/tree/main/ImmersiveGol) | Mixed-reality penalty shootout — save shots from an animated kicker with your tracked hands |
-| [CoolMirror](https://github.com/untoldengine/UntoldArcade/tree/main/CoolMirror) | Virtual mirror — a rigged character mimics your real-world motion via iPhone + headset tracking |
-| [CoolFutbol](https://github.com/untoldengine/UntoldArcade/tree/main/CoolFutbol) | Mixed-reality tabletop soccer controlled with a PSVR2 Sense controller |
-| [Archviz Viewer](https://github.com/untoldengine/UntoldArcade/tree/main/ArchvizViewer) | Blender-authored architectural scene walked through in mixed reality |
-| [Bedroom Digital Twin](https://untoldengine.github.io/UntoldEngine/LearningPaths/BedroomDigitalTwin/) | Tap-to-inspect digital twin bedroom with live mock status data |
-| [City Streaming](https://untoldengine.github.io/UntoldEngine/LearningPaths/CityStreamingOnVisionPro/) | City-scale scene streamed in tile by tile with LOD/HLOD |
-
-Full source for every demo above lives in the [UntoldArcade](https://github.com/untoldengine/UntoldArcade) repo.
 
 ---
 
@@ -288,16 +310,17 @@ This allows developers to build commercial applications while ensuring improveme
 
 Full license: https://www.mozilla.org/MPL/2.0/
 
-**Need private engine modifications, sponsored feature work, or priority support?** See [COMMERCIAL.md](COMMERCIAL.md) for details.
-
 ---
 
-# Commercial Use, Sponsored Features, and Support
+# Custom Development, Commercial Use, and Support
 
-Untold Engine is open source under MPL-2.0 and can be used in commercial apps.
-Paid commercial options are available for teams that need private engine
-modifications, sponsored engine features, priority support, or custom terms.
+Need a rendering capability that doesn't exist yet? Untold Engine is open
+source under MPL-2.0 and can be used in commercial apps. For teams that need
+more, paid options are available:
 
+- **Custom rendering development** — new rendering features, custom pipelines,
+  and performance work for your app, starting with a focused, paid proof of
+  concept (typically 1–2 weeks).
 - **Sponsored open-source features** — fund roadmap-aligned engine work that is
   released into the public MPL engine.
 - **Commercial license** — keep private modifications to engine internals closed
@@ -305,9 +328,8 @@ modifications, sponsored engine features, priority support, or custom terms.
 - **Priority support / retainers** — get focused help with engine integration,
   rendering issues, performance, and production use.
 
-If your team needs an engine feature that is not currently available, contact 
-[Harold Serrano](https://www.haroldserrano.com/contact) to discuss sponsored feature development, private engine work, commercial licensing, or ongoing support. 
-
+To discuss your project, contact
+[Harold Serrano](https://www.untoldengine.com/consultation).
 See [COMMERCIAL.md](COMMERCIAL.md) for commercial licensing details.
 
 ---
@@ -320,6 +342,7 @@ See [COMMERCIAL.md](COMMERCIAL.md) for commercial licensing details.
 
 # Community
 
+- [Discord](https://discord.gg/pSckCPFxj) — chat with the community
 - [GitHub Discussions](https://github.com/untoldengine/UntoldEngine/discussions) — ideas and questions
 - [GitHub Issues](https://github.com/untoldengine/UntoldEngine/issues) — bugs and tasks
 
