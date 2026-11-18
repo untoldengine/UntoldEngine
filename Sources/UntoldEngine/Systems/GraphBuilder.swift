@@ -217,6 +217,9 @@ public struct RenderGraphBuildContext: Sendable {
     public let frameIndex: UInt64
     public let currentEye: Int
     public let isPrimaryEye: Bool
+    /// The frame's predicted presentation time, its delta from the frame before and the
+    /// refreshes skipped between them (`deltaTime` is its delta as a Float).
+    public let frameTime: FrameTime
 
     public init(
         viewport: SIMD2<Int>,
@@ -224,7 +227,8 @@ public struct RenderGraphBuildContext: Sendable {
         deltaTime: Float = 0,
         frameIndex: UInt64 = 0,
         currentEye: Int,
-        isPrimaryEye: Bool = true
+        isPrimaryEye: Bool = true,
+        frameTime: FrameTime = .zero
     ) {
         self.viewport = viewport
         self.immersionStyle = immersionStyle
@@ -232,6 +236,7 @@ public struct RenderGraphBuildContext: Sendable {
         self.frameIndex = frameIndex
         self.currentEye = currentEye
         self.isPrimaryEye = isPrimaryEye
+        self.frameTime = frameTime
     }
 }
 
@@ -252,6 +257,9 @@ public struct RenderPassContext {
     public let computePipelines: ComputePipelineAccess
     public let renderPipelines: RenderPipelineAccess
     public let sceneRenderTargets: SceneRenderTargetAccess
+    /// The frame's predicted presentation time, its delta from the frame before and the
+    /// refreshes skipped between them (`deltaTime` is its delta as a Float).
+    public let frameTime: FrameTime
 
     public init(
         commandBuffer: MTLCommandBuffer,
@@ -269,7 +277,8 @@ public struct RenderPassContext {
         resources: RenderResourceAccess = RenderResourceAccess(),
         computePipelines: ComputePipelineAccess = ComputePipelineAccess(),
         renderPipelines: RenderPipelineAccess = RenderPipelineAccess(),
-        sceneRenderTargets: SceneRenderTargetAccess = SceneRenderTargetAccess()
+        sceneRenderTargets: SceneRenderTargetAccess = SceneRenderTargetAccess(),
+        frameTime: FrameTime = .zero
     ) {
         self.commandBuffer = commandBuffer
         self.device = device
@@ -287,6 +296,7 @@ public struct RenderPassContext {
         self.computePipelines = computePipelines
         self.renderPipelines = renderPipelines
         self.sceneRenderTargets = sceneRenderTargets
+        self.frameTime = frameTime
     }
 }
 
@@ -861,7 +871,8 @@ func makeRenderGraphBuildContext() -> RenderGraphBuildContext {
         deltaTime: timeSinceLastUpdate ?? 0,
         frameIndex: renderInfo.frameIndex,
         currentEye: renderInfo.currentEye,
-        isPrimaryEye: isPrimaryRenderEye()
+        isPrimaryEye: isPrimaryRenderEye(),
+        frameTime: currentFrameTime
     )
 }
 
@@ -909,7 +920,8 @@ func makeRenderPassContext(
         resources: resources,
         computePipelines: ComputePipelineAccess(),
         renderPipelines: RenderPipelineAccess(),
-        sceneRenderTargets: sceneRenderTargets
+        sceneRenderTargets: sceneRenderTargets,
+        frameTime: currentFrameTime
     )
 }
 
@@ -922,7 +934,8 @@ func makeEngineExtensionUpdateContext() -> EngineExtensionUpdateContext {
         immersionStyle: renderInfo.immersionStyle,
         frameIndex: renderInfo.frameIndex,
         currentEye: renderInfo.currentEye,
-        isPrimaryEye: isPrimaryRenderEye()
+        isPrimaryEye: isPrimaryRenderEye(),
+        frameTime: currentFrameTime
     )
 }
 

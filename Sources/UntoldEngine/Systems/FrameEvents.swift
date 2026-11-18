@@ -13,10 +13,18 @@ import Foundation
 /// Per-frame update event, delivered once per rendered frame regardless of `gameMode`.
 /// Mirrors RealityKit's `SceneEvents.Update`.
 public struct UpdateEvent {
-    /// Seconds elapsed since the previous frame.
+    /// Seconds elapsed since the previous frame: from its presentation to this one's.
     public let deltaTime: TimeInterval
     /// The renderer that produced this frame.
     public let renderer: UntoldRenderer
+    /// The frame's predicted presentation time, its delta and the refreshes skipped before it.
+    public let frameTime: FrameTime
+
+    init(deltaTime: TimeInterval, renderer: UntoldRenderer, frameTime: FrameTime = .zero) {
+        self.deltaTime = deltaTime
+        self.renderer = renderer
+        self.frameTime = frameTime
+    }
 }
 
 /// Token returned by update subscriptions. Call `cancel()` to stop receiving events.

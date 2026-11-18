@@ -33,6 +33,12 @@ public struct EngineTimingStats {
     /// `encodeMs` is then the submission phase: the drawables' command buffers encoded and
     /// committed. The CPU's work in a frame is `updateMs` + `encodeMs`.
     public var xrWaitMs: Double = 0.0
+    /// Milliseconds from the previous frame's predicted presentation to this one's: the
+    /// display's period on a steady cadence, two periods after a skipped frame.
+    public var presentationDeltaMs: Double = 0.0
+    /// Refreshes between the previous frame and this one that showed the previous frame again
+    /// (`FrameTime.skippedFrames`).
+    public var skippedFrames: Int = 0
     public var streamingRegionMs: Double = 0.0
     public var geometryStreamingMs: Double = 0.0
     public var batchingTickMs: Double = 0.0
@@ -53,7 +59,9 @@ public struct EngineTimingStats {
         streamingRegionMs: Double = 0.0,
         geometryStreamingMs: Double = 0.0,
         batchingTickMs: Double = 0.0,
-        batchingRebuildMs: Double = 0.0
+        batchingRebuildMs: Double = 0.0,
+        presentationDeltaMs: Double = 0.0,
+        skippedFrames: Int = 0
     ) {
         self.frameTotalMs = frameTotalMs
         self.smoothedFrameMs = smoothedFrameMs
@@ -70,6 +78,8 @@ public struct EngineTimingStats {
         self.geometryStreamingMs = geometryStreamingMs
         self.batchingTickMs = batchingTickMs
         self.batchingRebuildMs = batchingRebuildMs
+        self.presentationDeltaMs = presentationDeltaMs
+        self.skippedFrames = skippedFrames
     }
 }
 

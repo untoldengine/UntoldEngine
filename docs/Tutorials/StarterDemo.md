@@ -76,6 +76,31 @@ renderer.setupCallbacks(
 Use `gameUpdate` for simulation, animation, and other time-based scene changes.
 Use `handleInput` for keyboard, mouse, touch, gamepad, or XR input state.
 
+`deltaTime` is the time from the previous frame's presentation to this one's. To pose
+a moving object for the instant the frame will be shown (on a headset the head pose is
+predicted for that same instant), take the frame's time instead:
+
+```swift
+renderer.setupCallbacks(
+    frameUpdate: { [weak self] frame in
+        // frame.presentationTime, frame.deltaTime, frame.skippedFrames
+        self?.gameScene.update(frame: frame)
+    },
+    handleInput: { [weak self] in
+        self?.gameScene.handleInput()
+    }
+)
+```
+
+How exact that time is depends on the loop. On Vision Pro it is the compositor's
+prediction, so a moving object steps by the display's period from frame to frame
+whatever the CPU did. An `MTKView` (macOS, iOS, and the AR renderer) predicts no
+presentation time: the engine poses the frame one of the view's periods ahead of the
+draw, and the delta is the spacing of the draws on the wall clock, as it always was. A
+host that drives the view from its own display link can set
+`renderer.predictedPresentationTime` to the link's target timestamp before each draw to
+get the exact time there too.
+
 The important API shape is:
 
 - `gameUpdate` receives `deltaTime`, so movement and animation can be frame-rate independent.

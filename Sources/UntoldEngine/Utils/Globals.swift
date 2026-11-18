@@ -305,6 +305,13 @@ public var timeSinceLastUpdate: Float! {
     set { RuntimeGlobalsStore.shared.timeSinceLastUpdate = newValue }
 }
 
+/// The frame being prepared: its predicted presentation time, the delta from the frame
+/// before and whether the display skipped a frame between them. `.zero` before the first.
+public internal(set) var currentFrameTime: FrameTime {
+    get { RuntimeGlobalsStore.shared.currentFrameTime }
+    set { RuntimeGlobalsStore.shared.currentFrameTime = newValue }
+}
+
 var firstUpdateCall: Bool {
     get { RuntimeGlobalsStore.shared.firstUpdateCall }
     set { RuntimeGlobalsStore.shared.firstUpdateCall = newValue }
@@ -1096,6 +1103,7 @@ private final class RuntimeGlobalsStore: @unchecked Sendable {
     private var globalEntityCounterValue: UInt32 = 0
     private var timeSinceLastUpdatePreviousTimeValue: TimeInterval?
     private var timeSinceLastUpdateValue: Float?
+    private var currentFrameTimeValue: FrameTime = .zero
     private var firstUpdateCallValue: Bool = false
     private var frameCountValue: Int = 0
     private var timePassedSinceLastFrameValue: Float = 0.0
@@ -1192,6 +1200,20 @@ private final class RuntimeGlobalsStore: @unchecked Sendable {
         set {
             lock.lock()
             timeSinceLastUpdateValue = newValue
+            lock.unlock()
+        }
+    }
+
+    var currentFrameTime: FrameTime {
+        get {
+            lock.lock()
+            let value = currentFrameTimeValue
+            lock.unlock()
+            return value
+        }
+        set {
+            lock.lock()
+            currentFrameTimeValue = newValue
             lock.unlock()
         }
     }

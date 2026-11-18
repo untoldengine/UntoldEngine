@@ -26,6 +26,7 @@
     globalEntityCounter = 0
     physicsAccumulator = 0
     simulationStepping = .fixed
+    currentFrameTime = .zero
     needsFinalizeDestroys = false
     hasPendingDestroys = false
     EngineExtensionRegistry.shared.removeAll()

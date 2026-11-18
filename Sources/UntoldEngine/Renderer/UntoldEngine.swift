@@ -23,7 +23,23 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
     public let metalView: MTKView
 
     var gameUpdateCallback: ((_ deltaTime: Float) -> Void)?
+    var frameUpdateCallback: ((FrameTime) -> Void)?
     var handleInputCallback: (() -> Void)?
+
+    /// Makes each frame's `FrameTime` from the presentation time the host loop predicts.
+    var frameClock = FrameClock()
+
+    /// A host that drives `draw(in:)` (this renderer's or the AR renderer's) from its own
+    /// display link sets the link's target timestamp here before each draw; the frame is then
+    /// posed for that instant instead of one period ahead of the draw, and steps by the
+    /// display's period whatever the draws' jitter. The frame consumes it.
+    public var predictedPresentationTime: TimeInterval?
+
+    /// The frame being prepared or drawn: its predicted presentation time, the delta from the
+    /// frame before and whether the display skipped a frame between them.
+    public var frameTime: FrameTime {
+        currentFrameTime
+    }
 
     let frameEvents = FrameEventDispatcher()
 
@@ -141,11 +157,27 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         return renderer
     }
 
+    /// Installs the game's per-frame callbacks. `gameUpdate` receives the seconds from the
+    /// previous frame's presentation to this one's; the frame's own time is `frameTime` (or
+    /// the `currentFrameTime` global) while it runs. Replaces a `frameUpdate` callback.
     public func setupCallbacks(
         gameUpdate: @escaping (_ deltaTime: Float) -> Void,
         handleInput: @escaping () -> Void
     ) {
         gameUpdateCallback = gameUpdate
+        frameUpdateCallback = nil
+        handleInputCallback = handleInput
+    }
+
+    /// Installs the game's per-frame callbacks with the frame's time: the predicted
+    /// presentation time to pose a moving object for, the delta from the frame before and
+    /// the refreshes skipped between them. Replaces a `gameUpdate` callback.
+    public func setupCallbacks(
+        frameUpdate: @escaping (_ frame: FrameTime) -> Void,
+        handleInput: @escaping () -> Void
+    ) {
+        frameUpdateCallback = frameUpdate
+        gameUpdateCallback = nil
         handleInputCallback = handleInput
     }
 
@@ -225,6 +257,10 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         reinitSSAOTextures()
     }
 
+    /// The period assumed for a loop that neither predicts a presentation time nor names its
+    /// display's rate.
+    static let defaultFramePeriod: TimeInterval = 1.0 / 60.0
+
     /// Makes the next frame a first frame: no time passes to it. For a loop that paused on its
     /// own, like the XR loop while its layer was paused; a pause of the GPU gate the clock sees
     /// by itself.
@@ -232,7 +268,13 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         firstUpdateCall = false
     }
 
-    func calculateDeltaTime() {
+    /// Advances the frame clock to the frame's predicted presentation time — the host's, or
+    /// one period ahead of now for a loop that predicts none — and derives the frame's delta
+    /// from it: the time between two presentations, not between two updates, so a path
+    /// stepped by the delta moves by the display's period from one frame to the next.
+    /// `nominalPeriod` is the host display's frame interval; nil lets the clock learn it from
+    /// the presentation times.
+    func calculateDeltaTime(presentationTime: TimeInterval?, nominalPeriod: TimeInterval?) {
         // The engine paused since the last frame (the app inactive or in the background, the
         // headset taken off): no time passes to the first frame after, as to a first frame.
         let resumeCount = GPUSubmissionGate.shared.resumeCount
@@ -241,36 +283,31 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
             firstUpdateCall = false
         }
         if !firstUpdateCall {
-            // init the time properties for the update
-
-            timeSinceLastUpdate = 0.0
-
-            timeSinceLastUpdatePreviousTime = CACurrentMediaTime()
-
+            // The first frame after a reset: no time has passed.
+            frameClock.reset()
             firstUpdateCall = true
-
-            // init fps time properties
             frameCount = 0
             timePassedSinceLastFrame = 0.0
+        }
 
+        let frame: FrameTime
+        if let presentationTime {
+            frameClock.nominalPeriod = nominalPeriod
+            frame = frameClock.advance(toPresentation: presentationTime)
         } else {
-            // figure out the time since we last we drew
-            let currentTime: TimeInterval = CACurrentMediaTime()
+            let period = nominalPeriod ?? Self.defaultFramePeriod
+            frameClock.nominalPeriod = period
+            frame = frameClock.advance(now: CACurrentMediaTime(), lead: period)
+        }
+        currentFrameTime = frame
+        timeSinceLastUpdate = Float(frame.deltaTime)
+        timeSinceLastUpdatePreviousTime = frame.presentationTime
 
-            timeSinceLastUpdate = Float(currentTime - timeSinceLastUpdatePreviousTime)
-
-            // keep track of the time interval between draws
-            timeSinceLastUpdatePreviousTime = currentTime
-
-            // get fps
-            timePassedSinceLastFrame += Float(timeSinceLastUpdate)
-
-            if timePassedSinceLastFrame > 0.1 {
-                // let fps:Float=Float(frameCount)/timePassedSinceLastFrame
-
-                frameCount = 0
-                timePassedSinceLastFrame = 0.0
-            }
+        // fps bookkeeping
+        timePassedSinceLastFrame += Float(frame.deltaTime)
+        if timePassedSinceLastFrame > 0.1 {
+            frameCount = 0
+            timePassedSinceLastFrame = 0.0
         }
     }
 
@@ -312,9 +349,12 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
             let drawStats = RenderStatsCollector.shared.snapshot()
             let tileRenderCosts = auditVisibleTileRenderCosts()
             let memStats = MemoryBudgetManager.shared.getStats()
+            let frame = currentFrameTime
 
             EngineStatsMonitor.shared.update { snapshot in
                 snapshot.timing.frameTotalMs = frameTotalMs
+                snapshot.timing.presentationDeltaMs = frame.deltaTime * 1000.0
+                snapshot.timing.skippedFrames = frame.skippedFrames
 
                 snapshot.render.drawCallsTotal = drawStats.drawCallsTotal
                 snapshot.render.drawCallsOpaque = drawStats.drawCallsOpaque
@@ -481,8 +521,13 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         #endif
     }
 
+    /// Runs one frame: the simulation posed for `presentationTime` — the instant the host
+    /// loop predicts the frame will be shown, or one period ahead of now when nil — then the
+    /// render hooks. `nominalPeriod` is the host display's frame interval, if it knows one.
     @discardableResult
-    private func runFrame(beforeRender: (() -> Void)? = nil,
+    private func runFrame(presentationTime: TimeInterval? = nil,
+                          nominalPeriod: TimeInterval? = nil,
+                          beforeRender: (() -> Void)? = nil,
                           render: (() -> Void)? = nil,
                           afterRender: (() -> Void)? = nil,
                           statsLifecycle: StatsLifecycleMode = .internalManaged) -> Bool
@@ -606,7 +651,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
             let updateStart = CACurrentMediaTime()
         #endif
         EngineProfiler.shared.beginScope(.update)
-        calculateDeltaTime()
+        calculateDeltaTime(presentationTime: presentationTime, nominalPeriod: nominalPeriod)
         traverseSceneGraph()
         handleInputCallback?()
 
@@ -660,12 +705,13 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
 
             // user game update
             gameUpdateCallback?(timeSinceLastUpdate)
+            frameUpdateCallback?(currentFrameTime)
         }
 
         // Per-frame view update event — fires every frame regardless of gameMode
         // (RealityKit SceneEvents.Update semantics)
         if frameEvents.hasSubscribers {
-            frameEvents.dispatch(UpdateEvent(deltaTime: TimeInterval(timeSinceLastUpdate), renderer: self))
+            frameEvents.dispatch(UpdateEvent(deltaTime: TimeInterval(timeSinceLastUpdate), renderer: self, frameTime: currentFrameTime))
         }
         EngineProfiler.shared.endScope(.update)
         #if ENGINE_STATS_ENABLED
@@ -710,7 +756,14 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         // In XR, UntoldEngineXR.renderNewFrame() dispatches this to the main thread
         // separately, since its runLoop() runs on the compositor render thread.
         ProgressiveAssetLoader.shared.tick()
+        // The host's display link target, if it gave one; otherwise the frame is posed one
+        // of the view's periods ahead of now.
+        let presentationTime = predictedPresentationTime
+        predictedPresentationTime = nil
+        let period = 1.0 / Double(max(view.preferredFramesPerSecond, 1))
         _ = runFrame(
+            presentationTime: presentationTime,
+            nominalPeriod: period,
             beforeRender: { [weak self] in self?.delegate?.willDraw(in: view) },
             render: { [weak self] in
                 guard let self else { return }
@@ -785,15 +838,23 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         return renderer
     }
 
+    /// Runs the frame's simulation posed for `presentationTime`, the instant the host loop
+    /// predicts the frame will be shown. A loop that predicts none (an MTKView's draw) passes
+    /// nil and the frame is posed one period ahead of now: its delta is then the spacing of
+    /// the draws on the wall clock, with whatever jitter the draws have.
+    /// `nominalPeriod` is the host display's frame interval (1 / the view's preferred frames
+    /// per second); nil makes the clock learn it from the presentation times, which only
+    /// times on the display's grid, like the compositor's, teach it right, and stands for
+    /// 1/60 s when no time is predicted either.
     @discardableResult
-    public func updateXR(useExternalStatsLifecycle: Bool = false) -> Bool {
+    public func updateXR(presentationTime: TimeInterval? = nil, nominalPeriod: TimeInterval? = nil, useExternalStatsLifecycle: Bool = false) -> Bool {
         ObjectMotion.shared.beginFrame()
-        return runFrame(statsLifecycle: useExternalStatsLifecycle ? .externalManaged : .internalManaged)
+        return runFrame(presentationTime: presentationTime, nominalPeriod: nominalPeriod, statsLifecycle: useExternalStatsLifecycle ? .externalManaged : .internalManaged)
     }
 
     @discardableResult
-    public func updateXR(render: @escaping () -> Void, useExternalStatsLifecycle: Bool = false) -> Bool {
-        runFrame(render: render, statsLifecycle: useExternalStatsLifecycle ? .externalManaged : .internalManaged)
+    public func updateXR(presentationTime: TimeInterval? = nil, nominalPeriod: TimeInterval? = nil, render: @escaping () -> Void, useExternalStatsLifecycle: Bool = false) -> Bool {
+        runFrame(presentationTime: presentationTime, nominalPeriod: nominalPeriod, render: render, statsLifecycle: useExternalStatsLifecycle ? .externalManaged : .internalManaged)
     }
 
     /// Syncs the physical headset world position into the ECS camera components used by

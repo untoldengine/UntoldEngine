@@ -108,6 +108,12 @@
 
         /// Whether the compositor's frame timing budget has been printed (once per space).
         private var loggedFrameTimingBudget = false
+        /// Whether the compositor clock's base has been checked against the media time (once).
+        private var loggedClockBases = false
+        /// Frames whose drawable's presentation time differed from the one predicted at the
+        /// update: the game posed those frames for a slightly different instant than the head.
+        public private(set) var presentationTimeRevisions = 0
+        private var lastPresentationRevisionLogTime: CFTimeInterval = 0
         /// Whether the layer's depth format and the drawable's depth range have been printed.
         private var loggedDepthSetup = false
         /// The layer's depth format and the drawable's depth range (far, near), once a drawable
@@ -200,6 +206,16 @@
             handleInput: @escaping () -> Void
         ) {
             renderer?.setupCallbacks(gameUpdate: gameUpdate, handleInput: handleInput)
+        }
+
+        /// Installs the game's per-frame callbacks with the frame's time: the instant the
+        /// compositor predicts the frame will be shown, which the head pose is predicted for
+        /// too, so an object posed for it keeps step with the head.
+        public func setupCallbacks(
+            frameUpdate: @escaping (_ frame: FrameTime) -> Void,
+            handleInput: @escaping () -> Void
+        ) {
+            renderer?.setupCallbacks(frameUpdate: frameUpdate, handleInput: handleInput)
         }
 
         public func enqueueSpatialInputSnapshot(_ snapshot: XRSpatialInputSnapshot) {
@@ -635,6 +651,13 @@
                 return
             }
 
+            // The instant the compositor predicts the frame will be shown, in the media-time
+            // base: the game poses the frame for it in the update phase, and the head is posed
+            // for the same instant at submission (the drawable's frameTiming, normally this
+            // very value; notePresentationRevision counts the frames where it is not).
+            let predictedPresentationTime = Self.mediaTime(of: timing.presentationTime)
+            logClockBasesOnce()
+
             // 3. Call startUpdate() to mark the start of the update phase
             frame.startUpdate()
             #if ENGINE_STATS_ENABLED
@@ -680,7 +703,7 @@
             syncStreamingCameraPosition()
 
             if !loading {
-                renderer.updateXR(useExternalStatsLifecycle: true)
+                renderer.updateXR(presentationTime: predictedPresentationTime, useExternalStatsLifecycle: true)
             }
 
             // 6. Call endupdate() to mark the end of the update phase
@@ -767,11 +790,18 @@
             let effectiveLoading = loading || loadingNow
 
             var allPresented = true
+            // The frame's presentation time is checked on its first drawable (the built-in
+            // display); a capture drawable shares the timing.
+            var presentationChecked = false
             for drawable in drawables {
                 // 10. Fetch the predicted device anchor from ARKit using the frameTiming information, and
                 // apply the anchor to your frame
                 let presentationInstant = drawable.frameTiming.presentationTime
-                let presentationTimeCA: TimeInterval = compositorInstantToCATime(presentationInstant)
+                let presentationTimeCA: TimeInterval = Self.mediaTime(of: presentationInstant)
+                if !presentationChecked {
+                    presentationChecked = true
+                    notePresentationRevision(predicted: predictedPresentationTime, final: presentationTimeCA)
+                }
                 var deviceAnchor = queryDeviceAnchorIfTrackingRunning(atTimestamp: presentationTimeCA)
 
                 // If predicted-time query misses, retry at "now" to reduce one-frame anchor gaps.
@@ -1375,20 +1405,39 @@
             #endif
         }
 
-        @inline(__always)
-        private func compositorInstantToCATime(_ instant: LayerRenderer.Clock.Instant) -> TimeInterval {
-            let compositorClock = LayerRenderer.Clock()
-            let nowInstant = compositorClock.now
-            let nowCA = CACurrentMediaTime()
+        /// An instant of the compositor's clock as seconds in the `CACurrentMediaTime()` base:
+        /// both count mach absolute time from the boot, the compositor clock's epoch.
+        private static func mediaTime(of instant: LayerRenderer.Clock.Instant) -> TimeInterval {
+            seconds(LayerRenderer.Clock.Instant.epoch.duration(to: instant))
+        }
 
-            // Compute duration between now and the target instant
-            let duration: Duration = nowInstant.duration(to: instant)
+        private static func seconds(_ duration: Duration) -> TimeInterval {
+            let parts = duration.components
+            return Double(parts.seconds) + Double(parts.attoseconds) / 1e18
+        }
 
-            // Convert Duration → seconds
-            let components = duration.components
-            let seconds = Double(components.seconds) + Double(components.attoseconds) / 1e18
+        /// Prints once how far the compositor clock's epoch conversion is from the media time
+        /// read at the same moment: the gap between the two reads, and nothing more, if the
+        /// clocks share their base as the engine assumes.
+        private func logClockBasesOnce() {
+            guard !loggedClockBases else { return }
+            loggedClockBases = true
+            let epochBased = Self.mediaTime(of: LayerRenderer.Clock().now)
+            let mediaTime = CACurrentMediaTime()
+            print(String(format: "XR clock: the compositor epoch's time differs from the media time by %.3f ms", (epochBased - mediaTime) * 1000.0))
+        }
 
-            return nowCA + seconds
+        /// Counts the frames whose final presentation time (the drawable's) differs from the
+        /// one predicted at the update, which the game posed the frame for.
+        private func notePresentationRevision(predicted: TimeInterval, final: TimeInterval) {
+            let difference = final - predicted
+            guard abs(difference) > 0.0005 else { return }
+            presentationTimeRevisions += 1
+            let now = CACurrentMediaTime()
+            if presentationTimeRevisions == 1 || now - lastPresentationRevisionLogTime >= 1.0 {
+                lastPresentationRevisionLogTime = now
+                print(String(format: "XR frame timing: the drawable's presentation time differs from the predicted one by %.2f ms (%d frames so far)", difference * 1000.0, presentationTimeRevisions))
+            }
         }
 
         public func setImmersionMode(xrImmersionMode: UntoldImmersionMode) {

@@ -17,19 +17,24 @@ public struct EngineExtensionUpdateContext: Sendable {
     public let frameIndex: UInt64
     public let currentEye: Int
     public let isPrimaryEye: Bool
+    /// The frame's predicted presentation time, its delta from the frame before and the
+    /// refreshes skipped between them; `.zero` for a context built outside a frame.
+    public let frameTime: FrameTime
 
     public init(
         viewport: SIMD2<Int>,
         immersionStyle: UntoldImmersionMode,
         frameIndex: UInt64,
         currentEye: Int,
-        isPrimaryEye: Bool
+        isPrimaryEye: Bool,
+        frameTime: FrameTime = .zero
     ) {
         self.viewport = viewport
         self.immersionStyle = immersionStyle
         self.frameIndex = frameIndex
         self.currentEye = currentEye
         self.isPrimaryEye = isPrimaryEye
+        self.frameTime = frameTime
     }
 }
 
