@@ -343,7 +343,10 @@ final class GaussianSharedWorkingSet: @unchecked Sendable {
     }
 
     private var residentBytesLocked: Int {
-        (keys + records + visibleSets + entityConstants + budgetReadbacks + [_budgetState] + densityReadbacks + [_densityHistogram]).reduce(0) { $0 + ($1?.length ?? 0) }
+        let buffers: [MTLBuffer?] =
+            keys + records + visibleSets + entityConstants +
+            budgetReadbacks + [_budgetState] + densityReadbacks + [_densityHistogram]
+        return buffers.reduce(0) { $0 + ($1?.length ?? 0) }
     }
 
     /// Tests: fills one slot's key buffer and visible set as if `keys.count` splats had been
